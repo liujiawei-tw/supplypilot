@@ -1,0 +1,23 @@
+CREATE TABLE supplier_materials (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    supplier_id BIGINT NOT NULL,
+    material_id BIGINT NOT NULL,
+    unit_price DECIMAL(19,4) NOT NULL,
+    moq DECIMAL(19,4) NOT NULL,
+    package_multiple DECIMAL(19,4) NULL,
+    lead_time_days INT NOT NULL,
+    currency VARCHAR(10) NOT NULL,
+    status VARCHAR(20) NOT NULL,
+    created_at DATETIME(6) NOT NULL,
+    updated_at DATETIME(6) NOT NULL,
+    CONSTRAINT fk_supplier_materials_supplier FOREIGN KEY (supplier_id) REFERENCES suppliers(id),
+    CONSTRAINT fk_supplier_materials_material FOREIGN KEY (material_id) REFERENCES materials(id),
+    CONSTRAINT uk_supplier_materials_supplier_material UNIQUE (supplier_id, material_id),
+    CONSTRAINT chk_supplier_materials_unit_price CHECK (unit_price >= 0),
+    CONSTRAINT chk_supplier_materials_moq CHECK (moq > 0),
+    CONSTRAINT chk_supplier_materials_package_multiple CHECK (package_multiple IS NULL OR package_multiple > 0),
+    CONSTRAINT chk_supplier_materials_lead_time_days CHECK (lead_time_days >= 0),
+    CONSTRAINT chk_supplier_materials_currency CHECK (currency = 'TWD'),
+    INDEX idx_supplier_materials_material_status (material_id, status),
+    INDEX idx_supplier_materials_supplier_status (supplier_id, status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

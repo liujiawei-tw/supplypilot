@@ -31,6 +31,7 @@ public enum ErrorCode {
     DUPLICATE_MATERIAL("Material is duplicated."),
     DUPLICATE_CODE("Code already exists."),
     DUPLICATE_USERNAME("Username already exists."),
+    DUPLICATE_SUPPLIER_MATERIAL("Supplier material already exists."),
     EXPECTED_DELIVERY_DATE_REQUIRED("Expected delivery date is required."),
     REJECT_REASON_REQUIRED("Reject reason is required."),
     SUPPLIER_OVERRIDE_REASON_REQUIRED("Supplier override reason is required."),
