@@ -66,7 +66,7 @@ cd backend
 
 ## Configuration
 
-The backend supports `local`, `test`, `demo`, and `prod` profiles. Secrets must be supplied through environment variables or a local untracked `.env` file. Production starts with `ddl-auto=validate`, Flyway enabled, exact-origin CORS configuration, and fail-fast validation for required settings.
+The backend supports `local`, `test`, `demo`, and `prod` profiles. Secrets must be supplied through environment variables or a local untracked `.env` file. Production starts with `ddl-auto=validate`, Flyway enabled, and fail-fast validation for required settings. `FRONTEND_ORIGIN` is reserved as the configuration boundary for later CORS and security work; CORS is not implemented in SP-001.
 
 ## V1 Scope
 
