@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SupplyPilot — Recommendation Sequence Diagram</title>
+<style>
+:root{--bg:#0a1020;--text:#ecf2fa;--muted:#98a9c0;--line:#5d6d88}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,"Segoe UI",sans-serif}
+header{position:sticky;top:0;z-index:10;background:rgba(10,16,32,.96);border-bottom:1px solid #26324b;padding:15px 20px}
+h1{margin:0;font-size:23px}.sub{font-size:12px;color:var(--muted);margin-top:5px}
+.toolbar{display:flex;gap:8px;margin-top:10px}button{background:#17223a;color:#e6eef8;border:1px solid #33425f;border-radius:8px;padding:6px 10px;cursor:pointer}
+.viewport{height:calc(100vh - 102px);overflow:auto}.canvas{position:relative;width:2235px;height:1827px;transform-origin:0 0}
+.participant{position:absolute;border:1px solid #34425e;border-radius:9px;background:#131c30;text-align:center;z-index:3;padding:8px 5px}
+.p-name{font-size:10px;font-weight:700;word-break:break-word}.lifeline{position:absolute;border-left:1px dashed #53637f;z-index:1}
+.msg-line{position:absolute;height:1px;background:#7a8ba6;z-index:2}
+.msg-line.arrow-right:after{content:"";position:absolute;right:-1px;top:-4px;border-left:8px solid #7a8ba6;border-top:4px solid transparent;border-bottom:4px solid transparent}
+.msg-line.arrow-left:before{content:"";position:absolute;left:-1px;top:-4px;border-right:8px solid #7a8ba6;border-top:4px solid transparent;border-bottom:4px solid transparent}
+.msg-label{position:absolute;font-size:9px;color:#d5deeb;text-align:center;z-index:3;background:#0a1020;padding:1px 3px}
+.note{position:absolute;background:#13221d;border:1px solid #2d6a53;color:#b8f3d6;border-radius:7px;padding:5px 7px;font-size:9px;text-align:center;z-index:4}
+.selfbox{position:absolute;border:1px solid #53637f;border-left:0;border-radius:0 6px 6px 0;padding:4px 6px;font-size:9px;background:#11192a;z-index:3}
+.exc{position:absolute;background:#25151a;border:1px solid #7f3346;border-radius:7px;padding:7px 10px;font-size:10px;color:#f5c2cf}
+.exc span{margin-left:10px;color:#e89bad}
+.p-actor{border-top:4px solid #60a5fa}.p-security{border-top:4px solid #f59e0b}.p-web{border-top:4px solid #a78bfa}
+.p-service{border-top:4px solid #34d399}.p-repo{border-top:4px solid #94a3b8}.p-query{border-top:4px solid #eab308}.p-calc{border-top:4px solid #fb7185}
+</style>
+</head>
+<body>
+<header>
+<h1>SupplyPilot V1 — Recommendation Sequence Diagram</h1>
+<div class="sub">Security → DTO Validation → Reads → Net Requirement → Hard Constraint → Supplier Quantity → Ranking → Snapshot Transaction</div>
+<div class="toolbar"><button onclick="zoomBy(.1)">放大 +</button><button onclick="zoomBy(-.1)">縮小 −</button><button onclick="fit()">適合視窗</button><button onclick="resetZoom()">100%</button></div>
+</header>
+<div class="viewport" id="viewport"><div class="canvas" id="canvas">
+
+    <div class="participant p-actor" style="left:12px;top:18px;width:116px">
+      <div class="p-name">Client</div>
+    </div>
+    <div class="lifeline" style="left:70px;top:62px;height:1350px"></div>
+    
+    <div class="participant p-security" style="left:167px;top:18px;width:116px">
+      <div class="p-name">JwtFilter</div>
+    </div>
+    <div class="lifeline" style="left:225px;top:62px;height:1350px"></div>
+    
+    <div class="participant p-web" style="left:322px;top:18px;width:116px">
+      <div class="p-name">RecommendationController</div>
+    </div>
+    <div class="lifeline" style="left:380px;top:62px;height:1350px"></div>
+    
+    <div class="participant p-service" style="left:477px;top:18px;width:116px">
+      <div class="p-name">PurchaseRecommendationService</div>
+    </div>
+    <div class="lifeline" style="left:535px;top:62px;height:1350px"></div>
+    
+    <div class="participant p-repo" style="left:632px;top:18px;width:116px">
+      <div class="p-name">MaterialRepository</div>
+    </div>
+    <div class="lifeline" style="left:690px;top:62px;height:1350px"></div>
+    
+    <div class="participant p-repo" style="left:787px;top:18px;width:116px">
+      <div class="p-name">DemandRepository</div>
+    </div>
+    <div class="lifeline" style="left:845px;top:62px;height:1350px"></div>
+    
+    <div class="participant p-repo" style="left:942px;top:18px;width:116px">
+      <div class="p-name">InventoryRepository</div>
+    </div>
+    <div class="lifeline" style="left:1000px;top:62px;height:1350px"></div>
+    
+    <div class="participant p-query" style="left:1097px;top:18px;width:116px">
+      <div class="p-name">IncomingInventoryQuery</div>
+    </div>
+    <div class="lifeline" style="left:1155px;top:62px;height:1350px"></div>
+    
+    <div class="participant p-repo" style="left:1252px;top:18px;width:116px">
+      <div class="p-name">SupplierMaterialRepository</div>
+    </div>
+    <div class="lifeline" style="left:1310px;top:62px;height:1350px"></div>
+    
+    <div class="participant p-calc" style="left:1407px;top:18px;width:116px">
+      <div class="p-name">NetRequirementCalculator</div>
+    </div>
+    <div class="lifeline" style="left:1465px;top:62px;height:1350px"></div>
+    
+    <div class="participant p-calc" style="left:1562px;top:18px;width:116px">
+      <div class="p-name">SupplierConstraintEvaluator</div>
+    </div>
+    <div class="lifeline" style="left:1620px;top:62px;height:1350px"></div>
+    
+    <div class="participant p-calc" style="left:1717px;top:18px;width:116px">
+      <div class="p-name">PurchaseQuantityCalculator</div>
+    </div>
+    <div class="lifeline" style="left:1775px;top:62px;height:1350px"></div>
+    
+    <div class="participant p-calc" style="left:1872px;top:18px;width:116px">
+      <div class="p-name">SupplierRankingService</div>
+    </div>
+    <div class="lifeline" style="left:1930px;top:62px;height:1350px"></div>
+    
+    <div class="participant p-repo" style="left:2027px;top:18px;width:116px">
+      <div class="p-name">PurchaseRecommendationRepository</div>
+    </div>
+    <div class="lifeline" style="left:2085px;top:62px;height:1350px"></div>
+    
+
+        <div class="msg-label" style="left:78px;top:77px;width:139px">POST /api/v1/recommendations</div>
+        <div class="msg-line arrow-right" style="left:70px;top:95px;width:155px"></div>
+        
+        <div class="selfbox" style="left:233px;top:129px;width:130px">Validate JWT + role</div>
+        
+        <div class="msg-label" style="left:233px;top:169px;width:139px">Authenticated request</div>
+        <div class="msg-line arrow-right" style="left:225px;top:187px;width:155px"></div>
+        
+        <div class="selfbox" style="left:388px;top:221px;width:130px">DTO validation</div>
+        
+        <div class="msg-label" style="left:388px;top:261px;width:139px">createRecommendation(request)</div>
+        <div class="msg-line arrow-right" style="left:380px;top:279px;width:155px"></div>
+        
+        <div class="msg-label" style="left:543px;top:307px;width:139px">findById(materialId)</div>
+        <div class="msg-line arrow-right" style="left:535px;top:325px;width:155px"></div>
+        
+        <div class="msg-label" style="left:543px;top:353px;width:139px">Material</div>
+        <div class="msg-line arrow-left" style="left:535px;top:371px;width:155px"></div>
+        
+        <div class="note" style="left:420px;top:403px;width:230px">Validate Material exists + ACTIVE</div>
+        
+        <div class="msg-label" style="left:543px;top:445px;width:294px">sumActiveDemand(materialId, period)</div>
+        <div class="msg-line arrow-right" style="left:535px;top:463px;width:310px"></div>
+        
+        <div class="msg-label" style="left:543px;top:491px;width:294px">expectedDemand</div>
+        <div class="msg-line arrow-left" style="left:535px;top:509px;width:310px"></div>
+        
+        <div class="msg-label" style="left:543px;top:537px;width:449px">findByMaterialId(materialId)</div>
+        <div class="msg-line arrow-right" style="left:535px;top:555px;width:465px"></div>
+        
+        <div class="msg-label" style="left:543px;top:583px;width:449px">currentInventory</div>
+        <div class="msg-line arrow-left" style="left:535px;top:601px;width:465px"></div>
+        
+        <div class="msg-label" style="left:543px;top:629px;width:604px">calculateIncomingQuantity(materialId, periodEnd)</div>
+        <div class="msg-line arrow-right" style="left:535px;top:647px;width:620px"></div>
+        
+        <div class="msg-label" style="left:543px;top:675px;width:604px">incomingInventory</div>
+        <div class="msg-line arrow-left" style="left:535px;top:693px;width:620px"></div>
+        
+        <div class="msg-label" style="left:543px;top:721px;width:914px">calculate(demand, safety, current, incoming)</div>
+        <div class="msg-line arrow-right" style="left:535px;top:739px;width:930px"></div>
+        
+        <div class="msg-label" style="left:543px;top:767px;width:914px">netRequirement</div>
+        <div class="msg-line arrow-left" style="left:535px;top:785px;width:930px"></div>
+        
+        <div class="note" style="left:420px;top:817px;width:230px">if netRequirement == 0 → outcome=PURCHASE_NOT_REQUIRED</div>
+        
+        <div class="msg-label" style="left:543px;top:859px;width:759px">findActiveCandidates(materialId)</div>
+        <div class="msg-line arrow-right" style="left:535px;top:877px;width:775px"></div>
+        
+        <div class="msg-label" style="left:543px;top:905px;width:759px">supplier candidates</div>
+        <div class="msg-line arrow-left" style="left:535px;top:923px;width:775px"></div>
+        
+        <div class="msg-label" style="left:543px;top:951px;width:1069px">evaluate each candidate</div>
+        <div class="msg-line arrow-right" style="left:535px;top:969px;width:1085px"></div>
+        
+        <div class="msg-label" style="left:543px;top:997px;width:1069px">qualified/disqualified</div>
+        <div class="msg-line arrow-left" style="left:535px;top:1015px;width:1085px"></div>
+        
+        <div class="msg-label" style="left:543px;top:1043px;width:1224px">calculate qty for each qualified supplier</div>
+        <div class="msg-line arrow-right" style="left:535px;top:1061px;width:1240px"></div>
+        
+        <div class="msg-label" style="left:543px;top:1089px;width:1224px">recommended quantities</div>
+        <div class="msg-line arrow-left" style="left:535px;top:1107px;width:1240px"></div>
+        
+        <div class="msg-label" style="left:543px;top:1135px;width:1379px">rank(qualified candidates)</div>
+        <div class="msg-line arrow-right" style="left:535px;top:1153px;width:1395px"></div>
+        
+        <div class="msg-label" style="left:543px;top:1181px;width:1379px">ranked candidates</div>
+        <div class="msg-line arrow-left" style="left:535px;top:1199px;width:1395px"></div>
+        
+        <div class="note" style="left:420px;top:1231px;width:230px">if no qualified supplier → outcome=NO_QUALIFIED_SUPPLIER</div>
+        
+        <div class="note" style="left:420px;top:1277px;width:230px">else outcome=SUPPLIER_RECOMMENDED</div>
+        
+        <div class="note" style="left:420px;top:1323px;width:230px">BEGIN @Transactional persistence</div>
+        
+        <div class="msg-label" style="left:543px;top:1365px;width:1534px">save PurchaseRecommendation snapshot</div>
+        <div class="msg-line arrow-right" style="left:535px;top:1383px;width:1550px"></div>
+        
+        <div class="msg-label" style="left:543px;top:1411px;width:1534px">save all SupplierRecommendationResult snapshots</div>
+        <div class="msg-line arrow-right" style="left:535px;top:1429px;width:1550px"></div>
+        
+        <div class="note" style="left:420px;top:1461px;width:230px">COMMIT; partial snapshot is not allowed</div>
+        
+        <div class="msg-label" style="left:388px;top:1503px;width:139px">RecommendationResponse</div>
+        <div class="msg-line arrow-left" style="left:380px;top:1521px;width:155px"></div>
+        
+        <div class="msg-label" style="left:78px;top:1549px;width:294px">201 Created</div>
+        <div class="msg-line arrow-left" style="left:70px;top:1567px;width:310px"></div>
+        
+
+    <div class="exc" style="left:70px;top:1633px;width:2095px">
+      <b>DTO validation fails</b><span>→ 400 VALIDATION_FAILED</span>
+    </div>
+    
+    <div class="exc" style="left:70px;top:1669px;width:2095px">
+      <b>Material not found</b><span>→ 404 MATERIAL_NOT_FOUND</span>
+    </div>
+    
+    <div class="exc" style="left:70px;top:1705px;width:2095px">
+      <b>Material inactive</b><span>→ 400 MATERIAL_INACTIVE</span>
+    </div>
+    
+    <div class="exc" style="left:70px;top:1741px;width:2095px">
+      <b>Persistence failure</b><span>→ Rollback snapshot + 500/409 as mapped</span>
+    </div>
+    
+</div></div>
+<script>
+let zoom=.8; const canvas=document.getElementById('canvas'),viewport=document.getElementById('viewport');
+function apply(){canvas.style.transform=`scale(${zoom})`;canvas.style.marginRight=`${canvas.offsetWidth*(zoom-1)}px`;canvas.style.marginBottom=`${canvas.offsetHeight*(zoom-1)}px`}
+function zoomBy(d){zoom=Math.max(.35,Math.min(1.4,+(zoom+d).toFixed(2)));apply()}
+function resetZoom(){zoom=1;apply()}
+function fit(){zoom=Math.min(1,Math.max(.35,(viewport.clientWidth-20)/2235));apply();viewport.scrollTo({left:0,top:0})}
+window.addEventListener('load',fit);window.addEventListener('resize',()=>{if(zoom<1)fit()});
+</script>
+</body></html>

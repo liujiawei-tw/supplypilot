@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SupplyPilot — Receiving Sequence Diagram</title>
+<style>
+:root{--bg:#0a1020;--text:#edf3fb;--muted:#98a9c0}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,"Segoe UI",sans-serif}
+header{position:sticky;top:0;z-index:10;padding:15px 20px;background:rgba(10,16,32,.96);border-bottom:1px solid #26324b}
+h1{margin:0;font-size:23px}.sub{color:var(--muted);font-size:12px;margin-top:5px}.toolbar{display:flex;gap:8px;margin-top:10px}
+button{background:#17223a;color:#e6eef8;border:1px solid #33425f;border-radius:8px;padding:6px 10px;cursor:pointer}
+.viewport{height:calc(100vh - 102px);overflow:auto}.canvas{position:relative;width:1865px;height:1974px;transform-origin:0 0}
+.participant{position:absolute;background:#131c30;border:1px solid #34425e;border-radius:9px;text-align:center;padding:8px 5px;z-index:3}
+.p-name{font-size:10px;font-weight:700;word-break:break-word}.lifeline{position:absolute;border-left:1px dashed #53637f;z-index:1}
+.msg-line{position:absolute;height:1px;background:#7a8ba6;z-index:2}.msg-line.arrow-right:after{content:"";position:absolute;right:-1px;top:-4px;border-left:8px solid #7a8ba6;border-top:4px solid transparent;border-bottom:4px solid transparent}
+.msg-line.arrow-left:before{content:"";position:absolute;left:-1px;top:-4px;border-right:8px solid #7a8ba6;border-top:4px solid transparent;border-bottom:4px solid transparent}
+.msg-label{position:absolute;font-size:9px;color:#d5deeb;text-align:center;z-index:3;background:#0a1020;padding:1px 3px}
+.note{position:absolute;background:#13221d;border:1px solid #2d6a53;color:#b8f3d6;border-radius:7px;padding:5px 7px;font-size:9px;text-align:center;z-index:4}
+.selfbox{position:absolute;border:1px solid #53637f;border-left:0;border-radius:0 6px 6px 0;padding:4px 6px;font-size:9px;background:#11192a;z-index:3}
+.exc{position:absolute;background:#25151a;border:1px solid #7f3346;border-radius:7px;padding:7px 10px;font-size:10px;color:#f5c2cf}.exc span{margin-left:10px;color:#e89bad}
+.p-actor{border-top:4px solid #60a5fa}.p-security{border-top:4px solid #f59e0b}.p-web{border-top:4px solid #a78bfa}
+.p-service{border-top:4px solid #34d399}.p-repo{border-top:4px solid #94a3b8}.p-domain{border-top:4px solid #f472b6}
+</style></head>
+<body>
+<header><h1>SupplyPilot V1 — Receiving Sequence Diagram</h1><div class="sub">ORDERED → RECEIVED｜PO + Inventory + StockTransaction Atomic Transaction｜Optimistic Lock</div>
+<div class="toolbar"><button onclick="zoomBy(.1)">放大 +</button><button onclick="zoomBy(-.1)">縮小 −</button><button onclick="fit()">適合視窗</button><button onclick="resetZoom()">100%</button></div></header>
+<div class="viewport" id="viewport"><div class="canvas" id="canvas">
+    <div class="participant p-actor" style="left:24px;top:18px;width:132px"><div class="p-name">Client</div></div>
+    <div class="lifeline" style="left:90px;top:64px;height:1360px"></div>
+    
+    <div class="participant p-security" style="left:199px;top:18px;width:132px"><div class="p-name">JwtFilter</div></div>
+    <div class="lifeline" style="left:265px;top:64px;height:1360px"></div>
+    
+    <div class="participant p-web" style="left:374px;top:18px;width:132px"><div class="p-name">PurchaseOrderController</div></div>
+    <div class="lifeline" style="left:440px;top:64px;height:1360px"></div>
+    
+    <div class="participant p-service" style="left:549px;top:18px;width:132px"><div class="p-name">ReceivingService</div></div>
+    <div class="lifeline" style="left:615px;top:64px;height:1360px"></div>
+    
+    <div class="participant p-repo" style="left:724px;top:18px;width:132px"><div class="p-name">PurchaseOrderRepository</div></div>
+    <div class="lifeline" style="left:790px;top:64px;height:1360px"></div>
+    
+    <div class="participant p-repo" style="left:899px;top:18px;width:132px"><div class="p-name">InventoryRepository</div></div>
+    <div class="lifeline" style="left:965px;top:64px;height:1360px"></div>
+    
+    <div class="participant p-domain" style="left:1074px;top:18px;width:132px"><div class="p-name">Inventory</div></div>
+    <div class="lifeline" style="left:1140px;top:64px;height:1360px"></div>
+    
+    <div class="participant p-repo" style="left:1249px;top:18px;width:132px"><div class="p-name">StockTransactionRepository</div></div>
+    <div class="lifeline" style="left:1315px;top:64px;height:1360px"></div>
+    
+    <div class="participant p-domain" style="left:1424px;top:18px;width:132px"><div class="p-name">PurchaseOrder</div></div>
+    <div class="lifeline" style="left:1490px;top:64px;height:1360px"></div>
+    
+    <div class="participant p-security" style="left:1599px;top:18px;width:132px"><div class="p-name">CurrentUserProvider</div></div>
+    <div class="lifeline" style="left:1665px;top:64px;height:1360px"></div>
+    <div class='msg-label' style='left:98px;top:77px;width:159px'>POST /purchase-orders/{id}/receive</div><div class='msg-line arrow-right' style='left:90px;top:95px;width:175px'></div><div class='selfbox' style='left:273px;top:131px;width:165px'>Validate JWT + WAREHOUSE_STAFF/ADMIN</div><div class='msg-label' style='left:273px;top:173px;width:159px'>Authorized request</div><div class='msg-line arrow-right' style='left:265px;top:191px;width:175px'></div><div class='msg-label' style='left:448px;top:221px;width:159px'>receive(poId)</div><div class='msg-line arrow-right' style='left:440px;top:239px;width:175px'></div><div class='msg-label' style='left:623px;top:269px;width:1034px'>get current warehouse user</div><div class='msg-line arrow-right' style='left:615px;top:287px;width:1050px'></div><div class='note' style='left:465px;top:321px;width:300px'>BEGIN @Transactional</div><div class='msg-label' style='left:623px;top:365px;width:159px'>load PO + Items @Version</div><div class='msg-line arrow-right' style='left:615px;top:383px;width:175px'></div><div class='msg-label' style='left:623px;top:413px;width:159px'>PurchaseOrder</div><div class='msg-line arrow-left' style='left:615px;top:431px;width:175px'></div><div class='msg-label' style='left:623px;top:461px;width:859px'>validate ORDERED</div><div class='msg-line arrow-right' style='left:615px;top:479px;width:875px'></div><div class='note' style='left:1340px;top:513px;width:300px'>State Guard prevents already RECEIVED / invalid state</div><div class='msg-label' style='left:623px;top:557px;width:334px'>load Inventory for Item A</div><div class='msg-line arrow-right' style='left:615px;top:575px;width:350px'></div><div class='msg-label' style='left:623px;top:605px;width:334px'>Inventory A @Version</div><div class='msg-line arrow-left' style='left:615px;top:623px;width:350px'></div><div class='msg-label' style='left:623px;top:653px;width:509px'>receive(qty A)</div><div class='msg-line arrow-right' style='left:615px;top:671px;width:525px'></div><div class='msg-label' style='left:623px;top:701px;width:684px'>insert PURCHASE_RECEIVE A</div><div class='msg-line arrow-right' style='left:615px;top:719px;width:700px'></div><div class='msg-label' style='left:623px;top:749px;width:334px'>load Inventory for Item B</div><div class='msg-line arrow-right' style='left:615px;top:767px;width:350px'></div><div class='msg-label' style='left:623px;top:797px;width:334px'>Inventory B @Version</div><div class='msg-line arrow-left' style='left:615px;top:815px;width:350px'></div><div class='msg-label' style='left:623px;top:845px;width:509px'>receive(qty B)</div><div class='msg-line arrow-right' style='left:615px;top:863px;width:525px'></div><div class='msg-label' style='left:623px;top:893px;width:684px'>insert PURCHASE_RECEIVE B</div><div class='msg-line arrow-right' style='left:615px;top:911px;width:700px'></div><div class='note' style='left:465px;top:945px;width:300px'>Repeat for all PO Items; full receiving only in V1</div><div class='msg-label' style='left:623px;top:989px;width:859px'>receive(user, now)</div><div class='msg-line arrow-right' style='left:615px;top:1007px;width:875px'></div><div class='msg-label' style='left:623px;top:1037px;width:159px'>save PO status RECEIVED</div><div class='msg-line arrow-right' style='left:615px;top:1055px;width:175px'></div><div class='note' style='left:465px;top:1089px;width:300px'>Flush checks Inventory/PO optimistic versions</div><div class='note' style='left:465px;top:1137px;width:300px'>COMMIT entire transaction</div><div class='msg-label' style='left:448px;top:1181px;width:159px'>PurchaseOrderResponse</div><div class='msg-line arrow-left' style='left:440px;top:1199px;width:175px'></div><div class='msg-label' style='left:98px;top:1229px;width:334px'>200 RECEIVED</div><div class='msg-line arrow-left' style='left:90px;top:1247px;width:350px'></div><div class='note' style='left:-60px;top:1321px;width:300px'>Concurrent receive example</div><div class='msg-label' style='left:98px;top:1365px;width:509px'>Request A reads ORDERED version=3</div><div class='msg-line arrow-right' style='left:90px;top:1383px;width:525px'></div><div class='msg-label' style='left:98px;top:1413px;width:509px'>Request B reads ORDERED version=3</div><div class='msg-line arrow-right' style='left:90px;top:1431px;width:525px'></div><div class='note' style='left:465px;top:1465px;width:300px'>A commits first → PO version 4</div><div class='note' style='left:465px;top:1513px;width:300px'>B flush/commit fails optimistic lock</div><div class='msg-label' style='left:98px;top:1557px;width:509px'>409 CONCURRENT_MODIFICATION</div><div class='msg-line arrow-left' style='left:90px;top:1575px;width:525px'></div><div class='exc' style='left:80px;top:1658px;width:1705px'><b>PO not found</b><span>→ 404 PURCHASE_ORDER_NOT_FOUND</span></div><div class='exc' style='left:80px;top:1696px;width:1705px'><b>PO status != ORDERED</b><span>→ 409 INVALID_PO_STATUS_TRANSITION</span></div><div class='exc' style='left:80px;top:1734px;width:1705px'><b>Inventory missing</b><span>→ Rollback entire receive; data integrity error</span></div><div class='exc' style='left:80px;top:1772px;width:1705px'><b>Inventory optimistic lock conflict</b><span>→ Rollback entire receive; 409 CONCURRENT_MODIFICATION</span></div><div class='exc' style='left:80px;top:1810px;width:1705px'><b>PO optimistic lock conflict</b><span>→ Rollback entire receive; 409 CONCURRENT_MODIFICATION</span></div><div class='exc' style='left:80px;top:1848px;width:1705px'><b>StockTransaction insert failure</b><span>→ Rollback all Inventory changes + PO state</span></div><div class='exc' style='left:80px;top:1886px;width:1705px'><b>Any unexpected failure</b><span>→ Rollback entire receiving transaction</span></div></div></div>
+<script>
+let zoom=.8; const canvas=document.getElementById('canvas'),viewport=document.getElementById('viewport');
+function apply(){canvas.style.transform=`scale(${zoom})`;canvas.style.marginRight=`${canvas.offsetWidth*(zoom-1)}px`;canvas.style.marginBottom=`${canvas.offsetHeight*(zoom-1)}px`}
+function zoomBy(d){zoom=Math.max(.35,Math.min(1.4,+(zoom+d).toFixed(2)));apply()}
+function resetZoom(){zoom=1;apply()}
+function fit(){zoom=Math.min(1,Math.max(.35,(viewport.clientWidth-20)/1865));apply();viewport.scrollTo({left:0,top:0})}
+window.addEventListener('load',fit);window.addEventListener('resize',()=>{if(zoom<1)fit()});
+</script></body></html>

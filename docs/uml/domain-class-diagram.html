@@ -1,0 +1,392 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SupplyPilot — Domain Class Diagram</title>
+<style>
+:root{--bg:#0a1020;--panel:#121b2e;--line:#5d6d88;--text:#edf3fb;--muted:#9aabc2}
+*{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,"Segoe UI",sans-serif}
+header{position:sticky;top:0;z-index:20;padding:16px 22px;background:rgba(10,16,32,.95);border-bottom:1px solid #26324c;backdrop-filter:blur(10px)}
+h1{margin:0;font-size:24px} .sub{color:var(--muted);font-size:12px;margin-top:5px}
+.toolbar{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap} button{background:#17223a;color:#e8eef8;border:1px solid #33425f;border-radius:8px;padding:6px 10px;cursor:pointer}
+.viewport{height:calc(100vh - 112px);overflow:auto} .canvas{position:relative;width:2500px;height:1300px;transform-origin:0 0}
+.uml-card{position:absolute;background:linear-gradient(180deg,#121c30,#0e1728);border:1px solid #34425e;border-radius:10px;box-shadow:0 10px 28px rgba(0,0,0,.28);overflow:hidden;z-index:3}
+.stereotype{font-size:10px;color:#93a6c1;text-align:center;padding-top:7px} .class-name{font-weight:800;text-align:center;padding:2px 8px 8px}
+.member{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:10px;padding:3px 9px;line-height:1.35} .muted{color:#6f819c}
+.sep{height:1px;background:#2a3650;margin:4px 0} svg{position:absolute;inset:0;z-index:1}
+.rel{fill:none;stroke:var(--line);stroke-width:1.25;opacity:.78} .mult{fill:#cbd5e1;font-size:9px}
+.g-master{border-top:4px solid #60a5fa} .g-inventory{border-top:4px solid #f59e0b} .g-planning{border-top:4px solid #a78bfa}
+.g-recommendation{border-top:4px solid #34d399} .g-procurement{border-top:4px solid #f472b6} .g-security{border-top:4px solid #94a3b8}
+.g-ai{border-top:4px solid #22d3ee} .g-service{border-top:4px solid #fb7185} .g-query{border-top:4px solid #eab308}
+.legend{font-size:11px;color:#a8b5c9;margin-top:8px}
+</style>
+</head>
+<body>
+<header>
+<h1>SupplyPilot V1 — Domain Class Diagram</h1>
+<div class="sub">14 個 Entity + Domain/Application Services + Query Boundary｜反映 Transaction / Validation / Security 後的最新模型</div>
+<div class="toolbar">
+<button onclick="zoomBy(.1)">放大 +</button><button onclick="zoomBy(-.1)">縮小 −</button><button onclick="fit()">適合視窗</button><button onclick="resetZoom()">100%</button>
+</div>
+<div class="legend">實線：Domain association｜虛線：uses / orchestrates / implements｜Aggregate Root / Snapshot / Audit 直接標在 class stereotype</div>
+</header>
+<div class="viewport" id="viewport"><div class="canvas" id="canvas">
+<svg width="2500" height="1300" viewBox="0 0 2500 1300">
+<defs>
+<marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#5d6d88"/></marker>
+<marker id="triangle" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto"><path d="M0,0 L9,5 L0,10 Z" fill="#0a1020" stroke="#5d6d88"/></marker>
+</defs>
+
+    <path d="M190.0,278 L190.0,334.0 L190.0,334.0 L190.0,390" class="rel" style="" marker-end="url(#arrow)"></path>
+    <text x="195.0" y="292" class="mult">1</text>
+    <text x="195.0" y="384" class="mult">1</text>
+    
+    <path d="M340,159.0 L365.0,159.0 L365.0,509.0 L390,509.0" class="rel" style="" marker-end="url(#arrow)"></path>
+    <text x="346" y="153.0" class="mult">1</text>
+    <text x="366" y="503.0" class="mult">*</text>
+    
+    <path d="M690,159.0 L715.0,159.0 L715.0,190.5 L740,190.5" class="rel" style="" marker-end="url(#arrow)"></path>
+    <text x="696" y="153.0" class="mult">1</text>
+    <text x="716" y="184.5" class="mult">*</text>
+    
+    <path d="M340,159.0 L540.0,159.0 L540.0,190.5 L740,190.5" class="rel" style="" marker-end="url(#arrow)"></path>
+    <text x="346" y="153.0" class="mult">1</text>
+    <text x="716" y="184.5" class="mult">*</text>
+    
+    <path d="M340,159.0 L715.0,159.0 L715.0,190.5 L1090,190.5" class="rel" style="" marker-end="url(#arrow)"></path>
+    <text x="346" y="153.0" class="mult">1</text>
+    <text x="1066" y="184.5" class="mult">*</text>
+    
+    <path d="M1390,190.5 L1415.0,190.5 L1415.0,180.0 L1440,180.0" class="rel" style="" marker-end="url(#arrow)"></path>
+    <text x="1396" y="184.5" class="mult">1</text>
+    <text x="1416" y="174.0" class="mult">*</text>
+    
+    <path d="M690,159.0 L1065.0,159.0 L1065.0,180.0 L1440,180.0" class="rel" style="" marker-end="url(#arrow)"></path>
+    <text x="696" y="153.0" class="mult">1</text>
+    <text x="1416" y="174.0" class="mult">*</text>
+    
+    <path d="M690,159.0 L890.0,159.0 L890.0,190.5 L1090,190.5" class="rel" style="" marker-end="url(#arrow)"></path>
+    <text x="696" y="153.0" class="mult">1</text>
+    <text x="1066" y="184.5" class="mult">0..*</text>
+    
+    <path d="M690,159.0 L1065.0,159.0 L1065.0,620.5 L1440,620.5" class="rel" style="" marker-end="url(#arrow)"></path>
+    <text x="696" y="153.0" class="mult">1</text>
+    <text x="1416" y="614.5" class="mult">*</text>
+    
+    <path d="M1740,620.5 L1765.0,620.5 L1765.0,620.5 L1790,620.5" class="rel" style="" marker-end="url(#arrow)"></path>
+    <text x="1746" y="614.5" class="mult">1</text>
+    <text x="1766" y="614.5" class="mult">1..*</text>
+    
+    <path d="M340,159.0 L1065.0,159.0 L1065.0,620.5 L1790,620.5" class="rel" style="" marker-end="url(#arrow)"></path>
+    <text x="346" y="153.0" class="mult">1</text>
+    <text x="1766" y="614.5" class="mult">*</text>
+    
+    <path d="M1390,190.5 L1590.0,190.5 L1590.0,620.5 L1790,620.5" class="rel" style="" marker-end="url(#arrow)"></path>
+    <text x="1396" y="184.5" class="mult">1</text>
+    <text x="1766" y="614.5" class="mult">0..*</text>
+    
+    <path d="M1590.0,320 L1590.0,395.0 L1940.0,395.0 L1940.0,470" class="rel" style="" marker-end="url(#arrow)"></path>
+    <text x="1595.0" y="334" class="mult">1</text>
+    <text x="1945.0" y="464" class="mult">0..*</text>
+    
+    <path d="M340,159.0 L1240.0,159.0 L1240.0,578.5 L2140,578.5" class="rel" style="" marker-end="url(#arrow)"></path>
+    <text x="346" y="153.0" class="mult">1</text>
+    <text x="2116" y="572.5" class="mult">*</text>
+    
+    <path d="M1740,620.5 L1940.0,620.5 L1940.0,578.5 L2140,578.5" class="rel" style="" marker-end="url(#arrow)"></path>
+    <text x="1746" y="614.5" class="mult">1</text>
+    <text x="2116" y="572.5" class="mult">0..*</text>
+    
+    <path d="M1040,509.0 L1065.0,509.0 L1065.0,530.0 L1090,530.0" class="rel" style="" marker-end="url(#arrow)"></path>
+    <text x="1046" y="503.0" class="mult">1</text>
+    <text x="1066" y="524.0" class="mult">*</text>
+    
+    <path d="M340,159.0 L715.0,159.0 L715.0,530.0 L1090,530.0" class="rel" style="" marker-end="url(#arrow)"></path>
+    <text x="346" y="153.0" class="mult">1</text>
+    <text x="1066" y="524.0" class="mult">0..*</text>
+    
+    <path d="M690,159.0 L1415.0,159.0 L1415.0,461.0 L2140,461.0" class="rel" style="" marker-end="url(#arrow)"></path>
+    <text x="696" y="153.0" class="mult">1</text>
+    <text x="2116" y="455.0" class="mult">0..*</text>
+    
+    <path d="M2140,159.0 L1590.0,159.0 L1590.0,509.0 L1040,509.0" class="rel" style="" marker-end="url(#arrow)"></path>
+    <text x="2146" y="153.0" class="mult">1</text>
+    <text x="1016" y="503.0" class="mult">*</text>
+    
+    <path d="M2290.0,278 L2290.0,374.0 L2290.0,374.0 L2290.0,470" class="rel" style="" marker-end="url(#arrow)"></path>
+    <text x="2295.0" y="292" class="mult">1</text>
+    <text x="2295.0" y="464" class="mult">*</text>
+    
+    <path d="M2290.0,278 L2290.0,289.0 L2290.0,289.0 L2290.0,300" class="rel" style="" marker-end="url(#arrow)"></path>
+    <text x="2295.0" y="292" class="mult">1</text>
+    <text x="2295.0" y="294" class="mult">*</text>
+    
+    <path d="M1390,1096.0 L1415.0,1096.0 L1415.0,1096.0 L1440,1096.0" class="rel" style="stroke-dasharray:7 5;" marker-end="url(#triangle)"></path>
+    <text x="1396" y="1090.0" class="mult">interface</text>
+    <text x="1416" y="1090.0" class="mult">implements</text>
+    
+    <path d="M1790,846.0 L1065.0,846.0 L1065.0,846.0 L340,846.0" class="rel" style="stroke-dasharray:7 5;" marker-end="url(#arrow)"></path>
+    <text x="1796" y="840.0" class="mult">uses</text>
+    <text x="316" y="840.0" class="mult"></text>
+    
+    <path d="M1790,846.0 L1240.0,846.0 L1240.0,846.0 L690,846.0" class="rel" style="stroke-dasharray:7 5;" marker-end="url(#arrow)"></path>
+    <text x="1796" y="840.0" class="mult">uses</text>
+    <text x="666" y="840.0" class="mult"></text>
+    
+    <path d="M1790,846.0 L1415.0,846.0 L1415.0,846.0 L1040,846.0" class="rel" style="stroke-dasharray:7 5;" marker-end="url(#arrow)"></path>
+    <text x="1796" y="840.0" class="mult">uses</text>
+    <text x="1016" y="840.0" class="mult"></text>
+    
+    <path d="M1790,846.0 L1765.0,846.0 L1765.0,846.0 L1740,846.0" class="rel" style="stroke-dasharray:7 5;" marker-end="url(#arrow)"></path>
+    <text x="1796" y="840.0" class="mult">uses</text>
+    <text x="1716" y="840.0" class="mult"></text>
+    
+    <path d="M1440,846.0 L1415.0,846.0 L1415.0,846.0 L1390,846.0" class="rel" style="stroke-dasharray:7 5;" marker-end="url(#arrow)"></path>
+    <text x="1446" y="840.0" class="mult">uses</text>
+    <text x="1366" y="840.0" class="mult"></text>
+    
+    <path d="M1790,846.0 L1590.0,846.0 L1590.0,1096.0 L1390,1096.0" class="rel" style="stroke-dasharray:7 5;" marker-end="url(#arrow)"></path>
+    <text x="1796" y="840.0" class="mult">uses</text>
+    <text x="1366" y="1090.0" class="mult"></text>
+    
+    <path d="M340,1138.0 L890.0,1138.0 L890.0,620.5 L1440,620.5" class="rel" style="stroke-dasharray:7 5;" marker-end="url(#arrow)"></path>
+    <text x="346" y="1132.0" class="mult">orchestrates</text>
+    <text x="1416" y="614.5" class="mult"></text>
+    
+    <path d="M690,1096.0 L1065.0,1096.0 L1065.0,620.5 L1440,620.5" class="rel" style="stroke-dasharray:7 5;" marker-end="url(#arrow)"></path>
+    <text x="696" y="1090.0" class="mult">orchestrates</text>
+    <text x="1416" y="614.5" class="mult"></text>
+    
+    <path d="M540.0,1040 L540.0,813.0 L190.0,813.0 L190.0,586" class="rel" style="stroke-dasharray:7 5;" marker-end="url(#arrow)"></path>
+    <text x="545.0" y="1054" class="mult">orchestrates</text>
+    <text x="195.0" y="580" class="mult"></text>
+    
+    <path d="M690,1096.0 L1415.0,1096.0 L1415.0,578.5 L2140,578.5" class="rel" style="stroke-dasharray:7 5;" marker-end="url(#arrow)"></path>
+    <text x="696" y="1090.0" class="mult">creates</text>
+    <text x="2116" y="572.5" class="mult"></text>
+    
+    <path d="M890.0,1040 L890.0,834.0 L890.0,834.0 L890.0,628" class="rel" style="stroke-dasharray:7 5;" marker-end="url(#arrow)"></path>
+    <text x="895.0" y="1054" class="mult">manages</text>
+    <text x="895.0" y="622" class="mult"></text>
+    
+    <path d="M890.0,1040 L890.0,855.0 L1240.0,855.0 L1240.0,670" class="rel" style="stroke-dasharray:7 5;" marker-end="url(#arrow)"></path>
+    <text x="895.0" y="1054" class="mult">manages</text>
+    <text x="1245.0" y="664" class="mult"></text>
+    
+    <path d="M740,1106.5 L540.0,1106.5 L540.0,488.0 L340,488.0" class="rel" style="stroke-dasharray:7 5;" marker-end="url(#arrow)"></path>
+    <text x="746" y="1100.5" class="mult">updates</text>
+    <text x="316" y="482.0" class="mult"></text>
+    
+</svg>
+
+    <section class="uml-card g-master" style="left:40px;top:40px;width:300px">
+      <div class="stereotype">«Entity»</div>
+      <div class="class-name">Material</div>
+      <div class="sep"></div>
+      <div class='member'>− id: Long</div><div class='member'>− code: String</div><div class='member'>− name: String</div><div class='member'>− baseUnit: BaseUnit</div><div class='member'>− safetyStock: BigDecimal</div><div class='member'>− status: MaterialStatus</div>
+      <div class='sep'></div><div class='member'>+ activate()</div><div class='member'>+ inactivate()</div>
+    </section>
+    
+    <section class="uml-card g-master" style="left:390px;top:40px;width:300px">
+      <div class="stereotype">«Entity»</div>
+      <div class="class-name">Supplier</div>
+      <div class="sep"></div>
+      <div class='member'>− id: Long</div><div class='member'>− code: String</div><div class='member'>− name: String</div><div class='member'>− reliabilityScore: BigDecimal</div><div class='member'>− qualityScore: BigDecimal</div><div class='member'>− status: SupplierStatus</div>
+      <div class='sep'></div><div class='member'>+ activate()</div><div class='member'>+ inactivate()</div>
+    </section>
+    
+    <section class="uml-card g-master" style="left:740px;top:40px;width:300px">
+      <div class="stereotype">«Entity»</div>
+      <div class="class-name">SupplierMaterial</div>
+      <div class="sep"></div>
+      <div class='member'>− id: Long</div><div class='member'>− supplier: Supplier</div><div class='member'>− material: Material</div><div class='member'>− unitPrice: BigDecimal</div><div class='member'>− moq: BigDecimal</div><div class='member'>− packageMultiple: BigDecimal?</div><div class='member'>− leadTimeDays: int</div><div class='member'>− currency: Currency</div><div class='member'>− status: SupplierMaterialStatus</div>
+      <div class='sep'></div><div class='member'>+ activate()</div><div class='member'>+ inactivate()</div>
+    </section>
+    
+    <section class="uml-card g-inventory" style="left:40px;top:390px;width:300px">
+      <div class="stereotype">«Aggregate»</div>
+      <div class="class-name">Inventory</div>
+      <div class="sep"></div>
+      <div class='member'>− id: Long</div><div class='member'>− material: Material</div><div class='member'>− quantity: BigDecimal</div><div class='member'>− version: Long</div>
+      <div class='sep'></div><div class='member'>+ receive(qty)</div><div class='member'>+ adjust(delta)</div>
+    </section>
+    
+    <section class="uml-card g-planning" style="left:390px;top:390px;width:300px">
+      <div class="stereotype">«Aggregate»</div>
+      <div class="class-name">Demand</div>
+      <div class="sep"></div>
+      <div class='member'>− id: Long</div><div class='member'>− material: Material</div><div class='member'>− quantity: BigDecimal</div><div class='member'>− requiredDate: LocalDate</div><div class='member'>− status: DemandStatus</div><div class='member'>− note: String?</div>
+      <div class='sep'></div><div class='member'>+ update(...)</div><div class='member'>+ cancel()</div>
+    </section>
+    
+    <section class="uml-card g-inventory" style="left:740px;top:390px;width:300px">
+      <div class="stereotype">«Audit Aggregate»</div>
+      <div class="class-name">InventoryImportBatch</div>
+      <div class="sep"></div>
+      <div class='member'>− id: Long</div><div class='member'>− filename: String</div><div class='member'>− status: InventoryImportStatus</div><div class='member'>− rowCount: int</div><div class='member'>− uploadedBy: User</div>
+      <div class='sep'></div><div class='member'>+ markValidated()</div><div class='member'>+ markImported()</div><div class='member'>+ markValidationFailed()</div>
+    </section>
+    
+    <section class="uml-card g-inventory" style="left:1090px;top:390px;width:300px">
+      <div class="stereotype">«Child Entity»</div>
+      <div class="class-name">InventoryImportItem</div>
+      <div class="sep"></div>
+      <div class='member'>− id: Long</div><div class='member'>− batch: InventoryImportBatch</div><div class='member'>− rowNumber: int</div><div class='member'>− material: Material?</div><div class='member'>− materialCodeSnapshot: String</div><div class='member'>− quantity: BigDecimal?</div><div class='member'>− unit: BaseUnit?</div><div class='member'>− valid: boolean</div><div class='member'>− errorCode: String?</div><div class='member'>− errorMessage: String?</div>
+      
+    </section>
+    
+    <section class="uml-card g-recommendation" style="left:1090px;top:40px;width:300px">
+      <div class="stereotype">«Snapshot Root»</div>
+      <div class="class-name">PurchaseRecommendation</div>
+      <div class="sep"></div>
+      <div class='member'>− id: Long</div><div class='member'>− material: Material</div><div class='member'>− outcome: RecommendationOutcome</div><div class='member'>− expectedDemand: BigDecimal</div><div class='member'>− safetyStock: BigDecimal</div><div class='member'>− currentInventory: BigDecimal</div><div class='member'>− incomingInventory: BigDecimal</div><div class='member'>− netRequirement: BigDecimal</div><div class='member'>− recommendedSupplier: Supplier?</div><div class='member'>− recommendedQuantity: BigDecimal?</div><div class='member'>− recommendedSupplierScore: BigDecimal?</div>
+      
+    </section>
+    
+    <section class="uml-card g-recommendation" style="left:1440px;top:40px;width:300px">
+      <div class="stereotype">«Snapshot Child»</div>
+      <div class="class-name">SupplierRecommendationResult</div>
+      <div class="sep"></div>
+      <div class='member'>− id: Long</div><div class='member'>− recommendation: PurchaseRecommendation</div><div class='member'>− supplier: Supplier</div><div class='member'>− qualified: boolean</div><div class='member'>− disqualifiedReason: DisqualificationReason?</div><div class='member'>− recommendedQuantity: BigDecimal?</div><div class='member'>− unitPriceSnapshot: BigDecimal?</div><div class='member'>− totalCost: BigDecimal?</div><div class='member'>− totalScore: BigDecimal?</div><div class='member'>− rank: Integer?</div>
+      
+    </section>
+    
+    <section class="uml-card g-procurement" style="left:1440px;top:470px;width:300px">
+      <div class="stereotype">«Aggregate Root»</div>
+      <div class="class-name">PurchaseOrder</div>
+      <div class="sep"></div>
+      <div class='member'>− id: Long</div><div class='member'>− poNumber: String</div><div class='member'>− supplier: Supplier</div><div class='member'>− status: PurchaseOrderStatus</div><div class='member'>− expectedDeliveryDate: LocalDate?</div><div class='member'>− rejectReason: String?</div><div class='member'>− version: Long</div>
+      <div class='sep'></div><div class='member'>+ approve(user, now)</div><div class='member'>+ reject(reason, user, now)</div><div class='member'>+ markOrdered(user, now)</div><div class='member'>+ receive(user, now)</div>
+    </section>
+    
+    <section class="uml-card g-procurement" style="left:1790px;top:470px;width:300px">
+      <div class="stereotype">«Aggregate Child»</div>
+      <div class="class-name">PurchaseOrderItem</div>
+      <div class="sep"></div>
+      <div class='member'>− id: Long</div><div class='member'>− material: Material</div><div class='member'>− quantity: BigDecimal</div><div class='member'>− unitPrice: BigDecimal</div><div class='member'>− unit: BaseUnit</div><div class='member'>− recommendation: PurchaseRecommendation?</div><div class='member'>− supplierResult: SupplierRecommendationResult?</div><div class='member'>− recommendedSupplierIdSnapshot: Long?</div><div class='member'>− recommendedQuantitySnapshot: BigDecimal?</div><div class='member'>− supplierOverrideReason: String?</div><div class='member'>− quantityOverrideReason: String?</div>
+      
+    </section>
+    
+    <section class="uml-card g-inventory" style="left:2140px;top:470px;width:300px">
+      <div class="stereotype">«Audit Entity»</div>
+      <div class="class-name">StockTransaction</div>
+      <div class="sep"></div>
+      <div class='member'>− id: Long</div><div class='member'>− material: Material</div><div class='member'>− type: StockTransactionType</div><div class='member'>− quantity: BigDecimal</div><div class='member'>− purchaseOrder: PurchaseOrder?</div><div class='member'>− reason: String?</div><div class='member'>− createdBy: User</div>
+      
+    </section>
+    
+    <section class="uml-card g-security" style="left:2140px;top:40px;width:300px">
+      <div class="stereotype">«Security Entity»</div>
+      <div class="class-name">User</div>
+      <div class="sep"></div>
+      <div class='member'>− id: Long</div><div class='member'>− username: String</div><div class='member'>− passwordHash: String</div><div class='member'>− displayName: String</div><div class='member'>− role: UserRole</div><div class='member'>− status: UserStatus</div>
+      <div class='sep'></div><div class='member'>+ activate()</div><div class='member'>+ inactivate()</div>
+    </section>
+    
+    <section class="uml-card g-ai" style="left:2140px;top:300px;width:300px">
+      <div class="stereotype">«RAG Metadata»</div>
+      <div class="class-name">DocumentMetadata</div>
+      <div class="sep"></div>
+      <div class='member'>− id: Long</div><div class='member'>− documentType: DocumentType</div><div class='member'>− supplier: Supplier?</div><div class='member'>− title: String</div><div class='member'>− version: String</div><div class='member'>− storagePath: String</div><div class='member'>− status: DocumentStatus</div><div class='member'>− uploadedBy: User</div>
+      <div class='sep'></div><div class='member'>+ markProcessing()</div><div class='member'>+ markReady()</div><div class='member'>+ markFailed()</div><div class='member'>+ inactivate()</div>
+    </section>
+    
+    <section class="uml-card g-service" style="left:40px;top:790px;width:300px">
+      <div class="stereotype">«Domain Service»</div>
+      <div class="class-name">NetRequirementCalculator</div>
+      <div class="sep"></div>
+      <div class='member muted'>—</div>
+      <div class='sep'></div><div class='member'>+ calculate(demand, safety, current, incoming): BigDecimal</div>
+    </section>
+    
+    <section class="uml-card g-service" style="left:390px;top:790px;width:300px">
+      <div class="stereotype">«Domain Service»</div>
+      <div class="class-name">PurchaseQuantityCalculator</div>
+      <div class="sep"></div>
+      <div class='member muted'>—</div>
+      <div class='sep'></div><div class='member'>+ calculate(netRequirement, moq, packageMultiple): BigDecimal</div>
+    </section>
+    
+    <section class="uml-card g-service" style="left:740px;top:790px;width:300px">
+      <div class="stereotype">«Domain Service»</div>
+      <div class="class-name">SupplierConstraintEvaluator</div>
+      <div class="sep"></div>
+      <div class='member muted'>—</div>
+      <div class='sep'></div><div class='member'>+ evaluate(supplier, supplierMaterial, requiredDate): Result</div>
+    </section>
+    
+    <section class="uml-card g-service" style="left:1090px;top:790px;width:300px">
+      <div class="stereotype">«Domain Service»</div>
+      <div class="class-name">SupplierScoreCalculator</div>
+      <div class="sep"></div>
+      <div class='member muted'>—</div>
+      <div class='sep'></div><div class='member'>+ calculate(metrics): ScoreBreakdown</div>
+    </section>
+    
+    <section class="uml-card g-service" style="left:1440px;top:790px;width:300px">
+      <div class="stereotype">«Domain Service»</div>
+      <div class="class-name">SupplierRankingService</div>
+      <div class="sep"></div>
+      <div class='member muted'>—</div>
+      <div class='sep'></div><div class='member'>+ rank(candidates): RankedCandidates</div>
+    </section>
+    
+    <section class="uml-card g-service" style="left:1790px;top:790px;width:300px">
+      <div class="stereotype">«Application Service»</div>
+      <div class="class-name">PurchaseRecommendationService</div>
+      <div class="sep"></div>
+      <div class='member muted'>—</div>
+      <div class='sep'></div><div class='member'>+ createRecommendation(command): RecommendationResponse</div>
+    </section>
+    
+    <section class="uml-card g-service" style="left:40px;top:1040px;width:300px">
+      <div class="stereotype">«Application Service»</div>
+      <div class="class-name">PurchaseOrderService</div>
+      <div class="sep"></div>
+      <div class='member muted'>—</div>
+      <div class='sep'></div><div class='member'>+ createDraft(...)</div><div class='member'>+ updateDraft(...)</div><div class='member'>+ approve(...)</div><div class='member'>+ reject(...)</div><div class='member'>+ markOrdered(...)</div>
+    </section>
+    
+    <section class="uml-card g-service" style="left:390px;top:1040px;width:300px">
+      <div class="stereotype">«Application Service»</div>
+      <div class="class-name">ReceivingService</div>
+      <div class="sep"></div>
+      <div class='member muted'>—</div>
+      <div class='sep'></div><div class='member'>+ receive(poId): PurchaseOrderResponse</div>
+    </section>
+    
+    <section class="uml-card g-service" style="left:740px;top:1040px;width:300px">
+      <div class="stereotype">«Application Service»</div>
+      <div class="class-name">InventoryImportService</div>
+      <div class="sep"></div>
+      <div class='member muted'>—</div>
+      <div class='sep'></div><div class='member'>+ validate(file): ValidationPreview</div><div class='member'>+ confirm(batchId): ImportResult</div>
+    </section>
+    
+    <section class="uml-card g-query" style="left:1090px;top:1040px;width:300px">
+      <div class="stereotype">«Query Interface»</div>
+      <div class="class-name">IncomingInventoryQuery</div>
+      <div class="sep"></div>
+      <div class='member muted'>—</div>
+      <div class='sep'></div><div class='member'>+ calculateIncomingQuantity(materialId, requiredDate): BigDecimal</div>
+    </section>
+    
+    <section class="uml-card g-query" style="left:1440px;top:1040px;width:300px">
+      <div class="stereotype">«Query Adapter»</div>
+      <div class="class-name">PurchaseOrderIncomingInventoryQuery</div>
+      <div class="sep"></div>
+      <div class='member muted'>—</div>
+      <div class='sep'></div><div class='member'>+ calculateIncomingQuantity(...): BigDecimal</div>
+    </section>
+    
+</div></div>
+<script>
+let zoom=.72; const canvas=document.getElementById('canvas'), viewport=document.getElementById('viewport');
+function apply(){canvas.style.transform=`scale(${zoom})`;canvas.style.marginRight=`${canvas.offsetWidth*(zoom-1)}px`;canvas.style.marginBottom=`${canvas.offsetHeight*(zoom-1)}px`}
+function zoomBy(d){zoom=Math.max(.35,Math.min(1.35,+(zoom+d).toFixed(2)));apply()}
+function resetZoom(){zoom=1;apply()}
+function fit(){zoom=Math.min(1,Math.max(.35,(viewport.clientWidth-24)/2500));apply();viewport.scrollTo({left:0,top:0})}
+window.addEventListener('load',fit); window.addEventListener('resize',()=>{if(zoom<1)fit()});
+</script>
+</body></html>
