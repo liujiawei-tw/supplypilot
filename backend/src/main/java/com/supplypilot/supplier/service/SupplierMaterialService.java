@@ -40,7 +40,10 @@ public class SupplierMaterialService {
     }
     @Transactional(readOnly = true) @PreAuthorize("hasAnyRole('PROCUREMENT_STAFF','PROCUREMENT_MANAGER','ADMIN')")
     public PageResponse<SupplierMaterialResponse> listSupplierMaterials(Long supplierId, Long materialId, SupplierMaterialStatus status, Pageable pageable) {
-        Specification<SupplierMaterial> spec = Specification.allOf(supplierId == null ? null : (root, query, builder) -> builder.equal(root.get("supplier").get("id"), supplierId), materialId == null ? null : (root, query, builder) -> builder.equal(root.get("material").get("id"), materialId), status == null ? null : (root, query, builder) -> builder.equal(root.get("status"), status));
+        Specification<SupplierMaterial> spec = Specification.unrestricted();
+        if (supplierId != null) spec = spec.and((root, query, builder) -> builder.equal(root.get("supplier").get("id"), supplierId));
+        if (materialId != null) spec = spec.and((root, query, builder) -> builder.equal(root.get("material").get("id"), materialId));
+        if (status != null) spec = spec.and((root, query, builder) -> builder.equal(root.get("status"), status));
         Page<SupplierMaterial> page = supplierMaterialRepository.findAll(spec, pageable); return PageResponse.from(page.map(mapper::toResponse));
     }
     @Transactional(readOnly = true) @PreAuthorize("hasAnyRole('PROCUREMENT_STAFF','PROCUREMENT_MANAGER','ADMIN')")
