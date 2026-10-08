@@ -17,6 +17,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -48,6 +49,27 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(status).body(errorResponse(
                 errorCode,
                 exception.getMessage(),
+                traceId,
+                request.getRequestURI()
+        ));
+    }
+
+    /**
+     * Handles method-security denials raised during controller invocation.
+     * Filter-chain denials are handled by CustomAccessDeniedHandler; this path prevents a
+     * service-level {@code @PreAuthorize} rejection from being converted into a generic 500.
+     */
+    @ExceptionHandler(AccessDeniedException.class)
+    ResponseEntity<ErrorResponse> handleAccessDeniedException(
+            AccessDeniedException exception,
+            HttpServletRequest request
+    ) {
+        String traceId = traceId();
+        log.warn("Access denied: path={}, traceId={}", request.getRequestURI(), traceId);
+
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(errorResponse(
+                ErrorCode.ACCESS_DENIED,
+                ErrorCode.ACCESS_DENIED.getDefaultMessage(),
                 traceId,
                 request.getRequestURI()
         ));

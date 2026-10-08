@@ -16,6 +16,7 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -40,6 +41,7 @@ public class UserService {
     }
 
     @Transactional
+    @PreAuthorize("hasRole('ADMIN')")
     public UserResponse createUser(CreateUserRequest request) {
         String normalizedUsername = request.username().trim();
         if (userRepository.existsByUsername(normalizedUsername)) {
@@ -87,12 +89,14 @@ public class UserService {
     }
 
     @Transactional(readOnly = true)
+    @PreAuthorize("hasRole('ADMIN')")
     public PageResponse<UserResponse> listUsers(Pageable pageable) {
         Page<User> userPage = userRepository.findAll(pageable);
         return PageResponse.from(userPage.map(userMapper::toResponse));
     }
 
     @Transactional
+    @PreAuthorize("hasRole('ADMIN')")
     public UserResponse updateUser(Long id, UpdateUserRequest request) {
         if (request.displayName() != null && request.displayName().trim().isEmpty()) {
             throw new BusinessException(ErrorCode.VALIDATION_FAILED);

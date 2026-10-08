@@ -55,7 +55,7 @@ public enum ErrorCode {
     AI_INVALID_RESPONSE("AI provider returned an invalid response."),
 
     UNAUTHENTICATED("Authentication is required."),
-    ACCESS_DENIED("Access is denied.");
+    ACCESS_DENIED("You do not have permission to perform this operation.");
 
     private final String defaultMessage;
 

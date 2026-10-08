@@ -271,7 +271,7 @@ class AuthIntegrationTests extends AbstractIntegrationTest {
                 username,
                 passwordEncoder.encode("password123"),
                 "User List Tester",
-                UserRole.PROCUREMENT_STAFF,
+                UserRole.ADMIN,
                 clock.instant()
         );
         User savedUser = userRepository.saveAndFlush(user);
