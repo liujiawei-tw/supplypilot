@@ -22,6 +22,7 @@ final class ErrorHttpStatusMapper {
             case DUPLICATE_MATERIAL,
                     DUPLICATE_CODE,
                     DUPLICATE_USERNAME,
+                    DUPLICATE_SUPPLIER_MATERIAL,
                     PO_NOT_EDITABLE,
                     INVALID_PO_STATUS,
                     INVALID_PO_STATUS_TRANSITION,
