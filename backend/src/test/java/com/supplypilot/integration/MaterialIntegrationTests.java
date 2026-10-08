@@ -8,6 +8,9 @@ import com.supplypilot.material.dto.request.CreateMaterialRequest;
 import com.supplypilot.material.service.MaterialService;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.parallel.Execution;
+import org.junit.jupiter.api.parallel.ExecutionMode;
+import org.junit.jupiter.api.parallel.Isolated;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.access.AccessDeniedException;
@@ -16,6 +19,7 @@ import org.springframework.security.test.context.support.WithMockUser;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+@Isolated
 class MaterialIntegrationTests extends AbstractIntegrationTest {
     @Autowired private MaterialService materialService;
     @Autowired private InventoryRepository inventoryRepository;
@@ -35,10 +39,23 @@ class MaterialIntegrationTests extends AbstractIntegrationTest {
     }
 
     @Test
+    @Execution(ExecutionMode.SAME_THREAD)
     @WithMockUser(roles = "ADMIN")
     void rollsBackMaterialWhenRealDatabaseRejectsInventoryPersistence() {
-        jdbcTemplate.execute("ALTER TABLE inventory ADD CONSTRAINT chk_inventory_test_nonzero CHECK (quantity <> 0)");
+        String constraintName = "chk_inventory_rollback_" + java.util.UUID.randomUUID().toString().replace("-", "").substring(0, 12);
+        boolean constraintCreated = false;
+        Long originalNextMaterialId = null;
         try {
+            originalNextMaterialId = jdbcTemplate.queryForObject("""
+                    SELECT COALESCE(AUTO_INCREMENT, 1)
+                    FROM information_schema.tables
+                    WHERE table_schema = DATABASE() AND table_name = 'materials'
+                    """, Long.class);
+            long reservedMaterialId = originalNextMaterialId + 1_000_000L;
+            jdbcTemplate.execute("ALTER TABLE materials AUTO_INCREMENT = " + reservedMaterialId);
+            jdbcTemplate.execute("ALTER TABLE inventory ADD CONSTRAINT " + constraintName
+                    + " CHECK (quantity <> 0 OR material_id <> " + reservedMaterialId + ")");
+            constraintCreated = true;
             assertThatThrownBy(() -> materialService.createMaterial(new CreateMaterialRequest(
                     "MAT-INTEGRATION-ROLLBACK", "Rollback Berry", BaseUnit.KG, BigDecimal.ZERO
             ))).isInstanceOf(Exception.class);
@@ -47,7 +64,12 @@ class MaterialIntegrationTests extends AbstractIntegrationTest {
                     "SELECT COUNT(*) FROM materials WHERE code = ?", Integer.class, "MAT-INTEGRATION-ROLLBACK");
             assertThat(materialCount).isZero();
         } finally {
-            jdbcTemplate.execute("ALTER TABLE inventory DROP CHECK chk_inventory_test_nonzero");
+            if (constraintCreated) {
+                jdbcTemplate.execute("ALTER TABLE inventory DROP CHECK " + constraintName);
+            }
+            if (originalNextMaterialId != null) {
+                jdbcTemplate.execute("ALTER TABLE materials AUTO_INCREMENT = " + originalNextMaterialId);
+            }
         }
     }
 

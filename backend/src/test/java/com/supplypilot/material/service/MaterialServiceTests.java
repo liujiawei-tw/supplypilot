@@ -78,4 +78,23 @@ class MaterialServiceTests {
         assertThatThrownBy(() -> materialService.createMaterial(new CreateMaterialRequest("MAT-001", "Berry", BaseUnit.KG, BigDecimal.ZERO)))
                 .isInstanceOf(DataIntegrityViolationException.class);
     }
+
+    @Test
+    void translatesMaterialCodeUniqueConstraintViolationToDuplicateCode() {
+        org.hibernate.exception.ConstraintViolationException constraintViolation =
+                new org.hibernate.exception.ConstraintViolationException(
+                        "Duplicate entry for uk_materials_code",
+                        new java.sql.SQLException("Duplicate entry", "23000", 1062),
+                        "uk_materials_code"
+                );
+        when(materialRepository.existsByCode("MAT-001")).thenReturn(false);
+        when(materialRepository.saveAndFlush(any(Material.class)))
+                .thenThrow(new DataIntegrityViolationException("could not execute statement", constraintViolation));
+
+        assertThatThrownBy(() -> materialService.createMaterial(
+                new CreateMaterialRequest("MAT-001", "Berry", BaseUnit.KG, BigDecimal.ZERO)))
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCode")
+                .isEqualTo(ErrorCode.DUPLICATE_CODE);
+    }
 }
