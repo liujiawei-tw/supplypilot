@@ -3,7 +3,11 @@ import type { ApiErrorResponse } from '../types/api';
 
 export const TOKEN_STORAGE_KEY = 'supplypilot.accessToken';
 
-const baseURL = import.meta.env.VITE_API_BASE_URL || '/api/v1';
+const baseURL = import.meta.env.VITE_API_BASE_URL;
+
+if (!baseURL) {
+  throw new Error('VITE_API_BASE_URL is required');
+}
 
 export const axiosClient = axios.create({
   baseURL,
