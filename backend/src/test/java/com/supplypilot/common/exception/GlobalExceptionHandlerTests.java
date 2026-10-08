@@ -75,6 +75,19 @@ class GlobalExceptionHandlerTests {
     }
 
     @Test
+    void malformedJsonReturns400ValidationFailed() throws Exception {
+        mockMvc.perform(post("/test/validate")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{invalid-json"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"))
+                .andExpect(jsonPath("$.message").value("Request validation failed."))
+                .andExpect(jsonPath("$.traceId").isNotEmpty())
+                .andExpect(jsonPath("$.timestamp").value(FIXED_TIME.toString()))
+                .andExpect(jsonPath("$.path").value("/test/validate"));
+    }
+
+    @Test
     void notFoundBusinessExceptionReturns404() throws Exception {
         assertBusinessError("not-found", 404, ErrorCode.MATERIAL_NOT_FOUND);
     }

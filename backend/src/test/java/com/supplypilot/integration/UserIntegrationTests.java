@@ -11,6 +11,8 @@ import com.supplypilot.user.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -161,6 +163,213 @@ class UserIntegrationTests extends AbstractIntegrationTest {
         mockMvc.perform(get("/api/v1/users")
                         .param("page", "-1")
                         .param("size", "20"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"));
+    }
+
+    @Test
+    @DisplayName("Username with surrounding whitespace is rejected as duplicate against normalized username")
+    void testUsernameWhitespaceDuplication() throws Exception {
+        mockMvc.perform(post("/api/v1/users")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "username": "space_user",
+                                  "password": "password123",
+                                  "displayName": "Space User",
+                                  "role": "WAREHOUSE_STAFF"
+                                }
+                                """))
+                .andExpect(status().isCreated());
+
+        mockMvc.perform(post("/api/v1/users")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "username": "   space_user   ",
+                                  "password": "password123",
+                                  "displayName": "Duplicate Space User",
+                                  "role": "ADMIN"
+                                }
+                                """))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("DUPLICATE_USERNAME"));
+    }
+
+    @Test
+    @DisplayName("Username with different casing is rejected under MySQL utf8mb4_unicode_ci collation")
+    void testUsernameCaseInsensitiveCollation() throws Exception {
+        mockMvc.perform(post("/api/v1/users")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "username": "case_user",
+                                  "password": "password123",
+                                  "displayName": "Case User",
+                                  "role": "ADMIN"
+                                }
+                                """))
+                .andExpect(status().isCreated());
+
+        mockMvc.perform(post("/api/v1/users")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "username": "CASE_USER",
+                                  "password": "password123",
+                                  "displayName": "Uppercase Case User",
+                                  "role": "ADMIN"
+                                }
+                                """))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("DUPLICATE_USERNAME"));
+    }
+
+    @ParameterizedTest(name = "PATCH /api/v1/users/[id] rejects disallowed field: {0}")
+    @ValueSource(strings = {"password", "passwordHash", "username", "id", "createdAt", "updatedAt"})
+    void testDisallowedFieldsInPatch(String disallowedField) throws Exception {
+        // Create user first
+        String response = mockMvc.perform(post("/api/v1/users")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "username": "patch_disallowed_%s",
+                                  "password": "password123",
+                                  "displayName": "Test User",
+                                  "role": "ADMIN"
+                                }
+                                """.formatted(disallowedField)))
+                .andExpect(status().isCreated())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        Matcher matcher = Pattern.compile("\"id\":\\s*(\\d+)").matcher(response);
+        assertThat(matcher.find()).isTrue();
+        Long id = Long.parseLong(matcher.group(1));
+
+        mockMvc.perform(patch("/api/v1/users/{id}", id)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "%s": "forbiddenValue"
+                                }
+                                """.formatted(disallowedField)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"));
+    }
+
+    @Test
+    @DisplayName("PATCH /api/v1/users/{id} rejects blank displayName")
+    void testBlankDisplayNameInPatch() throws Exception {
+        String response = mockMvc.perform(post("/api/v1/users")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "username": "patch_blank_name_user",
+                                  "password": "password123",
+                                  "displayName": "Original Name",
+                                  "role": "ADMIN"
+                                }
+                                """))
+                .andExpect(status().isCreated())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        Matcher matcher = Pattern.compile("\"id\":\\s*(\\d+)").matcher(response);
+        assertThat(matcher.find()).isTrue();
+        Long id = Long.parseLong(matcher.group(1));
+
+        mockMvc.perform(patch("/api/v1/users/{id}", id)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "displayName": "   "
+                                }
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"));
+    }
+
+    @Test
+    @DisplayName("Invalid UserRole or UserStatus returns 400 VALIDATION_FAILED, not 500")
+    void testInvalidEnums() throws Exception {
+        // Invalid UserRole on create
+        mockMvc.perform(post("/api/v1/users")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "username": "invalid_enum_user",
+                                  "password": "password123",
+                                  "displayName": "User",
+                                  "role": "SUPER_USER"
+                                }
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"));
+
+        // Create valid user
+        String response = mockMvc.perform(post("/api/v1/users")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "username": "valid_user_for_status",
+                                  "password": "password123",
+                                  "displayName": "User",
+                                  "role": "ADMIN"
+                                }
+                                """))
+                .andExpect(status().isCreated())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        Matcher matcher = Pattern.compile("\"id\":\\s*(\\d+)").matcher(response);
+        assertThat(matcher.find()).isTrue();
+        Long id = Long.parseLong(matcher.group(1));
+
+        // Invalid UserStatus on patch
+        mockMvc.perform(patch("/api/v1/users/{id}", id)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "status": "DELETED"
+                                }
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"));
+    }
+
+    @Test
+    @DisplayName("Length boundary validation for username and displayName")
+    void testLengthBoundaries() throws Exception {
+        String username51 = "u".repeat(51);
+        String name101 = "d".repeat(101);
+
+        mockMvc.perform(post("/api/v1/users")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "username": "%s",
+                                  "password": "password123",
+                                  "displayName": "Valid Name",
+                                  "role": "ADMIN"
+                                }
+                                """.formatted(username51)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"));
+
+        mockMvc.perform(post("/api/v1/users")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "username": "valid_user_name",
+                                  "password": "password123",
+                                  "displayName": "%s",
+                                  "role": "ADMIN"
+                                }
+                                """.formatted(name101)))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"));
     }

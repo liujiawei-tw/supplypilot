@@ -21,6 +21,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.PageRequest;
@@ -134,6 +136,116 @@ class UserControllerTests {
     }
 
     @Test
+    @DisplayName("POST /api/v1/users - 400 Bad Request on invalid UserRole")
+    void shouldReturnBadRequestOnInvalidRole() throws Exception {
+        mockMvc.perform(post("/api/v1/users")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "username": "valid_user",
+                                  "password": "password123",
+                                  "displayName": "Valid User",
+                                  "role": "SUPER_ADMIN"
+                                }
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"));
+    }
+
+    @Test
+    @DisplayName("POST /api/v1/users - 400 Bad Request on passing unknown/backend-owned fields")
+    void shouldRejectUnknownFieldsInCreateUser() throws Exception {
+        mockMvc.perform(post("/api/v1/users")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "username": "valid_user",
+                                  "password": "password123",
+                                  "displayName": "Valid User",
+                                  "role": "ADMIN",
+                                  "id": 100,
+                                  "createdAt": "2026-10-08T00:00:00Z"
+                                }
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"));
+    }
+
+    @Test
+    @DisplayName("POST /api/v1/users - boundary: username length 50 succeeds, 51 fails")
+    void shouldValidateUsernameLengthBoundary() throws Exception {
+        String username50 = "a".repeat(50);
+        String username51 = "a".repeat(51);
+
+        UserResponse response = new UserResponse(1L, username50, "Name", UserRole.ADMIN, UserStatus.ACTIVE, NOW, NOW);
+        when(userService.createUser(any(CreateUserRequest.class))).thenReturn(response);
+
+        // 50 chars succeeds
+        mockMvc.perform(post("/api/v1/users")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "username": "%s",
+                                  "password": "password123",
+                                  "displayName": "Name",
+                                  "role": "ADMIN"
+                                }
+                                """.formatted(username50)))
+                .andExpect(status().isCreated());
+
+        // 51 chars fails
+        mockMvc.perform(post("/api/v1/users")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "username": "%s",
+                                  "password": "password123",
+                                  "displayName": "Name",
+                                  "role": "ADMIN"
+                                }
+                                """.formatted(username51)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"));
+    }
+
+    @Test
+    @DisplayName("POST /api/v1/users - boundary: displayName length 100 succeeds, 101 fails")
+    void shouldValidateDisplayNameLengthBoundaryInCreate() throws Exception {
+        String name100 = "b".repeat(100);
+        String name101 = "b".repeat(101);
+
+        UserResponse response = new UserResponse(1L, "user_boundary", name100, UserRole.ADMIN, UserStatus.ACTIVE, NOW, NOW);
+        when(userService.createUser(any(CreateUserRequest.class))).thenReturn(response);
+
+        // 100 chars succeeds
+        mockMvc.perform(post("/api/v1/users")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "username": "user_boundary",
+                                  "password": "password123",
+                                  "displayName": "%s",
+                                  "role": "ADMIN"
+                                }
+                                """.formatted(name100)))
+                .andExpect(status().isCreated());
+
+        // 101 chars fails
+        mockMvc.perform(post("/api/v1/users")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "username": "user_boundary",
+                                  "password": "password123",
+                                  "displayName": "%s",
+                                  "role": "ADMIN"
+                                }
+                                """.formatted(name101)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"));
+    }
+
+    @Test
     @DisplayName("GET /api/v1/users - 200 OK with paginated list")
     void shouldReturnPaginatedUsers() throws Exception {
         UserResponse u1 = new UserResponse(1L, "u1", "User 1", UserRole.ADMIN, UserStatus.ACTIVE, NOW, NOW);
@@ -237,5 +349,92 @@ class UserControllerTests {
                                 """))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value("USER_NOT_FOUND"));
+    }
+
+    @ParameterizedTest(name = "PATCH /api/v1/users/[id] - 400 Bad Request on unknown field: {0}")
+    @ValueSource(strings = {"password", "passwordHash", "username", "id", "createdAt", "updatedAt"})
+    void shouldRejectDisallowedFieldsInPatch(String disallowedField) throws Exception {
+        mockMvc.perform(patch("/api/v1/users/1")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "%s": "someValue"
+                                }
+                                """.formatted(disallowedField)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"));
+    }
+
+    @Test
+    @DisplayName("PATCH /api/v1/users/{id} - 400 Bad Request on blank displayName")
+    void shouldRejectBlankDisplayNameInPatch() throws Exception {
+        mockMvc.perform(patch("/api/v1/users/1")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "displayName": "   "
+                                }
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"));
+    }
+
+    @Test
+    @DisplayName("PATCH /api/v1/users/{id} - 400 Bad Request on invalid UserRole")
+    void shouldRejectInvalidRoleInPatch() throws Exception {
+        mockMvc.perform(patch("/api/v1/users/1")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "role": "UNKNOWN_ROLE"
+                                }
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"));
+    }
+
+    @Test
+    @DisplayName("PATCH /api/v1/users/{id} - 400 Bad Request on invalid UserStatus")
+    void shouldRejectInvalidStatusInPatch() throws Exception {
+        mockMvc.perform(patch("/api/v1/users/1")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "status": "UNKNOWN_STATUS"
+                                }
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"));
+    }
+
+    @Test
+    @DisplayName("PATCH /api/v1/users/{id} - boundary: displayName length 100 succeeds, 101 fails")
+    void shouldValidateDisplayNameLengthBoundaryInPatch() throws Exception {
+        String name100 = "c".repeat(100);
+        String name101 = "c".repeat(101);
+
+        UserResponse response = new UserResponse(1L, "user_patch", name100, UserRole.ADMIN, UserStatus.ACTIVE, NOW, NOW);
+        when(userService.updateUser(eq(1L), any(UpdateUserRequest.class))).thenReturn(response);
+
+        // 100 chars succeeds
+        mockMvc.perform(patch("/api/v1/users/1")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "displayName": "%s"
+                                }
+                                """.formatted(name100)))
+                .andExpect(status().isOk());
+
+        // 101 chars fails
+        mockMvc.perform(patch("/api/v1/users/1")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "displayName": "%s"
+                                }
+                                """.formatted(name101)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"));
     }
 }

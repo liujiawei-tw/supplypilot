@@ -12,6 +12,7 @@ import com.supplypilot.user.dto.response.UserResponse;
 import com.supplypilot.user.mapper.UserMapper;
 import com.supplypilot.user.repository.UserRepository;
 
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -40,21 +41,26 @@ public class UserService {
 
     @Transactional
     public UserResponse createUser(CreateUserRequest request) {
-        if (userRepository.existsByUsername(request.username().trim())) {
+        String normalizedUsername = request.username().trim();
+        if (userRepository.existsByUsername(normalizedUsername)) {
             throw new BusinessException(ErrorCode.DUPLICATE_USERNAME);
         }
 
         String passwordHash = passwordEncoder.encode(request.password());
         User user = User.create(
-                request.username(),
+                normalizedUsername,
                 passwordHash,
                 request.displayName(),
                 request.role(),
                 clock.instant()
         );
 
-        User savedUser = userRepository.save(user);
-        return userMapper.toResponse(savedUser);
+        try {
+            User savedUser = userRepository.saveAndFlush(user);
+            return userMapper.toResponse(savedUser);
+        } catch (DataIntegrityViolationException e) {
+            throw new BusinessException(ErrorCode.DUPLICATE_USERNAME);
+        }
     }
 
     @Transactional(readOnly = true)
@@ -72,6 +78,10 @@ public class UserService {
 
     @Transactional
     public UserResponse updateUser(Long id, UpdateUserRequest request) {
+        if (request.displayName() != null && request.displayName().trim().isEmpty()) {
+            throw new BusinessException(ErrorCode.VALIDATION_FAILED);
+        }
+
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
 

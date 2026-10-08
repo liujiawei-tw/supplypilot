@@ -26,6 +26,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -62,22 +63,22 @@ class UserServiceTests {
     }
 
     @Test
-    @DisplayName("Should create user with BCrypt hashed password and valid fields")
+    @DisplayName("Should create user with BCrypt hashed password, normalized username, and valid fields")
     void shouldCreateUserWithHashedPassword() {
         CreateUserRequest request = new CreateUserRequest(
-                "buyer_service_test",
+                "  buyer_service_test  ",
                 "secretPassword123",
                 "Buyer User",
                 UserRole.PROCUREMENT_STAFF
         );
 
         when(userRepository.existsByUsername("buyer_service_test")).thenReturn(false);
-        when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(userRepository.saveAndFlush(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         UserResponse response = userService.createUser(request);
 
         ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
-        verify(userRepository).save(captor.capture());
+        verify(userRepository).saveAndFlush(captor.capture());
         User savedUser = captor.getValue();
 
         assertThat(savedUser.getUsername()).isEqualTo("buyer_service_test");
@@ -97,10 +98,10 @@ class UserServiceTests {
     }
 
     @Test
-    @DisplayName("Should throw DUPLICATE_USERNAME when creating user with existing username")
+    @DisplayName("Should throw DUPLICATE_USERNAME when creating user with existing username (including whitespace)")
     void shouldThrowDuplicateUsername() {
         CreateUserRequest request = new CreateUserRequest(
-                "existing_user",
+                "  existing_user  ",
                 "secretPassword123",
                 "Existing User",
                 UserRole.ADMIN
@@ -113,7 +114,27 @@ class UserServiceTests {
                 .extracting("errorCode")
                 .isEqualTo(ErrorCode.DUPLICATE_USERNAME);
 
-        verify(userRepository, never()).save(any(User.class));
+        verify(userRepository, never()).saveAndFlush(any(User.class));
+    }
+
+    @Test
+    @DisplayName("Should translate DataIntegrityViolationException to DUPLICATE_USERNAME on concurrent race insert")
+    void shouldTranslateDataIntegrityViolationExceptionOnRaceCondition() {
+        CreateUserRequest request = new CreateUserRequest(
+                "concurrent_user",
+                "secretPassword123",
+                "Concurrent User",
+                UserRole.ADMIN
+        );
+
+        when(userRepository.existsByUsername("concurrent_user")).thenReturn(false);
+        when(userRepository.saveAndFlush(any(User.class)))
+                .thenThrow(new DataIntegrityViolationException("Duplicate entry 'concurrent_user' for key 'uk_users_username'"));
+
+        assertThatThrownBy(() -> userService.createUser(request))
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCode")
+                .isEqualTo(ErrorCode.DUPLICATE_USERNAME);
     }
 
     @Test
@@ -177,6 +198,19 @@ class UserServiceTests {
         assertThat(response.displayName()).isEqualTo("New Name");
         assertThat(response.role()).isEqualTo(UserRole.ADMIN);
         assertThat(response.status()).isEqualTo(UserStatus.INACTIVE);
+    }
+
+    @Test
+    @DisplayName("Should throw VALIDATION_FAILED when updating user with blank display name")
+    void shouldThrowValidationFailedOnBlankDisplayName() {
+        UpdateUserRequest updateRequest = new UpdateUserRequest("   ", null, null);
+
+        assertThatThrownBy(() -> userService.updateUser(1L, updateRequest))
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCode")
+                .isEqualTo(ErrorCode.VALIDATION_FAILED);
+
+        verify(userRepository, never()).findById(any());
     }
 
     @Test
