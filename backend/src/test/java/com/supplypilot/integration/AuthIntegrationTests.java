@@ -23,6 +23,7 @@ import org.springframework.web.context.WebApplicationContext;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.options;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -250,6 +251,17 @@ class AuthIntegrationTests extends AbstractIntegrationTest {
     }
 
     @Test
+    @DisplayName("CORS preflight for a protected endpoint succeeds without a JWT")
+    void testCorsPreflightDoesNotRequireAuthentication() throws Exception {
+        mockMvc.perform(options("/api/v1/users")
+                        .header("Origin", "http://localhost:5173")
+                        .header("Access-Control-Request-Method", "GET"))
+                .andExpect(status().isOk())
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.header()
+                        .string("Access-Control-Allow-Origin", "http://localhost:5173"));
+    }
+
+    @Test
     @DisplayName("Protected endpoint: GET /api/v1/users with valid token succeeds (200 OK)")
     void testProtectedUsersEndpointWithTokenSucceeds() throws Exception {
         String username = "users_test_auth";
@@ -273,5 +285,27 @@ class AuthIntegrationTests extends AbstractIntegrationTest {
                         .header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content").isArray());
+    }
+
+    @Test
+    @DisplayName("Protected endpoint: GET /api/v1/users with token containing invalid userId returns 401")
+    void testProtectedEndpointWithInvalidClaimTokenReturns401() throws Exception {
+        byte[] keyBytes = java.util.Base64.getDecoder().decode(jwtProperties.secret());
+        var key = io.jsonwebtoken.security.Keys.hmacShaKeyFor(keyBytes);
+
+        // Valid signature, but invalid userId (-5)
+        String tokenWithNegativeUserId = io.jsonwebtoken.Jwts.builder()
+                .subject("buyer01")
+                .claim("userId", -5L)
+                .claim("role", "PROCUREMENT_STAFF")
+                .issuedAt(java.util.Date.from(clock.instant()))
+                .expiration(java.util.Date.from(clock.instant().plusSeconds(3600)))
+                .signWith(key, io.jsonwebtoken.Jwts.SIG.HS256)
+                .compact();
+
+        mockMvc.perform(get("/api/v1/users")
+                        .header("Authorization", "Bearer " + tokenWithNegativeUserId))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("UNAUTHENTICATED"));
     }
 }

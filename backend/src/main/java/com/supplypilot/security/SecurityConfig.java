@@ -7,10 +7,10 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.env.Environment;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
-import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -30,7 +30,7 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
  * <ul>
  *   <li>Stateless session creation.</li>
  *   <li>CSRF disabled for REST Bearer API.</li>
- *   <li>CORS configured from supplypilot.frontend-origin.</li>
+ *   <li>CORS configured strictly from supplypilot.frontend-origin in production, with dev fallback only outside prod.</li>
  *   <li>POST /api/v1/auth/login and Actuator health endpoints are public.</li>
  *   <li>All other /api/v1/** endpoints require authentication.</li>
  *   <li>Custom AuthenticationEntryPoint for 401 error response.</li>
@@ -47,19 +47,22 @@ public class SecurityConfig {
     private final CustomUserDetailsService userDetailsService;
     private final PasswordEncoder passwordEncoder;
     private final String frontendOrigin;
+    private final Environment environment;
 
     public SecurityConfig(
             JwtAuthenticationFilter jwtAuthenticationFilter,
             CustomAuthenticationEntryPoint authenticationEntryPoint,
             CustomUserDetailsService userDetailsService,
             PasswordEncoder passwordEncoder,
-            @Value("${supplypilot.frontend-origin:}") String frontendOrigin
+            @Value("${supplypilot.frontend-origin:}") String frontendOrigin,
+            Environment environment
     ) {
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
         this.authenticationEntryPoint = authenticationEntryPoint;
         this.userDetailsService = userDetailsService;
         this.passwordEncoder = passwordEncoder;
         this.frontendOrigin = frontendOrigin;
+        this.environment = environment;
     }
 
     @Bean
@@ -104,14 +107,30 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
 
+        boolean isProd = Arrays.asList(environment.getActiveProfiles()).contains("prod");
+
         if (frontendOrigin != null && !frontendOrigin.isBlank()) {
             List<String> origins = Arrays.stream(frontendOrigin.split(","))
                     .map(String::trim)
                     .filter(s -> !s.isEmpty())
                     .toList();
+
+            // Production requires one or more exact origins; wildcard patterns are not allowed with credentials.
+            if (isProd && (origins.isEmpty() || origins.stream().anyMatch(origin -> origin.contains("*")))) {
+                throw new IllegalStateException(
+                        "CORS allowed-origins must contain at least one exact non-wildcard origin in production."
+                );
+            }
+
             configuration.setAllowedOrigins(origins);
         } else {
-            // Safe fallback for local development: allow Vite dev server
+            if (isProd) {
+                // Fail-fast in production: Missing FRONTEND_ORIGIN cannot fall back to localhost
+                throw new IllegalStateException(
+                        "CORS configuration failed: supplypilot.frontend-origin (FRONTEND_ORIGIN) must be configured in production."
+                );
+            }
+            // Safe fallback for local/test development only: allow local frontend dev servers
             configuration.setAllowedOrigins(List.of("http://localhost:5173", "http://localhost:3000"));
         }
 

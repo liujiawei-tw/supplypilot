@@ -1,7 +1,6 @@
 package com.supplypilot.security;
 
-import java.nio.charset.StandardCharsets;
-import java.security.Key;
+import java.math.BigInteger;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.Date;
@@ -13,9 +12,7 @@ import com.supplypilot.user.domain.UserRole;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
-import io.jsonwebtoken.Header;
 import io.jsonwebtoken.Jws;
-import io.jsonwebtoken.JwsHeader;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.io.Decoders;
@@ -31,7 +28,7 @@ import org.springframework.stereotype.Service;
  * <p>Requirements:
  * <ul>
  *   <li>Algorithm: HS256 only.</li>
- *   <li>Secret key length: At least 256 bits (32 bytes).</li>
+ *   <li>Secret key length: At least 256 bits (32 bytes), Base64 encoded.</li>
  *   <li>Claims: sub (username), userId (Long), role (String), iat, exp.</li>
  *   <li>Clock: Injected Clock for deterministic testing.</li>
  * </ul>
@@ -40,6 +37,9 @@ import org.springframework.stereotype.Service;
 public class JwtTokenService {
 
     private static final Logger log = LoggerFactory.getLogger(JwtTokenService.class);
+
+    /** Allowed clock skew in seconds for clock drift tolerance between systems. */
+    public static final long ALLOWED_CLOCK_SKEW_SECONDS = 30L;
 
     private final SecretKey signingKey;
     private final long expirationSeconds;
@@ -50,6 +50,9 @@ public class JwtTokenService {
         Objects.requireNonNull(jwtProperties.secret(), "jwtProperties.secret must not be null");
         this.clock = Objects.requireNonNull(clock, "clock must not be null");
         this.expirationSeconds = jwtProperties.expirationSeconds();
+        if (expirationSeconds <= 0) {
+            throw new IllegalArgumentException("JWT expiration-seconds must be a positive integer.");
+        }
         this.signingKey = initSigningKey(jwtProperties.secret());
     }
 
@@ -60,11 +63,12 @@ public class JwtTokenService {
 
         byte[] keyBytes;
         try {
-            // Attempt Base64 decoding first
+            // Must strictly be Base64-encoded
             keyBytes = Decoders.BASE64.decode(rawSecret.trim());
         } catch (DecodingException | IllegalArgumentException e) {
-            // Fallback to raw UTF-8 bytes
-            keyBytes = rawSecret.trim().getBytes(StandardCharsets.UTF_8);
+            throw new IllegalArgumentException(
+                    "JWT secret must be a valid Base64-encoded string.", e
+            );
         }
 
         // HS256 requires at least 256 bits (32 bytes)
@@ -107,13 +111,14 @@ public class JwtTokenService {
      */
     public AuthenticatedUser parseAndValidateToken(String token) {
         if (token == null || token.isBlank()) {
-            throw new JwtAuthenticationException("JWT token is empty or null");
+            throw new JwtAuthenticationException("Authentication token is required");
         }
 
         try {
             Jws<Claims> jws = Jwts.parser()
                     .verifyWith(signingKey)
                     .clock(() -> Date.from(Instant.now(clock)))
+                    .clockSkewSeconds(ALLOWED_CLOCK_SKEW_SECONDS)
                     .build()
                     .parseSignedClaims(token.trim());
 
@@ -121,7 +126,7 @@ public class JwtTokenService {
             String algorithm = jws.getHeader().getAlgorithm();
             if (!"HS256".equalsIgnoreCase(algorithm)) {
                 log.warn("Rejected JWT with unexpected algorithm: {}", algorithm);
-                throw new JwtAuthenticationException("Unexpected JWT signing algorithm: " + algorithm);
+                throw new JwtAuthenticationException("Invalid authentication token");
             }
 
             Claims claims = jws.getPayload();
@@ -129,45 +134,102 @@ public class JwtTokenService {
             // Validate Subject
             String subject = claims.getSubject();
             if (subject == null || subject.isBlank()) {
-                throw new JwtAuthenticationException("JWT subject claim is missing or empty");
+                log.debug("JWT subject claim is missing or empty");
+                throw new JwtAuthenticationException("Invalid authentication token");
+            }
+
+            // Validate iat (issuedAt)
+            Date issuedAt = claims.getIssuedAt();
+            if (issuedAt == null) {
+                log.debug("JWT iat claim is missing");
+                throw new JwtAuthenticationException("Invalid authentication token");
+            }
+
+            // Validate exp (expiration)
+            Date expiration = claims.getExpiration();
+            if (expiration == null) {
+                log.debug("JWT exp claim is missing");
+                throw new JwtAuthenticationException("Invalid authentication token");
+            }
+
+            // Validate temporal order: exp must be strictly after iat
+            if (!expiration.after(issuedAt)) {
+                log.debug("JWT exp ({}) is not after iat ({})", expiration, issuedAt);
+                throw new JwtAuthenticationException("Invalid authentication token");
+            }
+
+            // Validate against excessive future issuedAt beyond allowed clock skew
+            Instant now = Instant.now(clock);
+            if (issuedAt.toInstant().isAfter(now.plusSeconds(ALLOWED_CLOCK_SKEW_SECONDS))) {
+                log.debug("JWT issued in the future beyond allowed clock skew: iat={}, now={}", issuedAt, now);
+                throw new JwtAuthenticationException("Invalid authentication token");
             }
 
             // Validate userId
-            Object userIdClaim = claims.get("userId");
-            if (userIdClaim == null) {
-                throw new JwtAuthenticationException("JWT userId claim is missing");
-            }
-            Long userId;
-            if (userIdClaim instanceof Number number) {
-                userId = number.longValue();
-            } else {
-                try {
-                    userId = Long.parseLong(userIdClaim.toString());
-                } catch (NumberFormatException e) {
-                    throw new JwtAuthenticationException("JWT userId claim is invalid format: " + userIdClaim);
-                }
-            }
+            Long userId = parseAndValidateUserId(claims.get("userId"));
 
             // Validate role
-            Object roleClaim = claims.get("role");
-            if (roleClaim == null) {
-                throw new JwtAuthenticationException("JWT role claim is missing");
-            }
-            UserRole role;
-            try {
-                role = UserRole.valueOf(roleClaim.toString());
-            } catch (IllegalArgumentException e) {
-                throw new JwtAuthenticationException("JWT role claim is invalid: " + roleClaim);
-            }
+            UserRole role = parseAndValidateRole(claims.get("role"));
 
             return new AuthenticatedUser(userId, subject, role);
 
         } catch (ExpiredJwtException e) {
-            log.debug("JWT token has expired: {}", e.getMessage());
-            throw new JwtAuthenticationException("JWT token has expired", e);
+            log.debug("JWT token has expired");
+            throw new JwtAuthenticationException("Authentication token has expired", e);
+        } catch (JwtAuthenticationException e) {
+            throw e;
         } catch (JwtException | IllegalArgumentException e) {
-            log.debug("JWT token validation failed: {}", e.getMessage());
-            throw new JwtAuthenticationException("Invalid JWT token: " + e.getMessage(), e);
+            log.debug("JWT token validation failed: {}", e.getClass().getSimpleName());
+            throw new JwtAuthenticationException("Invalid authentication token", e);
+        }
+    }
+
+    private Long parseAndValidateUserId(Object userIdClaim) {
+        if (userIdClaim == null) {
+            log.debug("JWT userId claim is missing");
+            throw new JwtAuthenticationException("Invalid authentication token");
+        }
+
+        Long userId;
+        if (userIdClaim instanceof Byte || userIdClaim instanceof Short
+                || userIdClaim instanceof Integer || userIdClaim instanceof Long) {
+            userId = ((Number) userIdClaim).longValue();
+        } else if (userIdClaim instanceof BigInteger bi) {
+            try {
+                userId = bi.longValueExact();
+            } catch (ArithmeticException e) {
+                log.debug("JWT userId exceeds Long range: {}", bi);
+                throw new JwtAuthenticationException("Invalid authentication token");
+            }
+        } else {
+            log.debug("JWT userId claim is invalid type: {}", userIdClaim.getClass().getName());
+            throw new JwtAuthenticationException("Invalid authentication token");
+        }
+
+        if (userId <= 0) {
+            log.debug("JWT userId must be a positive integer, got: {}", userId);
+            throw new JwtAuthenticationException("Invalid authentication token");
+        }
+
+        return userId;
+    }
+
+    private UserRole parseAndValidateRole(Object roleClaim) {
+        if (roleClaim == null) {
+            log.debug("JWT role claim is missing");
+            throw new JwtAuthenticationException("Invalid authentication token");
+        }
+
+        if (!(roleClaim instanceof String roleString)) {
+            log.debug("JWT role claim is not a String: {}", roleClaim.getClass().getName());
+            throw new JwtAuthenticationException("Invalid authentication token");
+        }
+
+        try {
+            return UserRole.valueOf(roleString);
+        } catch (IllegalArgumentException e) {
+            log.debug("JWT role claim is not a valid UserRole: {}", roleString);
+            throw new JwtAuthenticationException("Invalid authentication token");
         }
     }
 }
