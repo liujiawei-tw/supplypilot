@@ -15,6 +15,7 @@ import org.slf4j.MDC;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -84,6 +85,22 @@ public class GlobalExceptionHandler {
         String traceId = traceId();
         log.warn("Request constraint validation failed: path={}, traceId={}",
                 request.getRequestURI(), traceId);
+
+        return ResponseEntity.badRequest().body(errorResponse(
+                ErrorCode.VALIDATION_FAILED,
+                ErrorCode.VALIDATION_FAILED.getDefaultMessage(),
+                traceId,
+                request.getRequestURI()
+        ));
+    }
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    ResponseEntity<ErrorResponse> handleHttpMessageNotReadableException(
+            HttpMessageNotReadableException exception,
+            HttpServletRequest request
+    ) {
+        String traceId = traceId();
+        log.warn("Request message not readable: path={}, traceId={}", request.getRequestURI(), traceId);
 
         return ResponseEntity.badRequest().body(errorResponse(
                 ErrorCode.VALIDATION_FAILED,

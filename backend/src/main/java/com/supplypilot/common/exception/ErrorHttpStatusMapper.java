@@ -21,6 +21,7 @@ final class ErrorHttpStatusMapper {
                     INVENTORY_IMPORT_BATCH_NOT_FOUND -> HttpStatus.NOT_FOUND;
             case DUPLICATE_MATERIAL,
                     DUPLICATE_CODE,
+                    DUPLICATE_USERNAME,
                     PO_NOT_EDITABLE,
                     INVALID_PO_STATUS,
                     INVALID_PO_STATUS_TRANSITION,
