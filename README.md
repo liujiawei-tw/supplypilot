@@ -21,6 +21,7 @@ SupplyPilot is a portfolio-grade procurement and supply-chain decision platform 
 ```text
 supplypilot/
 ├── backend/          Spring Boot API
+├── frontend/         React + Vite frontend shell
 ├── docs/             V1 specifications and executable backlog
 │   ├── erd/          Entity relationship diagrams
 │   └── uml/          Domain and sequence diagrams
@@ -31,12 +32,15 @@ supplypilot/
 ## Local Prerequisites
 
 - Java 21
+- Node.js 24 LTS
 - Docker Desktop with the Docker engine running
 - Git
 
 Maven does not need to be installed globally; use the committed wrapper.
 
 ## Local Setup
+
+### Backend
 
 1. Create a local environment file from `.env.example` and set non-empty development passwords.
    If port `3306` is unavailable, set `DB_PORT` and update `DB_URL` to the same host port.
@@ -54,6 +58,29 @@ Maven does not need to be installed globally; use the committed wrapper.
    ```
 
 4. Check `http://localhost:8080/actuator/health`.
+
+### Frontend
+
+1. Install frontend dependencies:
+
+   ```powershell
+   cd frontend
+   npm install
+   ```
+
+2. Configure environment:
+
+   ```powershell
+   copy .env.example .env
+   ```
+
+3. Start development server:
+
+   ```powershell
+   npm run dev
+   ```
+
+4. Access `http://localhost:5173`.
 
 ## Tests
 
