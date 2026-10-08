@@ -5,15 +5,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.context.ActiveProfiles;
+import com.supplypilot.integration.AbstractIntegrationTest;
 
-@Import(TestcontainersConfiguration.class)
-@SpringBootTest
-@ActiveProfiles("test")
-class SupplyPilotApplicationTests {
+class SupplyPilotApplicationTests extends AbstractIntegrationTest {
 
 	@Autowired
 	private JdbcTemplate jdbcTemplate;

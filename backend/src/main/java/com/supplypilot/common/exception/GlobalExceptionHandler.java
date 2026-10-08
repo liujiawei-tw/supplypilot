@@ -28,11 +28,7 @@ public class GlobalExceptionHandler {
 
     private final Clock clock;
 
-    public GlobalExceptionHandler() {
-        this(Clock.systemUTC());
-    }
-
-    GlobalExceptionHandler(Clock clock) {
+    public GlobalExceptionHandler(Clock clock) {
         this.clock = clock;
     }
 
