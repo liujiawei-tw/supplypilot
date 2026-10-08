@@ -22,6 +22,7 @@ class SecurityCorsTests {
                 null,
                 null,
                 null,
+                null,
                 "",
                 env
         );
@@ -41,6 +42,7 @@ class SecurityCorsTests {
         env.setActiveProfiles("prod");
 
         SecurityConfig config = new SecurityConfig(
+                null,
                 null,
                 null,
                 null,
@@ -67,6 +69,7 @@ class SecurityCorsTests {
                 null,
                 null,
                 null,
+                null,
                 "",
                 env
         );
@@ -87,6 +90,7 @@ class SecurityCorsTests {
                 null,
                 null,
                 null,
+                null,
                 "*",
                 env
         );
@@ -103,6 +107,7 @@ class SecurityCorsTests {
         env.setActiveProfiles("prod");
 
         SecurityConfig config = new SecurityConfig(
+                null,
                 null,
                 null,
                 null,
