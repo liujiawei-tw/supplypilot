@@ -59,8 +59,24 @@ public class UserService {
             User savedUser = userRepository.saveAndFlush(user);
             return userMapper.toResponse(savedUser);
         } catch (DataIntegrityViolationException e) {
-            throw new BusinessException(ErrorCode.DUPLICATE_USERNAME);
+            if (isUsernameUniqueConstraintViolation(e)) {
+                throw new BusinessException(ErrorCode.DUPLICATE_USERNAME);
+            }
+            throw e;
         }
+    }
+
+    /**
+     * Returns true only when the exception is confirmed to be a violation of
+     * the {@code uk_users_username} unique constraint, via Hibernate's structured
+     * {@link org.hibernate.exception.ConstraintViolationException#getConstraintName()}.
+     * Avoids misclassifying other integrity failures (e.g. FK violations, NOT NULL)
+     * as duplicate-username errors.
+     */
+    private boolean isUsernameUniqueConstraintViolation(DataIntegrityViolationException e) {
+        Throwable cause = e.getCause();
+        return cause instanceof org.hibernate.exception.ConstraintViolationException hcve
+                && "uk_users_username".equalsIgnoreCase(hcve.getConstraintName());
     }
 
     @Transactional(readOnly = true)

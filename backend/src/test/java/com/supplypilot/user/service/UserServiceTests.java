@@ -118,7 +118,7 @@ class UserServiceTests {
     }
 
     @Test
-    @DisplayName("Should translate DataIntegrityViolationException to DUPLICATE_USERNAME on concurrent race insert")
+    @DisplayName("Should translate DataIntegrityViolationException to DUPLICATE_USERNAME when uk_users_username constraint is violated (race condition)")
     void shouldTranslateDataIntegrityViolationExceptionOnRaceCondition() {
         CreateUserRequest request = new CreateUserRequest(
                 "concurrent_user",
@@ -127,15 +127,78 @@ class UserServiceTests {
                 UserRole.ADMIN
         );
 
+        // Build the Hibernate ConstraintViolationException wrapping a SQL exception,
+        // naming the exact uk_users_username constraint — this is what MySQL + Hibernate produces.
+        org.hibernate.exception.ConstraintViolationException hibernateCve =
+                new org.hibernate.exception.ConstraintViolationException(
+                        "Duplicate entry 'concurrent_user' for key 'uk_users_username'",
+                        new java.sql.SQLException("Duplicate entry", "23000", 1062),
+                        "uk_users_username"
+                );
+        DataIntegrityViolationException dive =
+                new DataIntegrityViolationException("could not execute statement", hibernateCve);
+
         when(userRepository.existsByUsername("concurrent_user")).thenReturn(false);
-        when(userRepository.saveAndFlush(any(User.class)))
-                .thenThrow(new DataIntegrityViolationException("Duplicate entry 'concurrent_user' for key 'uk_users_username'"));
+        when(userRepository.saveAndFlush(any(User.class))).thenThrow(dive);
 
         assertThatThrownBy(() -> userService.createUser(request))
                 .isInstanceOf(BusinessException.class)
                 .extracting("errorCode")
                 .isEqualTo(ErrorCode.DUPLICATE_USERNAME);
     }
+
+    @Test
+    @DisplayName("Should NOT translate DataIntegrityViolationException to DUPLICATE_USERNAME when constraint is not uk_users_username")
+    void shouldRethrowNonUsernameDataIntegrityViolationException() {
+        CreateUserRequest request = new CreateUserRequest(
+                "some_user",
+                "secretPassword123",
+                "Some User",
+                UserRole.ADMIN
+        );
+
+        // A different constraint violation (e.g. FK or NOT NULL) must NOT become DUPLICATE_USERNAME.
+        org.hibernate.exception.ConstraintViolationException hibernateCve =
+                new org.hibernate.exception.ConstraintViolationException(
+                        "Cannot add or update a child row: a foreign key constraint fails",
+                        new java.sql.SQLException("FK violation", "23000", 1452),
+                        "fk_some_other_table"
+                );
+        DataIntegrityViolationException dive =
+                new DataIntegrityViolationException("could not execute statement", hibernateCve);
+
+        when(userRepository.existsByUsername("some_user")).thenReturn(false);
+        when(userRepository.saveAndFlush(any(User.class))).thenThrow(dive);
+
+        // Must propagate as DataIntegrityViolationException, not BusinessException(DUPLICATE_USERNAME)
+        assertThatThrownBy(() -> userService.createUser(request))
+                .isInstanceOf(DataIntegrityViolationException.class);
+    }
+
+    @Test
+    @DisplayName("Should NOT translate DataIntegrityViolationException to DUPLICATE_USERNAME when cause is not a Hibernate ConstraintViolationException")
+    void shouldRethrowDataIntegrityViolationExceptionWithoutHibernateCause() {
+        CreateUserRequest request = new CreateUserRequest(
+                "another_user",
+                "secretPassword123",
+                "Another User",
+                UserRole.ADMIN
+        );
+
+        // DataIntegrityViolationException with a non-Hibernate cause (e.g. raw SQLException)
+        DataIntegrityViolationException dive =
+                new DataIntegrityViolationException(
+                        "could not execute statement",
+                        new java.sql.SQLException("Some other DB error")
+                );
+
+        when(userRepository.existsByUsername("another_user")).thenReturn(false);
+        when(userRepository.saveAndFlush(any(User.class))).thenThrow(dive);
+
+        assertThatThrownBy(() -> userService.createUser(request))
+                .isInstanceOf(DataIntegrityViolationException.class);
+    }
+
 
     @Test
     @DisplayName("Should retrieve user by id successfully")
