@@ -1,0 +1,10 @@
+spring:
+  jpa:
+    hibernate:
+      ddl-auto: validate
+
+supplypilot:
+  document-storage:
+    type: local
+    path: ${java.io.tmpdir}/supplypilot-test-documents
+

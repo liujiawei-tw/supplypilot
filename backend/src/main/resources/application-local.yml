@@ -1,0 +1,14 @@
+spring:
+  config:
+    import: optional:file:../.env[.properties]
+  datasource:
+    url: ${DB_URL:jdbc:mysql://localhost:3306/supplypilot?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC}
+    username: ${DB_USERNAME:supplypilot}
+    password: ${DB_PASSWORD}
+
+supplypilot:
+  frontend-origin: ${FRONTEND_ORIGIN:http://localhost:5173}
+  document-storage:
+    type: ${DOCUMENT_STORAGE_TYPE:local}
+    path: ${DOCUMENT_STORAGE_PATH:./data/documents}
+
