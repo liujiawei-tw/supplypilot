@@ -28,4 +28,28 @@ class SupplierTests {
         assertThatThrownBy(() -> Supplier.create("SUP-1", "Name", null, new BigDecimal("-0.01"), BigDecimal.ZERO, TestDataConstants.TEST_INSTANT)).isInstanceOf(BusinessException.class);
         assertThatThrownBy(() -> Supplier.create("SUP-1", "Name", null, BigDecimal.ZERO, new BigDecimal("100.01"), TestDataConstants.TEST_INSTANT)).isInstanceOf(BusinessException.class);
     }
+
+    @Test
+    void acceptsZeroAndOneHundredOnCreateAndUpdate() {
+        Supplier supplier = Supplier.create("SUP-BOUNDARY", "Name", null, BigDecimal.ZERO,
+                new BigDecimal("100"), TestDataConstants.TEST_INSTANT);
+        supplier.update(null, null, new BigDecimal("100"), BigDecimal.ZERO, null,
+                TestDataConstants.TEST_INSTANT.plusSeconds(1));
+
+        assertThat(supplier.getReliabilityScore()).isEqualByComparingTo("100");
+        assertThat(supplier.getQualityScore()).isEqualByComparingTo("0");
+    }
+
+    @Test
+    void rejectsScoresOutsideRangeOnUpdateWithoutChangingExistingState() {
+        Supplier supplier = Supplier.create("SUP-SAFE", "Name", null, new BigDecimal("50"),
+                new BigDecimal("60"), TestDataConstants.TEST_INSTANT);
+
+        assertThatThrownBy(() -> supplier.update(null, null, new BigDecimal("-0.01"), null, null,
+                TestDataConstants.TEST_INSTANT.plusSeconds(1))).isInstanceOf(BusinessException.class);
+        assertThatThrownBy(() -> supplier.update(null, null, null, new BigDecimal("100.01"), null,
+                TestDataConstants.TEST_INSTANT.plusSeconds(1))).isInstanceOf(BusinessException.class);
+        assertThat(supplier.getReliabilityScore()).isEqualByComparingTo("50");
+        assertThat(supplier.getQualityScore()).isEqualByComparingTo("60");
+    }
 }
