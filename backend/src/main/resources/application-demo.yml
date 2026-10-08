@@ -1,0 +1,14 @@
+spring:
+  config:
+    import: optional:file:../.env[.properties]
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+
+supplypilot:
+  demo-data-enabled: true
+  document-storage:
+    type: ${DOCUMENT_STORAGE_TYPE:local}
+    path: ${DOCUMENT_STORAGE_PATH:./data/documents}
+
