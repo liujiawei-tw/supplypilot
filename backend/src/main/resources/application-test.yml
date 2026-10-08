@@ -4,6 +4,10 @@ spring:
       ddl-auto: validate
 
 supplypilot:
+  jwt:
+    secret: dGVzdC1zZWNyZXQtZm9yLXVuaXQtdGVzdHMtb25seS1hdC1sZWFzdC0yNTYtYml0cw==
+    expiration-seconds: 3600
+  frontend-origin: http://localhost:5173
   document-storage:
     type: local
     path: ${java.io.tmpdir}/supplypilot-test-documents
