@@ -19,10 +19,13 @@ public enum ErrorCode {
     USER_INACTIVE("User is inactive."),
     DEMAND_NOT_ACTIVE("Demand is not active."),
     PO_NOT_EDITABLE("Purchase order is not editable in its current status."),
+    INVALID_PO_STATUS("Purchase order must be ORDERED before receiving."),
     INVALID_PO_STATUS_TRANSITION("Purchase order status transition is not allowed."),
+    DUPLICATE_RECEIVING("Purchase order has already been received."),
 
     VALIDATION_FAILED("Request validation failed."),
     INVALID_QUANTITY("Quantity is invalid."),
+    NEGATIVE_QUANTITY("Quantity cannot be negative."),
     INVALID_DATE_RANGE("Date range is invalid."),
     UNIT_MISMATCH("Unit does not match."),
     DUPLICATE_MATERIAL("Material is duplicated."),

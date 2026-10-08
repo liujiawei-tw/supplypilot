@@ -21,6 +21,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.slf4j.MDC;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.test.web.servlet.MockMvc;
@@ -86,6 +87,16 @@ class GlobalExceptionHandlerTests {
     @Test
     void inactiveBusinessExceptionReturns400() throws Exception {
         assertBusinessError("inactive", 400, ErrorCode.MATERIAL_INACTIVE);
+    }
+
+    @Test
+    void apiSpecificationErrorCodesMapToTheirRequiredHttpStatuses() {
+        assertThat(ErrorHttpStatusMapper.toHttpStatus(ErrorCode.NEGATIVE_QUANTITY))
+                .isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(ErrorHttpStatusMapper.toHttpStatus(ErrorCode.INVALID_PO_STATUS))
+                .isEqualTo(HttpStatus.CONFLICT);
+        assertThat(ErrorHttpStatusMapper.toHttpStatus(ErrorCode.DUPLICATE_RECEIVING))
+                .isEqualTo(HttpStatus.CONFLICT);
     }
 
     @Test
