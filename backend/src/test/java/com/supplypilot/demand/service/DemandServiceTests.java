@@ -8,6 +8,7 @@ import java.util.Optional;
 import com.supplypilot.common.exception.BusinessException;
 import com.supplypilot.common.exception.ErrorCode;
 import com.supplypilot.demand.domain.Demand;
+import com.supplypilot.demand.domain.DemandStatus;
 import com.supplypilot.demand.dto.request.CreateDemandRequest;
 import com.supplypilot.demand.dto.request.UpdateDemandRequest;
 import com.supplypilot.demand.mapper.DemandMapper;
@@ -22,6 +23,8 @@ import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.*;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
@@ -64,5 +67,16 @@ class DemandServiceTests {
         assertThatThrownBy(() -> service.updateDemand(1L, request)).isInstanceOf(BusinessException.class).extracting("errorCode").isEqualTo(ErrorCode.INVALID_QUANTITY);
         assertThat(demand.getQuantity()).isEqualByComparingTo("10"); assertThat(demand.getRequiredDate()).isEqualTo(LocalDate.of(2026, 10, 9)); assertThat(demand.getNote()).isEqualTo("Original");
         verify(demandRepository, never()).save(any());
+    }
+
+    @Test void buildsListSpecificationForNoAndPartialFilters() {
+        when(demandRepository.findAll(any(org.springframework.data.jpa.domain.Specification.class), any(org.springframework.data.domain.Pageable.class))).thenReturn(Page.empty());
+        PageRequest pageable = PageRequest.of(0, 20);
+        service.listDemands(null, null, null, null, pageable);
+        service.listDemands(1L, null, null, null, pageable);
+        service.listDemands(null, DemandStatus.ACTIVE, null, null, pageable);
+        service.listDemands(null, null, LocalDate.of(2026, 10, 8), null, pageable);
+        service.listDemands(null, null, null, LocalDate.of(2026, 10, 9), pageable);
+        verify(demandRepository, times(5)).findAll(any(org.springframework.data.jpa.domain.Specification.class), any(org.springframework.data.domain.Pageable.class));
     }
 }

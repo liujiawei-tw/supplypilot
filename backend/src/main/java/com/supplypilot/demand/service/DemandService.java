@@ -2,6 +2,8 @@ package com.supplypilot.demand.service;
 
 import java.time.Clock;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 
 import com.supplypilot.common.exception.BusinessException;
 import com.supplypilot.common.exception.ErrorCode;
@@ -23,6 +25,7 @@ import com.supplypilot.user.repository.UserRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
+import jakarta.persistence.criteria.Predicate;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -65,12 +68,14 @@ public class DemandService {
     public PageResponse<DemandResponse> listDemands(Long materialId, DemandStatus status, LocalDate requiredFrom,
                                                      LocalDate requiredTo, Pageable pageable) {
         validateRange(requiredFrom, requiredTo);
-        Specification<Demand> specification = Specification.allOf(
-                materialId == null ? null : (root, query, builder) -> builder.equal(root.get("material").get("id"), materialId),
-                status == null ? null : (root, query, builder) -> builder.equal(root.get("status"), status),
-                requiredFrom == null ? null : (root, query, builder) -> builder.greaterThanOrEqualTo(root.get("requiredDate"), requiredFrom),
-                requiredTo == null ? null : (root, query, builder) -> builder.lessThanOrEqualTo(root.get("requiredDate"), requiredTo)
-        );
+        Specification<Demand> specification = (root, query, builder) -> {
+            List<Predicate> predicates = new ArrayList<>();
+            if (materialId != null) predicates.add(builder.equal(root.get("material").get("id"), materialId));
+            if (status != null) predicates.add(builder.equal(root.get("status"), status));
+            if (requiredFrom != null) predicates.add(builder.greaterThanOrEqualTo(root.get("requiredDate"), requiredFrom));
+            if (requiredTo != null) predicates.add(builder.lessThanOrEqualTo(root.get("requiredDate"), requiredTo));
+            return predicates.isEmpty() ? builder.conjunction() : builder.and(predicates.toArray(Predicate[]::new));
+        };
         Page<Demand> page = demandRepository.findAll(specification, pageable);
         return PageResponse.from(page.map(demandMapper::toResponse));
     }
