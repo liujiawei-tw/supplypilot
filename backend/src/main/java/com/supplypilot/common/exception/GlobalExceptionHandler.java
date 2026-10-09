@@ -21,6 +21,8 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.web.multipart.support.MissingServletRequestPartException;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -132,6 +134,22 @@ public class GlobalExceptionHandler {
         ));
     }
 
+    @ExceptionHandler(MissingServletRequestPartException.class)
+    ResponseEntity<ErrorResponse> handleMissingServletRequestPartException(
+            MissingServletRequestPartException exception,
+            HttpServletRequest request
+    ) {
+        return badRequestResponse(ErrorCode.VALIDATION_FAILED, request);
+    }
+
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    ResponseEntity<ErrorResponse> handleMaxUploadSizeExceededException(
+            MaxUploadSizeExceededException exception,
+            HttpServletRequest request
+    ) {
+        return badRequestResponse(ErrorCode.FILE_TOO_LARGE, request);
+    }
+
     @ExceptionHandler(ObjectOptimisticLockingFailureException.class)
     ResponseEntity<ErrorResponse> handleOptimisticLockingFailure(
             ObjectOptimisticLockingFailureException exception,
@@ -178,6 +196,14 @@ public class GlobalExceptionHandler {
                 errorCode.getDefaultMessage(),
                 traceId,
                 request.getRequestURI()
+        ));
+    }
+
+    private ResponseEntity<ErrorResponse> badRequestResponse(ErrorCode errorCode, HttpServletRequest request) {
+        String traceId = traceId();
+        log.warn("Bad request: code={}, path={}, traceId={}", errorCode, request.getRequestURI(), traceId);
+        return ResponseEntity.badRequest().body(errorResponse(
+                errorCode, errorCode.getDefaultMessage(), traceId, request.getRequestURI()
         ));
     }
 
