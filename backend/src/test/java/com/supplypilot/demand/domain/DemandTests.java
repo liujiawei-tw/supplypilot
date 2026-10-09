@@ -47,4 +47,20 @@ class DemandTests {
         assertThatThrownBy(() -> demand.cancel(TestDataConstants.TEST_INSTANT.plusSeconds(2))).isInstanceOf(BusinessException.class).extracting("errorCode").isEqualTo(ErrorCode.DEMAND_NOT_ACTIVE);
         assertThatThrownBy(() -> demand.update(BigDecimal.TEN, null, null, false, LocalDate.of(2026, 10, 8), TestDataConstants.TEST_INSTANT)).isInstanceOf(BusinessException.class).extracting("errorCode").isEqualTo(ErrorCode.DEMAND_NOT_ACTIVE);
     }
+
+    @Test void rejectsInvalidUpdatesWithoutPartiallyMutatingDemand() {
+        Demand demand = Demand.create(material, new BigDecimal("10"), LocalDate.of(2026, 10, 9), "Original", user, TestDataConstants.TEST_INSTANT);
+        assertThatThrownBy(() -> demand.update(BigDecimal.ZERO, LocalDate.of(2026, 10, 10), "Changed", true, LocalDate.of(2026, 10, 8), TestDataConstants.TEST_INSTANT.plusSeconds(1))).isInstanceOf(BusinessException.class).extracting("errorCode").isEqualTo(ErrorCode.INVALID_QUANTITY);
+        assertThatThrownBy(() -> demand.update(new BigDecimal("-1"), LocalDate.of(2026, 10, 10), "Changed", true, LocalDate.of(2026, 10, 8), TestDataConstants.TEST_INSTANT.plusSeconds(1))).isInstanceOf(BusinessException.class).extracting("errorCode").isEqualTo(ErrorCode.INVALID_QUANTITY);
+        assertThatThrownBy(() -> demand.update(new BigDecimal("11"), LocalDate.of(2026, 10, 7), "Changed", true, LocalDate.of(2026, 10, 8), TestDataConstants.TEST_INSTANT.plusSeconds(1))).isInstanceOf(BusinessException.class).extracting("errorCode").isEqualTo(ErrorCode.INVALID_DATE_RANGE);
+        assertThat(demand.getQuantity()).isEqualByComparingTo("10"); assertThat(demand.getRequiredDate()).isEqualTo(LocalDate.of(2026, 10, 9)); assertThat(demand.getNote()).isEqualTo("Original"); assertThat(demand.getUpdatedAt()).isEqualTo(TestDataConstants.TEST_INSTANT);
+    }
+
+    @Test void distinguishesOmittedNoteFromExplicitNullAndAllowsTodayUpdate() {
+        Demand demand = Demand.create(material, BigDecimal.ONE, LocalDate.of(2026, 10, 8), "Original", user, TestDataConstants.TEST_INSTANT);
+        demand.update(new BigDecimal("2"), null, null, false, LocalDate.of(2026, 10, 8), TestDataConstants.TEST_INSTANT.plusSeconds(1));
+        assertThat(demand.getNote()).isEqualTo("Original");
+        demand.update(null, LocalDate.of(2026, 10, 8), null, true, LocalDate.of(2026, 10, 8), TestDataConstants.TEST_INSTANT.plusSeconds(2));
+        assertThat(demand.getNote()).isNull(); assertThat(demand.getRequiredDate()).isEqualTo(LocalDate.of(2026, 10, 8));
+    }
 }

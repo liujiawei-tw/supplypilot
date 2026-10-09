@@ -56,4 +56,13 @@ class DemandServiceTests {
         Demand cancelled = Demand.create(activeMaterial, BigDecimal.ONE, LocalDate.of(2026,10,8), null, planner, TestDataConstants.TEST_INSTANT); cancelled.cancel(TestDataConstants.TEST_INSTANT); when(demandRepository.findById(2L)).thenReturn(Optional.of(cancelled));
         assertThatThrownBy(() -> service.cancelDemand(2L)).isInstanceOf(BusinessException.class).extracting("errorCode").isEqualTo(ErrorCode.DEMAND_NOT_ACTIVE);
     }
+
+    @Test void rejectsInvalidUpdateWithoutMutatingPersistedDemandState() {
+        Demand demand = Demand.create(activeMaterial, new BigDecimal("10"), LocalDate.of(2026, 10, 9), "Original", planner, TestDataConstants.TEST_INSTANT);
+        when(demandRepository.findById(1L)).thenReturn(Optional.of(demand));
+        UpdateDemandRequest request = new UpdateDemandRequest(); request.setQuantity(BigDecimal.ZERO); request.setRequiredDate(LocalDate.of(2026, 10, 7)); request.setNote("Changed");
+        assertThatThrownBy(() -> service.updateDemand(1L, request)).isInstanceOf(BusinessException.class).extracting("errorCode").isEqualTo(ErrorCode.INVALID_QUANTITY);
+        assertThat(demand.getQuantity()).isEqualByComparingTo("10"); assertThat(demand.getRequiredDate()).isEqualTo(LocalDate.of(2026, 10, 9)); assertThat(demand.getNote()).isEqualTo("Original");
+        verify(demandRepository, never()).save(any());
+    }
 }
