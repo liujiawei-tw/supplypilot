@@ -24,6 +24,8 @@ public enum ErrorCode {
     DUPLICATE_RECEIVING("Purchase order has already been received."),
 
     VALIDATION_FAILED("Request validation failed."),
+    MATERIAL_CODE_REQUIRED("Material code is required."),
+    QUANTITY_REQUIRED("Quantity is required."),
     INVALID_QUANTITY("Quantity is invalid."),
     NEGATIVE_QUANTITY("Quantity cannot be negative."),
     INVALID_DATE_RANGE("Date range is invalid."),
