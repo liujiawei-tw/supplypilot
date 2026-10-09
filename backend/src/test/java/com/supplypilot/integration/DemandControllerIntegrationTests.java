@@ -65,13 +65,32 @@ class DemandControllerIntegrationTests extends AbstractIntegrationTest {
         Material first = material(); Material second = material(); User planner = user(UserRole.PRODUCTION_PLANNER);
         Demand firstStart = demand(first, planner, LocalDate.of(2026, 10, 8)); Demand firstEnd = demand(first, planner, LocalDate.of(2026, 10, 10)); firstEnd.cancel(clock.instant()); demandRepository.saveAndFlush(firstEnd); demand(second, planner, LocalDate.of(2026, 10, 9)); String auth = bearer(planner);
         mockMvc.perform(get("/api/v1/demands").param("materialId", first.getId().toString()).header("Authorization", auth)).andExpect(status().isOk()).andExpect(jsonPath("$.totalElements").value(2));
-        mockMvc.perform(get("/api/v1/demands").param("status", "CANCELLED").header("Authorization", auth)).andExpect(status().isOk()).andExpect(jsonPath("$.totalElements").value(1)).andExpect(jsonPath("$.content[0].id").value(firstEnd.getId()));
-        mockMvc.perform(get("/api/v1/demands").param("requiredFrom", "2026-10-08").param("requiredTo", "2026-10-08").header("Authorization", auth)).andExpect(status().isOk()).andExpect(jsonPath("$.totalElements").value(1)).andExpect(jsonPath("$.content[0].id").value(firstStart.getId()));
+        mockMvc.perform(get("/api/v1/demands").param("materialId", first.getId().toString()).param("status", "CANCELLED").header("Authorization", auth)).andExpect(status().isOk()).andExpect(jsonPath("$.totalElements").value(1)).andExpect(jsonPath("$.content[0].id").value(firstEnd.getId()));
+        mockMvc.perform(get("/api/v1/demands").param("materialId", first.getId().toString()).param("requiredFrom", "2026-10-08").param("requiredTo", "2026-10-08").header("Authorization", auth)).andExpect(status().isOk()).andExpect(jsonPath("$.totalElements").value(1)).andExpect(jsonPath("$.content[0].id").value(firstStart.getId()));
         mockMvc.perform(get("/api/v1/demands").param("materialId", first.getId().toString()).param("status", "CANCELLED").param("requiredFrom", "2026-10-10").param("requiredTo", "2026-10-10").header("Authorization", auth)).andExpect(status().isOk()).andExpect(jsonPath("$.totalElements").value(1));
-        mockMvc.perform(get("/api/v1/demands").param("requiredFrom", "2026-10-10").param("requiredTo", "2026-10-08").header("Authorization", auth)).andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("INVALID_DATE_RANGE"));
-        mockMvc.perform(get("/api/v1/demands").param("page", "0").param("size", "1").param("sort", "requiredDate,desc").header("Authorization", auth)).andExpect(status().isOk()).andExpect(jsonPath("$.size").value(1));
-        mockMvc.perform(get("/api/v1/demands").param("page", "-1").header("Authorization", auth)).andExpect(status().isBadRequest()); mockMvc.perform(get("/api/v1/demands").param("size", "101").header("Authorization", auth)).andExpect(status().isBadRequest());
-        mockMvc.perform(get("/api/v1/demands").param("sort", "hackerField,asc").header("Authorization", auth)).andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("VALIDATION_FAILED"));
+        mockMvc.perform(get("/api/v1/demands").param("materialId", first.getId().toString()).param("requiredFrom", "2026-10-10").param("requiredTo", "2026-10-08").header("Authorization", auth)).andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("INVALID_DATE_RANGE"));
+        mockMvc.perform(get("/api/v1/demands").param("materialId", first.getId().toString()).param("page", "0").param("size", "1").param("sort", "requiredDate,desc").header("Authorization", auth)).andExpect(status().isOk()).andExpect(jsonPath("$.size").value(1));
+        mockMvc.perform(get("/api/v1/demands").param("materialId", first.getId().toString()).param("page", "-1").header("Authorization", auth)).andExpect(status().isBadRequest()); mockMvc.perform(get("/api/v1/demands").param("materialId", first.getId().toString()).param("size", "101").header("Authorization", auth)).andExpect(status().isBadRequest());
+        mockMvc.perform(get("/api/v1/demands").param("materialId", first.getId().toString()).param("sort", "hackerField,asc").header("Authorization", auth)).andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("VALIDATION_FAILED"));
+    }
+
+    @Test void validatesCommandPayloadsAndEnforcesDemandLifecycleOverHttp() throws Exception {
+        Material material = material(); User planner = user(UserRole.PRODUCTION_PLANNER); String auth = bearer(planner);
+        mockMvc.perform(post("/api/v1/demands").header("Authorization", auth).contentType(MediaType.APPLICATION_JSON).content("{\"materialId\":" + material.getId() + "}"))
+                .andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("VALIDATION_FAILED"));
+        mockMvc.perform(post("/api/v1/demands").header("Authorization", auth).contentType(MediaType.APPLICATION_JSON).content("{\"materialId\":" + material.getId() + ",\"quantity\":0,\"requiredDate\":\"2026-10-08\"}"))
+                .andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("VALIDATION_FAILED"));
+        Demand active = demand(material, planner, LocalDate.of(2026, 10, 8));
+        mockMvc.perform(patch("/api/v1/demands/{id}", active.getId()).header("Authorization", auth).contentType(MediaType.APPLICATION_JSON).content("{\"materialId\":999}"))
+                .andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("VALIDATION_FAILED"));
+        mockMvc.perform(patch("/api/v1/demands/{id}", active.getId()).header("Authorization", auth).contentType(MediaType.APPLICATION_JSON).content("{\"note\":null}"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.note").doesNotExist());
+        mockMvc.perform(post("/api/v1/demands/{id}/cancel", active.getId()).header("Authorization", auth)).andExpect(status().isOk());
+        mockMvc.perform(post("/api/v1/demands/{id}/cancel", active.getId()).header("Authorization", auth))
+                .andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("DEMAND_NOT_ACTIVE"));
+        Demand expired = demand(material, planner, LocalDate.of(2026, 10, 7));
+        mockMvc.perform(patch("/api/v1/demands/{id}", expired.getId()).header("Authorization", auth).contentType(MediaType.APPLICATION_JSON).content("{\"quantity\":2}"))
+                .andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("INVALID_DATE_RANGE"));
     }
 
     private org.springframework.test.web.servlet.ResultActions create(Material material, User user) throws Exception { return mockMvc.perform(post("/api/v1/demands").header("Authorization", bearer(user)).contentType(MediaType.APPLICATION_JSON).content(payload(material))); }
