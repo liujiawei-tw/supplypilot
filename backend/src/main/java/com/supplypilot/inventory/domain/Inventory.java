@@ -1,6 +1,7 @@
 package com.supplypilot.inventory.domain;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.Instant;
 import java.util.Objects;
 
@@ -52,6 +53,41 @@ public class Inventory {
         inventory.quantity = BigDecimal.ZERO;
         inventory.updatedAt = now;
         return inventory;
+    }
+
+    /**
+     * Applies a signed quantity delta while preserving the inventory invariant that stock
+     * can never become negative.
+     */
+    public void adjust(BigDecimal delta, Instant now) {
+        Objects.requireNonNull(now, "Timestamp must not be null");
+        BigDecimal validDelta = decimal19_4(delta);
+        if (validDelta.signum() == 0) {
+            throw new BusinessException(ErrorCode.INVALID_QUANTITY);
+        }
+
+        BigDecimal adjustedQuantity = decimal19_4(quantity.add(validDelta));
+        if (adjustedQuantity.signum() < 0) {
+            throw new BusinessException(ErrorCode.NEGATIVE_QUANTITY);
+        }
+
+        quantity = adjustedQuantity;
+        updatedAt = now;
+    }
+
+    private static BigDecimal decimal19_4(BigDecimal value) {
+        if (value == null) {
+            throw new BusinessException(ErrorCode.INVALID_QUANTITY);
+        }
+        try {
+            BigDecimal normalized = value.setScale(4, RoundingMode.UNNECESSARY);
+            if (normalized.precision() > 19) {
+                throw new BusinessException(ErrorCode.INVALID_QUANTITY);
+            }
+            return normalized;
+        } catch (ArithmeticException exception) {
+            throw new BusinessException(ErrorCode.INVALID_QUANTITY);
+        }
     }
 
     public Long getId() { return id; }

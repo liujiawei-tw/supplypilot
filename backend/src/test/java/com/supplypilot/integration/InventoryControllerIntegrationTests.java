@@ -5,7 +5,9 @@ import java.time.Clock;
 import java.util.UUID;
 
 import com.supplypilot.inventory.domain.Inventory;
+import com.supplypilot.inventory.domain.StockTransaction;
 import com.supplypilot.inventory.repository.InventoryRepository;
+import com.supplypilot.inventory.repository.StockTransactionRepository;
 import com.supplypilot.material.domain.BaseUnit;
 import com.supplypilot.material.domain.Material;
 import com.supplypilot.material.repository.MaterialRepository;
@@ -13,6 +15,8 @@ import com.supplypilot.security.AuthenticatedUser;
 import com.supplypilot.security.JwtProperties;
 import com.supplypilot.security.JwtTokenService;
 import com.supplypilot.user.domain.UserRole;
+import com.supplypilot.user.domain.User;
+import com.supplypilot.user.repository.UserRepository;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -25,8 +29,10 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.assertj.core.api.Assertions.assertThat;
 
 class InventoryControllerIntegrationTests extends AbstractIntegrationTest {
     @Autowired private WebApplicationContext webApplicationContext;
@@ -34,6 +40,8 @@ class InventoryControllerIntegrationTests extends AbstractIntegrationTest {
     @Autowired private Clock clock;
     @Autowired private MaterialRepository materialRepository;
     @Autowired private InventoryRepository inventoryRepository;
+    @Autowired private StockTransactionRepository stockTransactionRepository;
+    @Autowired private UserRepository userRepository;
     @Autowired private JdbcTemplate jdbcTemplate;
 
     private MockMvc mockMvc;
@@ -108,9 +116,135 @@ class InventoryControllerIntegrationTests extends AbstractIntegrationTest {
                 .andExpect(status().isForbidden()).andExpect(jsonPath("$.code").value("ACCESS_DENIED"));
     }
 
+    @Test
+    void manualAdjustmentUpdatesInventoryAndPersistsOneAuditRecord() throws Exception {
+        Material material = materialWithQuantity("MAT-ADJUST", "Adjust material", "100");
+        User actor = user(UserRole.ADMIN);
+        long versionBefore = inventoryRepository.findByMaterialId(material.getId()).orElseThrow().getVersion();
+
+        mockMvc.perform(post("/api/v1/inventory/{materialId}/adjustments", material.getId())
+                        .header("Authorization", bearer(actor)).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"quantity\":-30,\"reason\":\"Damaged inventory\"}"))
+                .andExpect(status().isOk());
+
+        Inventory persistedInventory = inventoryRepository.findByMaterialId(material.getId()).orElseThrow();
+        assertThat(persistedInventory.getQuantity()).isEqualByComparingTo("70.0000");
+        assertThat(persistedInventory.getVersion()).isEqualTo(versionBefore + 1);
+        assertThat(transactionsFor(material)).singleElement().satisfies(transaction -> {
+            assertThat(transaction.getQuantity()).isEqualByComparingTo("-30.0000");
+            assertThat(transaction.getReason()).isEqualTo("Damaged inventory");
+            assertThat(transaction.getCreatedBy().getId()).isEqualTo(actor.getId());
+            assertThat(transaction.getCreatedAt()).isEqualTo(clock.instant());
+            assertThat(transaction.getPurchaseOrderId()).isNull();
+        });
+    }
+
+    @Test
+    void manualAdjustmentSupportsStockIncreaseAndRejectsNegativeStockWithoutAudit() throws Exception {
+        Material material = materialWithQuantity("MAT-ADJUST-N", "Adjust material", "100");
+        User actor = user(UserRole.WAREHOUSE_STAFF);
+
+        mockMvc.perform(post("/api/v1/inventory/{materialId}/adjustments", material.getId())
+                        .header("Authorization", bearer(actor)).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"quantity\":30,\"reason\":\"Count correction\"}"))
+                .andExpect(status().isOk());
+        assertThat(inventoryRepository.findByMaterialId(material.getId()).orElseThrow().getQuantity())
+                .isEqualByComparingTo("130.0000");
+
+        mockMvc.perform(post("/api/v1/inventory/{materialId}/adjustments", material.getId())
+                        .header("Authorization", bearer(actor)).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"quantity\":-131,\"reason\":\"Damaged inventory\"}"))
+                .andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("NEGATIVE_QUANTITY"));
+        assertThat(inventoryRepository.findByMaterialId(material.getId()).orElseThrow().getQuantity())
+                .isEqualByComparingTo("130.0000");
+        assertThat(transactionsFor(material)).hasSize(1);
+    }
+
+    @Test
+    void manualAdjustmentValidatesRequestAndDistinguishesMissingMaterialAndInventory() throws Exception {
+        User actor = user(UserRole.ADMIN);
+        String endpoint = "/api/v1/inventory/999999999/adjustments";
+        for (String body : new String[] {
+                "{\"quantity\":0,\"reason\":\"Reason\"}",
+                "{\"quantity\":null,\"reason\":\"Reason\"}",
+                "{\"quantity\":1,\"reason\":null}",
+                "{\"quantity\":1,\"reason\":\"\"}",
+                "{\"quantity\":1,\"reason\":\"   \"}",
+                "{\"quantity\":1.00001,\"reason\":\"Reason\"}",
+                "{\"quantity\":1000000000000000,\"reason\":\"Reason\"}"
+        }) {
+            mockMvc.perform(post(endpoint).header("Authorization", bearer(actor)).contentType(MediaType.APPLICATION_JSON).content(body))
+                    .andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("VALIDATION_FAILED"));
+        }
+
+        mockMvc.perform(post(endpoint).header("Authorization", bearer(actor)).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"quantity\":1,\"reason\":\"Reason\"}"))
+                .andExpect(status().isNotFound()).andExpect(jsonPath("$.code").value("MATERIAL_NOT_FOUND"));
+
+        Material material = material("MAT-ADJUST-MISSING", "Missing inventory");
+        jdbcTemplate.update("DELETE FROM inventory WHERE material_id = ?", material.getId());
+        mockMvc.perform(post("/api/v1/inventory/{materialId}/adjustments", material.getId()).header("Authorization", bearer(actor))
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"quantity\":1,\"reason\":\"Reason\"}"))
+                .andExpect(status().isNotFound()).andExpect(jsonPath("$.code").value("INVENTORY_NOT_FOUND"));
+    }
+
+    @Test
+    void manualAdjustmentEnforcesRolesAndRejectsForgedAuditActor() throws Exception {
+        Material material = materialWithQuantity("MAT-ADJUST-SEC", "Secure material", "100");
+
+        mockMvc.perform(post("/api/v1/inventory/{materialId}/adjustments", material.getId())
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"quantity\":1,\"reason\":\"Reason\"}"))
+                .andExpect(status().isUnauthorized()).andExpect(jsonPath("$.code").value("UNAUTHENTICATED"));
+        for (UserRole role : new UserRole[] {UserRole.PRODUCTION_PLANNER, UserRole.PROCUREMENT_STAFF, UserRole.PROCUREMENT_MANAGER}) {
+            User actor = user(role);
+            mockMvc.perform(post("/api/v1/inventory/{materialId}/adjustments", material.getId()).header("Authorization", bearer(actor))
+                            .contentType(MediaType.APPLICATION_JSON).content("{\"quantity\":1,\"reason\":\"Reason\"}"))
+                    .andExpect(status().isForbidden()).andExpect(jsonPath("$.code").value("ACCESS_DENIED"));
+        }
+
+        User actor = user(UserRole.ADMIN);
+        mockMvc.perform(post("/api/v1/inventory/{materialId}/adjustments", material.getId()).header("Authorization", bearer(actor))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"quantity\":1,\"reason\":\"Reason\",\"createdBy\":999999}"))
+                .andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("VALIDATION_FAILED"));
+        assertThat(transactionsFor(material)).isEmpty();
+    }
+
+    @Test
+    void rollsBackInventoryWhenTheMySqlStockTransactionInsertFails() throws Exception {
+        Material material = materialWithQuantity("MAT-ADJUST-ROLLBACK", "Rollback material", "100");
+        User actor = user(UserRole.ADMIN);
+        jdbcTemplate.execute("DROP TRIGGER IF EXISTS trg_sp401_stock_transaction_failure");
+        jdbcTemplate.execute("""
+                CREATE TRIGGER trg_sp401_stock_transaction_failure
+                BEFORE INSERT ON stock_transactions FOR EACH ROW
+                SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'forced stock transaction failure'
+                """);
+        try {
+            mockMvc.perform(post("/api/v1/inventory/{materialId}/adjustments", material.getId()).header("Authorization", bearer(actor))
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("{\"quantity\":-30,\"reason\":\"Forced audit failure\"}"))
+                    .andExpect(status().isInternalServerError());
+        } finally {
+            jdbcTemplate.execute("DROP TRIGGER IF EXISTS trg_sp401_stock_transaction_failure");
+        }
+
+        assertThat(inventoryRepository.findByMaterialId(material.getId()).orElseThrow().getQuantity())
+                .isEqualByComparingTo("100.0000");
+        assertThat(transactionsFor(material)).isEmpty();
+    }
+
     private Material materialWithInventory(String code, String name) {
         Material material = material(code, name);
         inventoryRepository.saveAndFlush(Inventory.create(material, clock.instant()));
+        return material;
+    }
+
+    private Material materialWithQuantity(String code, String name, String quantity) {
+        Material material = materialWithInventory(code, name);
+        Inventory inventory = inventoryRepository.findByMaterialId(material.getId()).orElseThrow();
+        inventory.adjust(new BigDecimal(quantity), clock.instant());
+        inventoryRepository.saveAndFlush(inventory);
         return material;
     }
 
@@ -120,5 +254,20 @@ class InventoryControllerIntegrationTests extends AbstractIntegrationTest {
 
     private String bearer(UserRole role) {
         return "Bearer " + jwtTokenService.generateToken(new AuthenticatedUser(1000L + role.ordinal(), role.name(), role));
+    }
+
+    private String bearer(User user) {
+        return "Bearer " + jwtTokenService.generateToken(new AuthenticatedUser(user.getId(), user.getUsername(), user.getRole()));
+    }
+
+    private User user(UserRole role) {
+        String suffix = UUID.randomUUID().toString().substring(0, 8);
+        return userRepository.saveAndFlush(User.create("adjust-" + suffix, "hash", "Adjustment user", role, clock.instant()));
+    }
+
+    private java.util.List<StockTransaction> transactionsFor(Material material) {
+        return stockTransactionRepository.findAll().stream()
+                .filter(transaction -> transaction.getMaterial().getId().equals(material.getId()))
+                .toList();
     }
 }
