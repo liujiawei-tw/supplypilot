@@ -1,6 +1,7 @@
 package com.supplypilot.demand.repository;
 
 import java.math.BigDecimal;
+import java.sql.SQLException;
 import java.time.LocalDate;
 import com.supplypilot.demand.domain.Demand;
 import com.supplypilot.demand.domain.DemandStatus;
@@ -13,8 +14,8 @@ import com.supplypilot.user.domain.User;
 import com.supplypilot.user.domain.UserRole;
 import com.supplypilot.user.repository.UserRepository;
 import org.junit.jupiter.api.Test;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import jakarta.persistence.EntityManager;
 import static org.assertj.core.api.Assertions.*;
@@ -33,14 +34,33 @@ class DemandRepositoryTests extends AbstractIntegrationTest {
 
     @Test void databaseRejectsInvalidForeignKeys() {
         Material material = material("MAT-DEMAND-FK"); User user = user("demand-fk-user");
-        assertThatThrownBy(() -> insert(99999999L, BigDecimal.ONE, user.getId())).isInstanceOf(DataIntegrityViolationException.class);
-        assertThatThrownBy(() -> insert(material.getId(), BigDecimal.ONE, 99999999L)).isInstanceOf(DataIntegrityViolationException.class);
+        assertMysqlConstraintViolation(() -> insert(99999999L, BigDecimal.ONE, user.getId()), "23000", 1452, "fk_demands_material");
+        assertMysqlConstraintViolation(() -> insert(material.getId(), BigDecimal.ONE, 99999999L), "23000", 1452, "fk_demands_created_by");
     }
 
     @Test void databaseEnforcesPositiveQuantityForZeroAndNegativeValues() {
         Material material = material("MAT-DEMAND-CHECK"); User user = user("demand-check-user");
-        assertThatThrownBy(() -> insert(material.getId(), BigDecimal.ZERO, user.getId())).isInstanceOf(DataIntegrityViolationException.class);
-        assertThatThrownBy(() -> insert(material.getId(), new BigDecimal("-1"), user.getId())).isInstanceOf(DataIntegrityViolationException.class);
+        assertMysqlConstraintViolation(() -> insert(material.getId(), BigDecimal.ZERO, user.getId()), "HY000", 3819, "chk_demands_quantity_positive");
+        assertMysqlConstraintViolation(() -> insert(material.getId(), new BigDecimal("-1"), user.getId()), "HY000", 3819, "chk_demands_quantity_positive");
+    }
+
+    private void assertMysqlConstraintViolation(org.assertj.core.api.ThrowableAssert.ThrowingCallable action, String sqlState, int errorCode, String constraint) {
+        Throwable throwable = catchThrowable(action);
+        assertThat(throwable).isNotNull();
+        SQLException sqlException = findSqlException(throwable);
+        assertNotNull(sqlException);
+        assertThat(sqlException.getSQLState()).isEqualTo(sqlState);
+        assertThat(sqlException.getErrorCode()).isEqualTo(errorCode);
+        assertThat(sqlException.getMessage()).contains(constraint);
+    }
+
+    private SQLException findSqlException(Throwable throwable) {
+        Throwable current = throwable;
+        while (current != null) {
+            if (current instanceof SQLException sqlException) return sqlException;
+            current = current.getCause();
+        }
+        return null;
     }
 
     private void insert(Long materialId, BigDecimal quantity, Long userId) { jdbcTemplate.update("INSERT INTO demands (material_id, quantity, required_date, status, created_by, created_at, updated_at) VALUES (?, ?, ?, 'ACTIVE', ?, ?, ?)", materialId, quantity, LocalDate.of(2026, 10, 8), userId, TestDataConstants.TEST_INSTANT, TestDataConstants.TEST_INSTANT); }
