@@ -119,6 +119,25 @@ class InventoryImportControllerIntegrationTests extends AbstractIntegrationTest 
     }
 
     @Test
+    void reportsAndPersistsPhysicalLineNumbersAfterAQuotedNewline() throws Exception {
+        Material material = material("MAT-CSV-MULTILINE");
+        User actor = user(UserRole.ADMIN);
+        String body = "material_code,quantity,unit\n"
+                + material.getCode() + ",\"1\n\",KG\n"
+                + "MAT-MISSING,1,KG\n";
+
+        mockMvc.perform(multipart("/api/v1/inventory-imports/validate").file(csv(body))
+                        .header("Authorization", bearer(actor)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.errors[0].row").value(4))
+                .andExpect(jsonPath("$.errors[0].code").value("MATERIAL_NOT_FOUND"));
+
+        var batch = batchRepository.findAll().stream().max(java.util.Comparator.comparingLong(b -> b.getId())).orElseThrow();
+        assertThat(itemRepository.findByBatchIdOrderByRowNumber(batch.getId()))
+                .extracting(item -> item.getRowNumber()).containsExactly(2, 4);
+    }
+
+    @Test
     void enforcesRolesAndFileLevelValidation() throws Exception {
         Material material = material("MAT-CSV-SECURITY");
         User warehouse = user(UserRole.WAREHOUSE_STAFF);

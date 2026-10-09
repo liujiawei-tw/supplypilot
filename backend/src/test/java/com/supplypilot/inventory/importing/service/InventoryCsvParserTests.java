@@ -43,12 +43,38 @@ class InventoryCsvParserTests {
     }
 
     @Test
+    void usesThePhysicalCsvLineForRecordsFollowingQuotedNewlines() {
+        MockMultipartFile file = csv("inventory.csv", """
+                material_code,quantity,unit
+                MAT-001,"1
+                ",KG
+                MAT-002,2,KG
+                """);
+
+        var rows = parser.parse(file);
+
+        assertThat(rows).extracting(ParsedInventoryImportRow::rowNumber).containsExactly(2, 4);
+    }
+
+    @Test
     void rejectsEmptyAndNonCsvUploads() {
         assertThatThrownBy(() -> parser.parse(csv("inventory.csv", ""))).isInstanceOf(BusinessException.class)
                 .extracting(exception -> ((BusinessException) exception).getErrorCode()).isEqualTo(ErrorCode.FILE_EMPTY);
         MockMultipartFile json = new MockMultipartFile("file", "inventory.json", "application/json", "{}".getBytes());
         assertThatThrownBy(() -> parser.parse(json)).isInstanceOf(BusinessException.class)
                 .extracting(exception -> ((BusinessException) exception).getErrorCode()).isEqualTo(ErrorCode.INVALID_FILE_FORMAT);
+    }
+
+    @Test
+    void requiresACsvFilenameExtensionInAdditionToContentTypeAndCsvSyntax() {
+        MockMultipartFile uppercaseCsv = csv("inventory.CSV", "material_code,quantity,unit\nMAT-001,1,KG\n");
+        assertThat(parser.parse(uppercaseCsv)).singleElement();
+
+        MockMultipartFile xlsxNamedCsv = new MockMultipartFile("file", "inventory.xlsx", "text/plain",
+                "material_code,quantity,unit\nMAT-001,1,KG\n".getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        assertThatThrownBy(() -> parser.parse(xlsxNamedCsv)).isInstanceOf(BusinessException.class)
+                .extracting(exception -> ((BusinessException) exception).getErrorCode())
+                .isEqualTo(ErrorCode.INVALID_FILE_FORMAT);
     }
 
     private MockMultipartFile csv(String filename, String content) {
