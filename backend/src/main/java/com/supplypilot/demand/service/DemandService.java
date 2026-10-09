@@ -1,5 +1,6 @@
 package com.supplypilot.demand.service;
 
+import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -84,6 +85,15 @@ public class DemandService {
     @PreAuthorize("hasAnyRole('PRODUCTION_PLANNER', 'PROCUREMENT_MANAGER', 'ADMIN')")
     public DemandResponse getDemandById(Long id) { return demandMapper.toResponse(findDemand(id)); }
 
+    @Transactional(readOnly = true)
+    @PreAuthorize("hasAnyRole('PRODUCTION_PLANNER', 'PROCUREMENT_MANAGER', 'ADMIN')")
+    public BigDecimal sumActiveDemand(Long materialId, LocalDate periodStart, LocalDate periodEnd) {
+        if (materialId == null) throw new BusinessException(ErrorCode.VALIDATION_FAILED);
+        validateRequiredRange(periodStart, periodEnd);
+        BigDecimal aggregateQuantity = demandRepository.sumActiveDemand(materialId, periodStart, periodEnd);
+        return aggregateQuantity == null ? BigDecimal.ZERO : aggregateQuantity;
+    }
+
     @Transactional
     @PreAuthorize("hasAnyRole('PRODUCTION_PLANNER', 'ADMIN')")
     public DemandResponse updateDemand(Long id, UpdateDemandRequest request) {
@@ -103,5 +113,10 @@ public class DemandService {
     private Demand findDemand(Long id) { return demandRepository.findById(id).orElseThrow(() -> new BusinessException(ErrorCode.DEMAND_NOT_FOUND)); }
     private void validateRange(LocalDate requiredFrom, LocalDate requiredTo) {
         if (requiredFrom != null && requiredTo != null && requiredFrom.isAfter(requiredTo)) throw new BusinessException(ErrorCode.INVALID_DATE_RANGE);
+    }
+    private void validateRequiredRange(LocalDate periodStart, LocalDate periodEnd) {
+        if (periodStart == null || periodEnd == null || periodStart.isAfter(periodEnd)) {
+            throw new BusinessException(ErrorCode.INVALID_DATE_RANGE);
+        }
     }
 }
