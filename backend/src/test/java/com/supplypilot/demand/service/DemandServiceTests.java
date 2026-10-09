@@ -79,4 +79,33 @@ class DemandServiceTests {
         service.listDemands(null, null, null, LocalDate.of(2026, 10, 9), pageable);
         verify(demandRepository, times(5)).findAll(any(org.springframework.data.jpa.domain.Specification.class), any(org.springframework.data.domain.Pageable.class));
     }
+
+    @Test void sumsActiveDemandForAValidPeriodWithoutWritingDemand() {
+        when(demandRepository.sumActiveDemand(1L, LocalDate.of(2026, 10, 8), LocalDate.of(2026, 10, 20)))
+                .thenReturn(new BigDecimal("0.5000"));
+
+        BigDecimal result = service.sumActiveDemand(1L, LocalDate.of(2026, 10, 8), LocalDate.of(2026, 10, 20));
+
+        assertThat(result).isEqualByComparingTo("0.5000");
+        verify(demandRepository).sumActiveDemand(1L, LocalDate.of(2026, 10, 8), LocalDate.of(2026, 10, 20));
+        verify(demandRepository, never()).save(any());
+        verify(demandRepository, never()).delete(any(Demand.class));
+    }
+
+    @Test void acceptsASingleDayPeriod() {
+        LocalDate date = LocalDate.of(2026, 10, 20);
+        when(demandRepository.sumActiveDemand(1L, date, date)).thenReturn(BigDecimal.TEN);
+
+        assertThat(service.sumActiveDemand(1L, date, date)).isEqualByComparingTo("10");
+    }
+
+    @Test void rejectsNullAndReversedAggregationPeriodsWithoutCallingRepository() {
+        assertThatThrownBy(() -> service.sumActiveDemand(1L, null, LocalDate.of(2026, 10, 20)))
+                .isInstanceOf(BusinessException.class).extracting("errorCode").isEqualTo(ErrorCode.INVALID_DATE_RANGE);
+        assertThatThrownBy(() -> service.sumActiveDemand(1L, LocalDate.of(2026, 10, 8), null))
+                .isInstanceOf(BusinessException.class).extracting("errorCode").isEqualTo(ErrorCode.INVALID_DATE_RANGE);
+        assertThatThrownBy(() -> service.sumActiveDemand(1L, LocalDate.of(2026, 10, 21), LocalDate.of(2026, 10, 20)))
+                .isInstanceOf(BusinessException.class).extracting("errorCode").isEqualTo(ErrorCode.INVALID_DATE_RANGE);
+        verifyNoInteractions(demandRepository);
+    }
 }
