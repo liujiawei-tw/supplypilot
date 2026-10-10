@@ -658,6 +658,7 @@ Client 不允許傳：
 ```text
 createdBy
 approvedBy
+rejectedBy
 orderedBy
 receivedBy
 uploadedBy
@@ -686,6 +687,8 @@ approvedBy / approvedAt
   "approvedBy": 5
 }
 ```
+
+Reject PO 同樣由 `CurrentUserProvider` 提供 `rejectedBy`，由 Backend Clock 提供 `rejectedAt`；Client 不得傳入或覆寫 rejection audit。
 
 ---
 

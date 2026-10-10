@@ -1349,6 +1349,8 @@ REJECTED
 
 ```text
 rejectReason REQUIRED
+rejectedBy from authenticated user
+rejectedAt from backend clock
 ```
 
 ---

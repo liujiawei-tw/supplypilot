@@ -484,6 +484,8 @@ receive()
 
 Entity 自己保護合法 State Transition。
 
+Approve / Reject 的 status、reason 與 authenticated-user audit 由同一 Aggregate method 修改，並在同一 Service transaction 保存。
+
 `PurchaseOrder` 正式於 V1 使用 `@Version`，optimistic conflict 對外映射為 `409 CONCURRENT_MODIFICATION`。
 
 ---

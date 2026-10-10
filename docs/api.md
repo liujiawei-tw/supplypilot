@@ -155,6 +155,7 @@ role
 ```text
 createdBy
 approvedBy
+rejectedBy
 orderedBy
 receivedBy
 uploadedBy
@@ -1327,6 +1328,13 @@ Response 使用 `PurchaseOrderResponse`，成功回傳 `200 OK`。
   "createdBy": 20,
   "createdByDisplayName": "Procurement A",
   "createdAt": "2026-10-08T00:00:00Z",
+  "approvedBy": null,
+  "approvedByDisplayName": null,
+  "approvedAt": null,
+  "rejectReason": null,
+  "rejectedBy": null,
+  "rejectedByDisplayName": null,
+  "rejectedAt": null,
   "updatedAt": "2026-10-10T00:00:00Z"
 }
 ```
@@ -1410,6 +1418,7 @@ status
 createdBy / createdAt / updatedAt
 version
 approvedBy / approvedAt
+rejectedBy / rejectedAt
 orderedBy / orderedAt
 receivedBy / receivedAt
 rejectReason
@@ -1464,6 +1473,8 @@ approvedBy
 approvedAt
 ```
 
+`approvedBy` 由 `CurrentUserProvider` 取得，`approvedAt` 由 Backend Clock 產生；Request body 無法指定 status 或 audit 欄位。
+
 ### Success
 
 ```text
@@ -1508,7 +1519,19 @@ DRAFT → REJECTED
 
 ```text
 rejectReason
+rejectedBy
+rejectedAt
 ```
+
+`rejectedBy` 由 `CurrentUserProvider` 取得，`rejectedAt` 由 Backend Clock 產生。三者與 status 在同一 transaction 保存；欄位會出現在 action response 與後續 GET response。Client 傳入 status 或 audit 欄位時回 `400 VALIDATION_FAILED`。
+
+### Success
+
+```text
+200 OK
+```
+
+回更新後 PO。缺少、null、空字串或純空白 reason 時回 `400 REJECT_REASON_REQUIRED`；非 DRAFT 轉換回 `409 INVALID_PO_STATUS_TRANSITION`。
 
 ---
 

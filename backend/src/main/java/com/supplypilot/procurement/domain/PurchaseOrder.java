@@ -51,12 +51,29 @@ public class PurchaseOrder {
     @Column(name = "expected_delivery_date")
     private LocalDate expectedDeliveryDate;
 
+    @Column(name = "reject_reason", columnDefinition = "TEXT")
+    private String rejectReason;
+
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "created_by", nullable = false)
     private User createdBy;
 
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "approved_by")
+    private User approvedBy;
+
+    @Column(name = "approved_at")
+    private Instant approvedAt;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "rejected_by")
+    private User rejectedBy;
+
+    @Column(name = "rejected_at")
+    private Instant rejectedAt;
 
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
@@ -121,6 +138,38 @@ public class PurchaseOrder {
         }
     }
 
+    public void approve(User approver, Instant now) {
+        assertDraftTransitionTo(PurchaseOrderStatus.APPROVED);
+        if (items.isEmpty()) throw new BusinessException(ErrorCode.VALIDATION_FAILED);
+        User validatedApprover = Objects.requireNonNull(approver, "Approver must not be null");
+        Instant validatedNow = Objects.requireNonNull(now, "Timestamp must not be null");
+        status = PurchaseOrderStatus.APPROVED;
+        approvedBy = validatedApprover;
+        approvedAt = validatedNow;
+        updatedAt = validatedNow;
+    }
+
+    public void reject(String reason, User rejector, Instant now) {
+        assertDraftTransitionTo(PurchaseOrderStatus.REJECTED);
+        if (reason == null || reason.trim().isEmpty()) {
+            throw new BusinessException(ErrorCode.REJECT_REASON_REQUIRED);
+        }
+        User validatedRejector = Objects.requireNonNull(rejector, "Rejector must not be null");
+        Instant validatedNow = Objects.requireNonNull(now, "Timestamp must not be null");
+        status = PurchaseOrderStatus.REJECTED;
+        rejectReason = reason.trim();
+        rejectedBy = validatedRejector;
+        rejectedAt = validatedNow;
+        updatedAt = validatedNow;
+    }
+
+    void assertDraftTransitionTo(PurchaseOrderStatus target) {
+        if (status != PurchaseOrderStatus.DRAFT
+                || (target != PurchaseOrderStatus.APPROVED && target != PurchaseOrderStatus.REJECTED)) {
+            throw new BusinessException(ErrorCode.INVALID_PO_STATUS_TRANSITION);
+        }
+    }
+
     private void replaceItems(List<PurchaseOrderItem> replacements) {
         if (replacements == null || replacements.isEmpty()) {
             throw new BusinessException(ErrorCode.VALIDATION_FAILED);
@@ -149,8 +198,13 @@ public class PurchaseOrder {
     public Supplier getSupplier() { return supplier; }
     public PurchaseOrderStatus getStatus() { return status; }
     public LocalDate getExpectedDeliveryDate() { return expectedDeliveryDate; }
+    public String getRejectReason() { return rejectReason; }
     public User getCreatedBy() { return createdBy; }
     public Instant getCreatedAt() { return createdAt; }
+    public User getApprovedBy() { return approvedBy; }
+    public Instant getApprovedAt() { return approvedAt; }
+    public User getRejectedBy() { return rejectedBy; }
+    public Instant getRejectedAt() { return rejectedAt; }
     public Instant getUpdatedAt() { return updatedAt; }
     public Long getVersion() { return version; }
     public List<PurchaseOrderItem> getItems() { return Collections.unmodifiableList(items); }

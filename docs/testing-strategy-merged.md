@@ -225,6 +225,8 @@ REJECTED → APPROVED
 
 非法 transition 必須 fail。
 
+Approve / Reject HTTP integration tests 需使用 MySQL Testcontainers 驗證 lifecycle status、authenticated-user audit、401/403 role matrix、錯誤碼與 transaction rollback；Client 不得覆寫 status 或 audit。
+
 ---
 
 # 9. Inventory Domain Test
