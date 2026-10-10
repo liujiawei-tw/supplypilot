@@ -74,7 +74,7 @@ public class PurchaseRecommendation {
     @Column(name = "recommended_quantity", precision = 19, scale = 4)
     private BigDecimal recommendedQuantity;
 
-    @Column(name = "recommended_supplier_score", precision = 15, scale = 12)
+    @Column(name = "recommended_supplier_score", precision = 17, scale = 14)
     private BigDecimal recommendedSupplierScore;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)

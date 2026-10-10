@@ -203,7 +203,7 @@ class RecommendationControllerIntegrationTests extends AbstractIntegrationTest {
     }
 
     @Test
-    void persistsTwelveDecimalScoresAndReturnsThreeSupplierRankingFromSnapshots() throws Exception {
+    void persistsFullPrecisionScoresAndReturnsThreeSupplierRankingFromSnapshots() throws Exception {
         Material material = material("0", "0");
         User buyer = user(UserRole.PROCUREMENT_STAFF);
         demand(material, buyer, "1", LocalDate.of(2026, 10, 20));
@@ -221,13 +221,18 @@ class RecommendationControllerIntegrationTests extends AbstractIntegrationTest {
                 SELECT total_score FROM supplier_recommendation_result
                 WHERE recommendation_id = ? AND supplier_id = ?
                 """, BigDecimal.class, recommendationId, fractional.getId());
-        assertThat(storedScore).isEqualByComparingTo("47.142857142840");
-        assertThat(storedScore.scale()).isEqualTo(12);
+        assertThat(storedScore).isEqualByComparingTo("47.14285714284000");
+        assertThat(storedScore.scale()).isEqualTo(14);
         assertThat(jdbcTemplate.queryForObject("""
                 SELECT price_score FROM supplier_recommendation_result
                 WHERE recommendation_id = ? AND supplier_id = ?
                 """, BigDecimal.class, recommendationId, fractional.getId()))
                 .isEqualByComparingTo("42.857142857100");
+        BigDecimal recommendedSupplierScore = jdbcTemplate.queryForObject("""
+                SELECT recommended_supplier_score FROM purchase_recommendation WHERE id = ?
+                """, BigDecimal.class, recommendationId);
+        assertThat(recommendedSupplierScore).isEqualByComparingTo("70.00000000000000");
+        assertThat(recommendedSupplierScore.scale()).isEqualTo(14);
 
         mockMvc.perform(get("/api/v1/recommendations/{id}/suppliers", recommendationId)
                         .header("Authorization", bearer(buyer)))

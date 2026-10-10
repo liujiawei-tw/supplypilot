@@ -75,7 +75,7 @@ public class SupplierRecommendationResult {
     @Column(name = "quality_score", precision = 15, scale = 12)
     private BigDecimal qualityScore;
 
-    @Column(name = "total_score", precision = 15, scale = 12)
+    @Column(name = "total_score", precision = 17, scale = 14)
     private BigDecimal totalScore;
 
     // RANK is a MySQL keyword; Hibernate preserves backtick quoting in physical SQL names.
