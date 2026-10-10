@@ -2,8 +2,12 @@ package com.supplypilot.document.infrastructure;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.nio.file.Files;
+import java.nio.file.LinkOption;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
+import java.nio.file.StandardOpenOption;
 import java.util.Set;
 import java.util.UUID;
 
@@ -32,36 +36,107 @@ public class LocalDocumentStorageService implements DocumentStorageService {
             throw new BusinessException(ErrorCode.INVALID_FILE_FORMAT);
         }
         String generatedFilename = UUID.randomUUID() + extension;
-        Path target = resolveWithinRoot(generatedFilename);
+        Path temporaryFile = null;
         try {
-            Files.createDirectories(storageRoot);
-            try (InputStream input = file.getInputStream()) {
-                Files.copy(input, target);
+            Path verifiedRoot = prepareStorageRoot();
+            Path target = resolveWithinRoot(verifiedRoot, generatedFilename);
+            if (Files.exists(target, LinkOption.NOFOLLOW_LINKS)) {
+                throw new IOException("Generated storage path already exists");
             }
+
+            temporaryFile = Files.createTempFile(verifiedRoot, ".upload-", ".tmp");
+            try (InputStream input = file.getInputStream();
+                    OutputStream output = Files.newOutputStream(
+                            temporaryFile,
+                            StandardOpenOption.WRITE,
+                            StandardOpenOption.TRUNCATE_EXISTING,
+                            LinkOption.NOFOLLOW_LINKS)) {
+                input.transferTo(output);
+            }
+
+            publish(temporaryFile, target);
             return generatedFilename;
         } catch (IOException exception) {
             throw new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR);
+        } finally {
+            deleteTemporaryFileQuietly(temporaryFile);
         }
     }
 
     @Override
     public void delete(String storagePath) {
-        Path target = resolveWithinRoot(storagePath);
         try {
+            Path target = resolveWithinRoot(prepareStorageRoot(), storagePath);
             Files.deleteIfExists(target);
         } catch (IOException exception) {
             throw new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR);
         }
     }
 
-    private Path resolveWithinRoot(String relativePath) {
-        if (relativePath == null || relativePath.isBlank() || Path.of(relativePath).isAbsolute()) {
+    private Path prepareStorageRoot() throws IOException {
+        Files.createDirectories(storageRoot);
+        if (Files.isSymbolicLink(storageRoot)) {
+            throw new IOException("Symbolic link storage root is not allowed");
+        }
+        return storageRoot.toRealPath();
+    }
+
+    private Path resolveWithinRoot(Path verifiedRoot, String relativePath) {
+        if (relativePath == null || relativePath.isBlank()) {
             throw new BusinessException(ErrorCode.INVALID_FILE_FORMAT);
         }
-        Path target = storageRoot.resolve(relativePath).normalize();
-        if (!target.startsWith(storageRoot) || target.equals(storageRoot)) {
+        Path relative = Path.of(relativePath);
+        if (relative.isAbsolute() || relative.getNameCount() != 1) {
+            throw new BusinessException(ErrorCode.INVALID_FILE_FORMAT);
+        }
+        Path target = verifiedRoot.resolve(relative).normalize();
+        if (!target.startsWith(verifiedRoot) || target.equals(verifiedRoot)) {
             throw new BusinessException(ErrorCode.INVALID_FILE_FORMAT);
         }
         return target;
+    }
+
+    private void publish(Path temporaryFile, Path target) throws IOException {
+        try {
+            Files.move(temporaryFile, target, StandardCopyOption.ATOMIC_MOVE);
+        } catch (IOException exception) {
+            if (!Files.isRegularFile(temporaryFile, LinkOption.NOFOLLOW_LINKS)
+                    || Files.exists(target, LinkOption.NOFOLLOW_LINKS)) {
+                throw exception;
+            }
+            publishWithoutAtomicMove(temporaryFile, target);
+        }
+    }
+
+    private void publishWithoutAtomicMove(Path temporaryFile, Path target) throws IOException {
+        boolean targetCreated = false;
+        try (OutputStream output = Files.newOutputStream(
+                target,
+                StandardOpenOption.CREATE_NEW,
+                StandardOpenOption.WRITE,
+                LinkOption.NOFOLLOW_LINKS)) {
+            targetCreated = true;
+            Files.copy(temporaryFile, output);
+        } catch (IOException exception) {
+            if (targetCreated) {
+                try {
+                    Files.deleteIfExists(target);
+                } catch (IOException cleanupException) {
+                    exception.addSuppressed(cleanupException);
+                }
+            }
+            throw exception;
+        }
+    }
+
+    private void deleteTemporaryFileQuietly(Path temporaryFile) {
+        if (temporaryFile == null) {
+            return;
+        }
+        try {
+            Files.deleteIfExists(temporaryFile);
+        } catch (IOException ignored) {
+            // Preserve the client-safe storage error; cleanup is best effort if the filesystem itself rejects deletion.
+        }
     }
 }
