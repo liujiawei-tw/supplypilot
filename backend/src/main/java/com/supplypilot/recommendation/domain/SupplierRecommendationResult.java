@@ -32,6 +32,12 @@ public class SupplierRecommendationResult {
     @JoinColumn(name = "supplier_id", nullable = false)
     private Supplier supplier;
 
+    @Column(name = "supplier_code_snapshot", nullable = false, length = 50)
+    private String supplierCodeSnapshot;
+
+    @Column(name = "supplier_name_snapshot", nullable = false, length = 100)
+    private String supplierNameSnapshot;
+
     @Column(nullable = false)
     private boolean qualified;
 
@@ -57,19 +63,19 @@ public class SupplierRecommendationResult {
     @Column(name = "quality_score_snapshot", precision = 5, scale = 2)
     private BigDecimal qualityScoreSnapshot;
 
-    @Column(name = "price_score", precision = 9, scale = 4)
+    @Column(name = "price_score", precision = 15, scale = 12)
     private BigDecimal priceScore;
 
-    @Column(name = "lead_time_score", precision = 9, scale = 4)
+    @Column(name = "lead_time_score", precision = 15, scale = 12)
     private BigDecimal leadTimeScore;
 
-    @Column(name = "reliability_score", precision = 9, scale = 4)
+    @Column(name = "reliability_score", precision = 15, scale = 12)
     private BigDecimal reliabilityScore;
 
-    @Column(name = "quality_score", precision = 9, scale = 4)
+    @Column(name = "quality_score", precision = 15, scale = 12)
     private BigDecimal qualityScore;
 
-    @Column(name = "total_score", precision = 9, scale = 4)
+    @Column(name = "total_score", precision = 15, scale = 12)
     private BigDecimal totalScore;
 
     // RANK is a MySQL keyword; Hibernate preserves backtick quoting in physical SQL names.
@@ -125,6 +131,8 @@ public class SupplierRecommendationResult {
         SupplierRecommendationResult result = new SupplierRecommendationResult();
         result.recommendation = Objects.requireNonNull(recommendation, "Recommendation must not be null");
         result.supplier = Objects.requireNonNull(supplier, "Supplier must not be null");
+        result.supplierCodeSnapshot = supplier.getCode();
+        result.supplierNameSnapshot = supplier.getName();
         result.qualified = qualified;
         return result;
     }
@@ -136,6 +144,8 @@ public class SupplierRecommendationResult {
     public Long getId() { return id; }
     public PurchaseRecommendation getRecommendation() { return recommendation; }
     public Supplier getSupplier() { return supplier; }
+    public String getSupplierCodeSnapshot() { return supplierCodeSnapshot; }
+    public String getSupplierNameSnapshot() { return supplierNameSnapshot; }
     public boolean isQualified() { return qualified; }
     public DisqualificationReason getDisqualifiedReason() { return disqualifiedReason; }
     public BigDecimal getRecommendedQuantity() { return recommendedQuantity; }

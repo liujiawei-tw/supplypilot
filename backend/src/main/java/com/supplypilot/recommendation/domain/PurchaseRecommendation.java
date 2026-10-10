@@ -36,6 +36,12 @@ public class PurchaseRecommendation {
     @JoinColumn(name = "material_id", nullable = false)
     private Material material;
 
+    @Column(name = "material_code_snapshot", nullable = false, length = 50)
+    private String materialCodeSnapshot;
+
+    @Column(name = "material_name_snapshot", nullable = false, length = 100)
+    private String materialNameSnapshot;
+
     @Column(name = "period_start", nullable = false)
     private LocalDate periodStart;
 
@@ -68,7 +74,7 @@ public class PurchaseRecommendation {
     @Column(name = "recommended_quantity", precision = 19, scale = 4)
     private BigDecimal recommendedQuantity;
 
-    @Column(name = "recommended_supplier_score", precision = 9, scale = 4)
+    @Column(name = "recommended_supplier_score", precision = 15, scale = 12)
     private BigDecimal recommendedSupplierScore;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
@@ -101,6 +107,8 @@ public class PurchaseRecommendation {
             Instant createdAt) {
         PurchaseRecommendation recommendation = new PurchaseRecommendation();
         recommendation.material = Objects.requireNonNull(material, "Material must not be null");
+        recommendation.materialCodeSnapshot = material.getCode();
+        recommendation.materialNameSnapshot = material.getName();
         recommendation.periodStart = Objects.requireNonNull(periodStart, "Period start must not be null");
         recommendation.periodEnd = Objects.requireNonNull(periodEnd, "Period end must not be null");
         if (periodEnd.isBefore(periodStart)) {
@@ -154,6 +162,8 @@ public class PurchaseRecommendation {
 
     public Long getId() { return id; }
     public Material getMaterial() { return material; }
+    public String getMaterialCodeSnapshot() { return materialCodeSnapshot; }
+    public String getMaterialNameSnapshot() { return materialNameSnapshot; }
     public LocalDate getPeriodStart() { return periodStart; }
     public LocalDate getPeriodEnd() { return periodEnd; }
     public BigDecimal getExpectedDemand() { return expectedDemand; }

@@ -125,7 +125,7 @@ public class PurchaseRecommendationService {
             return recommendationMapper.toResponse(recommendationRepository.save(recommendation));
         }
 
-        List<SupplierMaterial> candidates = supplierMaterialRepository.findByMaterialId(material.getId());
+        List<SupplierMaterial> candidates = supplierMaterialRepository.findByMaterialIdOrderByIdAsc(material.getId());
         LocalDate currentDate = LocalDate.now(clock);
         Map<SupplierMaterial, SupplierConstraintEvaluation> evaluations = new HashMap<>();
         List<SupplierRankingInput> qualifiedInputs = candidates.stream()

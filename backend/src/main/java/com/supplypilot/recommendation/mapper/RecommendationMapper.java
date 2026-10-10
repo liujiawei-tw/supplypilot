@@ -6,6 +6,7 @@ import com.supplypilot.recommendation.domain.SupplierRecommendationResult;
 import com.supplypilot.recommendation.dto.response.RecommendationResponse;
 import com.supplypilot.recommendation.dto.response.SupplierRecommendationResultResponse;
 import com.supplypilot.supplier.domain.Supplier;
+import java.util.Objects;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -13,12 +14,17 @@ public class RecommendationMapper {
 
     public RecommendationResponse toResponse(PurchaseRecommendation recommendation) {
         Supplier selected = recommendation.getRecommendedSupplier();
+        String selectedSupplierName = recommendation.getSupplierResults().stream()
+                .filter(result -> selected != null && Objects.equals(result.getSupplier().getId(), selected.getId()))
+                .map(SupplierRecommendationResult::getSupplierNameSnapshot)
+                .findFirst()
+                .orElse(null);
         return new RecommendationResponse(
                 recommendation.getId(),
                 new RecommendationResponse.MaterialSnapshot(
                         recommendation.getMaterial().getId(),
-                        recommendation.getMaterial().getCode(),
-                        recommendation.getMaterial().getName(),
+                        recommendation.getMaterialCodeSnapshot(),
+                        recommendation.getMaterialNameSnapshot(),
                         recommendation.getMaterial().getBaseUnit().name()),
                 new RecommendationResponse.Period(
                         recommendation.getPeriodStart(), recommendation.getPeriodEnd()),
@@ -32,7 +38,7 @@ public class RecommendationMapper {
                 new RecommendationResponse.RecommendedSupplier(
                         recommendation.getOutcome() != RecommendationOutcome.PURCHASE_NOT_REQUIRED,
                         selected == null ? null : selected.getId(),
-                        selected == null ? null : selected.getName(),
+                        selectedSupplierName,
                         recommendation.getRecommendedQuantity(),
                         recommendation.getRecommendedSupplierScore()),
                 recommendation.getCreatedAt());
@@ -42,8 +48,8 @@ public class RecommendationMapper {
         Supplier supplier = result.getSupplier();
         return new SupplierRecommendationResultResponse(
                 supplier.getId(),
-                supplier.getCode(),
-                supplier.getName(),
+                result.getSupplierCodeSnapshot(),
+                result.getSupplierNameSnapshot(),
                 result.isQualified(),
                 result.getDisqualifiedReason(),
                 result.getRecommendedQuantity(),

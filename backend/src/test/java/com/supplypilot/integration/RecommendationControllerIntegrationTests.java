@@ -137,13 +137,25 @@ class RecommendationControllerIntegrationTests extends AbstractIntegrationTest {
         MvcResult first = create(buyer, material, LocalDate.of(2026, 10, 20), LocalDate.of(2026, 10, 20))
                 .andExpect(status().isCreated()).andReturn();
         Long firstId = ((Number) JsonPath.read(first.getResponse().getContentAsString(), "$.id")).longValue();
+        String originalMaterialCode = material.getCode();
+        String originalSupplierCode = supplier.getCode();
         relation.update(new BigDecimal("99"), null, null, 2, null, clock.instant());
         supplierMaterialRepository.saveAndFlush(relation);
         supplier.update(null, null, new BigDecimal("1"), new BigDecimal("2"), null, clock.instant());
         supplierRepository.saveAndFlush(supplier);
+        jdbcTemplate.update("UPDATE materials SET code = ?, name = ? WHERE id = ?", "MAT-RENAMED", "Renamed material", material.getId());
+        jdbcTemplate.update("UPDATE suppliers SET code = ?, name = ? WHERE id = ?", "SUP-RENAMED", "Renamed supplier", supplier.getId());
+
+        mockMvc.perform(get("/api/v1/recommendations/{id}", firstId).header("Authorization", bearer(buyer)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.material.code").value(originalMaterialCode))
+                .andExpect(jsonPath("$.material.name").value("Material"))
+                .andExpect(jsonPath("$.recommendation.supplierName").value("IMMUTABLE"));
 
         mockMvc.perform(get("/api/v1/recommendations/{id}/suppliers", firstId).header("Authorization", bearer(buyer)))
                 .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].supplierCode").value(originalSupplierCode))
+                .andExpect(jsonPath("$[0].supplierName").value("IMMUTABLE"))
                 .andExpect(jsonPath("$[0].unitPrice").value(10))
                 .andExpect(jsonPath("$[0].leadTimeDays").value(1))
                 .andExpect(jsonPath("$[0].reliabilityScoreSnapshot").value(90))
@@ -158,11 +170,11 @@ class RecommendationControllerIntegrationTests extends AbstractIntegrationTest {
     void rollsBackHeaderAndAllResultsWhenDatabaseRejectsOneCandidateResult() throws Exception {
         Material material = material("0", "0");
         User buyer = user(UserRole.PROCUREMENT_STAFF);
-        demand(material, buyer, "100000", LocalDate.of(2026, 10, 20));
+        demand(material, buyer, "100", LocalDate.of(2026, 10, 20));
         Supplier normal = supplier("OK", "90", "90");
-        Supplier overflow = supplier("OVERFLOW", "90", "90");
-        supplierMaterial(normal, material, "1", "1", 1);
-        SupplierMaterial failing = supplierMaterial(overflow, material, "999999999999999.9999", "1", 1);
+        Supplier constrained = supplier("CONSTRAINED", "90", "90");
+        supplierMaterial(normal, material, "10", "1", 1);
+        SupplierMaterial failing = supplierMaterial(constrained, material, "20", "1", 1);
 
         jdbcTemplate.execute("ALTER TABLE supplier_recommendation_result ADD CONSTRAINT chk_sp504_forced_result_failure CHECK (supplier_id <> " + failing.getSupplier().getId() + ")");
         try {
@@ -172,6 +184,12 @@ class RecommendationControllerIntegrationTests extends AbstractIntegrationTest {
         } finally {
             jdbcTemplate.execute("ALTER TABLE supplier_recommendation_result DROP CHECK chk_sp504_forced_result_failure");
         }
+        assertThat(jdbcTemplate.queryForObject("""
+                SELECT COUNT(*) FROM information_schema.table_constraints
+                WHERE constraint_schema = DATABASE()
+                  AND table_name = 'supplier_recommendation_result'
+                  AND constraint_name = 'chk_sp504_forced_result_failure'
+                """, Long.class)).isZero();
         assertThat(jdbcTemplate.queryForObject(
                 "SELECT COUNT(*) FROM purchase_recommendation WHERE material_id = ?", Long.class, material.getId())).isZero();
         assertThat(jdbcTemplate.queryForObject("""
@@ -180,6 +198,46 @@ class RecommendationControllerIntegrationTests extends AbstractIntegrationTest {
                 JOIN purchase_recommendation recommendation ON recommendation.id = result.recommendation_id
                 WHERE recommendation.material_id = ?
                 """, Long.class, material.getId())).isZero();
+    }
+
+    @Test
+    void persistsTwelveDecimalScoresAndReturnsThreeSupplierRankingFromSnapshots() throws Exception {
+        Material material = material("0", "0");
+        User buyer = user(UserRole.PROCUREMENT_STAFF);
+        demand(material, buyer, "1", LocalDate.of(2026, 10, 20));
+        Supplier lowest = supplier("LOWEST", "0", "0");
+        Supplier fractional = supplier("FRACTIONAL", "0", "0");
+        Supplier highest = supplier("HIGHEST", "0", "0");
+        supplierMaterial(lowest, material, "3", "1", 0);
+        supplierMaterial(fractional, material, "7", "1", 0);
+        supplierMaterial(highest, material, "11", "1", 0);
+
+        MvcResult created = create(buyer, material, LocalDate.of(2026, 10, 20), LocalDate.of(2026, 10, 20))
+                .andExpect(status().isCreated()).andReturn();
+        Long recommendationId = ((Number) JsonPath.read(created.getResponse().getContentAsString(), "$.id")).longValue();
+        BigDecimal storedScore = jdbcTemplate.queryForObject("""
+                SELECT total_score FROM supplier_recommendation_result
+                WHERE recommendation_id = ? AND supplier_id = ?
+                """, BigDecimal.class, recommendationId, fractional.getId());
+        assertThat(storedScore).isEqualByComparingTo("47.142857142840");
+        assertThat(storedScore.scale()).isEqualTo(12);
+        assertThat(jdbcTemplate.queryForObject("""
+                SELECT price_score FROM supplier_recommendation_result
+                WHERE recommendation_id = ? AND supplier_id = ?
+                """, BigDecimal.class, recommendationId, fractional.getId()))
+                .isEqualByComparingTo("42.857142857100");
+
+        mockMvc.perform(get("/api/v1/recommendations/{id}/suppliers", recommendationId)
+                        .header("Authorization", bearer(buyer)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].supplierCode").value(lowest.getCode()))
+                .andExpect(jsonPath("$[0].rank").value(1))
+                .andExpect(jsonPath("$[1].supplierCode").value(fractional.getCode()))
+                .andExpect(jsonPath("$[1].rank").value(2))
+                .andExpect(jsonPath("$[1].priceScore").value(42.8571428571))
+                .andExpect(jsonPath("$[1].totalScore").value(47.14285714284))
+                .andExpect(jsonPath("$[2].supplierCode").value(highest.getCode()))
+                .andExpect(jsonPath("$[2].rank").value(3));
     }
 
     private org.springframework.test.web.servlet.ResultActions create(User user, Material material, LocalDate start, LocalDate end) throws Exception {
@@ -204,7 +262,7 @@ class RecommendationControllerIntegrationTests extends AbstractIntegrationTest {
     }
 
     private Supplier supplier(String code, String reliability, String quality) {
-        return supplierRepository.saveAndFlush(Supplier.create("SUP-REC-" + code + '-' + suffix(), code, null,
+        return supplierRepository.saveAndFlush(Supplier.create("S-" + code + '-' + suffix().substring(0, 12), code, null,
                 new BigDecimal(reliability), new BigDecimal(quality), clock.instant()));
     }
 

@@ -12,5 +12,5 @@ public interface SupplierMaterialRepository extends JpaRepository<SupplierMateri
     Optional<SupplierMaterial> findBySupplierIdAndMaterialId(Long supplierId, Long materialId);
 
     @EntityGraph(attributePaths = {"supplier", "material"})
-    List<SupplierMaterial> findByMaterialId(Long materialId);
+    List<SupplierMaterial> findByMaterialIdOrderByIdAsc(Long materialId);
 }
