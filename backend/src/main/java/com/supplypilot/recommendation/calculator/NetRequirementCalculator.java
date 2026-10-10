@@ -19,6 +19,12 @@ public class NetRequirementCalculator {
         return rawNetRequirement.max(BigDecimal.ZERO);
     }
 
+    public ShortageStatus determineShortageStatus(BigDecimal netRequirement) {
+        return requireNonNegative(netRequirement).compareTo(BigDecimal.ZERO) > 0
+                ? ShortageStatus.SHORTAGE
+                : ShortageStatus.NO_SHORTAGE;
+    }
+
     private static BigDecimal requireNonNegative(BigDecimal value) {
         if (value == null || value.compareTo(BigDecimal.ZERO) < 0) {
             throw new BusinessException(ErrorCode.VALIDATION_FAILED);
