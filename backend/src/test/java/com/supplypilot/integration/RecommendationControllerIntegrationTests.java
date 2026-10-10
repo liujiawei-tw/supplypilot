@@ -150,7 +150,8 @@ class RecommendationControllerIntegrationTests extends AbstractIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.material.code").value(originalMaterialCode))
                 .andExpect(jsonPath("$.material.name").value("Material"))
-                .andExpect(jsonPath("$.recommendation.supplierName").value("IMMUTABLE"));
+                .andExpect(jsonPath("$.recommendation.supplierName").value("IMMUTABLE"))
+                .andExpect(jsonPath("$.recommendation.score").value(97.1));
 
         mockMvc.perform(get("/api/v1/recommendations/{id}/suppliers", firstId).header("Authorization", bearer(buyer)))
                 .andExpect(status().isOk())
@@ -159,7 +160,8 @@ class RecommendationControllerIntegrationTests extends AbstractIntegrationTest {
                 .andExpect(jsonPath("$[0].unitPrice").value(10))
                 .andExpect(jsonPath("$[0].leadTimeDays").value(1))
                 .andExpect(jsonPath("$[0].reliabilityScoreSnapshot").value(90))
-                .andExpect(jsonPath("$[0].qualityScoreSnapshot").value(91));
+                .andExpect(jsonPath("$[0].qualityScoreSnapshot").value(91))
+                .andExpect(jsonPath("$[0].totalScore").value(97.1));
         MvcResult second = create(buyer, material, LocalDate.of(2026, 10, 20), LocalDate.of(2026, 10, 20))
                 .andExpect(status().isCreated()).andReturn();
         Long secondId = ((Number) JsonPath.read(second.getResponse().getContentAsString(), "$.id")).longValue();
