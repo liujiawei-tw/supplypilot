@@ -164,6 +164,18 @@ class InventoryImportControllerIntegrationTests extends AbstractIntegrationTest 
     }
 
     @Test
+    void keepsFiveMegabyteInventoryLimitWhenMultipartInfrastructureAllowsDocuments() throws Exception {
+        User warehouse = user(UserRole.WAREHOUSE_STAFF);
+        MockMultipartFile oversized = new MockMultipartFile(
+                "file", "inventory.csv", MediaType.TEXT_PLAIN_VALUE, new byte[5 * 1024 * 1024 + 1]);
+
+        mockMvc.perform(multipart("/api/v1/inventory-imports/validate")
+                        .file(oversized).header("Authorization", bearer(warehouse)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("FILE_TOO_LARGE"));
+    }
+
+    @Test
     void rollsBackBatchWhenAnItemInsertFails() throws Exception {
         Material material = material("MAT-CSV-ROLLBACK");
         User actor = user(UserRole.ADMIN);
