@@ -80,6 +80,28 @@ public class PurchaseOrderItem {
         return item;
     }
 
+    public static PurchaseOrderItem createFromRecommendation(
+            Material material,
+            BigDecimal quantity,
+            BigDecimal unitPrice,
+            Long recommendationId,
+            Long supplierRecommendationResultId,
+            Long recommendedSupplierIdSnapshot,
+            BigDecimal recommendedQuantitySnapshot,
+            String supplierOverrideReason,
+            String quantityOverrideReason,
+            Instant now) {
+        PurchaseOrderItem item = create(material, quantity, unitPrice, now);
+        item.recommendationId = Objects.requireNonNull(recommendationId, "Recommendation id must not be null");
+        item.supplierRecommendationResultId = Objects.requireNonNull(
+                supplierRecommendationResultId, "Supplier recommendation result id must not be null");
+        item.recommendedSupplierIdSnapshot = recommendedSupplierIdSnapshot;
+        item.recommendedQuantitySnapshot = recommendedQuantitySnapshot;
+        item.supplierOverrideReason = supplierOverrideReason;
+        item.quantityOverrideReason = quantityOverrideReason;
+        return item;
+    }
+
     void assignTo(PurchaseOrder purchaseOrder) {
         if (this.purchaseOrder != null && this.purchaseOrder != purchaseOrder) {
             throw new IllegalStateException("Purchase order item already belongs to another purchase order");

@@ -16,5 +16,7 @@ public record PurchaseOrderItemResponse(
         Long recommendationId,
         Long supplierRecommendationResultId,
         boolean supplierOverride,
-        boolean quantityOverride
+        boolean quantityOverride,
+        String supplierOverrideReason,
+        String quantityOverrideReason
 ) { }

@@ -104,6 +104,8 @@ class PurchaseOrderControllerIntegrationTests extends AbstractIntegrationTest {
                 .andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("VALIDATION_FAILED"));
         create(user(UserRole.PROCUREMENT_STAFF), "{\"supplierId\":" + supplier.getId() + ",\"items\":[{\"materialId\":" + material.getId() + ",\"quantity\":1,\"unitPrice\":0,\"unit\":\"PCS\"}]}")
                 .andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("VALIDATION_FAILED"));
+        create(user(UserRole.PROCUREMENT_STAFF), "{\"supplierId\":" + supplier.getId() + ",\"items\":[{\"materialId\":" + material.getId() + ",\"quantity\":1,\"unitPrice\":0,\"recommendedSupplierIdSnapshot\":999,\"recommendedQuantitySnapshot\":999}]}")
+                .andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("VALIDATION_FAILED"));
     }
 
     @Test
@@ -188,14 +190,14 @@ class PurchaseOrderControllerIntegrationTests extends AbstractIntegrationTest {
     }
 
     @Test
-    void permitsManualPoButRejectsUnsupportedRecommendationReferences() throws Exception {
+    void permitsManualPoButRejectsIncompleteRecommendationInputs() throws Exception {
         Supplier supplier = activeSupplier();
         Material material = activeMaterial();
         activeSupplierMaterial(supplier, material);
         User staff = user(UserRole.PROCUREMENT_STAFF);
         create(staff, payload(supplier, List.of(item(material, 1, 0)))).andExpect(status().isCreated());
         create(staff, "{\"supplierId\":" + supplier.getId() + ",\"items\":[{\"materialId\":" + material.getId() + ",\"quantity\":1,\"unitPrice\":0,\"recommendationId\":123}]}")
-                .andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("INVALID_RECOMMENDATION_REFERENCE"));
+                .andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("INVALID_SUPPLIER_RECOMMENDATION_REFERENCE"));
         create(staff, "{\"supplierId\":" + supplier.getId() + ",\"items\":[{\"materialId\":" + material.getId() + ",\"quantity\":1,\"unitPrice\":0,\"supplierOverrideReason\":\"manual\"}]}")
                 .andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("INVALID_RECOMMENDATION_REFERENCE"));
     }
