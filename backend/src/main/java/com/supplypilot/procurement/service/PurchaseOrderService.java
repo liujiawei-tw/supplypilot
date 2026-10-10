@@ -18,6 +18,7 @@ import com.supplypilot.procurement.domain.PurchaseOrderItem;
 import com.supplypilot.procurement.domain.PurchaseOrderStatus;
 import com.supplypilot.procurement.dto.request.CreatePurchaseOrderItemRequest;
 import com.supplypilot.procurement.dto.request.CreatePurchaseOrderRequest;
+import com.supplypilot.procurement.dto.request.RejectPurchaseOrderRequest;
 import com.supplypilot.procurement.dto.request.UpdatePurchaseOrderItemRequest;
 import com.supplypilot.procurement.dto.request.UpdatePurchaseOrderRequest;
 import com.supplypilot.procurement.dto.response.PurchaseOrderResponse;
@@ -148,6 +149,32 @@ public class PurchaseOrderService {
                 clock.instant());
         PurchaseOrder persisted = purchaseOrderRepository.saveAndFlush(purchaseOrder);
         return purchaseOrderMapper.toResponse(persisted);
+    }
+
+    @Transactional
+    @PreAuthorize("hasAnyRole('PROCUREMENT_MANAGER', 'ADMIN')")
+    public PurchaseOrderResponse approve(Long id) {
+        PurchaseOrder purchaseOrder = purchaseOrderRepository.findById(id)
+                .orElseThrow(() -> new BusinessException(ErrorCode.PURCHASE_ORDER_NOT_FOUND));
+        User approver = currentUser();
+        purchaseOrder.approve(approver, clock.instant());
+        return purchaseOrderMapper.toResponse(purchaseOrderRepository.saveAndFlush(purchaseOrder));
+    }
+
+    @Transactional
+    @PreAuthorize("hasAnyRole('PROCUREMENT_MANAGER', 'ADMIN')")
+    public PurchaseOrderResponse reject(Long id, RejectPurchaseOrderRequest request) {
+        PurchaseOrder purchaseOrder = purchaseOrderRepository.findById(id)
+                .orElseThrow(() -> new BusinessException(ErrorCode.PURCHASE_ORDER_NOT_FOUND));
+        String reason = request == null ? null : request.reason();
+        User rejector = currentUser();
+        purchaseOrder.reject(reason, rejector, clock.instant());
+        return purchaseOrderMapper.toResponse(purchaseOrderRepository.saveAndFlush(purchaseOrder));
+    }
+
+    private User currentUser() {
+        return userRepository.findById(currentUserProvider.getCurrentUserId())
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
     }
 
     private PurchaseOrderItem createItem(CreatePurchaseOrderItemRequest request, Material material, Supplier supplier) {

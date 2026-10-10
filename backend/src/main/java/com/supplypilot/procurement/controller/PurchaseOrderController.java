@@ -1,6 +1,7 @@
 package com.supplypilot.procurement.controller;
 
 import com.supplypilot.procurement.dto.request.CreatePurchaseOrderRequest;
+import com.supplypilot.procurement.dto.request.RejectPurchaseOrderRequest;
 import com.supplypilot.procurement.dto.request.UpdatePurchaseOrderRequest;
 import com.supplypilot.procurement.dto.response.PurchaseOrderResponse;
 import com.supplypilot.procurement.service.PurchaseOrderService;
@@ -38,5 +39,17 @@ public class PurchaseOrderController {
     @PatchMapping("/{id}")
     public PurchaseOrderResponse updateDraft(@PathVariable Long id, @Valid @RequestBody UpdatePurchaseOrderRequest request) {
         return purchaseOrderService.updateDraft(id, request);
+    }
+
+    @PostMapping("/{id}/approve")
+    public PurchaseOrderResponse approve(@PathVariable Long id) {
+        return purchaseOrderService.approve(id);
+    }
+
+    @PostMapping("/{id}/reject")
+    public PurchaseOrderResponse reject(
+            @PathVariable Long id,
+            @RequestBody(required = false) RejectPurchaseOrderRequest request) {
+        return purchaseOrderService.reject(id, request);
     }
 }

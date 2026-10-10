@@ -753,6 +753,8 @@ Validate reject reason
 PO.reject()
 ↓
 rejectReason
+rejectedBy
+rejectedAt
 ↓
 Persist
 

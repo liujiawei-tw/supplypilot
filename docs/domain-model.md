@@ -706,6 +706,8 @@ PurchaseOrder
 ├── createdAt
 ├── approvedBy
 ├── approvedAt
+├── rejectedBy
+├── rejectedAt
 ├── orderedBy
 ├── orderedAt
 ├── receivedBy
@@ -730,6 +732,7 @@ Lifecycle Audit：
 ```text
 createdBy / createdAt
 approvedBy / approvedAt
+rejectedBy / rejectedAt
 orderedBy / orderedAt
 receivedBy / receivedAt
 ```
@@ -751,6 +754,7 @@ REJECTED
 - 一張 PO 可以包含多個 Item。
 - APPROVED 後核心採購欄位不可直接修改。
 - REJECTED 為 Terminal State。
+- Reject 時 `rejectReason`、`rejectedBy`、`rejectedAt` 必須在同一 transaction 保存；`rejectedBy` 來自 authenticated user。
 - V1 不提供 CANCELLED。
 - V1 不提供 Delete API，包含 DRAFT。
 - `OVERDUE` 不屬於 PO Status。

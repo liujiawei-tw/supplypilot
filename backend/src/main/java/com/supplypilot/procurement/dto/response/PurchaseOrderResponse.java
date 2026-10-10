@@ -18,5 +18,12 @@ public record PurchaseOrderResponse(
         Long createdBy,
         String createdByDisplayName,
         Instant createdAt,
+        Long approvedBy,
+        String approvedByDisplayName,
+        Instant approvedAt,
+        String rejectReason,
+        Long rejectedBy,
+        String rejectedByDisplayName,
+        Instant rejectedAt,
         Instant updatedAt
 ) { }

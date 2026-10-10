@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.Instant;
 import java.util.List;
 
 import com.supplypilot.common.exception.BusinessException;
@@ -78,5 +79,83 @@ class PurchaseOrderTests {
                 .extracting("errorCode").isEqualTo(ErrorCode.PO_NOT_EDITABLE);
         assertThat(order.getExpectedDeliveryDate()).isNull();
         assertThat(order.getItems()).isEmpty();
+    }
+
+    @Test void approvesDraftWithAuthenticatedAuditAndPreservesCreationData() {
+        PurchaseOrder order = draftWithItem();
+        User manager = User.create("manager", "hash", "Manager", UserRole.PROCUREMENT_MANAGER,
+                TestDataConstants.TEST_INSTANT);
+        Instant approvedAt = TestDataConstants.TEST_INSTANT.plusSeconds(60);
+
+        order.approve(manager, approvedAt);
+
+        assertThat(order.getStatus()).isEqualTo(PurchaseOrderStatus.APPROVED);
+        assertThat(order.getApprovedBy()).isSameAs(manager);
+        assertThat(order.getApprovedAt()).isEqualTo(approvedAt);
+        assertThat(order.getUpdatedAt()).isEqualTo(approvedAt);
+        assertThat(order.getCreatedBy()).isSameAs(user);
+        assertThat(order.getCreatedAt()).isEqualTo(TestDataConstants.TEST_INSTANT);
+        assertThat(order.getItems()).hasSize(1);
+    }
+
+    @Test void rejectsDraftWithTrimmedReasonAndAuthenticatedAudit() {
+        PurchaseOrder order = draftWithItem();
+        User manager = User.create("rejector", "hash", "Rejector", UserRole.PROCUREMENT_MANAGER,
+                TestDataConstants.TEST_INSTANT);
+        Instant rejectedAt = TestDataConstants.TEST_INSTANT.plusSeconds(60);
+
+        order.reject("  Quantity exceeds plan.  ", manager, rejectedAt);
+
+        assertThat(order.getStatus()).isEqualTo(PurchaseOrderStatus.REJECTED);
+        assertThat(order.getRejectReason()).isEqualTo("Quantity exceeds plan.");
+        assertThat(order.getRejectedBy()).isSameAs(manager);
+        assertThat(order.getRejectedAt()).isEqualTo(rejectedAt);
+        assertThat(order.getUpdatedAt()).isEqualTo(rejectedAt);
+    }
+
+    @Test void rejectsMissingReasonAndApprovalWithoutItems() {
+        PurchaseOrder empty = PurchaseOrder.create(supplier, null, user, TestDataConstants.TEST_INSTANT);
+        PurchaseOrder order = draftWithItem();
+
+        assertThatThrownBy(() -> empty.approve(user, TestDataConstants.TEST_INSTANT))
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCode").isEqualTo(ErrorCode.VALIDATION_FAILED);
+        for (String reason : new String[] {"", "   "}) {
+            assertThatThrownBy(() -> order.reject(reason, user, TestDataConstants.TEST_INSTANT))
+                    .isInstanceOf(BusinessException.class)
+                    .extracting("errorCode").isEqualTo(ErrorCode.REJECT_REASON_REQUIRED);
+        }
+        assertThatThrownBy(() -> order.reject(null, user, TestDataConstants.TEST_INSTANT))
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCode").isEqualTo(ErrorCode.REJECT_REASON_REQUIRED);
+        assertThat(order.getStatus()).isEqualTo(PurchaseOrderStatus.DRAFT);
+    }
+
+    @Test void rejectsEveryIllegalLifecycleTransitionIncludingRejectedToOrdered() {
+        for (PurchaseOrderStatus status : PurchaseOrderStatus.values()) {
+            if (status == PurchaseOrderStatus.DRAFT) continue;
+            PurchaseOrder order = draftWithItem();
+            ReflectionTestUtils.setField(order, "status", status);
+
+            assertThatThrownBy(() -> order.approve(user, TestDataConstants.TEST_INSTANT))
+                    .isInstanceOf(BusinessException.class)
+                    .extracting("errorCode").isEqualTo(ErrorCode.INVALID_PO_STATUS_TRANSITION);
+            assertThatThrownBy(() -> order.reject("reason", user, TestDataConstants.TEST_INSTANT))
+                    .isInstanceOf(BusinessException.class)
+                    .extracting("errorCode").isEqualTo(ErrorCode.INVALID_PO_STATUS_TRANSITION);
+        }
+
+        PurchaseOrder rejected = draftWithItem();
+        rejected.reject("reason", user, TestDataConstants.TEST_INSTANT);
+        assertThatThrownBy(() -> rejected.assertDraftTransitionTo(PurchaseOrderStatus.ORDERED))
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCode").isEqualTo(ErrorCode.INVALID_PO_STATUS_TRANSITION);
+    }
+
+    private PurchaseOrder draftWithItem() {
+        PurchaseOrder order = PurchaseOrder.create(supplier, null, user, TestDataConstants.TEST_INSTANT);
+        order.addItem(PurchaseOrderItem.create(material, BigDecimal.ONE, BigDecimal.TEN,
+                TestDataConstants.TEST_INSTANT));
+        return order;
     }
 }

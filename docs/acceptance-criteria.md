@@ -320,6 +320,9 @@ Reason required.
 
 ```text
 PO = REJECTED
+rejectReason persisted
+rejectedBy from SecurityContext
+rejectedAt set
 terminal
 ```
 
