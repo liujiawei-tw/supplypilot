@@ -37,7 +37,6 @@ import com.supplypilot.user.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.dao.DataAccessException;
 import org.springframework.http.MediaType;
 import org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -268,11 +267,15 @@ class PurchaseOrderControllerIntegrationTests extends AbstractIntegrationTest {
     }
 
     private void removeTestOnlyMaterialConstraint() {
-        try {
-            jdbcTemplate.execute("ALTER TABLE purchase_order_items DROP CHECK chk_sp600_forced_item_failure");
-        } catch (DataAccessException ignored) {
-            // The constraint is absent when schema setup or the test itself fails before it is created.
-        }
+        jdbcTemplate.execute("ALTER TABLE purchase_order_items DROP CHECK chk_sp600_forced_item_failure");
+        Long constraintCount = jdbcTemplate.queryForObject("""
+                SELECT COUNT(*)
+                FROM information_schema.table_constraints
+                WHERE constraint_schema = DATABASE()
+                  AND table_name = 'purchase_order_items'
+                  AND constraint_name = 'chk_sp600_forced_item_failure'
+                """, Long.class);
+        assertThat(constraintCount).isZero();
     }
 
     private String suffix() {
