@@ -1512,6 +1512,8 @@ Overdue PO
 Upcoming Delivery
 ```
 
+V1 的 Open PO 定義為已正式下單且尚未收貨，即 `status = ORDERED`。`APPROVED` 可透過一般 status 條件查詢，但不屬於 Open Incoming PO。Overdue 是 Open PO 的子集合；`overdue=false` 表示排除逾期 PO，省略該參數則不套用逾期條件。
+
 ---
 
 # 23. FR-800 — Receiving

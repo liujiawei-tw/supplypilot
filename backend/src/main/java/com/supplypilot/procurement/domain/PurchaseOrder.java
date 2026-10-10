@@ -75,6 +75,13 @@ public class PurchaseOrder {
     @Column(name = "rejected_at")
     private Instant rejectedAt;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "ordered_by")
+    private User orderedBy;
+
+    @Column(name = "ordered_at")
+    private Instant orderedAt;
+
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
 
@@ -163,6 +170,38 @@ public class PurchaseOrder {
         updatedAt = validatedNow;
     }
 
+    public void markOrdered(User orderer, Instant now) {
+        if (status != PurchaseOrderStatus.APPROVED) {
+            throw new BusinessException(ErrorCode.INVALID_PO_STATUS_TRANSITION);
+        }
+        if (expectedDeliveryDate == null) {
+            throw new BusinessException(ErrorCode.EXPECTED_DELIVERY_DATE_REQUIRED);
+        }
+        if (supplier == null || items.isEmpty()) {
+            throw new BusinessException(ErrorCode.VALIDATION_FAILED);
+        }
+        for (PurchaseOrderItem item : items) {
+            if (item.getMaterial() == null || item.getQuantity() == null
+                    || item.getQuantity().signum() <= 0 || item.getUnitPrice() == null
+                    || item.getUnitPrice().signum() < 0) {
+                throw new BusinessException(ErrorCode.VALIDATION_FAILED);
+            }
+        }
+        User validatedOrderer = Objects.requireNonNull(orderer, "Orderer must not be null");
+        Instant validatedNow = Objects.requireNonNull(now, "Timestamp must not be null");
+        status = PurchaseOrderStatus.ORDERED;
+        orderedBy = validatedOrderer;
+        orderedAt = validatedNow;
+        updatedAt = validatedNow;
+    }
+
+    public boolean isOverdue(LocalDate currentDate) {
+        Objects.requireNonNull(currentDate, "Current date must not be null");
+        return status == PurchaseOrderStatus.ORDERED
+                && expectedDeliveryDate != null
+                && currentDate.isAfter(expectedDeliveryDate);
+    }
+
     void assertDraftTransitionTo(PurchaseOrderStatus target) {
         if (status != PurchaseOrderStatus.DRAFT
                 || (target != PurchaseOrderStatus.APPROVED && target != PurchaseOrderStatus.REJECTED)) {
@@ -205,6 +244,8 @@ public class PurchaseOrder {
     public Instant getApprovedAt() { return approvedAt; }
     public User getRejectedBy() { return rejectedBy; }
     public Instant getRejectedAt() { return rejectedAt; }
+    public User getOrderedBy() { return orderedBy; }
+    public Instant getOrderedAt() { return orderedAt; }
     public Instant getUpdatedAt() { return updatedAt; }
     public Long getVersion() { return version; }
     public List<PurchaseOrderItem> getItems() { return Collections.unmodifiableList(items); }

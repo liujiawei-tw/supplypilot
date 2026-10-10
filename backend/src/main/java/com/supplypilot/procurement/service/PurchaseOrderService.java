@@ -2,7 +2,12 @@ package com.supplypilot.procurement.service;
 
 import java.time.Clock;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
@@ -10,6 +15,7 @@ import java.util.UUID;
 
 import com.supplypilot.common.exception.BusinessException;
 import com.supplypilot.common.exception.ErrorCode;
+import com.supplypilot.common.pagination.PageResponse;
 import com.supplypilot.material.domain.Material;
 import com.supplypilot.material.domain.MaterialStatus;
 import com.supplypilot.material.repository.MaterialRepository;
@@ -39,6 +45,11 @@ import com.supplypilot.user.domain.User;
 import com.supplypilot.user.repository.UserRepository;
 
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
+import jakarta.persistence.criteria.Predicate;
+import jakarta.persistence.criteria.Subquery;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -110,6 +121,55 @@ public class PurchaseOrderService {
                 .orElseThrow(() -> new BusinessException(ErrorCode.PURCHASE_ORDER_NOT_FOUND)));
     }
 
+    @Transactional(readOnly = true)
+    @PreAuthorize("hasAnyRole('PROCUREMENT_STAFF', 'PROCUREMENT_MANAGER', 'ADMIN')")
+    public PageResponse<PurchaseOrderResponse> list(
+            PurchaseOrderStatus status, Long supplierId, Long materialId,
+            LocalDate createdFrom, LocalDate createdTo,
+            LocalDate expectedDeliveryFrom, LocalDate expectedDeliveryTo,
+            Boolean overdue, Pageable pageable) {
+        validateRange(createdFrom, createdTo);
+        validateRange(expectedDeliveryFrom, expectedDeliveryTo);
+        LocalDate today = LocalDate.now(clock);
+        ZoneId zone = clock.getZone();
+        Specification<PurchaseOrder> specification = (root, query, builder) -> {
+            List<Predicate> predicates = new ArrayList<>();
+            if (status != null) predicates.add(builder.equal(root.get("status"), status));
+            if (supplierId != null) predicates.add(builder.equal(root.get("supplier").get("id"), supplierId));
+            if (createdFrom != null) predicates.add(builder.greaterThanOrEqualTo(
+                    root.get("createdAt"), createdFrom.atStartOfDay(zone).toInstant()));
+            if (createdTo != null) predicates.add(builder.lessThan(
+                    root.get("createdAt"), createdTo.plusDays(1).atStartOfDay(zone).toInstant()));
+            if (expectedDeliveryFrom != null) predicates.add(builder.greaterThanOrEqualTo(
+                    root.get("expectedDeliveryDate"), expectedDeliveryFrom));
+            if (expectedDeliveryTo != null) predicates.add(builder.lessThanOrEqualTo(
+                    root.get("expectedDeliveryDate"), expectedDeliveryTo));
+            if (materialId != null) {
+                Subquery<Long> itemExists = query.subquery(Long.class);
+                var item = itemExists.from(PurchaseOrderItem.class);
+                itemExists.select(builder.literal(1L)).where(
+                        builder.equal(item.get("purchaseOrder"), root),
+                        builder.equal(item.get("material").get("id"), materialId));
+                predicates.add(builder.exists(itemExists));
+            }
+            Predicate isOverdue = builder.and(
+                    builder.equal(root.get("status"), PurchaseOrderStatus.ORDERED),
+                    builder.isNotNull(root.get("expectedDeliveryDate")),
+                    builder.lessThan(root.get("expectedDeliveryDate"), today));
+            if (Boolean.TRUE.equals(overdue)) predicates.add(isOverdue);
+            if (Boolean.FALSE.equals(overdue)) predicates.add(builder.not(isOverdue));
+            return builder.and(predicates.toArray(Predicate[]::new));
+        };
+        Page<PurchaseOrder> result = purchaseOrderRepository.findAll(specification, pageable);
+        List<Long> ids = result.getContent().stream().map(PurchaseOrder::getId).toList();
+        Map<Long, PurchaseOrder> detailed = ids.isEmpty() ? Map.of() : purchaseOrderRepository
+                .findDetailedByIdIn(ids).stream().collect(Collectors.toMap(PurchaseOrder::getId, Function.identity()));
+        List<PurchaseOrderResponse> content = ids.stream()
+                .map(detailed::get).map(purchaseOrderMapper::toResponse).toList();
+        return new PageResponse<>(content, result.getNumber(), result.getSize(),
+                result.getTotalElements(), result.getTotalPages());
+    }
+
     @Transactional
     @PreAuthorize("hasAnyRole('PROCUREMENT_STAFF', 'ADMIN')")
     public PurchaseOrderResponse updateDraft(Long id, UpdatePurchaseOrderRequest request) {
@@ -170,6 +230,21 @@ public class PurchaseOrderService {
         User rejector = currentUser();
         purchaseOrder.reject(reason, rejector, clock.instant());
         return purchaseOrderMapper.toResponse(purchaseOrderRepository.saveAndFlush(purchaseOrder));
+    }
+
+    @Transactional
+    @PreAuthorize("hasAnyRole('PROCUREMENT_STAFF', 'ADMIN')")
+    public PurchaseOrderResponse markOrdered(Long id) {
+        PurchaseOrder purchaseOrder = purchaseOrderRepository.findById(id)
+                .orElseThrow(() -> new BusinessException(ErrorCode.PURCHASE_ORDER_NOT_FOUND));
+        purchaseOrder.markOrdered(currentUser(), clock.instant());
+        return purchaseOrderMapper.toResponse(purchaseOrderRepository.saveAndFlush(purchaseOrder));
+    }
+
+    private void validateRange(LocalDate from, LocalDate to) {
+        if (from != null && to != null && from.isAfter(to)) {
+            throw new BusinessException(ErrorCode.INVALID_DATE_RANGE);
+        }
     }
 
     private User currentUser() {
