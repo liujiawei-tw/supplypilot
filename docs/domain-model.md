@@ -1199,6 +1199,29 @@ Commit
 
 全部在單一 Transaction Boundary。
 
+正式 receiving invariant：
+
+```text
+PurchaseOrder.receive(receiver, now)
+  only ORDERED -> RECEIVED
+  duplicate RECEIVED -> DUPLICATE_RECEIVING
+  preserve supplier/items/recommendation and prior lifecycle audit
+
+Inventory.receive(quantity, now)
+  quantity > 0
+  incremental add, never snapshot replacement
+  DECIMAL(19,4) compatible
+
+StockTransaction.purchaseReceive(...)
+  type = PURCHASE_RECEIVE
+  quantity > 0
+  purchaseOrderId required
+  reason = null
+  actor/time backend-owned
+```
+
+`PurchaseOrder` 與 `Inventory` 均保留 `@Version`；`stock_transactions.purchase_order_id` 以 FK 指向 `purchase_orders.id`。
+
 ---
 
 ## 19.3 PurchaseRecommendationService

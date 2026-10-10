@@ -28,6 +28,9 @@ public record PurchaseOrderResponse(
         Long orderedBy,
         String orderedByDisplayName,
         Instant orderedAt,
+        Long receivedBy,
+        String receivedByDisplayName,
+        Instant receivedAt,
         boolean isOverdue,
         Instant updatedAt
 ) { }

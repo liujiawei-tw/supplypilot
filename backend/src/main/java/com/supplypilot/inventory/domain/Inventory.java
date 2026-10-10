@@ -75,6 +75,15 @@ public class Inventory {
         updatedAt = now;
     }
 
+    /** Adds a positive full-receiving quantity to the current inventory. */
+    public void receive(BigDecimal receivedQuantity, Instant now) {
+        BigDecimal validQuantity = decimal19_4(receivedQuantity);
+        if (validQuantity.signum() <= 0) {
+            throw new BusinessException(ErrorCode.INVALID_QUANTITY);
+        }
+        adjust(validQuantity, now);
+    }
+
     /** Replaces the ERP snapshot; unlike adjust, this never applies a delta. */
     public void replaceSnapshot(BigDecimal newQuantity, Instant now) {
         Objects.requireNonNull(now, "Timestamp must not be null");

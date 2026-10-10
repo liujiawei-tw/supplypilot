@@ -1018,6 +1018,15 @@ Persist Snapshot
 }
 ```
 
+同一份 `PurchaseOrderResponse` 會依 lifecycle 回傳 nullable audit 欄位：
+
+```text
+approvedBy / approvedByDisplayName / approvedAt
+rejectedBy / rejectedByDisplayName / rejectedAt / rejectReason
+orderedBy / orderedByDisplayName / orderedAt
+receivedBy / receivedByDisplayName / receivedAt
+```
+
 如果不需採購：
 
 ```json
@@ -1613,6 +1622,8 @@ V1：
 Full Receiving Only
 ```
 
+此 endpoint 不接受收貨數量或任何 audit/status request 欄位；每筆收貨數量固定取自資料庫中的 PO Item snapshot。
+
 ### Preconditions
 
 ```text
@@ -1629,8 +1640,9 @@ BEGIN
 
 for each item:
     load Inventory
-    Inventory += PO Item quantity
-    create StockTransaction(PURCHASE_RECEIVE)
+    Inventory.receive(PO Item quantity)
+    save Inventory
+    create and save StockTransaction(PURCHASE_RECEIVE)
 
 PO → RECEIVED
 
@@ -1649,6 +1661,9 @@ ROLLBACK
 receivedBy
 receivedAt
 ```
+
+`receivedBy` 取自 authenticated user，`receivedAt` 與 `updatedAt` 使用同一次 `Clock.instant()`。
+成功回傳 `200 OK` 與更新後的 `PurchaseOrderResponse`；其 `status=RECEIVED`、`isOverdue=false`，並保留 Supplier、Items 及既有 Approval / Ordering Audit。第二次收貨回 `409 DUPLICATE_RECEIVING`，不再增加 Inventory 或建立 StockTransaction。
 
 ---
 

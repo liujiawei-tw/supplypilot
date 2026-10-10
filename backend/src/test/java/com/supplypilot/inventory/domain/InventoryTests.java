@@ -73,6 +73,24 @@ class InventoryTests {
                 .isInstanceOf(BusinessException.class).extracting("errorCode").isEqualTo(ErrorCode.NEGATIVE_QUANTITY);
     }
 
+    @Test
+    void receivesOnlyPositiveDatabaseCompatibleQuantitiesAsAnIncrement() {
+        Inventory inventory = inventory();
+        inventory.adjust(new BigDecimal("100"), INITIAL_TIME);
+
+        inventory.receive(new BigDecimal("25.5000"), ADJUSTED_TIME);
+
+        assertThat(inventory.getQuantity()).isEqualByComparingTo("125.5000");
+        assertThat(inventory.getUpdatedAt()).isEqualTo(ADJUSTED_TIME);
+        for (BigDecimal invalid : new BigDecimal[] {BigDecimal.ZERO, BigDecimal.ONE.negate(),
+                new BigDecimal("1.00001"), new BigDecimal("1000000000000000")}) {
+            assertThatThrownBy(() -> inventory.receive(invalid, ADJUSTED_TIME.plusSeconds(1)))
+                    .isInstanceOf(BusinessException.class)
+                    .extracting("errorCode").isEqualTo(ErrorCode.INVALID_QUANTITY);
+        }
+        assertThat(inventory.getQuantity()).isEqualByComparingTo("125.5000");
+    }
+
     private Inventory inventory() {
         Material material = Material.create("MAT-INV", "Inventory material", BaseUnit.KG, BigDecimal.ZERO, INITIAL_TIME);
         return Inventory.create(material, INITIAL_TIME);

@@ -214,6 +214,47 @@ class PurchaseOrderTests {
         assertThat(yesterday.isOverdue(TestDataConstants.TEST_TODAY)).isFalse();
     }
 
+    @Test void receivesOnlyOrderedPurchaseOrderWithBackendAuditAndPreservesPriorData() {
+        PurchaseOrder order = approvedOrderWithDate(TestDataConstants.TEST_TODAY.minusDays(1));
+        order.markOrdered(user, TestDataConstants.TEST_INSTANT.plusSeconds(30));
+        User receiver = User.create("receiver", "hash", "Receiver", UserRole.WAREHOUSE_STAFF,
+                TestDataConstants.TEST_INSTANT);
+        Instant receivedAt = TestDataConstants.TEST_INSTANT.plusSeconds(60);
+
+        order.receive(receiver, receivedAt);
+
+        assertThat(order.getStatus()).isEqualTo(PurchaseOrderStatus.RECEIVED);
+        assertThat(order.getReceivedBy()).isSameAs(receiver);
+        assertThat(order.getReceivedAt()).isEqualTo(receivedAt);
+        assertThat(order.getUpdatedAt()).isEqualTo(receivedAt);
+        assertThat(order.getSupplier()).isSameAs(supplier);
+        assertThat(order.getApprovedBy()).isSameAs(user);
+        assertThat(order.getOrderedBy()).isSameAs(user);
+        assertThat(order.getItems()).hasSize(1);
+        assertThat(order.isOverdue(TestDataConstants.TEST_TODAY)).isFalse();
+    }
+
+    @Test void receivingRejectsEveryNonOrderedStatusAndDuplicateReceivingWithoutAuditMutation() {
+        for (PurchaseOrderStatus status : PurchaseOrderStatus.values()) {
+            if (status == PurchaseOrderStatus.ORDERED || status == PurchaseOrderStatus.RECEIVED) continue;
+            PurchaseOrder order = draftWithItem();
+            ReflectionTestUtils.setField(order, "status", status);
+            assertThatThrownBy(() -> order.receive(user, TestDataConstants.TEST_INSTANT.plusSeconds(60)))
+                    .isInstanceOf(BusinessException.class)
+                    .extracting("errorCode").isEqualTo(ErrorCode.INVALID_PO_STATUS);
+            assertThat(order.getReceivedBy()).isNull();
+            assertThat(order.getReceivedAt()).isNull();
+        }
+
+        PurchaseOrder received = approvedOrderWithDate(TestDataConstants.TEST_TODAY);
+        received.markOrdered(user, TestDataConstants.TEST_INSTANT.plusSeconds(30));
+        received.receive(user, TestDataConstants.TEST_INSTANT.plusSeconds(60));
+        assertThatThrownBy(() -> received.receive(user, TestDataConstants.TEST_INSTANT.plusSeconds(90)))
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCode").isEqualTo(ErrorCode.DUPLICATE_RECEIVING);
+        assertThat(received.getReceivedAt()).isEqualTo(TestDataConstants.TEST_INSTANT.plusSeconds(60));
+    }
+
     private PurchaseOrder draftWithItem() {
         PurchaseOrder order = PurchaseOrder.create(supplier, null, user, TestDataConstants.TEST_INSTANT);
         order.addItem(PurchaseOrderItem.create(material, BigDecimal.ONE, BigDecimal.TEN,

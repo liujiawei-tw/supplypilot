@@ -816,17 +816,22 @@ BEGIN
 Load PurchaseOrder
 ↓
 Validate status = ORDERED
+Validate at least one item and every item quantity/base unit
+↓
+Load authenticated WAREHOUSE_STAFF / ADMIN and one Clock instant
 ↓
 for each PurchaseOrderItem:
     Load Inventory
     Inventory.receive(item.quantity)
     Save Inventory
-    Create StockTransaction(PURCHASE_RECEIVE)
+    Create and persist StockTransaction(PURCHASE_RECEIVE, purchaseOrderId, authenticated user, same instant)
 ↓
-PO.receive()
+PO.receive(authenticated user, same instant)
 ↓
 receivedBy
 receivedAt
+↓
+Save and flush PurchaseOrder
 
 COMMIT
 ```
@@ -870,6 +875,8 @@ No StockTransaction committed
 禁止 Partial Receiving。
 
 V1 Full Receiving Only。
+
+Receiving 是增量入庫，不得呼叫 ERP snapshot 用途的 `Inventory.replaceSnapshot()`。Transaction 內不呼叫 External API、AI/LLM 或 Message Broker；任何 RuntimeException、DB constraint failure 或 optimistic lock failure 都會使整筆操作 rollback。
 
 ---
 
