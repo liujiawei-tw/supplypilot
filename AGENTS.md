@@ -18,3 +18,12 @@
 - 只有在 GPT 確認 Final PASS 後，才可進入 PR 建立階段；除非使用者明確另有要求，Codex 不自行建立 PR。
 - **不得自行 Merge PR，也不得自行將 Issue 視為完成。** PR Merge 由使用者確認執行。
 - PR 合併並確認相關 Issue Closed 後，才開始下一張 Issue。
+
+## GitHub PR 與 Issue 自動關閉規範（強制）
+
+- **針對已完成的單一 Issue 建立 PR 時，PR 描述必須包含獨立一行 `Closes #<Issue編號>`。** 不得只寫「關聯 Issue：#編號」、`Refs #編號` 或一般文字連結，因為這些不會在 Merge 後自動關閉 Issue。
+- 建立 PR 之前，必須核對 GitHub 的實際 Issue 編號、PR 的 Base Branch（預設 `main`）與 Head Branch，避免關錯 Issue。
+- PR 建立後再次讀取 PR 描述，確認 `Closes #<Issue編號>` 確實存在且指向正確 Issue。
+- **PR 只能在 GPT 確認 Final PASS 後建立，Merge 仍由使用者手動執行。** 不得為了自動關閉 Issue 而自動 Merge。
+- 使用者告知 Merge 完成後，須查核 GitHub PR 的 `merged` 狀態、Merge Commit 與對應 Issue 的 `closed` 狀態；若 Issue 未關閉，明確回報並安排修正，不能假稱已自動關閉。
+- 此規則適用於新對話、新工作階段及往後所有 Epic / Issue；新的 SupplyPilot 工作開始前，先讀取 Repository 根目錄 `AGENTS.md`。若目前環境無法自動取得此檔案，需明確讀取或要求提供，不能假設已載入。
