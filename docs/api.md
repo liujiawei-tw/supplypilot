@@ -1266,6 +1266,88 @@ status = DRAFT
 
 ## PATCH /api/v1/purchase-orders/{id}
 
+修改既有 PO Draft。此 API 與建立 API 使用不同 DTO，因為所有頂層欄位均為 optional，且欄位省略與明確傳入 `null` 的語意不同。
+
+### Role
+
+```text
+PROCUREMENT_STAFF
+ADMIN
+```
+
+### Request
+
+```json
+{
+  "supplierId": 4,
+  "expectedDeliveryDate": "2026-10-30",
+  "items": [
+    {
+      "materialId": 1,
+      "quantity": 250,
+      "unitPrice": 82,
+      "recommendationId": 501,
+      "supplierRecommendationResultId": 802,
+      "supplierOverrideReason": "Alternate supplier selected for available capacity",
+      "quantityOverrideReason": "Demand increased after recommendation"
+    }
+  ]
+}
+```
+
+Response 使用 `PurchaseOrderResponse`，成功回傳 `200 OK`。
+
+```json
+{
+  "id": 1001,
+  "poNumber": "PO-20261008-001001",
+  "supplierId": 4,
+  "supplierCode": "SUP-004",
+  "supplierName": "Supplier D",
+  "status": "DRAFT",
+  "expectedDeliveryDate": "2026-10-30",
+  "items": [
+    {
+      "id": 5001,
+      "materialId": 1,
+      "materialCode": "MAT-001",
+      "materialName": "Strawberry Concentrate",
+      "quantity": 250,
+      "unit": "KG",
+      "unitPrice": 82,
+      "total": 20500,
+      "recommendationId": 501,
+      "supplierRecommendationResultId": 802,
+      "supplierOverride": true,
+      "quantityOverride": true,
+      "supplierOverrideReason": "Alternate supplier selected for available capacity",
+      "quantityOverrideReason": "Demand increased after recommendation"
+    }
+  ],
+  "createdBy": 20,
+  "createdByDisplayName": "Procurement A",
+  "createdAt": "2026-10-08T00:00:00Z",
+  "updatedAt": "2026-10-10T00:00:00Z"
+}
+```
+
+### Optional Field 與 Null 語意
+
+```text
+省略 supplierId             → 保留原 Supplier
+提供 supplierId             → 修改 Supplier；JSON null 不允許
+省略 expectedDeliveryDate   → 保留原日期
+提供日期                    → 設定新日期
+expectedDeliveryDate: null  → 清除日期
+省略 items                  → 保留原 Item 集合，不刪除任何 Item
+提供 items                  → 視為整張 DRAFT 的完整 Item 清單
+items: [] 或 items: null    → VALIDATION_FAILED
+```
+
+提供 `items` 時，不是單筆 Item patch。清單中未出現的原 Item 會被移除；新增 Material 會建立 Item；相同 Material 的 Item 會更新 Business Data，並保留既有 Item identity 與 `createdAt`。
+
+### Lifecycle 與 Aggregate Ownership
+
 只允許：
 
 ```text
@@ -1274,13 +1356,70 @@ status = DRAFT
 
 時修改。
 
-可修改：
+可修改的 Business Data：
 
 ```text
 supplier
 expectedDeliveryDate
-items
+完整 items 清單
 ```
+
+Supplier、Expected Delivery Date 與 Items 均由 `PurchaseOrder` Aggregate Root 修改。不提供獨立 PurchaseOrderItem CRUD API。更新不重建 PO Header，也不重新產生 `poNumber`；`createdBy`、`createdAt` 保持不變，成功修改時更新 `updatedAt`，並保留 `@Version` 樂觀鎖。
+
+### Validation
+
+最終 Supplier 與 Item 集合會完整重新驗證：
+
+```text
+Supplier exists and ACTIVE
+至少一個 Item
+Material exists and ACTIVE
+SupplierMaterial exists and ACTIVE
+同一張 PO 不得有重複 Material
+quantity > 0
+unitPrice >= 0
+unit 由 Material.baseUnit 取得
+```
+
+即使 PATCH 只修改 Supplier 且省略 `items`，仍會以新 Supplier 重新驗證所有保留 Item；任何關聯不合法時，整筆 transaction rollback。
+
+若 Item 提供 Recommendation Reference：
+
+```text
+Recommendation exists
+Recommendation.material = Item.material
+SupplierRecommendationResult belongs to Recommendation
+SupplierRecommendationResult.supplier = 最終 PO Supplier
+Snapshot evidence 取自 persisted Recommendation
+Supplier override 必須提供非空白 supplierOverrideReason
+Quantity override 必須提供非空白 quantityOverrideReason
+Quantity 使用 BigDecimal.compareTo() 比較
+沒有對應 override 時不保存任意 reason
+```
+
+不額外限制 Recommendation outcome 或 `qualified` 狀態。
+
+### Backend-owned Fields
+
+Request 不接受：
+
+```text
+id
+poNumber
+status
+createdBy / createdAt / updatedAt
+version
+approvedBy / approvedAt
+orderedBy / orderedAt
+receivedBy / receivedAt
+rejectReason
+unit
+recommendedSupplierIdSnapshot
+recommendedQuantitySnapshot
+其他 Recommendation snapshot 欄位
+```
+
+出現任何未允許欄位時回傳 `400 VALIDATION_FAILED`。
 
 若非 DRAFT：
 

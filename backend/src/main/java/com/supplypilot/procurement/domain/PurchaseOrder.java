@@ -6,6 +6,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import com.supplypilot.common.exception.BusinessException;
 import com.supplypilot.common.exception.ErrorCode;
@@ -63,7 +65,7 @@ public class PurchaseOrder {
     @Column(nullable = false)
     private Long version;
 
-    @OneToMany(mappedBy = "purchaseOrder", cascade = CascadeType.PERSIST, orphanRemoval = true)
+    @OneToMany(mappedBy = "purchaseOrder", cascade = {CascadeType.PERSIST, CascadeType.MERGE}, orphanRemoval = true)
     @OrderBy("id ASC")
     private final List<PurchaseOrderItem> items = new ArrayList<>();
 
@@ -99,6 +101,47 @@ public class PurchaseOrder {
         if (duplicate) throw new BusinessException(ErrorCode.DUPLICATE_MATERIAL);
         nonNullItem.assignTo(this);
         items.add(nonNullItem);
+    }
+
+    public void editDraft(
+            Supplier replacementSupplier,
+            boolean replaceSupplier,
+            LocalDate replacementExpectedDeliveryDate,
+            boolean replaceExpectedDeliveryDate,
+            List<PurchaseOrderItem> replacementItems,
+            boolean replaceItems,
+            Instant now) {
+        if (status != PurchaseOrderStatus.DRAFT) throw new BusinessException(ErrorCode.PO_NOT_EDITABLE);
+
+        if (replaceSupplier) supplier = Objects.requireNonNull(replacementSupplier, "Supplier must not be null");
+        if (replaceExpectedDeliveryDate) expectedDeliveryDate = replacementExpectedDeliveryDate;
+        if (replaceItems) replaceItems(replacementItems);
+        if (replaceSupplier || replaceExpectedDeliveryDate || replaceItems) {
+            updatedAt = Objects.requireNonNull(now, "Timestamp must not be null");
+        }
+    }
+
+    private void replaceItems(List<PurchaseOrderItem> replacements) {
+        if (replacements == null || replacements.isEmpty()) {
+            throw new BusinessException(ErrorCode.VALIDATION_FAILED);
+        }
+        Set<Long> materialIds = replacements.stream()
+                .map(item -> item.getMaterial().getId())
+                .collect(Collectors.toSet());
+        if (materialIds.size() != replacements.size()) throw new BusinessException(ErrorCode.DUPLICATE_MATERIAL);
+
+        items.removeIf(existing -> !materialIds.contains(existing.getMaterial().getId()));
+        for (PurchaseOrderItem replacement : replacements) {
+            PurchaseOrderItem existing = items.stream()
+                    .filter(item -> item.getMaterial().getId().equals(replacement.getMaterial().getId()))
+                    .findFirst().orElse(null);
+            if (existing == null) {
+                replacement.assignTo(this);
+                items.add(replacement);
+            } else {
+                existing.replaceBusinessDataFrom(replacement);
+            }
+        }
     }
 
     public Long getId() { return id; }

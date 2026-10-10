@@ -1,12 +1,14 @@
 package com.supplypilot.procurement.controller;
 
 import com.supplypilot.procurement.dto.request.CreatePurchaseOrderRequest;
+import com.supplypilot.procurement.dto.request.UpdatePurchaseOrderRequest;
 import com.supplypilot.procurement.dto.response.PurchaseOrderResponse;
 import com.supplypilot.procurement.service.PurchaseOrderService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -31,5 +33,10 @@ public class PurchaseOrderController {
     @GetMapping("/{id}")
     public PurchaseOrderResponse getById(@PathVariable Long id) {
         return purchaseOrderService.getById(id);
+    }
+
+    @PatchMapping("/{id}")
+    public PurchaseOrderResponse updateDraft(@PathVariable Long id, @Valid @RequestBody UpdatePurchaseOrderRequest request) {
+        return purchaseOrderService.updateDraft(id, request);
     }
 }

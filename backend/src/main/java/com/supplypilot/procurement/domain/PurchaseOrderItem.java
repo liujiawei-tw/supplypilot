@@ -109,6 +109,21 @@ public class PurchaseOrderItem {
         this.purchaseOrder = Objects.requireNonNull(purchaseOrder, "Purchase order must not be null");
     }
 
+    void replaceBusinessDataFrom(PurchaseOrderItem replacement) {
+        if (!material.getId().equals(replacement.material.getId())) {
+            throw new IllegalArgumentException("Replacement item must have the same material");
+        }
+        quantity = replacement.quantity;
+        unitPrice = replacement.unitPrice;
+        unit = replacement.unit;
+        recommendationId = replacement.recommendationId;
+        supplierRecommendationResultId = replacement.supplierRecommendationResultId;
+        recommendedSupplierIdSnapshot = replacement.recommendedSupplierIdSnapshot;
+        recommendedQuantitySnapshot = replacement.recommendedQuantitySnapshot;
+        supplierOverrideReason = replacement.supplierOverrideReason;
+        quantityOverrideReason = replacement.quantityOverrideReason;
+    }
+
     private static BigDecimal validQuantity(BigDecimal value) {
         if (value == null || value.compareTo(BigDecimal.ZERO) <= 0) throw new BusinessException(ErrorCode.INVALID_QUANTITY);
         return value;
