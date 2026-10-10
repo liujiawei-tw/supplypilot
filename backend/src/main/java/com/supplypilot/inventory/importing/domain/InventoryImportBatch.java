@@ -4,6 +4,8 @@ import java.time.Instant;
 import java.util.Objects;
 
 import com.supplypilot.user.domain.User;
+import com.supplypilot.common.exception.BusinessException;
+import com.supplypilot.common.exception.ErrorCode;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -61,6 +63,16 @@ public class InventoryImportBatch {
         batch.status = errorRows == 0 ? InventoryImportStatus.VALIDATED : InventoryImportStatus.VALIDATION_FAILED;
         batch.errorSummary = errorRows == 0 ? null : errorRows + " row(s) failed validation.";
         return batch;
+    }
+
+    public void confirmImported() {
+        if (status == InventoryImportStatus.IMPORTED) {
+            throw new BusinessException(ErrorCode.INVENTORY_IMPORT_ALREADY_CONFIRMED);
+        }
+        if (status != InventoryImportStatus.VALIDATED) {
+            throw new BusinessException(ErrorCode.INVENTORY_IMPORT_NOT_VALIDATED);
+        }
+        status = InventoryImportStatus.IMPORTED;
     }
 
     private static String sanitizeFilename(String filename) {
