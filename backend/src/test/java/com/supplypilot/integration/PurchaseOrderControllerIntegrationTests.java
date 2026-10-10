@@ -37,8 +37,10 @@ import com.supplypilot.user.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataAccessException;
 import org.springframework.http.MediaType;
 import org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
@@ -53,6 +55,7 @@ class PurchaseOrderControllerIntegrationTests extends AbstractIntegrationTest {
     @Autowired private SupplierMaterialRepository supplierMaterialRepository;
     @Autowired private UserRepository userRepository;
     @Autowired private PurchaseOrderRepository purchaseOrderRepository;
+    @Autowired private JdbcTemplate jdbcTemplate;
 
     private MockMvc mockMvc;
     private JwtTokenService tokens;
@@ -155,6 +158,37 @@ class PurchaseOrderControllerIntegrationTests extends AbstractIntegrationTest {
     }
 
     @Test
+    void rollsBackPersistedHeaderAndItemsWhenDatabaseRejectsSecondItemInsert() throws Exception {
+        Supplier supplier = activeSupplier();
+        Material first = activeMaterial();
+        Material rejectedByDatabase = activeMaterial();
+        activeSupplierMaterial(supplier, first);
+        activeSupplierMaterial(supplier, rejectedByDatabase);
+        User staff = user(UserRole.PROCUREMENT_STAFF);
+
+        addTestOnlyMaterialConstraint(rejectedByDatabase.getId());
+        try {
+            create(staff, payload(supplier, List.of(item(first, 1, 0), item(rejectedByDatabase, 2, 0))))
+                    .andExpect(status().isConflict()).andExpect(jsonPath("$.code").value("DATA_INTEGRITY_VIOLATION"));
+        } finally {
+            removeTestOnlyMaterialConstraint();
+        }
+
+        // JdbcTemplate uses a separate JDBC transaction and cannot read the service transaction's persistence context.
+        Long headerCount = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM purchase_orders WHERE supplier_id = ? AND created_by = ?",
+                Long.class, supplier.getId(), staff.getId());
+        Long itemCount = jdbcTemplate.queryForObject("""
+                SELECT COUNT(*)
+                FROM purchase_order_items item
+                JOIN purchase_orders purchase_order ON purchase_order.id = item.purchase_order_id
+                WHERE purchase_order.supplier_id = ? AND purchase_order.created_by = ?
+                """, Long.class, supplier.getId(), staff.getId());
+        assertThat(headerCount).isZero();
+        assertThat(itemCount).isZero();
+    }
+
+    @Test
     void permitsManualPoButRejectsUnsupportedRecommendationReferences() throws Exception {
         Supplier supplier = activeSupplier();
         Material material = activeMaterial();
@@ -223,6 +257,22 @@ class PurchaseOrderControllerIntegrationTests extends AbstractIntegrationTest {
 
     private String bearer(User user) {
         return "Bearer " + tokens.generateToken(new AuthenticatedUser(user.getId(), user.getUsername(), user.getRole()));
+    }
+
+    private void addTestOnlyMaterialConstraint(Long materialId) {
+        jdbcTemplate.execute("""
+                ALTER TABLE purchase_order_items
+                ADD CONSTRAINT chk_sp600_forced_item_failure
+                CHECK (material_id <> %d)
+                """.formatted(materialId));
+    }
+
+    private void removeTestOnlyMaterialConstraint() {
+        try {
+            jdbcTemplate.execute("ALTER TABLE purchase_order_items DROP CHECK chk_sp600_forced_item_failure");
+        } catch (DataAccessException ignored) {
+            // The constraint is absent when schema setup or the test itself fails before it is created.
+        }
     }
 
     private String suffix() {
