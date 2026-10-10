@@ -152,10 +152,80 @@ class PurchaseOrderTests {
                 .extracting("errorCode").isEqualTo(ErrorCode.INVALID_PO_STATUS_TRANSITION);
     }
 
+    @Test void marksApprovedOrderAsOrderedWithAuditAndPreservesExistingBusinessData() {
+        PurchaseOrder order = PurchaseOrder.create(
+                supplier, TestDataConstants.TEST_TODAY.plusDays(2), user, TestDataConstants.TEST_INSTANT);
+        order.addItem(PurchaseOrderItem.create(material, BigDecimal.ONE, BigDecimal.TEN,
+                TestDataConstants.TEST_INSTANT));
+        User manager = User.create("manager-order", "hash", "Manager", UserRole.PROCUREMENT_MANAGER,
+                TestDataConstants.TEST_INSTANT);
+        order.approve(manager, TestDataConstants.TEST_INSTANT.plusSeconds(30));
+        Instant orderedAt = TestDataConstants.TEST_INSTANT.plusSeconds(60);
+
+        order.markOrdered(user, orderedAt);
+
+        assertThat(order.getStatus()).isEqualTo(PurchaseOrderStatus.ORDERED);
+        assertThat(order.getOrderedBy()).isSameAs(user);
+        assertThat(order.getOrderedAt()).isEqualTo(orderedAt);
+        assertThat(order.getUpdatedAt()).isEqualTo(orderedAt);
+        assertThat(order.getCreatedBy()).isSameAs(user);
+        assertThat(order.getApprovedBy()).isSameAs(manager);
+        assertThat(order.getSupplier()).isSameAs(supplier);
+        assertThat(order.getItems()).hasSize(1);
+    }
+
+    @Test void markOrderedRejectsMissingDeliveryDateAndEveryNonApprovedStatusWithoutChangingAudit() {
+        PurchaseOrder missingDate = draftWithItem();
+        ReflectionTestUtils.setField(missingDate, "status", PurchaseOrderStatus.APPROVED);
+        assertThatThrownBy(() -> missingDate.markOrdered(user, TestDataConstants.TEST_INSTANT.plusSeconds(60)))
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCode").isEqualTo(ErrorCode.EXPECTED_DELIVERY_DATE_REQUIRED);
+
+        for (PurchaseOrderStatus status : PurchaseOrderStatus.values()) {
+            if (status == PurchaseOrderStatus.APPROVED) continue;
+            PurchaseOrder order = PurchaseOrder.create(
+                    supplier, TestDataConstants.TEST_TODAY.plusDays(1), user, TestDataConstants.TEST_INSTANT);
+            order.addItem(PurchaseOrderItem.create(material, BigDecimal.ONE, BigDecimal.TEN,
+                    TestDataConstants.TEST_INSTANT));
+            ReflectionTestUtils.setField(order, "status", status);
+            assertThatThrownBy(() -> order.markOrdered(user, TestDataConstants.TEST_INSTANT.plusSeconds(60)))
+                    .isInstanceOf(BusinessException.class)
+                    .extracting("errorCode").isEqualTo(ErrorCode.INVALID_PO_STATUS_TRANSITION);
+            assertThat(order.getOrderedBy()).isNull();
+            assertThat(order.getOrderedAt()).isNull();
+        }
+    }
+
+    @Test void overdueIsDynamicAndOnlyAppliesToOrderedPurchaseOrdersBeforeToday() {
+        PurchaseOrder yesterday = approvedOrderWithDate(TestDataConstants.TEST_TODAY.minusDays(1));
+        PurchaseOrder today = approvedOrderWithDate(TestDataConstants.TEST_TODAY);
+        PurchaseOrder tomorrow = approvedOrderWithDate(TestDataConstants.TEST_TODAY.plusDays(1));
+        yesterday.markOrdered(user, TestDataConstants.TEST_INSTANT);
+        today.markOrdered(user, TestDataConstants.TEST_INSTANT);
+        tomorrow.markOrdered(user, TestDataConstants.TEST_INSTANT);
+
+        assertThat(yesterday.isOverdue(TestDataConstants.TEST_TODAY)).isTrue();
+        assertThat(today.isOverdue(TestDataConstants.TEST_TODAY)).isFalse();
+        assertThat(tomorrow.isOverdue(TestDataConstants.TEST_TODAY)).isFalse();
+
+        PurchaseOrder approved = approvedOrderWithDate(TestDataConstants.TEST_TODAY.minusDays(1));
+        assertThat(approved.isOverdue(TestDataConstants.TEST_TODAY)).isFalse();
+        ReflectionTestUtils.setField(yesterday, "status", PurchaseOrderStatus.RECEIVED);
+        assertThat(yesterday.isOverdue(TestDataConstants.TEST_TODAY)).isFalse();
+    }
+
     private PurchaseOrder draftWithItem() {
         PurchaseOrder order = PurchaseOrder.create(supplier, null, user, TestDataConstants.TEST_INSTANT);
         order.addItem(PurchaseOrderItem.create(material, BigDecimal.ONE, BigDecimal.TEN,
                 TestDataConstants.TEST_INSTANT));
+        return order;
+    }
+
+    private PurchaseOrder approvedOrderWithDate(LocalDate date) {
+        PurchaseOrder order = PurchaseOrder.create(supplier, date, user, TestDataConstants.TEST_INSTANT);
+        order.addItem(PurchaseOrderItem.create(material, BigDecimal.ONE, BigDecimal.TEN,
+                TestDataConstants.TEST_INSTANT));
+        order.approve(user, TestDataConstants.TEST_INSTANT);
         return order;
     }
 }

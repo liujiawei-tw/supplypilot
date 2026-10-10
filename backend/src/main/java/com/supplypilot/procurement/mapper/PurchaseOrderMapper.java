@@ -1,6 +1,8 @@
 package com.supplypilot.procurement.mapper;
 
 import java.math.BigDecimal;
+import java.time.Clock;
+import java.time.LocalDate;
 
 import com.supplypilot.procurement.domain.PurchaseOrder;
 import com.supplypilot.procurement.domain.PurchaseOrderItem;
@@ -11,6 +13,12 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class PurchaseOrderMapper {
+    private final Clock clock;
+
+    public PurchaseOrderMapper(Clock clock) {
+        this.clock = clock;
+    }
+
     public PurchaseOrderResponse toResponse(PurchaseOrder purchaseOrder) {
         return new PurchaseOrderResponse(
                 purchaseOrder.getId(), purchaseOrder.getPoNumber(), purchaseOrder.getSupplier().getId(),
@@ -21,7 +29,13 @@ public class PurchaseOrderMapper {
                 userId(purchaseOrder.getApprovedBy()), userDisplayName(purchaseOrder.getApprovedBy()),
                 purchaseOrder.getApprovedAt(), purchaseOrder.getRejectReason(),
                 userId(purchaseOrder.getRejectedBy()), userDisplayName(purchaseOrder.getRejectedBy()),
-                purchaseOrder.getRejectedAt(), purchaseOrder.getUpdatedAt());
+                purchaseOrder.getRejectedAt(),
+                userId(purchaseOrder.getOrderedBy()), userDisplayName(purchaseOrder.getOrderedBy()),
+                purchaseOrder.getOrderedAt(), isOverdue(purchaseOrder), purchaseOrder.getUpdatedAt());
+    }
+
+    private boolean isOverdue(PurchaseOrder purchaseOrder) {
+        return purchaseOrder.isOverdue(LocalDate.now(clock));
     }
 
     private Long userId(User user) {

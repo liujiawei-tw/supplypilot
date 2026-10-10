@@ -1092,6 +1092,14 @@ Persist Snapshot
 
 ## GET /api/v1/purchase-orders
 
+### Role
+
+```text
+PROCUREMENT_STAFF
+PROCUREMENT_MANAGER
+ADMIN
+```
+
 Query：
 
 ```text
@@ -1122,6 +1130,16 @@ AND expectedDeliveryDate < currentDate
 ```text
 status = OVERDUE
 ```
+
+### overdue=false / 省略 overdue
+
+- `overdue=false`：排除符合逾期公式的 PO；仍可包含 `DRAFT`、`APPROVED`、未逾期 `ORDERED`、`RECEIVED`、`REJECTED`。
+- 省略 `overdue`：不套用逾期條件，因此同時包含逾期與未逾期 PO。
+
+Open PO 在 V1 定義為 `status=ORDERED` 且尚未進入 `RECEIVED`；使用 `status=ORDERED` 查詢。
+交期等於 Backend Clock 的今天不算逾期。`isOverdue` 由 Backend Clock 動態計算，不寫入資料庫。
+
+`materialId` 使用 PO Item existence 條件，不會因一張 PO 有多個 Item 而重複回傳；分頁 count 以 PO 為單位。
 
 ---
 
@@ -1565,7 +1583,18 @@ orderedBy
 orderedAt
 ```
 
-從此才計入 Incoming Inventory。
+`orderedBy` 由 `CurrentUserProvider` 取得，`orderedAt` 由注入的 Backend `Clock` 取得；Client 無法指定或覆寫 status 與 ordering audit。status、ordering audit 與 `updatedAt` 在同一 transaction 保存。重複呼叫或從非 `APPROVED` 狀態呼叫回 `409 INVALID_PO_STATUS_TRANSITION`。
+
+成功 Response 與後續 Detail / List Response 均包含：
+
+```text
+orderedBy
+orderedByDisplayName
+orderedAt
+isOverdue
+```
+
+只有 transaction commit 成功後才計入 Incoming Inventory；`ORDERED` 代表已下單未收貨，不會直接增加 Inventory，也不建立 StockTransaction。
 
 ---
 
@@ -1854,6 +1883,8 @@ size <= 100
 Sort Field 必須使用 whitelist。
 
 不可直接讓 Client 任意指定 DB Column。
+
+Purchase Order 可排序欄位為 `id`、`poNumber`、`status`、`expectedDeliveryDate`、`createdAt`、`updatedAt`、`orderedAt`。除 `id` 外，系統會自動加上 `id ASC` 作為穩定次要排序。
 
 ### Response
 
