@@ -1052,6 +1052,8 @@ src/test/java/com/supplypilot/
 19. PR 必須通過核心 Test 才能 Merge。
 20. Test Name 描述 Business Behavior。
 
+SP-612 receiving 另以 MySQL Testcontainers 驗證：ORDERED full receive happy path、WAREHOUSE_STAFF / ADMIN 與 401/403 role matrix、三個 Item 對應三筆 Inventory 增量與三筆 `PURCHASE_RECEIVE`、GET Detail receiving audit、RECEIVED 排除 Incoming、duplicate guard，以及第三筆 StockTransaction constraint failure 時前兩筆已 flush 的 Inventory / StockTransaction 與 PO audit 全部 rollback。完整雙交易 barrier/latch 競爭測試仍屬 SP-613。
+
 ---
 
 # 45. Next Stage

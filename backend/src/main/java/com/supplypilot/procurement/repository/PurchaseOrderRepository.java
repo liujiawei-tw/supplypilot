@@ -22,6 +22,7 @@ public interface PurchaseOrderRepository extends JpaRepository<PurchaseOrder, Lo
             left join fetch purchaseOrder.approvedBy
             left join fetch purchaseOrder.rejectedBy
             left join fetch purchaseOrder.orderedBy
+            left join fetch purchaseOrder.receivedBy
             left join fetch purchaseOrder.items item
             left join fetch item.material
             where purchaseOrder.id in :ids

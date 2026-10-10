@@ -12,6 +12,7 @@ import com.supplypilot.procurement.dto.request.RejectPurchaseOrderRequest;
 import com.supplypilot.procurement.dto.request.UpdatePurchaseOrderRequest;
 import com.supplypilot.procurement.dto.response.PurchaseOrderResponse;
 import com.supplypilot.procurement.service.PurchaseOrderService;
+import com.supplypilot.procurement.service.ReceivingService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
@@ -36,9 +37,11 @@ public class PurchaseOrderController {
     private static final Set<String> SORTABLE_FIELDS = Set.of(
             "id", "poNumber", "status", "expectedDeliveryDate", "createdAt", "updatedAt", "orderedAt");
     private final PurchaseOrderService purchaseOrderService;
+    private final ReceivingService receivingService;
 
-    public PurchaseOrderController(PurchaseOrderService purchaseOrderService) {
+    public PurchaseOrderController(PurchaseOrderService purchaseOrderService, ReceivingService receivingService) {
         this.purchaseOrderService = purchaseOrderService;
+        this.receivingService = receivingService;
     }
 
     @PostMapping
@@ -89,6 +92,11 @@ public class PurchaseOrderController {
     @PostMapping("/{id}/order")
     public PurchaseOrderResponse order(@PathVariable Long id) {
         return purchaseOrderService.markOrdered(id);
+    }
+
+    @PostMapping("/{id}/receive")
+    public PurchaseOrderResponse receive(@PathVariable Long id) {
+        return receivingService.receive(id);
     }
 
     private Sort parseSort(String sort) {

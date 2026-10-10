@@ -47,4 +47,36 @@ class StockTransactionTests {
         assertThatThrownBy(() -> StockTransaction.manualAdjustment(material, BigDecimal.ONE, "   ", actor, NOW))
                 .isInstanceOf(BusinessException.class).extracting("errorCode").isEqualTo(ErrorCode.VALIDATION_FAILED);
     }
+
+    @Test
+    void createsPurchaseReceiveAuditWithoutAReason() {
+        Material material = Material.create("MAT-001", "Material", BaseUnit.KG, BigDecimal.ZERO, NOW);
+        User actor = User.create("warehouse", "hash", "Warehouse", UserRole.WAREHOUSE_STAFF, NOW);
+
+        StockTransaction transaction = StockTransaction.purchaseReceive(
+                material, new BigDecimal("30"), 91L, actor, NOW);
+
+        assertThat(transaction.getType()).isEqualTo(StockTransactionType.PURCHASE_RECEIVE);
+        assertThat(transaction.getQuantity()).isEqualByComparingTo("30.0000");
+        assertThat(transaction.getPurchaseOrderId()).isEqualTo(91L);
+        assertThat(transaction.getReason()).isNull();
+        assertThat(transaction.getCreatedBy()).isSameAs(actor);
+        assertThat(transaction.getCreatedAt()).isEqualTo(NOW);
+    }
+
+    @Test
+    void rejectsInvalidPurchaseReceiveData() {
+        Material material = Material.create("MAT-001", "Material", BaseUnit.KG, BigDecimal.ZERO, NOW);
+        User actor = User.create("warehouse", "hash", "Warehouse", UserRole.WAREHOUSE_STAFF, NOW);
+
+        for (BigDecimal invalid : new BigDecimal[] {BigDecimal.ZERO, BigDecimal.ONE.negate(),
+                new BigDecimal("1.00001")}) {
+            assertThatThrownBy(() -> StockTransaction.purchaseReceive(material, invalid, 91L, actor, NOW))
+                    .isInstanceOf(BusinessException.class)
+                    .extracting("errorCode").isEqualTo(ErrorCode.INVALID_QUANTITY);
+        }
+        assertThatThrownBy(() -> StockTransaction.purchaseReceive(material, BigDecimal.ONE, null, actor, NOW))
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCode").isEqualTo(ErrorCode.VALIDATION_FAILED);
+    }
 }

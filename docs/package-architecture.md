@@ -788,6 +788,8 @@ Query 可視需要：
 
 不在 Controller 建 Transaction Boundary。
 
+完整收貨由獨立 `procurement/service/ReceivingService` 協調 `PurchaseOrder`、`Inventory` 與 `StockTransaction`；不得把跨 Aggregate 流程放入 `PurchaseOrderController` 或一般 PO CRUD/lifecycle service。
+
 ---
 
 # 22. Cross-module Read / Write Rule

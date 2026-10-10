@@ -82,6 +82,13 @@ public class PurchaseOrder {
     @Column(name = "ordered_at")
     private Instant orderedAt;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "received_by")
+    private User receivedBy;
+
+    @Column(name = "received_at")
+    private Instant receivedAt;
+
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
 
@@ -195,6 +202,40 @@ public class PurchaseOrder {
         updatedAt = validatedNow;
     }
 
+    public void validateReceivingEligibility() {
+        if (status == PurchaseOrderStatus.RECEIVED) {
+            throw new BusinessException(ErrorCode.DUPLICATE_RECEIVING);
+        }
+        if (status != PurchaseOrderStatus.ORDERED) {
+            throw new BusinessException(ErrorCode.INVALID_PO_STATUS);
+        }
+        if (items.isEmpty()) {
+            throw new BusinessException(ErrorCode.VALIDATION_FAILED);
+        }
+        for (PurchaseOrderItem item : items) {
+            if (item.getMaterial() == null || item.getMaterial().getBaseUnit() == null) {
+                throw new BusinessException(ErrorCode.VALIDATION_FAILED);
+            }
+            if (item.getUnit() != item.getMaterial().getBaseUnit()) {
+                throw new BusinessException(ErrorCode.UNIT_MISMATCH);
+            }
+            if (item.getQuantity() == null || item.getQuantity().signum() <= 0
+                    || item.getQuantity().scale() > 4 || item.getQuantity().precision() > 19) {
+                throw new BusinessException(ErrorCode.INVALID_QUANTITY);
+            }
+        }
+    }
+
+    public void receive(User receiver, Instant now) {
+        validateReceivingEligibility();
+        User validatedReceiver = Objects.requireNonNull(receiver, "Receiver must not be null");
+        Instant validatedNow = Objects.requireNonNull(now, "Timestamp must not be null");
+        status = PurchaseOrderStatus.RECEIVED;
+        receivedBy = validatedReceiver;
+        receivedAt = validatedNow;
+        updatedAt = validatedNow;
+    }
+
     public boolean isOverdue(LocalDate currentDate) {
         Objects.requireNonNull(currentDate, "Current date must not be null");
         return status == PurchaseOrderStatus.ORDERED
@@ -246,6 +287,8 @@ public class PurchaseOrder {
     public Instant getRejectedAt() { return rejectedAt; }
     public User getOrderedBy() { return orderedBy; }
     public Instant getOrderedAt() { return orderedAt; }
+    public User getReceivedBy() { return receivedBy; }
+    public Instant getReceivedAt() { return receivedAt; }
     public Instant getUpdatedAt() { return updatedAt; }
     public Long getVersion() { return version; }
     public List<PurchaseOrderItem> getItems() { return Collections.unmodifiableList(items); }

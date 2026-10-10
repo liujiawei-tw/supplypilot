@@ -31,7 +31,9 @@ public class PurchaseOrderMapper {
                 userId(purchaseOrder.getRejectedBy()), userDisplayName(purchaseOrder.getRejectedBy()),
                 purchaseOrder.getRejectedAt(),
                 userId(purchaseOrder.getOrderedBy()), userDisplayName(purchaseOrder.getOrderedBy()),
-                purchaseOrder.getOrderedAt(), isOverdue(purchaseOrder), purchaseOrder.getUpdatedAt());
+                purchaseOrder.getOrderedAt(),
+                userId(purchaseOrder.getReceivedBy()), userDisplayName(purchaseOrder.getReceivedBy()),
+                purchaseOrder.getReceivedAt(), isOverdue(purchaseOrder), purchaseOrder.getUpdatedAt());
     }
 
     private boolean isOverdue(PurchaseOrder purchaseOrder) {

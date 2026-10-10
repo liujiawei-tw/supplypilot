@@ -42,7 +42,7 @@ public class StockTransaction {
     @Column(nullable = false, precision = 19, scale = 4)
     private BigDecimal quantity;
 
-    // Purchase orders are introduced in a later issue; retain the nullable FK-shaped value now.
+    // Nullable because manual adjustments are not associated with a purchase order.
     @Column(name = "purchase_order_id")
     private Long purchaseOrderId;
 
@@ -88,6 +88,35 @@ public class StockTransaction {
         transaction.quantity = validQuantity;
         transaction.purchaseOrderId = null;
         transaction.reason = trimmedReason;
+        transaction.createdBy = createdBy;
+        transaction.createdAt = now;
+        return transaction;
+    }
+
+    public static StockTransaction purchaseReceive(
+            Material material,
+            BigDecimal quantity,
+            Long purchaseOrderId,
+            User createdBy,
+            Instant now
+    ) {
+        Objects.requireNonNull(material, "Material must not be null");
+        Objects.requireNonNull(createdBy, "Created by must not be null");
+        Objects.requireNonNull(now, "Timestamp must not be null");
+        if (purchaseOrderId == null) {
+            throw new BusinessException(ErrorCode.VALIDATION_FAILED);
+        }
+        BigDecimal validQuantity = decimal19_4(quantity);
+        if (validQuantity.signum() <= 0) {
+            throw new BusinessException(ErrorCode.INVALID_QUANTITY);
+        }
+
+        StockTransaction transaction = new StockTransaction();
+        transaction.material = material;
+        transaction.type = StockTransactionType.PURCHASE_RECEIVE;
+        transaction.quantity = validQuantity;
+        transaction.purchaseOrderId = purchaseOrderId;
+        transaction.reason = null;
         transaction.createdBy = createdBy;
         transaction.createdAt = now;
         return transaction;
