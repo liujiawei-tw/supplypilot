@@ -1053,6 +1053,14 @@ Human Decision
 
 可追溯比較。
 
+### V1 Period-End Aggregated Recommendation Decision
+
+Recommendation 的 Calculation Period 採 `periodStart <= Demand.requiredDate <= periodEnd`（起訖日皆包含）聚合 ACTIVE Demand。
+
+V1 將 `periodEnd` 作為唯一的 `requiredDate`：Incoming Inventory 僅計入 `expectedDeliveryDate <= periodEnd` 的 ORDERED PO，Supplier delivery feasibility 也以 `currentDate + leadTimeDays <= periodEnd` 判定。
+
+此為 **Period-End Aggregated Recommendation**；它不保證計算期間內逐日皆無缺料。V1 不做逐筆 Demand 分配或以最早 Demand 日期重算。
+
 ---
 
 ## FR-510 — Recommendation Recalculation
