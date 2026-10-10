@@ -75,6 +75,20 @@ public class Inventory {
         updatedAt = now;
     }
 
+    /** Replaces the ERP snapshot; unlike adjust, this never applies a delta. */
+    public void replaceSnapshot(BigDecimal newQuantity, Instant now) {
+        Objects.requireNonNull(now, "Timestamp must not be null");
+        BigDecimal validQuantity = decimal19_4(newQuantity);
+        if (validQuantity.signum() < 0) {
+            throw new BusinessException(ErrorCode.NEGATIVE_QUANTITY);
+        }
+        // Match the aggregate's existing update convention: unchanged state does not advance audit/version.
+        if (quantity.compareTo(validQuantity) != 0) {
+            quantity = validQuantity;
+            updatedAt = now;
+        }
+    }
+
     private static BigDecimal decimal19_4(BigDecimal value) {
         if (value == null) {
             throw new BusinessException(ErrorCode.INVALID_QUANTITY);

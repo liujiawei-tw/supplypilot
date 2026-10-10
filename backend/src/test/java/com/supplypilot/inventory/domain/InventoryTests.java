@@ -57,6 +57,22 @@ class InventoryTests {
                 .isInstanceOf(BusinessException.class).extracting("errorCode").isEqualTo(ErrorCode.INVALID_QUANTITY);
     }
 
+    @Test
+    void replacesSnapshotWithoutChangingAdjustSemantics() {
+        Inventory inventory = inventory();
+        inventory.adjust(new BigDecimal("100"), INITIAL_TIME);
+        inventory.replaceSnapshot(new BigDecimal("200"), ADJUSTED_TIME);
+        assertThat(inventory.getQuantity()).isEqualByComparingTo("200.0000");
+        inventory.replaceSnapshot(BigDecimal.ZERO, ADJUSTED_TIME.plusSeconds(60));
+        assertThat(inventory.getQuantity()).isEqualByComparingTo("0.0000");
+        inventory.replaceSnapshot(new BigDecimal("50"), ADJUSTED_TIME.plusSeconds(120));
+        assertThat(inventory.getQuantity()).isEqualByComparingTo("50.0000");
+        assertThatThrownBy(() -> inventory.replaceSnapshot(null, ADJUSTED_TIME))
+                .isInstanceOf(BusinessException.class).extracting("errorCode").isEqualTo(ErrorCode.INVALID_QUANTITY);
+        assertThatThrownBy(() -> inventory.replaceSnapshot(BigDecimal.ONE.negate(), ADJUSTED_TIME))
+                .isInstanceOf(BusinessException.class).extracting("errorCode").isEqualTo(ErrorCode.NEGATIVE_QUANTITY);
+    }
+
     private Inventory inventory() {
         Material material = Material.create("MAT-INV", "Inventory material", BaseUnit.KG, BigDecimal.ZERO, INITIAL_TIME);
         return Inventory.create(material, INITIAL_TIME);
