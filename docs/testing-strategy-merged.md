@@ -1054,6 +1054,8 @@ src/test/java/com/supplypilot/
 
 SP-612 receiving 另以 MySQL Testcontainers 驗證：ORDERED full receive happy path、WAREHOUSE_STAFF / ADMIN 與 401/403 role matrix、三個 Item 對應三筆 Inventory 增量與三筆 `PURCHASE_RECEIVE`、GET Detail receiving audit、RECEIVED 排除 Incoming、duplicate guard，以及第三筆 StockTransaction constraint failure 時前兩筆已 flush 的 Inventory / StockTransaction 與 PO audit 全部 rollback。完整雙交易 barrier/latch 競爭測試仍屬 SP-613。
 
+SP-613 以 MySQL 8.4 Testcontainers、兩個 request thread、兩個獨立 `READ_COMMITTED` transaction / persistence context 與有限 timeout 的 latch 驗證 concurrent receive。測試先在各自 transaction 中載入同一張 `ORDERED` PO，記錄雙方讀到相同 version，待兩方都完成讀取後只允許一方完成 receive 並 commit；另一方才繼續執行，因此會以 stale PO version 觸發 `ObjectOptimisticLockingFailureException`（cause 為 `PurchaseOrder` 的 `StaleObjectStateException`），HTTP 回 `409 CONCURRENT_MODIFICATION`。測試同時驗證成功方使 PO / 各 Inventory version 各增加一次、Inventory 僅增加一組 PO Item 數量、StockTransaction 數量恰等於 PO Item 數量，以及失敗 transaction 先前執行的 Inventory / StockTransaction 寫入全部 rollback。首次 commit 後另行送出的 receive 則獨立驗證為 `409 DUPLICATE_RECEIVING`，不可視為 optimistic lock 證據。
+
 ---
 
 # 45. Next Stage

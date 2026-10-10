@@ -973,6 +973,8 @@ API：
 
 避免 Duplicate Receiving。
 
+SP-613 的整合測試以兩個獨立 `READ_COMMITTED` transaction / persistence context 重現此時序。兩方先各自讀取並保留相同的 `ORDERED` PO version，再由 latch 保證其中一方完整 commit 後才放行另一方。`READ_COMMITTED` 讓 stale request 在繼續收貨時可讀到成功方已提交的 Inventory version，但其 persistence context 仍保留舊 PO version；因此該 request 在 flush PO 時由 `PurchaseOrder` optimistic lock 拒絕，而同一 transaction 內已 flush 的 Inventory 與 StockTransaction 也一併 rollback。此測試不使用 automatic retry、pessimistic lock 或 `Thread.sleep()`。
+
 ---
 
 # 29. Inventory Optimistic Lock
