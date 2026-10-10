@@ -1,0 +1,9 @@
+package com.supplypilot.document.domain;
+
+public enum DocumentType {
+    SUPPLIER_CONTRACT,
+    QUOTATION,
+    PROCUREMENT_SOP,
+    PRODUCT_SPECIFICATION,
+    QUALITY_REQUIREMENT
+}
