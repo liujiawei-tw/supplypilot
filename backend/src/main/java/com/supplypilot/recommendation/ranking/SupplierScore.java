@@ -4,11 +4,7 @@ import java.math.BigDecimal;
 import java.util.Objects;
 
 /**
- * Score components supplied by the normalization policy.
- *
- * <p>The V1 specifications define the component weights, but do not yet define price or lead-time
- * normalization, a score range, or missing-data handling. This value object intentionally does not
- * impose any of those policies.</p>
+ * Backend-calculated supplier score components.
  */
 public record SupplierScore(
         BigDecimal priceScore,
@@ -18,10 +14,17 @@ public record SupplierScore(
         BigDecimal totalScore) {
 
     public SupplierScore {
-        Objects.requireNonNull(priceScore, "Price score must not be null");
-        Objects.requireNonNull(leadTimeScore, "Lead-time score must not be null");
-        Objects.requireNonNull(reliabilityScore, "Reliability score must not be null");
-        Objects.requireNonNull(qualityScore, "Quality score must not be null");
-        Objects.requireNonNull(totalScore, "Total score must not be null");
+        requireScoreInRange(priceScore, "Price score");
+        requireScoreInRange(leadTimeScore, "Lead-time score");
+        requireScoreInRange(reliabilityScore, "Reliability score");
+        requireScoreInRange(qualityScore, "Quality score");
+        requireScoreInRange(totalScore, "Total score");
+    }
+
+    private static void requireScoreInRange(BigDecimal score, String name) {
+        Objects.requireNonNull(score, name + " must not be null");
+        if (score.compareTo(BigDecimal.ZERO) < 0 || score.compareTo(new BigDecimal("100")) > 0) {
+            throw new IllegalArgumentException(name + " must be between 0 and 100");
+        }
     }
 }
