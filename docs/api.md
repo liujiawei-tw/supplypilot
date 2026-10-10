@@ -1249,7 +1249,9 @@ status = DRAFT
       "total": 17000,
       "recommendationId": 501,
       "supplierOverride": false,
-      "quantityOverride": false
+      "quantityOverride": false,
+      "supplierOverrideReason": null,
+      "quantityOverrideReason": null
     }
   ],
   "createdBy": {
