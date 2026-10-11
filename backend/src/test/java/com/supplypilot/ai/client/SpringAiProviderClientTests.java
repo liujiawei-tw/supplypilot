@@ -21,6 +21,7 @@ import com.supplypilot.ai.dto.AiToolType;
 import com.supplypilot.ai.service.AiResponseGuard;
 import com.supplypilot.ai.tool.AiQueryPlan;
 import com.supplypilot.ai.tool.AiToolRegistry;
+import com.supplypilot.ai.tool.AiQueryPlanner;
 import com.supplypilot.ai.tool.AiToolResult;
 import com.supplypilot.ai.tool.SpringAiReadTools;
 import com.supplypilot.common.exception.ErrorCode;
@@ -28,6 +29,7 @@ import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.ai.chat.messages.AssistantMessage;
+import org.springframework.ai.chat.messages.ToolResponseMessage;
 import org.springframework.ai.chat.metadata.ChatResponseMetadata;
 import org.springframework.ai.chat.metadata.DefaultUsage;
 import org.springframework.ai.chat.model.ChatModel;
@@ -51,24 +53,110 @@ class SpringAiProviderClientTests {
         AiToolRegistry registry = mock(AiToolRegistry.class);
         AiToolResult toolResult = inventoryResult();
         when(registry.execute(any())).thenReturn(toolResult);
-        assertThat(List.of(ToolCallbacks.from(new SpringAiReadTools(registry, 1))).stream()
+        assertThat(List.of(ToolCallbacks.from(new SpringAiReadTools(
+                registry, new AiQueryPlanner(), "MAT-001 的庫存", 4))).stream()
                 .map(callback -> callback.getToolDefinition().name()).sorted().toList())
                 .containsExactly("EXPLAIN_RECOMMENDATION", "QUERY_INVENTORY", "QUERY_OPEN_PO",
                         "QUERY_RECOMMENDATION", "QUERY_SUPPLIER_RANKING", "SEARCH_DOCUMENTS");
-        ChatModel model = fakeModel(prompt -> toolCall(
-                "QUERY_INVENTORY", "{\"materialCode\":\"MAT-001\"}"));
+        ChatModel model = fakeModel(prompt -> hasToolResponse(prompt)
+                ? finalAnswer(1)
+                : toolCall("QUERY_INVENTORY", "{\"materialCode\":\"MAT-001\"}"));
 
         AiProviderResponse response = provider(model, registry, Duration.ofSeconds(2))
                 .query(new AiProviderRequest("MAT-001 的庫存是多少？"));
 
-        assertThat(response.result()).isEqualTo(toolResult);
+        assertThat(response.results()).containsExactly(toolResult);
+        assertThat(response.answerSource()).isEqualTo("MODEL_EXPLANATION");
+        assertThat(response.answer()).contains(toolResult.trustedFacts());
         verify(registry).execute(new AiQueryPlan(AiToolType.QUERY_INVENTORY, null, "MAT-001", null));
     }
 
     @Test
+    void executesTwoSpringAiToolsAndPreservesOrder() {
+        AiToolRegistry registry = mock(AiToolRegistry.class);
+        AiToolResult inventory = inventoryResult();
+        AiToolResult orders = new AiToolResult(AiToolType.QUERY_OPEN_PO, AiQueryStatus.ANSWERED,
+                "PO-001 狀態 ORDERED，總成本 200 TWD。",
+                List.of(AiSourceResponse.resource("PURCHASE_ORDER", 2, "PO-001")));
+        when(registry.execute(any())).thenAnswer(call -> {
+            AiQueryPlan plan = call.getArgument(0);
+            return plan.tool() == AiToolType.QUERY_INVENTORY ? inventory : orders;
+        });
+        ChatModel model = fakeModel(prompt -> {
+            if (hasToolResponse(prompt)) return finalAnswer(2);
+            AssistantMessage calls = AssistantMessage.builder().content("").toolCalls(List.of(
+                    new AssistantMessage.ToolCall("inventory", "function", "QUERY_INVENTORY",
+                            "{\"materialCode\":\"MAT-001\"}"),
+                    new AssistantMessage.ToolCall("po", "function", "QUERY_OPEN_PO",
+                            "{\"materialCode\":\"MAT-001\"}"))).build();
+            return new ChatResponse(List.of(new Generation(calls)));
+        });
+
+        AiProviderResponse response = provider(model, registry, Duration.ofSeconds(2))
+                .query(new AiProviderRequest("MAT-001 庫存與未完成採購單"));
+        assertThat(response.results()).containsExactly(inventory, orders);
+        assertThat(response.answer()).contains("100 KG", "200 TWD");
+    }
+
+    @Test
+    void wrongGeneratedBusinessClaimFallsBackAfterARealToolExecution() {
+        AiToolRegistry registry = mock(AiToolRegistry.class);
+        when(registry.execute(any())).thenReturn(inventoryResult());
+        ChatModel model = fakeModel(prompt -> hasToolResponse(prompt)
+                ? new ChatResponse(List.of(new Generation(new AssistantMessage("MAT-001 庫存為 999 KG。"))))
+                : toolCall("QUERY_INVENTORY", "{\"materialCode\":\"MAT-001\"}"));
+
+        AiProviderResponse response = provider(model, registry, Duration.ofSeconds(2))
+                .query(new AiProviderRequest("MAT-001 的庫存是多少？"));
+        assertThat(response.answerSource()).isEqualTo("BACKEND_FACTS");
+        assertThat(response.answer()).isEqualTo(inventoryResult().trustedFacts());
+        assertThat(response.answer()).doesNotContain("999");
+    }
+
+    @Test
+    void modelCallLimitStopsRepeatedToolLoop() {
+        AiToolRegistry registry = mock(AiToolRegistry.class);
+        when(registry.execute(any())).thenReturn(inventoryResult());
+        ChatModel looping = fakeModel(prompt -> toolCall(
+                "QUERY_INVENTORY", "{\"materialCode\":\"MAT-001\"}"));
+        assertProviderCode(provider(looping, registry, Duration.ofSeconds(2)),
+                ErrorCode.AI_INVALID_RESPONSE, "MAT-001 庫存");
+    }
+
+    @Test
+    void independentModelAndToolLimitsTerminateSafely() {
+        AiToolRegistry registry = mock(AiToolRegistry.class);
+        when(registry.execute(any())).thenReturn(inventoryResult());
+        ChatModel looping = fakeModel(prompt -> toolCall(
+                "QUERY_INVENTORY", "{\"materialCode\":\"MAT-001\"}"));
+        assertProviderCode(provider(looping, registry, Duration.ofSeconds(2), 4, 2),
+                ErrorCode.AI_INVALID_RESPONSE, "MAT-001 庫存");
+        org.mockito.Mockito.verify(registry, org.mockito.Mockito.times(2)).execute(any());
+
+        org.mockito.Mockito.reset(registry);
+        when(registry.execute(any())).thenReturn(inventoryResult());
+        assertProviderCode(provider(looping, registry, Duration.ofSeconds(2), 1, 5),
+                ErrorCode.AI_INVALID_RESPONSE, "MAT-001 庫存");
+        org.mockito.Mockito.verify(registry, org.mockito.Mockito.times(1)).execute(any());
+    }
+
+    @Test
+    void forbiddenToolAndInventedMaterialCannotExecute() {
+        AiToolRegistry registry = mock(AiToolRegistry.class);
+        ChatModel forbidden = fakeModel(prompt -> toolCall("APPROVE_PO", "{\"id\":1}"));
+        assertProviderCode(provider(forbidden, registry, Duration.ofSeconds(2)),
+                ErrorCode.AI_INVALID_RESPONSE);
+        ChatModel invented = fakeModel(prompt -> toolCall(
+                "QUERY_INVENTORY", "{\"materialCode\":\"MAT-999\"}"));
+        assertProviderCode(provider(invented, registry, Duration.ofSeconds(2)),
+                ErrorCode.AI_INVALID_RESPONSE);
+        org.mockito.Mockito.verifyNoInteractions(registry);
+    }
+
+    @Test
     void rejectsNaturalLanguageOrFabricatedProviderAnswersWithoutAToolExecution() {
-        ChatModel model = prompt -> new ChatResponse(List.of(
-                new Generation(new AssistantMessage("MAT-001 庫存為 999 KG"))));
+        ChatModel model = fakeModel(prompt -> new ChatResponse(List.of(
+                new Generation(new AssistantMessage("MAT-001 庫存為 999 KG")))));
         assertProviderCode(provider(model, mock(AiToolRegistry.class), Duration.ofSeconds(2)),
                 ErrorCode.AI_INVALID_RESPONSE);
     }
@@ -98,17 +186,39 @@ class SpringAiProviderClientTests {
     }
 
     private SpringAiProviderClient provider(ChatModel model, AiToolRegistry registry, Duration timeout) {
+        return provider(model, registry, timeout, 4, 5);
+    }
+
+    private SpringAiProviderClient provider(ChatModel model, AiToolRegistry registry,
+                                             Duration timeout, int maxTools, int maxModels) {
         @SuppressWarnings("unchecked") ObjectProvider<ChatModel> models = mock(ObjectProvider.class);
         when(models.getIfAvailable()).thenReturn(model);
-        return provider(models, registry, timeout);
+        return provider(models, registry, timeout, maxTools, maxModels);
     }
 
     private SpringAiProviderClient provider(
             ObjectProvider<ChatModel> models, AiToolRegistry registry, Duration timeout
     ) {
+        return provider(models, registry, timeout, 4, 5);
+    }
+
+    private SpringAiProviderClient provider(ObjectProvider<ChatModel> models, AiToolRegistry registry,
+                                            Duration timeout, int maxTools, int maxModels) {
         return new SpringAiProviderClient(models, registry,
-                new AiResponseGuard(new ObjectMapper()), new AiProperties(timeout, 256, 1),
+                new AiQueryPlanner(), new AiResponseGuard(new ObjectMapper()),
+                new AiProperties(timeout, 256, maxTools, maxModels),
                 executor, new SimpleMeterRegistry());
+    }
+
+    private boolean hasToolResponse(Prompt prompt) {
+        return prompt.getInstructions().stream().anyMatch(ToolResponseMessage.class::isInstance);
+    }
+
+    private ChatResponse finalAnswer(int count) {
+        String indexes = java.util.stream.IntStream.range(0, count).mapToObj(String::valueOf)
+                .collect(java.util.stream.Collectors.joining(","));
+        return new ChatResponse(List.of(new Generation(new AssistantMessage(
+                "{\"intro\":\"查詢結果整理如下。\",\"factIndexes\":[" + indexes + "]}"))));
     }
 
     private ChatResponse toolCall(String name, String arguments) {
@@ -144,7 +254,11 @@ class SpringAiProviderClientTests {
     }
 
     private void assertProviderCode(SpringAiProviderClient provider, ErrorCode code) {
-        assertThatThrownBy(() -> provider.query(new AiProviderRequest("question")))
+        assertProviderCode(provider, code, "question");
+    }
+
+    private void assertProviderCode(SpringAiProviderClient provider, ErrorCode code, String message) {
+        assertThatThrownBy(() -> provider.query(new AiProviderRequest(message)))
                 .isInstanceOf(AiProviderException.class).extracting("errorCode").isEqualTo(code);
     }
 }

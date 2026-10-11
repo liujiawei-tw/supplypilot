@@ -46,4 +46,13 @@ class AiQueryPlannerTests {
                     .extracting("errorCode").isEqualTo(ErrorCode.ACCESS_DENIED);
         }
     }
+
+    @Test
+    void asksForIdentifiersOnlyWhenTheRequestedRecordNeedsOne() {
+        assertThat(planner.missingIdentifier("這個原料目前庫存多少？")).contains("Material Code");
+        assertThat(planner.missingIdentifier("請解釋這筆採購建議")).contains("Recommendation ID");
+        assertThat(planner.missingIdentifier("MAT-A1 的庫存是多少？")).isNull();
+        assertThat(planner.missingIdentifier("列出所有未完成採購單")).isNull();
+        assertThat(planner.missingIdentifier("原料驗收 SOP 的條款")).isNull();
+    }
 }

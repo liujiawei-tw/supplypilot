@@ -11,7 +11,7 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class AiQueryPlanner {
-    private static final Pattern MATERIAL_CODE = Pattern.compile("(?i)\\b[A-Z]{2,}[A-Z0-9_]*-\\d+\\b");
+    private static final Pattern MATERIAL_CODE = Pattern.compile("(?i)\\b[A-Z]{2,}[A-Z0-9_]*-[A-Z0-9]+\\b");
     private static final Pattern RECOMMENDATION_ID = Pattern.compile(
             "(?i)(?:recommendation\\s*(?:id|#)|建議(?:編號| ID))\\s*[:#]?\\s*(\\d+)");
     private static final Pattern FORBIDDEN = Pattern.compile(
@@ -49,6 +49,22 @@ public class AiQueryPlanner {
         return normalized;
     }
 
+    /** Only a missing identifier for an identified record is answered without contacting the model. */
+    public String missingIdentifier(String message) {
+        String lower = message.toLowerCase(Locale.ROOT);
+        if (materialCode(message) != null || recommendationId(message) != null) return null;
+        if (containsAny(lower, "庫存", "inventory", "stock")) {
+            return "請補充 Material Code（例如 MAT-001），並重新提出完整問題。";
+        }
+        if (containsAny(lower, "建議", "recommendation", "供應商排名", "supplier ranking")) {
+            return "請補充 Material Code 或 Recommendation ID，並重新提出完整問題。";
+        }
+        if (containsAny(lower, "這張採購單", "這筆採購單", "這張 po", "this po")) {
+            return "請補充可識別的 PO 資訊，並重新提出完整問題。";
+        }
+        return null;
+    }
+
     private boolean containsAny(String value, String... terms) {
         for (String term : terms) {
             if (value.contains(term)) return true;
@@ -56,12 +72,12 @@ public class AiQueryPlanner {
         return false;
     }
 
-    private Long recommendationId(String message) {
+    public Long recommendationId(String message) {
         Matcher matcher = RECOMMENDATION_ID.matcher(message);
         return matcher.find() ? Long.valueOf(matcher.group(1)) : null;
     }
 
-    private String materialCode(String message) {
+    public String materialCode(String message) {
         Matcher matcher = MATERIAL_CODE.matcher(message);
         return matcher.find() ? matcher.group().toUpperCase(Locale.ROOT) : null;
     }

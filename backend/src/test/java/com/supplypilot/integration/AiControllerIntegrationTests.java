@@ -47,6 +47,7 @@ import org.springframework.ai.chat.metadata.DefaultUsage;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.model.Generation;
+import org.springframework.ai.chat.messages.ToolResponseMessage;
 import org.springframework.ai.chat.prompt.ChatOptions;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.model.tool.ToolCallingChatOptions;
@@ -154,6 +155,41 @@ class AiControllerIntegrationTests extends AbstractIntegrationTest {
     }
 
     @Test
+    void oneQuestionExecutesInventoryAndOpenPoWithBothSources() throws Exception {
+        Material material = materialWithInventory("100");
+        User staff = user(UserRole.PROCUREMENT_STAFF);
+        Supplier supplier = supplier();
+        PurchaseOrder order = PurchaseOrder.create(supplier, LocalDate.of(2026, 10, 20), staff, clock.instant());
+        order.assignPendingPoNumber("PO-AI-" + suffix());
+        order.addItem(PurchaseOrderItem.create(material, new BigDecimal("12"), new BigDecimal("3"), clock.instant()));
+        order.approve(staff, clock.instant());
+        order.markOrdered(staff, clock.instant());
+        purchaseOrders.saveAndFlush(order);
+
+        query(staff, material.getCode() + " 的目前庫存是多少？有哪些未完成採購單？")
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("ANSWERED"))
+                .andExpect(jsonPath("$.answerSource").value("MODEL_EXPLANATION"))
+                .andExpect(jsonPath("$.tools[0]").value("QUERY_INVENTORY"))
+                .andExpect(jsonPath("$.tools[1]").value("QUERY_OPEN_PO"))
+                .andExpect(jsonPath("$.sources[0].resourceType").value("INVENTORY"))
+                .andExpect(jsonPath("$.sources[1].resourceType").value("PURCHASE_ORDER"))
+                .andExpect(jsonPath("$.answer").value(org.hamcrest.Matchers.containsString("100.0000 KG")))
+                .andExpect(jsonPath("$.answer").value(org.hamcrest.Matchers.containsString(order.getPoNumber())));
+    }
+
+    @Test
+    void missingMaterialCodeRequestsClarificationWithoutToolExecution() throws Exception {
+        query(user(UserRole.PROCUREMENT_STAFF), "這個原料目前庫存多少？")
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("NEEDS_CLARIFICATION"))
+                .andExpect(jsonPath("$.answer").value(org.hamcrest.Matchers.containsString("Material Code")))
+                .andExpect(jsonPath("$.answerSource").value("BACKEND_CLARIFICATION"))
+                .andExpect(jsonPath("$.tools.length()").value(0))
+                .andExpect(jsonPath("$.sources.length()").value(0));
+    }
+
+    @Test
     void preservesInsufficientDocumentEvidenceContractAndValidatesRequest() throws Exception {
         User admin = user(UserRole.ADMIN);
         query(admin, "不存在於任何文件的唯一問題 " + suffix())
@@ -215,11 +251,31 @@ class AiControllerIntegrationTests extends AbstractIntegrationTest {
 
         @Override
         public ChatResponse call(Prompt prompt) {
+            var responses = prompt.getInstructions().stream()
+                    .filter(ToolResponseMessage.class::isInstance)
+                    .map(ToolResponseMessage.class::cast)
+                    .flatMap(message -> message.getResponses().stream())
+                    .toList();
+            if (!responses.isEmpty()) {
+                long answered = responses.stream().filter(item -> item.responseData().contains("ANSWERED")).count();
+                String indexes = java.util.stream.LongStream.range(0, answered)
+                        .mapToObj(String::valueOf).collect(java.util.stream.Collectors.joining(","));
+                return new ChatResponse(List.of(new Generation(new AssistantMessage(
+                        "{\"intro\":\"查詢結果整理如下。\",\"factIndexes\":[" + indexes + "]}"))));
+            }
             String question = prompt.getUserMessage().getText();
             String lower = question.toLowerCase(Locale.ROOT);
             String material = material(question);
             String tool;
             String arguments;
+            if (lower.contains("庫存") && lower.contains("採購單")) {
+                AssistantMessage output = AssistantMessage.builder().content("").toolCalls(List.of(
+                        new AssistantMessage.ToolCall("fake-inventory", "function", "QUERY_INVENTORY",
+                                "{\"materialCode\":\"" + material + "\"}"),
+                        new AssistantMessage.ToolCall("fake-po", "function", "QUERY_OPEN_PO",
+                                materialArguments(material)))).build();
+                return new ChatResponse(List.of(new Generation(output)));
+            }
             if (lower.contains("供應商") || lower.contains("ranking")) {
                 tool = "QUERY_SUPPLIER_RANKING";
                 arguments = materialArguments(material);

@@ -6,6 +6,7 @@ public record AiQueryResponse(
         AiQueryStatus status,
         String answer,
         List<AiToolType> tools,
-        List<AiSourceResponse> sources
+        List<AiSourceResponse> sources,
+        String answerSource
 ) {
 }

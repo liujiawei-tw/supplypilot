@@ -14,6 +14,7 @@ import org.springframework.validation.annotation.Validated;
 public record AiProperties(
         @NotNull Duration providerTimeout,
         @Positive @Max(4096) int maxOutputTokens,
-        @Min(1) @Max(6) int maxToolCalls
+        @Min(1) @Max(12) int maxToolCalls,
+        @Min(2) @Max(12) int maxModelCalls
 ) {
 }

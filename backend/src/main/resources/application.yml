@@ -6,9 +6,9 @@ spring:
       chat: ${AI_CHAT_PROVIDER:none}
     google:
       genai:
-        api-key: ${GEMINI_API_KEY:}
+        api-key: ${GEMINI_API_KEY:${AI_API_KEY:}}
         chat:
-          model: ${GEMINI_MODEL:gemini-3.5-flash}
+          model: ${GEMINI_MODEL:${AI_MODEL:gemini-3.6-flash}}
           max-output-tokens: ${AI_MAX_OUTPUT_TOKENS:512}
           temperature: 0.0
           google-search-retrieval: false
@@ -45,7 +45,8 @@ supplypilot:
   ai:
     provider-timeout: ${AI_PROVIDER_TIMEOUT:15s}
     max-output-tokens: ${AI_MAX_OUTPUT_TOKENS:512}
-    max-tool-calls: ${AI_MAX_TOOL_CALLS:1}
+    max-tool-calls: ${AI_MAX_TOOL_CALLS:4}
+    max-model-calls: ${AI_MAX_MODEL_CALLS:5}
   document-storage:
     type: ${DOCUMENT_STORAGE_TYPE:local}
     path: ${DOCUMENT_STORAGE_PATH:./data/documents}

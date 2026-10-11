@@ -47,10 +47,12 @@ class AiAssistantServiceTests {
 
     @Test
     void preservesCurrentIdentityAndReturnsOnlyVerifiedToolFacts() {
-        when(provider.query(any())).thenReturn(new AiProviderResponse(result, 21));
+        when(provider.query(any())).thenReturn(new AiProviderResponse(
+                List.of(result), "查詢結果整理如下。\n" + result.trustedFacts(), "MODEL_EXPLANATION", 21));
         var response = service.query("庫存");
         assertThat(response.status()).isEqualTo(AiQueryStatus.ANSWERED);
-        assertThat(response.answer()).isEqualTo(result.trustedFacts());
+        assertThat(response.answer()).contains(result.trustedFacts());
+        assertThat(response.answerSource()).isEqualTo("MODEL_EXPLANATION");
         assertThat(response.tools()).containsExactly(AiToolType.QUERY_INVENTORY);
         assertThat(response.sources()).containsExactlyElementsOf(result.sources());
         verify(currentUserProvider).getCurrentUserId();
@@ -71,7 +73,7 @@ class AiAssistantServiceTests {
     @Test
     void preservesInsufficientEvidenceWithoutInventingAnAnswer() {
         AiToolResult insufficient = AiToolResult.insufficientEvidence(AiToolType.SEARCH_DOCUMENTS);
-        when(provider.query(any())).thenReturn(new AiProviderResponse(insufficient, 12));
+        when(provider.query(any())).thenReturn(new AiProviderResponse(List.of(insufficient), null, null, 12));
         var response = service.query("庫存");
         assertThat(response.status()).isEqualTo(AiQueryStatus.INSUFFICIENT_EVIDENCE);
         assertThat(response.answer()).isNull();
@@ -82,6 +84,16 @@ class AiAssistantServiceTests {
     void validationRunsBeforeProvider() {
         when(planner.validate("庫存")).thenThrow(new BusinessException(ErrorCode.ACCESS_DENIED));
         assertCode(ErrorCode.ACCESS_DENIED);
+        verify(provider, never()).query(any());
+    }
+
+    @Test
+    void missingIdentifierReturnsClarificationWithoutProviderCall() {
+        when(planner.missingIdentifier("庫存")).thenReturn("請補充 Material Code");
+        var response = service.query("庫存");
+        assertThat(response.status()).isEqualTo(AiQueryStatus.NEEDS_CLARIFICATION);
+        assertThat(response.answer()).contains("Material Code");
+        assertThat(response.tools()).isEmpty();
         verify(provider, never()).query(any());
     }
 

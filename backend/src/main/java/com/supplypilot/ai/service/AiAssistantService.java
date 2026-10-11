@@ -36,18 +36,25 @@ public class AiAssistantService {
     public AiQueryResponse query(String message) {
         // Fail closed unless the caller has a real AuthenticatedUser in the current SecurityContext.
         currentUserProvider.getCurrentUserId();
-        planner.validate(message);
-        var result = queryProvider(message);
-        if (result.status() == AiQueryStatus.INSUFFICIENT_EVIDENCE) {
-            return new AiQueryResponse(result.status(), null, List.of(result.tool()), result.sources());
+        String validated = planner.validate(message);
+        String missing = planner.missingIdentifier(validated);
+        if (missing != null) {
+            return new AiQueryResponse(AiQueryStatus.NEEDS_CLARIFICATION, missing,
+                    List.of(), List.of(), "BACKEND_CLARIFICATION");
         }
-        return new AiQueryResponse(AiQueryStatus.ANSWERED, result.trustedFacts(),
-                List.of(result.tool()), result.sources());
+        var result = queryProvider(validated);
+        var executions = result.results();
+        boolean answered = executions.stream().anyMatch(item -> item.status() == AiQueryStatus.ANSWERED);
+        return new AiQueryResponse(answered ? AiQueryStatus.ANSWERED : AiQueryStatus.INSUFFICIENT_EVIDENCE,
+                answered ? result.answer() : null,
+                executions.stream().map(item -> item.tool()).toList(),
+                executions.stream().flatMap(item -> item.sources().stream()).toList(),
+                answered ? result.answerSource() : null);
     }
 
-    private com.supplypilot.ai.tool.AiToolResult queryProvider(String message) {
+    private com.supplypilot.ai.client.AiProviderResponse queryProvider(String message) {
         try {
-            return provider.query(new AiProviderRequest(message)).result();
+            return provider.query(new AiProviderRequest(message));
         } catch (AiProviderException exception) {
             throw new BusinessException(exception.getErrorCode());
         } catch (BusinessException exception) {
