@@ -62,6 +62,16 @@ public class InventoryQueryService {
         return inventoryMapper.toResponse(inventory);
     }
 
+    @Transactional(readOnly = true)
+    @PreAuthorize("hasAnyRole('PRODUCTION_PLANNER', 'PROCUREMENT_STAFF', 'WAREHOUSE_STAFF', 'ADMIN')")
+    public InventoryResponse getInventoryByMaterialCode(String materialCode) {
+        var material = materialRepository.findByCode(materialCode)
+                .orElseThrow(() -> new BusinessException(ErrorCode.MATERIAL_NOT_FOUND));
+        Inventory inventory = inventoryRepository.findByMaterialId(material.getId())
+                .orElseThrow(() -> new BusinessException(ErrorCode.INVENTORY_NOT_FOUND));
+        return inventoryMapper.toResponse(inventory);
+    }
+
     private boolean hasText(String value) {
         return value != null && !value.isBlank();
     }

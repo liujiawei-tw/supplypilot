@@ -170,6 +170,19 @@ public class PurchaseOrderService {
                 result.getTotalElements(), result.getTotalPages());
     }
 
+    @Transactional(readOnly = true)
+    @PreAuthorize("hasAnyRole('PROCUREMENT_STAFF', 'PROCUREMENT_MANAGER', 'ADMIN')")
+    public PageResponse<PurchaseOrderResponse> listOpen(String materialCode, Pageable pageable) {
+        Long materialId = null;
+        if (materialCode != null) {
+            materialId = materialRepository.findByCode(materialCode)
+                    .orElseThrow(() -> new BusinessException(ErrorCode.MATERIAL_NOT_FOUND))
+                    .getId();
+        }
+        return list(PurchaseOrderStatus.ORDERED, null, materialId,
+                null, null, null, null, null, pageable);
+    }
+
     @Transactional
     @PreAuthorize("hasAnyRole('PROCUREMENT_STAFF', 'ADMIN')")
     public PurchaseOrderResponse updateDraft(Long id, UpdatePurchaseOrderRequest request) {

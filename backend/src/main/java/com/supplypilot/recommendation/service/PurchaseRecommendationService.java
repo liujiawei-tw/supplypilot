@@ -172,6 +172,14 @@ public class PurchaseRecommendationService {
     }
 
     @Transactional(readOnly = true)
+    @PreAuthorize("hasAnyRole('PROCUREMENT_STAFF', 'PROCUREMENT_MANAGER', 'ADMIN')")
+    public RecommendationResponse getLatestRecommendationByMaterialCode(String materialCode) {
+        return recommendationMapper.toResponse(recommendationRepository
+                .findFirstByMaterialCodeOrderByCreatedAtDescIdDesc(materialCode)
+                .orElseThrow(() -> new BusinessException(ErrorCode.RECOMMENDATION_NOT_FOUND)));
+    }
+
+    @Transactional(readOnly = true)
     @PreAuthorize("hasAnyRole('PRODUCTION_PLANNER', 'PROCUREMENT_STAFF', 'PROCUREMENT_MANAGER', 'WAREHOUSE_STAFF', 'ADMIN')")
     public List<SupplierRecommendationResultResponse> getSupplierResults(Long id) {
         findRecommendation(id);
