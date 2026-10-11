@@ -2,6 +2,7 @@ import React from 'react';
 import { ConfigProvider } from 'antd';
 import { RouterProvider } from 'react-router-dom';
 import router from './router/routes';
+import { AuthProvider } from './auth/AuthContext';
 
 export const App: React.FC = () => {
   return (
@@ -13,7 +14,7 @@ export const App: React.FC = () => {
         },
       }}
     >
-      <RouterProvider router={router} />
+      <AuthProvider><RouterProvider router={router} /></AuthProvider>
     </ConfigProvider>
   );
 };

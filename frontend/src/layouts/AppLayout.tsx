@@ -1,7 +1,10 @@
 import React from 'react';
-import { Layout, Menu, Typography, theme } from 'antd';
-import { DashboardOutlined } from '@ant-design/icons';
+import { Button, Layout, Menu, Space, Typography, theme } from 'antd';
+import { DashboardOutlined, LogoutOutlined } from '@ant-design/icons';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { useAuth } from '../auth/useAuth';
+import { can, roleLabels } from '../auth/permissions';
+import { routeCatalog } from '../router/routeCatalog';
 
 const { Header, Sider, Content } = Layout;
 const { Title, Text } = Typography;
@@ -9,17 +12,24 @@ const { Title, Text } = Typography;
 export const AppLayout: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const { user, logout } = useAuth();
   const {
     token: { colorBgContainer, borderRadiusLG },
   } = theme.useToken();
 
+  if (!user) return null;
+  const groups = [...new Set(routeCatalog.map((entry) => entry.group))];
   const menuItems = [
-    {
-      key: '/dashboard',
-      icon: <DashboardOutlined />,
-      label: 'Dashboard',
-    },
+    { key: '/dashboard', icon: <DashboardOutlined />, label: 'Dashboard' },
+    ...groups.map((group) => ({
+      key: group,
+      label: group,
+      children: routeCatalog.filter((entry) => entry.group === group && entry.navigation && can(user.role, entry.permission))
+        .map((entry) => ({ key: `/${entry.path}`, label: entry.label })),
+    })).filter((group) => group.children.length > 0),
   ];
+  const selected = routeCatalog.filter((entry) => entry.navigation && location.pathname.startsWith(`/${entry.path}`))
+    .sort((a, b) => b.path.length - a.path.length)[0];
 
   const handleMenuClick = ({ key }: { key: string }) => {
     navigate(key);
@@ -39,7 +49,7 @@ export const AppLayout: React.FC = () => {
         <Menu
           theme="dark"
           mode="inline"
-          selectedKeys={[location.pathname.startsWith('/dashboard') ? '/dashboard' : location.pathname]}
+          selectedKeys={[selected ? `/${selected.path}` : '/dashboard']}
           items={menuItems}
           onClick={handleMenuClick}
         />
@@ -60,11 +70,12 @@ export const AppLayout: React.FC = () => {
               SupplyPilot — AI Procurement & Supply Chain Decision Platform
             </Text>
           </div>
-          <div>
-            <Text type="secondary" style={{ fontSize: '12px' }}>
-              Thin Frontend Shell (v1.0.0-snapshot)
-            </Text>
-          </div>
+          <Space wrap>
+            {can(user.role, 'aiQuery') && <Button disabled title="AI Drawer 將由 SP-806 實作">AI Assistant（尚未實作）</Button>}
+            <Text>{user.displayName}（{user.username}）</Text>
+            <Text type="secondary">{roleLabels[user.role]}</Text>
+            <Button icon={<LogoutOutlined />} onClick={() => { logout(); navigate('/login', { replace: true, state: null }); }}>登出</Button>
+          </Space>
         </Header>
         <Content style={{ margin: '24px 16px 0' }}>
           <div

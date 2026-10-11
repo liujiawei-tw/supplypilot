@@ -12,3 +12,23 @@ export interface ApiErrorResponse {
   path: string;
   fieldErrors?: FieldError[];
 }
+
+export type UserRole =
+  | 'PRODUCTION_PLANNER'
+  | 'PROCUREMENT_STAFF'
+  | 'PROCUREMENT_MANAGER'
+  | 'WAREHOUSE_STAFF'
+  | 'ADMIN';
+
+export interface AuthenticatedUser {
+  id: number;
+  username: string;
+  displayName: string;
+  role: UserRole;
+}
+
+export interface LoginResponse {
+  accessToken: string;
+  tokenType: 'Bearer';
+  user: AuthenticatedUser;
+}
