@@ -18,7 +18,8 @@ final class ErrorHttpStatusMapper {
                     RECOMMENDATION_NOT_FOUND,
                     DOCUMENT_NOT_FOUND,
                     USER_NOT_FOUND,
-                    INVENTORY_IMPORT_BATCH_NOT_FOUND -> HttpStatus.NOT_FOUND;
+                    INVENTORY_IMPORT_BATCH_NOT_FOUND,
+                    AI_PROPOSAL_NOT_FOUND -> HttpStatus.NOT_FOUND;
             case DUPLICATE_MATERIAL,
                     DUPLICATE_CODE,
                     DUPLICATE_USERNAME,
@@ -30,7 +31,9 @@ final class ErrorHttpStatusMapper {
                     INVENTORY_IMPORT_NOT_VALIDATED,
                     INVENTORY_IMPORT_ALREADY_CONFIRMED,
                     CONCURRENT_MODIFICATION,
-                    DATA_INTEGRITY_VIOLATION -> HttpStatus.CONFLICT;
+                    DATA_INTEGRITY_VIOLATION,
+                    AI_PROPOSAL_EXPIRED,
+                    AI_PROPOSAL_ALREADY_CONFIRMED -> HttpStatus.CONFLICT;
             case AI_PROVIDER_UNAVAILABLE, AI_TIMEOUT, AI_INVALID_RESPONSE -> HttpStatus.SERVICE_UNAVAILABLE;
             case UNAUTHENTICATED -> HttpStatus.UNAUTHORIZED;
             case ACCESS_DENIED -> HttpStatus.FORBIDDEN;

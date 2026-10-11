@@ -44,6 +44,7 @@ supplypilot:
   frontend-origin: ${FRONTEND_ORIGIN:}
   ai:
     provider-timeout: ${AI_PROVIDER_TIMEOUT:15s}
+    draft-proposal-ttl: ${AI_DRAFT_PROPOSAL_TTL:PT10M}
     max-output-tokens: ${AI_MAX_OUTPUT_TOKENS:512}
     max-tool-calls: ${AI_MAX_TOOL_CALLS:4}
     max-model-calls: ${AI_MAX_MODEL_CALLS:5}

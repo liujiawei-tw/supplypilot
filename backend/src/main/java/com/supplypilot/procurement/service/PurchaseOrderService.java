@@ -87,6 +87,23 @@ public class PurchaseOrderService {
     @Transactional
     @PreAuthorize("hasAnyRole('PROCUREMENT_STAFF', 'ADMIN')")
     public PurchaseOrderResponse createDraft(CreatePurchaseOrderRequest request) {
+        PurchaseOrder purchaseOrder = prepareDraft(request);
+        PurchaseOrder persisted = purchaseOrderRepository.saveAndFlush(purchaseOrder);
+        persisted.assignDisplayPoNumber(displayPoNumber(persisted.getId(), LocalDate.now(clock)));
+        return purchaseOrderMapper.toResponse(persisted);
+    }
+
+    @Transactional(readOnly = true)
+    @PreAuthorize("hasAnyRole('PROCUREMENT_STAFF', 'ADMIN')")
+    public void validateDraft(CreatePurchaseOrderRequest request) {
+        prepareDraft(request);
+    }
+
+    private PurchaseOrder prepareDraft(CreatePurchaseOrderRequest request) {
+        if (request == null || request.supplierId() == null || request.items() == null
+                || request.items().isEmpty()) {
+            throw new BusinessException(ErrorCode.VALIDATION_FAILED);
+        }
         Supplier supplier = supplierRepository.findById(request.supplierId())
                 .orElseThrow(() -> new BusinessException(ErrorCode.SUPPLIER_NOT_FOUND));
         if (supplier.getStatus() != SupplierStatus.ACTIVE) throw new BusinessException(ErrorCode.SUPPLIER_INACTIVE);
@@ -97,6 +114,10 @@ public class PurchaseOrderService {
         purchaseOrder.assignPendingPoNumber("P-" + UUID.randomUUID().toString().replace("-", ""));
         HashSet<Long> materialIds = new HashSet<>();
         for (CreatePurchaseOrderItemRequest itemRequest : request.items()) {
+            if (itemRequest == null || itemRequest.materialId() == null
+                    || itemRequest.quantity() == null || itemRequest.unitPrice() == null) {
+                throw new BusinessException(ErrorCode.VALIDATION_FAILED);
+            }
             if (!materialIds.add(itemRequest.materialId())) throw new BusinessException(ErrorCode.DUPLICATE_MATERIAL);
             Material material = materialRepository.findById(itemRequest.materialId())
                     .orElseThrow(() -> new BusinessException(ErrorCode.MATERIAL_NOT_FOUND));
@@ -109,9 +130,7 @@ public class PurchaseOrderService {
             purchaseOrder.addItem(createItem(itemRequest, material, supplier));
         }
 
-        PurchaseOrder persisted = purchaseOrderRepository.saveAndFlush(purchaseOrder);
-        persisted.assignDisplayPoNumber(displayPoNumber(persisted.getId(), LocalDate.now(clock)));
-        return purchaseOrderMapper.toResponse(persisted);
+        return purchaseOrder;
     }
 
     @Transactional(readOnly = true)

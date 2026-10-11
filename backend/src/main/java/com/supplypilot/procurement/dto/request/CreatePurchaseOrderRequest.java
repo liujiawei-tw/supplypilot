@@ -4,6 +4,7 @@ import java.time.LocalDate;
 import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonAnySetter;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSetter;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotEmpty;
@@ -21,7 +22,7 @@ public class CreatePurchaseOrderRequest {
     @JsonSetter("items") public void setItems(List<CreatePurchaseOrderItemRequest> items) { this.items = items; }
     @JsonAnySetter public void rejectUnknownField(String name, Object value) { throw new IllegalArgumentException("Property not allowed in request: " + name); }
 
-    public Long supplierId() { return supplierId; }
-    public LocalDate expectedDeliveryDate() { return expectedDeliveryDate; }
-    public List<CreatePurchaseOrderItemRequest> items() { return items; }
+    @JsonProperty("supplierId") public Long supplierId() { return supplierId; }
+    @JsonProperty("expectedDeliveryDate") public LocalDate expectedDeliveryDate() { return expectedDeliveryDate; }
+    @JsonProperty("items") public List<CreatePurchaseOrderItemRequest> items() { return items; }
 }
