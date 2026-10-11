@@ -16,6 +16,7 @@ import com.supplypilot.ai.service.AiResponseGuard;
 import com.supplypilot.ai.tool.AiToolRegistry;
 import com.supplypilot.ai.tool.AiQueryPlanner;
 import com.supplypilot.ai.tool.SpringAiReadTools;
+import com.supplypilot.ai.usage.AiMonthlyUsageMonitor;
 import com.supplypilot.common.exception.BusinessException;
 import com.supplypilot.common.exception.ErrorCode;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -66,6 +67,7 @@ public class SpringAiProviderClient implements AiProviderClient {
     private final AiProperties properties;
     private final ExecutorService executor;
     private final MeterRegistry meters;
+    private final AiMonthlyUsageMonitor usageMonitor;
 
     public SpringAiProviderClient(
             ObjectProvider<ChatModel> chatModels,
@@ -74,7 +76,8 @@ public class SpringAiProviderClient implements AiProviderClient {
             AiResponseGuard responseGuard,
             AiProperties properties,
             ExecutorService aiProviderExecutor,
-            MeterRegistry meters
+            MeterRegistry meters,
+            AiMonthlyUsageMonitor usageMonitor
     ) {
         this.chatModels = chatModels;
         this.toolRegistry = toolRegistry;
@@ -83,6 +86,16 @@ public class SpringAiProviderClient implements AiProviderClient {
         this.properties = properties;
         this.executor = aiProviderExecutor;
         this.meters = meters;
+        this.usageMonitor = usageMonitor;
+    }
+
+    @Override
+    public boolean isConfigured() {
+        try {
+            return chatModels.getIfAvailable() != null;
+        } catch (RuntimeException unavailable) {
+            return false;
+        }
     }
 
     @Override
@@ -105,16 +118,20 @@ public class SpringAiProviderClient implements AiProviderClient {
         try {
             AiProviderResponse response = future.get(properties.providerTimeout().toMillis(), TimeUnit.MILLISECONDS);
             record("success", Duration.ofNanos(System.nanoTime() - started), response.totalTokens());
+            accountUsage(response.totalTokens());
             return response;
         } catch (TimeoutException exception) {
             future.cancel(true);
             record("timeout", Duration.ofNanos(System.nanoTime() - started), null);
+            accountUsage(null);
             throw new AiProviderException(ErrorCode.AI_TIMEOUT, exception);
         } catch (InterruptedException exception) {
             Thread.currentThread().interrupt();
             record("interrupted", Duration.ofNanos(System.nanoTime() - started), null);
+            accountUsage(null);
             throw new AiProviderException(ErrorCode.AI_TIMEOUT, exception);
         } catch (ExecutionException exception) {
+            accountUsage(null);
             RuntimeException applicationFailure = findApplicationFailure(exception.getCause());
             if (applicationFailure != null) throw applicationFailure;
             ErrorCode code = findProviderError(exception.getCause());
@@ -225,5 +242,14 @@ public class SpringAiProviderClient implements AiProviderClient {
         }
         log.info("AI provider request outcome={} latencyMs={} totalTokens={}",
                 outcome, elapsed.toMillis(), totalTokens == null ? "unavailable" : totalTokens);
+    }
+
+    private void accountUsage(Integer totalTokens) {
+        try {
+            usageMonitor.record(totalTokens);
+        } catch (RuntimeException unavailable) {
+            meters.counter("supplypilot.ai.budget.accounting.failures").increment();
+            log.warn("AI_MONTHLY_TOKEN_ESTIMATE_UNAVAILABLE reason=accounting_failure");
+        }
     }
 }

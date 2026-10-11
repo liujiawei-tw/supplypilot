@@ -65,6 +65,25 @@ class AiProviderDisabledIntegrationTests extends AbstractIntegrationTest {
                 .andExpect(status().isServiceUnavailable())
                 .andExpect(jsonPath("$.code").value("AI_PROVIDER_UNAVAILABLE"));
 
+        mockMvc.perform(post("/api/v1/ai/query").header("Authorization", bearer)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"message\":\"這個原料目前庫存多少？\"}"))
+                .andExpect(status().isServiceUnavailable())
+                .andExpect(jsonPath("$.code").value("AI_PROVIDER_UNAVAILABLE"));
+
+        mockMvc.perform(post("/api/v1/ai/query")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"message\":\"這個原料目前庫存多少？\"}"))
+                .andExpect(status().isUnauthorized());
+        User warehouse = users.saveAndFlush(User.create("ai-disabled-warehouse-" + suffix(), "hash",
+                UserRole.WAREHOUSE_STAFF.name(), UserRole.WAREHOUSE_STAFF, clock.instant()));
+        String warehouseBearer = "Bearer " + tokens.generateToken(
+                new AuthenticatedUser(warehouse.getId(), warehouse.getUsername(), warehouse.getRole()));
+        mockMvc.perform(post("/api/v1/ai/query").header("Authorization", warehouseBearer)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"message\":\"這個原料目前庫存多少？\"}"))
+                .andExpect(status().isForbidden());
+
         mockMvc.perform(get("/api/v1/inventory").header("Authorization", bearer)
                         .param("materialCode", material.getCode()))
                 .andExpect(status().isOk())

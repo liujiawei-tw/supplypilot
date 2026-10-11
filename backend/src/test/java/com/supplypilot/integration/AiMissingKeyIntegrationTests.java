@@ -46,5 +46,11 @@ class AiMissingKeyIntegrationTests extends AbstractIntegrationTest {
                         .content("{\"message\":\"查詢 MAT-001 庫存\"}"))
                 .andExpect(status().isServiceUnavailable())
                 .andExpect(jsonPath("$.code").value("AI_PROVIDER_UNAVAILABLE"));
+
+        mvc.perform(post("/api/v1/ai/query").header("Authorization", bearer)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"message\":\"這個原料目前庫存多少？\"}"))
+                .andExpect(status().isServiceUnavailable())
+                .andExpect(jsonPath("$.code").value("AI_PROVIDER_UNAVAILABLE"));
     }
 }

@@ -47,6 +47,7 @@ class AiAssistantServiceTests {
 
     @Test
     void preservesCurrentIdentityAndReturnsOnlyVerifiedToolFacts() {
+        when(provider.isConfigured()).thenReturn(true);
         when(provider.query(any())).thenReturn(new AiProviderResponse(
                 List.of(result), "查詢結果整理如下。\n" + result.trustedFacts(), "MODEL_EXPLANATION", 21));
         var response = service.query("庫存");
@@ -62,16 +63,19 @@ class AiAssistantServiceTests {
 
     @Test
     void mapsProviderFailureKindsWithoutLeakingCause() {
+        when(provider.isConfigured()).thenReturn(true);
         when(provider.query(any())).thenThrow(new AiProviderException(ErrorCode.AI_TIMEOUT));
         assertCode(ErrorCode.AI_TIMEOUT);
 
         reset(provider);
+        when(provider.isConfigured()).thenReturn(true);
         when(provider.query(any())).thenThrow(new IllegalStateException("secret provider token"));
         assertCode(ErrorCode.AI_PROVIDER_UNAVAILABLE);
     }
 
     @Test
     void preservesInsufficientEvidenceWithoutInventingAnAnswer() {
+        when(provider.isConfigured()).thenReturn(true);
         AiToolResult insufficient = AiToolResult.insufficientEvidence(AiToolType.SEARCH_DOCUMENTS);
         when(provider.query(any())).thenReturn(new AiProviderResponse(List.of(insufficient), null, null, 12));
         var response = service.query("庫存");
@@ -88,7 +92,15 @@ class AiAssistantServiceTests {
     }
 
     @Test
+    void disabledProviderPrecedesClarificationWithoutCallingModel() {
+        assertCode(ErrorCode.AI_PROVIDER_UNAVAILABLE);
+        verify(provider, never()).query(any());
+        verify(planner, never()).missingIdentifier(any());
+    }
+
+    @Test
     void missingIdentifierReturnsClarificationWithoutProviderCall() {
+        when(provider.isConfigured()).thenReturn(true);
         when(planner.missingIdentifier("庫存")).thenReturn("請補充 Material Code");
         var response = service.query("庫存");
         assertThat(response.status()).isEqualTo(AiQueryStatus.NEEDS_CLARIFICATION);

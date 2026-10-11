@@ -47,6 +47,8 @@ supplypilot:
     max-output-tokens: ${AI_MAX_OUTPUT_TOKENS:512}
     max-tool-calls: ${AI_MAX_TOOL_CALLS:4}
     max-model-calls: ${AI_MAX_MODEL_CALLS:5}
+    monthly-token-warning-enabled: ${AI_MONTHLY_TOKEN_WARNING_ENABLED:false}
+    monthly-token-warning-threshold: ${AI_MONTHLY_TOKEN_WARNING_THRESHOLD:1000000}
   document-storage:
     type: ${DOCUMENT_STORAGE_TYPE:local}
     path: ${DOCUMENT_STORAGE_PATH:./data/documents}

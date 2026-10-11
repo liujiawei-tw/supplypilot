@@ -37,6 +37,10 @@ public class AiAssistantService {
         // Fail closed unless the caller has a real AuthenticatedUser in the current SecurityContext.
         currentUserProvider.getCurrentUserId();
         String validated = planner.validate(message);
+        // A missing identifier is a clarification only when AI is actually configured.
+        if (!provider.isConfigured()) {
+            throw new BusinessException(ErrorCode.AI_PROVIDER_UNAVAILABLE);
+        }
         String missing = planner.missingIdentifier(validated);
         if (missing != null) {
             return new AiQueryResponse(AiQueryStatus.NEEDS_CLARIFICATION, missing,

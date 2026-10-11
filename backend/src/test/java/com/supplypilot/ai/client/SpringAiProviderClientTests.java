@@ -24,6 +24,7 @@ import com.supplypilot.ai.tool.AiToolRegistry;
 import com.supplypilot.ai.tool.AiQueryPlanner;
 import com.supplypilot.ai.tool.AiToolResult;
 import com.supplypilot.ai.tool.SpringAiReadTools;
+import com.supplypilot.ai.usage.AiMonthlyUsageMonitor;
 import com.supplypilot.common.exception.ErrorCode;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.AfterEach;
@@ -42,10 +43,22 @@ import org.springframework.ai.support.ToolCallbacks;
 
 class SpringAiProviderClientTests {
     private final ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor();
+    private final AiMonthlyUsageMonitor usageMonitor = mock(AiMonthlyUsageMonitor.class);
 
     @AfterEach
     void tearDown() {
         executor.close();
+    }
+
+    @Test
+    void localAvailabilityCheckDoesNotCallTheModel() {
+        @SuppressWarnings("unchecked") ObjectProvider<ChatModel> models = mock(ObjectProvider.class);
+        SpringAiProviderClient provider = provider(models, mock(AiToolRegistry.class), Duration.ofSeconds(1));
+        assertThat(provider.isConfigured()).isFalse();
+        ChatModel model = mock(ChatModel.class);
+        when(models.getIfAvailable()).thenReturn(model);
+        assertThat(provider.isConfigured()).isTrue();
+        org.mockito.Mockito.verifyNoInteractions(model);
     }
 
     @Test
@@ -68,6 +81,8 @@ class SpringAiProviderClientTests {
         assertThat(response.results()).containsExactly(toolResult);
         assertThat(response.answerSource()).isEqualTo("MODEL_EXPLANATION");
         assertThat(response.answer()).contains(toolResult.trustedFacts());
+        assertThat(response.totalTokens()).isEqualTo(7);
+        verify(usageMonitor).record(7);
         verify(registry).execute(new AiQueryPlan(AiToolType.QUERY_INVENTORY, null, "MAT-001", null));
     }
 
@@ -181,7 +196,7 @@ class SpringAiProviderClientTests {
         ChatModel broken = fakeModel(prompt -> {
             throw new IllegalStateException("provider credential must not leak");
         });
-        assertProviderCode(provider(broken, mock(AiToolRegistry.class), Duration.ofSeconds(1)),
+        assertProviderCode(provider(broken, mock(AiToolRegistry.class), Duration.ofSeconds(5)),
                 ErrorCode.AI_PROVIDER_UNAVAILABLE);
     }
 
@@ -206,8 +221,8 @@ class SpringAiProviderClientTests {
                                             Duration timeout, int maxTools, int maxModels) {
         return new SpringAiProviderClient(models, registry,
                 new AiQueryPlanner(), new AiResponseGuard(new ObjectMapper()),
-                new AiProperties(timeout, 256, maxTools, maxModels),
-                executor, new SimpleMeterRegistry());
+                new AiProperties(timeout, 256, maxTools, maxModels, false, 1_000_000),
+                executor, new SimpleMeterRegistry(), usageMonitor);
     }
 
     private boolean hasToolResponse(Prompt prompt) {
