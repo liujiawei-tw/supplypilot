@@ -30,3 +30,20 @@ SP-700 and SP-710 have been implemented and merged. The original SP-720 / SP-721
 - https://spring.io/blog/2026/06/12/spring-ai-2-0-0-GA-available-now/
 - https://spring.io/projects/generations/
 - GitHub Issues #32 and #33
+
+## Confirmed design choices (2026-10-11; supersedes conflicting drafts)
+
+- **LLM provider**: Google Gemini, preferring a low-cost Flash model. The exact model identifier must be validated against available API capabilities, Tool Calling support and pricing during SP-720 implementation; it remains configurable.
+- **Framework and tools**: stable Spring AI 2.0.x, ChatClient / ChatModel, model-selected read-only Tool Calling executed by Spring AI and authorized again through current-user Backend Method Security. No arbitrary tools or privileged identity.
+- **RAG strategy**: SP-710 remains unchanged and is integrated in SP-720. A **separate new SP-722 (#80)** upgrades semantic retrieval using **Google Gemini Embedding and PostgreSQL + pgvector**. MySQL remains the source of truth for procurement and DocumentMetadata; do not represent cross-database steps as atomic distributed transactions.
+- **Answer trust**: explanations from LLM, while backend verifies structured numeric values, identifiers, units and authoritative business records. Unsupported/contradictory assertions must not be returned as trusted answers.
+- **Conversations and transport**: V1 single-turn, no persisted chat memory; synchronous JSON response only.
+- **SP-721 confirmation**: Proposal → server-issued Confirm Token/ID → backend verification → existing PurchaseOrderService.createDraft() → DRAFT. Client-provided booleans and LLM statements are not confirmation.
+- **Provider availability**: optional AI activation; missing/unavailable provider returns established AI 503 contract, never prevents core business APIs starting.
+- **Observability / cost controls**: basic token usage when available, latency, errors, bounded per-request tokens/tool-loop count/provider timeout, redaction of PII, credentials and sensitive procurement content.
+- **Provider details awaiting runtime verification, not user selection**: exact Flash model ID, embedding model ID/dimension, max output tokens and Google-supported API endpoint; these must be verified and documented in SP-720/SP-722 implementation rather than invented.
+
+## Semantic RAG ownership
+
+SP-722 owns pgvector installation/schema, embeddings, migration/backfill, reindex idempotency, dimension/model-version compatibility, vector query, MySQL status gating and failure reconciliation. SP-720 must not expand to introduce PostgreSQL or rewrite SP-710. See [Issue #80](https://github.com/liujiawei-tw/supplypilot/issues/80).
+
