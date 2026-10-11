@@ -10,4 +10,7 @@ public interface PurchaseRecommendationRepository extends JpaRepository<Purchase
     @Override
     @EntityGraph(attributePaths = {"material", "recommendedSupplier", "supplierResults", "supplierResults.supplier"})
     Optional<PurchaseRecommendation> findById(Long id);
+
+    @EntityGraph(attributePaths = {"material", "recommendedSupplier", "supplierResults", "supplierResults.supplier"})
+    Optional<PurchaseRecommendation> findFirstByMaterialCodeOrderByCreatedAtDescIdDesc(String materialCode);
 }

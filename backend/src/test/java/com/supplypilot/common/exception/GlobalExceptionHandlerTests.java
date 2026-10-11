@@ -103,6 +103,13 @@ class GlobalExceptionHandlerTests {
     }
 
     @Test
+    void aiProviderFailuresReturnStandard503Contract() throws Exception {
+        assertBusinessError("ai-unavailable", 503, ErrorCode.AI_PROVIDER_UNAVAILABLE);
+        assertBusinessError("ai-timeout", 503, ErrorCode.AI_TIMEOUT);
+        assertBusinessError("ai-invalid", 503, ErrorCode.AI_INVALID_RESPONSE);
+    }
+
+    @Test
     void apiSpecificationErrorCodesMapToTheirRequiredHttpStatuses() {
         assertThat(ErrorHttpStatusMapper.toHttpStatus(ErrorCode.NEGATIVE_QUANTITY))
                 .isEqualTo(HttpStatus.BAD_REQUEST);
@@ -214,6 +221,21 @@ class GlobalExceptionHandlerTests {
         @GetMapping("/inactive")
         void inactive() {
             throw new BusinessException(ErrorCode.MATERIAL_INACTIVE);
+        }
+
+        @GetMapping("/ai-unavailable")
+        void aiUnavailable() {
+            throw new BusinessException(ErrorCode.AI_PROVIDER_UNAVAILABLE);
+        }
+
+        @GetMapping("/ai-timeout")
+        void aiTimeout() {
+            throw new BusinessException(ErrorCode.AI_TIMEOUT);
+        }
+
+        @GetMapping("/ai-invalid")
+        void aiInvalid() {
+            throw new BusinessException(ErrorCode.AI_INVALID_RESPONSE);
         }
 
         @GetMapping("/constraint")

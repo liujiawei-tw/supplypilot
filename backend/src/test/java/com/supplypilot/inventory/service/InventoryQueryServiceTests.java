@@ -60,4 +60,16 @@ class InventoryQueryServiceTests {
         org.assertj.core.api.Assertions.assertThat(response.unit()).isEqualTo(BaseUnit.KG);
         org.assertj.core.api.Assertions.assertThat(response.updatedAt()).isEqualTo(Instant.parse("2026-10-08T01:00:00Z"));
     }
+
+    @Test
+    void queriesInventoryByExactMaterialCodeForAiReadBoundary() {
+        Material material = Material.create("MAT-001", "Strawberry Concentrate", BaseUnit.KG,
+                BigDecimal.ZERO, Instant.parse("2026-10-08T00:00:00Z"));
+        Inventory inventory = Inventory.create(material, Instant.parse("2026-10-08T01:00:00Z"));
+        when(materialRepository.findByCode("MAT-001")).thenReturn(Optional.of(material));
+        when(inventoryRepository.findByMaterialId(material.getId())).thenReturn(Optional.of(inventory));
+
+        org.assertj.core.api.Assertions.assertThat(service.getInventoryByMaterialCode("MAT-001").materialCode())
+                .isEqualTo("MAT-001");
+    }
 }

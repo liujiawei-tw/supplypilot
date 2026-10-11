@@ -43,8 +43,13 @@ JWT_EXPIRATION_SECONDS
 
 FRONTEND_ORIGIN
 
-AI_API_KEY
-AI_MODEL
+AI_CHAT_PROVIDER
+GEMINI_API_KEY
+GEMINI_MODEL
+AI_PROVIDER_TIMEOUT
+AI_MAX_OUTPUT_TOKENS
+AI_MAX_TOOL_CALLS
+AI_MAX_MODEL_CALLS
 
 DOCUMENT_STORAGE_TYPE
 DOCUMENT_STORAGE_PATH
@@ -267,9 +272,23 @@ DOCUMENT_STORAGE_TYPE=s3
 # 12. AI
 
 ```text
-AI_API_KEY
-AI_MODEL
+AI_CHAT_PROVIDER=none
+GEMINI_API_KEY=
+GEMINI_MODEL=gemini-3.6-flash
+AI_PROVIDER_TIMEOUT=15s
+AI_MAX_OUTPUT_TOKENS=512
+AI_MAX_TOOL_CALLS=4
+AI_MAX_MODEL_CALLS=5
+AI_MONTHLY_TOKEN_WARNING_ENABLED=false
+AI_MONTHLY_TOKEN_WARNING_THRESHOLD=1000000
 ```
+
+預設 `AI_CHAT_PROVIDER=none`，不建立 `ChatModel`；核心 Backend 正常啟動，AI Endpoint 回
+`AI_PROVIDER_UNAVAILABLE`（HTTP 503）。啟用 Gemini Developer API 時設定
+`AI_CHAT_PROVIDER=google-genai` 與由 Secret Manager／執行環境注入的 `GEMINI_API_KEY`。
+`GEMINI_MODEL` 是明確可覆寫的 Flash Model ID；既有 `.env` 的 `AI_API_KEY`、`AI_MODEL`
+也可作為相容別名，但 `GEMINI_*` 優先。`.env` 不會被直接載入為 Spring 環境變數，
+啟動流程仍須安全地注入；單純填入 `.env` 不會自動啟用 Provider。
 
 不得：
 
@@ -315,8 +334,13 @@ DB_PASSWORD=
 JWT_SECRET=
 JWT_EXPIRATION_SECONDS=3600
 FRONTEND_ORIGIN=http://localhost:5173
-AI_API_KEY=
-AI_MODEL=
+AI_CHAT_PROVIDER=none
+GEMINI_API_KEY=
+GEMINI_MODEL=gemini-3.6-flash
+AI_PROVIDER_TIMEOUT=15s
+AI_MAX_OUTPUT_TOKENS=512
+AI_MAX_TOOL_CALLS=4
+AI_MAX_MODEL_CALLS=5
 DOCUMENT_STORAGE_TYPE=local
 DOCUMENT_STORAGE_PATH=./data/documents
 ```
@@ -372,10 +396,33 @@ System.getenv()
 
 ## Spring AI Provider Configuration — SP-720 (2026-10-11)
 
-- SP-720 正式支援 Spring AI 2.0.x ChatClient / ChatModel，以及一個實際可使用的 LLM Provider Adapter。`AI_API_KEY`、`AI_MODEL` 延續既有環境變數規格；可依選用 Provider 增加必要且清楚文件化的端點、逾時與啟用旗標。
+- SP-720 使用 Spring AI `2.0.1`、`spring-ai-starter-model-google-genai`、`ChatClient` / `ChatModel` 與 Gemini Developer API。預設 Model ID 為官方 stable 且支援 Function Calling 的 `gemini-3.6-flash`，可用 `GEMINI_MODEL` 覆寫。
 - API Key 或憑證禁止 Commit、寫入 Log 或傳回 HTTP Response。Timeout / Unavailable / Invalid Response 沿用既有 AI Error Contract。
 - Local/Test 若未設定 Provider，核心 Backend 不得因為 AI 功能未啟用而無法啟動；呼叫未啟用的 AI 能力才返回適切既有 AI Error。
 - 自動化測試透過 Fake ChatModel／ToolCallback 運作，不得呼叫真實付費 Provider。Production 需要有效 Provider 設定，且不得使用 Fake Provider 偽裝成真正的模型整合。
+- V1 使用同步單輪 JSON，不配置 Chat Memory。`AI_MAX_OUTPUT_TOKENS` 限制每次模型輸出，`AI_MAX_TOOL_CALLS` 限制一次請求的工具執行次數，`AI_MAX_MODEL_CALLS` 限制模型呼叫輪數，`AI_PROVIDER_TIMEOUT` 限制整次 Provider 等待時間。預設分別為 512、4、5、15 秒。
+- 六個唯讀工具的 `returnDirect` 關閉，Spring AI 可以在同一請求呼叫多個工具後生成受限自然語言引言。最終 `answer` 的事實段落與 `sources` 一律由 Backend 已授權工具結果組成；模型引言只能使用安全句型。模型輸出不合格而已有充分事實時，`answerSource=BACKEND_FACTS`；合格時為 `MODEL_EXPLANATION`。`INSUFFICIENT_EVIDENCE` 仍回 `answer=null`。
+- 缺少 Material Code／Recommendation ID 等必要識別時，`status=NEEDS_CLARIFICATION`、`answer` 說明需補充的欄位、`tools=[]`、`sources=[]`、`answerSource=BACKEND_CLARIFICATION`；V1 不保存上下文，需重新提出完整問題。
+- Tool Result 傳給 Gemini 的內容限定為工具種類、狀態及最多 1500 字的查詢事實，不傳 Source 摘錄或無關資料。月度 Token 用量警示的實際規則與驗證方式見下節；此警示不是平台硬費用上限。
+- Spring AI Tool Call 的參數／結果 observability 預設不匯出；應用只記錄 outcome、latency 與可取得的 total token usage，不記錄 prompt、API Key 或完整採購／合約內容。
+
+### 月度 Token 預算警示（SP-720 V1）
+
+- 預設停用；設定 `AI_MONTHLY_TOKEN_WARNING_ENABLED=true` 與正整數 `AI_MONTHLY_TOKEN_WARNING_THRESHOLD` 後啟用。門檻單位是 **Token**，不是貨幣。未配置且驗證可靠的 Google 費率，因此 V1 不提供金額估算，也不宣稱精確成本。
+- Backend 將可取得的 Spring AI Provider `totalTokens` 按 **UTC 曆月**累加到 `ai_monthly_token_usage`（新 migration V16）；同一月跨程序重啟仍保留。Provider 成功但未回 Usage Metadata、逾時或呼叫後失敗，另累加 `missing_usage_requests`。此時 `known_tokens` 僅是下界，`supplypilot.ai.budget.monthly.estimate.available=0`，不可把下界說成完整用量或費用。資料庫記帳失敗時記錄 `AI_MONTHLY_TOKEN_ESTIMATE_UNAVAILABLE reason=accounting_failure` 並增加 `supplypilot.ai.budget.accounting.failures`，AI 回應不因此假裝估算成功。
+- 啟用後，當當月 `known_tokens >= threshold`，應用以資料庫條件更新只觸發**每月一次**的 `AI_MONTHLY_TOKEN_BUDGET_WARNING` 結構化 WARN 事件，並增加 `supplypilot.ai.budget.warning.events`。規則在下一次 Provider 結果入帳時評估；只改設定而沒有新查詢不會主動掃描。這是內建、可實際觸發的告警途徑；部署時將 Backend WARN 日誌送往既有日誌告警接收端即可通知值班人員。沒有外部日誌接收端時仍會輸出 WARN，但不會自行發送電子郵件。`known_tokens` 即使是下界，跨越門檻仍可安全警告。
+- 可在受控監控環境透過 Actuator metrics 觀察 `supplypilot.ai.budget.monthly.known.tokens`、`supplypilot.ai.budget.monthly.estimate.available`、`supplypilot.ai.budget.monthly.warning.threshold`、`supplypilot.ai.budget.monthly.warning.enabled`、`supplypilot.ai.budget.warning.events`；沒有暴露 Prompt、Key、文件或採購內容。這是 **Budget Warning**，不攔截請求，也不是 Google AI Studio 或應用端的 **Hard Spending Limit**。
+
+驗證：在測試環境設定門檻 `10` 並啟用警示，用 Fake ChatModel 產生累計至少 10 個有 Usage Metadata 的 Token；確認只出現一次 `AI_MONTHLY_TOKEN_BUDGET_WARNING`、`warning.events` 增加，並執行 `SELECT period, known_tokens, missing_usage_requests, warning_issued FROM ai_monthly_token_usage;` 核對當月資料。讓下一次呼叫不帶 Usage Metadata，確認 `missing_usage_requests` 增加、`estimate.available=0`。`AiMonthlyUsageMonitorIntegrationTests` 自動驗證跨重啟、跨 UTC 月份與實際告警觸發，不會呼叫付費 Gemini API。
+
+Provider 停用或缺 Key 時，即使問句缺 Material Code，合法且已登入的 AI Query 仍回 `AI_PROVIDER_UNAVAILABLE`／503；已啟用 Provider 才回 `NEEDS_CLARIFICATION`。設定檢查只查本地 `ChatModel` Bean，不會對 Gemini 發送請求；401／403 仍先由 Spring Security 決定。
+
+### 手動 Gemini Smoke Test（不納入自動測試）
+
+1. 由安全的 shell／部署 secret 設定 `AI_CHAT_PROVIDER=google-genai`、`GEMINI_API_KEY`（或相容別名 `AI_API_KEY`），視需要覆寫 `GEMINI_MODEL`（或 `AI_MODEL`）。不要將密鑰值輸出到終端紀錄。
+2. 啟動 Backend，使用具有 `PROCUREMENT_STAFF` 或 `ADMIN` 身分的 JWT 呼叫 `POST /api/v1/ai/query`，例如詢問既存 Material 的庫存。
+3. 確認同步回應的 `tools` 僅出現唯讀 allowlist、`answer` 的權威事實段落等於 Backend tool 的確定性 facts，且 log 只有 outcome／latency／token usage。
+4. 移除 `GEMINI_API_KEY` 並將 `AI_CHAT_PROVIDER=none` 後重啟；確認 AI Endpoint 回 503，而 Inventory 等核心 API 仍回成功。
 
 ---
 

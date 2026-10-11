@@ -1,0 +1,10 @@
+package com.supplypilot.ai.dto;
+
+public enum AiToolType {
+    QUERY_RECOMMENDATION,
+    EXPLAIN_RECOMMENDATION,
+    QUERY_SUPPLIER_RANKING,
+    QUERY_INVENTORY,
+    QUERY_OPEN_PO,
+    SEARCH_DOCUMENTS
+}
