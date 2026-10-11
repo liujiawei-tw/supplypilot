@@ -1808,7 +1808,7 @@ getPurchaseRecommendation
 getSupplierRanking
 getOpenPurchaseOrders
 RAG Document Retrieval
-createPurchaseDraft
+僅限六種已核准唯讀工具；寫入請使用第 21 節確認 API
 ```
 
 ### Rules
@@ -1824,21 +1824,60 @@ createPurchaseDraft
 
 # 21. AI Draft Creation
 
-不建立第二套 Business Logic。
+SP-721 採「提議 → 使用者審查 → 明確確認 → DRAFT」。模型只會取得既有六個唯讀工具；不註冊寫入工具。V1 要求請求提供所有寫入欄位作為明確依據，模型產生的 JSON 必須與這些欄位完全一致；缺少欄位回補充資訊，不猜測數字或識別碼。
 
-架構：
+## POST /api/v1/ai/purchase-draft-proposals
 
-```text
-REST Controller
-        │
-        ▼
-PurchaseOrderService.createDraft()
-        ▲
-        │
-AI Tool
+權限：`PROCUREMENT_STAFF`、`ADMIN`。未登入 401，其餘角色 403。Provider 未配置、逾時或回覆無效依既有 AI 503 契約。請求不會建立採購單。
+
+```json
+{
+  "message": "請整理 MAT-001 的採購草稿供我確認",
+  "draft": {
+    "supplierId": 12,
+    "expectedDeliveryDate": "2026-10-20",
+    "items": [{
+      "materialId": 7,
+      "quantity": 200,
+      "unitPrice": 50,
+      "recommendationId": 91,
+      "supplierRecommendationResultId": 18,
+      "supplierOverrideReason": null,
+      "quantityOverrideReason": null
+    }]
+  }
+}
 ```
 
-REST 與 AI 都走同一 Service。
+成功回應：
+
+```json
+{
+  "status": "PENDING_CONFIRMATION",
+  "proposalId": "b908da27-64e0-4d46-bf21-7ba779c60181",
+  "draft": { "supplierId": 12, "expectedDeliveryDate": "2026-10-20", "items": [{ "materialId": 7, "quantity": 200, "unitPrice": 50, "recommendationId": 91, "supplierRecommendationResultId": 18, "supplierOverrideReason": null, "quantityOverrideReason": null }] },
+  "expiresAt": "2026-10-11T09:10:00Z",
+  "confirmationToken": "<後端核發的隨機憑證>",
+  "missingFields": []
+}
+```
+
+必要的 `supplierId`、`items` 或明細 `materialId`、`quantity`、`unitPrice` 缺漏時，回 `200`、`status=NEEDS_CLARIFICATION` 與 `missingFields`；`proposalId`、`draft`、`expiresAt`、`confirmationToken` 為 `null`。無效數值與目前業務資料不合規時使用既有錯誤碼。`expectedDeliveryDate` 可為 `null`，沿用一般 DRAFT 規則。
+
+## POST /api/v1/ai/purchase-draft-proposals/{proposalId}/confirm
+
+使用者須顯示完整 `draft` 並明確提交下列內容；若要修改，需重新產生 Proposal。
+
+```json
+{
+  "confirmationToken": "<提議回應中的憑證>",
+  "draft": { "supplierId": 12, "expectedDeliveryDate": "2026-10-20", "items": [{ "materialId": 7, "quantity": 200, "unitPrice": 50, "recommendationId": 91, "supplierRecommendationResultId": 18, "supplierOverrideReason": null, "quantityOverrideReason": null }] }
+}
+```
+
+成功回 `200` 與一般 `PurchaseOrderResponse`，其中 `status=DRAFT`。確認服務只從 MySQL 已保存的 Payload 建立採購單，不採用 Client 提交的寫入值；先比對 Client Payload 與原提議一致，再於同一 MySQL Transaction 呼叫 `PurchaseOrderService.createDraft()`。提議以目前使用者 ID 綁定，預設有效 10 分鐘（`supplypilot.ai.draft-proposal-ttl`，上限 1 小時）；MySQL 只保存 SHA-256 Token Hash。`SELECT FOR UPDATE` 序列化同一 Proposal 的確認；成功後保存 `purchase_order_id` 與 `consumed_at`，失敗則整筆交易 Rollback。
+
+錯誤：`AI_PROPOSAL_NOT_FOUND` 404、`AI_PROPOSAL_EXPIRED` 409、`AI_PROPOSAL_ALREADY_CONFIRMED` 409、`AI_CONFIRMATION_INVALID` 400、跨使用者 `ACCESS_DENIED` 403。重送成功確認不會建立第二張採購單。
 
 ---
 
