@@ -461,3 +461,26 @@ Provider 停用或缺 Key 時，即使問句缺 Material Code，合法且已登�
 - [ ] 能記錄／估算請求用量、延遲、失敗與預算警示，不能宣稱 Google AI Studio 原生具備未驗證的硬額度限制。
 - [ ] Test 使用可控制的 Fake ChatModel，不呼叫真實付費 Provider；Demo 手動 Smoke Test 使用真實 Gemini。
 
+---
+
+## SP-722 五項確認決策（2026-10-11）
+
+此節為 Issue #80 的正式產品／部署邊界，保留原架構：MySQL 管理 DocumentMetadata、DocumentStatus、Supplier 關聯與採購交易；PostgreSQL + pgvector 管理 Semantic Chunk、Embedding、索引與來源定位；跨庫不是同一 ACID Transaction。
+
+1. **驗證後切換**：在正式文件查詢從 SP-710 MySQL lexical retrieval 切換到 SP-722 semantic retrieval 之前，完成所有符合政策的有效文件 Backfill、來源／版本／Chunk／維度一致性檢查、MySQL READY 與授權查詢驗證，並形成可查驗的切換 Gate（紀錄模型 ID、維度、索引代次與檢查結果）。未通過 Gate 不得啟用新的 semantic read path。切換以顯式設定操作；不得因 Deploy 自動偷偷切換。
+2. **故障回 503，不自動回退**：SP-722 成為正式文件 read path 後，PostgreSQL 不可用、Gemini Embedding 不可用／逾時時，文件語意查詢依既有 AI 503 Error Contract 失敗；不能自動切回 SP-710 舊 lexical search 並宣稱同一品質。Core MySQL 業務 API 應保持可用；沒有命中且服務正常時仍用 INSUFFICIENT_EVIDENCE，而非 503。
+3. **所有符合資格的既有有效文件 Backfill**：以 MySQL 為文件權威來源。針對可索引且符合出站政策的文件及其當前有效版本執行完整 Backfill，保留進度、失敗原因、重試與冪等（documentId + version + modelId + dimension + chunkingVersion + indexGeneration）。不符合政策的文件明確標記 SKIPPED/REQUIRES_REVIEW，不視為索引成功；切換 Gate 不得悄悄忽略，需有可審計的範圍／排除清單。舊模型與新模型向量不可混用；失敗／部分完成向量不可被標記可供查詢。
+4. **V1 Exact Similarity**：PostgreSQL + pgvector V1 使用 exact vector similarity；不要求 HNSW。應註記查詢維度、distance metric、topK、資料量與可觀測基準，並保留之後評估 HNSW 的路線，但本 Issue 不強制導入 HNSW。
+5. **允許經授權企業文件、排除敏感內容**：僅授權文件可進入 Gemini Embedding pipeline。送出前依文件／供應商權限與明確的出站白名單、機敏欄位排除／遮蔽政策檢查；不得傳 Credentials、個資、銀行帳戶、無關商業資料、完整無關附件等。不能安全遮蔽的文件不得外送，狀態標為 REQUIRES_REVIEW；原文件依既有儲存及存取控制保護。查詢時也須對 MySQL 文件 READY／授權／版本做後驗檢查，不能以向量相似度代替權限。敏感資訊分類、遮蔽應由可驗證的後端規則實作，不能單靠 LLM 自述「已過濾」。
+
+### Acceptance Gate / tests
+
+- [ ] 已索引的所有合規有效文件完成 Backfill，對排除／待審文件有明確報表和切換 Gate 判斷；記錄每份文件進度、失敗重試、索引代次、模型 ID、維度、版本。
+- [ ] Semantic 啟用前 Gate 未通過不可切換；通過後 Query 使用 pgvector exact similarity，驗證 model/dimension/version/READY/source and user authorization；不得返回 partial index 為有效證據。
+- [ ] 切換後 PostgreSQL/Gemini 出錯回既有 503，不自動使用 SP-710；服務正常但證據不足回 INSUFFICIENT_EVIDENCE；核心 API 不受影響。
+- [ ] 含敏感資訊的文件送出前被白名單排除／遮蔽或 SKIPPED/REQUIRES_REVIEW；測試驗證 Fake EmbeddingModel 不會收到敏感文字。
+- [ ] Testcontainers MySQL + PostgreSQL pgvector、Fake EmbeddingModel、跨庫部分成功／失敗恢復、冪等 Reindex、權限／狀態隔離、Full Maven Verify。
+- [ ] 正式 Google Gemini Embedding 的模型 ID、維度、價格、可用區域及 provider integration 必須在實作時核實；真實 API smoke test 未執行時不得宣稱已驗證。
+
+### Scope
+不遷移核心 MySQL 業務資料、不增加跨庫 FK、不改寫 SP-720 Tool Allowlist、不改動 SP-721 Confirmation、無 OCR／Multi-Agent／完整新前端。部署／資料出站可能涉及法務／公司授權時，沒有授權不得傳送真實文件。
