@@ -120,13 +120,18 @@ public class DocumentService {
     @Transactional
     @PreAuthorize("hasAnyRole('PROCUREMENT_STAFF', 'ADMIN')")
     public DocumentResponse update(Long id, UpdateDocumentRequest request) {
-        DocumentMetadata document = findDocument(id);
+        DocumentMetadata document = findDocumentForUpdate(id);
         document.updateMetadata(request.title(), request.status(), clock.instant());
         return documentMapper.toResponse(documentRepository.save(document));
     }
 
     private DocumentMetadata findDocument(Long id) {
         return documentRepository.findById(id)
+                .orElseThrow(() -> new BusinessException(ErrorCode.DOCUMENT_NOT_FOUND));
+    }
+
+    private DocumentMetadata findDocumentForUpdate(Long id) {
+        return documentRepository.findByIdForUpdate(id)
                 .orElseThrow(() -> new BusinessException(ErrorCode.DOCUMENT_NOT_FOUND));
     }
 }

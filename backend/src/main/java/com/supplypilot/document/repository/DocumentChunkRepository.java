@@ -14,6 +14,8 @@ public interface DocumentChunkRepository extends JpaRepository<DocumentChunk, Lo
 
     long countByDocumentId(Long documentId);
 
+    List<DocumentChunk> findByDocumentIdOrderByChunkIndex(Long documentId);
+
     @Query("""
             select chunk from DocumentChunk chunk
             join fetch chunk.document document

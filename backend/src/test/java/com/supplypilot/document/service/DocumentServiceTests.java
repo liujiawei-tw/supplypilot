@@ -129,6 +129,7 @@ class DocumentServiceTests {
     void getsListsFiltersAndUpdatesOnlyAllowedMetadata() {
         DocumentMetadata document = document();
         when(documentRepository.findById(1L)).thenReturn(Optional.of(document));
+        when(documentRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(document));
         when(documentRepository.save(document)).thenReturn(document);
         assertThat(service.get(1L).title()).isEqualTo("SOP");
 
