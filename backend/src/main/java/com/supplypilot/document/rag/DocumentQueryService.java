@@ -8,6 +8,8 @@ import com.supplypilot.document.domain.DocumentMetadata;
 import com.supplypilot.document.dto.response.DocumentQueryResponse;
 import com.supplypilot.document.dto.response.DocumentQueryStatus;
 import com.supplypilot.document.dto.response.DocumentSourceResponse;
+import com.supplypilot.document.semantic.SemanticProperties;
+import com.supplypilot.document.semantic.SemanticRetrievalService;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 
@@ -17,22 +19,32 @@ public class DocumentQueryService {
     private final DocumentRetrievalService retrieval;
     private final EvidenceValidator evidenceValidator;
     private final AnswerProvider answers;
+    private final SemanticRetrievalService semantic;
+    private final SemanticProperties semanticProperties;
 
     public DocumentQueryService(
             DocumentRetrievalService retrieval,
             EvidenceValidator evidenceValidator,
-            AnswerProvider answers
+            AnswerProvider answers,
+            SemanticRetrievalService semantic,
+            SemanticProperties semanticProperties
     ) {
         this.retrieval = retrieval;
         this.evidenceValidator = evidenceValidator;
         this.answers = answers;
+        this.semantic = semantic;
+        this.semanticProperties = semanticProperties;
     }
 
     @PreAuthorize("hasAnyRole('PROCUREMENT_STAFF', 'PROCUREMENT_MANAGER', 'ADMIN')")
     public DocumentQueryResponse query(String question) {
         String normalizedQuestion = question.trim();
-        List<RetrievedChunk> evidence = retrieval.retrieve(normalizedQuestion);
-        if (!evidenceValidator.isSufficient(normalizedQuestion, evidence)) {
+        List<RetrievedChunk> evidence = semanticProperties.readEnabled()
+                ? semantic.retrieve(normalizedQuestion) : retrieval.retrieve(normalizedQuestion);
+        boolean sufficient = semanticProperties.readEnabled()
+                ? evidenceValidator.isSemanticallySufficient(evidence, semanticProperties.similarityThreshold())
+                : evidenceValidator.isSufficient(normalizedQuestion, evidence);
+        if (!sufficient) {
             return DocumentQueryResponse.insufficientEvidence();
         }
         final String answer;

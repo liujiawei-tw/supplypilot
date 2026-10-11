@@ -30,4 +30,9 @@ public class EvidenceValidator {
             return evidenceTerms.containsAll(queryTerms);
         });
     }
+
+    public boolean isSemanticallySufficient(List<RetrievedChunk> results, double minimumScore) {
+        return !results.isEmpty() && results.stream().anyMatch(result ->
+                result.score() >= minimumScore && !result.chunk().getContent().isBlank());
+    }
 }

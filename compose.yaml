@@ -1,4 +1,21 @@
 services:
+  pgvector:
+    image: pgvector/pgvector:pg17
+    profiles: [semantic]
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${SEMANTIC_DB_NAME:-supplypilot_semantic}
+      POSTGRES_USER: ${SEMANTIC_DB_USERNAME:-supplypilot}
+      POSTGRES_PASSWORD: ${SEMANTIC_DB_PASSWORD:-local-semantic-only}
+    ports:
+      - "${SEMANTIC_DB_PORT:-5432}:5432"
+    volumes:
+      - supplypilot-pgvector-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${SEMANTIC_DB_USERNAME:-supplypilot} -d ${SEMANTIC_DB_NAME:-supplypilot_semantic}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
   mysql:
     image: mysql:8.4.11
     container_name: supplypilot-mysql
@@ -21,4 +38,5 @@ services:
 
 volumes:
   supplypilot-mysql-data:
+  supplypilot-pgvector-data:
 
