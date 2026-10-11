@@ -64,6 +64,19 @@ public class LocalDocumentStorageService implements DocumentStorageService {
     }
 
     @Override
+    public InputStream read(String storagePath) {
+        try {
+            Path target = resolveWithinRoot(prepareStorageRoot(), storagePath);
+            if (!Files.isRegularFile(target, LinkOption.NOFOLLOW_LINKS) || Files.isSymbolicLink(target)) {
+                throw new IOException("Stored document is not a regular file");
+            }
+            return Files.newInputStream(target, StandardOpenOption.READ, LinkOption.NOFOLLOW_LINKS);
+        } catch (IOException exception) {
+            throw new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    @Override
     public void delete(String storagePath) {
         try {
             Path target = resolveWithinRoot(prepareStorageRoot(), storagePath);

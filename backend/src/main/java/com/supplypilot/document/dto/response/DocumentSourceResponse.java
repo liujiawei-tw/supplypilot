@@ -1,0 +1,17 @@
+package com.supplypilot.document.dto.response;
+
+import com.supplypilot.document.domain.DocumentType;
+
+public record DocumentSourceResponse(
+        Long documentId,
+        DocumentType documentType,
+        String title,
+        String version,
+        Long supplierId,
+        int chunkIndex,
+        int startOffset,
+        int endOffset,
+        String excerpt,
+        double relevanceScore
+) {
+}

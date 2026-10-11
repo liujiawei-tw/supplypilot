@@ -32,6 +32,9 @@ class LocalDocumentStorageServiceTests {
         assertThat(storedPath).endsWith(".pdf").doesNotContain("client-contract");
         assertThat(Path.of(storedPath).isAbsolute()).isFalse();
         assertThat(Files.readString(tempDirectory.resolve(storedPath))).isEqualTo("content");
+        try (InputStream input = storage.read(storedPath)) {
+            assertThat(input.readAllBytes()).isEqualTo("content".getBytes());
+        }
 
         storage.delete(storedPath);
         assertThat(tempDirectory.resolve(storedPath)).doesNotExist();
@@ -42,6 +45,7 @@ class LocalDocumentStorageServiceTests {
         LocalDocumentStorageService storage = new LocalDocumentStorageService(tempDirectory.toString());
 
         assertThatThrownBy(() -> storage.delete("../outside.pdf")).isInstanceOf(BusinessException.class);
+        assertThatThrownBy(() -> storage.read("../outside.pdf")).isInstanceOf(BusinessException.class);
         assertThatThrownBy(() -> storage.delete(tempDirectory.resolve("absolute.pdf").toString()))
                 .isInstanceOf(BusinessException.class);
         assertThat(tempDirectory.getParent().resolve("outside.pdf")).doesNotExist();
