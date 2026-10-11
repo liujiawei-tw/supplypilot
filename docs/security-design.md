@@ -1222,3 +1222,13 @@ Security
 Transaction
 Exception Flow
 ```
+
+---
+
+## SP-720 / SP-721 Spring AI Tool Security Addendum (2026-10-11)
+
+- Spring AI 2.0.x Tool Calling 僅能註冊經審查的明確 Allowlist，SP-720 限 Recommendation、Supplier Ranking、Inventory、Open PO、SP-710 Document Query 等唯讀工具。
+- 工具不得開放任意 Service Method、Repository、Bean、SQL、URL 或反射執行；Prompt Injection 與模型輸出都不能當作授權決策。
+- AI Controller 通過 Role Check 不是 Tool 的最終權限；Tool 必須以當前登入者 SecurityContext 呼叫既有受 Method Security 保護的 Application / Query Service，不得使用 System Admin 身份或繞過 CurrentUserProvider。
+- Spring AI 自身不取代 Spring Security；不讓模型註冊／啟動 Approve、Reject、Order、Receive、Adjust Inventory、Master Data Write，SP-720 也不得暴露 createDraft。
+- SP-721 的 Draft Proposal 必須在 Backend 驗證明確使用者確認後才可呼叫既有 `PurchaseOrderService.createDraft()`；LLM 不能自行聲稱已確認。
