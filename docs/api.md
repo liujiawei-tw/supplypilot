@@ -715,6 +715,8 @@ Inventory 不提供一般 Update Endpoint。
 
 ## GET /api/v1/inventory
 
+授權：`PRODUCTION_PLANNER`、`PROCUREMENT_STAFF`、`WAREHOUSE_STAFF`、`ADMIN`；`PROCUREMENT_MANAGER` 不可呼叫。Inventory 頁面的 Stock Transactions Tab 使用其獨立授權的查詢 API，不會為顯示該 Tab 呼叫 Inventory GET。
+
 Query：
 
 ```text
@@ -1201,6 +1203,8 @@ recommendedQuantitySnapshot
 
 ### Acceptance Conditions
 
+`expectedDeliveryDate` 在建立 DRAFT 時可省略或為 `null`；PATCH DRAFT 可設定、修改或清除。核准前才必須補齊。
+
 ```text
 Supplier exists
 Supplier ACTIVE
@@ -1485,7 +1489,10 @@ ADMIN
 PO exists
 PO.status = DRAFT
 PO has at least one valid item
+expectedDeliveryDate exists
 ```
+
+缺少交期回 `400 EXPECTED_DELIVERY_DATE_REQUIRED`，PO 維持 DRAFT，核准稽核欄位不寫入。此檢查由 Backend 在核准交易內執行；不得要求建立 DRAFT 時必填。既有 `APPROVED` 且交期為空的資料須在下單前辨識與修復，`order` 原有防線仍保留。
 
 ### Result
 
@@ -1579,6 +1586,8 @@ expectedDeliveryDate exists
 PO items valid
 ```
 
+下單 Request 不接受交期。Order Modal 僅顯示已核准交期；若舊資料缺交期，阻擋下單並導向人工資料修復，不以 Draft Edit API 修改 APPROVED PO。
+
 ### Result
 
 ```text
@@ -1663,7 +1672,33 @@ receivedAt
 ```
 
 `receivedBy` 取自 authenticated user，`receivedAt` 與 `updatedAt` 使用同一次 `Clock.instant()`。
-成功回傳 `200 OK` 與更新後的 `PurchaseOrderResponse`；其 `status=RECEIVED`、`isOverdue=false`，並保留 Supplier、Items 及既有 Approval / Ordering Audit。第二次收貨回 `409 DUPLICATE_RECEIVING`，不再增加 Inventory 或建立 StockTransaction。
+成功回傳 `200 OK` 與下列 `ReceivingPurchaseOrderResponse`（受限 DTO）；第二次收貨回 `409 DUPLICATE_RECEIVING`，不再增加 Inventory 或建立 StockTransaction。既有實作目前回傳完整 `PurchaseOrderResponse`，此處為待實作的**縮減回應契約**，會影響依賴完整回應的客戶端及整合測試，須作為 Backend B 的相容性變更明確驗證。
+
+```json
+{
+  "id": 1001,
+  "poNumber": "PO-20261011-001001",
+  "supplierId": 3,
+  "supplierCode": "SUP-003",
+  "supplierName": "供應商",
+  "status": "RECEIVED",
+  "expectedDeliveryDate": "2026-10-20",
+  "isOverdue": false,
+  "items": [{ "id": 11, "materialId": 1, "materialCode": "MAT-001", "materialName": "物料", "quantity": 50, "unit": "KG" }],
+  "orderedAt": "2026-10-11T01:00:00Z",
+  "receivedBy": 5,
+  "receivedByDisplayName": "倉管人員",
+  "receivedAt": "2026-10-11T02:00:00Z"
+}
+```
+
+`ReceivingPurchaseOrderResponse` 與 Read Detail、List item 共用完全相同的欄位。`isOverdue` 由 Backend Clock 計算，僅 `ORDERED` 且交期早於今天時為 `true`；`RECEIVED` 一律為 `false`。此欄位只供展示，不新增 `OVERDUE` PO 狀態。不得包含 `unitPrice`、`total`、推薦評分、覆寫理由、採購建立／核准稽核資料。`receivedBy*`、`receivedAt` 在 ORDERED 時為 `null`。收貨寫入交易與既有 URL、角色、錯誤碼不變。
+
+## Receiving 專用 Read API（Backend B 前置契約）
+
+`GET /api/v1/receiving/purchase-orders` 與 `GET /api/v1/receiving/purchase-orders/{id}` 僅允許 `WAREHOUSE_STAFF`、`ADMIN`；未登入為 `401`，其他角色為 `403`。這是新的讀取介面，不使用一般 PO Read API 讓倉管取得完整採購資訊。
+
+List 預設 `status=ORDERED`；明確指定 `status=RECEIVED` 可查歷史，用於重複提交及未知結果核實。其他狀態回 `400 VALIDATION_FAILED`。支援 `materialId`、`expectedDeliveryFrom`、`expectedDeliveryTo`、`orderedFrom`、`orderedTo`、`page`（預設 0）、`size`（預設 20、上限 100）、`sort`（預設 `id,asc`）；日期參數採 ISO-8601 LocalDate，Instant 欄位依注入的 Backend Clock 時區轉換當地日期（現行預設 UTC）後比較且範圍含兩端，反向範圍回 `400 VALIDATION_FAILED`。排序白名單為 `id`、`poNumber`、`expectedDeliveryDate`、`orderedAt`、`receivedAt`，非 id 排序以 `id ASC` 穩定次序；非法參數回 `400 VALIDATION_FAILED`。回應採既有 `PageResponse<ReceivingPurchaseOrderResponse>` 結構。先對 PO 分頁及計數，再批次取得該頁 Items、Material 與必要 Supplier / Receiver 資料，避免含 Items 的 List 對每筆 PO 反覆查詢造成 N+1；不得因 fetch join Items 使分頁或 `totalElements` 失準，亦不新增 Endpoint。Detail 不在 ORDERED / RECEIVED 範圍或不存在時回 `404 PURCHASE_ORDER_NOT_FOUND`，避免暴露其他狀態。
 
 ---
 
@@ -1676,6 +1711,8 @@ V1 不提供直接 Create / Update API。
 ---
 
 ## GET /api/v1/stock-transactions
+
+此查詢為 E8 StockTransaction Display 的 Backend C 前置依賴；`main` 目前尚無查詢 Controller。只提供唯讀查詢，既有收貨與人工調整寫入機制不變。授權：`WAREHOUSE_STAFF`、`PROCUREMENT_MANAGER`、`ADMIN`；未登入 `401`，其他角色 `403`。
 
 Query：
 
@@ -1690,9 +1727,21 @@ size
 sort
 ```
 
+`materialId`、`purchaseOrderId` 為正整數；`type` 限 `PURCHASE_RECEIVE`、`MANUAL_ADJUSTMENT`；`from` / `to` 為 ISO-8601 Instant，含起點、終點（`createdAt >= from` 且 `createdAt <= to`），反向範圍回 `400 VALIDATION_FAILED`。`page` 預設 0、`size` 預設 20 且最大 100；`sort` 預設 `createdAt,desc`，白名單 `id`、`createdAt`、`materialId`、`type`、`purchaseOrderId`、`quantity`，同值以 `id ASC` 穩定排序。回既有 `PageResponse<StockTransactionReadResponse>`。不提供跨物料 `totalQuantity`：不同單位不能直接相加。
+
+對外 `sort=materialId` 須由 Backend 映射為 JPA 路徑 `material.id`；`StockTransaction` 沒有名為 `materialId` 的 Entity Property，不得把外部欄位名直接傳給 Spring Data `Sort`。
+
+```json
+{"id": 71, "materialId": 1, "materialCode": "MAT-001", "materialName": "物料", "unit": "KG", "type": "PURCHASE_RECEIVE", "quantity": 50, "purchaseOrderId": 1001, "purchaseOrderNumber": "PO-20261011-001001", "reason": null, "createdBy": 5, "createdByDisplayName": "倉管人員", "createdAt": "2026-10-11T02:00:00Z"}
+```
+
+`quantity` 為帶正負號的異動量，`unit` 取 Material 基本單位；`purchaseOrderId`、`purchaseOrderNumber` 僅 PURCHASE_RECEIVE 非空。`StockTransaction` 現有的 `purchaseOrderId` 是 Long 欄位，沒有 `PurchaseOrder` JPA Association；讀取時先取得當頁交易的非空 PO ID，再以既有 ID 批次唯讀查詢 PO 資料補 `purchaseOrderNumber`，避免 N+1，不修改資料庫關聯或 StockTransaction Entity，也不授權存取完整 PO。`reason` 僅 MANUAL_ADJUSTMENT 非空。不得提供 POST / PATCH / PUT / DELETE StockTransaction。
+
 ---
 
 ## GET /api/v1/stock-transactions/{id}
+
+回單一 `StockTransactionReadResponse`；不存在回 `404 STOCK_TRANSACTION_NOT_FOUND`（Backend C 須新增錯誤碼及 HTTP mapping）。授權與 List 相同。
 
 ---
 
@@ -1792,6 +1841,8 @@ Document Version Replacement 可留後續版本。
 ---
 
 ## POST /api/v1/ai/query
+
+權限：`PROCUREMENT_STAFF`、`PROCUREMENT_MANAGER`、`ADMIN`。V1 為單輪同步 JSON，無持久對話記憶或 Streaming 契約。
 
 ### Request
 
@@ -2049,6 +2100,7 @@ RECOMMENDATION_NOT_FOUND
 INVENTORY_NOT_FOUND
 USER_NOT_FOUND
 DOCUMENT_NOT_FOUND
+STOCK_TRANSACTION_NOT_FOUND
 ```
 
 ---
@@ -2325,6 +2377,13 @@ POST  /api/v1/purchase-orders/{id}/approve
 POST  /api/v1/purchase-orders/{id}/reject
 POST  /api/v1/purchase-orders/{id}/order
 POST  /api/v1/purchase-orders/{id}/receive
+```
+
+## Receiving Read（Backend B 前置依賴）
+
+```text
+GET   /api/v1/receiving/purchase-orders
+GET   /api/v1/receiving/purchase-orders/{id}
 ```
 
 ## StockTransaction

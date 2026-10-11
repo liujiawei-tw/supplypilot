@@ -320,6 +320,8 @@ SupplierRecommendationResults persisted
 
 # 13. PurchaseOrderService Test
 
+E8 契約增補：測試 DRAFT 無交期可建立／編輯，Approve 缺交期回 `EXPECTED_DELIVERY_DATE_REQUIRED` 且無狀態／稽核寫入，補交期後核准及下單成功；Order 原缺交期防線保留測試，但其前置資料須以舊資料模擬（例如直接資料庫佈置），不得再經新 Approve 產生。
+
 必測：
 
 ```text
@@ -469,6 +471,8 @@ or
 ---
 
 # 19. Security Test Cases
+
+E8 授權矩陣測試新增：Receiving 專用 GET 與 POST 的 WAREHOUSE_STAFF / ADMIN 允許、其他角色 403、未登入 401；StockTransaction GET 的 WAREHOUSE_STAFF / PROCUREMENT_MANAGER / ADMIN 允許；AI Query 與 Proposal / Confirm 分開測試，含 Drawer 角色可見性。
 
 ## No JWT
 
@@ -2514,6 +2518,15 @@ README
 - [ ] Gemini Request Payload 只含必要資料／相關文件片段，排除金鑰與無關商業資料。
 - [ ] 能記錄／估算請求用量、延遲、失敗與預算警示，不能宣稱 Google AI Studio 原生具備未驗證的硬額度限制。
 - [ ] Test 使用可控制的 Fake ChatModel，不呼叫真實付費 Provider；Demo 手動 Smoke Test 使用真實 Gemini。
+
+---
+
+## E8 Backend 前置契約與 UI 測試盤點（2026-10-11）
+
+- Backend A：`PurchaseOrderTests`、`PurchaseOrderServiceTests`、`PurchaseOrderLifecycleIntegrationTests` 補 DRAFT 空交期／核准失敗／補齊成功；`PurchaseOrderOrderingIntegrationTests` 現有 `approved(null, material)` 案例會在新 Approve 驗證先失敗，須改以既有異常 APPROVED 資料佈置測 Order 防線，不能刪除該防線覆蓋。檢查 `PurchaseOrderUpdateIntegrationTests` 的 DRAFT 清除交期與 APPROVED 不可編輯，並盤點 `PurchaseOrderIncomingInventoryQueryIntegrationTests`、AI Draft 相關 fixture。
+- Backend B：新增 Receiving List / Detail 分頁、日期／物料篩選、ORDERED 預設與 RECEIVED 歷史、401/403/404 測試；成功 POST 嚴格比對受限 DTO 欄位與敏感欄位缺席。現有 `PurchaseOrderReceivingIntegrationTests` 斷言 `approvedBy` 等完整 PO 欄位，須改為受限回應；`PurchaseOrderConcurrentReceivingIntegrationTests` 仍須驗證 `receivedBy`、唯一成功、一次庫存／交易寫入與失敗回滾。檢查所有依賴 `PurchaseOrderResponse` 的 API client 與測試，而非預估只改少量斷言。
+- Backend C：新增 StockTransaction List / Detail、正負 quantity、單位、篩選、日期界限、穩定排序、分頁、401/403/404、不可直接寫入與跨單位不合計測試；人工調整與收貨既有寫入測試維持。
+- Frontend：測 SP-800 角色 Sidebar／Route、SP-802 Tabs、SP-803 Import 三步驟、SP-804 無歷史清單的工作站、SP-805 倉管收貨與核准交期、SP-806 Query／Proposal 角色差異及 `expiresAt`、SP-807 409／重複收貨／逾時未知結果先查詢及 403／500／AI 503。既有 Receiving 全交易原子性與並行測試不得因 DTO 變更而降低。
 
 ---
 

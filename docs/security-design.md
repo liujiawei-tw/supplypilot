@@ -539,6 +539,7 @@ View Ranking
 View PO
 Approve PO
 Reject PO
+View StockTransaction
 AI Query
 RAG Query
 ```
@@ -560,6 +561,7 @@ Confirm Inventory Import
 Receive PO
 Manual Inventory Adjustment
 View StockTransaction
+View Receiving ORDERED / RECEIVED via restricted read API
 ```
 
 不能：
@@ -614,7 +616,7 @@ Recommendation reference validation
 | Supplier POST/PATCH | ADMIN |
 | SupplierMaterial POST/PATCH | ADMIN |
 | Demand POST/PATCH/CANCEL | PRODUCTION_PLANNER, ADMIN |
-| Inventory GET | Relevant authenticated users |
+| Inventory GET（Stock Levels） | PRODUCTION_PLANNER, PROCUREMENT_STAFF, WAREHOUSE_STAFF, ADMIN |
 | Inventory Import | WAREHOUSE_STAFF, ADMIN |
 | Manual Adjustment | WAREHOUSE_STAFF, ADMIN |
 | Recommendation POST | PROCUREMENT_STAFF, PROCUREMENT_MANAGER, ADMIN |
@@ -622,9 +624,15 @@ Recommendation reference validation
 | PO Approve/Reject | PROCUREMENT_MANAGER, ADMIN |
 | PO Mark Ordered | PROCUREMENT_STAFF, ADMIN |
 | PO Receive | WAREHOUSE_STAFF, ADMIN |
+| Receiving GET List / Detail（受限 DTO） | WAREHOUSE_STAFF, ADMIN |
 | StockTransaction GET | WAREHOUSE_STAFF, PROCUREMENT_MANAGER, ADMIN |
 | Document Upload | PROCUREMENT_STAFF, ADMIN |
 | AI Query | PROCUREMENT_STAFF, PROCUREMENT_MANAGER, ADMIN |
+| AI Draft Proposal / Confirm | PROCUREMENT_STAFF, ADMIN |
+
+Frontend Sidebar、Route Guard、Global AI Drawer 的可見性依此矩陣；Backend Spring Security 為授權權威。一般 PO GET 僅 `PROCUREMENT_STAFF`、`PROCUREMENT_MANAGER`、`ADMIN`，倉管不得藉由收貨頁取得完整 `PurchaseOrderResponse`。未認證回 401，已認證但角色不符回 403；ADMIN 不繞過業務不變量。
+
+`/inventory` 是兩種唯讀權限的共同前端容器：Stock Levels 只使用 Inventory GET；Stock Transactions 只使用 StockTransaction GET。`PROCUREMENT_MANAGER` 僅有後者，不得為了共用頁面擴大 Inventory GET 授權，也不得在進頁時預先呼叫無權限的 Inventory API。Sidebar、預設 Tab、Deep Link 與各 Tab Action 均依各自 API 權限判斷。
 
 ---
 

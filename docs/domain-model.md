@@ -753,6 +753,7 @@ REJECTED
 - 一張 PO 只能有一個 Supplier。
 - 一張 PO 可以包含多個 Item。
 - APPROVED 後核心採購欄位不可直接修改。
+- `expectedDeliveryDate` 在 DRAFT 可為 `null`，建立與編輯時均可留空或清除；進入 APPROVED 前必須存在。核准交易內缺少時回 `EXPECTED_DELIVERY_DATE_REQUIRED`，不得更新狀態或稽核。APPROVED 後不得以 Draft Edit API 補交期；既有異常資料仍由 Order 防線拒絕下單。
 - REJECTED 為 Terminal State。
 - Reject 時 `rejectReason`、`rejectedBy`、`rejectedAt` 必須在同一 transaction 保存；`rejectedBy` 來自 authenticated user。
 - V1 不提供 CANCELLED。
@@ -924,6 +925,7 @@ reason REQUIRED
 - Manual Adjustment 成功時建立一筆 StockTransaction。
 - Inventory Import 不建立一般 StockTransaction。
 - 核心 Inventory Audit 不依賴修改 Inventory.quantity 本身。
+- `StockTransaction` 的寫入僅由收貨或人工調整 use case 執行；E8 所需的 List / Detail 是唯讀投影，不增加 Entity 寫入入口。Read DTO 附 Material 基本單位，不跨單位加總數量。
 
 ## 14.5 Index
 

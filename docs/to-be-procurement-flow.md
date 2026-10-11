@@ -618,6 +618,8 @@ DRAFT → RECEIVED
 
 # 18. Formal Ordering
 
+E8 交期決策：DRAFT 可暫缺交期，採購人員在 DRAFT 編輯補齊；Backend 於 Approve 必須驗證交期存在。下單沿用已核准交期，不在 Order Modal 輸入。倉管依專用 Receiving List / Detail 確認 ORDERED 後執行既有完整收貨；可查 RECEIVED 歷史核實重複提交或未知結果。
+
 `APPROVED` 不代表已經向 Supplier 正式下單。
 
 Procurement Staff 完成實際下單後：

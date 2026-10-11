@@ -723,6 +723,8 @@ BEGIN
 
 Load PO
 ↓
+Validate expectedDeliveryDate exists
+↓
 PO.approve()
 ↓
 approvedBy
@@ -738,6 +740,8 @@ COMMIT
 ```text
 DRAFT → APPROVED
 ```
+
+`PO.approve()` 必須在狀態／稽核變更前檢查交期，否則回 `400 EXPECTED_DELIVERY_DATE_REQUIRED` 並 rollback。DRAFT 建立／編輯可留空或清除交期；Order 原檢查保留給既有異常 APPROVED 資料。Receiving 專用 GET 與 StockTransaction GET 均為唯讀查詢，不建立第二套收貨交易或寫入入口。
 
 ---
 
