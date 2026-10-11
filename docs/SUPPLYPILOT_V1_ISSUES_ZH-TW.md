@@ -1530,6 +1530,20 @@ E3 Demand        E4 Inventory   │
 - AI Tool 呼叫 Application Service / Query Boundary，不直接寫 Repository。
 - Tool Execution 沿用 Current User Authorization。
 
+### Spring AI 2.0.x 正式技術要求（2026-10-11 增補）
+- 使用支援 Spring Boot 4.1.x 的 Spring AI 2.0.x 穩定版（不使用 2.1 Milestone）；透過 ChatClient / ChatModel 串接至少一個可設定的真實 LLM Provider。
+- 使用 @Tool 或 ToolCallback 提供明確唯讀 Allowlist：Recommendation、Supplier Ranking、Inventory、Open PO、SP-710 Document Query。所有 Tool 呼叫既有 Application / Query Service，禁止 Repository Write、System Admin Identity、任意 Tool／Bean／SQL 執行。
+- 以登入使用者 SecurityContext / Method Security 執行工具，保留 SP-710 的文件來源與證據不足契約；不得改寫核心採購數字。
+- Provider 設定與 API Key 不得寫入 Repo；缺少 AI 設定時核心 API 仍可運作。
+- 自動化測試必須使用 Fake ChatModel／Fake Tool Callback，不得呼叫付費 Provider。
+
+### Spring AI 新增驗收與測試
+- [ ] 已設定時可由 ChatClient 使用真實 LLM Provider。
+- [ ] Tool Calling 只會使用唯讀 Allowlist 並呼叫既有 Service。
+- [ ] User Authorization 與 Forbidden Tool / Prompt Injection 不可繞過。
+- [ ] Provider Failure / INSUFFICIENT_EVIDENCE（依既有契約）清楚分流；核心 API 不受影響。
+- [ ] Fake ChatModel 的 Tool Integration、Role、Provider Failure、核心 Regression Tests 通過。
+
 ### 不在本 Issue 範圍
 - Approve / Reject / Order / Receive / Adjust Inventory / User Admin / Master Data Write。
 - AI 執行 Deterministic Procurement Calculation。
@@ -1576,6 +1590,12 @@ E3 Demand        E4 Inventory   │
 - Client 明確 Confirm 後才呼叫 `createDraft`。
 - Reuse PurchaseOrderService + 所有 Validation / Authorization。
 - 保留 Recommendation / Override Rules。
+
+### Spring AI 沿用要求（2026-10-11 增補）
+- 重用 SP-720 的 Spring AI 2.0.x ChatClient / Tool Calling，不另建 Provider Framework。
+- 使用受 Schema 驗證的 Draft Proposal，必須由 Backend 明確驗證 User Confirmation 才能呼叫既有 PurchaseOrderService.createDraft()；Prompt Injection 或 LLM 自述不構成 Confirm。
+- 只能建立 DRAFT，禁止 Approve／Reject／Order／Receive。
+- [ ] 測試 Proposal、No Confirmation／No Write、權限、Prompt Injection 與合法確認後只建立 DRAFT，使用 Fake ChatModel，不呼叫付費 Provider。
 
 ### 不在本 Issue 範圍
 - AI Approve / Reject / Order / Receive。
@@ -2173,3 +2193,17 @@ Release Candidate 必須能完整展示：
 
 **Backlog Status：** V1 Implementation Baseline  
 **語言：** 繁體中文（台灣用語）；程式識別字、API、Enum、Class、Label 保留原始英文。
+
+---
+
+## Confirmed SP-720/721/722 AI Decisions (2026-10-11)
+
+- **Google Gemini** is the SP-720 LLM provider; prioritize a low-cost **Flash** model. Verify exact Chat Model ID, Tool Calling capability and price at implementation time; keep model ID configurable.
+- Use stable **Spring AI 2.0.x** `ChatClient` / `ChatModel` and explicit Spring AI read-only Tool Calling under current-user Backend Authorization. AI-generated explanations require backend verification of structured authoritative figures.
+- **SP-722 (#80)** is the dedicated Semantic RAG upgrade using **Google Gemini Embedding + PostgreSQL / pgvector**; this supersedes any earlier suggestion that MySQL / application-side cosine is the final semantic vector store. Existing **SP-710 MySQL lexical index remains transitional**; do not rewrite it inside SP-720.
+- MySQL continues holding procurement transactions and document metadata; pgvector owns semantic document chunk/vector indexes. Cross-database updates are not atomic; SP-722 must design idempotent reindex, READY-status gating, and failure recovery.
+- V1 AI requests are **single-turn, no chat memory, synchronous JSON**. Disable AI cleanly when configuration/provider unavailable (AI 503, core APIs unaffected).
+- SP-721 requires **Proposal → server-issued Confirm Token/ID → Backend verification → DRAFT via existing Service**; never treat an LLM statement or simple client `confirmed=true` as sufficient.
+- Basic cost / observability boundaries: token count when available, latency, error metrics, capped output/tool-call iterations, provider timeout and sensitive-data-redacted logs.
+- Full decision record: `docs/adr/ADR-SP-720-spring-ai-adoption.md`; semantic work: GitHub Issue #80.
+
