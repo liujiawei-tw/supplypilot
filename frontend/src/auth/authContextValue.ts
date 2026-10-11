@@ -5,6 +5,8 @@ export interface AuthState {
   user: AuthenticatedUser | null;
   isAuthenticated: boolean;
   isLoading: boolean;
+  verificationError: boolean;
+  retryVerification: () => void;
   login: (username: string, password: string) => Promise<AuthenticatedUser>;
   logout: () => void;
 }

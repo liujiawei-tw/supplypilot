@@ -4,6 +4,18 @@ import type { ApiErrorResponse } from '../types/api';
 export const TOKEN_STORAGE_KEY = 'supplypilot.accessToken';
 
 const unauthorizedListeners = new Set<() => void>();
+const requestRevisions = new WeakMap<object, number>();
+let sessionRevision = 0;
+
+export function saveAccessToken(token: string): void {
+  sessionRevision += 1;
+  localStorage.setItem(TOKEN_STORAGE_KEY, token);
+}
+
+export function clearAccessToken(): void {
+  sessionRevision += 1;
+  localStorage.removeItem(TOKEN_STORAGE_KEY);
+}
 
 export function onUnauthorized(listener: () => void): () => void {
   unauthorizedListeners.add(listener);
@@ -32,6 +44,7 @@ axiosClient.interceptors.request.use(
         delete config.headers.Authorization;
       } else if (token && config.headers) {
         config.headers.Authorization = `Bearer ${token}`;
+        requestRevisions.set(config, sessionRevision);
       } else if (config.headers) {
         delete config.headers.Authorization;
       }
@@ -45,12 +58,12 @@ axiosClient.interceptors.request.use(
 axiosClient.interceptors.response.use(
   (response) => response,
   (error: AxiosError<ApiErrorResponse>) => {
-    if (error.response?.status === 401 && error.config?.url !== '/auth/login') {
+    if (error.response?.status === 401 && error.config && error.config.url !== '/auth/login') {
       const sentAuthorization = error.config?.headers?.Authorization;
       const currentToken = localStorage.getItem(TOKEN_STORAGE_KEY);
       // A delayed response from a previous session must not log out a newer one.
-      if (currentToken && sentAuthorization === `Bearer ${currentToken}`) {
-        localStorage.removeItem(TOKEN_STORAGE_KEY);
+      if (currentToken && sentAuthorization === `Bearer ${currentToken}` && requestRevisions.get(error.config) === sessionRevision) {
+        clearAccessToken();
         unauthorizedListeners.forEach((listener) => listener());
       }
     }

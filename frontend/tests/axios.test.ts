@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AxiosError, type AxiosResponse, type InternalAxiosRequestConfig } from 'axios';
-import { axiosClient, onUnauthorized, TOKEN_STORAGE_KEY } from '../src/api/axiosClient';
+import { axiosClient, clearAccessToken, onUnauthorized, saveAccessToken, TOKEN_STORAGE_KEY } from '../src/api/axiosClient';
 
 function errorResponse(config: InternalAxiosRequestConfig, status: number): AxiosResponse {
   return { config, status, statusText: String(status), headers: {}, data: { code: status === 403 ? 'ACCESS_DENIED' : 'UNAUTHENTICATED', message: 'Backend message', traceId: 'trace-1' } };
@@ -54,5 +54,20 @@ describe('axios authentication boundary', () => {
     rejectOld();
     await expect(pending).rejects.toMatchObject({ response: { status: 401 } });
     expect(localStorage.getItem(TOKEN_STORAGE_KEY)).toBe('new');
+  });
+
+  it('ignores a late 401 from a prior session even when a new session uses the same token text', async () => {
+    let rejectOld!: () => void;
+    saveAccessToken('same-token');
+    axiosClient.defaults.adapter = vi.fn((config) => new Promise((_, reject) => {
+      rejectOld = () => reject(new AxiosError('Expired', 'ERR_BAD_REQUEST', config, undefined, errorResponse(config, 401)));
+    }));
+    const pending = axiosClient.get('/auth/me');
+    await vi.waitFor(() => expect(rejectOld).toBeTypeOf('function'));
+    clearAccessToken();
+    saveAccessToken('same-token');
+    rejectOld();
+    await expect(pending).rejects.toMatchObject({ response: { status: 401 } });
+    expect(localStorage.getItem(TOKEN_STORAGE_KEY)).toBe('same-token');
   });
 });

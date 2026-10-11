@@ -100,6 +100,87 @@ describe('authentication and routing', () => {
     expect(localStorage.getItem(TOKEN_STORAGE_KEY)).toBeNull();
   });
 
+  it.each([500, 503, 'network'] as const)('keeps the token after %s during startup and retries /auth/me', async (failure) => {
+    const requests: string[] = [];
+    axiosClient.defaults.adapter = vi.fn(async (config) => {
+      requests.push(config.url ?? '');
+      if (requests.length === 1) {
+        if (failure === 'network') throw new AxiosError('Network Error', 'ERR_NETWORK', config);
+        throw new AxiosError('Temporary failure', 'ERR_BAD_RESPONSE', config, undefined, response(config, { code: 'SYSTEM_ERROR' }, failure));
+      }
+      return response(config, identities.ADMIN);
+    });
+    localStorage.setItem(TOKEN_STORAGE_KEY, 'valid-token');
+    await open('/dashboard');
+    expect(screen.queryByText('Operations Inbox')).toBeNull();
+    expect(await screen.findByText('暫時無法驗證登入狀態')).toBeTruthy();
+    expect(localStorage.getItem(TOKEN_STORAGE_KEY)).toBe('valid-token');
+    expect(router.state.location.pathname).toBe('/dashboard');
+    fireEvent.click(screen.getByRole('button', { name: '重試驗證' }));
+    expect(await screen.findByText('Operations Inbox')).toBeTruthy();
+    expect(requests).toEqual(['/auth/me', '/auth/me']);
+  });
+
+  it('keeps a just-issued token when post-login /auth/me fails, then returns to the requested route after retry', async () => {
+    let meCalls = 0;
+    axiosClient.defaults.adapter = vi.fn(async (config) => {
+      if (config.url === '/auth/login') return response(config, { accessToken: 'valid-token', tokenType: 'Bearer', user: identities.PROCUREMENT_STAFF });
+      if (config.url === '/auth/me') {
+        meCalls += 1;
+        if (meCalls === 1) throw new AxiosError('Temporary failure', 'ERR_BAD_RESPONSE', config, undefined, response(config, { code: 'SYSTEM_ERROR' }, 503));
+        return response(config, identities.PROCUREMENT_STAFF);
+      }
+      throw new Error(`Unexpected request ${config.url}`);
+    });
+    await open('/purchase-orders/42');
+    const user = userEvent.setup();
+    await user.type(screen.getByLabelText('帳號'), 'buyer');
+    await user.type(screen.getByLabelText('密碼'), 'password');
+    await user.click(screen.getByRole('button', { name: '登 入' }));
+    expect(await screen.findByText('暫時無法驗證登入狀態')).toBeTruthy();
+    expect(screen.queryByText('Purchase Order Detail')).toBeNull();
+    expect(localStorage.getItem(TOKEN_STORAGE_KEY)).toBe('valid-token');
+    fireEvent.click(screen.getByRole('button', { name: '重試驗證' }));
+    expect(await screen.findByText('Purchase Order Detail')).toBeTruthy();
+    expect(router.state.location.pathname).toBe('/purchase-orders/42');
+    expect(meCalls).toBe(2);
+  });
+
+  it('keeps protected content hidden while a retry is still pending', async () => {
+    let finishRetry!: () => void;
+    let calls = 0;
+    axiosClient.defaults.adapter = vi.fn((config) => {
+      calls += 1;
+      if (calls === 1) return Promise.reject(new AxiosError('Network Error', 'ERR_NETWORK', config));
+      return new Promise((resolve) => {
+        finishRetry = () => resolve(response(config, identities.ADMIN));
+      });
+    });
+    localStorage.setItem(TOKEN_STORAGE_KEY, 'valid-token');
+    await open('/dashboard');
+    expect(await screen.findByText('暫時無法驗證登入狀態')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: '重試驗證' }));
+    await waitFor(() => expect(finishRetry).toBeTypeOf('function'));
+    expect(screen.queryByText('Operations Inbox')).toBeNull();
+    await act(async () => finishRetry());
+    expect(await screen.findByText('Operations Inbox')).toBeTruthy();
+  });
+
+  it('clears a just-issued token when post-login /auth/me returns 401', async () => {
+    axiosClient.defaults.adapter = vi.fn(async (config) => {
+      if (config.url === '/auth/login') return response(config, { accessToken: 'invalid-token', tokenType: 'Bearer', user: identities.ADMIN });
+      throw new AxiosError('Expired', 'ERR_BAD_REQUEST', config, undefined, response(config, { code: 'UNAUTHENTICATED' }, 401));
+    });
+    await open('/dashboard');
+    const user = userEvent.setup();
+    await user.type(screen.getByLabelText('帳號'), 'admin');
+    await user.type(screen.getByLabelText('密碼'), 'password');
+    await user.click(screen.getByRole('button', { name: '登 入' }));
+    expect(await screen.findByText(/登入失敗。/)).toBeTruthy();
+    expect(screen.queryByText('Operations Inbox')).toBeNull();
+    expect(localStorage.getItem(TOKEN_STORAGE_KEY)).toBeNull();
+  });
+
   it.each(Object.keys(identities) as UserRole[])('shows role navigation and a readable 403 for %s', async (role) => {
     const requests = mockServer(role);
     localStorage.setItem(TOKEN_STORAGE_KEY, 'valid-token');
@@ -123,12 +204,25 @@ describe('authentication and routing', () => {
   it('allows manager into inventory without making an inventory GET request, and shows 404 for unknown routes', async () => {
     const requests = mockServer('PROCUREMENT_MANAGER');
     localStorage.setItem(TOKEN_STORAGE_KEY, 'valid-token');
-    await open('/inventory?tab=stock-levels');
+    await open('/inventory?tab=stock-levels&purchaseOrderId=42');
     expect(await screen.findByText('Stock Transactions')).toBeTruthy();
     expect(screen.queryByText('Stock Levels')).toBeNull();
+    await waitFor(() => expect(router.state.location.search).toBe('?tab=stock-transactions&purchaseOrderId=42'));
+    expect(router.state.historyAction).toBe('REPLACE');
     expect(requests).toEqual(['/auth/me']);
     await router.navigate('/unknown');
     expect(await screen.findByText('404')).toBeTruthy();
+  });
+
+  it('replaces an unauthorized inventory deep link with the first allowed tab for a planner', async () => {
+    const requests = mockServer('PRODUCTION_PLANNER');
+    localStorage.setItem(TOKEN_STORAGE_KEY, 'valid-token');
+    await open('/inventory?tab=stock-transactions&materialId=7');
+    expect(await screen.findByText('Stock Levels')).toBeTruthy();
+    expect(screen.queryByText('Stock Transactions')).toBeNull();
+    await waitFor(() => expect(router.state.location.search).toBe('?tab=stock-levels&materialId=7'));
+    expect(router.state.historyAction).toBe('REPLACE');
+    expect(requests).toEqual(['/auth/me']);
   });
 
   it('does not restore a logged-out session from late /auth/me responses under StrictMode', async () => {

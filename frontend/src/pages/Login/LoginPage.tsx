@@ -4,9 +4,10 @@ import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../auth/useAuth';
 import { isAllowedDestination } from '../../router/routeCatalog';
 import LoadingState from '../../components/LoadingState/LoadingState';
+import SessionVerificationError from '../../auth/SessionVerificationError';
 
 export default function LoginPage() {
-  const { login, user, isLoading } = useAuth();
+  const { login, user, isLoading, verificationError } = useAuth();
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const pending = useRef(false);
@@ -15,6 +16,7 @@ export default function LoginPage() {
   const from = (location.state as { from?: { pathname?: string; search?: string } } | null)?.from;
 
   if (isLoading) return <LoadingState />;
+  if (verificationError) return <SessionVerificationError />;
   if (user) return <Navigate to={from?.pathname && isAllowedDestination(from.pathname, user.role) ? `${from.pathname}${from.search ?? ''}` : '/dashboard'} replace />;
 
   const submit = async (values: { username: string; password: string }) => {
