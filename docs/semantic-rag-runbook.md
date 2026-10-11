@@ -18,14 +18,18 @@
 
 ## 出站政策
 
-只有已有角色授權的管理員可核准出站及執行 Backfill。管理員先對特定 MySQL READY 文件的來源 SHA-256 執行 `POST /api/v1/semantic-index/documents/{id}/approve-outbound`，記錄核准者與時間；沒有核准或來源內容變更後標 `REQUIRES_REVIEW/OUTBOUND_APPROVAL_REQUIRED`。`PROCUREMENT_SOP`、`PRODUCT_SPECIFICATION`、`QUALITY_REQUIREMENT` 進入可索引類型白名單；`SUPPLIER_CONTRACT`、`QUOTATION` 明確標 `SKIPPED/DOCUMENT_TYPE_NOT_APPROVED`。後端規則偵測 Credential、銀行資料及價格等商業敏感片段並標 `REQUIRES_REVIEW`，此時整份文件不傳 Google。電子郵件、台灣身分證號及手機號碼遮蔽後才呼叫 EmbeddingModel，並只送單一必要 chunk 文字。規則採保守阻擋；無法確定安全的文件需要人工審查，不能以 LLM 自述取代政策。不得在應用日誌記錄文件全文或原始敏感欄位。
+只有已有角色授權的管理員可審核出站及執行 Backfill。管理員對特定 MySQL READY 文件執行 `POST /api/v1/semantic-index/documents/{id}/approve-outbound`；審核結果連同來源 SHA-256、文件版本、管理員 ID、時間與原因保存。所有文件類型（包括 `SUPPLIER_CONTRACT`、`QUOTATION`）都可在審核後索引。若內容檢查發現 Credential、銀行帳戶、實際金額／折扣或無法安全處理的個資，結果為 `REQUIRES_REVIEW`，整份文件不傳 Google；重跑 Backfill 不會解除此狀態。可辨識的電子郵件、台灣身分證號及手機號碼遮蔽後才呼叫 EmbeddingModel，並只送必要的 chunk 文字。來源或版本變更後需重新由管理員審核。管理員也可用 `POST /api/v1/semantic-index/documents/{id}/exclude-outbound` 明確排除文件，記錄 `SKIPPED/ADMIN_EXCLUDED`；文件類型不會自動造成排除。規則式偵測仍須配合人工審查，不能以 LLM 自述取代政策。不得在日誌記錄文件全文或原始敏感欄位。
+
+查詢政策允許「報價、成本、單價、折扣」等一般業務概念；含實際憑證、帳戶號碼、金額等原始敏感值的問題被拒絕，電子郵件、身分證號及手機號碼先遮蔽再外送。
+
+MySQL V19 增加審核版本、狀態與原因。V18 時期只有來源雜湊的既有核准紀錄不會自動升級為 `APPROVED`，管理員需重新審查，以免沿用缺少版本與狀態的授權。
 
 ## 本機與 Demo 設定
 
 1. 設定 `.env` 的 MySQL、`SEMANTIC_DB_PASSWORD` 及 `SEMANTIC_DB_URL=jdbc:postgresql://localhost:5432/supplypilot_semantic`；執行 `docker compose --profile semantic up -d`。Demo 的 PostgreSQL 採相同 image/schema/環境變數，並需使用獨立的持久化儲存及密碼。
 2. 設定 `AI_EMBEDDING_PROVIDER=google-genai`、`GEMINI_API_KEY`、`GEMINI_EMBEDDING_MODEL=gemini-embedding-001`、`SEMANTIC_DIMENSIONS=768`、`SEMANTIC_GENERATION_KEY=gemini-embedding-001-768-v1`。沒有金鑰時保持 provider `none`；只有 Backfill/語意查詢回 AI 503。`SEMANTIC_EMBEDDING_TIMEOUT` 預設 15 秒；超時回 `AI_TIMEOUT`。
 3. 保持 `SEMANTIC_READ_ENABLED=false`。管理員先審查並對可出站文件核准來源雜湊，再用 `POST /api/v1/semantic-index/backfill?afterId=0&limit=25` 分頁處理；以回應 `lastId` 作下一頁 cursor，`morePossible=false` 後從 0 再執行一次可重試失敗文件。每次最多 100 份。回應有 READY/FAILED/SKIPPED/REQUIRES_REVIEW 計數。
-4. 管理員讀取 `GET /api/v1/semantic-index/readiness`，處理所有 pending/failed/review；報表列出排除清單、來源版本、model ID、dimension、generation。執行自動化授權/整合測試並留存測試證據。用 `POST /api/v1/semantic-index/gate-audit` 儲存帶管理員 ID 與統計的 Gate 紀錄。`passed=true` 後才明確設定 `SEMANTIC_READ_ENABLED=true` 重啟。
+4. 管理員讀取 `GET /api/v1/semantic-index/readiness`，處理所有 pending/failed/review；報表列出排除清單、來源版本、model ID、dimension、generation。Gate 必須至少有 **1 份 READY** 語意文件，且 FAILED、REQUIRES_REVIEW、PENDING 均為零；零文件或全部 SKIPPED 不通過。執行自動化授權/整合測試並留存證據。用 `POST /api/v1/semantic-index/gate-audit` 儲存帶管理員 ID 與 READY/SKIPPED/FAILED/REQUIRES_REVIEW/PENDING 統計的 Gate 紀錄；最新一次失敗審核會撤銷先前 PASS。`passed=true` 後才明確設定 `SEMANTIC_READ_ENABLED=true` 重啟。
 5. 每次語意查詢重新檢查既有成功 audit 及所有 MySQL READY 文件的索引完整性，包括安全片段文字、chunk index、offset、維度與數量；新增 READY 文件或來源變更會關閉 Gate，直到 Backfill/重新稽核完成。查詢以精確相似度分頁取候選，略過舊的 PostgreSQL 來源後繼續找有效片段；命中後再核對 MySQL READY、版本、原始 chunk/offset、來源雜湊與出站政策，才送入 `EvidenceValidator` 及 `SEARCH_DOCUMENTS`。相似度不能授權文件。未命中回 `INSUFFICIENT_EVIDENCE`；PostgreSQL/Gemini 故障回 AI 503，無舊索引自動 fallback。
 
 切換前保留完整 Gate JSON、授權測試結果、部署 commit 與設定變更紀錄。真實 Gemini API smoke test 需使用獲准測試文字和部署金鑰另行執行；Fake EmbeddingModel 測試不能視為真實 API 已驗證。

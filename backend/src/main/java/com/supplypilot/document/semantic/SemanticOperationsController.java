@@ -38,7 +38,12 @@ public class SemanticOperationsController {
     }
 
     @PostMapping("/documents/{id}/approve-outbound")
-    public SemanticOutboundApprovalService.Approval approve(@PathVariable long id) {
+    public SemanticOutboundApprovalService.Review approve(@PathVariable long id) {
         return approval.approve(id);
+    }
+
+    @PostMapping("/documents/{id}/exclude-outbound")
+    public SemanticOutboundApprovalService.Review exclude(@PathVariable long id) {
+        return approval.exclude(id);
     }
 }

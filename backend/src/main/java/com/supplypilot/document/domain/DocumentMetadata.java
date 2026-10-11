@@ -68,6 +68,16 @@ public class DocumentMetadata {
     @Column(name = "semantic_approved_at")
     private Instant semanticApprovedAt;
 
+    @Column(name = "semantic_review_version", length = 50)
+    private String semanticReviewVersion;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "semantic_review_status", length = 30)
+    private SemanticReviewStatus semanticReviewStatus;
+
+    @Column(name = "semantic_review_reason", length = 120)
+    private String semanticReviewReason;
+
     protected DocumentMetadata() {
     }
 
@@ -126,14 +136,20 @@ public class DocumentMetadata {
         transitionFromProcessing(DocumentStatus.FAILED, now);
     }
 
-    public void approveSemanticOutbound(String sourceHash, Long actorId, Instant now) {
+    /** V18 approval columns retain the ADMIN review identity for all review outcomes. */
+    public void reviewSemanticOutbound(String sourceHash, Long actorId, Instant now,
+                                       SemanticReviewStatus reviewStatus, String reason) {
         if (status != DocumentStatus.READY || sourceHash == null || sourceHash.length() != 64
-                || actorId == null) {
+                || actorId == null || reviewStatus == null || (reviewStatus != SemanticReviewStatus.APPROVED
+                && (reason == null || reason.isBlank() || reason.length() > 120))) {
             throw new BusinessException(ErrorCode.VALIDATION_FAILED);
         }
         semanticApprovedSourceHash = sourceHash;
         semanticApprovedBy = actorId;
         semanticApprovedAt = Objects.requireNonNull(now);
+        semanticReviewVersion = version;
+        semanticReviewStatus = reviewStatus;
+        semanticReviewReason = reason;
         updatedAt = now;
     }
 
@@ -166,4 +182,7 @@ public class DocumentMetadata {
     public String getSemanticApprovedSourceHash() { return semanticApprovedSourceHash; }
     public Long getSemanticApprovedBy() { return semanticApprovedBy; }
     public Instant getSemanticApprovedAt() { return semanticApprovedAt; }
+    public String getSemanticReviewVersion() { return semanticReviewVersion; }
+    public SemanticReviewStatus getSemanticReviewStatus() { return semanticReviewStatus; }
+    public String getSemanticReviewReason() { return semanticReviewReason; }
 }

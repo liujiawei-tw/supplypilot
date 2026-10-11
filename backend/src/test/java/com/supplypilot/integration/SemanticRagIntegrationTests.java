@@ -37,6 +37,7 @@ import org.springframework.context.annotation.Primary;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.servlet.MockMvc;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 import org.testcontainers.utility.DockerImageName;
@@ -96,12 +97,20 @@ class SemanticRagIntegrationTests extends AbstractIntegrationTest {
         User planner = user(UserRole.PRODUCTION_PLANNER);
         long safeId = ready(admin, DocumentType.PROCUREMENT_SOP,
                 "Forklift capacity is 500 kilograms. Contact alice@example.com, +886912345678, A123456789.");
-        ready(admin, DocumentType.SUPPLIER_CONTRACT, "Supplier contract confidential terms.");
+        long excludedId = ready(admin, DocumentType.SUPPLIER_CONTRACT,
+                "Supplier contract confidential terms.");
         long reviewId = ready(admin, DocumentType.QUALITY_REQUIREMENT,
                 "API key: secret-value. Quality checks are daily.");
 
+        mvc.perform(post("/api/v1/semantic-index/documents/{id}/approve-outbound", safeId)
+                        .header("Authorization", bearer(planner)))
+                .andExpect(status().isForbidden());
+        mvc.perform(post("/api/v1/semantic-index/documents/{id}/exclude-outbound", excludedId)
+                        .header("Authorization", bearer(planner)))
+                .andExpect(status().isForbidden());
         approve(admin, safeId);
         approve(admin, reviewId);
+        exclude(admin, excludedId);
 
         query(admin, "forklift capacity").andExpect(status().isServiceUnavailable());
         mvc.perform(post("/api/v1/semantic-index/backfill").header("Authorization", bearer(planner)))
@@ -146,8 +155,7 @@ class SemanticRagIntegrationTests extends AbstractIntegrationTest {
         DocumentMetadata safe = documents.findById(safeId).orElseThrow();
         safe.updateMetadata(null, DocumentStatus.INACTIVE, clock.instant());
         documents.saveAndFlush(safe);
-        query(manager, "forklift capacity").andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value("INSUFFICIENT_EVIDENCE"));
+        query(manager, "forklift capacity").andExpect(status().isServiceUnavailable());
     }
 
     @Test
@@ -264,6 +272,114 @@ class SemanticRagIntegrationTests extends AbstractIntegrationTest {
                 .andExpect(status().isOk()).andExpect(jsonPath("$.ready").value(1));
         mvc.perform(post("/api/v1/semantic-index/gate-audit").header("Authorization", bearer(admin)))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.passed").value(true));
+
+        DocumentMetadata changedVersion = documents.findById(id).orElseThrow();
+        ReflectionTestUtils.setField(changedVersion, "version", "v2");
+        documents.saveAndFlush(changedVersion);
+        mvc.perform(get("/api/v1/semantic-index/readiness").header("Authorization", bearer(admin)))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.passed").value(false));
+        query(admin, "forklift procedure").andExpect(status().isServiceUnavailable());
+    }
+
+    @Test
+    void reviewedContractAndQuotationAllowBusinessConceptQueries() throws Exception {
+        User admin = user(UserRole.ADMIN);
+        String contract = "合約交貨延遲時應依通知流程辦理。";
+        String quotation = "供應商報價有效期限應依審核程序確認。";
+        ready(admin, DocumentType.SUPPLIER_CONTRACT, contract);
+        ready(admin, DocumentType.QUOTATION, quotation);
+        mvc.perform(post("/api/v1/semantic-index/backfill").header("Authorization", bearer(admin)))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.requiresReview").value(2));
+        assertThat(model.inputs).isEmpty();
+
+        for (DocumentMetadata document : documents.findAll()) {
+            mvc.perform(post("/api/v1/semantic-index/documents/{id}/approve-outbound", document.getId())
+                            .header("Authorization", bearer(admin)))
+                    .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("APPROVED"));
+        }
+        mvc.perform(post("/api/v1/semantic-index/backfill").header("Authorization", bearer(admin)))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.ready").value(2));
+        assertThat(model.inputs).containsExactly(contract, quotation);
+        mvc.perform(post("/api/v1/semantic-index/gate-audit").header("Authorization", bearer(admin)))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.passed").value(true));
+
+        model.inputs.clear();
+        List<String> questions = List.of("供應商報價有效期限如何規定？", "合約交貨延遲如何處理？",
+                "採購 SOP 的單價審核程序為何？", "供應商折扣政策在哪份文件？");
+        for (String question : questions) {
+            query(admin, question).andExpect(status().isOk());
+        }
+        assertThat(model.inputs).containsExactlyElementsOf(questions);
+
+        query(admin, "API key: secret-value").andExpect(status().isBadRequest());
+        query(admin, "銀行帳號 1234567890").andExpect(status().isBadRequest());
+        query(admin, "單價 NT$1200 是多少？").andExpect(status().isBadRequest());
+        assertThat(model.inputs).containsExactlyElementsOf(questions);
+        query(admin, "供應商 alice@example.com 的報價期限？").andExpect(status().isOk());
+        assertThat(model.inputs.getLast()).contains("[EMAIL_REDACTED]")
+                .doesNotContain("alice@example.com");
+    }
+
+    @Test
+    void sensitiveContractsAndQuotationsStayUnderReviewAcrossBackfillRetries() throws Exception {
+        User admin = user(UserRole.ADMIN);
+        ready(admin, DocumentType.SUPPLIER_CONTRACT, "匯款銀行帳號 1234567890 應保密。");
+        ready(admin, DocumentType.QUOTATION, "報價單價 NT$ 1,200。 ");
+        ready(admin, DocumentType.PROCUREMENT_SOP, "API key: secret-value");
+        ready(admin, DocumentType.QUALITY_REQUIREMENT, "員工姓名：王小明");
+        for (DocumentMetadata document : documents.findAll()) {
+            mvc.perform(post("/api/v1/semantic-index/documents/{id}/approve-outbound", document.getId())
+                            .header("Authorization", bearer(admin)))
+                    .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("REQUIRES_REVIEW"));
+        }
+        for (int attempt = 0; attempt < 2; attempt++) {
+            mvc.perform(post("/api/v1/semantic-index/backfill").header("Authorization", bearer(admin)))
+                    .andExpect(status().isOk()).andExpect(jsonPath("$.requiresReview").value(4));
+        }
+        assertThat(model.inputs).isEmpty();
+        mvc.perform(post("/api/v1/semantic-index/gate-audit").header("Authorization", bearer(admin)))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.passed").value(false))
+                .andExpect(jsonPath("$.requiresReview").value(4));
+    }
+
+    @Test
+    void emptyOrAllReviewedExclusionsCannotPassGate() throws Exception {
+        User admin = user(UserRole.ADMIN);
+        mvc.perform(post("/api/v1/semantic-index/gate-audit").header("Authorization", bearer(admin)))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.passed").value(false))
+                .andExpect(jsonPath("$.ready").value(0));
+        query(admin, "forklift procedure").andExpect(status().isServiceUnavailable());
+
+        long id = ready(admin, DocumentType.QUOTATION, "供應商報價程序。");
+        exclude(admin, id);
+        mvc.perform(post("/api/v1/semantic-index/backfill").header("Authorization", bearer(admin)))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.skipped").value(1));
+        mvc.perform(post("/api/v1/semantic-index/gate-audit").header("Authorization", bearer(admin)))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.passed").value(false))
+                .andExpect(jsonPath("$.ready").value(0))
+                .andExpect(jsonPath("$.skipped").value(1));
+        assertThat(model.inputs).isEmpty();
+        query(admin, "報價程序").andExpect(status().isServiceUnavailable());
+    }
+
+    @Test
+    void latestFailedAuditRevokesEarlierPass() throws Exception {
+        User admin = user(UserRole.ADMIN);
+        long id = ready(admin, DocumentType.QUOTATION, "供應商報價程序。");
+        approve(admin, id);
+        mvc.perform(post("/api/v1/semantic-index/backfill").header("Authorization", bearer(admin)))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.ready").value(1));
+        mvc.perform(post("/api/v1/semantic-index/gate-audit").header("Authorization", bearer(admin)))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.passed").value(true));
+        assertThat(store.hasPassingAudit()).isTrue();
+
+        exclude(admin, id);
+        mvc.perform(post("/api/v1/semantic-index/backfill").header("Authorization", bearer(admin)))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.skipped").value(1));
+        mvc.perform(post("/api/v1/semantic-index/gate-audit").header("Authorization", bearer(admin)))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.passed").value(false));
+        assertThat(store.hasPassingAudit()).isFalse();
+        query(admin, "報價程序").andExpect(status().isServiceUnavailable());
     }
 
     @Test
@@ -297,7 +413,14 @@ class SemanticRagIntegrationTests extends AbstractIntegrationTest {
     private void approve(User admin, long documentId) throws Exception {
         mvc.perform(post("/api/v1/semantic-index/documents/{id}/approve-outbound", documentId)
                         .header("Authorization", bearer(admin)))
-                .andExpect(status().isOk()).andExpect(jsonPath("$.sourceHash").isString());
+                .andExpect(status().isOk()).andExpect(jsonPath("$.sourceHash").isString())
+                .andExpect(jsonPath("$.approvedBy").value(admin.getId()));
+    }
+
+    private void exclude(User admin, long documentId) throws Exception {
+        mvc.perform(post("/api/v1/semantic-index/documents/{id}/exclude-outbound", documentId)
+                        .header("Authorization", bearer(admin)))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("SKIPPED"));
     }
 
     private long ready(User actor, DocumentType type, String content) {

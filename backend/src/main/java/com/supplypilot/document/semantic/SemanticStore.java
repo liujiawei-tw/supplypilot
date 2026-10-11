@@ -154,7 +154,7 @@ public class SemanticStore {
                     ready_count, skipped_count, failed_count, review_count, pending_count)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?) RETURNING id
                 """, Long.class, properties.generationKey(), actorUserId,
-                failed == 0 && review == 0 && pending == 0,
+                ready > 0 && failed == 0 && review == 0 && pending == 0,
                 ready, skipped, failed, review, pending);
     }
 

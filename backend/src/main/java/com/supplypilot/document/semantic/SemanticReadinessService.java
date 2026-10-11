@@ -99,7 +99,7 @@ public class SemanticReadinessService {
             }
             if (page.size() < 100) break;
         }
-        return new GateReport(failed == 0 && review == 0 && pending == 0,
+        return new GateReport(ready > 0 && failed == 0 && review == 0 && pending == 0,
                 properties.generationKey(), properties.modelId(), properties.dimensions(),
                 ready, skipped, failed, review, pending, List.copyOf(findings), null);
     }
