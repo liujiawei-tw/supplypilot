@@ -40,3 +40,7 @@ Thin client shell for the SupplyPilot AI procurement and supply-chain decision p
 ## Environment Variables
 
 - `VITE_API_BASE_URL`: Base URL for the SupplyPilot backend API (default: `http://localhost:8080/api/v1`).
+
+## Authentication
+
+V1 stores the Bearer access token in `localStorage` and verifies it with `GET /auth/me` when the app starts. A production-grade deployment should evaluate an HttpOnly Secure Cookie and refresh token strategy. The Login page never displays a demo password.
