@@ -367,3 +367,12 @@ System.getenv()
 | Storage | Local | Temp | Local/S3 | S3/Managed |
 | Swagger | Yes | Optional | Yes | Restricted |
 | CORS | localhost | test client | demo frontend | prod frontend |
+
+---
+
+## Spring AI Provider Configuration — SP-720 (2026-10-11)
+
+- SP-720 正式支援 Spring AI 2.0.x ChatClient / ChatModel，以及一個實際可使用的 LLM Provider Adapter。`AI_API_KEY`、`AI_MODEL` 延續既有環境變數規格；可依選用 Provider 增加必要且清楚文件化的端點、逾時與啟用旗標。
+- API Key 或憑證禁止 Commit、寫入 Log 或傳回 HTTP Response。Timeout / Unavailable / Invalid Response 沿用既有 AI Error Contract。
+- Local/Test 若未設定 Provider，核心 Backend 不得因為 AI 功能未啟用而無法啟動；呼叫未啟用的 AI 能力才返回適切既有 AI Error。
+- 自動化測試透過 Fake ChatModel／ToolCallback 運作，不得呼叫真實付費 Provider。Production 需要有效 Provider 設定，且不得使用 Fake Provider 偽裝成真正的模型整合。
