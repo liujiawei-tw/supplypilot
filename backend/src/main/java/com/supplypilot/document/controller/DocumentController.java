@@ -10,6 +10,7 @@ import com.supplypilot.document.domain.DocumentType;
 import com.supplypilot.document.dto.request.UpdateDocumentRequest;
 import com.supplypilot.document.dto.response.DocumentResponse;
 import com.supplypilot.document.service.DocumentService;
+import com.supplypilot.document.rag.DocumentIngestionService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
@@ -41,9 +42,11 @@ public class DocumentController {
     private static final Set<String> SORTABLE_FIELDS = Set.of(
             "id", "documentType", "supplier", "title", "version", "status", "uploadedAt", "updatedAt");
     private final DocumentService documentService;
+    private final DocumentIngestionService ingestionService;
 
-    public DocumentController(DocumentService documentService) {
+    public DocumentController(DocumentService documentService, DocumentIngestionService ingestionService) {
         this.documentService = documentService;
+        this.ingestionService = ingestionService;
     }
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -73,6 +76,11 @@ public class DocumentController {
     @GetMapping("/{id}")
     public DocumentResponse get(@PathVariable Long id) {
         return documentService.get(id);
+    }
+
+    @PostMapping("/{id}/ingestions")
+    public DocumentResponse ingest(@PathVariable Long id) {
+        return ingestionService.ingest(id);
     }
 
     @PatchMapping("/{id}")
