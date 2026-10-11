@@ -99,8 +99,16 @@ class AiDraftProposalIntegrationTests extends AbstractIntegrationTest {
                 .andExpect(status().isForbidden());
         assertThat(purchaseOrders.count()).isEqualTo(before);
 
-        confirm(f.staff, proposal, proposal.path("confirmationToken").asText(), proposal.path("draft"))
-                .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("DRAFT"));
+        MvcResult confirmed = confirm(f.staff, proposal, proposal.path("confirmationToken").asText(), proposal.path("draft"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("DRAFT"))
+                .andExpect(jsonPath("$.expectedDeliveryDate").doesNotExist()).andReturn();
+        long draftId = mapper.readTree(confirmed.getResponse().getContentAsString()).path("id").asLong();
+        mvc.perform(post("/api/v1/purchase-orders/{id}/approve", draftId)
+                        .header("Authorization", bearer(user(UserRole.PROCUREMENT_MANAGER))))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("EXPECTED_DELIVERY_DATE_REQUIRED"));
+        assertThat(jdbc.queryForObject("SELECT status FROM purchase_orders WHERE id = ?", String.class, draftId))
+                .isEqualTo("DRAFT");
         confirm(f.staff, proposal, proposal.path("confirmationToken").asText(), proposal.path("draft"))
                 .andExpect(status().isConflict()).andExpect(jsonPath("$.code").value("AI_PROPOSAL_ALREADY_CONFIRMED"));
         assertThat(purchaseOrders.count()).isEqualTo(before + 1);

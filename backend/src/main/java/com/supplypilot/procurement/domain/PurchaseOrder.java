@@ -155,6 +155,9 @@ public class PurchaseOrder {
     public void approve(User approver, Instant now) {
         assertDraftTransitionTo(PurchaseOrderStatus.APPROVED);
         if (items.isEmpty()) throw new BusinessException(ErrorCode.VALIDATION_FAILED);
+        if (expectedDeliveryDate == null) {
+            throw new BusinessException(ErrorCode.EXPECTED_DELIVERY_DATE_REQUIRED);
+        }
         User validatedApprover = Objects.requireNonNull(approver, "Approver must not be null");
         Instant validatedNow = Objects.requireNonNull(now, "Timestamp must not be null");
         status = PurchaseOrderStatus.APPROVED;
