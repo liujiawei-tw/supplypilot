@@ -56,7 +56,7 @@ class AiReadToolBoundaryTests {
         when(recommendations.getSupplierResults(41L)).thenReturn(List.of(candidate));
         var ranking = new RecommendationTool(recommendations).execute(
                 new AiQueryPlan(AiToolType.QUERY_SUPPLIER_RANKING, null, "MAT-001", "ranking"));
-        assertThat(ranking.trustedFacts()).contains("unitPrice=10", "rank=1");
+        assertThat(ranking.trustedFacts()).contains("unitPrice=10 TWD", "totalCost=2000 TWD", "rank=1");
         verify(recommendations).getSupplierResults(41L);
     }
 

@@ -30,7 +30,7 @@ public class PurchaseOrderTool {
                 .append(page.totalElements()).append(" 筆，本次回傳 ").append(openOrders.size()).append(" 筆：");
         for (PurchaseOrderResponse order : openOrders) {
             sources.add(AiSourceResponse.resource("PURCHASE_ORDER", order.id(), order.poNumber()));
-            facts.append(" %s（ID %s、supplier=%s、status=%s、expectedDeliveryDate=%s、items=%s）；"
+            facts.append(" %s（ID %s、supplier=%s、status=%s、expectedDeliveryDate=%s、currency=TWD、items=%s）；"
                     .formatted(order.poNumber(), order.id(), order.supplierName(), order.status(),
                             order.expectedDeliveryDate(), order.items()));
         }

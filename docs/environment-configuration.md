@@ -43,8 +43,12 @@ JWT_EXPIRATION_SECONDS
 
 FRONTEND_ORIGIN
 
-AI_API_KEY
-AI_MODEL
+AI_CHAT_PROVIDER
+GEMINI_API_KEY
+GEMINI_MODEL
+AI_PROVIDER_TIMEOUT
+AI_MAX_OUTPUT_TOKENS
+AI_MAX_TOOL_CALLS
 
 DOCUMENT_STORAGE_TYPE
 DOCUMENT_STORAGE_PATH
@@ -267,9 +271,18 @@ DOCUMENT_STORAGE_TYPE=s3
 # 12. AI
 
 ```text
-AI_API_KEY
-AI_MODEL
+AI_CHAT_PROVIDER=none
+GEMINI_API_KEY=
+GEMINI_MODEL=gemini-3.5-flash
+AI_PROVIDER_TIMEOUT=15s
+AI_MAX_OUTPUT_TOKENS=512
+AI_MAX_TOOL_CALLS=1
 ```
+
+預設 `AI_CHAT_PROVIDER=none`，不建立 `ChatModel`；核心 Backend 正常啟動，AI Endpoint 回
+`AI_PROVIDER_UNAVAILABLE`（HTTP 503）。啟用 Gemini Developer API 時設定
+`AI_CHAT_PROVIDER=google-genai` 與由 Secret Manager／執行環境注入的 `GEMINI_API_KEY`。
+`GEMINI_MODEL` 是明確可覆寫的 Flash Model ID。
 
 不得：
 
@@ -315,8 +328,12 @@ DB_PASSWORD=
 JWT_SECRET=
 JWT_EXPIRATION_SECONDS=3600
 FRONTEND_ORIGIN=http://localhost:5173
-AI_API_KEY=
-AI_MODEL=
+AI_CHAT_PROVIDER=none
+GEMINI_API_KEY=
+GEMINI_MODEL=gemini-3.5-flash
+AI_PROVIDER_TIMEOUT=15s
+AI_MAX_OUTPUT_TOKENS=512
+AI_MAX_TOOL_CALLS=1
 DOCUMENT_STORAGE_TYPE=local
 DOCUMENT_STORAGE_PATH=./data/documents
 ```
@@ -372,10 +389,19 @@ System.getenv()
 
 ## Spring AI Provider Configuration — SP-720 (2026-10-11)
 
-- SP-720 正式支援 Spring AI 2.0.x ChatClient / ChatModel，以及一個實際可使用的 LLM Provider Adapter。`AI_API_KEY`、`AI_MODEL` 延續既有環境變數規格；可依選用 Provider 增加必要且清楚文件化的端點、逾時與啟用旗標。
+- SP-720 使用 Spring AI `2.0.1`、`spring-ai-starter-model-google-genai`、`ChatClient` / `ChatModel` 與 Gemini Developer API。預設 Model ID 為官方 stable 且支援 Function Calling 的 `gemini-3.5-flash`，可用 `GEMINI_MODEL` 覆寫。
 - API Key 或憑證禁止 Commit、寫入 Log 或傳回 HTTP Response。Timeout / Unavailable / Invalid Response 沿用既有 AI Error Contract。
 - Local/Test 若未設定 Provider，核心 Backend 不得因為 AI 功能未啟用而無法啟動；呼叫未啟用的 AI 能力才返回適切既有 AI Error。
 - 自動化測試透過 Fake ChatModel／ToolCallback 運作，不得呼叫真實付費 Provider。Production 需要有效 Provider 設定，且不得使用 Fake Provider 偽裝成真正的模型整合。
+- V1 使用同步單輪 JSON，不配置 Chat Memory。`AI_MAX_OUTPUT_TOKENS`、`AI_MAX_TOOL_CALLS` 與 `AI_PROVIDER_TIMEOUT` 分別限制每次輸出 Token、Tool Calling 次數與 Provider 等待時間。
+- Spring AI Tool Call 的參數／結果 observability 預設不匯出；應用只記錄 outcome、latency 與可取得的 total token usage，不記錄 prompt、API Key 或完整採購／合約內容。
+
+### 手動 Gemini Smoke Test（不納入自動測試）
+
+1. 由安全的 shell／部署 secret 設定 `AI_CHAT_PROVIDER=google-genai`、`GEMINI_API_KEY`，視需要覆寫 `GEMINI_MODEL`。
+2. 啟動 Backend，使用具有 `PROCUREMENT_STAFF` 或 `ADMIN` 身分的 JWT 呼叫 `POST /api/v1/ai/query`，例如詢問既存 Material 的庫存。
+3. 確認同步回應的 `tools` 僅出現唯讀 allowlist、`answer` 等於 Backend tool 的確定性 facts，且 log 只有 outcome／latency／token usage。
+4. 移除 `GEMINI_API_KEY` 並將 `AI_CHAT_PROVIDER=none` 後重啟；確認 AI Endpoint 回 503，而 Inventory 等核心 API 仍回成功。
 
 ---
 

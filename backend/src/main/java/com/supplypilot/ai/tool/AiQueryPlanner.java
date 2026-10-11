@@ -20,10 +20,7 @@ public class AiQueryPlanner {
                     + "調整庫存|使用者管理|主檔寫入|建立(?:採購)?草稿)");
 
     public AiQueryPlan plan(String message) {
-        String normalized = message.trim();
-        if (FORBIDDEN.matcher(normalized).find()) {
-            throw new BusinessException(ErrorCode.ACCESS_DENIED);
-        }
+        String normalized = validate(message);
         String lower = normalized.toLowerCase(Locale.ROOT);
         AiToolType tool;
         if (containsAny(lower, "document", "contract", "quotation", "policy", "sop", "文件", "合約", "報價", "規範", "條款")) {
@@ -41,6 +38,15 @@ public class AiQueryPlanner {
             tool = AiToolType.SEARCH_DOCUMENTS;
         }
         return new AiQueryPlan(tool, recommendationId(normalized), materialCode(normalized), normalized);
+    }
+
+    /** Auxiliary fail-closed input validation; the model, not this regex, selects the tool. */
+    public String validate(String message) {
+        String normalized = message.trim();
+        if (FORBIDDEN.matcher(normalized).find()) {
+            throw new BusinessException(ErrorCode.ACCESS_DENIED);
+        }
+        return normalized;
     }
 
     private boolean containsAny(String value, String... terms) {

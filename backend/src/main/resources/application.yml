@@ -1,6 +1,22 @@
 spring:
   application:
     name: supply-pilot-api
+  ai:
+    model:
+      chat: ${AI_CHAT_PROVIDER:none}
+    google:
+      genai:
+        api-key: ${GEMINI_API_KEY:}
+        chat:
+          model: ${GEMINI_MODEL:gemini-3.5-flash}
+          max-output-tokens: ${AI_MAX_OUTPUT_TOKENS:512}
+          temperature: 0.0
+          google-search-retrieval: false
+    tools:
+      throw-exception-on-error: true
+      resolution:
+        fallback:
+          enabled: false
   jpa:
     open-in-view: false
     hibernate:
@@ -27,8 +43,9 @@ supplypilot:
     expiration-seconds: ${JWT_EXPIRATION_SECONDS:3600}
   frontend-origin: ${FRONTEND_ORIGIN:}
   ai:
-    api-key: ${AI_API_KEY:}
-    model: ${AI_MODEL:}
+    provider-timeout: ${AI_PROVIDER_TIMEOUT:15s}
+    max-output-tokens: ${AI_MAX_OUTPUT_TOKENS:512}
+    max-tool-calls: ${AI_MAX_TOOL_CALLS:1}
   document-storage:
     type: ${DOCUMENT_STORAGE_TYPE:local}
     path: ${DOCUMENT_STORAGE_PATH:./data/documents}

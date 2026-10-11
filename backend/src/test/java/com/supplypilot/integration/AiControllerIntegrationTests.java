@@ -8,6 +8,10 @@ import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.util.UUID;
+import java.util.List;
+import java.util.Locale;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import com.supplypilot.inventory.domain.Inventory;
 import com.supplypilot.inventory.repository.InventoryRepository;
@@ -32,12 +36,26 @@ import com.supplypilot.user.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Import;
+import org.springframework.context.annotation.Primary;
 import org.springframework.http.MediaType;
+import org.springframework.ai.chat.messages.AssistantMessage;
+import org.springframework.ai.chat.metadata.ChatResponseMetadata;
+import org.springframework.ai.chat.metadata.DefaultUsage;
+import org.springframework.ai.chat.model.ChatModel;
+import org.springframework.ai.chat.model.ChatResponse;
+import org.springframework.ai.chat.model.Generation;
+import org.springframework.ai.chat.prompt.ChatOptions;
+import org.springframework.ai.chat.prompt.Prompt;
+import org.springframework.ai.model.tool.ToolCallingChatOptions;
 import org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 
+@Import(AiControllerIntegrationTests.FakeAiConfiguration.class)
 class AiControllerIntegrationTests extends AbstractIntegrationTest {
     @Autowired private WebApplicationContext context;
     @Autowired private JwtProperties jwtProperties;
@@ -97,6 +115,10 @@ class AiControllerIntegrationTests extends AbstractIntegrationTest {
                 new BigDecimal("91"), new BigDecimal("88.5"), 1));
         recommendations.saveAndFlush(recommendation);
 
+        query(staff, "查詢 " + material.getCode() + " 採購建議")
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.tools[0]").value("QUERY_RECOMMENDATION"))
+                .andExpect(jsonPath("$.answer").value(org.hamcrest.Matchers.containsString("建議數量 200")));
         query(staff, "為什麼 " + material.getCode() + " 建議買 200kg？")
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.tools[0]").value("EXPLAIN_RECOMMENDATION"))
@@ -176,5 +198,72 @@ class AiControllerIntegrationTests extends AbstractIntegrationTest {
 
     private String suffix() {
         return UUID.randomUUID().toString().replace("-", "").substring(0, 12);
+    }
+
+    @TestConfiguration(proxyBeanMethods = false)
+    static class FakeAiConfiguration {
+        @Bean
+        @Primary
+        ChatModel deterministicFakeChatModel() {
+            return new RoutingFakeChatModel();
+        }
+    }
+
+    /** Test-only model: emits Spring AI tool calls and never contacts Gemini. */
+    static final class RoutingFakeChatModel implements ChatModel {
+        private static final Pattern MATERIAL = Pattern.compile("(?i)\\bMAT-[A-Z0-9]+\\b");
+
+        @Override
+        public ChatResponse call(Prompt prompt) {
+            String question = prompt.getUserMessage().getText();
+            String lower = question.toLowerCase(Locale.ROOT);
+            String material = material(question);
+            String tool;
+            String arguments;
+            if (lower.contains("供應商") || lower.contains("ranking")) {
+                tool = "QUERY_SUPPLIER_RANKING";
+                arguments = materialArguments(material);
+            } else if (lower.contains("庫存") || lower.contains("inventory")) {
+                tool = "QUERY_INVENTORY";
+                arguments = "{\"materialCode\":\"" + material + "\"}";
+            } else if (lower.contains("採購單") || lower.contains("open po")) {
+                tool = "QUERY_OPEN_PO";
+                arguments = materialArguments(material);
+            } else if (lower.contains("建議") || lower.contains("recommendation")) {
+                tool = lower.contains("為什麼") || lower.contains("explain")
+                        ? "EXPLAIN_RECOMMENDATION" : "QUERY_RECOMMENDATION";
+                arguments = materialArguments(material);
+            } else {
+                tool = "SEARCH_DOCUMENTS";
+                arguments = "{\"question\":\"" + escape(question) + "\"}";
+            }
+            AssistantMessage output = AssistantMessage.builder().content("").toolCalls(List.of(
+                    new AssistantMessage.ToolCall("fake-call", "function", tool, arguments))).build();
+            return new ChatResponse(List.of(new Generation(output)), ChatResponseMetadata.builder()
+                    .usage(new DefaultUsage(10, 2, 12)).build());
+        }
+
+        @Override
+        public ChatOptions getDefaultOptions() {
+            return ToolCallingChatOptions.builder().build();
+        }
+
+        @Override
+        public ChatOptions getOptions() {
+            return getDefaultOptions();
+        }
+
+        private String material(String question) {
+            Matcher matcher = MATERIAL.matcher(question);
+            return matcher.find() ? matcher.group().toUpperCase(Locale.ROOT) : null;
+        }
+
+        private String materialArguments(String material) {
+            return material == null ? "{}" : "{\"materialCode\":\"" + material + "\"}";
+        }
+
+        private String escape(String value) {
+            return value.replace("\\", "\\\\").replace("\"", "\\\"");
+        }
     }
 }

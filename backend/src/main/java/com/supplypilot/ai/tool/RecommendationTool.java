@@ -74,7 +74,7 @@ public class RecommendationTool {
         StringBuilder answer = new StringBuilder("建議 #%s（%s）的已保存供應商排名："
                 .formatted(recommendation.id(), recommendation.material().code()));
         for (SupplierRecommendationResultResponse candidate : ranking) {
-            answer.append(" %s（ID %s）qualified=%s、disqualifiedReason=%s、quantity=%s、unitPrice=%s、totalCost=%s、"
+            answer.append(" %s（ID %s）qualified=%s、disqualifiedReason=%s、quantity=%s、unitPrice=%s TWD、totalCost=%s TWD、"
                     .formatted(candidate.supplierName(), candidate.supplierId(), candidate.qualified(),
                             candidate.disqualifiedReason(), candidate.recommendedQuantity(), candidate.unitPrice(), candidate.totalCost()));
             answer.append("leadTimeDays=%s、reliability=%s、quality=%s、score=%s、rank=%s；"

@@ -1,29 +1,46 @@
 package com.supplypilot.ai.service;
 
-import java.util.HashSet;
-import java.util.Set;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import java.util.List;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.supplypilot.ai.client.AiProviderException;
+import com.supplypilot.ai.dto.AiQueryStatus;
+import com.supplypilot.ai.tool.AiToolResult;
+import com.supplypilot.common.exception.ErrorCode;
 import org.springframework.stereotype.Component;
 
 @Component
 public class AiResponseGuard {
-    private static final Pattern NUMBER = Pattern.compile("-?\\d+(?:\\.\\d+)?");
+    private final ObjectMapper objectMapper;
 
-    public boolean containsOnlyTrustedNumbers(String answer, String trustedFacts) {
-        Set<String> trustedNumbers = numbers(trustedFacts);
-        Matcher answerNumbers = NUMBER.matcher(answer);
-        while (answerNumbers.find()) {
-            if (!trustedNumbers.contains(answerNumbers.group())) return false;
-        }
-        return true;
+    public AiResponseGuard(ObjectMapper objectMapper) {
+        this.objectMapper = objectMapper;
     }
 
-    private Set<String> numbers(String value) {
-        Set<String> numbers = new HashSet<>();
-        Matcher matcher = NUMBER.matcher(value);
-        while (matcher.find()) numbers.add(matcher.group());
-        return numbers;
+    /**
+     * A successful response must be the exact structured value returned by the one tool that
+     * actually executed. Equality protects field ownership, identifiers, units, currencies,
+     * source provenance and values; merely containing the same set of numbers is not sufficient.
+     */
+    public AiToolResult verifyDirectToolResult(String payload, List<AiToolResult> executions) {
+        if (payload == null || payload.isBlank() || executions.size() != 1) {
+            throw new AiProviderException(ErrorCode.AI_INVALID_RESPONSE);
+        }
+        try {
+            AiToolResult returned = objectMapper.readValue(payload, AiToolResult.class);
+            AiToolResult executed = executions.getFirst();
+            if (!executed.equals(returned)
+                    || returned.tool() == null
+                    || returned.status() == null
+                    || returned.sources() == null
+                    || (returned.status() == AiQueryStatus.ANSWERED
+                        && (returned.trustedFacts() == null || returned.trustedFacts().isBlank()))) {
+                throw new AiProviderException(ErrorCode.AI_INVALID_RESPONSE);
+            }
+            return returned;
+        } catch (JsonProcessingException exception) {
+            throw new AiProviderException(ErrorCode.AI_INVALID_RESPONSE, exception);
+        }
     }
 }
