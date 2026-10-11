@@ -59,6 +59,15 @@ public class DocumentMetadata {
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
 
+    @Column(name = "semantic_approved_source_hash", length = 64)
+    private String semanticApprovedSourceHash;
+
+    @Column(name = "semantic_approved_by")
+    private Long semanticApprovedBy;
+
+    @Column(name = "semantic_approved_at")
+    private Instant semanticApprovedAt;
+
     protected DocumentMetadata() {
     }
 
@@ -117,6 +126,17 @@ public class DocumentMetadata {
         transitionFromProcessing(DocumentStatus.FAILED, now);
     }
 
+    public void approveSemanticOutbound(String sourceHash, Long actorId, Instant now) {
+        if (status != DocumentStatus.READY || sourceHash == null || sourceHash.length() != 64
+                || actorId == null) {
+            throw new BusinessException(ErrorCode.VALIDATION_FAILED);
+        }
+        semanticApprovedSourceHash = sourceHash;
+        semanticApprovedBy = actorId;
+        semanticApprovedAt = Objects.requireNonNull(now);
+        updatedAt = now;
+    }
+
     private void transitionFromProcessing(DocumentStatus target, Instant now) {
         Objects.requireNonNull(now, "Timestamp must not be null");
         if (status != DocumentStatus.PROCESSING) {
@@ -143,4 +163,7 @@ public class DocumentMetadata {
     public User getUploadedBy() { return uploadedBy; }
     public Instant getUploadedAt() { return uploadedAt; }
     public Instant getUpdatedAt() { return updatedAt; }
+    public String getSemanticApprovedSourceHash() { return semanticApprovedSourceHash; }
+    public Long getSemanticApprovedBy() { return semanticApprovedBy; }
+    public Instant getSemanticApprovedAt() { return semanticApprovedAt; }
 }

@@ -1,0 +1,31 @@
+# SP-722 Semantic RAG 操作與驗證
+
+## 版本與選型
+
+- Spring Boot 4.1.1、Spring AI 2.0.1。使用 Spring AI `EmbeddingModel` 與 `spring-ai-google-genai-embedding`；條件式建立 `GoogleGenAiTextEmbeddingModel`。未選 `AI_EMBEDDING_PROVIDER=google-genai` 或沒有 API Key 時不建立模型，核心 MySQL Backend 可啟動。
+- 模型預設 `gemini-embedding-001`，輸出 768 維。Google 官方列出穩定 model ID、Developer API 支援、可配置 128–3072 維及 768 維建議值。文件輸入上限為 2,048 tokens；SP-710 chunk 長度為 900 字元並停用 provider 自動截斷，超限會記錄失敗。768 維向量在儲存與搜尋前做 L2 正規化。
+- 以 pgvector `<=>` 做 cosine distance，`1 - distance` 是 relevanceScore。`SEMANTIC_TOP_K` 預設 5、`SEMANTIC_SIMILARITY_THRESHOLD` 預設 0.45。V1 不建 HNSW/IVFFlat，維持精確搜尋。新模型或維度須使用新的 `SEMANTIC_GENERATION_KEY`，完整 Backfill 和重新通過 Gate，舊索引保留但不可混用。
+- `supplypilot.semantic.search.latency` 與 `supplypilot.semantic.search.candidates` 是查詢耗時與候選量指標。上線前以實際文件量記錄 p95、候選量與查詢正確率，待資料量增加後再評估 HNSW；本次不宣稱已有生產流量基準。
+- 自訂 SQL 而非 `PgVectorStore`：本案需要 `(documentId, version, generationKey, chunkIndex)` 複合識別、整份文件原子發布、逐文件失敗狀態及跨庫來源核對。`PgVectorStore` 預設單一 `vector_store` 表與 HNSW，雖可設定 `NONE`，無法直接滿足上述索引生命週期。
+
+官方依據：[Gemini Embedding 模型與維度](https://ai.google.dev/gemini-api/docs/models/gemini-embedding-001)、[Gemini Embeddings 使用及正規化](https://ai.google.dev/gemini-api/docs/embeddings)、[Spring AI Google GenAI Embedding](https://docs.spring.io/spring-ai/reference/api/embeddings/google-genai-embeddings-text.html)、[Spring AI PgVectorStore](https://docs.spring.io/spring-ai/reference/api/vectordbs/pgvector.html)。Google [價格頁](https://ai.google.dev/gemini-api/docs/pricing)與[官方發布文章](https://developers.googleblog.com/en/gemini-embedding-available-gemini-api/)列出 Embedding 計價；執行前重新確認當期價格。配額依專案/級別變化，請在 [AI Studio](https://aistudio.google.com/) 查實際 RPM/TPM/RPD；[Google 速率限制](https://ai.google.dev/gemini-api/docs/rate-limits)不保證固定額度。[區域清單](https://ai.google.dev/gemini-api/docs/available-regions)列有 Taiwan，但仍須由部署位置及實際帳戶確認。
+
+## 資料與交易邊界
+
+- MySQL 是 `DocumentMetadata`、`DocumentStatus`、供應商關聯與所有採購資料的唯一權威。PostgreSQL 只存語意片段、向量、來源定位、索引代次、處理狀態與 Gate audit。沒有跨庫 FK 或分散式 ACID 交易。
+- 獨立 Flyway 路徑 `db/semantic/V1__semantic_index.sql`，首次 Backfill/Gate/查詢時在 PostgreSQL 遷移，不影響 MySQL 啟動。索引代次綁定 model ID、dimension、chunking version。所有向量在同份文件的一個 PostgreSQL 交易內替換，最後才把索引狀態設為 `READY`；`PROCESSING`、`FAILED`、`REQUIRES_REVIEW`、`SKIPPED` 不供查詢。
+- 每份 MySQL READY 文件由既有 SP-710 chunk 及 offset Backfill。來源 SHA-256 包含 chunk index、offset、原文字；重跑同版本同雜湊不重新呼叫 Provider。中斷時 `PROCESSING` 可重跑，Provider 失敗記 `FAILED` 與安全錯誤代碼。模型或維度變更後新 generation 重新索引全部文件。
+
+## 出站政策
+
+只有已有角色授權的管理員可核准出站及執行 Backfill。管理員先對特定 MySQL READY 文件的來源 SHA-256 執行 `POST /api/v1/semantic-index/documents/{id}/approve-outbound`，記錄核准者與時間；沒有核准或來源內容變更後標 `REQUIRES_REVIEW/OUTBOUND_APPROVAL_REQUIRED`。`PROCUREMENT_SOP`、`PRODUCT_SPECIFICATION`、`QUALITY_REQUIREMENT` 進入可索引類型白名單；`SUPPLIER_CONTRACT`、`QUOTATION` 明確標 `SKIPPED/DOCUMENT_TYPE_NOT_APPROVED`。後端規則偵測 Credential、銀行資料及價格等商業敏感片段並標 `REQUIRES_REVIEW`，此時整份文件不傳 Google。電子郵件、台灣身分證號及手機號碼遮蔽後才呼叫 EmbeddingModel，並只送單一必要 chunk 文字。規則採保守阻擋；無法確定安全的文件需要人工審查，不能以 LLM 自述取代政策。不得在應用日誌記錄文件全文或原始敏感欄位。
+
+## 本機與 Demo 設定
+
+1. 設定 `.env` 的 MySQL、`SEMANTIC_DB_PASSWORD` 及 `SEMANTIC_DB_URL=jdbc:postgresql://localhost:5432/supplypilot_semantic`；執行 `docker compose --profile semantic up -d`。Demo 的 PostgreSQL 採相同 image/schema/環境變數，並需使用獨立的持久化儲存及密碼。
+2. 設定 `AI_EMBEDDING_PROVIDER=google-genai`、`GEMINI_API_KEY`、`GEMINI_EMBEDDING_MODEL=gemini-embedding-001`、`SEMANTIC_DIMENSIONS=768`、`SEMANTIC_GENERATION_KEY=gemini-embedding-001-768-v1`。沒有金鑰時保持 provider `none`；只有 Backfill/語意查詢回 AI 503。`SEMANTIC_EMBEDDING_TIMEOUT` 預設 15 秒；超時回 `AI_TIMEOUT`。
+3. 保持 `SEMANTIC_READ_ENABLED=false`。管理員先審查並對可出站文件核准來源雜湊，再用 `POST /api/v1/semantic-index/backfill?afterId=0&limit=25` 分頁處理；以回應 `lastId` 作下一頁 cursor，`morePossible=false` 後從 0 再執行一次可重試失敗文件。每次最多 100 份。回應有 READY/FAILED/SKIPPED/REQUIRES_REVIEW 計數。
+4. 管理員讀取 `GET /api/v1/semantic-index/readiness`，處理所有 pending/failed/review；報表列出排除清單、來源版本、model ID、dimension、generation。執行自動化授權/整合測試並留存測試證據。用 `POST /api/v1/semantic-index/gate-audit` 儲存帶管理員 ID 與統計的 Gate 紀錄。`passed=true` 後才明確設定 `SEMANTIC_READ_ENABLED=true` 重啟。
+5. 每次語意查詢重新檢查既有成功 audit 及所有 MySQL READY 文件的索引完整性，包括安全片段文字、chunk index、offset、維度與數量；新增 READY 文件或來源變更會關閉 Gate，直到 Backfill/重新稽核完成。查詢以精確相似度分頁取候選，略過舊的 PostgreSQL 來源後繼續找有效片段；命中後再核對 MySQL READY、版本、原始 chunk/offset、來源雜湊與出站政策，才送入 `EvidenceValidator` 及 `SEARCH_DOCUMENTS`。相似度不能授權文件。未命中回 `INSUFFICIENT_EVIDENCE`；PostgreSQL/Gemini 故障回 AI 503，無舊索引自動 fallback。
+
+切換前保留完整 Gate JSON、授權測試結果、部署 commit 與設定變更紀錄。真實 Gemini API smoke test 需使用獲准測試文字和部署金鑰另行執行；Fake EmbeddingModel 測試不能視為真實 API 已驗證。

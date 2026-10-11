@@ -1,9 +1,15 @@
 spring:
+  autoconfigure:
+    exclude:
+      - org.springframework.ai.model.google.genai.autoconfigure.embedding.GoogleGenAiEmbeddingConnectionAutoConfiguration
+      - org.springframework.ai.model.google.genai.autoconfigure.embedding.GoogleGenAiTextEmbeddingAutoConfiguration
   application:
     name: supply-pilot-api
   ai:
     model:
       chat: ${AI_CHAT_PROVIDER:none}
+      embedding:
+        text: ${AI_EMBEDDING_PROVIDER:none}
     google:
       genai:
         api-key: ${GEMINI_API_KEY:${AI_API_KEY:}}
@@ -12,6 +18,11 @@ spring:
           max-output-tokens: ${AI_MAX_OUTPUT_TOKENS:512}
           temperature: 0.0
           google-search-retrieval: false
+        embedding:
+          text:
+            model: ${GEMINI_EMBEDDING_MODEL:gemini-embedding-001}
+            dimensions: ${SEMANTIC_DIMENSIONS:768}
+            auto-truncate: false
     tools:
       throw-exception-on-error: true
       resolution:
@@ -50,6 +61,17 @@ supplypilot:
     max-model-calls: ${AI_MAX_MODEL_CALLS:5}
     monthly-token-warning-enabled: ${AI_MONTHLY_TOKEN_WARNING_ENABLED:false}
     monthly-token-warning-threshold: ${AI_MONTHLY_TOKEN_WARNING_THRESHOLD:1000000}
+  semantic:
+    jdbc-url: ${SEMANTIC_DB_URL:}
+    username: ${SEMANTIC_DB_USERNAME:}
+    password: ${SEMANTIC_DB_PASSWORD:}
+    model-id: ${GEMINI_EMBEDDING_MODEL:gemini-embedding-001}
+    dimensions: ${SEMANTIC_DIMENSIONS:768}
+    generation-key: ${SEMANTIC_GENERATION_KEY:gemini-embedding-001-768-v1}
+    read-enabled: ${SEMANTIC_READ_ENABLED:false}
+    top-k: ${SEMANTIC_TOP_K:5}
+    similarity-threshold: ${SEMANTIC_SIMILARITY_THRESHOLD:0.45}
+    embedding-timeout: ${SEMANTIC_EMBEDDING_TIMEOUT:15s}
   document-storage:
     type: ${DOCUMENT_STORAGE_TYPE:local}
     path: ${DOCUMENT_STORAGE_PATH:./data/documents}

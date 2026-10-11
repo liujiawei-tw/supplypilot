@@ -465,6 +465,8 @@ Provider 停用或缺 Key 時，即使問句缺 Material Code，合法且已登�
 
 ## SP-722 五項確認決策（2026-10-11）
 
+SP-722 實作設定、PostgreSQL migration、Backfill 與切換操作步驟見 [semantic-rag-runbook.md](semantic-rag-runbook.md)。
+
 此節為 Issue #80 的正式產品／部署邊界，保留原架構：MySQL 管理 DocumentMetadata、DocumentStatus、Supplier 關聯與採購交易；PostgreSQL + pgvector 管理 Semantic Chunk、Embedding、索引與來源定位；跨庫不是同一 ACID Transaction。
 
 1. **驗證後切換**：在正式文件查詢從 SP-710 MySQL lexical retrieval 切換到 SP-722 semantic retrieval 之前，完成所有符合政策的有效文件 Backfill、來源／版本／Chunk／維度一致性檢查、MySQL READY 與授權查詢驗證，並形成可查驗的切換 Gate（紀錄模型 ID、維度、索引代次與檢查結果）。未通過 Gate 不得啟用新的 semantic read path。切換以顯式設定操作；不得因 Deploy 自動偷偷切換。
