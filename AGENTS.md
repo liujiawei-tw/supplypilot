@@ -4,9 +4,9 @@
 
 ## GitHub Pull Request 語言規範（強制）
 
-- **所有由 Codex 為 SupplyPilot 撰寫或建立的 Pull Request，標題與描述一律使用繁體中文（台灣，zh-TW）。**
+- **所有 SupplyPilot Pull Request（預設由 GPT 建立），標題與描述一律使用繁體中文（台灣，zh-TW）。**
 - PR 內容中的摘要、修改內容、驗收條件、測試結果、風險、注意事項、未完成項目及 Review 回覆，同樣使用繁體中文。
-- 不得因為 Codex 開啟新對話、切換工作階段、切換分支或處理不同 Epic／Issue，而將 PR 內容改成英文。
+- 不得因為 Codex 或 GPT 開啟新對話、切換工作階段、切換分支或處理不同 Epic／Issue，而將 PR 內容改成英文。
 - 程式碼、變數、類別名稱、檔案路徑、API 路由、CLI 指令、錯誤代碼、Git commit SHA，以及無適當譯名的技術名詞可保留原文。
 - 除非使用者針對**特定 PR**明確要求其他語言，否則不得覆蓋此預設規則。
 - 建立 PR 前，先檢查標題與描述是否符合繁體中文規範。
@@ -15,7 +15,7 @@
 
 - 一次僅實作一張 GitHub Issue，嚴格遵守 Issue Scope 與相關規格。
 - Codex 負責實作、修正及回報驗證證據；GPT 負責獨立 Code Review。
-- 只有在 GPT 確認 Final PASS 後，才可進入 PR 建立階段；除非使用者明確另有要求，Codex 不自行建立 PR。
+- **只有在 GPT 確認 Final PASS 後，才可建立 PR；預設由 GPT 負責建立與回讀核對 PR，Codex 不自行建立 PR**（除非使用者對特定任務明確另有授權）。
 - **不得自行 Merge PR，也不得自行將 Issue 視為完成。** PR Merge 由使用者確認執行。
 - PR 合併並確認相關 Issue Closed 後，才開始下一張 Issue。
 
@@ -29,7 +29,7 @@
 4. **最小化交接資訊**：Codex 以繁體中文回報 Issue 編號與連結、Repository、Base Branch / SHA、Feature Branch、Head Commit SHA、Commit 摘要、修改檔案／範圍、測試指令及實際結果（含失敗、未執行與風險）。**不要求使用者手動複製程式碼或貼上完整 Diff。**
 5. **GPT 遠端獨立 Review**：GPT 直接以 GitHub 連線取得已 Push 的確切 Head Commit、對 `main` 的 Diff、關鍵原始碼、測試與相關契約，核對 Issue Scope、Business Logic、Security、Transaction、Regression 及測試證據。可按 P0／P1／P2 回報附檔案／原因／修正建議的 Finding；給出 `CHANGES REQUIRED` 或 `FINAL PASS`。**靜態檢查、Codex 回報的本地測試，以及 GPT 實際執行的驗證須明確區分**，不得把測試聲稱當作 GPT 親自重跑。
 6. **未通過則修正再審**：若 GPT 回報 P0／P1 或其他阻擋性問題，Codex 僅修正當前 Issue、重跑相關驗證，在**同一 Feature Branch 建立新的 Commit 並 Push**；不得用 Force Push 改寫已審查的 Commit。回報新的 Head SHA，由 GPT 以新 SHA 重新審查。尚未取得 Final PASS 不得建立 PR。
-7. **Final PASS 後才進入 PR**：GPT 明確對某個 Head SHA 給出 `FINAL PASS` 後，Codex 方可依使用者指示建立 PR，Base 預設 `main`、Head 為已審查分支，PR 標題／描述使用繁體中文，並按下節規定在描述中加入獨立一行 `Closes #<Issue編號>`。建立後回讀驗證 PR Base、Head、Head SHA、描述與範圍正確；Head 若發生新變更須重新審查。
+7. **Final PASS 後由 GPT 建立 PR**：GPT 明確對某個 Head SHA 給出 `FINAL PASS` 後，**GPT 預設直接從 GitHub 建立 PR**（使用者對特定任務明確授權其他分工時除外）；Codex 僅負責實作、測試、Commit、Push 及 Review Findings 修正，不預設建立 PR。PR Base 預設 `main`、Head 為已審查分支，標題／描述使用繁體中文，描述須有獨立一行 `Closes #<Issue編號>`。GPT 建立後回讀驗證 PR Base、Head、Head SHA、描述與範圍正確；Head 若發生新變更須重新審查。**PR 建立不等於 Merge，Merge 決策僅由使用者執行。**
 8. **Merge 與下一個 Issue**：**只由使用者人工確認 Merge**；GPT 不得替使用者擅自 Merge。使用者告知完成後，GPT 須透過 GitHub 核實 PR `merged`、Merge Commit／`main` Head、Issue `closed`。確認完成後，才開始下一張 Issue（使用者明確授權例外時除外）。
 
 ## GitHub PR 與 Issue 自動關閉規範（強制）
