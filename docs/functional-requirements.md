@@ -1093,6 +1093,8 @@ PurchaseOrder
 status = DRAFT
 ```
 
+建立 DRAFT 時 `expectedDeliveryDate` 可為 `null`。編輯 DRAFT 可新增、修改或清除交期；AI 提議的 DRAFT 亦同。採購人員須在核准前補齊。
+
 ---
 
 ## FR-602 — PO Header
@@ -1305,6 +1307,8 @@ ADMIN
 status = DRAFT
 ```
 
+Backend 核准時必須同時驗證 `expectedDeliveryDate` 非空；缺少則回 `400 EXPECTED_DELIVERY_DATE_REQUIRED`，維持 DRAFT 與原稽核值。前端預檢僅改善 UX。
+
 成功：
 
 ```text
@@ -1454,6 +1458,8 @@ expectedDeliveryDate
 禁止 ORDERED
 ```
 
+此防線保護舊版已存在的 `APPROVED` 空交期資料；新流程應在 Approve 擋下。Mark Ordered 不接受交期輸入，亦不修改交期。
+
 ---
 
 # 22. FR-720 — Delivery Tracking
@@ -1538,6 +1544,8 @@ PO.status = ORDERED
 V1：
 
 > **Full Receiving Only**
+
+倉管專用讀取流程使用 `GET /api/v1/receiving/purchase-orders` 與 `/{id}`，只顯示 ORDERED 及 RECEIVED（後者供未知結果與重複提交核實），回應排除單價、金額、評分與覆寫理由。執行仍使用既有 `POST /api/v1/purchase-orders/{id}/receive`，成功回受限 Receiving DTO；維持原有 PO、Inventory、StockTransaction 單一交易與樂觀鎖機制。
 
 ---
 
@@ -1783,6 +1791,8 @@ type = MANUAL_ADJUSTMENT
 ---
 
 # 26. StockTransaction Types
+
+E8 的 StockTransaction 顯示依賴 Backend 唯讀 List / Detail API，支援 `materialId`、`type`、`purchaseOrderId`、日期、分頁與排序。不得提供直接 Create / Update，不改既有收貨及人工調整寫入；不同基本單位的數量不得顯示為無單位總和。
 
 V1 至少：
 

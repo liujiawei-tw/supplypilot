@@ -117,6 +117,7 @@ Entity 自己保護：
 ```text
 PurchaseOrder.approve()
 → only DRAFT can be approved
+→ expectedDeliveryDate must exist at approval
 
 PurchaseOrder.markOrdered()
 → only APPROVED can become ORDERED
@@ -126,6 +127,8 @@ Inventory.adjust()
 ```
 
 Domain 不依賴 HTTP。
+
+API 層將核准缺交期的 Domain Error `EXPECTED_DELIVERY_DATE_REQUIRED` 對應為 HTTP 400；DRAFT 建立與編輯仍允許空交期。
 
 ---
 

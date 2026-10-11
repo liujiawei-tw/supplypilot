@@ -4,6 +4,14 @@
 
 ## Review Result
 
+### E8 規格對齊（2026-10-11）
+
+- `api.md`、`domain-model.md`、`functional-requirements.md`、`transaction-boundary.md`、`validation-exception.md` 一致採 DRAFT 交期可空、Approve 必填、Order 沿用已核准交期；現有 Backend 尚未實作 Approve 驗證。
+- `api.md`、`security-design.md`、`frontend-design.md` 一致採倉管專用 Receiving GET 與受限成功 DTO；一般 PO GET 仍限採購角色。`StockTransaction` 查詢為 E8 Backend 前置，現有 Controller 未實作，不能以文件規劃當現成 API。
+- `acceptance-criteria.md`、`testing-strategy-merged.md`、本地 E8 Issue 規格同步 A／B／C 依賴與測試影響。三項 Backend 工作尚無 Issue 編號；本次未改遠端 Issues。
+- 舊版 `APPROVED` 且交期空值的資料處理方式、Receiving POST 縮減回應對既有 API 客戶端的相容性，留待 Backend 工作實作前確認及驗證。既有 UML / HTML 圖示尚描繪舊核准與收貨回應，須於實作階段同步更新，不能作為本次新契約的權威。
+- E8 第二輪修正以 `api.md`、`security-design.md`、`frontend-design.md`、`acceptance-criteria.md` 為目前文字契約權威；舊 UML Markdown 與 HTML 只作歷史參考，凡核准交期、Receiving DTO／路徑、StockTransaction 權限或逾期標示與文字契約不同者均不得沿用。Backend A／B／C 實作時須同步更新圖示，不得讓圖示定義額外 API。Inventory GET 不授權 `PROCUREMENT_MANAGER`，該角色僅能載入 Stock Transactions Tab。
+
 The following stale decisions were found and synchronized:
 
 1. Entity count `13 → 14`.

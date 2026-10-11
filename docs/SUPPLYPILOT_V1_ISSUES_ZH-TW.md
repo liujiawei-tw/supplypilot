@@ -1626,6 +1626,10 @@ E3 Demand        E4 Inventory   │
 
 # E8 — Thin Frontend
 
+本節對應既有 GitHub Issues #34–#41；本次僅同步本地規格，不修改遠端 Issue。以下 Backend A／B／C 為**待建立工作名稱**，尚無 Issue 編號，不得視為已完成 API：A = PO Approval Delivery-Date Validation；B = Receiving Read API + Restricted Response；C = StockTransaction Read API。依 `AGENTS.md` 的單 Issue 交付流程，後續須逐張執行、審查與合併。
+
+責任切分：SP-800 提供 Session、權限判斷與導航框架；SP-801～SP-806 在各自頁面使用它。SP-802 提供 Inventory Tabs 容器，SP-805 提供交易查詢與收貨內容。SP-807 提供共用錯誤／Loading／Concurrency 呈現，各功能 Issue 只整合，不各自建立另一套。原各 Issue 的基本 Loading / Error 驗收仍保留。
+
 ## SP-800 — 實作 Frontend Authentication、Session 與 Role Guards
 
 - **Priority：** P1
@@ -1643,6 +1647,7 @@ E3 Demand        E4 Inventory   │
 - RequireAuth / RoleGuard。
 - 401 Logout / Re-auth Flow。
 - 403 Readable Error。
+- Role-Adaptive Sidebar、Global Header 的角色入口與登出後 Session 清理；權限依 Backend Matrix。
 
 ### 不在本 Issue 範圍
 - Refresh Token Workflow。
@@ -1652,6 +1657,7 @@ E3 Demand        E4 Inventory   │
 - [ ] Valid Login 可進入 App。
 - [ ] Unauthenticated Route 被 Redirect / Block。
 - [ ] Role-restricted Route / Action Hide / Disable，Backend 仍負責最終授權。
+- [ ] 不同角色 Sidebar 與 Route Guard 正確，403 有清楚未授權畫面；401 清除 Session。
 
 ### 必要測試
 - [ ] Login Flow。
@@ -1713,6 +1719,7 @@ E3 Demand        E4 Inventory   │
 ### 本 Issue 範圍
 - Demand List / Create / Edit / Cancel + Role-aware Action。
 - Inventory List / Detail。
+- Inventory `Stock Levels` / `Stock Transactions` Tabs 容器（交易資料內容由 SP-805 負責）。
 - Allowed Role 的 Manual Adjustment Dialog。
 - Loading / Empty / Error States。
 
@@ -1757,6 +1764,7 @@ E3 Demand        E4 Inventory   │
 ### 驗收條件
 - [ ] Valid File 可 Validate → Preview → Confirm。
 - [ ] Invalid Rows 顯示 Row / Code / Message。
+- [ ] Validate → Preview → Confirm 流程在確認前完整呈現批次內容與錯誤。
 - [ ] VALIDATION_FAILED 不可 Confirm。
 
 ### 必要測試
@@ -1781,6 +1789,7 @@ E3 Demand        E4 Inventory   │
 
 ### 本 Issue 範圍
 - Create / Query Recommendation UI。
+- 單次決策工作站；僅使用 POST 計算、已知 ID Detail 與 Supplier Ranking，不建立不存在的歷史 List。
 - Demand / Safety / Current / Incoming / Net Requirement / Outcome Summary。
 - Supplier Ranking Table + Disqualification Reasons。
 - Recommendation → Create Draft Flow。
@@ -1810,7 +1819,7 @@ E3 Demand        E4 Inventory   │
 
 - **Priority：** P1
 - **Complexity：** Normal
-- **Dependencies：** SP-800, SP-610, SP-611, SP-612
+- **Dependencies：** SP-800, SP-610, SP-611, SP-612，以及待建立 Backend A／B／C（完成並驗證後才可完成本 Issue）
 - **Labels：** `area:frontend`, `type:feature`, `priority:p1`
 
 ### 目標
@@ -1820,10 +1829,10 @@ E3 Demand        E4 Inventory   │
 - PO List / Detail。
 - Demo 所需 DRAFT Create / Edit。
 - Approve / Reject + Role Rule。
-- Mark Ordered Dialog / Expected Delivery Date。
+- DRAFT 交期可空、Approve 前補齊；Mark Ordered Dialog 僅顯示已核准交期，不修改。
 - Overdue Badge。
-- Receive Confirmation。
-- StockTransaction Display。
+- 倉管專用 Receiving List / Detail / Confirm，支援 ORDERED 待辦與 RECEIVED 核實，僅使用受限 DTO。
+- Inventory Tab 內 StockTransaction 唯讀查詢畫面（SP-802 提供 Tab 容器）。
 
 ### 不在本 Issue 範圍
 - Partial Receiving、Client `PATCH status`。
@@ -1835,6 +1844,8 @@ E3 Demand        E4 Inventory   │
 - [ ] 正確 Role 可操作 DRAFT → APPROVED → ORDERED → RECEIVED Happy Path。
 - [ ] Reject 必須輸入 Reason。
 - [ ] Overdue Display 不修改 Stored Status。
+- [ ] 空交期 DRAFT 不可 Approve，補齊後核准與下單成功；收貨頁與成功回應不洩漏價格／覆寫理由。
+- [ ] StockTransaction 依 Backend C 查詢篩選，不跨單位加總；Receive 逾時先查狀態、不自動重送。
 
 ### 必要測試
 - [ ] PO Lifecycle Action Visibility Core Test。
@@ -1858,7 +1869,7 @@ E3 Demand        E4 Inventory   │
 
 ### 本 Issue 範圍
 - Document Upload / List / Status / Type / Version / Supplier Metadata UI。
-- AI Assistant Page / Drawer。
+- Global AI Drawer，入口依 Query 角色顯示；Proposal / Confirm 僅對採購人員及 ADMIN 開放。
 - Recommendation Explanation + Source / Recommendation ID。
 - RAG Source / Version。
 - AI Draft Proposal，Write 前 Explicit Confirmation。
@@ -1871,6 +1882,7 @@ E3 Demand        E4 Inventory   │
 - [ ] Document State 可視。
 - [ ] RAG Answer 顯示 Source。
 - [ ] AI Draft 必須明確 Confirm。
+- [ ] 多品項 Draft 可完整核對，Confirmation Token 倒數依 `expiresAt`，過期不得確認；AI 為單輪同步 JSON。
 - [ ] AI Outage 不影響正常 Navigation。
 
 ### 必要測試
@@ -1897,6 +1909,7 @@ E3 Demand        E4 Inventory   │
 - Reusable Business Error Alert。
 - 主要頁面 Loading / Empty / Error / Success。
 - 409 `CONCURRENT_MODIFICATION`：Warning → Refetch / Invalidate → User Review。
+- `409 DUPLICATE_RECEIVING` 與 Network Timeout / Unknown Result：先查 Receiving 真實狀態，再通知使用者；不自動重送。
 - 500 Generic Error + traceId。
 - 503 AI Unavailable Message。
 
@@ -1905,6 +1918,7 @@ E3 Demand        E4 Inventory   │
 
 ### 驗收條件
 - [ ] 409 不會 Silent Retry Receive / Approve / Order。
+- [ ] 403 顯示未授權，收貨重複或未知結果可安全核實。
 - [ ] 500 顯示 Safe Generic Error + traceId。
 - [ ] AI Outage 時 Core App 仍可用。
 

@@ -269,13 +269,19 @@ button hidden
 /suppliers
 /demands
 /inventory
+/inventory/import
 /recommendations
 /recommendations/:id
 /purchase-orders
 /purchase-orders/:id
+/receiving/purchase-orders
+/receiving/purchase-orders/:id
 /documents
-/ai
 ```
+
+採 Hybrid Navigation：Sidebar 依業務模組（主檔、需求／庫存、採購決策、採購單／收貨、文件）分組，頁內以流程連結串接 Demand → Inventory → Recommendation → PO → Receiving。Sidebar 與 Route Guard 依 `security-design.md` 授權矩陣顯示，Backend Spring Security 為權威。Global Header 提供角色、帳號與可授權的 AI Drawer 入口；Page Header 提供標題、狀態、主要動作與返回流程連結。無權限頁面顯示清楚 403，不藉由隱藏入口代替授權。
+
+`/inventory` 對具 Inventory GET 或 StockTransaction GET 任一權限的角色開放；`/inventory/import` 僅對 `WAREHOUSE_STAFF`、`ADMIN` 開放。Sidebar 的 Inventory 入口在任一 Tab 可用時顯示；收貨入口只對倉管與 ADMIN 顯示。`/purchase-orders/:id` 是一般採購 PO Detail；`/receiving/purchase-orders/:id` 是倉管受限 Receiving Detail。兩者使用各自的 Read API 與 DTO。
 
 ---
 
@@ -326,6 +332,8 @@ Recent Receiving
 ```
 
 V1 不需要做複雜 BI。
+
+Dashboard 採 Role-Based Operations Inbox，僅呈現該角色可查與可操作的待辦；每張卡片連到有授權的現有列表或工作頁。若沒有對應 Backend aggregate API，以已授權查詢組成可用的待辦，不虛構跨角色統計或 Recommendation 歷史清單。
 
 ---
 
@@ -437,7 +445,9 @@ Manual Adjustment
 Import Inventory
 ```
 
-其他 Role 可 Read Only。
+其他有 Inventory GET 權限的 Role 可 Read Only；`PROCUREMENT_MANAGER` 無此 API 權限。
+
+Inventory 主頁採 `Stock Levels` / `Stock Transactions` Tabs，分別只在 Inventory GET（`PRODUCTION_PLANNER`、`PROCUREMENT_STAFF`、`WAREHOUSE_STAFF`、`ADMIN`）與 StockTransaction GET（`WAREHOUSE_STAFF`、`PROCUREMENT_MANAGER`、`ADMIN`）有權限時顯示及載入。進入 `/inventory` 時預設開第一個有權限的 Tab；`PROCUREMENT_MANAGER` 直接進 Stock Transactions，不能先呼叫 Inventory GET。Deep Link（例如 `/inventory?tab=stock-transactions`）只啟用有權限的 Tab；指定無權限 Tab 時轉到第一個有權限的 Tab，不發送該 API 請求；兩者都無權限才顯示 403。Import 與 Manual Adjustment Action 仍只給倉管／ADMIN。不可把不同基本單位的 quantity 相加為無單位總量。SP-802 負責 Tab 容器與庫存頁，SP-805 負責交易查詢內容。
 
 ---
 
@@ -487,6 +497,8 @@ Confirm 前要二次確認。
 ---
 
 # 16. Recommendation Page
+
+Recommendation 是單次決策工作站：輸入物料與期間 → POST 計算 → 直接呈現結果、供應商排名與建立 DRAFT 入口。可用已知 ID 開啟 Detail；Backend 無歷史 List API，故不設虛構歷史清單。跨頁保留材料／需求的導航上下文，但數值與決策以 Backend 回應為準。
 
 這是 SupplyPilot 前端最重要的頁面。
 
@@ -667,7 +679,7 @@ DRAFT
 WAREHOUSE_STAFF：
 
 ```text
-ORDERED
+/receiving/purchase-orders/:id 的 ORDERED
 → Receive
 ```
 
@@ -676,6 +688,8 @@ ADMIN：
 ```text
 Role access to V1 operations
 ```
+
+`/purchase-orders/:id` 只供一般採購 PO Detail 使用，並讀完整 `PurchaseOrderResponse`；Warehouse 不可開啟此頁，亦不可為了收貨先呼叫一般 PO GET。Warehouse 在 `/receiving/purchase-orders/:id` 使用受限 DTO 執行 Receive。ADMIN 可依用途進入兩個頁面，採購動作留在一般 PO Detail，Receive 動作留在 Receiving Detail。
 
 但 UI 不提供非法 transition。
 
@@ -716,16 +730,16 @@ Expected Delivery Date
 若 PO 還沒有：
 
 ```text
-require input
+block Order and show legacy-data repair guidance
 ```
 
-再呼叫 Order API。
+Order Modal 只顯示已核准交期與明確確認動作，不輸入或修改交期。DRAFT 可留空或清除交期；Approve 前顯示必填錯誤，需在 DRAFT Edit 補齊。APPROVED 不可再使用 Draft Edit API。
 
 ---
 
 # 25. Receiving UI
 
-可直接放 PO Detail。
+Receiving 使用 `/receiving/purchase-orders` List 與 `/receiving/purchase-orders/:id` Detail，與一般 `/purchase-orders/:id` 採購 PO Detail 分開。`WAREHOUSE_STAFF`、`ADMIN` 透過受限 Read DTO 查看 ORDERED 待收貨，並可切換 RECEIVED 歷史核實未知結果；不顯示單價、金額、評分與覆寫理由。Receive Action 僅位於此 Receiving Detail，不在一般 PO Detail 顯示。
 
 ORDERED：
 
@@ -761,6 +775,8 @@ PO → RECEIVED
 Refresh Inventory
 ```
 
+提交後以 Receiving Detail 重新確認狀態；收到 `409 DUPLICATE_RECEIVING` 或逾時／未知結果時先查詢 ORDERED / RECEIVED 真實狀態，再告知使用者，不自動重送 Receive。
+
 ---
 
 # 26. Receiving Demo Value
@@ -786,7 +802,7 @@ PO = RECEIVED
 
 # 27. StockTransaction UI
 
-不需要獨立複雜操作。
+置於 Inventory 的 `Stock Transactions` Tab；只有具 StockTransaction GET 權限者，才可從 PO / Receiving Detail 看見以 `purchaseOrderId` 篩選的連結，連到 `/inventory?tab=stock-transactions&purchaseOrderId={id}`。不具權限者不顯示連結，也不發送查詢。依 Backend C 唯讀 API 查詢；尚未實作前不得以假資料宣稱功能完成。
 
 Read-only table：
 
@@ -836,17 +852,13 @@ INACTIVE
 
 # 29. AI Assistant
 
-建議使用：
+採全站 Global Drawer：
 
 ```text
 right-side Drawer
 ```
 
-或獨立：
-
-```text
-/ai
-```
+可採約 480–520px 的響應式寬度；多品項 Draft 必須可完整檢視，窄螢幕可使用全寬 Drawer。入口只向 AI Query 授權角色顯示，Proposal / Confirm 控制僅 `PROCUREMENT_STAFF`、`ADMIN` 可見。
 
 V1 可支援：
 
@@ -867,10 +879,14 @@ AI 回覆若要建立 Draft：
 ```text
 AI proposes action
 ↓
-User explicitly confirms
+User reviews all supplier / item / quantity / price / delivery date fields
+↓
+User explicitly confirms with backend confirmationToken before expiresAt
 ↓
 Backend createDraft()
 ```
+
+AI V1 為單輪同步 JSON，無持久對話記憶或 Streaming。Tool 保持唯讀；提議可有空交期，但核准前須補齊。倒數依回應 `expiresAt` 計算，不固定寫死十分鐘；過期重新提議，不重用 Token。`PROCUREMENT_MANAGER` 僅可 Query，不可 Proposal / Confirm。
 
 Frontend 不提供 AI：
 
@@ -946,6 +962,8 @@ Business Error
 → AI unavailable, core system remains usable
 ```
 
+`409 DUPLICATE_RECEIVING`：查 Receiving Detail 的 RECEIVED 狀態，明確告知已完成與否。Network timeout / unknown result：先查 Backend 真實狀態，不自動重送 Receive。`403` 顯示未授權頁面；`500` 僅顯示安全訊息及 `traceId`。
+
 ---
 
 # 33. Validation Boundary
@@ -1012,20 +1030,15 @@ ask user to review latest state
 
 OVERDUE 不是 DB Status。
 
-UI 可依：
-
-```text
-status = ORDERED
-AND today > expectedDeliveryDate
-```
-
-顯示：
+PO List / Detail 直接使用 Backend `PurchaseOrderResponse.isOverdue`；Receiving List / Detail 使用受限 `ReceivingPurchaseOrderResponse.isOverdue`。瀏覽器不得自行用日期判定業務逾期。只有 `status=ORDERED` 且 Backend 回傳 `isOverdue=true` 才顯示：
 
 ```text
 OVERDUE
 ```
 
 Badge。
+
+`RECEIVED` 的 `isOverdue=false`，不得標成目前逾期；逾期只是展示狀態，不建立 `OVERDUE` DB Status。
 
 但仍保留真正狀態：
 
@@ -1205,6 +1218,8 @@ Inventory
 StockTransaction
 PO status
 
+Login as Buyer
+↓
 Ask AI:
 "Why was this supplier recommended?"
 ```
