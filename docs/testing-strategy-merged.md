@@ -2478,3 +2478,17 @@ README
 - 驗證當前登入者身份與 Role／Method Security 穿過 AI → Tool → Service Boundary；匿名 401、錯誤角色 403；Prompt Injection 或假冒 System Admin 不得提權。
 - 驗證 Provider Unavailable、Timeout、Invalid Response 的既有錯誤契約及核心 API 獨立性；保留 SP-710 的 `INSUFFICIENT_EVIDENCE` 與 Source / Version。
 - SP-721 延續 Tool Boundary，驗證結構化 Draft Proposal 不會自行寫入；必須 Backend 確認後才走 `PurchaseOrderService.createDraft()`，只建立 DRAFT。
+
+---
+
+## Confirmed SP-720/721/722 AI Decisions (2026-10-11)
+
+- **Google Gemini** is the SP-720 LLM provider; prioritize a low-cost **Flash** model. Verify exact Chat Model ID, Tool Calling capability and price at implementation time; keep model ID configurable.
+- Use stable **Spring AI 2.0.x** `ChatClient` / `ChatModel` and explicit Spring AI read-only Tool Calling under current-user Backend Authorization. AI-generated explanations require backend verification of structured authoritative figures.
+- **SP-722 (#80)** is the dedicated Semantic RAG upgrade using **Google Gemini Embedding + PostgreSQL / pgvector**; this supersedes any earlier suggestion that MySQL / application-side cosine is the final semantic vector store. Existing **SP-710 MySQL lexical index remains transitional**; do not rewrite it inside SP-720.
+- MySQL continues holding procurement transactions and document metadata; pgvector owns semantic document chunk/vector indexes. Cross-database updates are not atomic; SP-722 must design idempotent reindex, READY-status gating, and failure recovery.
+- V1 AI requests are **single-turn, no chat memory, synchronous JSON**. Disable AI cleanly when configuration/provider unavailable (AI 503, core APIs unaffected).
+- SP-721 requires **Proposal → server-issued Confirm Token/ID → Backend verification → DRAFT via existing Service**; never treat an LLM statement or simple client `confirmed=true` as sufficient.
+- Basic cost / observability boundaries: token count when available, latency, error metrics, capped output/tool-call iterations, provider timeout and sensitive-data-redacted logs.
+- Full decision record: `docs/adr/ADR-SP-720-spring-ai-adoption.md`; semantic work: GitHub Issue #80.
+
