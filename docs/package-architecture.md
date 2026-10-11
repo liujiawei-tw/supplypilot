@@ -1030,3 +1030,14 @@ transaction-boundary.md
 - PO Lifecycle Transaction
 - Recommendation Snapshot Transaction
 - Concurrency / Lock Boundary
+
+---
+
+## Spring AI Implementation Decision — SP-720 / SP-721 (2026-10-11)
+
+- SP-720 必須使用與 Spring Boot 4.1.x 相容的穩定版 **Spring AI 2.0.x**，以 `ChatClient` / `ChatModel` 整合真正的 LLM；以 `@Tool` 或 `ToolCallback` 實作 Tool Calling。禁止使用 Spring AI 2.1 Milestone 當作正式部署基準。
+- `ai/` 擁有 ChatClient 與 Tool Registry / Allowlist；Tool 僅提供 Recommendation、Supplier Ranking、Inventory、Open PO、SP-710 Document Query 的唯讀能力，且呼叫原有 Application / Query Service。
+- Spring AI Tool 執行必須保留當前登入使用者 SecurityContext、Service Method Security、CurrentUserProvider；禁止 System Admin 與 Repository Write。對 User 提供任意 class/method/SQL 執行能力均不允許。
+- 保留 SP-710 原有 `DocumentQueryService`、索引與來源證據契約，不因導入 Spring AI 改寫；SP-721 延續同一 ChatClient / Tool Calling，Proposal 與 Backend 確認後的 `createDraft` 嚴格分離。
+- Provider 呼叫不可置於全域長交易內，AI Provider 不可成為核心採購 API 的必要依賴。
+- 工程決策詳細說明見 `docs/adr/ADR-SP-720-spring-ai-adoption.md`。
