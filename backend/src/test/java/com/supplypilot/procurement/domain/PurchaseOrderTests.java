@@ -83,6 +83,8 @@ class PurchaseOrderTests {
 
     @Test void approvesDraftWithAuthenticatedAuditAndPreservesCreationData() {
         PurchaseOrder order = draftWithItem();
+        order.editDraft(null, false, TestDataConstants.TEST_TODAY.plusDays(1), true,
+                null, false, TestDataConstants.TEST_INSTANT);
         User manager = User.create("manager", "hash", "Manager", UserRole.PROCUREMENT_MANAGER,
                 TestDataConstants.TEST_INSTANT);
         Instant approvedAt = TestDataConstants.TEST_INSTANT.plusSeconds(60);
@@ -96,6 +98,27 @@ class PurchaseOrderTests {
         assertThat(order.getCreatedBy()).isSameAs(user);
         assertThat(order.getCreatedAt()).isEqualTo(TestDataConstants.TEST_INSTANT);
         assertThat(order.getItems()).hasSize(1);
+    }
+
+    @Test void missingDeliveryDateRejectsApprovalWithoutChangingDraftAndCanBeSuppliedLater() {
+        PurchaseOrder order = draftWithItem();
+        Instant originalUpdatedAt = order.getUpdatedAt();
+        User manager = User.create("manager-date", "hash", "Manager", UserRole.PROCUREMENT_MANAGER,
+                TestDataConstants.TEST_INSTANT);
+
+        assertThat(order.getExpectedDeliveryDate()).isNull();
+        assertThatThrownBy(() -> order.approve(manager, TestDataConstants.TEST_INSTANT.plusSeconds(60)))
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCode").isEqualTo(ErrorCode.EXPECTED_DELIVERY_DATE_REQUIRED);
+        assertThat(order.getStatus()).isEqualTo(PurchaseOrderStatus.DRAFT);
+        assertThat(order.getApprovedBy()).isNull();
+        assertThat(order.getApprovedAt()).isNull();
+        assertThat(order.getUpdatedAt()).isEqualTo(originalUpdatedAt);
+
+        order.editDraft(null, false, TestDataConstants.TEST_TODAY.plusDays(1), true,
+                null, false, TestDataConstants.TEST_INSTANT.plusSeconds(90));
+        order.approve(manager, TestDataConstants.TEST_INSTANT.plusSeconds(120));
+        assertThat(order.getStatus()).isEqualTo(PurchaseOrderStatus.APPROVED);
     }
 
     @Test void rejectsDraftWithTrimmedReasonAndAuthenticatedAudit() {

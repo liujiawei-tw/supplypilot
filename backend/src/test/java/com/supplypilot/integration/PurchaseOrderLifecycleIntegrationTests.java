@@ -74,7 +74,7 @@ class PurchaseOrderLifecycleIntegrationTests extends AbstractIntegrationTest {
         User manager = user(UserRole.PROCUREMENT_MANAGER);
         User admin = user(UserRole.ADMIN);
 
-        long managerApproved = draftId();
+        long managerApproved = draftIdWithDate();
         approve(manager, managerApproved, "{\"approvedBy\":999,\"status\":\"REJECTED\"}")
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("APPROVED"))
@@ -90,7 +90,7 @@ class PurchaseOrderLifecycleIntegrationTests extends AbstractIntegrationTest {
                 .andExpect(jsonPath("$.approvedBy").value(manager.getId()))
                 .andExpect(jsonPath("$.approvedAt").value(clock.instant().toString()));
 
-        long adminApproved = draftId();
+        long adminApproved = draftIdWithDate();
         approve(admin, adminApproved, null).andExpect(status().isOk())
                 .andExpect(jsonPath("$.approvedBy").value(admin.getId()));
         reject(admin, adminApproved, "{\"reason\":\"cannot bypass\"}")
@@ -122,6 +122,33 @@ class PurchaseOrderLifecycleIntegrationTests extends AbstractIntegrationTest {
                         .header("Authorization", bearer(admin))
                         .contentType(MediaType.APPLICATION_JSON).content("{\"expectedDeliveryDate\":\"2026-11-01\"}"))
                 .andExpect(status().isConflict()).andExpect(jsonPath("$.code").value("PO_NOT_EDITABLE"));
+    }
+
+    @Test
+    void missingDateApprovalLeavesPersistedDraftUntouchedThenPatchAllowsApprovalAndOrdering() throws Exception {
+        User manager = user(UserRole.PROCUREMENT_MANAGER);
+        long id = draftId();
+        var before = jdbcTemplate.queryForMap(
+                "SELECT status, approved_by, approved_at, updated_at, version FROM purchase_orders WHERE id = ?", id);
+
+        approve(manager, id, null).andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("EXPECTED_DELIVERY_DATE_REQUIRED"));
+        var after = jdbcTemplate.queryForMap(
+                "SELECT status, approved_by, approved_at, updated_at, version FROM purchase_orders WHERE id = ?", id);
+        assertThat(after).isEqualTo(before);
+        assertThat(after.get("status")).isEqualTo("DRAFT");
+        assertThat(after.get("approved_by")).isNull();
+        assertThat(after.get("approved_at")).isNull();
+
+        mockMvc.perform(patch("/api/v1/purchase-orders/{id}", id)
+                        .header("Authorization", bearer(staff)).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"expectedDeliveryDate\":\"2026-10-30\"}"))
+                .andExpect(status().isOk());
+        approve(manager, id, null).andExpect(status().isOk())
+                .andExpect(jsonPath("$.approvedBy").value(manager.getId()));
+        mockMvc.perform(post("/api/v1/purchase-orders/{id}/order", id)
+                        .header("Authorization", bearer(staff)))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("ORDERED"));
     }
 
     @Test
@@ -194,7 +221,7 @@ class PurchaseOrderLifecycleIntegrationTests extends AbstractIntegrationTest {
     @Test
     void lifecycleDatabaseFailureRollsBackStatusAndAllAuditFields() throws Exception {
         User manager = user(UserRole.PROCUREMENT_MANAGER);
-        long approvalId = draftId();
+        long approvalId = draftIdWithDate();
         jdbcTemplate.execute("ALTER TABLE purchase_orders ADD CONSTRAINT chk_sp610_forced_approval_failure "
                 + "CHECK (approved_by IS NULL OR approved_by <> " + manager.getId() + ")");
         try {
@@ -248,6 +275,15 @@ class PurchaseOrderLifecycleIntegrationTests extends AbstractIntegrationTest {
                                 + material.getId() + ",\"quantity\":2,\"unitPrice\":10}]}"))
                 .andExpect(status().isCreated()).andReturn();
         return ((Number) JsonPath.read(result.getResponse().getContentAsString(), "$.id")).longValue();
+    }
+
+    private long draftIdWithDate() throws Exception {
+        long id = draftId();
+        mockMvc.perform(patch("/api/v1/purchase-orders/{id}", id)
+                        .header("Authorization", bearer(staff)).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"expectedDeliveryDate\":\"2026-10-30\"}"))
+                .andExpect(status().isOk());
+        return id;
     }
 
     private void assertAudit(long id, String status, Long approvedBy, Long rejectedBy, String reason) {

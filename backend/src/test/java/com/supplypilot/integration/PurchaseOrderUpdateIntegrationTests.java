@@ -96,6 +96,7 @@ class PurchaseOrderUpdateIntegrationTests extends AbstractIntegrationTest {
         update(staff, id, "{\"supplierId\":" + replacementSupplier.getId() + "}")
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.supplierId").value(replacementSupplier.getId()))
+                .andExpect(jsonPath("$.expectedDeliveryDate").value("2026-10-30"))
                 .andExpect(jsonPath("$.items.length()").value(2));
         update(staff, id, "{\"items\":[" + manualItem(retained, "5", "12") + ","
                 + manualItem(added, "7", "14") + "]}")
@@ -110,6 +111,11 @@ class PurchaseOrderUpdateIntegrationTests extends AbstractIntegrationTest {
                 .andExpect(jsonPath("$.poNumber").value(poNumber))
                 .andExpect(jsonPath("$.createdBy").value(createdBy))
                 .andExpect(jsonPath("$.createdAt").value(createdAt));
+        User manager = user(UserRole.PROCUREMENT_MANAGER);
+        mockMvc.perform(post("/api/v1/purchase-orders/{id}/approve", id)
+                        .header("Authorization", bearer(manager)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("EXPECTED_DELIVERY_DATE_REQUIRED"));
         mockMvc.perform(get("/api/v1/purchase-orders/{id}", id).header("Authorization", bearer(staff)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.supplierId").value(replacementSupplier.getId()))

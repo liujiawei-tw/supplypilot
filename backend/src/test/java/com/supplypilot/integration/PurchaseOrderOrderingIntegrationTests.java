@@ -133,9 +133,16 @@ class PurchaseOrderOrderingIntegrationTests extends AbstractIntegrationTest {
         order(staff, received, null).andExpect(status().isConflict())
                 .andExpect(jsonPath("$.code").value("INVALID_PO_STATUS_TRANSITION"));
 
-        long missingDate = approved(null, material);
+        long missingDate = approved(TestDataConstants.TEST_TODAY.plusDays(1), material);
+        jdbcTemplate.update("UPDATE purchase_orders SET expected_delivery_date = NULL WHERE id = ?", missingDate);
+        var missingDateBefore = jdbcTemplate.queryForMap(
+                "SELECT status, ordered_by, ordered_at, updated_at, version FROM purchase_orders WHERE id = ?",
+                missingDate);
         order(staff, missingDate, null).andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("EXPECTED_DELIVERY_DATE_REQUIRED"));
+        assertThat(jdbcTemplate.queryForMap(
+                "SELECT status, ordered_by, ordered_at, updated_at, version FROM purchase_orders WHERE id = ?",
+                missingDate)).isEqualTo(missingDateBefore);
 
         long missingItems = approved(TestDataConstants.TEST_TODAY.plusDays(1), material);
         jdbcTemplate.update("DELETE FROM purchase_order_items WHERE purchase_order_id = ?", missingItems);
