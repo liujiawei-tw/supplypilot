@@ -1041,3 +1041,17 @@ transaction-boundary.md
 - 保留 SP-710 原有 `DocumentQueryService`、索引與來源證據契約，不因導入 Spring AI 改寫；SP-721 延續同一 ChatClient / Tool Calling，Proposal 與 Backend 確認後的 `createDraft` 嚴格分離。
 - Provider 呼叫不可置於全域長交易內，AI Provider 不可成為核心採購 API 的必要依賴。
 - 工程決策詳細說明見 `docs/adr/ADR-SP-720-spring-ai-adoption.md`。
+
+---
+
+## Confirmed SP-720/721/722 AI Decisions (2026-10-11)
+
+- **Google Gemini** is the SP-720 LLM provider; prioritize a low-cost **Flash** model. Verify exact Chat Model ID, Tool Calling capability and price at implementation time; keep model ID configurable.
+- Use stable **Spring AI 2.0.x** `ChatClient` / `ChatModel` and explicit Spring AI read-only Tool Calling under current-user Backend Authorization. AI-generated explanations require backend verification of structured authoritative figures.
+- **SP-722 (#80)** is the dedicated Semantic RAG upgrade using **Google Gemini Embedding + PostgreSQL / pgvector**; this supersedes any earlier suggestion that MySQL / application-side cosine is the final semantic vector store. Existing **SP-710 MySQL lexical index remains transitional**; do not rewrite it inside SP-720.
+- MySQL continues holding procurement transactions and document metadata; pgvector owns semantic document chunk/vector indexes. Cross-database updates are not atomic; SP-722 must design idempotent reindex, READY-status gating, and failure recovery.
+- V1 AI requests are **single-turn, no chat memory, synchronous JSON**. Disable AI cleanly when configuration/provider unavailable (AI 503, core APIs unaffected).
+- SP-721 requires **Proposal → server-issued Confirm Token/ID → Backend verification → DRAFT via existing Service**; never treat an LLM statement or simple client `confirmed=true` as sufficient.
+- Basic cost / observability boundaries: token count when available, latency, error metrics, capped output/tool-call iterations, provider timeout and sensitive-data-redacted logs.
+- Full decision record: `docs/adr/ADR-SP-720-spring-ai-adoption.md`; semantic work: GitHub Issue #80.
+
