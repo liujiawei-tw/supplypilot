@@ -31,6 +31,7 @@ function mockServer(role: UserRole, loginStatus = 200) {
       return response(config, { accessToken: 'valid-token', tokenType: 'Bearer', user: identities[role] });
     }
     if (config.url === '/auth/me') return response(config, identities[role]);
+    if (config.url === '/inventory') return response(config, { content: [], page: 0, size: 20, totalElements: 0, totalPages: 0 });
     throw new Error(`Unexpected API request: ${config.url}`);
   });
   return requests;
@@ -222,7 +223,7 @@ describe('authentication and routing', () => {
     expect(screen.queryByText('Stock Transactions')).toBeNull();
     await waitFor(() => expect(router.state.location.search).toBe('?tab=stock-levels&materialId=7'));
     expect(router.state.historyAction).toBe('REPLACE');
-    expect(requests).toEqual(['/auth/me']);
+    expect(requests).toEqual(['/auth/me', '/inventory']);
   });
 
   it.each(['PRODUCTION_PLANNER', 'WAREHOUSE_STAFF'] as const)('does not call Supplier APIs when %s opens the protected route', async (role) => {
