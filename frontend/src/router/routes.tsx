@@ -4,6 +4,8 @@ import RoleGuard from '../auth/RoleGuard';
 import AppLayout from '../layouts/AppLayout';
 import DashboardPage from '../pages/Dashboard/DashboardPage';
 import InventoryPage from '../pages/Inventory/InventoryPage';
+import MaterialsPage from '../pages/Materials/MaterialsPage';
+import SuppliersPage from '../pages/Suppliers/SuppliersPage';
 import LoginPage from '../pages/Login/LoginPage';
 import NotFoundPage from '../pages/NotFound/NotFoundPage';
 import PlaceholderPage from '../pages/Placeholder/PlaceholderPage';
@@ -22,7 +24,16 @@ export const router = createBrowserRouter([
           { path: 'dashboard', element: <DashboardPage /> },
           ...routeCatalog.map(({ path, label, permission }) => ({
             element: <RoleGuard permission={permission} />,
-            children: [{ path, element: path === 'inventory' ? <InventoryPage /> : <PlaceholderPage title={label} /> }],
+            children: [{
+              path,
+              element: path === 'inventory'
+                ? <InventoryPage />
+                : path === 'materials'
+                  ? <MaterialsPage />
+                  : path === 'suppliers'
+                    ? <SuppliersPage />
+                    : <PlaceholderPage title={label} />,
+            }],
           })),
           { path: '*', element: <NotFoundPage /> },
         ],

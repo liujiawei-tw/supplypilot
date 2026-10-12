@@ -24,6 +24,7 @@ export const ErrorState: React.FC<ErrorStateProps> = ({
   let displayMessage = message;
   let errorCode: string | undefined;
   let traceId: string | undefined;
+  let fieldErrors: ApiErrorResponse['fieldErrors'];
 
   if (error) {
     if ('code' in error && 'message' in error) {
@@ -31,6 +32,7 @@ export const ErrorState: React.FC<ErrorStateProps> = ({
       displayMessage = displayMessage || apiErr.message;
       errorCode = apiErr.code;
       traceId = apiErr.traceId;
+      fieldErrors = apiErr.fieldErrors;
     } else if (error instanceof Error) {
       displayMessage = displayMessage || error.message;
     }
@@ -52,6 +54,12 @@ export const ErrorState: React.FC<ErrorStateProps> = ({
           <Text code>{traceId}</Text>
         </div>
       )}
+      {fieldErrors?.map((fieldError) => (
+        <div key={`${fieldError.field}-${fieldError.message}`}>
+          <Text type="secondary">{fieldError.field}: </Text>
+          <Text>{fieldError.message}</Text>
+        </div>
+      ))}
     </div>
   );
 
@@ -61,7 +69,7 @@ export const ErrorState: React.FC<ErrorStateProps> = ({
         status="error"
         title={title}
         subTitle={
-          <Space direction="vertical" size={4}>
+          <Space orientation="vertical" size={4}>
             <div>{displayMessage}</div>
             {extraDetails}
           </Space>
@@ -81,9 +89,9 @@ export const ErrorState: React.FC<ErrorStateProps> = ({
     <Alert
       type="error"
       showIcon
-      message={title}
+      title={title}
       description={
-        <Space direction="vertical" size={8} style={{ width: '100%' }}>
+        <Space orientation="vertical" size={8} style={{ width: '100%' }}>
           <div>{displayMessage}</div>
           {extraDetails}
           {onRetry && (

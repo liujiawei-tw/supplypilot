@@ -225,6 +225,14 @@ describe('authentication and routing', () => {
     expect(requests).toEqual(['/auth/me']);
   });
 
+  it.each(['PRODUCTION_PLANNER', 'WAREHOUSE_STAFF'] as const)('does not call Supplier APIs when %s opens the protected route', async (role) => {
+    const requests = mockServer(role);
+    localStorage.setItem(TOKEN_STORAGE_KEY, 'valid-token');
+    await open('/suppliers');
+    expect(await screen.findByText('403')).toBeTruthy();
+    expect(requests).toEqual(['/auth/me']);
+  });
+
   it('does not restore a logged-out session from late /auth/me responses under StrictMode', async () => {
     const complete: Array<() => void> = [];
     axiosClient.defaults.adapter = vi.fn((config) => new Promise((resolve) => {
