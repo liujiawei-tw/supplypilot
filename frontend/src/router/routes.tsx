@@ -5,6 +5,7 @@ import AppLayout from '../layouts/AppLayout';
 import DashboardPage from '../pages/Dashboard/DashboardPage';
 import DemandsPage from '../pages/Demands/DemandsPage';
 import InventoryPage from '../pages/Inventory/InventoryPage';
+import InventoryImportPage from '../pages/InventoryImport/InventoryImportPage';
 import MaterialsPage from '../pages/Materials/MaterialsPage';
 import SuppliersPage from '../pages/Suppliers/SuppliersPage';
 import LoginPage from '../pages/Login/LoginPage';
@@ -29,6 +30,8 @@ export const router = createBrowserRouter([
               path,
               element: path === 'inventory'
                 ? <InventoryPage />
+                : path === 'inventory/import'
+                  ? <InventoryImportPage />
                 : path === 'demands'
                   ? <DemandsPage />
                 : path === 'materials'
