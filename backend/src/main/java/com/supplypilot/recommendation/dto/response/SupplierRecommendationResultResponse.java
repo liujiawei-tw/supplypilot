@@ -4,6 +4,7 @@ import com.supplypilot.recommendation.domain.DisqualificationReason;
 import java.math.BigDecimal;
 
 public record SupplierRecommendationResultResponse(
+        Long id,
         Long supplierId,
         String supplierCode,
         String supplierName,
