@@ -7,6 +7,8 @@ import DemandsPage from '../pages/Demands/DemandsPage';
 import InventoryPage from '../pages/Inventory/InventoryPage';
 import InventoryImportPage from '../pages/InventoryImport/InventoryImportPage';
 import MaterialsPage from '../pages/Materials/MaterialsPage';
+import RecommendationsPage from '../pages/Recommendations/RecommendationsPage';
+import RecommendationDetailPage from '../pages/Recommendations/RecommendationDetailPage';
 import SuppliersPage from '../pages/Suppliers/SuppliersPage';
 import LoginPage from '../pages/Login/LoginPage';
 import NotFoundPage from '../pages/NotFound/NotFoundPage';
@@ -36,6 +38,10 @@ export const router = createBrowserRouter([
                   ? <DemandsPage />
                 : path === 'materials'
                   ? <MaterialsPage />
+                  : path === 'recommendations'
+                    ? <RecommendationsPage />
+                    : path === 'recommendations/:id'
+                      ? <RecommendationDetailPage />
                   : path === 'suppliers'
                     ? <SuppliersPage />
                     : <PlaceholderPage title={label} />,
