@@ -30,6 +30,17 @@ public interface PurchaseOrderRepository extends JpaRepository<PurchaseOrder, Lo
     List<PurchaseOrder> findDetailedByIdIn(@Param("ids") Collection<Long> ids);
 
     @Query("""
+            select distinct purchaseOrder
+            from PurchaseOrder purchaseOrder
+            join fetch purchaseOrder.supplier
+            left join fetch purchaseOrder.receivedBy
+            left join fetch purchaseOrder.items item
+            left join fetch item.material
+            where purchaseOrder.id in :ids
+            """)
+    List<PurchaseOrder> findReceivingDetailedByIdIn(@Param("ids") Collection<Long> ids);
+
+    @Query("""
             select sum(item.quantity)
             from PurchaseOrderItem item
             join item.purchaseOrder purchaseOrder

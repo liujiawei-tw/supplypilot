@@ -11,6 +11,7 @@ import com.supplypilot.procurement.dto.request.CreatePurchaseOrderRequest;
 import com.supplypilot.procurement.dto.request.RejectPurchaseOrderRequest;
 import com.supplypilot.procurement.dto.request.UpdatePurchaseOrderRequest;
 import com.supplypilot.procurement.dto.response.PurchaseOrderResponse;
+import com.supplypilot.procurement.dto.response.ReceivingPurchaseOrderResponse;
 import com.supplypilot.procurement.service.PurchaseOrderService;
 import com.supplypilot.procurement.service.ReceivingService;
 import jakarta.validation.Valid;
@@ -95,7 +96,7 @@ public class PurchaseOrderController {
     }
 
     @PostMapping("/{id}/receive")
-    public PurchaseOrderResponse receive(@PathVariable Long id) {
+    public ReceivingPurchaseOrderResponse receive(@PathVariable Long id) {
         return receivingService.receive(id);
     }
 
