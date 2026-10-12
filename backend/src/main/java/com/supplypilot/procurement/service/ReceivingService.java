@@ -11,8 +11,8 @@ import com.supplypilot.inventory.repository.InventoryRepository;
 import com.supplypilot.inventory.repository.StockTransactionRepository;
 import com.supplypilot.procurement.domain.PurchaseOrder;
 import com.supplypilot.procurement.domain.PurchaseOrderItem;
-import com.supplypilot.procurement.dto.response.PurchaseOrderResponse;
-import com.supplypilot.procurement.mapper.PurchaseOrderMapper;
+import com.supplypilot.procurement.dto.response.ReceivingPurchaseOrderResponse;
+import com.supplypilot.procurement.mapper.ReceivingPurchaseOrderMapper;
 import com.supplypilot.procurement.repository.PurchaseOrderRepository;
 import com.supplypilot.security.CurrentUserProvider;
 import com.supplypilot.user.domain.User;
@@ -29,7 +29,7 @@ public class ReceivingService {
     private final StockTransactionRepository stockTransactionRepository;
     private final UserRepository userRepository;
     private final CurrentUserProvider currentUserProvider;
-    private final PurchaseOrderMapper purchaseOrderMapper;
+    private final ReceivingPurchaseOrderMapper receivingPurchaseOrderMapper;
     private final Clock clock;
 
     public ReceivingService(
@@ -38,7 +38,7 @@ public class ReceivingService {
             StockTransactionRepository stockTransactionRepository,
             UserRepository userRepository,
             CurrentUserProvider currentUserProvider,
-            PurchaseOrderMapper purchaseOrderMapper,
+            ReceivingPurchaseOrderMapper receivingPurchaseOrderMapper,
             Clock clock
     ) {
         this.purchaseOrderRepository = purchaseOrderRepository;
@@ -46,13 +46,13 @@ public class ReceivingService {
         this.stockTransactionRepository = stockTransactionRepository;
         this.userRepository = userRepository;
         this.currentUserProvider = currentUserProvider;
-        this.purchaseOrderMapper = purchaseOrderMapper;
+        this.receivingPurchaseOrderMapper = receivingPurchaseOrderMapper;
         this.clock = clock;
     }
 
     @Transactional
     @PreAuthorize("hasAnyRole('WAREHOUSE_STAFF', 'ADMIN')")
-    public PurchaseOrderResponse receive(Long purchaseOrderId) {
+    public ReceivingPurchaseOrderResponse receive(Long purchaseOrderId) {
         PurchaseOrder purchaseOrder = purchaseOrderRepository.findById(purchaseOrderId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.PURCHASE_ORDER_NOT_FOUND));
         purchaseOrder.validateReceivingEligibility();
@@ -71,6 +71,6 @@ public class ReceivingService {
         }
 
         purchaseOrder.receive(receiver, now);
-        return purchaseOrderMapper.toResponse(purchaseOrderRepository.saveAndFlush(purchaseOrder));
+        return receivingPurchaseOrderMapper.toResponse(purchaseOrderRepository.saveAndFlush(purchaseOrder));
     }
 }

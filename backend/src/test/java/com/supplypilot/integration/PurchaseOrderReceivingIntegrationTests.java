@@ -14,7 +14,11 @@ import java.util.List;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
+import java.util.HashSet;
+import java.util.Set;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.supplypilot.inventory.domain.Inventory;
 import com.supplypilot.inventory.repository.InventoryRepository;
 import com.supplypilot.material.domain.BaseUnit;
@@ -39,6 +43,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
@@ -55,6 +60,7 @@ class PurchaseOrderReceivingIntegrationTests extends AbstractIntegrationTest {
     @Autowired private UserRepository userRepository;
     @Autowired private IncomingInventoryQuery incomingInventoryQuery;
     @Autowired private JdbcTemplate jdbcTemplate;
+    @Autowired private ObjectMapper objectMapper;
 
     private MockMvc mockMvc;
     private JwtTokenService tokens;
@@ -87,16 +93,18 @@ class PurchaseOrderReceivingIntegrationTests extends AbstractIntegrationTest {
         assertThat(incomingInventoryQuery.calculateIncomingQuantity(
                 first.getId(), TestDataConstants.TEST_TODAY.plusDays(1))).isEqualByComparingTo("10");
 
-        receive(warehouse, order.getId())
+        MvcResult receiveResult = receive(warehouse, order.getId())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("RECEIVED"))
                 .andExpect(jsonPath("$.receivedBy").value(warehouse.getId()))
                 .andExpect(jsonPath("$.receivedByDisplayName").value(warehouse.getDisplayName()))
                 .andExpect(jsonPath("$.receivedAt").value(clock.instant().toString()))
-                .andExpect(jsonPath("$.approvedBy").value(manager.getId()))
-                .andExpect(jsonPath("$.orderedBy").value(buyer.getId()))
+                .andExpect(jsonPath("$.approvedBy").doesNotExist())
+                .andExpect(jsonPath("$.orderedBy").doesNotExist())
+                .andExpect(jsonPath("$.items[0].unitPrice").doesNotExist())
                 .andExpect(jsonPath("$.items.length()").value(3))
-                .andExpect(jsonPath("$.isOverdue").value(false));
+                .andExpect(jsonPath("$.isOverdue").value(false)).andReturn();
+        assertReceivingContract(objectMapper.readTree(receiveResult.getResponse().getContentAsString()));
 
         assertThat(quantity(first)).isEqualByComparingTo("110");
         assertThat(quantity(second)).isEqualByComparingTo("220");
@@ -310,5 +318,19 @@ class PurchaseOrderReceivingIntegrationTests extends AbstractIntegrationTest {
 
     private String suffix() {
         return UUID.randomUUID().toString().replace("-", "").substring(0, 12);
+    }
+
+    private void assertReceivingContract(JsonNode response) {
+        assertThat(fieldNames(response)).containsExactlyInAnyOrder("id", "poNumber", "supplierId", "supplierCode",
+                "supplierName", "status", "expectedDeliveryDate", "isOverdue", "items", "orderedAt", "receivedBy",
+                "receivedByDisplayName", "receivedAt");
+        response.path("items").forEach(item -> assertThat(fieldNames(item)).containsExactlyInAnyOrder("id", "materialId",
+                "materialCode", "materialName", "quantity", "unit"));
+    }
+
+    private Set<String> fieldNames(JsonNode node) {
+        Set<String> names = new HashSet<>();
+        node.fieldNames().forEachRemaining(names::add);
+        return names;
     }
 }
