@@ -1070,6 +1070,7 @@ receivedBy / receivedByDisplayName / receivedAt
 ```json
 [
   {
+    "id": 31,
     "supplierId": 3,
     "supplierCode": "SUP-003",
     "supplierName": "Supplier B",
@@ -1086,6 +1087,7 @@ receivedBy / receivedByDisplayName / receivedAt
     "rank": 1
   },
   {
+    "id": 32,
     "supplierId": 4,
     "supplierCode": "SUP-004",
     "supplierName": "Supplier C",

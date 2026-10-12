@@ -47,6 +47,7 @@ public class RecommendationMapper {
     public SupplierRecommendationResultResponse toResponse(SupplierRecommendationResult result) {
         Supplier supplier = result.getSupplier();
         return new SupplierRecommendationResultResponse(
+                result.getId(),
                 supplier.getId(),
                 result.getSupplierCodeSnapshot(),
                 result.getSupplierNameSnapshot(),

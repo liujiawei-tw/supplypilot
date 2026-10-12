@@ -74,8 +74,17 @@ class PurchaseOrderRecommendationIntegrationTests extends AbstractIntegrationTes
         User staff = user(UserRole.PROCUREMENT_STAFF);
         RecommendationFixture fixture = recommendation(material, supplier, "200.0000", staff);
 
+        MvcResult ranking = mockMvc.perform(get("/api/v1/recommendations/{id}/suppliers",
+                        fixture.recommendation().getId()).header("Authorization", bearer(staff)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].supplierId").value(supplier.getId()))
+                .andReturn();
+        Long resultId = ((Number) JsonPath.read(
+                ranking.getResponse().getContentAsString(), "$[0].id")).longValue();
+        assertThat(resultId).isEqualTo(fixture.result().getId());
+
         MvcResult result = create(staff, payload(supplier,
-                item(material, "200", fixture.recommendation().getId(), fixture.result().getId(), null, null)))
+                item(material, "200", fixture.recommendation().getId(), resultId, null, null)))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.status").value("DRAFT"))
                 .andExpect(jsonPath("$.items[0].recommendationId").value(fixture.recommendation().getId()))
@@ -269,6 +278,16 @@ class PurchaseOrderRecommendationIntegrationTests extends AbstractIntegrationTes
                 .andExpect(jsonPath("$.code").value("INVALID_SUPPLIER_RECOMMENDATION_REFERENCE"));
         create(staff, payload(supplier, item(material, "200", fixture.recommendation().getId(),
                 999999999L, null, null)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("INVALID_SUPPLIER_RECOMMENDATION_REFERENCE"));
+        Supplier supplierIdOnly = supplier("SUPPLIER-ID-IS-NOT-RESULT-ID");
+        while (jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM supplier_recommendation_result WHERE id = ?",
+                Long.class, supplierIdOnly.getId()) > 0) {
+            supplierIdOnly = supplier("SUPPLIER-ID-IS-NOT-RESULT-ID");
+        }
+        create(staff, payload(supplier, item(material, "200", fixture.recommendation().getId(),
+                supplierIdOnly.getId(), null, null)))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("INVALID_SUPPLIER_RECOMMENDATION_REFERENCE"));
         assertThat(purchaseOrderRepository.count()).isEqualTo(before);

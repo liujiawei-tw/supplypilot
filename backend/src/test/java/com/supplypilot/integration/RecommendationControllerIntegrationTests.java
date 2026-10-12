@@ -88,11 +88,25 @@ class RecommendationControllerIntegrationTests extends AbstractIntegrationTest {
         Long id = ((Number) JsonPath.read(result.getResponse().getContentAsString(), "$.id")).longValue();
         assertThat(jdbcTemplate.queryForObject(
                 "SELECT created_by FROM purchase_recommendation WHERE id = ?", Long.class, id)).isEqualTo(buyer.getId());
-        mockMvc.perform(get("/api/v1/recommendations/{id}/suppliers", id).header("Authorization", bearer(buyer)))
+        Long fastResultId = resultId(id, fast);
+        Long lateResultId = resultId(id, late);
+        MvcResult supplierResults = mockMvc.perform(
+                        get("/api/v1/recommendations/{id}/suppliers", id).header("Authorization", bearer(buyer)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[?(@.supplierId == " + fast.getId() + ")].qualified").value(true))
                 .andExpect(jsonPath("$[?(@.supplierId == " + late.getId() + ")].disqualifiedReason")
-                        .value("DELIVERY_DATE_NOT_FEASIBLE"));
+                        .value("DELIVERY_DATE_NOT_FEASIBLE"))
+                .andReturn();
+        String supplierResultsJson = supplierResults.getResponse().getContentAsString();
+        assertThat(((Number) JsonPath.<java.util.List<?>>read(
+                supplierResultsJson, "$[?(@.supplierId == " + fast.getId() + ")].id").getFirst()).longValue())
+                .isEqualTo(fastResultId);
+        assertThat(((Number) JsonPath.<java.util.List<?>>read(
+                supplierResultsJson, "$[?(@.supplierId == " + late.getId() + ")].id").getFirst()).longValue())
+                .isEqualTo(lateResultId);
+        assertThat(jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM supplier_recommendation_result WHERE recommendation_id = ? AND id IN (?, ?)",
+                Long.class, id, fastResultId, lateResultId)).isEqualTo(2L);
     }
 
     @Test
@@ -287,6 +301,13 @@ class RecommendationControllerIntegrationTests extends AbstractIntegrationTest {
         Long poId = jdbcTemplate.queryForObject("SELECT id FROM purchase_orders WHERE po_number = ?", Long.class, number);
         jdbcTemplate.update("INSERT INTO purchase_order_items (purchase_order_id, material_id, quantity, unit_price, unit, created_at) VALUES (?, ?, ?, 0, 'KG', ?)",
                 poId, material.getId(), new BigDecimal(quantity), now);
+    }
+
+    private Long resultId(Long recommendationId, Supplier supplier) {
+        return jdbcTemplate.queryForObject("""
+                SELECT id FROM supplier_recommendation_result
+                WHERE recommendation_id = ? AND supplier_id = ?
+                """, Long.class, recommendationId, supplier.getId());
     }
 
     private User user(UserRole role) {
