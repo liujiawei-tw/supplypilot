@@ -7,6 +7,7 @@ public enum ErrorCode {
     SUPPLIER_MATERIAL_NOT_FOUND("Supplier material was not found."),
     DEMAND_NOT_FOUND("Demand was not found."),
     INVENTORY_NOT_FOUND("Inventory was not found."),
+    STOCK_TRANSACTION_NOT_FOUND("Stock transaction was not found."),
     PURCHASE_ORDER_NOT_FOUND("Purchase order was not found."),
     RECOMMENDATION_NOT_FOUND("Recommendation was not found."),
     DOCUMENT_NOT_FOUND("Document was not found."),
