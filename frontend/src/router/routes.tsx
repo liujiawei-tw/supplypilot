@@ -3,6 +3,7 @@ import RequireAuth from '../auth/RequireAuth';
 import RoleGuard from '../auth/RoleGuard';
 import AppLayout from '../layouts/AppLayout';
 import DashboardPage from '../pages/Dashboard/DashboardPage';
+import DemandsPage from '../pages/Demands/DemandsPage';
 import InventoryPage from '../pages/Inventory/InventoryPage';
 import MaterialsPage from '../pages/Materials/MaterialsPage';
 import SuppliersPage from '../pages/Suppliers/SuppliersPage';
@@ -28,6 +29,8 @@ export const router = createBrowserRouter([
               path,
               element: path === 'inventory'
                 ? <InventoryPage />
+                : path === 'demands'
+                  ? <DemandsPage />
                 : path === 'materials'
                   ? <MaterialsPage />
                   : path === 'suppliers'
