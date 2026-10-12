@@ -48,7 +48,7 @@ class AiReadToolBoundaryTests {
         verify(recommendations).getLatestRecommendationByMaterialCode("MAT-001");
 
         SupplierRecommendationResultResponse candidate = new SupplierRecommendationResultResponse(
-                9L, "SUP-009", "Supplier", true, null, new BigDecimal("200"),
+                101L, 9L, "SUP-009", "Supplier", true, null, new BigDecimal("200"),
                 new BigDecimal("10"), new BigDecimal("2000"), 3,
                 new BigDecimal("90"), new BigDecimal("91"), new BigDecimal("80"),
                 new BigDecimal("85"), new BigDecimal("90"), new BigDecimal("91"),
