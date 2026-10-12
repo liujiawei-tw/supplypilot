@@ -93,8 +93,9 @@ class PurchaseOrderReceivingIntegrationTests extends AbstractIntegrationTest {
                 .andExpect(jsonPath("$.receivedBy").value(warehouse.getId()))
                 .andExpect(jsonPath("$.receivedByDisplayName").value(warehouse.getDisplayName()))
                 .andExpect(jsonPath("$.receivedAt").value(clock.instant().toString()))
-                .andExpect(jsonPath("$.approvedBy").value(manager.getId()))
-                .andExpect(jsonPath("$.orderedBy").value(buyer.getId()))
+                .andExpect(jsonPath("$.approvedBy").doesNotExist())
+                .andExpect(jsonPath("$.orderedBy").doesNotExist())
+                .andExpect(jsonPath("$.items[0].unitPrice").doesNotExist())
                 .andExpect(jsonPath("$.items.length()").value(3))
                 .andExpect(jsonPath("$.isOverdue").value(false));
 
