@@ -4,6 +4,7 @@ import { fireEvent, render, screen, waitFor, within } from '@testing-library/rea
 import userEvent from '@testing-library/user-event';
 import App from '../src/App';
 import { axiosClient, TOKEN_STORAGE_KEY } from '../src/api/axiosClient';
+import { getAdjustmentQuantityError, getAdjustmentReasonError } from '../src/pages/Inventory/inventoryValidation';
 import { router } from '../src/router/routes';
 import type { AuthenticatedUser, UserRole } from '../src/types/api';
 
@@ -62,6 +63,28 @@ describe('SP-802 Demand UI', () => {
     expect(requests).toContain('/demands');
   }, 15_000);
 
+  it('allows a failed Material detail lookup to be retried explicitly', async () => {
+    let materialDetailCalls = 0;
+    axiosClient.defaults.adapter = vi.fn(async (config) => {
+      if (config.url === '/auth/me') return response(config, identities.PRODUCTION_PLANNER);
+      if (config.url === '/demands') return response(config, { content: [demand], page: 0, size: 20, totalElements: 1, totalPages: 1 });
+      if (config.url === '/materials') return response(config, { content: [], page: 0, size: 20, totalElements: 0, totalPages: 0 });
+      if (config.url === '/materials/1') {
+        materialDetailCalls += 1;
+        if (materialDetailCalls === 1) throw new AxiosError('Temporary failure', 'ERR_BAD_RESPONSE', config, undefined, response(config, { code: 'INTERNAL_ERROR', message: 'Try again', traceId: 'trace', timestamp: '', path: '' }, 500));
+        return response(config, material);
+      }
+      throw new Error(`Unexpected request ${config.url}`);
+    });
+    await open('/demands');
+    expect(await screen.findByRole('row', { name: /Material #1/ }, { timeout: 5_000 })).toBeTruthy();
+    const retry = await screen.findByRole('button', { name: 'Retry material details' });
+    expect(materialDetailCalls).toBe(1);
+    await userEvent.setup().click(retry);
+    expect(await screen.findByRole('row', { name: /MAT-001 — Steel/ })).toBeTruthy();
+    expect(materialDetailCalls).toBe(2);
+  }, 15_000);
+
   it('shows create fields, edits with explicit note clearing, confirms cancel and refetches', async () => {
     const requests: InternalAxiosRequestConfig[] = [];
     let patchCalls = 0;
@@ -111,6 +134,18 @@ describe('SP-802 Demand UI', () => {
 });
 
 describe('SP-802 Inventory UI', () => {
+  it('validates adjustment decimal boundaries without Number conversion', () => {
+    for (const value of ['5', '-5.25', '0.0001', '-0.0001', '999999999999999.1234']) {
+      expect(getAdjustmentQuantityError(value)).toBeUndefined();
+    }
+    expect(getAdjustmentQuantityError('0')).toBe('Quantity must not be zero');
+    expect(getAdjustmentQuantityError('1000000000000000')).toBe('Use at most 15 integer digits and 4 decimal places');
+    expect(getAdjustmentQuantityError('1.00001')).toBe('Use at most 15 integer digits and 4 decimal places');
+    expect(getAdjustmentReasonError('   ')).toBe('Reason is required');
+    expect(getAdjustmentReasonError('x'.repeat(501))).toBe('Reason must be 500 characters or fewer');
+    expect(getAdjustmentReasonError('Cycle count')).toBeUndefined();
+  });
+
   it.each([
     ['PRODUCTION_PLANNER', ['Stock Levels'], 'stock-levels', true],
     ['PROCUREMENT_STAFF', ['Stock Levels'], 'stock-levels', true],
@@ -158,7 +193,7 @@ describe('SP-802 Inventory UI', () => {
     finishAdjustment();
     await waitFor(() => expect(requests.filter(({ method, url }) => method === 'get' && url === '/inventory').length).toBeGreaterThanOrEqual(2));
     const post = requests.find(({ url }) => url === '/inventory/1/adjustments')!;
-    expect(JSON.parse(post.data as string)).toEqual({ quantity: -5.25, reason: 'Damaged stock' });
+    expect(JSON.parse(post.data as string)).toEqual({ quantity: '-5.25', reason: 'Damaged stock' });
   }, 30_000);
 
   it('keeps adjustment input and marks a 409 result unknown without retrying', async () => {

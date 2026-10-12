@@ -12,6 +12,7 @@ import ErrorState from '../../components/ErrorState';
 import LoadingState from '../../components/LoadingState';
 import UnauthorizedPage from '../Unauthorized/UnauthorizedPage';
 import type { ApiErrorResponse, PageResponse } from '../../types/api';
+import { getAdjustmentQuantityError, getAdjustmentReasonError } from './inventoryValidation';
 
 type InventoryTab = 'stock-levels' | 'stock-transactions';
 
@@ -92,7 +93,7 @@ function StockLevels() {
     setAdjustmentError(null);
     setUnknownResult(false);
     try {
-      await adjustInventory(adjusting.materialId, { quantity: Number(values.quantity), reason: values.reason!.trim() });
+      await adjustInventory(adjusting.materialId, { quantity: values.quantity!, reason: values.reason!.trim() });
       apiMessage.success('Inventory adjustment 已完成');
       setAdjusting(null);
       form.resetFields();
@@ -171,12 +172,14 @@ function StockLevels() {
           <Form.Item name="quantity" label="Change Quantity" rules={[
             { required: true, message: 'Quantity is required' },
             { validator: async (_rule, value: string | undefined) => {
-              if (value === undefined || value === null) return;
-              if (Number(value) === 0) throw new Error('Quantity must not be zero');
-              if (!/^-?\d{1,15}(\.\d{1,4})?$/.test(value)) throw new Error('Use at most 15 integer digits and 4 decimal places');
+              const error = getAdjustmentQuantityError(value);
+              if (error) throw new Error(error);
             } },
           ]}><InputNumber<string> aria-label="Adjustment quantity" stringMode style={{ width: '100%' }} /></Form.Item>
-          <Form.Item name="reason" label="Reason" rules={[{ required: true, whitespace: true, message: 'Reason is required' }, { max: 500, message: 'Reason must be 500 characters or fewer' }]}><Input.TextArea aria-label="Adjustment reason" maxLength={500} showCount rows={3} /></Form.Item>
+          <Form.Item name="reason" label="Reason" rules={[{ validator: async (_rule, value: string | undefined) => {
+            const error = getAdjustmentReasonError(value);
+            if (error) throw new Error(error);
+          } }]}><Input.TextArea aria-label="Adjustment reason" maxLength={500} showCount rows={3} /></Form.Item>
         </Form>
       </>}
     </Modal>

@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Button, Checkbox, Descriptions, Drawer, Form, Input, InputNumber, message, Modal, Popconfirm, Select, Space, Table, Tag, Typography } from 'antd';
+import { Alert, Button, Checkbox, Descriptions, Drawer, Form, Input, InputNumber, message, Modal, Popconfirm, Select, Space, Table, Tag, Typography } from 'antd';
 import type { TableProps } from 'antd';
 import { PlusOutlined } from '@ant-design/icons';
 import { cancelDemand, createDemand, getDemand, listDemands, updateDemand, type DemandResponse, type DemandStatus } from '../../api/demand';
 import { toApiError } from '../../api/apiError';
 import { getMaterial, type MaterialResponse } from '../../api/material';
 import { useAuth } from '../../auth/useAuth';
+import { can } from '../../auth/permissions';
 import EmptyState from '../../components/EmptyState';
 import ErrorState from '../../components/ErrorState';
 import LoadingState from '../../components/LoadingState';
@@ -30,11 +31,14 @@ function formatTimestamp(value: string): string {
 export default function DemandsPage() {
   const { user } = useAuth();
   const canWrite = user?.role === 'PRODUCTION_PLANNER' || user?.role === 'ADMIN';
+  const canReadMaterials = !!user && can(user.role, 'materials');
   const [form] = Form.useForm<DemandFormValues>();
   const changeNote = Form.useWatch('changeNote', form);
   const [apiMessage, contextHolder] = message.useMessage();
   const [data, setData] = useState<PageResponse<DemandResponse> | null>(null);
   const [materials, setMaterials] = useState<Record<number, MaterialResponse>>({});
+  const materialsRef = useRef<Record<number, MaterialResponse>>({});
+  const [failedMaterialIds, setFailedMaterialIds] = useState<number[]>([]);
   const [listError, setListError] = useState<ApiErrorResponse | null>(null);
   const [submitError, setSubmitError] = useState<ApiErrorResponse | null>(null);
   const [detailError, setDetailError] = useState<ApiErrorResponse | null>(null);
@@ -47,7 +51,39 @@ export default function DemandsPage() {
   const [query, setQuery] = useState({ page: 0, size: 20, sort: 'id,asc', materialId: undefined as number | undefined, status: undefined as DemandStatus | undefined, requiredFrom: '', requiredTo: '' });
   const requestId = useRef(0);
   const detailRequestId = useRef(0);
-  const requestedMaterials = useRef(new Set<number>());
+  const materialRequests = useRef(new Map<number, Promise<MaterialResponse>>());
+  const materialResolutionId = useRef(0);
+
+  const resolveMaterials = useCallback(async (materialIds: number[]) => {
+    if (!canReadMaterials) return;
+    const current = ++materialResolutionId.current;
+    const requests = materialIds.map((materialId) => {
+      const existing = materialRequests.current.get(materialId);
+      if (existing) return existing;
+      const request = getMaterial(materialId);
+      materialRequests.current.set(materialId, request);
+      void request.finally(() => {
+        if (materialRequests.current.get(materialId) === request) materialRequests.current.delete(materialId);
+      }).catch(() => undefined);
+      return request;
+    });
+    const results = await Promise.allSettled(requests);
+    const loaded: MaterialResponse[] = [];
+    const failed: number[] = [];
+    results.forEach((result, index) => {
+      if (result.status === 'fulfilled') loaded.push(result.value);
+      else failed.push(materialIds[index]);
+    });
+    if (loaded.length) {
+      setMaterials((cached) => {
+        const next = { ...cached };
+        loaded.forEach((material) => { next[material.id] = material; });
+        materialsRef.current = next;
+        return next;
+      });
+    }
+    if (current === materialResolutionId.current) setFailedMaterialIds(failed);
+  }, [canReadMaterials]);
 
   const load = useCallback(async () => {
     const current = ++requestId.current;
@@ -70,20 +106,18 @@ export default function DemandsPage() {
 
   useEffect(() => {
     const missing = [...new Set((data?.content ?? []).map(({ materialId }) => materialId))]
-      .filter((materialId) => !materials[materialId] && !requestedMaterials.current.has(materialId));
-    if (!missing.length) return;
-    missing.forEach((materialId) => requestedMaterials.current.add(materialId));
-    let active = true;
-    void Promise.allSettled(missing.map((id) => getMaterial(id))).then((results) => {
-      if (!active) return;
-      setMaterials((current) => {
-        const next = { ...current };
-        results.forEach((result) => { if (result.status === 'fulfilled') next[result.value.id] = result.value; });
-        return next;
-      });
-    });
-    return () => { active = false; };
-  }, [data, materials]);
+      .filter((materialId) => !materialsRef.current[materialId]);
+    materialResolutionId.current += 1;
+    if (missing.length && canReadMaterials) void resolveMaterials(missing);
+  }, [canReadMaterials, data, resolveMaterials]);
+
+  const currentPageMaterialIds = new Set((data?.content ?? []).map(({ materialId }) => materialId));
+  const currentFailedMaterialIds = failedMaterialIds.filter((materialId) => currentPageMaterialIds.has(materialId) && !materials[materialId]);
+
+  const retryMaterials = () => {
+    setFailedMaterialIds([]);
+    if (currentFailedMaterialIds.length) void resolveMaterials(currentFailedMaterialIds);
+  };
 
   const openCreate = () => {
     setEditing(null);
@@ -190,6 +224,7 @@ export default function DemandsPage() {
       <Input aria-label="Required to" type="date" value={query.requiredTo} onChange={(event) => setQuery((current) => ({ ...current, requiredTo: event.target.value, page: 0 }))} />
     </Space>
     {listError && <ErrorState title="Demand request failed" error={listError} onRetry={() => void load()} />}
+    {currentFailedMaterialIds.length > 0 && <Alert type="warning" showIcon title="部分 Material 資訊載入失敗" description={<Space orientation="vertical"><span>Demand 資料仍可使用；可重新載入本頁的 Material Code／Name。</span><Button size="small" onClick={retryMaterials}>Retry material details</Button></Space>} />}
     {loading && !data ? <LoadingState tip="Loading demands..." /> : <Table<DemandResponse>
       rowKey="id" columns={columns} dataSource={data?.content ?? []} loading={loading}
       locale={{ emptyText: <EmptyState simple description={filtered ? '沒有符合查詢條件的 Demand' : '尚無 Demand 資料'} actionText={canWrite && !filtered ? 'Create Demand' : undefined} onAction={canWrite && !filtered ? openCreate : undefined} /> }}

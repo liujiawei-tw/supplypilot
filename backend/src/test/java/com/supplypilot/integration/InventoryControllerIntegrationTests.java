@@ -161,6 +161,22 @@ class InventoryControllerIntegrationTests extends AbstractIntegrationTest {
     }
 
     @Test
+    void manualAdjustmentAcceptsExactDecimalStringWithoutLosingBigDecimalPrecision() throws Exception {
+        Material material = materialWithInventory("MAT-ADJUST-PRECISE", "Precise adjustment material");
+        User actor = user(UserRole.ADMIN);
+
+        mockMvc.perform(post("/api/v1/inventory/{materialId}/adjustments", material.getId())
+                        .header("Authorization", bearer(actor)).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"quantity\":\"999999999999999.1234\",\"reason\":\"Precision contract\"}"))
+                .andExpect(status().isOk());
+
+        assertThat(inventoryRepository.findByMaterialId(material.getId()).orElseThrow().getQuantity())
+                .isEqualByComparingTo("999999999999999.1234");
+        assertThat(transactionsFor(material)).singleElement().satisfies(transaction ->
+                assertThat(transaction.getQuantity()).isEqualByComparingTo("999999999999999.1234"));
+    }
+
+    @Test
     void manualAdjustmentValidatesRequestAndDistinguishesMissingMaterialAndInventory() throws Exception {
         User actor = user(UserRole.ADMIN);
         String endpoint = "/api/v1/inventory/999999999/adjustments";

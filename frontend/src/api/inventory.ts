@@ -19,7 +19,7 @@ export interface InventoryQuery {
 }
 
 export interface InventoryAdjustmentRequest {
-  quantity: number;
+  quantity: string;
   reason: string;
 }
 

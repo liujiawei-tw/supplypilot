@@ -40,19 +40,31 @@ describe('SP-802 API contracts', () => {
     expect(update).not.toHaveProperty('status');
   });
 
-  it('uses Inventory filters without an unsupported sort and sends signed adjustment quantity', async () => {
+  it('uses Inventory filters without an unsupported sort and preserves decimal adjustment strings exactly', async () => {
     const requests: InternalAxiosRequestConfig[] = [];
     axiosClient.defaults.adapter = vi.fn(async (config) => { requests.push(config); return response(config, config.url === '/inventory/3' ? { materialId: 3 } : { content: [] }); });
     await listInventory({ materialId: 3, materialCode: 'MAT', page: 1, size: 20 });
     await getInventory(3);
-    await adjustInventory(3, { quantity: -5.25, reason: 'Damaged stock' });
+    for (const quantity of ['5', '-5.25', '0.0001', '-0.0001', '999999999999999.1234']) {
+      await adjustInventory(3, { quantity, reason: 'Damaged stock' });
+    }
     expect(requests[0].params).toEqual({ materialId: 3, materialCode: 'MAT', page: 1, size: 20 });
     expect(requests[0].params).not.toHaveProperty('sort');
     expect(requests.map(({ method, url }) => ({ method, url }))).toEqual([
       { method: 'get', url: '/inventory' },
       { method: 'get', url: '/inventory/3' },
       { method: 'post', url: '/inventory/3/adjustments' },
+      { method: 'post', url: '/inventory/3/adjustments' },
+      { method: 'post', url: '/inventory/3/adjustments' },
+      { method: 'post', url: '/inventory/3/adjustments' },
+      { method: 'post', url: '/inventory/3/adjustments' },
     ]);
-    expect(JSON.parse(requests[2].data as string)).toEqual({ quantity: -5.25, reason: 'Damaged stock' });
+    expect(requests.slice(2).map(({ data }) => JSON.parse(data as string))).toEqual([
+      { quantity: '5', reason: 'Damaged stock' },
+      { quantity: '-5.25', reason: 'Damaged stock' },
+      { quantity: '0.0001', reason: 'Damaged stock' },
+      { quantity: '-0.0001', reason: 'Damaged stock' },
+      { quantity: '999999999999999.1234', reason: 'Damaged stock' },
+    ]);
   });
 });
