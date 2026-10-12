@@ -16,7 +16,8 @@ export default function SupplierList({ isAdmin }: { isAdmin: boolean }) {
   const [form] = Form.useForm<SupplierFormValues>();
   const [apiMessage, contextHolder] = message.useMessage();
   const [data, setData] = useState<PageResponse<SupplierResponse> | null>(null);
-  const [error, setError] = useState<ApiErrorResponse | null>(null);
+  const [listError, setListError] = useState<ApiErrorResponse | null>(null);
+  const [submitError, setSubmitError] = useState<ApiErrorResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
@@ -26,12 +27,12 @@ export default function SupplierList({ isAdmin }: { isAdmin: boolean }) {
 
   const load = useCallback(async () => {
     const current = ++requestId.current;
-    setLoading(true); setError(null);
+    setLoading(true); setListError(null);
     try {
       const response = await listSuppliers({ ...query, code: query.code || undefined, name: query.name || undefined });
       if (current === requestId.current) setData(response);
     } catch (loadError) {
-      if (current === requestId.current) setError(toApiError(loadError));
+      if (current === requestId.current) setListError(toApiError(loadError));
     } finally {
       if (current === requestId.current) setLoading(false);
     }
@@ -42,9 +43,10 @@ export default function SupplierList({ isAdmin }: { isAdmin: boolean }) {
   }, [load]);
 
   const openCreate = () => {
-    setEditing(null); form.resetFields(); form.setFieldsValue({ reliabilityScore: 0, qualityScore: 0 }); setModalOpen(true);
+    setSubmitError(null); setEditing(null); form.resetFields(); form.setFieldsValue({ reliabilityScore: 0, qualityScore: 0 }); setModalOpen(true);
   };
   const openEdit = (supplier: SupplierResponse) => {
+    setSubmitError(null);
     setEditing(supplier);
     form.setFieldsValue({ code: supplier.code, name: supplier.name, country: supplier.country ?? undefined, reliabilityScore: supplier.reliabilityScore, qualityScore: supplier.qualityScore, status: supplier.status });
     setModalOpen(true);
@@ -52,6 +54,7 @@ export default function SupplierList({ isAdmin }: { isAdmin: boolean }) {
   const submit = async () => {
     let values: SupplierFormValues;
     try { values = await form.validateFields(); } catch { return; }
+    setSubmitError(null);
     setSubmitting(true);
     try {
       if (editing) {
@@ -63,14 +66,14 @@ export default function SupplierList({ isAdmin }: { isAdmin: boolean }) {
       }
       setModalOpen(false); form.resetFields(); await load();
     } catch (submitError) {
-      setError(toApiError(submitError));
+      setSubmitError(toApiError(submitError));
     } finally { setSubmitting(false); }
   };
   const changeStatus = async (supplier: SupplierResponse) => {
     try {
       await updateSupplier(supplier.id, { status: supplier.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE' });
       apiMessage.success('狀態已更新'); await load();
-    } catch (statusError) { setError(toApiError(statusError)); }
+    } catch (statusError) { setListError(toApiError(statusError)); }
   };
   const handleTableChange: TableProps<SupplierResponse>['onChange'] = (pagination, _filters, sorter) => {
     const sortValue = Array.isArray(sorter) ? sorter[0] : sorter;
@@ -97,11 +100,12 @@ export default function SupplierList({ isAdmin }: { isAdmin: boolean }) {
       </Space>
       {isAdmin && <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>Create Supplier</Button>}
     </Space>
-    {error && <ErrorState title="Supplier request failed" error={error} onRetry={() => void load()} />}
+    {listError && <ErrorState title="Supplier request failed" error={listError} onRetry={() => void load()} />}
     {loading && !data ? <LoadingState tip="Loading suppliers..." /> : <Table<SupplierResponse> rowKey="id" columns={columns} dataSource={data?.content ?? []} loading={loading}
       locale={{ emptyText: <EmptyState simple description={filtered ? '沒有符合查詢條件的 Supplier' : '尚無 Supplier 資料'} actionText={isAdmin && !filtered ? 'Create Supplier' : undefined} onAction={isAdmin && !filtered ? openCreate : undefined} /> }}
       pagination={{ current: (data?.page ?? 0) + 1, pageSize: data?.size ?? query.size, total: data?.totalElements ?? 0, showSizeChanger: true }} onChange={handleTableChange} />}
     <Modal title={editing ? 'Edit Supplier' : 'Create Supplier'} open={modalOpen} onCancel={() => !submitting && setModalOpen(false)} onOk={() => void submit()} confirmLoading={submitting} okButtonProps={{ disabled: submitting }} destroyOnHidden>
+      {submitError && <ErrorState title="Supplier submit failed" error={submitError} />}
       <Form form={form} layout="vertical" preserve={false}>
         <Form.Item name="code" label="Code" rules={[{ required: true, whitespace: true }, { max: 50 }]}><Input disabled={!!editing} /></Form.Item>
         <Form.Item name="name" label="Name" rules={[{ required: true, whitespace: true }, { max: 100 }]}><Input /></Form.Item>

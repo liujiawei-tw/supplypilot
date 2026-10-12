@@ -20,7 +20,8 @@ export default function MaterialsPage() {
   const [form] = Form.useForm<MaterialFormValues>();
   const [apiMessage, contextHolder] = message.useMessage();
   const [data, setData] = useState<PageResponse<MaterialResponse> | null>(null);
-  const [error, setError] = useState<ApiErrorResponse | null>(null);
+  const [listError, setListError] = useState<ApiErrorResponse | null>(null);
+  const [submitError, setSubmitError] = useState<ApiErrorResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
@@ -31,12 +32,12 @@ export default function MaterialsPage() {
   const load = useCallback(async () => {
     const current = ++requestId.current;
     setLoading(true);
-    setError(null);
+    setListError(null);
     try {
       const response = await listMaterials({ ...query, code: query.code || undefined, name: query.name || undefined });
       if (current === requestId.current) setData(response);
     } catch (loadError) {
-      if (current === requestId.current) setError(toApiError(loadError));
+      if (current === requestId.current) setListError(toApiError(loadError));
     } finally {
       if (current === requestId.current) setLoading(false);
     }
@@ -48,6 +49,7 @@ export default function MaterialsPage() {
   }, [load]);
 
   const openCreate = () => {
+    setSubmitError(null);
     setEditing(null);
     form.resetFields();
     form.setFieldsValue({ baseUnit: 'PCS', safetyStock: 0 });
@@ -55,6 +57,7 @@ export default function MaterialsPage() {
   };
 
   const openEdit = (material: MaterialResponse) => {
+    setSubmitError(null);
     setEditing(material);
     form.setFieldsValue({ code: material.code, name: material.name, baseUnit: material.baseUnit, safetyStock: material.safetyStock, status: material.status });
     setModalOpen(true);
@@ -63,6 +66,7 @@ export default function MaterialsPage() {
   const submit = async () => {
     let values: MaterialFormValues;
     try { values = await form.validateFields(); } catch { return; }
+    setSubmitError(null);
     setSubmitting(true);
     try {
       if (editing) {
@@ -78,7 +82,7 @@ export default function MaterialsPage() {
       form.resetFields();
       await load();
     } catch (submitError) {
-      setError(toApiError(submitError));
+      setSubmitError(toApiError(submitError));
     } finally {
       setSubmitting(false);
     }
@@ -90,7 +94,7 @@ export default function MaterialsPage() {
       apiMessage.success('狀態已更新');
       await load();
     } catch (statusError) {
-      setError(toApiError(statusError));
+      setListError(toApiError(statusError));
     }
   };
 
@@ -131,7 +135,7 @@ export default function MaterialsPage() {
         <Input aria-label="Material name filter" placeholder="Name" value={query.name} onChange={(event) => setQuery((current) => ({ ...current, name: event.target.value, page: 0 }))} allowClear />
         <Select aria-label="Material status filter" placeholder="Status" value={query.status} options={statuses.map((status) => ({ value: status, label: status }))} onChange={(status) => setQuery((current) => ({ ...current, status, page: 0 }))} allowClear style={{ width: 150 }} />
       </Space>
-      {error && <ErrorState title="Material request failed" error={error} onRetry={() => void load()} />}
+      {listError && <ErrorState title="Material request failed" error={listError} onRetry={() => void load()} />}
       {loading && !data ? <LoadingState tip="Loading materials..." /> : <Table<MaterialResponse>
         rowKey="id" columns={columns} dataSource={data?.content ?? []} loading={loading}
         locale={{ emptyText: <EmptyState simple description={filtered ? '沒有符合查詢條件的 Material' : '尚無 Material 資料'} actionText={isAdmin && !filtered ? 'Create Material' : undefined} onAction={isAdmin && !filtered ? openCreate : undefined} /> }}
@@ -140,6 +144,7 @@ export default function MaterialsPage() {
       />}
     </Space>
     <Modal title={editing ? 'Edit Material' : 'Create Material'} open={modalOpen} onCancel={() => !submitting && setModalOpen(false)} onOk={() => void submit()} confirmLoading={submitting} okButtonProps={{ disabled: submitting }} destroyOnHidden>
+      {submitError && <ErrorState title="Material submit failed" error={submitError} />}
       <Form form={form} layout="vertical" preserve={false}>
         <Form.Item name="code" label="Code" rules={[{ required: true, whitespace: true }, { max: 50 }]}><Input disabled={!!editing} /></Form.Item>
         <Form.Item name="name" label="Name" rules={[{ required: true, whitespace: true }, { max: 100 }]}><Input /></Form.Item>
