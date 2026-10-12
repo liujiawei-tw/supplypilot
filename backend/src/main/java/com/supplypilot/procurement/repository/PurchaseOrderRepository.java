@@ -14,6 +14,14 @@ import org.springframework.data.repository.query.Param;
 
 public interface PurchaseOrderRepository extends JpaRepository<PurchaseOrder, Long>, JpaSpecificationExecutor<PurchaseOrder> {
 
+    interface NumberProjection {
+        Long getId();
+        String getPoNumber();
+    }
+
+    @Query("select purchaseOrder.id as id, purchaseOrder.poNumber as poNumber from PurchaseOrder purchaseOrder where purchaseOrder.id in :ids")
+    List<NumberProjection> findNumberByIdIn(@Param("ids") Collection<Long> ids);
+
     @Query("""
             select distinct purchaseOrder
             from PurchaseOrder purchaseOrder

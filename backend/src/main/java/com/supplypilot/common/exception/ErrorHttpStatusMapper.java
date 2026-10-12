@@ -14,6 +14,7 @@ final class ErrorHttpStatusMapper {
                     SUPPLIER_MATERIAL_NOT_FOUND,
                     DEMAND_NOT_FOUND,
                     INVENTORY_NOT_FOUND,
+                    STOCK_TRANSACTION_NOT_FOUND,
                     PURCHASE_ORDER_NOT_FOUND,
                     RECOMMENDATION_NOT_FOUND,
                     DOCUMENT_NOT_FOUND,
