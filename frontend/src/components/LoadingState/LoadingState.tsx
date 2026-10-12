@@ -40,7 +40,7 @@ export const LoadingState: React.FC<LoadingStateProps> = ({
 
   return (
     <div style={containerStyle} data-testid="loading-spin">
-      <Spin size="large" tip={tip}>
+      <Spin size="large" description={tip}>
         <div style={{ padding: '24px' }} />
       </Spin>
     </div>
