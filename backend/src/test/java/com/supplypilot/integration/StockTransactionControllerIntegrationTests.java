@@ -178,14 +178,40 @@ class StockTransactionControllerIntegrationTests extends AbstractIntegrationTest
 
     @Test
     void supportsAllSortFieldsAndStableIdTieBreak() throws Exception {
-        for (String sort : List.of("id,asc", "createdAt,desc", "materialId,asc", "type,asc", "purchaseOrderId,asc", "quantity,desc")) {
-            mockMvc.perform(get("/api/v1/stock-transactions").param("sort", sort)
-                            .header("Authorization", bearer(warehouse))).andExpect(status().isOk());
-        }
-        mockMvc.perform(get("/api/v1/stock-transactions").param("materialId", kg.getId().toString())
-                        .param("sort", "materialId,asc")
-                        .header("Authorization", bearer(warehouse))).andExpect(status().isOk())
-                .andExpect(jsonPath("$.content[0].materialId").value(kg.getId()));
+        Instant firstAt = Instant.parse("2026-10-01T00:00:00Z");
+        Instant secondAt = Instant.parse("2026-10-02T00:00:00Z");
+        Material firstMaterial = material("SORT-FIRST", BaseUnit.KG);
+        Material secondMaterial = material("SORT-SECOND", BaseUnit.KG);
+        StockTransaction first = saveManual(firstMaterial, "1", "sort-first", firstAt);
+        StockTransaction tied = saveManual(firstMaterial, "1", "sort-tied", firstAt);
+        StockTransaction second = saveManual(secondMaterial, "5", "sort-second", secondAt);
+        PurchaseOrder secondOrder = createAndReceivePurchaseOrder(pcs, warehouse);
+        StockTransaction receive = transactionRepository.saveAndFlush(StockTransaction.purchaseReceive(
+                secondMaterial, new BigDecimal("3"), secondOrder.getId(), warehouse, secondAt));
+
+        assertThat(idsFor("id,asc", null, "MANUAL_ADJUSTMENT", firstAt, secondAt)).containsExactly(first.getId(), tied.getId(), second.getId());
+        assertThat(idsFor("id,desc", null, "MANUAL_ADJUSTMENT", firstAt, secondAt)).containsExactly(second.getId(), tied.getId(), first.getId());
+        assertThat(idsFor("createdAt,asc", null, "MANUAL_ADJUSTMENT", firstAt, secondAt)).containsExactly(first.getId(), tied.getId(), second.getId());
+        assertThat(idsFor("createdAt,desc", null, "MANUAL_ADJUSTMENT", firstAt, secondAt)).containsExactly(second.getId(), first.getId(), tied.getId());
+        assertThat(idsFor("materialId,asc", null, "MANUAL_ADJUSTMENT", firstAt, secondAt)).containsExactly(first.getId(), tied.getId(), second.getId());
+        assertThat(idsFor("materialId,desc", null, "MANUAL_ADJUSTMENT", firstAt, secondAt)).containsExactly(second.getId(), first.getId(), tied.getId());
+        assertThat(idsFor("type,asc", null, null, firstAt, secondAt)).containsExactly(first.getId(), tied.getId(), second.getId(), receive.getId());
+        assertThat(idsFor("purchaseOrderId,asc", null, "PURCHASE_RECEIVE", firstAt, secondAt)).containsExactly(receive.getId());
+        assertThat(idsFor("quantity,asc", null, "MANUAL_ADJUSTMENT", firstAt, secondAt)).containsExactly(first.getId(), tied.getId(), second.getId());
+        assertThat(idsFor("quantity,desc", null, "MANUAL_ADJUSTMENT", firstAt, secondAt)).containsExactly(second.getId(), first.getId(), tied.getId());
+
+        assertThat(idsFor("id,asc", firstMaterial.getId().toString(), "MANUAL_ADJUSTMENT", firstAt, firstAt))
+                .containsExactly(first.getId(), tied.getId());
+        MvcResult page0 = mockMvc.perform(get("/api/v1/stock-transactions").param("materialId", firstMaterial.getId().toString())
+                        .param("type", "MANUAL_ADJUSTMENT").param("from", firstAt.toString()).param("to", firstAt.toString())
+                        .param("page", "0").param("size", "1").param("sort", "quantity,asc")
+                        .header("Authorization", bearer(warehouse))).andExpect(status().isOk()).andReturn();
+        MvcResult page1 = mockMvc.perform(get("/api/v1/stock-transactions").param("materialId", firstMaterial.getId().toString())
+                        .param("type", "MANUAL_ADJUSTMENT").param("from", firstAt.toString()).param("to", firstAt.toString())
+                        .param("page", "1").param("size", "1").param("sort", "quantity,asc")
+                        .header("Authorization", bearer(warehouse))).andExpect(status().isOk()).andReturn();
+        assertThat(objectMapper.readTree(page0.getResponse().getContentAsString()).path("content").get(0).path("id").asLong()).isEqualTo(first.getId());
+        assertThat(objectMapper.readTree(page1.getResponse().getContentAsString()).path("content").get(0).path("id").asLong()).isEqualTo(tied.getId());
     }
 
     @Test
@@ -222,6 +248,21 @@ class StockTransactionControllerIntegrationTests extends AbstractIntegrationTest
                 .andExpect(status().isOk());
         return transactionRepository.findAll().stream().filter(t -> t.getMaterial().getId().equals(material.getId())
                 && reason.equals(t.getReason())).findFirst().orElseThrow();
+    }
+
+    private StockTransaction saveManual(Material material, String quantity, String reason, Instant createdAt) {
+        return transactionRepository.saveAndFlush(StockTransaction.manualAdjustment(material, new BigDecimal(quantity), reason, warehouse, createdAt));
+    }
+
+    private List<Long> idsFor(String sort, String materialId, String type, Instant from, Instant to) throws Exception {
+        var request = get("/api/v1/stock-transactions").param("sort", sort).param("from", from.toString()).param("to", to.toString());
+        if (materialId != null) request.param("materialId", materialId);
+        if (type != null) request.param("type", type);
+        JsonNode content = objectMapper.readTree(mockMvc.perform(request.header("Authorization", bearer(warehouse)))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString()).path("content");
+        List<Long> ids = new java.util.ArrayList<>();
+        content.forEach(node -> ids.add(node.path("id").asLong()));
+        return ids;
     }
 
     private PurchaseOrder createAndReceivePurchaseOrder(Material material, User receiver) throws Exception {

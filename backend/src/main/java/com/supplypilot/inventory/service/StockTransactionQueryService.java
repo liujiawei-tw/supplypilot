@@ -74,9 +74,12 @@ public class StockTransactionQueryService {
     private StockTransactionReadResponse toResponse(StockTransaction transaction, Map<Long, String> numbers) {
         var material = transaction.getMaterial();
         var createdBy = transaction.getCreatedBy();
+        String purchaseOrderNumber = transaction.getPurchaseOrderId() == null
+                ? null
+                : numbers.get(transaction.getPurchaseOrderId());
         return new StockTransactionReadResponse(transaction.getId(), material.getId(), material.getCode(), material.getName(),
                 material.getBaseUnit(), transaction.getType(), transaction.getQuantity(), transaction.getPurchaseOrderId(),
-                numbers.get(transaction.getPurchaseOrderId()), transaction.getReason(), createdBy.getId(),
+                purchaseOrderNumber, transaction.getReason(), createdBy.getId(),
                 createdBy.getDisplayName(), transaction.getCreatedAt());
     }
 }
