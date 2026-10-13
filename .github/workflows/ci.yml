@@ -16,8 +16,74 @@ permissions:
   contents: read
 
 jobs:
+  changes:
+    name: Detect CI scope
+    runs-on: ubuntu-latest
+    outputs:
+      backend: ${{ steps.scope.outputs.backend }}
+      frontend: ${{ steps.scope.outputs.frontend }}
+    steps:
+      - name: Checkout repository with history
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Determine impacted pipelines
+        id: scope
+        env:
+          BEFORE_SHA: ${{ github.event.before }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          # PRs and main always run both suites, regardless of changed files.
+          if [[ "$GITHUB_EVENT_NAME" == "pull_request" || "$GITHUB_REF" == "refs/heads/main" ]]; then
+            echo "backend=true" >> "$GITHUB_OUTPUT"
+            echo "frontend=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          base="$BEFORE_SHA"
+          if [[ ! "$base" =~ ^[0-9a-f]{40}$ || "$base" == "0000000000000000000000000000000000000000" ]]; then
+            # First push of a newly created branch: compare with main.
+            git fetch --no-tags origin main
+            base="$(git merge-base HEAD origin/main)"
+          elif ! git cat-file -e "$base^{commit}" 2>/dev/null; then
+            # Unknown previous commit: fail safe and run both suites.
+            echo "backend=true" >> "$GITHUB_OUTPUT"
+            echo "frontend=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          backend=false
+          frontend=false
+          while IFS= read -r path; do
+            case "$path" in
+              backend/*)
+                backend=true
+                ;;
+              frontend/*)
+                frontend=true
+                ;;
+              docs/*|*.md|*.txt)
+                # Documentation-only changes need no build/test on branch push.
+                ;;
+              *)
+                # Workflow, shared configuration, and unknown paths fail safe.
+                backend=true
+                frontend=true
+                ;;
+            esac
+          done < <(git diff --name-only "$base" "$GITHUB_SHA")
+
+          echo "backend=$backend" >> "$GITHUB_OUTPUT"
+          echo "frontend=$frontend" >> "$GITHUB_OUTPUT"
+          echo "Push scope: backend=$backend, frontend=$frontend"
+
   backend:
     name: Backend CI
+    needs: changes
+    if: needs.changes.outputs.backend == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -52,6 +118,8 @@ jobs:
 
   frontend:
     name: Frontend CI
+    needs: changes
+    if: needs.changes.outputs.frontend == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
