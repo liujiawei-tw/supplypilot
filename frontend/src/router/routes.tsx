@@ -17,6 +17,7 @@ import PurchaseOrdersPage from '../pages/PurchaseOrders/PurchaseOrdersPage';
 import PurchaseOrderDetailPage from '../pages/PurchaseOrders/PurchaseOrderDetailPage';
 import ReceivingPage from '../pages/Receiving/ReceivingPage';
 import ReceivingDetailPage from '../pages/Receiving/ReceivingDetailPage';
+import DocumentsPage from '../pages/Documents/DocumentsPage';
 import { routeCatalog } from './routeCatalog';
 
 export const router = createBrowserRouter([
@@ -56,6 +57,8 @@ export const router = createBrowserRouter([
                           ? <ReceivingPage />
                           : path === 'receiving/purchase-orders/:id'
                             ? <ReceivingDetailPage />
+                            : path === 'documents'
+                              ? <DocumentsPage />
                     : <PlaceholderPage title={label} />,
             }],
           })),

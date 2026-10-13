@@ -21,7 +21,7 @@ export const routeCatalog: RouteEntry[] = [
   { path: 'purchase-orders/:id', label: 'Purchase Order Detail', group: 'Purchase Orders / Receiving', permission: 'purchaseOrderRead' },
   { path: 'receiving/purchase-orders', label: 'Receiving', group: 'Purchase Orders / Receiving', permission: 'receiving', navigation: true },
   { path: 'receiving/purchase-orders/:id', label: 'Receiving Detail', group: 'Purchase Orders / Receiving', permission: 'receiving' },
-  { path: 'documents', label: 'Documents', group: 'Documents', permission: 'documents', navigation: true },
+  { path: 'documents', label: 'Documents', group: 'Documents', permission: 'documentRead', navigation: true },
 ];
 
 export function isAllowedDestination(pathname: string, role: UserRole): boolean {

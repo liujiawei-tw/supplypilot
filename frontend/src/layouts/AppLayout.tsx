@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Button, Layout, Menu, Space, Typography, theme } from 'antd';
-import { DashboardOutlined, LogoutOutlined } from '@ant-design/icons';
+import { DashboardOutlined, LogoutOutlined, RobotOutlined } from '@ant-design/icons';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/useAuth';
 import { can, roleLabels } from '../auth/permissions';
 import { routeCatalog } from '../router/routeCatalog';
+import AiAssistantDrawer from '../components/AiAssistant';
 
 const { Header, Sider, Content } = Layout;
 const { Title, Text } = Typography;
@@ -13,6 +14,7 @@ export const AppLayout: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logout } = useAuth();
+  const [aiOpen, setAiOpen] = useState(false);
   const {
     token: { colorBgContainer, borderRadiusLG },
   } = theme.useToken();
@@ -71,7 +73,7 @@ export const AppLayout: React.FC = () => {
             </Text>
           </div>
           <Space wrap>
-            {can(user.role, 'aiQuery') && <Button disabled title="AI Drawer 將由 SP-806 實作">AI Assistant（尚未實作）</Button>}
+            {can(user.role, 'aiQuery') && <Button icon={<RobotOutlined />} onClick={() => setAiOpen(true)}>AI Assistant</Button>}
             <Text>{user.displayName}（{user.username}）</Text>
             <Text type="secondary">{roleLabels[user.role]}</Text>
             <Button icon={<LogoutOutlined />} onClick={() => { logout(); navigate('/login', { replace: true, state: null }); }}>登出</Button>
@@ -90,6 +92,7 @@ export const AppLayout: React.FC = () => {
           </div>
         </Content>
       </Layout>
+      {can(user.role, 'aiQuery') && <AiAssistantDrawer open={aiOpen} onClose={() => setAiOpen(false)} />}
     </Layout>
   );
 };
