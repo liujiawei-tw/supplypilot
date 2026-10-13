@@ -1,9 +1,8 @@
 import { useMemo, useRef, useState } from 'react';
 import { Alert, Button, Card, Descriptions, Form, Input, Modal, Select, Space, Typography } from 'antd';
-import { isAxiosError } from 'axios';
 import { createPurchaseOrderDraft, type CreatePurchaseOrderRequest, type PurchaseOrderDraftResponse } from '../../api/purchaseOrder';
 import type { DecimalValue, RecommendationResponse, SupplierRecommendationResultResponse } from '../../api/recommendation';
-import { toApiError } from '../../api/apiError';
+import { isUnknownMutationResult, toApiError } from '../../api/apiError';
 import { useAuth } from '../../auth/useAuth';
 import { can } from '../../auth/permissions';
 import ErrorState from '../ErrorState';
@@ -54,7 +53,7 @@ function decimalEquals(left: DecimalValue | null | undefined, right: DecimalValu
 }
 
 function unknownOutcome(error: unknown): boolean {
-  return isAxiosError(error) && (!error.response || error.code === 'ECONNABORTED' || error.code === 'ETIMEDOUT');
+  return isUnknownMutationResult(error);
 }
 
 export default function RecommendationDraftForm({

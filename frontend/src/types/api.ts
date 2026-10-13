@@ -11,6 +11,10 @@ export interface ApiErrorResponse {
   timestamp: string;
   path: string;
   fieldErrors?: FieldError[];
+  /** Client-side metadata. The backend contract is unchanged. */
+  httpStatus?: number;
+  transportError?: boolean;
+  timedOut?: boolean;
 }
 
 export interface PageResponse<T> {

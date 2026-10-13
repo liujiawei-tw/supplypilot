@@ -1,6 +1,8 @@
 import React from 'react';
-import { Alert, Result, Button, Space, Typography } from 'antd';
+import { Result, Button, Space, Typography } from 'antd';
+import { classifyApiError } from '../../api/apiError';
 import type { ApiErrorResponse } from '../../types/api';
+import BusinessErrorAlert from '../BusinessErrorAlert';
 
 const { Text } = Typography;
 
@@ -11,15 +13,17 @@ export interface ErrorStateProps {
   onRetry?: () => void;
   retryText?: string;
   asResult?: boolean;
+  operation?: 'read' | 'mutation';
 }
 
 export const ErrorState: React.FC<ErrorStateProps> = ({
-  title = 'An error occurred',
+  title,
   message,
   error,
   onRetry,
   retryText = 'Retry',
   asResult = false,
+  operation = 'read',
 }) => {
   let displayMessage = message;
   let errorCode: string | undefined;
@@ -40,7 +44,12 @@ export const ErrorState: React.FC<ErrorStateProps> = ({
 
   displayMessage = displayMessage || 'Something went wrong. Please try again later.';
 
-  const extraDetails = (errorCode || traceId) && (
+  const apiError = error && 'code' in error && 'message' in error
+    ? error as ApiErrorResponse
+    : null;
+  const presentation = apiError ? classifyApiError(apiError, operation) : null;
+
+  const extraDetails = (errorCode || traceId || fieldErrors?.length) && (
     <div style={{ marginTop: '8px', fontSize: '12px' }}>
       {errorCode && (
         <div>
@@ -67,7 +76,7 @@ export const ErrorState: React.FC<ErrorStateProps> = ({
     return (
       <Result
         status="error"
-        title={title}
+        title={title ?? presentation?.title ?? '無法完成請求'}
         subTitle={
           <Space orientation="vertical" size={4}>
             <div>{displayMessage}</div>
@@ -75,7 +84,7 @@ export const ErrorState: React.FC<ErrorStateProps> = ({
           </Space>
         }
         extra={
-          onRetry ? (
+          onRetry && (presentation?.retryAllowed ?? true) ? (
             <Button type="primary" onClick={onRetry}>
               {retryText}
             </Button>
@@ -85,27 +94,9 @@ export const ErrorState: React.FC<ErrorStateProps> = ({
     );
   }
 
-  return (
-    <Alert
-      type="error"
-      showIcon
-      title={title}
-      description={
-        <Space orientation="vertical" size={8} style={{ width: '100%' }}>
-          <div>{displayMessage}</div>
-          {extraDetails}
-          {onRetry && (
-            <div>
-              <Button size="small" type="primary" danger onClick={onRetry}>
-                {retryText}
-              </Button>
-            </div>
-          )}
-        </Space>
-      }
-      style={{ margin: '16px 0' }}
-    />
-  );
+  if (apiError) return <BusinessErrorAlert error={apiError} title={title} message={message} operation={operation} onRetry={onRetry} retryText={retryText} />;
+
+  return <BusinessErrorAlert error={{ code: 'REQUEST_FAILED', message: displayMessage, traceId: '', timestamp: '', path: '' }} title={title} message={displayMessage} operation={operation} onRetry={onRetry} retryText={retryText} />;
 };
 
 export default ErrorState;

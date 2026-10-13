@@ -1,10 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { isAxiosError } from 'axios';
 import { Alert, Button, Descriptions, Drawer, Form, Input, InputNumber, message, Modal, Space, Table, Tabs, Typography } from 'antd';
 import type { TableProps } from 'antd';
 import { useSearchParams } from 'react-router-dom';
 import { adjustInventory, getInventory, listInventory, type InventoryResponse } from '../../api/inventory';
-import { toApiError } from '../../api/apiError';
+import { requiresMutationVerification, toApiError } from '../../api/apiError';
 import { useAuth } from '../../auth/useAuth';
 import { can } from '../../auth/permissions';
 import EmptyState from '../../components/EmptyState';
@@ -101,7 +100,7 @@ function StockLevels() {
       await load();
     } catch (error) {
       setAdjustmentError(toApiError(error));
-      setUnknownResult(isAxiosError(error) && (error.response?.status === 409 || !error.response));
+      setUnknownResult(requiresMutationVerification(error));
     } finally {
       setSubmitting(false);
     }

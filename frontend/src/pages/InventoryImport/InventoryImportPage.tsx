@@ -1,10 +1,9 @@
 import { useRef, useState, type ChangeEvent } from 'react';
-import { isAxiosError } from 'axios';
 import { Alert, Button, Card, Descriptions, Modal, Result, Space, Statistic, Steps, Table, Tag, Typography } from 'antd';
 import type { TableProps } from 'antd';
 import { Link } from 'react-router-dom';
 import { confirmInventoryImport, validateInventoryImport, type InventoryImportErrorResponse, type InventoryImportValidationResponse } from '../../api/inventoryImport';
-import { toApiError } from '../../api/apiError';
+import { isUnknownMutationResult, toApiError } from '../../api/apiError';
 import EmptyState from '../../components/EmptyState';
 import ErrorState from '../../components/ErrorState';
 import LoadingState from '../../components/LoadingState';
@@ -136,7 +135,7 @@ export default function InventoryImportPage() {
       setPhase('IMPORTED');
     } catch (error) {
       setRequestError(toApiError(error));
-      setPhase(isAxiosError(error) && !error.response ? 'CONFIRM_UNKNOWN' : 'CONFIRM_FAILED');
+      setPhase(isUnknownMutationResult(error) ? 'CONFIRM_UNKNOWN' : 'CONFIRM_FAILED');
     } finally {
       confirming.current = false;
     }
@@ -177,7 +176,7 @@ export default function InventoryImportPage() {
       </Space>
     </Card>
 
-    {requestError && <ErrorState title={phase.startsWith('CONFIRM') ? 'Inventory import confirm failed' : 'Inventory import validation failed'} error={requestError} />}
+    {requestError && <ErrorState title={phase === 'CONFIRM_UNKNOWN' ? 'Inventory import 結果待查核' : phase.startsWith('CONFIRM') ? 'Inventory import confirm failed' : 'Inventory import validation failed'} error={requestError} operation={phase.startsWith('CONFIRM') ? 'mutation' : 'read'} />}
     {phase === 'VALIDATING' && <LoadingState tip="後端正在驗證 CSV..." />}
 
     {file && <Card title="Local CSV Preview" extra={<Tag>Client source</Tag>}>
@@ -197,6 +196,7 @@ export default function InventoryImportPage() {
       {phase === 'VALIDATION_FAILED' && <Alert style={{ marginTop: 16 }} type="error" showIcon title="驗證失敗，尚未匯入" description="整批採 All-or-Nothing；請更換或修正 CSV 後重新驗證。" />}
       {phase === 'VALIDATED' && <Alert style={{ marginTop: 16 }} type="success" showIcon title="後端驗證通過，尚未匯入" description="只有完成下一步明確確認後，才會以 Snapshot Replace 更新庫存。" />}
       {phase === 'CONFIRM_FAILED' && <Alert style={{ marginTop: 16 }} type="error" showIcon title="確認匯入未成功" description="系統不會自動重送。批次狀態可能已改變；請由後端管理途徑核實後再選擇新檔案。" />}
+      {phase === 'CONFIRM_FAILED' && requestError?.code === 'CONCURRENT_MODIFICATION' && <Alert style={{ marginTop: 16 }} type="warning" showIcon title="Inventory Import 資料已被其他操作更新" description="請重新檢查庫存與匯入資料。目前沒有正式 Batch Status GET，因此不會虛構查詢、不會清除鎖定，也不會自動重送 Confirm。" />}
       {phase === 'CONFIRM_UNKNOWN' && <Alert style={{ marginTop: 16 }} type="warning" showIcon title="確認結果未知" description="連線中斷或逾時可能發生在庫存已更新之後。系統已鎖定重送；目前沒有 Batch Status GET，僅查庫存也不能完整證明此 Batch 是否成功，請由後端管理途徑核實。" />}
       {phase === 'CONFIRMING' && <LoadingState tip="正在確認匯入，請勿重複操作..." />}
       {phase === 'IMPORTED' && <Result status="success" title="Inventory Import 已完成" subTitle={`Batch #${validation.batchId} 已確認匯入，共 ${validation.totalRows} 筆庫存快照。`} extra={<Link to="/inventory"><Button type="primary">返回 Inventory</Button></Link>} />}

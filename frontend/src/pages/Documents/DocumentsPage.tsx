@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { isAxiosError } from 'axios';
 import {
   Alert, Button, Descriptions, Drawer, Form, Input, InputNumber, Modal, Select, Space, Table, Tag, Typography,
   type TablePaginationConfig,
@@ -10,7 +9,7 @@ import {
   getDocument, ingestDocument, listDocuments, updateDocument, uploadDocument,
   type DocumentQuery, type DocumentResponse, type DocumentStatus, type DocumentType,
 } from '../../api/document';
-import { toApiError } from '../../api/apiError';
+import { isUnknownMutationResult, requiresMutationVerification, toApiError } from '../../api/apiError';
 import { useAuth } from '../../auth/useAuth';
 import { can } from '../../auth/permissions';
 import EmptyState from '../../components/EmptyState';
@@ -31,7 +30,7 @@ function formatInstant(value: string): string {
 }
 
 function isUnknownResult(error: unknown): boolean {
-  return isAxiosError(error) && (!error.response || error.code === 'ECONNABORTED' || error.code === 'ETIMEDOUT');
+  return isUnknownMutationResult(error);
 }
 
 export default function DocumentsPage() {
@@ -161,7 +160,7 @@ export default function DocumentsPage() {
     try { const next = await ingestDocument(selected.id); setSelected(next); await loadList(); }
     catch (requestError) {
       const apiError = toApiError(requestError);
-      const requiresVerification = isUnknownResult(requestError) || (isAxiosError(requestError) && requestError.response?.status === 409);
+      const requiresVerification = requiresMutationVerification(requestError);
       if (requiresVerification) {
         ingestionUnknownRef.current = selected.id; setIngestionUnknown(true);
         setActionError({ ...apiError, message: '索引結果尚未確認；系統不會重送。請使用正式文件狀態查核，再依 Backend 真實狀態決定後續操作。' });
