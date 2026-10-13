@@ -74,6 +74,8 @@ describe('SP-806 Document Management UI', () => {
       throw new Error(`Unexpected ${config.method} ${config.url}`);
     });
     await open('/documents'); const user = userEvent.setup();
+    await waitFor(() => expect(requests.map(({ method, url }) => `${method} ${url}`)).toContain('get /documents'));
+    expect(await screen.findByText('Supplier quote')).toBeTruthy();
     await user.click(await screen.findByRole('button', { name: '#21' }));
     await user.click(screen.getByRole('button', { name: 'Start Explicit Ingestion' }));
     await user.click(within(latestDialog()).getByRole('button', { name: 'Confirm Ingestion' }));
@@ -81,7 +83,7 @@ describe('SP-806 Document Management UI', () => {
     expect(requests.filter(({ url }) => url === '/documents/21/ingestions')).toHaveLength(1);
     expect(screen.queryByRole('button', { name: 'Start Explicit Ingestion' })).toBeNull();
 
-    await user.click(screen.getByRole('button', { name: '查核真實文件狀態' }));
+    await user.click(screen.getAllByRole('button', { name: '查核真實文件狀態' })[0]);
     expect(await screen.findByText(/索引操作維持鎖定/)).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'Start Explicit Ingestion' })).toBeNull();
     expect(requests.filter(({ url }) => url === '/documents/21/ingestions')).toHaveLength(1);
@@ -110,16 +112,19 @@ describe('SP-806 Document Management UI', () => {
     });
     await open('/documents'); const user = userEvent.setup();
     await user.click(await screen.findByRole('button', { name: /Upload Document/ }));
-    const type = screen.getByLabelText('Upload document type');
-    await user.click(type);
-    await user.click(screen.getByRole('option', { name: 'QUOTATION' }));
-    await user.type(screen.getByLabelText('Upload title'), 'Quote');
-    await user.type(screen.getByLabelText('Upload version'), 'v1');
-    await user.upload(screen.getByLabelText('Upload file'), new File(['quote'], 'quote.txt', { type: 'text/plain' }));
-    const upload = within(latestDialog()).getByRole('button', { name: 'Upload' });
+    const uploadDialog = latestDialog();
+    const type = within(uploadDialog).getByLabelText('Upload document type');
+    fireEvent.mouseDown(type);
+    const quotationOption = await screen.findByText('QUOTATION', { selector: '.ant-select-item-option-content' });
+    await user.click(quotationOption);
+    expect(within(uploadDialog).getByTitle('QUOTATION')).toBeTruthy();
+    await user.type(within(uploadDialog).getByLabelText('Upload title'), 'Quote');
+    await user.type(within(uploadDialog).getByLabelText('Upload version'), 'v1');
+    await user.upload(within(uploadDialog).getByLabelText('Upload file'), new File(['quote'], 'quote.txt', { type: 'text/plain' }));
+    const upload = within(uploadDialog).getByRole('button', { name: 'Upload' });
     fireEvent.click(upload); fireEvent.click(upload);
-    expect(await screen.findByText(/上傳結果不明/)).toBeTruthy();
-    expect(requests.filter(({ method, url }) => method === 'post' && url === '/documents')).toHaveLength(1);
+    await waitFor(() => expect(requests.filter(({ method, url }) => method === 'post' && url === '/documents')).toHaveLength(1));
+    expect(await within(uploadDialog).findByText(/上傳結果不明/)).toBeTruthy();
     expect(screen.getByRole('button', { name: /Upload Document/ }).hasAttribute('disabled')).toBe(true);
   }, 30_000);
 
