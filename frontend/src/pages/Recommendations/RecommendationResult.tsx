@@ -4,6 +4,7 @@ import type { RecommendationResponse, SupplierRecommendationResultResponse } fro
 import ErrorState from '../../components/ErrorState';
 import LoadingState from '../../components/LoadingState';
 import RecommendationSummary from '../../components/RecommendationSummary';
+import RecommendationDraftForm from '../../components/RecommendationDraftForm';
 import SupplierRankingTable from '../../components/SupplierRankingTable';
 
 interface RecommendationResultProps {
@@ -23,5 +24,6 @@ export default function RecommendationResult({ recommendation, ranking, rankingL
       {rankingLoading && ranking === null ? <LoadingState tip="Loading supplier ranking..." /> : ranking !== null && <SupplierRankingTable rows={ranking} unit={recommendation.material.unit} />}
       {rankingError && ranking !== null && <Button onClick={retryRanking}>Retry supplier ranking</Button>}
     </Card>
+    {ranking !== null && <RecommendationDraftForm key={recommendation.id} recommendation={recommendation} ranking={ranking} />}
   </Space>;
 }

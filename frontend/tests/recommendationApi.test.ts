@@ -42,4 +42,12 @@ describe('SP-804 Recommendation API contracts', () => {
     expect(recommendation.quantity).toBe('100.0000');
     expect(recommendation.score).toBe('88.5000');
   });
+
+  it('maps the persisted supplier recommendation result ID separately from supplier ID', () => {
+    const parsed = parseRecommendationResponse('[{"id":101,"supplierId":12,"qualified":true,"recommendedQuantity":110.0000,"unitPrice":25.5000}]') as Array<Record<string, unknown>>;
+    expect(parsed[0].id).toBe(101);
+    expect(parsed[0].supplierId).toBe(12);
+    expect(parsed[0].recommendedQuantity).toBe('110.0000');
+    expect(parsed[0].unitPrice).toBe('25.5000');
+  });
 });

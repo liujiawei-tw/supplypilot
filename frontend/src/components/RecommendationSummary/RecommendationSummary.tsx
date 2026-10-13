@@ -1,7 +1,6 @@
-import { Alert, Button, Card, Descriptions, Space, Statistic, Tag, Typography } from 'antd';
+import { Alert, Card, Descriptions, Space, Statistic, Tag, Typography } from 'antd';
 import { Link } from 'react-router-dom';
 import type { DecimalValue, RecommendationResponse } from '../../api/recommendation';
-import { useAuth } from '../../auth/useAuth';
 
 const outcomePresentation = {
   PURCHASE_NOT_REQUIRED: { color: 'green', label: '不需要採購', description: '目前的 Backend 計算結果沒有採購需求。' },
@@ -19,10 +18,7 @@ function timestamp(value: string): string {
 }
 
 export default function RecommendationSummary({ recommendation, showDeepLink = false }: { recommendation: RecommendationResponse; showDeepLink?: boolean }) {
-  const { user } = useAuth();
   const outcome = outcomePresentation[recommendation.outcome];
-  const canCreateDraft = !!user && (user.role === 'PROCUREMENT_STAFF' || user.role === 'ADMIN');
-  const showDraftState = recommendation.outcome === 'SUPPLIER_RECOMMENDED' && canCreateDraft;
 
   return <Space orientation="vertical" size="large" style={{ width: '100%' }}>
     <Card title={<Space wrap><span>Recommendation #{recommendation.id}</span><Tag color={outcome.color}>{recommendation.outcome}</Tag></Space>}
@@ -58,8 +54,6 @@ export default function RecommendationSummary({ recommendation, showDeepLink = f
         { key: 'quantity', label: 'Recommended Quantity', children: decimal(recommendation.recommendation.quantity, recommendation.material.unit) },
         { key: 'score', label: 'Backend Score', children: decimal(recommendation.recommendation.score) },
       ]} />
-      {showDraftState && <Alert style={{ marginTop: 16 }} type="warning" showIcon title="Create PO Draft 暫時無法使用"
-        description={<Space orientation="vertical"><span>Supplier Ranking API 尚未提供 supplierRecommendationResultId；為避免建立無法驗證的 Recommendation Reference，本頁不會送出 PO Draft 請求。</span><Button disabled>Create PO Draft</Button></Space>} />}
     </Card>
   </Space>;
 }

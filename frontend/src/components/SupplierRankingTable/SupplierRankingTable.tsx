@@ -34,7 +34,7 @@ export default function SupplierRankingTable({ rows, unit }: { rows: SupplierRec
 
   return <Table<SupplierRecommendationResultResponse>
     aria-label="Supplier ranking"
-    rowKey="supplierId"
+    rowKey="id"
     columns={columns}
     dataSource={rows}
     scroll={{ x: 1100 }}
@@ -49,6 +49,7 @@ export default function SupplierRankingTable({ rows, unit }: { rows: SupplierRec
         { key: 'reliabilityScore', label: 'Reliability Score', children: value(row.reliabilityScore) },
         { key: 'qualityScore', label: 'Quality Score', children: value(row.qualityScore) },
         { key: 'totalScore', label: 'Total Score', children: value(row.totalScore) },
+        { key: 'resultId', label: 'Backend Result ID', children: row.id },
         { key: 'supplierId', label: 'Supplier ID', children: row.supplierId },
       ]} />,
       rowExpandable: () => true,

@@ -31,14 +31,22 @@ function recommendation(outcome: 'PURCHASE_NOT_REQUIRED' | 'SUPPLIER_RECOMMENDED
 }
 
 const qualified = {
+  id: 101,
   supplierId: 12, supplierCode: 'SUP-012', supplierName: 'Supplier snapshot', qualified: true, disqualifiedReason: null,
   recommendedQuantity: '110.0000', unitPrice: '25.5000', totalCost: '2805.0000', leadTimeDays: 5,
   reliabilityScoreSnapshot: '92.0000', qualityScoreSnapshot: '91.0000', priceScore: '95.0000', leadTimeScore: '90.0000', reliabilityScore: '92.0000', qualityScore: '91.0000', totalScore: '88.5000', rank: 1,
 };
 const disqualified = {
+  id: 102,
   supplierId: 13, supplierCode: 'SUP-013', supplierName: 'Late Supplier', qualified: false, disqualifiedReason: 'DELIVERY_DATE_NOT_FEASIBLE',
   recommendedQuantity: null, unitPrice: null, totalCost: null, leadTimeDays: null,
   reliabilityScoreSnapshot: null, qualityScoreSnapshot: null, priceScore: null, leadTimeScore: null, reliabilityScore: null, qualityScore: null, totalScore: null, rank: null,
+};
+const alternateQualified = {
+  id: 103,
+  supplierId: 14, supplierCode: 'SUP-014', supplierName: 'Alternate Supplier', qualified: true, disqualifiedReason: null,
+  recommendedQuantity: '120.0000', unitPrice: '24.2500', totalCost: '2910.0000', leadTimeDays: 4,
+  reliabilityScoreSnapshot: '90.0000', qualityScoreSnapshot: '90.0000', priceScore: '96.0000', leadTimeScore: '92.0000', reliabilityScore: '90.0000', qualityScore: '90.0000', totalScore: '87.0000', rank: 2,
 };
 
 function response(config: InternalAxiosRequestConfig, data: unknown, status = 200): AxiosResponse {
@@ -123,8 +131,7 @@ describe('SP-804 Recommendation rendering', () => {
     await userEvent.setup().click(expandButtons[0]);
     expect(await screen.findByText('Price Score')).toBeTruthy();
     expect(screen.getAllByText('88.5000').length).toBeGreaterThan(0);
-    const draft = screen.getByRole('button', { name: 'Create PO Draft' });
-    expect((draft as HTMLButtonElement).disabled).toBe(true);
+    expect(screen.getByRole('button', { name: 'Review PO Draft' })).toBeTruthy();
     expect(requests.filter(({ url }) => url === '/purchase-orders')).toHaveLength(0);
   }, 30_000);
 
@@ -231,5 +238,159 @@ describe('SP-804 Recommendation create', () => {
     expect((screen.getByLabelText('Recommendation period start') as HTMLInputElement).value).toBe('2026-10-01');
     expect((screen.getByLabelText('Recommendation period end') as HTMLInputElement).value).toBe('2026-10-31');
     expect(screen.queryByText('Recommendation #91')).toBeNull();
+  }, 30_000);
+});
+
+describe('SP-804 Recommendation to linked PO Draft', () => {
+  it.each(['PROCUREMENT_STAFF', 'ADMIN'] as const)('allows %s to confirm a linked DRAFT with real references', async (role) => {
+    const requests: InternalAxiosRequestConfig[] = [];
+    axiosClient.defaults.adapter = vi.fn(async (config) => {
+      requests.push(config);
+      if (config.url === '/auth/me') return response(config, identities[role]);
+      if (config.url === '/recommendations/91') return response(config, recommendation('SUPPLIER_RECOMMENDED'));
+      if (config.url === '/recommendations/91/suppliers') return response(config, [qualified, disqualified]);
+      if (config.url === '/purchase-orders') return response(config, { id: 501, poNumber: 'PO-20261012-000501', status: 'DRAFT' }, 201);
+      throw new Error(`Unexpected request ${config.url}`);
+    });
+    await open('/recommendations/91');
+    await userEvent.setup().click(await screen.findByRole('button', { name: 'Review PO Draft' }, { timeout: 10_000 }));
+    expect(await screen.findByText('Confirm Create PO DRAFT')).toBeTruthy();
+    expect(screen.getAllByText('101').length).toBeGreaterThan(0);
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Confirm Create DRAFT' }));
+    expect(await screen.findByText('PO DRAFT #501 已建立')).toBeTruthy();
+
+    const createRequests = requests.filter(({ method, url }) => method === 'post' && url === '/purchase-orders');
+    expect(createRequests).toHaveLength(1);
+    expect(JSON.parse(createRequests[0].data as string)).toEqual({
+      supplierId: 12,
+      items: [{
+        materialId: 7,
+        quantity: '110.0000',
+        unitPrice: '25.5000',
+        recommendationId: 91,
+        supplierRecommendationResultId: 101,
+      }],
+    });
+    expect(requests.some(({ url }) => /\/(approve|order|receive)$/.test(url ?? ''))).toBe(false);
+  }, 30_000);
+
+  it.each(['PROCUREMENT_MANAGER', 'PRODUCTION_PLANNER', 'WAREHOUSE_STAFF'] as const)('does not expose or call create Draft for %s', async (role) => {
+    const requests: InternalAxiosRequestConfig[] = [];
+    axiosClient.defaults.adapter = vi.fn(async (config) => {
+      requests.push(config);
+      if (config.url === '/auth/me') return response(config, identities[role]);
+      if (config.url === '/recommendations/91') return response(config, recommendation('SUPPLIER_RECOMMENDED'));
+      if (config.url === '/recommendations/91/suppliers') return response(config, [qualified]);
+      throw new Error(`Unexpected request ${config.url}`);
+    });
+    await open('/recommendations/91');
+    expect(await screen.findByText('Recommendation #91')).toBeTruthy();
+    await screen.findByText('SUP-012');
+    expect(screen.queryByRole('button', { name: 'Review PO Draft' })).toBeNull();
+    expect(requests.filter(({ url }) => url === '/purchase-orders')).toHaveLength(0);
+  }, 30_000);
+
+  it('requires both override reasons and sends the selected result snapshot without decimal arithmetic', async () => {
+    const requests: InternalAxiosRequestConfig[] = [];
+    axiosClient.defaults.adapter = vi.fn(async (config) => {
+      requests.push(config);
+      if (config.url === '/auth/me') return response(config, identities.PROCUREMENT_STAFF);
+      if (config.url === '/recommendations/91') return response(config, recommendation('SUPPLIER_RECOMMENDED'));
+      if (config.url === '/recommendations/91/suppliers') return response(config, [qualified, alternateQualified]);
+      if (config.url === '/purchase-orders') return response(config, { id: 502, poNumber: 'PO-20261012-000502', status: 'DRAFT' }, 201);
+      throw new Error(`Unexpected request ${config.url}`);
+    });
+    await open('/recommendations/91');
+    const user = userEvent.setup();
+    await user.click(await screen.findByLabelText('Qualified supplier result'));
+    await user.click(await screen.findByText('SUP-014 — Alternate Supplier (Result #103)'));
+    expect(await screen.findByLabelText('Supplier override reason')).toBeTruthy();
+    expect(screen.getByLabelText('Quantity override reason')).toBeTruthy();
+    await user.click(screen.getByRole('button', { name: 'Review PO Draft' }));
+    expect(await screen.findByText('Supplier override reason is required')).toBeTruthy();
+    expect(screen.getByText('Quantity override reason is required')).toBeTruthy();
+    expect(requests.filter(({ url }) => url === '/purchase-orders')).toHaveLength(0);
+
+    await user.type(screen.getByLabelText('Supplier override reason'), 'Capacity confirmed');
+    await user.type(screen.getByLabelText('Quantity override reason'), 'Supplier package quantity');
+    fireEvent.change(screen.getByLabelText('Expected delivery date'), { target: { value: '2026-10-31' } });
+    await user.click(screen.getByRole('button', { name: 'Review PO Draft' }));
+    await user.click(await screen.findByRole('button', { name: 'Confirm Create DRAFT' }, { timeout: 10_000 }));
+    expect(await screen.findByText('PO DRAFT #502 已建立')).toBeTruthy();
+    const request = requests.find(({ url }) => url === '/purchase-orders')!;
+    expect(JSON.parse(request.data as string)).toEqual({
+      supplierId: 14,
+      expectedDeliveryDate: '2026-10-31',
+      items: [{
+        materialId: 7,
+        quantity: '120.0000',
+        unitPrice: '24.2500',
+        recommendationId: 91,
+        supplierRecommendationResultId: 103,
+        supplierOverrideReason: 'Capacity confirmed',
+        quantityOverrideReason: 'Supplier package quantity',
+      }],
+    });
+  }, 30_000);
+
+  it('blocks disqualified or incomplete supplier results before POST', async () => {
+    const requests: InternalAxiosRequestConfig[] = [];
+    axiosClient.defaults.adapter = vi.fn(async (config) => {
+      requests.push(config);
+      if (config.url === '/auth/me') return response(config, identities.ADMIN);
+      if (config.url === '/recommendations/91') return response(config, recommendation('SUPPLIER_RECOMMENDED'));
+      if (config.url === '/recommendations/91/suppliers') return response(config, [disqualified, { ...qualified, id: undefined }]);
+      throw new Error(`Unexpected request ${config.url}`);
+    });
+    await open('/recommendations/91');
+    expect(await screen.findByText('無法建立 Linked PO Draft')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Review PO Draft' })).toBeNull();
+    expect(requests.filter(({ url }) => url === '/purchase-orders')).toHaveLength(0);
+  }, 30_000);
+
+  it('uses a synchronous guard so rapid confirmation produces one POST', async () => {
+    const requests: InternalAxiosRequestConfig[] = [];
+    let finish!: () => void;
+    axiosClient.defaults.adapter = vi.fn((config) => {
+      requests.push(config);
+      if (config.url === '/auth/me') return Promise.resolve(response(config, identities.PROCUREMENT_STAFF));
+      if (config.url === '/recommendations/91') return Promise.resolve(response(config, recommendation('SUPPLIER_RECOMMENDED')));
+      if (config.url === '/recommendations/91/suppliers') return Promise.resolve(response(config, [qualified]));
+      if (config.url === '/purchase-orders') return new Promise((resolve) => { finish = () => resolve(response(config, { id: 503, poNumber: 'PO-20261012-000503', status: 'DRAFT' }, 201)); });
+      return Promise.reject(new Error(`Unexpected request ${config.url}`));
+    });
+    await open('/recommendations/91');
+    await userEvent.setup().click(await screen.findByRole('button', { name: 'Review PO Draft' }, { timeout: 10_000 }));
+    const confirm = await screen.findByRole('button', { name: 'Confirm Create DRAFT' }, { timeout: 10_000 });
+    fireEvent.click(confirm);
+    fireEvent.click(confirm);
+    await waitFor(() => expect(requests.filter(({ url }) => url === '/purchase-orders')).toHaveLength(1));
+    finish();
+    expect(await screen.findByText('PO DRAFT #503 已建立')).toBeTruthy();
+  }, 30_000);
+
+  it.each([
+    ['409 conflict', new AxiosError('Conflict', 'ERR_BAD_REQUEST', undefined, undefined, undefined), false],
+    ['network uncertainty', new AxiosError('Network Error', 'ERR_NETWORK'), true],
+  ] as const)('does not show fake success or automatically retry after %s', async (_label, failure, unknown) => {
+    const requests: InternalAxiosRequestConfig[] = [];
+    axiosClient.defaults.adapter = vi.fn(async (config) => {
+      requests.push(config);
+      if (config.url === '/auth/me') return response(config, identities.ADMIN);
+      if (config.url === '/recommendations/91') return response(config, recommendation('SUPPLIER_RECOMMENDED'));
+      if (config.url === '/recommendations/91/suppliers') return response(config, [qualified]);
+      if (config.url === '/purchase-orders') {
+        if (!unknown) throw new AxiosError('Conflict', 'ERR_BAD_REQUEST', config, undefined, response(config, { code: 'DATA_INTEGRITY_VIOLATION', message: 'Conflict', traceId: 'conflict-trace', timestamp: '', path: config.url }, 409));
+        throw failure;
+      }
+      throw new Error(`Unexpected request ${config.url}`);
+    });
+    await open('/recommendations/91');
+    await userEvent.setup().click(await screen.findByRole('button', { name: 'Review PO Draft' }, { timeout: 10_000 }));
+    await userEvent.setup().click(await screen.findByRole('button', { name: 'Confirm Create DRAFT' }, { timeout: 10_000 }));
+    expect(await screen.findByText(unknown ? '建立結果不明，請先人工查核' : 'PO Draft 建立失敗')).toBeTruthy();
+    await new Promise((resolve) => window.setTimeout(resolve, 20));
+    expect(requests.filter(({ url }) => url === '/purchase-orders')).toHaveLength(1);
+    expect(screen.queryByText(/PO DRAFT #\d+ 已建立/)).toBeNull();
   }, 30_000);
 });

@@ -42,6 +42,7 @@ export interface RecommendationResponse {
 }
 
 export interface SupplierRecommendationResultResponse {
+  id: number;
   supplierId: number;
   supplierCode: string;
   supplierName: string;
