@@ -13,6 +13,10 @@ import SuppliersPage from '../pages/Suppliers/SuppliersPage';
 import LoginPage from '../pages/Login/LoginPage';
 import NotFoundPage from '../pages/NotFound/NotFoundPage';
 import PlaceholderPage from '../pages/Placeholder/PlaceholderPage';
+import PurchaseOrdersPage from '../pages/PurchaseOrders/PurchaseOrdersPage';
+import PurchaseOrderDetailPage from '../pages/PurchaseOrders/PurchaseOrderDetailPage';
+import ReceivingPage from '../pages/Receiving/ReceivingPage';
+import ReceivingDetailPage from '../pages/Receiving/ReceivingDetailPage';
 import { routeCatalog } from './routeCatalog';
 
 export const router = createBrowserRouter([
@@ -44,6 +48,14 @@ export const router = createBrowserRouter([
                       ? <RecommendationDetailPage />
                   : path === 'suppliers'
                     ? <SuppliersPage />
+                    : path === 'purchase-orders'
+                      ? <PurchaseOrdersPage />
+                      : path === 'purchase-orders/:id'
+                        ? <PurchaseOrderDetailPage />
+                        : path === 'receiving/purchase-orders'
+                          ? <ReceivingPage />
+                          : path === 'receiving/purchase-orders/:id'
+                            ? <ReceivingDetailPage />
                     : <PlaceholderPage title={label} />,
             }],
           })),

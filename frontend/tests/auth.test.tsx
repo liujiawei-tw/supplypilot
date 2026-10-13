@@ -18,6 +18,14 @@ const identities: Record<UserRole, AuthenticatedUser> = {
   ADMIN: { id: 5, username: 'admin', displayName: 'Admin', role: 'ADMIN' },
 };
 
+const purchaseOrder = {
+  id: 42, poNumber: 'PO-000042', supplierId: 7, supplierCode: 'SUP-007', supplierName: 'Supplier', status: 'DRAFT',
+  expectedDeliveryDate: null, items: [], createdBy: 2, createdByDisplayName: 'Buyer', createdAt: '2026-10-01T00:00:00Z',
+  approvedBy: null, approvedByDisplayName: null, approvedAt: null, rejectReason: null, rejectedBy: null,
+  rejectedByDisplayName: null, rejectedAt: null, orderedBy: null, orderedByDisplayName: null, orderedAt: null,
+  receivedBy: null, receivedByDisplayName: null, receivedAt: null, isOverdue: false, updatedAt: '2026-10-01T00:00:00Z',
+};
+
 function response(config: InternalAxiosRequestConfig, data: unknown, status = 200): AxiosResponse {
   return { config, data, status, statusText: String(status), headers: {} };
 }
@@ -32,6 +40,8 @@ function mockServer(role: UserRole, loginStatus = 200) {
     }
     if (config.url === '/auth/me') return response(config, identities[role]);
     if (config.url === '/inventory') return response(config, { content: [], page: 0, size: 20, totalElements: 0, totalPages: 0 });
+    if (config.url === '/purchase-orders/42') return response(config, purchaseOrder);
+    if (config.url === '/stock-transactions') return response(config, { content: [], page: 0, size: 20, totalElements: 0, totalPages: 0 });
     throw new Error(`Unexpected API request: ${config.url}`);
   });
   return requests;
@@ -56,9 +66,9 @@ describe('authentication and routing', () => {
     await user.type(screen.getByLabelText('帳號'), 'buyer');
     await user.type(screen.getByLabelText('密碼'), 'password');
     await user.click(screen.getByRole('button', { name: '登 入' }));
-    expect(await screen.findByText('Purchase Order Detail')).toBeTruthy();
+    expect(await screen.findByText('PO-000042')).toBeTruthy();
     expect(router.state.location.pathname).toBe('/purchase-orders/42');
-    expect(requests).toEqual(['/auth/login', '/auth/me']);
+    expect(requests).toEqual(['/auth/login', '/auth/me', '/purchase-orders/42']);
     expect(localStorage.getItem(TOKEN_STORAGE_KEY)).toBe('valid-token');
   });
 
@@ -131,6 +141,7 @@ describe('authentication and routing', () => {
         if (meCalls === 1) throw new AxiosError('Temporary failure', 'ERR_BAD_RESPONSE', config, undefined, response(config, { code: 'SYSTEM_ERROR' }, 503));
         return response(config, identities.PROCUREMENT_STAFF);
       }
+      if (config.url === '/purchase-orders/42') return response(config, purchaseOrder);
       throw new Error(`Unexpected request ${config.url}`);
     });
     await open('/purchase-orders/42');
@@ -139,10 +150,10 @@ describe('authentication and routing', () => {
     await user.type(screen.getByLabelText('密碼'), 'password');
     await user.click(screen.getByRole('button', { name: '登 入' }));
     expect(await screen.findByText('暫時無法驗證登入狀態')).toBeTruthy();
-    expect(screen.queryByText('Purchase Order Detail')).toBeNull();
+    expect(screen.queryByText('PO-000042')).toBeNull();
     expect(localStorage.getItem(TOKEN_STORAGE_KEY)).toBe('valid-token');
     fireEvent.click(screen.getByRole('button', { name: '重試驗證' }));
-    expect(await screen.findByText('Purchase Order Detail')).toBeTruthy();
+    expect(await screen.findByText('PO-000042')).toBeTruthy();
     expect(router.state.location.pathname).toBe('/purchase-orders/42');
     expect(meCalls).toBe(2);
   });
@@ -198,8 +209,8 @@ describe('authentication and routing', () => {
     expect(screen.queryByRole('button', { name: /AI Assistant/ }) !== null).toBe(role === 'PROCUREMENT_STAFF' || role === 'PROCUREMENT_MANAGER' || role === 'ADMIN');
     await router.navigate('/purchase-orders/42');
     if (role === 'WAREHOUSE_STAFF' || role === 'PRODUCTION_PLANNER') expect(await screen.findByText('403')).toBeTruthy();
-    else expect(await screen.findByText('Purchase Order Detail')).toBeTruthy();
-    expect(requests).toEqual(['/auth/me']);
+    else expect(await screen.findByText('PO-000042')).toBeTruthy();
+    expect(requests).toEqual(role === 'WAREHOUSE_STAFF' || role === 'PRODUCTION_PLANNER' ? ['/auth/me'] : ['/auth/me', '/purchase-orders/42']);
   });
 
   it('allows manager into inventory without making an inventory GET request, and shows 404 for unknown routes', async () => {
@@ -210,7 +221,7 @@ describe('authentication and routing', () => {
     expect(screen.queryByText('Stock Levels')).toBeNull();
     await waitFor(() => expect(router.state.location.search).toBe('?tab=stock-transactions&purchaseOrderId=42'));
     expect(router.state.historyAction).toBe('REPLACE');
-    expect(requests).toEqual(['/auth/me']);
+    expect(requests).toEqual(['/auth/me', '/stock-transactions']);
     await router.navigate('/unknown');
     expect(await screen.findByText('404')).toBeTruthy();
   });

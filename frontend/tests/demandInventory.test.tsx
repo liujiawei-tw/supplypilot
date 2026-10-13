@@ -158,6 +158,7 @@ describe('SP-802 Inventory UI', () => {
       requests.push(config.url ?? '');
       if (config.url === '/auth/me') return response(config, identities[role]);
       if (config.url === '/inventory') return response(config, { content: [], page: 0, size: 20, totalElements: 0, totalPages: 0 });
+      if (config.url === '/stock-transactions') return response(config, { content: [], page: 0, size: 20, totalElements: 0, totalPages: 0 });
       throw new Error(`Unexpected request ${config.url}`);
     });
     await open('/inventory?tab=invalid');
