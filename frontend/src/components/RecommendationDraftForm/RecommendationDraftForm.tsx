@@ -72,6 +72,7 @@ export default function RecommendationDraftForm({
   const [resultUnknown, setResultUnknown] = useState(false);
   const [created, setCreated] = useState<PurchaseOrderDraftResponse | null>(null);
   const submittingRef = useRef(false);
+  const resultUnknownRef = useRef(false);
 
   const canCreate = !!user && can(user.role, 'purchaseOrderDraft');
   const candidates = useMemo(() => ranking.filter((row) =>
@@ -94,6 +95,7 @@ export default function RecommendationDraftForm({
   }
 
   const openConfirmation = async () => {
+    if (resultUnknownRef.current) return;
     let values: DraftValues;
     try { values = await form.validateFields(); } catch { return; }
     const supplier = candidates.find((row) => row.id === values.supplierResultId);
@@ -113,7 +115,6 @@ export default function RecommendationDraftForm({
       }],
     };
     setError(null);
-    setResultUnknown(false);
     setPending({
       request,
       supplier,
@@ -125,7 +126,7 @@ export default function RecommendationDraftForm({
   };
 
   const confirmCreate = async () => {
-    if (!pending || submittingRef.current) return;
+    if (!pending || submittingRef.current || resultUnknownRef.current) return;
     submittingRef.current = true;
     setSubmitting(true);
     setError(null);
@@ -135,7 +136,9 @@ export default function RecommendationDraftForm({
       setCreated(response);
       setPending(null);
     } catch (requestError) {
-      setResultUnknown(unknownOutcome(requestError));
+      const isResultUnknown = unknownOutcome(requestError);
+      if (isResultUnknown) resultUnknownRef.current = true;
+      setResultUnknown(isResultUnknown);
       setError(toApiError(requestError));
       setPending(null);
     } finally {
@@ -149,7 +152,7 @@ export default function RecommendationDraftForm({
       {created && <Alert type="success" showIcon title={`PO DRAFT #${created.id} 已建立`}
         description={<span>Backend 狀態：{created.status}；PO Number：{created.poNumber}。PO Detail 與後續 Approve／Order／Receive 屬於 SP-805。</span>} />}
       {error && <ErrorState title={resultUnknown ? '建立結果不明，請先人工查核' : 'PO Draft 建立失敗'}
-        message={resultUnknown ? '連線逾時或中斷，Backend 可能已完成建立。本頁不會自動重送，請先查核 PO 資料後再決定。' : undefined}
+        message={resultUnknown ? '連線逾時或中斷，Backend 可能已完成建立。本頁已鎖定重新送出；請先人工查核 PO 資料，確認結果後再重新載入頁面。' : undefined}
         error={error} />}
       {!created && <Form form={form} layout="vertical" initialValues={{
         supplierResultId: defaultCandidate.id,
@@ -191,7 +194,7 @@ export default function RecommendationDraftForm({
         <Form.Item name="expectedDeliveryDate" label="Expected Delivery Date (optional for DRAFT)">
           <Input aria-label="Expected delivery date" type="date" />
         </Form.Item>
-        <Button type="primary" onClick={() => void openConfirmation()}>Review PO Draft</Button>
+        <Button type="primary" disabled={resultUnknown} onClick={() => void openConfirmation()}>Review PO Draft</Button>
       </Form>}
     </Card>
     <Modal title="Confirm Create PO DRAFT" open={pending !== null} confirmLoading={submitting}

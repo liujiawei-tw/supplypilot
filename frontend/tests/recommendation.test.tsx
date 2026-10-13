@@ -370,9 +370,34 @@ describe('SP-804 Recommendation to linked PO Draft', () => {
   }, 30_000);
 
   it.each([
-    ['409 conflict', new AxiosError('Conflict', 'ERR_BAD_REQUEST', undefined, undefined, undefined), false],
-    ['network uncertainty', new AxiosError('Network Error', 'ERR_NETWORK'), true],
-  ] as const)('does not show fake success or automatically retry after %s', async (_label, failure, unknown) => {
+    ['network error', new AxiosError('Network Error', 'ERR_NETWORK')],
+    ['timeout', new AxiosError('Timeout', 'ECONNABORTED')],
+  ] as const)('locks manual resubmission when the create result is unknown after %s', async (_label, failure) => {
+    const requests: InternalAxiosRequestConfig[] = [];
+    axiosClient.defaults.adapter = vi.fn(async (config) => {
+      requests.push(config);
+      if (config.url === '/auth/me') return response(config, identities.ADMIN);
+      if (config.url === '/recommendations/91') return response(config, recommendation('SUPPLIER_RECOMMENDED'));
+      if (config.url === '/recommendations/91/suppliers') return response(config, [qualified]);
+      if (config.url === '/purchase-orders') throw failure;
+      throw new Error(`Unexpected request ${config.url}`);
+    });
+    await open('/recommendations/91');
+    const review = await screen.findByRole('button', { name: 'Review PO Draft' }, { timeout: 10_000 });
+    await userEvent.setup().click(review);
+    await userEvent.setup().click(await screen.findByRole('button', { name: 'Confirm Create DRAFT' }, { timeout: 10_000 }));
+    expect(await screen.findByText('建立結果不明，請先人工查核')).toBeTruthy();
+    expect(screen.getByText(/Backend 可能已完成建立/)).toBeTruthy();
+    expect((review as HTMLButtonElement).disabled).toBe(true);
+
+    fireEvent.click(review);
+    expect(screen.queryByRole('dialog', { name: 'Confirm Create PO DRAFT' })).toBeNull();
+    await new Promise((resolve) => window.setTimeout(resolve, 20));
+    expect(requests.filter(({ url }) => url === '/purchase-orders')).toHaveLength(1);
+    expect(screen.queryByText(/PO DRAFT #\d+ 已建立/)).toBeNull();
+  }, 30_000);
+
+  it('shows the backend error for 409 without treating the result as unknown', async () => {
     const requests: InternalAxiosRequestConfig[] = [];
     axiosClient.defaults.adapter = vi.fn(async (config) => {
       requests.push(config);
@@ -380,17 +405,18 @@ describe('SP-804 Recommendation to linked PO Draft', () => {
       if (config.url === '/recommendations/91') return response(config, recommendation('SUPPLIER_RECOMMENDED'));
       if (config.url === '/recommendations/91/suppliers') return response(config, [qualified]);
       if (config.url === '/purchase-orders') {
-        if (!unknown) throw new AxiosError('Conflict', 'ERR_BAD_REQUEST', config, undefined, response(config, { code: 'DATA_INTEGRITY_VIOLATION', message: 'Conflict', traceId: 'conflict-trace', timestamp: '', path: config.url }, 409));
-        throw failure;
+        throw new AxiosError('Conflict', 'ERR_BAD_REQUEST', config, undefined,
+          response(config, { code: 'DATA_INTEGRITY_VIOLATION', message: 'Conflict', traceId: 'conflict-trace', timestamp: '', path: config.url }, 409));
       }
       throw new Error(`Unexpected request ${config.url}`);
     });
     await open('/recommendations/91');
-    await userEvent.setup().click(await screen.findByRole('button', { name: 'Review PO Draft' }, { timeout: 10_000 }));
+    const review = await screen.findByRole('button', { name: 'Review PO Draft' }, { timeout: 10_000 });
+    await userEvent.setup().click(review);
     await userEvent.setup().click(await screen.findByRole('button', { name: 'Confirm Create DRAFT' }, { timeout: 10_000 }));
-    expect(await screen.findByText(unknown ? '建立結果不明，請先人工查核' : 'PO Draft 建立失敗')).toBeTruthy();
-    await new Promise((resolve) => window.setTimeout(resolve, 20));
+    expect(await screen.findByText('PO Draft 建立失敗')).toBeTruthy();
+    expect(screen.getByText('Conflict')).toBeTruthy();
+    expect((review as HTMLButtonElement).disabled).toBe(false);
     expect(requests.filter(({ url }) => url === '/purchase-orders')).toHaveLength(1);
-    expect(screen.queryByText(/PO DRAFT #\d+ 已建立/)).toBeNull();
   }, 30_000);
 });
