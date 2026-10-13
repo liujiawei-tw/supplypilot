@@ -38,6 +38,11 @@ export const axiosClient = axios.create({
 // Request Interceptor: attach token boundary if token exists in localStorage
 axiosClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
+    if (typeof FormData !== 'undefined' && config.data instanceof FormData) {
+      // Let the browser/Axios create the multipart boundary. The instance JSON
+      // default must never leak into document uploads.
+      config.headers.setContentType(false);
+    }
     if (typeof window !== 'undefined') {
       const token = localStorage.getItem(TOKEN_STORAGE_KEY);
       if (config.url === '/auth/login') {
