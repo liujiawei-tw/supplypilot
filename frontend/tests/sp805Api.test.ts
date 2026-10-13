@@ -23,10 +23,32 @@ describe('SP-805 API contracts', () => {
     expect(can('ADMIN', 'purchaseOrderEdit')).toBe(true);
     expect(can('ADMIN', 'purchaseOrderOrder')).toBe(true);
   });
-  it('parses BigDecimal tokens as exact strings while retaining integer IDs and pagination numbers', () => {
-    expect(parseDecimalJson('{"id":71,"quantity":999999999999999.1234000,"unitPrice":1.2300,"page":0}')).toEqual({
-      id: 71, quantity: '999999999999999.1234000', unitPrice: '1.2300', page: 0,
+  it('parses formal BigDecimal fields by DTO type while retaining safe integer IDs and pagination numbers', () => {
+    expect(parseDecimalJson('{"id":42,"items":[{"quantity":999999999999999999999,"unitPrice":100,"total":123.4500},{"quantity":1.23E+8}],"page":0,"size":20,"totalElements":1,"totalPages":1}')).toEqual({
+      id: 42,
+      items: [
+        { quantity: '999999999999999999999', unitPrice: '100', total: '123.4500' },
+        { quantity: '1.23E+8' },
+      ],
+      page: 0,
+      size: 20,
+      totalElements: 1,
+      totalPages: 1,
     });
+  });
+
+  it('covers PO, Receiving, and StockTransaction BigDecimal response fields', () => {
+    const po = parseDecimalJson('{"id":42,"items":[{"id":1,"quantity":100,"unitPrice":123.4500,"total":1.23E+8}]}') as { items: Array<Record<string, unknown>> };
+    const receiving = parseDecimalJson('{"id":42,"items":[{"id":1,"quantity":999999999999999999999}]}') as { items: Array<Record<string, unknown>> };
+    const transaction = parseDecimalJson('{"id":42,"quantity":1.23E+8}') as Record<string, unknown>;
+    expect(po.items[0]).toMatchObject({ quantity: '100', unitPrice: '123.4500', total: '1.23E+8' });
+    expect(receiving.items[0].quantity).toBe('999999999999999999999');
+    expect(transaction.quantity).toBe('1.23E+8');
+  });
+
+  it('rejects unsafe ordinary integer fields instead of silently rounding them', () => {
+    expect(() => parseDecimalJson('{"id":999999999999999999999,"quantity":100,"page":0,"size":20}'))
+      .toThrow('Unsafe integer token for field "id": 999999999999999999999');
   });
   it('uses backend PO pagination filters and preserves PATCH omission versus explicit null', async () => {
     const requests: InternalAxiosRequestConfig[] = [];
