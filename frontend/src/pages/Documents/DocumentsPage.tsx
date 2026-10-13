@@ -48,13 +48,17 @@ export default function DocumentsPage() {
   const [uploading, setUploading] = useState(false);
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [uploadError, setUploadError] = useState<ApiErrorResponse | null>(null);
+  const [uploadUnknown, setUploadUnknown] = useState(false);
   const [uploaded, setUploaded] = useState<DocumentResponse | null>(null);
   const [editTitle, setEditTitle] = useState('');
   const [actionError, setActionError] = useState<ApiErrorResponse | null>(null);
   const [ingestConfirm, setIngestConfirm] = useState(false);
+  const [ingestionUnknown, setIngestionUnknown] = useState(false);
   const [acting, setActing] = useState(false);
   const [form] = Form.useForm<UploadValues>();
+  const uploadRef = useRef(false);
   const ingestingRef = useRef(false);
+  const ingestionUnknownRef = useRef<number | null>(null);
   const canUpload = !!user && can(user.role, 'documentUpload');
   const canUpdate = !!user && can(user.role, 'documentUpdate');
   const canIngest = !!user && can(user.role, 'documentIngest');
@@ -92,20 +96,48 @@ export default function DocumentsPage() {
   };
 
   const submitUpload = async () => {
+    if (uploadRef.current || uploadUnknown) return;
+    uploadRef.current = true;
     let values: UploadValues;
-    try { values = await form.validateFields(); } catch { return; }
+    try { values = await form.validateFields(); } catch { uploadRef.current = false; return; }
     const fileMessage = validateDocumentFile(uploadFile);
-    if (fileMessage) { setUploadError({ code: 'INVALID_FILE_FORMAT', message: fileMessage, traceId: '', timestamp: '', path: '' }); return; }
+    if (fileMessage) {
+      uploadRef.current = false;
+      setUploadError({ code: 'INVALID_FILE_FORMAT', message: fileMessage, traceId: '', timestamp: '', path: '' });
+      return;
+    }
     setUploading(true); setUploadError(null);
     try {
       const result = await uploadDocument({ ...values, title: values.title.trim(), version: values.version.trim(), file: uploadFile! });
       setUploaded(result); setUploadOpen(false); form.resetFields(); setUploadFile(null);
       await loadList({ ...query, page: 0 });
-    } catch (requestError) { setUploadError(toApiError(requestError)); }
-    finally { setUploading(false); }
+    } catch (requestError) {
+      const apiError = toApiError(requestError);
+      if (isUnknownResult(requestError)) {
+        setUploadUnknown(true);
+        setUploadError({ ...apiError, message: '上傳結果不明；系統不會重送。請人工查核 Document List，但不得僅以相同 Title／Version 判定成功或失敗。' });
+      } else {
+        setUploadError(apiError);
+      }
+    } finally { uploadRef.current = false; setUploading(false); }
   };
 
   const refreshDetail = async () => { if (selected) await openDetail(selected.id); };
+
+  const verifyIngestionStatus = async () => {
+    const id = ingestionUnknownRef.current;
+    if (!id) return;
+    setActing(true); setActionError(null);
+    try {
+      const document = await getDocument(id);
+      setSelected(document); setEditTitle(document.title);
+      ingestionUnknownRef.current = null; setIngestionUnknown(false);
+      setActionError({ code: 'DOCUMENT_STATUS_VERIFIED', message: `已查核 Backend 真實狀態：${document.status}。此查核不代表先前索引成功；可用操作依目前狀態與 Domain Rule 決定。`, traceId: '', timestamp: '', path: '' });
+    } catch (requestError) {
+      const apiError = toApiError(requestError);
+      setActionError({ ...apiError, message: `文件狀態查核失敗；索引操作維持鎖定。${apiError.message}` });
+    } finally { setActing(false); }
+  };
 
   const saveTitle = async () => {
     if (!selected || !editTitle.trim()) return;
@@ -124,15 +156,18 @@ export default function DocumentsPage() {
   };
 
   const ingest = async () => {
-    if (!selected || ingestingRef.current) return;
+    if (!selected || ingestingRef.current || ingestionUnknownRef.current !== null) return;
     ingestingRef.current = true; setActing(true); setActionError(null); setIngestConfirm(false);
     try { const next = await ingestDocument(selected.id); setSelected(next); await loadList(); }
     catch (requestError) {
       const apiError = toApiError(requestError);
-      setActionError(isUnknownResult(requestError)
-        ? { ...apiError, message: '索引結果不明；系統不會自動重送。請先重新取得文件狀態再決定後續操作。' }
-        : apiError);
-      if (isAxiosError(requestError) && requestError.response?.status === 409) await refreshDetail();
+      const requiresVerification = isUnknownResult(requestError) || (isAxiosError(requestError) && requestError.response?.status === 409);
+      if (requiresVerification) {
+        ingestionUnknownRef.current = selected.id; setIngestionUnknown(true);
+        setActionError({ ...apiError, message: '索引結果尚未確認；系統不會重送。請使用正式文件狀態查核，再依 Backend 真實狀態決定後續操作。' });
+      } else {
+        setActionError(apiError);
+      }
     } finally { ingestingRef.current = false; setActing(false); }
   };
 
@@ -157,11 +192,13 @@ export default function DocumentsPage() {
     <Space orientation="vertical" size="large" style={{ width: '100%' }}>
       <Space style={{ width: '100%', justifyContent: 'space-between' }} wrap>
         <div><Title level={2} style={{ marginBottom: 0 }}>Document Management</Title><Text type="secondary">Upload 與索引是兩個獨立步驟；狀態以 Backend 為準。</Text></div>
-        {canUpload && <Button type="primary" icon={<UploadOutlined />} onClick={() => { setUploadError(null); setUploadOpen(true); }}>Upload Document</Button>}
+        {canUpload && <Button type="primary" icon={<UploadOutlined />} disabled={uploadUnknown} onClick={() => { setUploadError(null); setUploadOpen(true); }}>Upload Document</Button>}
       </Space>
       {uploaded && <Alert type="success" showIcon closable onClose={() => setUploaded(null)}
         title={`Document #${uploaded.id} 上傳成功`}
         description={`Backend 狀態：${uploaded.status}；Version：${uploaded.version}。文件尚未因上傳成功而自動成為 READY。`} />}
+      {uploadUnknown && <Alert type="warning" showIcon title="文件上傳結果不明，已鎖定重送"
+        description="請人工查核 Document List；相同 Title／Version 僅能作輔助資訊，不能單憑它推定上傳成功或失敗。" />}
       <Space wrap>
         <Select allowClear placeholder="Document Type" aria-label="Document type filter" style={{ width: 220 }} value={query.documentType}
           options={documentTypes.map((value) => ({ value, label: value }))} onChange={(value) => updateQuery({ documentType: value })} />
@@ -178,7 +215,7 @@ export default function DocumentsPage() {
           onChange={(pagination: TablePaginationConfig) => updateQuery({ page: Math.max(0, (pagination.current ?? 1) - 1), size: pagination.pageSize ?? 20 })} />}
     </Space>
 
-    <Modal title="Upload Document" open={uploadOpen} confirmLoading={uploading} okText="Upload" onOk={() => void submitUpload()}
+    <Modal title="Upload Document" open={uploadOpen} confirmLoading={uploading} okText="Upload" okButtonProps={{ disabled: uploadUnknown }} onOk={() => void submitUpload()}
       onCancel={() => { if (!uploading) { setUploadOpen(false); setUploadError(null); } }} closable={!uploading} mask={{ closable: !uploading }}>
       {uploadError && <ErrorState title="文件上傳失敗" error={uploadError} />}
       <Form form={form} layout="vertical">
@@ -197,7 +234,9 @@ export default function DocumentsPage() {
       {detailError && <ErrorState title="文件明細載入失敗" error={detailError} onRetry={() => { const id = Number(searchParams.get('documentId')); if (id) void openDetail(id); }} />}
       {detailLoading && <Text>Loading document…</Text>}
       {selected && <Space orientation="vertical" size="large" style={{ width: '100%' }}>
-        {actionError && <ErrorState title="文件操作失敗" error={actionError} onRetry={() => void refreshDetail()} retryText="重新取得狀態" />}
+        {actionError && <ErrorState title={ingestionUnknown ? '索引結果待查核' : '文件操作訊息'} error={actionError}
+          onRetry={ingestionUnknown ? () => void verifyIngestionStatus() : () => void refreshDetail()}
+          retryText={ingestionUnknown ? '查核真實文件狀態' : '重新取得文件資訊'} />}
         <Descriptions bordered size="small" column={1} items={[
           { key: 'id', label: 'Document ID', children: selected.id },
           { key: 'type', label: 'Document Type', children: selected.documentType },
@@ -213,7 +252,10 @@ export default function DocumentsPage() {
           <Space wrap><Button loading={acting} disabled={!editTitle.trim()} onClick={() => void saveTitle()}>Save Title</Button>
             {selected.status !== 'INACTIVE' && <Button danger loading={acting} onClick={() => void archive()}>Archive as INACTIVE</Button>}</Space>
         </Space>}
-        {canIngest && (selected.status === 'PROCESSING' || selected.status === 'READY') && <Button type="primary" loading={acting} onClick={() => setIngestConfirm(true)}>Start Explicit Ingestion</Button>}
+        {ingestionUnknown && <Alert type="warning" showIcon title="索引結果不明，已鎖定重送"
+          description="必須先使用正式 GET /documents/{id} 查核 Backend 真實狀態；查核失敗時鎖定會保留。"
+          action={<Button size="small" loading={acting} onClick={() => void verifyIngestionStatus()}>查核真實文件狀態</Button>} />}
+        {canIngest && !ingestionUnknown && (selected.status === 'PROCESSING' || selected.status === 'READY') && <Button type="primary" loading={acting} onClick={() => setIngestConfirm(true)}>Start Explicit Ingestion</Button>}
         {(selected.status === 'FAILED' || selected.status === 'INACTIVE') && <Alert type="info" showIcon title={`Backend 狀態 ${selected.status} 不允許從此介面直接重新索引。`} />}
       </Space>}
     </Drawer>

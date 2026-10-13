@@ -16,6 +16,17 @@ const page = (content: unknown[]) => ({ content, page: 0, size: 20, totalElement
 function response(config: InternalAxiosRequestConfig, data: unknown, status = 200): AxiosResponse { return { config, data, status, statusText: String(status), headers: {} }; }
 async function open(path: string) { localStorage.setItem(TOKEN_STORAGE_KEY, 'valid-token'); await router.navigate(path); render(<App />); }
 function latestDialog() { const dialogs = screen.getAllByRole('dialog'); return dialogs[dialogs.length - 1]; }
+async function openDraftProposal(user: ReturnType<typeof userEvent.setup>) {
+  await open('/dashboard');
+  await user.click(await screen.findByRole('button', { name: /AI Assistant/ }));
+  await user.click(screen.getByRole('tab', { name: 'Draft Proposal' }));
+  fireEvent.change(screen.getByLabelText('AI draft supplier ID'), { target: { value: '12' } });
+  fireEvent.change(screen.getByLabelText('AI draft item 1 material ID'), { target: { value: '7' } });
+  await user.type(screen.getByLabelText('AI draft item 1 quantity'), '1');
+  await user.type(screen.getByLabelText('AI draft item 1 unit price'), '2');
+  await user.click(screen.getByRole('button', { name: 'Create Proposal for Review' }));
+  await screen.findByText('Backend Proposal Snapshot');
+}
 beforeEach(() => { localStorage.clear(); });
 
 describe('SP-806 Document Management UI', () => {
@@ -44,11 +55,73 @@ describe('SP-806 Document Management UI', () => {
     expect(requests.filter(({ url }) => url === '/documents/21/ingestions')).toHaveLength(1);
   }, 30_000);
 
+  it('locks an unknown or 409 ingestion result until the official document GET succeeds, without a resend', async () => {
+    const requests: InternalAxiosRequestConfig[] = [];
+    let verificationAttempts = 0;
+    axiosClient.defaults.adapter = vi.fn(async (config) => {
+      requests.push(config);
+      if (config.url === '/auth/me') return response(config, staff);
+      if (config.url === '/documents' && config.method === 'get') return response(config, page([documentProcessing]));
+      if (config.url === '/documents/21' && config.method === 'get') {
+        verificationAttempts += 1;
+        if (verificationAttempts === 2) throw new AxiosError('Network error', 'ERR_NETWORK', config);
+        return response(config, { ...documentProcessing, status: 'READY' });
+      }
+      if (config.url === '/documents/21/ingestions') {
+        throw new AxiosError('Conflict', 'ERR_BAD_REQUEST', config, undefined,
+          response(config, { code: 'DOCUMENT_INGESTION_CONFLICT', message: 'Conflict', traceId: 'trace', timestamp: '', path: '' }, 409));
+      }
+      throw new Error(`Unexpected ${config.method} ${config.url}`);
+    });
+    await open('/documents'); const user = userEvent.setup();
+    await user.click(await screen.findByRole('button', { name: '#21' }));
+    await user.click(screen.getByRole('button', { name: 'Start Explicit Ingestion' }));
+    await user.click(within(latestDialog()).getByRole('button', { name: 'Confirm Ingestion' }));
+    expect(await screen.findByText(/系統不會重送/)).toBeTruthy();
+    expect(requests.filter(({ url }) => url === '/documents/21/ingestions')).toHaveLength(1);
+    expect(screen.queryByRole('button', { name: 'Start Explicit Ingestion' })).toBeNull();
+
+    await user.click(screen.getByRole('button', { name: '查核真實文件狀態' }));
+    expect(await screen.findByText(/索引操作維持鎖定/)).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Start Explicit Ingestion' })).toBeNull();
+    expect(requests.filter(({ url }) => url === '/documents/21/ingestions')).toHaveLength(1);
+
+    const verifyButtons = screen.getAllByRole('button', { name: '查核真實文件狀態' });
+    await user.click(verifyButtons[verifyButtons.length - 1]);
+    expect(await screen.findByText(/已查核 Backend 真實狀態：READY/)).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Start Explicit Ingestion' })).toBeTruthy();
+    expect(requests.filter(({ url }) => url === '/documents/21/ingestions')).toHaveLength(1);
+  }, 30_000);
+
   it('validates document file extension, browser content type, and empty content', () => {
     expect(validateDocumentFile(new File(['not-pdf'], 'fake.pdf', { type: 'text/plain' }))).toMatch(/內容類型相符/);
     expect(validateDocumentFile(new File([], 'empty.txt', { type: 'text/plain' }))).toMatch(/非空白/);
     expect(validateDocumentFile(new File(['quote'], 'quote.txt', { type: 'text/plain' }))).toBeNull();
   });
+
+  it('submits one upload on rapid clicks and locks an unknown upload instead of guessing its result', async () => {
+    const requests: InternalAxiosRequestConfig[] = [];
+    axiosClient.defaults.adapter = vi.fn(async (config) => {
+      requests.push(config);
+      if (config.url === '/auth/me') return response(config, staff);
+      if (config.url === '/documents' && config.method === 'get') return response(config, page([]));
+      if (config.url === '/documents' && config.method === 'post') throw new AxiosError('Timeout', 'ECONNABORTED', config);
+      throw new Error(`Unexpected ${config.method} ${config.url}`);
+    });
+    await open('/documents'); const user = userEvent.setup();
+    await user.click(await screen.findByRole('button', { name: /Upload Document/ }));
+    const type = screen.getByLabelText('Upload document type');
+    await user.click(type);
+    await user.click(screen.getByRole('option', { name: 'QUOTATION' }));
+    await user.type(screen.getByLabelText('Upload title'), 'Quote');
+    await user.type(screen.getByLabelText('Upload version'), 'v1');
+    await user.upload(screen.getByLabelText('Upload file'), new File(['quote'], 'quote.txt', { type: 'text/plain' }));
+    const upload = within(latestDialog()).getByRole('button', { name: 'Upload' });
+    fireEvent.click(upload); fireEvent.click(upload);
+    expect(await screen.findByText(/上傳結果不明/)).toBeTruthy();
+    expect(requests.filter(({ method, url }) => method === 'post' && url === '/documents')).toHaveLength(1);
+    expect(screen.getByRole('button', { name: /Upload Document/ }).hasAttribute('disabled')).toBe(true);
+  }, 30_000);
 
   it('gives manager read-only Documents without upload, edit, or ingestion controls', async () => {
     const requests: string[] = [];
@@ -195,5 +268,52 @@ describe('SP-806 Global AI Assistant', () => {
     expect(await screen.findByText(/系統已鎖定重送/)).toBeTruthy();
     expect(requests.filter(({ url }) => url === '/ai/purchase-draft-proposals/p2/confirm')).toHaveLength(1);
     expect(screen.getByRole('button', { name: 'Review / Confirm DRAFT' }).hasAttribute('disabled')).toBe(true);
+    expect(screen.getByRole('button', { name: 'Discard & Edit' }).hasAttribute('disabled')).toBe(true);
+    await user.click(screen.getByRole('button', { name: 'Discard & Edit' }));
+    expect(screen.getByText('Backend Proposal Snapshot')).toBeTruthy();
+    expect(requests.filter(({ url }) => url === '/ai/purchase-draft-proposals')).toHaveLength(2);
+  }, 30_000);
+
+  it.each(['AI_PROPOSAL_ALREADY_CONFIRMED', 'AI_PROPOSAL_EXPIRED'] as const)('locks the old Proposal after %s', async (code) => {
+    const requests: InternalAxiosRequestConfig[] = [];
+    axiosClient.defaults.adapter = vi.fn(async (config) => {
+      requests.push(config);
+      if (config.url === '/auth/me') return response(config, staff);
+      if (config.url === '/ai/purchase-draft-proposals') return response(config, {
+        status: 'PENDING_CONFIRMATION', proposalId: 'terminal-proposal', draft: { supplierId: 12, items: [{ materialId: 7, quantity: '1', unitPrice: '2' }] },
+        expiresAt: '2099-01-01T00:00:00Z', confirmationToken: 'server-token', missingFields: [],
+      });
+      if (config.url === '/ai/purchase-draft-proposals/terminal-proposal/confirm') {
+        throw new AxiosError(code, 'ERR_BAD_REQUEST', config, undefined,
+          response(config, { code, message: code, traceId: 'trace', timestamp: '', path: '' }, 409));
+      }
+      throw new Error(`Unexpected ${config.url}`);
+    });
+    const user = userEvent.setup();
+    await openDraftProposal(user);
+    await user.click(screen.getByRole('button', { name: 'Review / Confirm DRAFT' }));
+    await user.click(within(latestDialog()).getByRole('button', { name: 'Confirm Create DRAFT' }));
+    expect(await screen.findByText(code === 'AI_PROPOSAL_ALREADY_CONFIRMED' ? /可能已建立採購單/ : /舊 token 不可重用/)).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Review / Confirm DRAFT' }).hasAttribute('disabled')).toBe(true);
+    if (code === 'AI_PROPOSAL_ALREADY_CONFIRMED') expect(screen.getByRole('button', { name: 'Discard & Edit' }).hasAttribute('disabled')).toBe(true);
+    expect(requests.filter(({ url }) => url === '/ai/purchase-draft-proposals/terminal-proposal/confirm')).toHaveLength(1);
+  }, 30_000);
+
+  it('fails closed when Proposal expiresAt is invalid without calling Confirm', async () => {
+    const requests: InternalAxiosRequestConfig[] = [];
+    axiosClient.defaults.adapter = vi.fn(async (config) => {
+      requests.push(config);
+      if (config.url === '/auth/me') return response(config, staff);
+      if (config.url === '/ai/purchase-draft-proposals') return response(config, {
+        status: 'PENDING_CONFIRMATION', proposalId: 'invalid-expiry', draft: { supplierId: 12, items: [{ materialId: 7, quantity: '1', unitPrice: '2' }] },
+        expiresAt: 'not-a-date', confirmationToken: 'server-token', missingFields: [],
+      });
+      throw new Error(`Unexpected ${config.url}`);
+    });
+    const user = userEvent.setup();
+    await openDraftProposal(user);
+    expect(screen.getByText('Proposal 到期時間無效')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Review / Confirm DRAFT' }).hasAttribute('disabled')).toBe(true);
+    expect(requests.filter(({ url }) => url === '/ai/purchase-draft-proposals/invalid-expiry/confirm')).toHaveLength(0);
   }, 30_000);
 });

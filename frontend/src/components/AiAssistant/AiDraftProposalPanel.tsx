@@ -13,6 +13,7 @@ import type { ApiErrorResponse } from '../../types/api';
 const { Text, Title } = Typography;
 interface ItemValues { materialId?: number; quantity?: string; unitPrice?: string; recommendationId?: number; supplierRecommendationResultId?: number; supplierOverrideReason?: string; quantityOverrideReason?: string; }
 interface Values { message: string; supplierId?: number; expectedDeliveryDate?: string; items?: ItemValues[]; }
+type ConfirmLock = 'UNKNOWN' | 'ALREADY_CONFIRMED' | 'EXPIRED' | null;
 
 function unknownResult(error: unknown): boolean {
   return isAxiosError(error) && (!error.response || error.code === 'ECONNABORTED' || error.code === 'ETIMEDOUT');
@@ -36,7 +37,7 @@ export default function AiDraftProposalPanel() {
   const [proposing, setProposing] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [confirming, setConfirming] = useState(false);
-  const [confirmUnknown, setConfirmUnknown] = useState(false);
+  const [confirmLock, setConfirmLock] = useState<ConfirmLock>(null);
   const [now, setNow] = useState(0);
   const confirmingRef = useRef(false);
 
@@ -47,11 +48,15 @@ export default function AiDraftProposalPanel() {
   }, [proposal?.expiresAt]);
 
   const expiry = proposal?.expiresAt ? Date.parse(proposal.expiresAt) : Number.NaN;
-  const expired = Number.isFinite(expiry) && now >= expiry;
-  const secondsLeft = Number.isFinite(expiry) ? Math.max(0, Math.ceil((expiry - now) / 1000)) : null;
+  const hasValidExpiry = Number.isFinite(expiry);
+  const expired = hasValidExpiry && now >= expiry;
+  const terminalConfirmLock = confirmLock === 'UNKNOWN' || confirmLock === 'ALREADY_CONFIRMED';
+  const confirmLocked = terminalConfirmLock || !hasValidExpiry || expired || confirmLock === 'EXPIRED';
+  const secondsLeft = hasValidExpiry ? Math.max(0, Math.ceil((expiry - now) / 1000)) : null;
   const draft = proposal?.status === 'PENDING_CONFIRMATION' ? proposal.draft : null;
 
   const propose = async () => {
+    if (terminalConfirmLock) return;
     let values: Values;
     try { values = await form.validateFields(); } catch { return; }
     const rows = values.items ?? [];
@@ -69,34 +74,39 @@ export default function AiDraftProposalPanel() {
         ...(row.quantityOverrideReason?.trim() ? { quantityOverrideReason: row.quantityOverrideReason.trim() } : {}),
       })),
     };
-    setProposing(true); setError(null); setCreated(null); setConfirmUnknown(false);
+    setProposing(true); setError(null); setCreated(null); setConfirmLock(null);
     try { setProposal(await proposePurchaseDraft(values.message.trim(), request)); setNow(Date.now()); }
     catch (requestError) { const apiError = toApiError(requestError); setError({ ...apiError, message: proposalError(apiError, false) }); }
     finally { setProposing(false); }
   };
 
   const confirm = async () => {
-    if (!proposal?.proposalId || !proposal.confirmationToken || !draft || expired || confirmingRef.current || confirmUnknown) return;
+    if (!proposal?.proposalId || !proposal.confirmationToken || !draft || confirmLocked || confirmingRef.current) return;
     confirmingRef.current = true; setConfirming(true); setError(null);
     try {
       const result = await confirmPurchaseDraft(proposal.proposalId, proposal.confirmationToken, draft);
       setCreated(result); setProposal(null); setConfirmOpen(false);
     } catch (requestError) {
       const unknown = unknownResult(requestError);
-      if (unknown) setConfirmUnknown(true);
       const apiError = toApiError(requestError);
+      if (unknown) setConfirmLock('UNKNOWN');
+      else if (apiError.code === 'AI_PROPOSAL_ALREADY_CONFIRMED') setConfirmLock('ALREADY_CONFIRMED');
+      else if (apiError.code === 'AI_PROPOSAL_EXPIRED') setConfirmLock('EXPIRED');
       setError({ ...apiError, message: proposalError(apiError, unknown) }); setConfirmOpen(false);
     } finally { confirmingRef.current = false; setConfirming(false); }
   };
 
   const items = useMemo(() => draft?.items ?? [], [draft]);
-  const resetProposal = () => { setProposal(null); setError(null); setConfirmUnknown(false); setCreated(null); };
+  const resetProposal = () => {
+    if (terminalConfirmLock) return;
+    setProposal(null); setError(null); setConfirmLock(null); setCreated(null);
+  };
 
   return <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
     <div><Title level={4} style={{ marginBottom: 0 }}>AI PO Draft Proposal</Title><Text type="secondary">Proposal 不會建立 PO；只有完整審閱並二次 Confirm 才可能建立 DRAFT。</Text></div>
     {created && <Alert type="success" showIcon title={`PO ${created.poNumber} 已由 Backend 建立`}
       description={<span>PO ID：<Link to={`/purchase-orders/${created.id}`}>{created.id}</Link>；狀態：{created.status}（只建立 DRAFT）。</span>} />}
-    {error && <ErrorState title={confirmUnknown ? 'Confirm 結果不明' : 'AI Draft 操作失敗'} error={error} />}
+    {error && <ErrorState title={confirmLock === 'UNKNOWN' ? 'Confirm 結果不明' : 'AI Draft 操作失敗'} error={error} />}
     {proposal?.status === 'NEEDS_CLARIFICATION' && <Alert type="warning" showIcon title="需要補充結構化資料"
       description={`Backend 指出缺少：${proposal.missingFields.join(', ') || '未提供明確欄位'}。不會顯示 Confirm，也不會猜測資料。`} />}
 
@@ -120,12 +130,18 @@ export default function AiDraftProposalPanel() {
           <Form.ErrorList errors={errors} /><Button icon={<PlusOutlined />} onClick={() => add()}>Add Item</Button>
         </Space>}
       </Form.List>
-      <Button style={{ marginTop: 16 }} type="primary" loading={proposing} disabled={confirmUnknown} onClick={() => void propose()}>Create Proposal for Review</Button>
+      <Button style={{ marginTop: 16 }} type="primary" loading={proposing} disabled={terminalConfirmLock} onClick={() => void propose()}>Create Proposal for Review</Button>
     </Form>}
 
-    {draft && <Card title="Backend Proposal Snapshot" extra={<Button disabled={confirming} onClick={resetProposal}>Discard & Edit</Button>}>
-      <Alert type={expired ? 'error' : 'warning'} showIcon title={expired ? 'Proposal 已過期，禁止 Confirm' : '請完整審閱；Confirm 只會建立 DRAFT'}
-        description={`ExpiresAt：${proposal?.expiresAt}；${secondsLeft === null ? '無法解析到期時間' : `約剩 ${secondsLeft} 秒`}。Backend 仍是最終到期判斷。`} />
+    {draft && <Card title="Backend Proposal Snapshot" extra={<Button disabled={confirming || terminalConfirmLock} onClick={resetProposal}>Discard & Edit</Button>}>
+      {confirmLock === 'UNKNOWN' ? <Alert type="warning" showIcon title="確認結果不明"
+        description="可能已建立採購單。請先由人工查核採購單真實狀態；查核前不可重新確認、丟棄草稿或重新產生 Proposal。" />
+        : confirmLock === 'ALREADY_CONFIRMED' ? <Alert type="error" showIcon title="Proposal 已確認"
+          description="此 Proposal 已不可再次使用。請先由人工查核已建立的採購單真實狀態。" />
+          : !hasValidExpiry ? <Alert type="error" showIcon title="Proposal 到期時間無效"
+            description="此 Proposal 缺少或包含無法解析的到期時間，為避免重複建立採購單，請修改 Draft 後重新產生 Proposal。" />
+            : <Alert type={expired || confirmLock === 'EXPIRED' ? 'error' : 'warning'} showIcon title={expired || confirmLock === 'EXPIRED' ? 'Proposal 已過期，禁止 Confirm' : '請完整審閱；Confirm 只會建立 DRAFT'}
+              description={`ExpiresAt：${proposal?.expiresAt}；${secondsLeft === null ? '無法解析到期時間' : `約剩 ${secondsLeft} 秒`}。Backend 仍是最終到期判斷。`} />}
       <Descriptions bordered size="small" column={1} style={{ marginTop: 12 }} items={[
         { key: 'proposal', label: 'Proposal ID', children: proposal?.proposalId },
         { key: 'supplier', label: 'Supplier ID', children: draft.supplierId },
@@ -142,11 +158,11 @@ export default function AiDraftProposalPanel() {
           { key: 'quantityReason', label: 'Quantity Override Reason', children: item.quantityOverrideReason ?? '—' },
         ]} />
       </div>)}</Space>
-      <Button type="primary" danger disabled={expired || confirmUnknown || !proposal?.confirmationToken} onClick={() => setConfirmOpen(true)}>Review / Confirm DRAFT</Button>
+      <Button type="primary" danger disabled={confirmLocked || !proposal?.confirmationToken} onClick={() => setConfirmOpen(true)}>Review / Confirm DRAFT</Button>
     </Card>}
 
     <Modal title="Final Confirmation" open={confirmOpen} okText="Confirm Create DRAFT" confirmLoading={confirming}
-      okButtonProps={{ danger: true }} onOk={() => void confirm()} onCancel={() => { if (!confirming) setConfirmOpen(false); }} closable={!confirming} mask={{ closable: !confirming }}>
+      okButtonProps={{ danger: true, disabled: confirmLocked || !proposal?.confirmationToken }} onOk={() => void confirm()} onCancel={() => { if (!confirming) setConfirmOpen(false); }} closable={!confirming} mask={{ closable: !confirming }}>
       <Alert type="warning" showIcon title="這是唯一會建立採購單的步驟"
         description="Backend 將驗證 Proposal ID、使用者、未顯示的 server-issued token、完整 snapshot 與 expiresAt。只建立 DRAFT，不會 Approve、Order、Receive 或調整庫存。" />
     </Modal>
