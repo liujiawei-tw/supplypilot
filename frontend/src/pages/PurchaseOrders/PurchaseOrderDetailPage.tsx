@@ -1,18 +1,19 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { isAxiosError } from 'axios';
 import { Alert, Button, Descriptions, Form, Input, Modal, Space, Table, Tag, Typography, message } from 'antd';
 import { Link, useParams } from 'react-router-dom';
 import { approvePurchaseOrder, getPurchaseOrder, markPurchaseOrderOrdered, rejectPurchaseOrder, updatePurchaseOrderDraft, type CreatePurchaseOrderRequest, type PurchaseOrderItemResponse, type PurchaseOrderResponse, type UpdatePurchaseOrderRequest } from '../../api/purchaseOrder';
-import { toApiError } from '../../api/apiError';
+import { requiresMutationVerification, toApiError } from '../../api/apiError';
 import { can } from '../../auth/permissions';
 import { useAuth } from '../../auth/useAuth';
 import ErrorState from '../../components/ErrorState';
 import LoadingState from '../../components/LoadingState';
+import VerificationRequiredAlert from '../../components/VerificationRequiredAlert';
 import type { ApiErrorResponse } from '../../types/api';
 import PurchaseOrderForm from './PurchaseOrderForm';
-import { formatTimestamp, isUnknownMutation, statusColors } from './purchaseOrderUi';
+import { formatTimestamp, statusColors } from './purchaseOrderUi';
 
 type ActionName = 'edit' | 'approve' | 'reject' | 'order';
+type VerificationState = 'required' | 'checking' | 'failed' | 'verified';
 
 export default function PurchaseOrderDetailPage() {
   const { id } = useParams(); const poId = Number(id);
@@ -27,26 +28,48 @@ export default function PurchaseOrderDetailPage() {
   const [pendingEdit, setPendingEdit] = useState<UpdatePurchaseOrderRequest | null>(null);
   const [rejectReason, setRejectReason] = useState('');
   const [verificationRequired, setVerificationRequired] = useState(false);
+  const [verificationState, setVerificationState] = useState<VerificationState | null>(null);
+  const [verificationMessage, setVerificationMessage] = useState('');
+  const [verificationError, setVerificationError] = useState<ApiErrorResponse | null>(null);
   const submittingRef = useRef(false);
 
   const load = useCallback(async () => {
     if (!Number.isSafeInteger(poId) || poId <= 0) { setError({ code: 'INVALID_ID', message: 'Invalid Purchase Order ID', traceId: '', timestamp: '', path: '' }); setLoading(false); return; }
     setLoading(true); setError(null);
-    try { setPo(await getPurchaseOrder(poId)); setVerificationRequired(false); }
+    try { setPo(await getPurchaseOrder(poId)); }
     catch (requestError) { setError(toApiError(requestError)); }
     finally { setLoading(false); }
   }, [poId]);
   useEffect(() => { const timer = window.setTimeout(() => void load(), 0); return () => window.clearTimeout(timer); }, [load]);
 
+  const verifyLatestState = async () => {
+    if (!verificationRequired || verificationState === 'checking') return;
+    setVerificationState('checking'); setVerificationError(null);
+    try {
+      const latest = await getPurchaseOrder(poId);
+      setPo(latest); setVerificationRequired(false); setActionError(null);
+      setVerificationState('verified');
+      setVerificationMessage(`已取得 Backend 最新資料：目前狀態為 ${latest.status}。請重新審閱畫面；如仍符合角色與生命週期條件，必須重新開啟確認流程。`);
+    } catch (requestError) {
+      setVerificationRequired(true); setVerificationState('failed');
+      setVerificationMessage('無法取得 Backend 最新狀態，所有可能重複的寫入操作仍維持鎖定。');
+      setVerificationError(toApiError(requestError));
+    }
+  };
+
   const perform = async (name: ActionName, operation: () => Promise<PurchaseOrderResponse>) => {
     if (submittingRef.current || verificationRequired) return;
-    submittingRef.current = true; setSubmitting(true); setActive(name); setActionError(null);
+    submittingRef.current = true; setSubmitting(true); setActive(name); setActionError(null); setVerificationState(null); setVerificationError(null);
     try {
-      const result = await operation(); setPo(result); setPendingEdit(null); setRejectReason(''); apiMessage.success('Purchase Order 已更新');
+      const result = await operation(); setPo(result); setPendingEdit(null); setRejectReason(''); setVerificationRequired(false); apiMessage.success('Purchase Order 已更新');
     } catch (requestError) {
       setActionError(toApiError(requestError));
-      setVerificationRequired(isUnknownMutation(requestError) || (isAxiosError(requestError) && requestError.response?.status === 409));
-      if (name === 'edit') setPendingEdit(null);
+      const mustVerify = requiresMutationVerification(requestError);
+      if (mustVerify) {
+        setVerificationRequired(true); setVerificationState('required');
+        setVerificationMessage('操作遇到 409、伺服器錯誤或連線結果不明。系統不會自動重送；請先查詢 Backend 真實狀態。');
+      }
+      setPendingEdit(null); setRejectReason('');
     } finally { submittingRef.current = false; setSubmitting(false); setActive(null); }
   };
 
@@ -62,11 +85,18 @@ export default function PurchaseOrderDetailPage() {
     {contextHolder}
     <Space style={{ width: '100%', justifyContent: 'space-between' }} wrap>
       <div><Link to="/purchase-orders">← Purchase Orders</Link><Typography.Title level={2} style={{ margin: '8px 0 0' }}>{po.poNumber}</Typography.Title></div>
-      <Space wrap>{canEdit && <Button onClick={() => { setActive('edit'); setActionError(null); }}>Edit DRAFT</Button>}{canDecide && <><Button type="primary" disabled={!po.expectedDeliveryDate || verificationRequired} title={!po.expectedDeliveryDate ? '請先編輯 DRAFT 補齊交期' : undefined} onClick={() => setActive('approve')}>Approve</Button><Button danger disabled={verificationRequired} onClick={() => setActive('reject')}>Reject</Button></>}{canOrder && <Button type="primary" disabled={!po.expectedDeliveryDate || verificationRequired} onClick={() => setActive('order')}>Mark Ordered</Button>}{canViewTransactions && <Link to={`/inventory?tab=stock-transactions&purchaseOrderId=${po.id}`}>Stock Transactions</Link>}</Space>
+      <Space wrap>{canEdit && <Button disabled={verificationRequired} onClick={() => { if (!verificationRequired) { setActive('edit'); setActionError(null); } }}>Edit DRAFT</Button>}{canDecide && <><Button type="primary" disabled={!po.expectedDeliveryDate || verificationRequired} title={!po.expectedDeliveryDate ? '請先編輯 DRAFT 補齊交期' : undefined} onClick={() => setActive('approve')}>Approve</Button><Button danger disabled={verificationRequired} onClick={() => setActive('reject')}>Reject</Button></>}{canOrder && <Button type="primary" disabled={!po.expectedDeliveryDate || verificationRequired} onClick={() => setActive('order')}>Mark Ordered</Button>}{canViewTransactions && <Link to={`/inventory?tab=stock-transactions&purchaseOrderId=${po.id}`}>Stock Transactions</Link>}</Space>
     </Space>
     {!po.expectedDeliveryDate && canDecide && <Alert type="warning" showIcon title="此 DRAFT 尚未設定交期，無法核准。請先使用 Edit DRAFT 補齊。" />}
-    {verificationRequired && <Alert type="warning" showIcon title="狀態可能已變更，操作已鎖定" description={<Space orientation="vertical"><span>409 或連線結果不明時不會自動重送。請先重新查詢 Backend 真實狀態。</span><Button onClick={() => void load()}>重新查詢 PO</Button></Space>} />}
-    {actionError && <ErrorState title="Purchase Order 操作失敗" error={actionError} />}
+    {verificationState && <VerificationRequiredAlert
+      state={verificationState}
+      title={verificationState === 'verified' ? '已取得最新 Purchase Order 狀態' : verificationState === 'failed' ? '結果尚未確認，操作維持鎖定' : '狀態可能已變更，操作已鎖定'}
+      message={verificationMessage}
+      onVerify={verificationRequired ? () => void verifyLatestState() : undefined}
+      verifyText="重新查詢 PO"
+    />}
+    {verificationError && <ErrorState title="Purchase Order 狀態查核失敗" error={verificationError} onRetry={() => void verifyLatestState()} retryText="重新查核" />}
+    {actionError && <ErrorState title={verificationRequired ? 'Purchase Order 操作結果待查核' : 'Purchase Order 操作失敗'} error={actionError} operation="mutation" />}
     <Descriptions bordered column={{ xs: 1, md: 2 }} items={[
       { key: 'id', label: 'PO ID', children: po.id }, { key: 'status', label: 'Status', children: <Space><Tag color={statusColors[po.status]}>{po.status}</Tag>{po.isOverdue && <Tag color="red">OVERDUE</Tag>}</Space> },
       { key: 'supplier', label: 'Supplier Snapshot', children: `${po.supplierCode} — ${po.supplierName} (#${po.supplierId})` }, { key: 'delivery', label: 'Expected Delivery', children: po.expectedDeliveryDate ?? '—' },
@@ -86,7 +116,7 @@ export default function PurchaseOrderDetailPage() {
     ]} />
 
     <Modal width={900} title="Edit Purchase Order DRAFT" open={active === 'edit'} footer={null} destroyOnHidden onCancel={() => { if (!submitting) setActive(null); }}>
-      {actionError && <ErrorState title="DRAFT 更新失敗" error={actionError} />}
+      {actionError && <ErrorState title="DRAFT 更新失敗" error={actionError} operation="mutation" />}
       <PurchaseOrderForm purchaseOrder={po} disabled={submitting} onReview={(request: CreatePurchaseOrderRequest | UpdatePurchaseOrderRequest) => setPendingEdit(request as UpdatePurchaseOrderRequest)} />
     </Modal>
     <Modal title="Confirm DRAFT Changes" open={!!pendingEdit} okText="Confirm Update DRAFT" confirmLoading={active === 'edit' && submitting} onCancel={() => setPendingEdit(null)} onOk={() => void perform('edit', () => updatePurchaseOrderDraft(po.id, pendingEdit!))}>

@@ -1,11 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { isAxiosError } from 'axios';
 import { Alert, Button, Card, Descriptions, Form, Input, InputNumber, Modal, Space, Typography } from 'antd';
 import { MinusCircleOutlined, PlusOutlined } from '@ant-design/icons';
 import { Link } from 'react-router-dom';
 import { confirmPurchaseDraft, proposePurchaseDraft, type AiDraftProposalResponse } from '../../api/ai';
 import type { CreatePurchaseOrderRequest, PurchaseOrderResponse } from '../../api/purchaseOrder';
-import { toApiError } from '../../api/apiError';
+import { isUnknownMutationResult, toApiError } from '../../api/apiError';
 import { isNonNegativeDecimal, isPositiveDecimal } from '../../pages/PurchaseOrders/purchaseOrderUi';
 import ErrorState from '../ErrorState';
 import type { ApiErrorResponse } from '../../types/api';
@@ -16,7 +15,7 @@ interface Values { message: string; supplierId?: number; expectedDeliveryDate?: 
 type ConfirmLock = 'UNKNOWN' | 'ALREADY_CONFIRMED' | 'EXPIRED' | null;
 
 function unknownResult(error: unknown): boolean {
-  return isAxiosError(error) && (!error.response || error.code === 'ECONNABORTED' || error.code === 'ETIMEDOUT');
+  return isUnknownMutationResult(error);
 }
 
 function proposalError(error: ApiErrorResponse, unknown: boolean): string {

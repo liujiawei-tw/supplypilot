@@ -1,5 +1,5 @@
-import { isAxiosError } from 'axios';
 import type { PurchaseOrderStatus } from '../../api/purchaseOrder';
+import { isUnknownMutationResult } from '../../api/apiError';
 
 export const decimalPattern = /^(?:0|[1-9]\d*)(?:\.\d+)?$/;
 
@@ -12,7 +12,7 @@ export function isNonNegativeDecimal(value: unknown): boolean {
 }
 
 export function isUnknownMutation(error: unknown): boolean {
-  return isAxiosError(error) && (!error.response || error.code === 'ECONNABORTED' || error.code === 'ETIMEDOUT');
+  return isUnknownMutationResult(error);
 }
 
 export function formatTimestamp(value: string | null | undefined): string {
