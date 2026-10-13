@@ -11,6 +11,7 @@ import EmptyState from '../../components/EmptyState';
 import ErrorState from '../../components/ErrorState';
 import LoadingState from '../../components/LoadingState';
 import UnauthorizedPage from '../Unauthorized/UnauthorizedPage';
+import StockTransactions from '../../components/StockTransactions';
 import type { ApiErrorResponse, PageResponse } from '../../types/api';
 import { getAdjustmentQuantityError, getAdjustmentReasonError } from './inventoryValidation';
 
@@ -214,7 +215,7 @@ export default function InventoryPage() {
     children: key === activeKey
       ? key === 'stock-levels'
         ? <StockLevels />
-        : <Alert type="info" showIcon title="Stock Transactions 查詢畫面將於 SP-805 實作。" description="此預留容器不會發送 Stock Levels 或 Stock Transactions 資料請求。" />
+        : <StockTransactions />
       : null,
   }));
 
