@@ -28,6 +28,8 @@ This directory is the V1 specification source of truth. Implementation status be
 - [Coding standards](coding-standards.md)
 - [Testing strategy](testing-strategy-merged.md)
 - [Frontend design](frontend-design.md)
+- [Impeccable 前端改善審查、UI-A/B/C/D 與 E9 依賴](impeccable-ui-review-plan.md)
+- [Semantic RAG runbook](semantic-rag-runbook.md)
 - [Environment configuration](environment-configuration.md)
 - [Cross-document consistency review](cross-document-consistency-review.md)
 - [Pre-implementation checklist](pre-implementation-checklist.md)
