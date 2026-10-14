@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import {
   Alert, Button, Collapse, Descriptions, Drawer, Form, Input, InputNumber, Modal, Select, Space, Table, Tag, Typography,
   type TablePaginationConfig,
@@ -71,15 +71,25 @@ export default function DocumentsPage() {
   const [reviewResult, setReviewResult] = useState<OutboundReviewResponse | null>(null);
   const [reviewUnknownKeys, setReviewUnknownKeys] = useState<string[]>(storedUnknownReviews);
   const [reviewUnlockKey, setReviewUnlockKey] = useState<string | null>(null);
+  const [semanticMutationVersion, setSemanticMutationVersion] = useState(0);
   const [form] = Form.useForm<UploadValues>();
   const uploadRef = useRef(false);
   const ingestingRef = useRef(false);
   const reviewRef = useRef(false);
+  const selectedDocumentRef = useRef(selected);
+  useLayoutEffect(() => { selectedDocumentRef.current = selected; }, [selected]);
+  const detailRequestSequence = useRef(0);
+  const detailEffectTimer = useRef<number | null>(null);
   const ingestionUnknownRef = useRef<number | null>(null);
   const canUpload = !!user && can(user.role, 'documentUpload');
   const canUpdate = !!user && can(user.role, 'documentUpdate');
   const canIngest = !!user && can(user.role, 'documentIngest');
   const canManageSemantic = !!user && can(user.role, 'semanticManagement');
+  const requestedDocumentIdText = searchParams.get('documentId');
+  const requestedDocumentIdValue = Number(requestedDocumentIdText);
+  const requestedDocumentId = requestedDocumentIdText && /^\d+$/.test(requestedDocumentIdText)
+    && Number.isSafeInteger(requestedDocumentIdValue) && requestedDocumentIdValue > 0 ? requestedDocumentIdValue : null;
+  const selectedMatchesUrl = !!selected && requestedDocumentId === selected.id;
 
   const loadList = useCallback(async (next = query) => {
     setLoading(true); setError(null);
@@ -90,29 +100,56 @@ export default function DocumentsPage() {
 
   useEffect(() => { const timer = window.setTimeout(() => void loadList(), 0); return () => window.clearTimeout(timer); }, [loadList]);
 
-  const openDetail = useCallback(async (id: number) => {
-    setSelected(null); setReviewResult(null);
+  const loadDetail = useCallback(async (id: number) => {
+    const requestSequence = ++detailRequestSequence.current;
     setDetailLoading(true); setDetailError(null); setActionError(null);
     try {
       const document = await getDocument(id);
+      if (requestSequence !== detailRequestSequence.current) return;
       setSelected(document); setEditTitle(document.title);
-      setSearchParams((current) => { const next = new URLSearchParams(current); next.set('documentId', String(id)); return next; });
-    } catch (requestError) { setDetailError(toApiError(requestError)); setSelected(null); }
-    finally { setDetailLoading(false); }
-  }, [setSearchParams]);
+    } catch (requestError) {
+      if (requestSequence === detailRequestSequence.current) { setDetailError(toApiError(requestError)); setSelected(null); }
+    } finally {
+      if (requestSequence === detailRequestSequence.current) setDetailLoading(false);
+    }
+  }, []);
+
+  const openDetail = useCallback((id: number) => {
+    // Invalidate an in-flight GET immediately; URL changes are committed on the next render.
+    if (detailEffectTimer.current !== null) window.clearTimeout(detailEffectTimer.current);
+    detailEffectTimer.current = null;
+    detailRequestSequence.current += 1;
+    setSelected(null); setReviewResult(null); setReviewConfirm(null);
+    setDetailLoading(true); setDetailError(null); setActionError(null);
+    if (searchParams.get('documentId') === String(id)) {
+      void loadDetail(id);
+      return;
+    }
+    setSearchParams((current) => { const next = new URLSearchParams(current); next.set('documentId', String(id)); return next; });
+  }, [loadDetail, searchParams, setSearchParams]);
 
   useEffect(() => {
     const raw = searchParams.get('documentId');
-    if (raw && /^\d+$/.test(raw) && Number.isSafeInteger(Number(raw)) && Number(raw) > 0 && selected?.id !== Number(raw)) {
-      const timer = window.setTimeout(() => void openDetail(Number(raw)), 0);
-      return () => window.clearTimeout(timer);
+    const id = Number(raw);
+    if (raw && /^\d+$/.test(raw) && Number.isSafeInteger(id) && id > 0) {
+      const timer = window.setTimeout(() => { detailEffectTimer.current = null; void loadDetail(id); }, 0);
+      detailEffectTimer.current = timer;
+      return () => {
+        window.clearTimeout(timer);
+        if (detailEffectTimer.current === timer) detailEffectTimer.current = null;
+        detailRequestSequence.current += 1;
+      };
     }
-  }, [openDetail, searchParams, selected?.id]);
+    detailRequestSequence.current += 1;
+  }, [loadDetail, searchParams]);
 
   const closeDetail = () => {
-    setSelected(null); setDetailError(null); setActionError(null); setIngestConfirm(false);
+    detailRequestSequence.current += 1;
+    setSelected(null); setDetailLoading(false); setDetailError(null); setActionError(null); setIngestConfirm(false); setReviewConfirm(null);
     setSearchParams((current) => { const next = new URLSearchParams(current); next.delete('documentId'); return next; });
   };
+
+  const invalidateSemanticReports = () => setSemanticMutationVersion((version) => version + 1);
 
   const submitUpload = async () => {
     if (uploadRef.current || uploadUnknown) return;
@@ -127,6 +164,7 @@ export default function DocumentsPage() {
     }
     setUploading(true); setUploadError(null);
     try {
+      invalidateSemanticReports();
       const result = await uploadDocument({ ...values, title: values.title.trim(), version: values.version.trim(), file: uploadFile! });
       setUploaded(result); setUploadOpen(false); form.resetFields(); setUploadFile(null);
       await loadList({ ...query, page: 0 });
@@ -144,13 +182,17 @@ export default function DocumentsPage() {
   const refreshDetail = async () => { if (selected) await openDetail(selected.id); };
 
   const confirmOutboundReview = async () => {
-    if (!selected || !reviewConfirm || reviewRef.current) return;
+    if (!selected || !selectedMatchesUrl || !reviewConfirm || reviewRef.current) return;
     const operation = reviewConfirm;
+    const documentId = selected.id;
+    const documentVersion = selected.version;
     const reviewKey = `${selected.id}:${selected.version}`;
     if (reviewUnknownKeys.includes(reviewKey)) return;
     reviewRef.current = true; setReviewLoading(true); setActionError(null); setReviewConfirm(null); setReviewResult(null);
     try {
-      const result = await (operation === 'approve' ? approveOutbound(selected.id) : excludeOutbound(selected.id));
+      invalidateSemanticReports();
+      const result = await (operation === 'approve' ? approveOutbound(documentId) : excludeOutbound(documentId));
+      if (selectedDocumentRef.current?.id !== documentId || selectedDocumentRef.current.version !== documentVersion) return;
       setReviewResult(result);
     } catch (requestError) {
       const apiError = toApiError(requestError);
@@ -160,8 +202,8 @@ export default function DocumentsPage() {
           sessionStorage.setItem(REVIEW_UNKNOWN_KEY, JSON.stringify(next));
           return next;
         });
-        setActionError({ ...apiError, message: `${operation === 'approve' ? '核准' : '排除'}結果未知，且目前沒有可查詢持久化審核狀態的 API。請依後端稽核記錄人工查核；不可把 Document READY 或 Readiness 當作審核成功，也不要重送。` });
-      } else setActionError(apiError);
+        if (selectedDocumentRef.current?.id === documentId && selectedDocumentRef.current.version === documentVersion) setActionError({ ...apiError, message: `${operation === 'approve' ? '核准' : '排除'}結果未知，且目前沒有可查詢持久化審核狀態的 API。請依後端稽核記錄人工查核；不可把 Document READY 或 Readiness 當作審核成功，也不要重送。` });
+      } else if (selectedDocumentRef.current?.id === documentId && selectedDocumentRef.current.version === documentVersion) setActionError(apiError);
     } finally { reviewRef.current = false; setReviewLoading(false); }
   };
 
@@ -171,6 +213,7 @@ export default function DocumentsPage() {
     setActing(true); setActionError(null);
     try {
       const document = await getDocument(id);
+      if (selected?.id !== id) return;
       setSelected(document); setEditTitle(document.title);
       ingestionUnknownRef.current = null; setIngestionUnknown(false);
       setActionError({ code: 'DOCUMENT_STATUS_VERIFIED', message: `已查核 Backend 真實狀態：${document.status}。此查核不代表先前索引成功；可用操作依目前狀態與 Domain Rule 決定。`, traceId: '', timestamp: '', path: '' });
@@ -183,7 +226,7 @@ export default function DocumentsPage() {
   const saveTitle = async () => {
     if (!selected || !editTitle.trim()) return;
     setActing(true); setActionError(null);
-    try { const next = await updateDocument(selected.id, { title: editTitle.trim() }); setSelected(next); await loadList(); }
+    try { invalidateSemanticReports(); const next = await updateDocument(selected.id, { title: editTitle.trim() }); setSelected(next); await loadList(); }
     catch (requestError) { setActionError(toApiError(requestError)); }
     finally { setActing(false); }
   };
@@ -191,15 +234,20 @@ export default function DocumentsPage() {
   const archive = async () => {
     if (!selected) return;
     setActing(true); setActionError(null);
-    try { const next = await updateDocument(selected.id, { status: 'INACTIVE' }); setSelected(next); await loadList(); }
+    try { invalidateSemanticReports(); const next = await updateDocument(selected.id, { status: 'INACTIVE' }); setSelected(next); await loadList(); }
     catch (requestError) { setActionError(toApiError(requestError)); }
     finally { setActing(false); }
+  };
+
+  const loadDetailForRetry = () => {
+    const id = Number(searchParams.get('documentId'));
+    if (id) void loadDetail(id);
   };
 
   const ingest = async () => {
     if (!selected || ingestingRef.current || ingestionUnknownRef.current !== null) return;
     ingestingRef.current = true; setActing(true); setActionError(null); setIngestConfirm(false);
-    try { const next = await ingestDocument(selected.id); setSelected(next); await loadList(); }
+    try { invalidateSemanticReports(); const next = await ingestDocument(selected.id); setSelected(next); await loadList(); }
     catch (requestError) {
       const apiError = toApiError(requestError);
       const requiresVerification = requiresMutationVerification(requestError);
@@ -238,7 +286,7 @@ export default function DocumentsPage() {
       {uploaded && <Alert type="success" showIcon closable onClose={() => setUploaded(null)}
         title={`Document #${uploaded.id} 上傳成功`}
         description={`Backend 狀態：${uploaded.status}；Version：${uploaded.version}。文件尚未因上傳成功而自動成為 READY。`} />}
-      {canManageSemantic && <SemanticOperationsPanel />}
+      {canManageSemantic && <SemanticOperationsPanel documentMutationVersion={semanticMutationVersion} />}
       {uploadUnknown && <Alert type="warning" showIcon title="文件上傳結果不明，已鎖定重送"
         description="請人工查核 Document List；相同 Title／Version 僅能作輔助資訊，不能單憑它推定上傳成功或失敗。" />}
       <Space wrap>
@@ -272,10 +320,11 @@ export default function DocumentsPage() {
       </Form>
     </Modal>
 
-    <Drawer title="Document Detail" open={!!selected || detailLoading || !!detailError} onClose={closeDetail} width={520}>
-      {detailError && <ErrorState title="文件明細載入失敗" error={detailError} onRetry={() => { const id = Number(searchParams.get('documentId')); if (id) void openDetail(id); }} />}
-      {detailLoading && <Text>Loading document…</Text>}
-      {selected && <Space orientation="vertical" size="large" style={{ width: '100%' }}>
+    <Drawer title="Document Detail" open={requestedDocumentId !== null} onClose={closeDetail} width={520}>
+      {detailError && requestedDocumentId !== null && <ErrorState title="文件明細載入失敗" error={detailError} onRetry={loadDetailForRetry} />}
+      {(detailLoading || (requestedDocumentId !== null && !selectedMatchesUrl && !detailError)) && <Text>Loading document…</Text>}
+      {selected && selectedMatchesUrl && <Space orientation="vertical" size="large" style={{ width: '100%' }}>
+        <Button loading={detailLoading} disabled={detailLoading} onClick={() => void refreshDetail()}>重新取得文件資訊</Button>
         {actionError && <ErrorState title={ingestionUnknown ? '索引結果待查核' : reviewUnknownKeys.includes(`${selected.id}:${selected.version}`) ? 'Outbound Review 結果待人工查核' : '文件操作訊息'} error={actionError}
           onRetry={ingestionUnknown ? () => void verifyIngestionStatus() : reviewUnknownKeys.includes(`${selected.id}:${selected.version}`) ? undefined : () => void refreshDetail()}
           retryText={ingestionUnknown ? '查核真實文件狀態' : '重新取得文件資訊'} />}
@@ -300,8 +349,8 @@ export default function DocumentsPage() {
           ]} />} />}
           {reviewUnknownKeys.includes(`${selected.id}:${selected.version}`) && <Alert type="warning" showIcon title="Outbound Review 結果 UNKNOWN；已鎖定本版本重送" description="Backend 沒有可供前端重新查詢持久化審核結果的端點。需人工查核後端紀錄；文件狀態或 Readiness 不能證明核准／排除 POST 成功。" action={<Button size="small" onClick={() => setReviewUnlockKey(`${selected.id}:${selected.version}`)}>我已完成人工查核</Button>} />}
           <Space wrap>
-            <Button type="primary" disabled={selected.status !== 'READY' || reviewUnknownKeys.includes(`${selected.id}:${selected.version}`)} loading={reviewLoading} onClick={() => setReviewConfirm('approve')}>核准出站</Button>
-            <Button danger disabled={selected.status !== 'READY' || reviewUnknownKeys.includes(`${selected.id}:${selected.version}`)} loading={reviewLoading} onClick={() => setReviewConfirm('exclude')}>排除出站</Button>
+            <Button type="primary" disabled={!selectedMatchesUrl || selected.status !== 'READY' || reviewUnknownKeys.includes(`${selected.id}:${selected.version}`)} loading={reviewLoading} onClick={() => setReviewConfirm('approve')}>核准出站</Button>
+            <Button danger disabled={!selectedMatchesUrl || selected.status !== 'READY' || reviewUnknownKeys.includes(`${selected.id}:${selected.version}`)} loading={reviewLoading} onClick={() => setReviewConfirm('exclude')}>排除出站</Button>
           </Space>
           {selected.status !== 'READY' && <Text type="secondary">文件目前為 {selected.status}；需先由 Backend 文件流程達到 READY 才能審核出站。</Text>}
           <Collapse items={[{ key: 'ai-query', label: '下一步：使用既有 AI Query 核對來源', children: <><Alert type="info" showIcon title="Query 結果由 Backend 決定" description="僅 Gate Audit PASS 不保證此文件會命中。請核對回傳的 Document ID、Version、Chunk、Offset；沒有充分證據時 Backend 會回報證據不足。" /><div style={{ marginTop: 16 }}><AiQueryPanel /></div></> }]} />
