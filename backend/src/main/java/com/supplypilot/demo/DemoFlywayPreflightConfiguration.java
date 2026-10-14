@@ -38,7 +38,8 @@ class DemoFlywayPreflightConfiguration {
                     currentDatabase(flywayConfiguration.getDataSource(), "Flyway migration"),
                     properties.getAllowedDatabase(),
                     flywayConfiguration.getDefaultSchema(),
-                    flywayConfiguration.getSchemas());
+                    flywayConfiguration.getSchemas(),
+                    flywayConfiguration.getInitSql());
             flyway.migrate();
         };
     }

@@ -32,6 +32,8 @@ class DemoFlywayPreflightIntegrationTests {
     private static final String FLYWAY_SCHEMAS_TARGET = "shared_flyway_schemas_target";
     private static final String FLYWAY_DEFAULT_SCHEMA_PRIMARY = "supplypilot_demo_flyway_default_guard";
     private static final String FLYWAY_DEFAULT_SCHEMA_TARGET = "shared_flyway_default_target";
+    private static final String FLYWAY_INIT_SQL_PRIMARY = "supplypilot_demo_flyway_init_guard";
+    private static final String FLYWAY_INIT_SQL_TARGET = "shared_flyway_init_target";
     private static final MySQLContainer MYSQL = new MySQLContainer(DockerImageName.parse("mysql:8.4.11"))
             .withDatabaseName("shared_documents")
             .withCommand("--log-bin-trust-function-creators=1");
@@ -51,12 +53,17 @@ class DemoFlywayPreflightIntegrationTests {
                 FLYWAY_SCHEMAS_PRIMARY,
                 FLYWAY_SCHEMAS_TARGET,
                 FLYWAY_DEFAULT_SCHEMA_PRIMARY,
-                FLYWAY_DEFAULT_SCHEMA_TARGET)) {
+                FLYWAY_DEFAULT_SCHEMA_TARGET,
+                FLYWAY_INIT_SQL_PRIMARY,
+                FLYWAY_INIT_SQL_TARGET)) {
             MYSQL.execInContainer("mysql", "-uroot", "-ptest", "-e", "CREATE DATABASE " + database);
         }
         MYSQL.execInContainer("mysql", "-uroot", "-ptest", "-e", "GRANT ALL PRIVILEGES ON *.* TO 'test'@'%'");
         for (String database : List.of(
-                FLYWAY_DATASOURCE_TARGET, FLYWAY_SCHEMAS_TARGET, FLYWAY_DEFAULT_SCHEMA_TARGET)) {
+                FLYWAY_DATASOURCE_TARGET,
+                FLYWAY_SCHEMAS_TARGET,
+                FLYWAY_DEFAULT_SCHEMA_TARGET,
+                FLYWAY_INIT_SQL_TARGET)) {
             execute(database, "CREATE TABLE sentinel_records (id INT PRIMARY KEY, note VARCHAR(40))");
             execute(database, "INSERT INTO sentinel_records VALUES (1, 'must-not-change')");
         }
@@ -183,6 +190,28 @@ class DemoFlywayPreflightIntegrationTests {
 
         assertUntouched(FLYWAY_DEFAULT_SCHEMA_PRIMARY, primaryBefore);
         assertUntouched(FLYWAY_DEFAULT_SCHEMA_TARGET, migrationBefore);
+        assertSentinelFileUntouched(storage, sentinel);
+    }
+
+    @Test
+    void rejectsFlywayInitSqlBeforeItCanSwitchDatabasesOrChangeFiles() throws Exception {
+        Path storage = Files.createDirectories(temporaryRoot.resolve("demo-documents-flyway-init-sql-guard"));
+        Path sentinel = Files.writeString(storage.resolve("keep.txt"), "must-not-change");
+        DatabaseSnapshot primaryBefore = snapshot(FLYWAY_INIT_SQL_PRIMARY);
+        DatabaseSnapshot migrationBefore = snapshot(FLYWAY_INIT_SQL_TARGET);
+
+        assertThatThrownBy(() -> start(
+                "demo",
+                FLYWAY_INIT_SQL_PRIMARY,
+                storage,
+                false,
+                Map.of("spring.flyway.init-sqls", "USE " + FLYWAY_INIT_SQL_TARGET)))
+                .hasRootCauseInstanceOf(IllegalStateException.class)
+                .hasRootCauseMessage(
+                        "Refusing Flyway migration because connection initialization SQL is not allowed for demo targets");
+
+        assertUntouched(FLYWAY_INIT_SQL_PRIMARY, primaryBefore);
+        assertUntouched(FLYWAY_INIT_SQL_TARGET, migrationBefore);
         assertSentinelFileUntouched(storage, sentinel);
     }
 

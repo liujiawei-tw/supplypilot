@@ -31,7 +31,7 @@ final class DemoTargetGuard {
     }
 
     static void requireFlywayTargets(
-            String actualDatabase, String allowedDatabase, String defaultSchema, String[] schemas) {
+            String actualDatabase, String allowedDatabase, String defaultSchema, String[] schemas, String initSql) {
         requireAllowedDatabase(allowedDatabase);
         if (actualDatabase == null || !actualDatabase.equals(allowedDatabase)) {
             throw new IllegalStateException("Refusing Flyway migration for unexpected MySQL database: "
@@ -42,6 +42,10 @@ final class DemoTargetGuard {
             for (String schema : schemas) {
                 requireFlywaySchema("schema", schema, allowedDatabase, false);
             }
+        }
+        if (initSql != null && !initSql.isBlank()) {
+            throw new IllegalStateException(
+                    "Refusing Flyway migration because connection initialization SQL is not allowed for demo targets");
         }
     }
 
