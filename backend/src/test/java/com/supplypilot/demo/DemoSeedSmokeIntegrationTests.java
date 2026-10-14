@@ -46,7 +46,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 @SpringBootTest(properties = {
         "supplypilot.demo.account-password=Demo-Password-For-Tests-901!",
-        "supplypilot.demo.allowed-database=test",
+        "supplypilot.demo.allowed-database=supplypilot_demo_test",
         "supplypilot.demo.samples-path=../samples/documents",
         "supplypilot.document-storage.path=${java.io.tmpdir}/supplypilot-demo-seed-test-documents",
         "supplypilot.jwt.secret=dGVzdC1zZWNyZXQtZm9yLWRlbW8tc2VlZC10ZXN0cy1hdC1sZWFzdC0yNTYtYml0cw==",

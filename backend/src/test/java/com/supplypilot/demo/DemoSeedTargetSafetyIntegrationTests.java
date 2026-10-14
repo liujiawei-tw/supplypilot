@@ -28,10 +28,13 @@ import org.springframework.test.context.DynamicPropertySource;
 @Import({TestcontainersConfiguration.class, FixedClockConfiguration.class})
 class DemoSeedTargetSafetyIntegrationTests {
     private static final Path NON_DEMO_DOCUMENT_ROOT;
+    private static final Path SENTINEL;
 
     static {
         try {
-            NON_DEMO_DOCUMENT_ROOT = Files.createTempDirectory("supplypilot-seed-target-");
+            Path demoParent = Files.createTempDirectory("demo-project-");
+            NON_DEMO_DOCUMENT_ROOT = Files.createDirectories(demoParent.resolve("data/documents"));
+            SENTINEL = Files.writeString(NON_DEMO_DOCUMENT_ROOT.resolve("keep.txt"), "must-not-change");
         } catch (java.io.IOException exception) {
             throw new ExceptionInInitializerError(exception);
         }
@@ -66,14 +69,21 @@ class DemoSeedTargetSafetyIntegrationTests {
                 .hasMessageContaining("document storage path not identified as demo");
 
         assertZeroWrites();
+
+        properties.setResetConfirmation(DemoDatasetCoordinator.RESET_CONFIRMATION);
+        assertThatThrownBy(coordinator::resetAndInitialize)
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("document storage path not identified as demo");
+        assertZeroWrites();
     }
 
     private void assertZeroWrites() throws Exception {
         assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM demo_dataset_state", Long.class)).isZero();
         assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM users", Long.class)).isZero();
         assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM document_metadata", Long.class)).isZero();
+        assertThat(SENTINEL).hasContent("must-not-change");
         try (var paths = Files.list(NON_DEMO_DOCUMENT_ROOT)) {
-            assertThat(paths).isEmpty();
+            assertThat(paths).containsExactly(SENTINEL);
         }
     }
 }

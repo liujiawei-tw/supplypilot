@@ -168,7 +168,11 @@ public class SemanticStore {
     }
 
     /** Clears the dedicated demo semantic store. Callers must enforce the demo-only environment guard. */
-    public void resetAllDemoData() {
+    public void resetAllDemoData(String expectedDatabase) {
+        String actualDatabase = jdbc.queryForObject("SELECT current_database()", String.class);
+        if (!expectedDatabase.equals(actualDatabase)) {
+            throw new IllegalStateException("Refusing semantic reset for unexpected PostgreSQL database");
+        }
         ensureSchema();
         transactions.executeWithoutResult(transaction -> {
             jdbc.update("DELETE FROM semantic_gate_audit");

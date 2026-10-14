@@ -16,12 +16,15 @@ public final class DemoResetApplication {
     private DemoResetApplication() { }
 
     public static void main(String[] args) {
+        log.warn("DEMO_RESET_APPLICATION_START lifecycle=one-shot webApplicationType=NONE");
         SpringApplication application = new SpringApplication(SupplyPilotApplication.class);
         application.setWebApplicationType(WebApplicationType.NONE);
         application.addInitializers(context -> context.getEnvironment().getPropertySources().addFirst(
                 new MapPropertySource("demoResetCommand", Map.of(
                         "supplypilot.demo.reset-command-enabled", "true"))));
-        System.exit(run(application, args));
+        int exitCode = run(application, args);
+        log.warn("DEMO_RESET_APPLICATION_EXIT code={}", exitCode);
+        System.exit(exitCode);
     }
 
     static int run(SpringApplication application, String... args) {

@@ -117,6 +117,7 @@ Seeder 使用既有 `DocumentService.upload` 與 `DocumentIngestionService.inges
 
 - `DemoDataInitializerActivationTests`：demo／flag／prod isolation，以及一般初始化與單次 reset command 互斥。
 - `DemoSeedTargetSafetyIntegrationTests`：首次 seed 的實際 MySQL database 與 Demo 原始文件路徑 fail-closed；拒絕時 dataset state、users、metadata 與 filesystem 零寫入。
+- `DemoNonDemoDatabaseSafetyIntegrationTests`：即使使用者把共用 database 名稱原樣當作 allowed 值，Seed／Reset 仍拒絕，且既有資料列與原檔不變。
 - `DemoResetCommandRunnerTests`：一次性 Reset 成功／失敗退出生命週期與 context 關閉。
 - `DemoSeedSmokeIntegrationTests`：MySQL Testcontainers、資料量與狀態、冪等、partial-state fail closed、750 KG 真實 Recommendation API、完整採購 API、CSV success/failure、文件 READY。
 - `DemoResetIntegrationTests`：MySQL、文件原檔及 PostgreSQL Gate／index 清除後重建；完成後的一般初始化不會再次清除操作後資料。
@@ -127,11 +128,13 @@ Seeder 使用既有 `DocumentService.upload` 與 `DocumentIngestionService.inges
 
 | 驗證 | 結果 | 證據／限制 |
 | --- | --- | --- |
-| Backend full regression | PASS | `backend\\.\\mvnw.cmd -B --no-transfer-progress verify`：525 tests、0 failures、0 errors、1 skipped，BUILD SUCCESS；在 P1-01／P1-02 修正後的最終 worktree 執行 |
-| P1 targeted Backend | PASS | `-Dtest=DemoDataInitializerActivationTests,DemoResetCommandRunnerTests,DemoSeedTargetSafetyIntegrationTests,DemoResetIntegrationTests,DemoSeedSmokeIntegrationTests test`：17 tests、0 failures、0 errors；包含首次 seed 零寫入負向測試、一次性 Reset 退出生命週期、Reset 後不重複刪除與 5 個 SP-901 smoke |
+| Backend full regression | PASS | `backend\\.\\mvnw.cmd -B --no-transfer-progress verify`：526 tests、0 failures、0 errors、1 skipped，BUILD SUCCESS；skipped 為未提供金鑰的真實 Gemini smoke |
+| P1 targeted Backend | PASS | `-Dtest=DemoDataInitializerActivationTests,DemoResetCommandRunnerTests,DemoNonDemoDatabaseSafetyIntegrationTests,DemoSeedTargetSafetyIntegrationTests,DemoResetIntegrationTests,DemoSeedSmokeIntegrationTests test`：18 tests、0 failures、0 errors、0 skipped；包含非 Demo database 即使列為 allowed 仍拒絕、storage leaf 隔離、一次性 Reset 與 5 個 SP-901 smoke |
+| 實際一次性 Reset CLI | PASS | 隔離 MySQL `supplypilot_demo_p103`、pgvector `supplypilot_semantic_demo_p103`、storage `sp901-demo-reset-storage` 實跑 `scripts/reset-demo.ps1`；log 證明啟動 `DemoResetApplication` 而非 Web Application，兩次成功皆自行結束且 exit code 0；MAT-001 999 恢復 300、五份 READY 文件及 12/6/30/12、10 張 PO 基線恢復、原檔 UUID 重建、第六份不存在 |
+| Reset 失敗與一般重啟 | PASS | 錯誤 PostgreSQL credential 實跑 exit code 1，既有五份文件與 relational baseline 保留；預設 Maven profile 啟動 log 為 `SupplyPilotApplication`，MAT-001 人工改為 999 後重啟仍為 999，未再次刪除資料 |
 | Frontend dependency install | PASS | `npm ci`：212 packages、0 vulnerabilities；第一次 npm 自身 `Exit handler never called`，獨立重跑成功 |
 | Frontend lint | PASS | `npm run lint` |
-| Frontend tests | PASS | 獨占資源 `npm test`：18 test files、149 tests PASS；先前並行 Testcontainers 時的 UI timeout 不記為通過 |
+| Frontend tests | PASS | `npm test -- --run`：18 test files、149 tests PASS；首次 sandbox run 因 Windows temp cache rename `EPERM` 而 0 tests，受控重跑實際執行 149 tests 並 exit code 0 |
 | Frontend production build | PASS | `npm run build`；有既存的 >500 kB chunk warning |
 | Secret pattern scan | PASS | 未發現 Gemini／AWS key 或 private key pattern |
 | 真實 Gemini Embedding／Chat | BLOCKED | 未提供可用 API key；依規格不讀取、不輸出、不假造付費呼叫結果 |
@@ -140,9 +143,9 @@ Seeder 使用既有 `DocumentService.upload` 與 `DocumentIngestionService.inges
 | Browser 五份 Baseline 文件 | PASS（Document 層） | Admin UI 顯示五種 DocumentType 各一份、Version 1.0、READY；Source／Version 語意查詢仍受真實 Gemini 阻擋 |
 | Browser 第六份文件 | PARTIAL | Admin UI Upload `ui-upload-sup-005-v1.txt` 成功建立 Document #6，Explicit Ingestion 後 READY；Outbound Review、Backfill、Readiness、Gate Audit、Source Query 尚未完成 |
 | Browser Gemini Query | BLOCKED | Admin UI 實際提問後回 `AI_PROVIDER_UNAVAILABLE`；執行環境刻意保持 provider `none` 且未提供 API key |
-| Browser Reset 前後一致性 | NOT RUN | 本次隔離 stack 未配置專用 pgvector，不能安全執行要求同時清理 MySQL／filesystem／pgvector 的 guarded reset |
+| Browser Reset 前後一致性 | NOT RUN | 已完成的是隔離環境 CLI／Backend Reset 生命週期，不是 Browser E2E；仍須以 UI 建立操作後狀態，再跨 Reset 前後核對五份基線、第六份消失與 Gate 清空／重建 |
 | AWS Scheduler／Deployment | NOT RUN | 明確屬 SP-903，本 Issue 不操作 AWS |
 
-初次使用既有 Chrome 的自動控制因無法可靠確認目前 URL 而依安全政策停止；後續改用由工具建立、明確綁定 `http://localhost:3000` 的內建 Browser，未繞過任何警告或修改安全設定，已完成上述實際 UI 證據。因此 Browser 控制工具本身不再是 blocker；剩餘 blocker 是未提供真實 Gemini Chat／Embedding 金鑰與專用 pgvector，導致 ADMIN Outbound Review 後的真實 Backfill、Readiness、Gate Audit、Source／Version Query，以及完整 Reset 前後一致性仍未驗收。
+初次使用既有 Chrome 的自動控制因無法可靠確認目前 URL 而依安全政策停止；後續改用由工具建立、明確綁定 `http://localhost:3000` 的內建 Browser，未繞過任何警告或修改安全設定，完成表列的採購及文件 Document 層證據。整體 Browser E2E 仍未完成：缺少真實 Gemini Chat／Embedding 金鑰，ADMIN Outbound Review 後的真實 Backfill、Readiness、Gate Audit、Source／Version Query，以及 Browser Reset 前後一致性均未驗收。CLI Reset PASS 不得視為 Browser Reset E2E PASS。
 
 目前交付狀態為 **`BLOCKED — READY FOR PARTIAL CODE REVIEW`**。這表示已完成的程式碼與證據可交 GPT 獨立審查，但不代表 SP-901 全部驗收、PR 核准或 Issue 完成。

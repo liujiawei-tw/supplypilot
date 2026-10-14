@@ -8,11 +8,25 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
+function Test-ExplicitDemoTargetName {
+    param([string]$Name)
+
+    return -not [string]::IsNullOrWhiteSpace($Name) -and
+        $Name -match '(?i)(^|[-_.])demo($|[-_.])' -and
+        $Name -notmatch '(?i)(^|[-_.])(prod|production|shared|common)($|[-_.])'
+}
+
 if ($env:SPRING_PROFILES_ACTIVE -ne 'demo') {
     throw 'SPRING_PROFILES_ACTIVE must be exactly demo.'
 }
 if ([string]::IsNullOrWhiteSpace($env:DEMO_ACCOUNT_PASSWORD)) {
     throw 'DEMO_ACCOUNT_PASSWORD must be supplied securely.'
+}
+if (-not (Test-ExplicitDemoTargetName $AllowedDatabase)) {
+    throw 'AllowedDatabase must be an explicitly isolated demo database name.'
+}
+if (-not (Test-ExplicitDemoTargetName $AllowedSemanticDatabase)) {
+    throw 'AllowedSemanticDatabase must be an explicitly isolated demo database name.'
 }
 if ([string]::IsNullOrWhiteSpace($env:DB_URL) -or $env:DB_URL -notmatch "/$([regex]::Escape($AllowedDatabase))(?:\?|$)") {
     throw 'DB_URL does not target the explicitly allowed demo database.'
@@ -20,9 +34,16 @@ if ([string]::IsNullOrWhiteSpace($env:DB_URL) -or $env:DB_URL -notmatch "/$([reg
 if ([string]::IsNullOrWhiteSpace($env:SEMANTIC_DB_URL) -or $env:SEMANTIC_DB_URL -notmatch "/$([regex]::Escape($AllowedSemanticDatabase))(?:\?|$)") {
     throw 'SEMANTIC_DB_URL does not target the explicitly allowed demo semantic database.'
 }
-if ([string]::IsNullOrWhiteSpace($env:DOCUMENT_STORAGE_PATH) -or
-    $env:DOCUMENT_STORAGE_PATH -notmatch '(?i)(^|[\\/_.-])demo($|[\\/_.-])') {
-    throw 'DOCUMENT_STORAGE_PATH must explicitly identify a demo path.'
+if ([string]::IsNullOrWhiteSpace($env:DOCUMENT_STORAGE_PATH)) {
+    throw 'DOCUMENT_STORAGE_PATH must identify a dedicated demo storage root.'
+}
+$storageRoot = [IO.Path]::GetFullPath($env:DOCUMENT_STORAGE_PATH)
+$trimmedStorageRoot = $storageRoot.TrimEnd(
+    [char[]]@([IO.Path]::DirectorySeparatorChar, [IO.Path]::AltDirectorySeparatorChar)
+)
+$storageRootName = [IO.Path]::GetFileName($trimmedStorageRoot)
+if (-not (Test-ExplicitDemoTargetName $storageRootName)) {
+    throw 'The DOCUMENT_STORAGE_PATH root directory itself must be explicitly demo-isolated.'
 }
 
 $managedEnvironment = @(
@@ -59,8 +80,7 @@ $locationPushed = $false
 try {
     Push-Location (Join-Path $PSScriptRoot '..\backend')
     $locationPushed = $true
-    & .\mvnw.cmd -B --no-transfer-progress spring-boot:run `
-        '-Dspring-boot.run.main-class=com.supplypilot.demo.DemoResetApplication'
+    & .\mvnw.cmd -B --no-transfer-progress -Pdemo-reset spring-boot:run
     $processExitCode = $LASTEXITCODE
 } finally {
     if ($locationPushed) {

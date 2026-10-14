@@ -25,7 +25,7 @@ import org.testcontainers.utility.DockerImageName;
 
 @SpringBootTest(properties = {
         "supplypilot.demo.account-password=Demo-Password-For-Tests-901!",
-        "supplypilot.demo.allowed-database=test",
+        "supplypilot.demo.allowed-database=supplypilot_demo_test",
         "supplypilot.demo.samples-path=../samples/documents",
         "supplypilot.jwt.secret=dGVzdC1zZWNyZXQtZm9yLWRlbW8tcmVzZXQtdGVzdC1hdC1sZWFzdC0yNTYtYml0cw==",
         "supplypilot.frontend-origin=http://localhost:5173"
@@ -34,7 +34,8 @@ import org.testcontainers.utility.DockerImageName;
 @Import({TestcontainersConfiguration.class, FixedClockConfiguration.class})
 class DemoResetIntegrationTests {
     private static final PostgreSQLContainer POSTGRES = new PostgreSQLContainer(
-            DockerImageName.parse("pgvector/pgvector:pg17").asCompatibleSubstituteFor("postgres"));
+            DockerImageName.parse("pgvector/pgvector:pg17").asCompatibleSubstituteFor("postgres"))
+            .withDatabaseName("supplypilot_semantic_demo_test");
     private static final Path DOCUMENT_ROOT;
 
     static {
@@ -74,13 +75,23 @@ class DemoResetIntegrationTests {
         assertThat(users.count()).isEqualTo(5);
 
         properties.setResetConfirmation(DemoDatasetCoordinator.RESET_CONFIRMATION);
-        properties.setAllowedDatabase("not-the-active-database");
+        properties.setAllowedDatabase("other_demo_database");
         assertThatThrownBy(coordinator::resetAndInitialize).isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("unexpected MySQL database");
         assertThat(users.count()).isEqualTo(5);
 
-        properties.setAllowedDatabase("test");
-        properties.setAllowedSemanticDatabase("test");
+        properties.setAllowedDatabase("supplypilot_demo_test");
+        properties.setAllowedSemanticDatabase("shared_semantic");
+        assertThatThrownBy(coordinator::resetAndInitialize).isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("semantic database is not explicitly demo-isolated");
+        assertThat(postgresCount("semantic_gate_audit")).isEqualTo(1);
+
+        assertThatThrownBy(() -> semanticStore.resetAllDemoData("other_demo_database"))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("unexpected PostgreSQL database");
+        assertThat(postgresCount("semantic_gate_audit")).isEqualTo(1);
+
+        properties.setAllowedSemanticDatabase("supplypilot_semantic_demo_test");
         try {
             coordinator.resetAndInitialize();
         } finally {

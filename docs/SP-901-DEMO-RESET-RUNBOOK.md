@@ -5,13 +5,13 @@
 首次初始化與 Reset 都只允許 `demo` profile，且在讀寫 `demo_dataset_state` 前要求：
 
 - `SPRING_PROFILES_ACTIVE` 必須是 `demo`，不能包含 `prod`。
-- MySQL `SELECT DATABASE()` 必須等於 `DEMO_ALLOWED_DATABASE`。
-- `DOCUMENT_STORAGE_PATH` 的正規化絕對路徑必須有獨立的 `demo` 路徑標記（例如 `demo-documents`），避免原始文件落入共用路徑。
+- `DEMO_ALLOWED_DATABASE` 本身必須是明確的 Demo 名稱（`demo` 為獨立 token，且不得含 `prod`／`production`／`shared`／`common` token），MySQL `SELECT DATABASE()` 也必須精確等於該名稱。
+- `DOCUMENT_STORAGE_PATH` 的正規化絕對路徑，其最後一層 storage root 名稱必須符合相同的明確 Demo 命名規則（例如 `demo-documents`）；只有上層目錄叫 `demo-project` 而實際 root 是 `data/documents` 不會被放行。
 
 Reset 另外要求：
 
 - `DEMO_RESET_CONFIRMATION=RESET-SP-901-DEMO`。
-- `SEMANTIC_DB_URL` 的 database 名稱必須等於 `DEMO_ALLOWED_SEMANTIC_DATABASE`。
+- `DEMO_ALLOWED_SEMANTIC_DATABASE` 本身必須是明確的 Demo 名稱；`SEMANTIC_DB_URL` 的 database 名稱及 PostgreSQL `current_database()` 都必須精確相等。
 
 任何條件不符即停止，不刪資料。不要將 allowed database 設成共用、正式或不確定用途的資料庫。
 
@@ -46,7 +46,7 @@ $env:DEMO_ACCOUNT_PASSWORD = '...'
 .\scripts\reset-demo.ps1 -AllowedDatabase supplypilot_demo -AllowedSemanticDatabase supplypilot_semantic_demo
 ```
 
-腳本改以 `DemoResetApplication` 啟動非 Web 的單次命令：只執行一次 guarded reset 與 baseline rebuild，成功回傳 `0`，失敗回傳非 `0`，完成後關閉 Spring context。腳本暫時設定的 confirmation／allowed database 環境變數會在 `finally` 還原；一般 Backend 啟動不會執行 reset，也不再支援持續性的 `DEMO_RESET_ENABLED` 旗標。Reset 中途失敗即視為不可用，不得宣稱 baseline 或舊 Gate 仍有效；修正原因後重新執行完整 Reset。
+腳本以 Maven `demo-reset` profile 明確選用 `DemoResetApplication`，啟動非 Web 的單次命令：只執行一次 guarded reset 與 baseline rebuild，成功回傳 `0`，失敗回傳非 `0`，完成後關閉 Spring context。預設 Maven build 仍固定使用 `SupplyPilotApplication`，不依賴無法覆蓋的 `spring-boot.run.main-class` CLI property。腳本暫時設定的 confirmation／allowed database 環境變數會在 `finally` 還原；一般 Backend 啟動不會執行 reset，也不再支援持續性的 `DEMO_RESET_ENABLED` 旗標。Reset 中途失敗即視為不可用，不得宣稱 baseline 或舊 Gate 仍有效；修正原因後重新執行完整 Reset。
 
 ## Reset 後檢查
 
@@ -61,11 +61,15 @@ $env:DEMO_ACCOUNT_PASSWORD = '...'
 
 ## 2026-10-14 驗證狀態
 
-- `DemoSeedTargetSafetyIntegrationTests`：PASS，2 tests、0 failures、0 errors；以空 MySQL 驗證錯誤 database 與非 Demo 文件路徑皆在 `demo_dataset_state`、users、metadata、filesystem 零寫入時停止。
+- `DemoSeedTargetSafetyIntegrationTests`：PASS，2 tests、0 failures、0 errors；以空 MySQL 驗證錯誤 database 與「上層為 `demo-project`、實際 root 為 `data/documents`」皆在 `demo_dataset_state`、users、metadata 零寫入時停止，既有 sentinel 原檔未被刪除或覆寫。
+- `DemoNonDemoDatabaseSafetyIntegrationTests`：PASS，1 test、0 failures、0 errors；即使 caller 把實際共用 database 名稱原樣填入 allowed 值，首次 Seed 與 Reset 仍拒絕，既有資料列及原檔不變。
 - `DemoResetCommandRunnerTests`：PASS，4 tests、0 failures、0 errors；驗證單次執行、成功關閉 context、失敗回傳非零與例外傳遞。
-- `DemoResetIntegrationTests`：PASS，1 test、0 failures、0 errors；使用隔離 MySQL、文件目錄與 PostgreSQL semantic tables 驗證清除及 baseline 重建，並確認後續一般初始化不會再次刪除操作後資料。
-- Backend full regression：PASS，525 tests、0 failures、0 errors、1 skipped；skipped 為未提供金鑰的真實 Gemini smoke，未以 Fake provider 取代。
-- Manual Browser Reset 前後一致性：NOT RUN。本次 Browser stack 未配置專用 pgvector，因此沒有以不完整目標強行執行 reset；仍須依上一節在同一組專用 MySQL、pgvector 與文件目錄完成實測。
+- `DemoResetIntegrationTests`：PASS，1 test、0 failures、0 errors；使用隔離 MySQL、文件目錄與 PostgreSQL semantic tables 驗證清除及 baseline 重建，拒絕非 Demo semantic allowed database，並確認後續一般初始化不會再次刪除操作後資料。
+- P1 targeted Backend：PASS，18 tests、0 failures、0 errors、0 skipped。
+- Backend full regression：PASS，526 tests、0 failures、0 errors、1 skipped；skipped 為未提供金鑰的真實 Gemini smoke，未以 Fake provider 取代。
+- 實際 CLI Reset 生命週期：PASS。於隔離的 `supplypilot_demo_p103` MySQL、`supplypilot_semantic_demo_p103` pgvector 與 `sp901-demo-reset-storage` 執行 `scripts/reset-demo.ps1`；log 明確顯示 `Starting DemoResetApplication`、`DEMO_RESET_COMMAND_START`／`COMPLETE` 與 `DEMO_RESET_APPLICATION_EXIT code=0`。程序自行結束且 shell exit code 為 0；將 MAT-001 inventory 改為 999 後第二次執行，恢復為 300、五份 READY 文件與完整 12/6/30/12、10 張 PO 基線，五個原檔 storage UUID 全數重建，第六份不存在。
+- 實際 CLI 失敗與一般重啟：PASS。以錯誤 PostgreSQL credential 執行時 `DemoResetApplication` exit code 為 1，既有 MySQL marker、MAT-001=300、五份 READY 與五個原檔均保留；其後把 MAT-001 改為 999，以預設 Maven profile 啟動一般 Backend，log 顯示 `Starting SupplyPilotApplication` 與 `DEMO_DATASET_ALREADY_COMPLETE`，執行期間 inventory 仍為 999，證明重啟沒有再次 Reset。
+- Manual Browser Reset 前後一致性：NOT RUN。上述是實際 CLI／Backend 生命週期驗證，不是 Browser E2E；仍須依 Browser checklist 從 UI 操作狀態跨越 Reset 前後核對。
 - 真實 Gemini Backfill／Gate 恢復：BLOCKED，未提供未追蹤的 Gemini API key；不得以 Fake provider 取代。
 
 ## 一致性與失敗復原
