@@ -33,3 +33,15 @@ MySQL V19 增加審核版本、狀態與原因。V18 時期只有來源雜湊的
 5. 每次語意查詢重新檢查既有成功 audit 及所有 MySQL READY 文件的索引完整性，包括安全片段文字、chunk index、offset、維度與數量；新增 READY 文件或來源變更會關閉 Gate，直到 Backfill/重新稽核完成。查詢以精確相似度分頁取候選，略過舊的 PostgreSQL 來源後繼續找有效片段；命中後再核對 MySQL READY、版本、原始 chunk/offset、來源雜湊與出站政策，才送入 `EvidenceValidator` 及 `SEARCH_DOCUMENTS`。相似度不能授權文件。未命中回 `INSUFFICIENT_EVIDENCE`；PostgreSQL/Gemini 故障回 AI 503，無舊索引自動 fallback。
 
 切換前保留完整 Gate JSON、授權測試結果、部署 commit 與設定變更紀錄。真實 Gemini API smoke test 需使用獲准測試文字和部署金鑰另行執行；Fake EmbeddingModel 測試不能視為真實 API 已驗證。
+
+---
+
+## 前端管理流程與展示驗收界線（2026-10-14 補充；規劃）
+
+本 Runbook 上述 API、審核政策及 Semantic Read Switch 操作仍為權威，UI 改善只提供既有操作的視覺入口，不改後端語意或安全規則。
+
+- **相關工作：** [UI-B／SP-906 #112](https://github.com/liujiawei-tw/supplypilot/issues/112) 及 [Impeccable 前端改善計畫](impeccable-ui-review-plan.md)。目前 `DocumentsPage` 有 Upload／Ingestion，但管理員在同一 UI 完成 outbound approval／backfill／readiness／gate audit 尚是新增的工作項目；不能把現有 Backend API 當成 Browser E2E 已完成。
+- **本機六文件驗收：** 先核對五份正常可查的虛構文件基線；第六份文件由有權限帳號在瀏覽器實際上傳，經既有 Ingestion → ADMIN 出站審核 → Backfill → Gate Audit →（依操作手冊顯式設定讀取路徑）→ AI Query → Document ID／Version／Chunk／Offset 引用核對。新增 READY 文件後 Gate 暫時失效時，記錄恢復條件與實際耗時；未測不得宣稱可立即查詢。
+- **Demo 權限：** AWS 公開展示共用 `PROCUREMENT_MANAGER` 帳號不具 Upload／Admin Review 權限；完整六文件人工操作安排於本機，以現有 Security Matrix 為準，不應擅自擴權。
+- **保留未完成證據：** [SP-901 #43](https://github.com/liujiawei-tw/supplypilot/issues/43)／[PR #111](https://github.com/liujiawei-tw/supplypilot/pull/111) 的 Code Review FINAL PASS 不包含真實 Gemini Chat/Embedding、Gate、第六份 Source-cited Query 及 Browser Reset E2E；外部驗收失敗不得僅憑 Fake Provider 或 CI 綠燈標為 PASS。
+- **不改既有部署順序：** SP-905 #110 文件繁中化後須重建新索引及 Gate；SP-903 先本機 Docker、後 AWS；最終驗收和影片在 SP-904 進行。
