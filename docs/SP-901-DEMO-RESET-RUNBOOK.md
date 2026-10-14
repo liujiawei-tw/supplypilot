@@ -6,6 +6,8 @@
 
 - `SPRING_PROFILES_ACTIVE` 必須是 `demo`，不能包含 `prod`。
 - `DEMO_ALLOWED_DATABASE` 本身必須是明確的 Demo 名稱（`demo` 為獨立 token，且不得含 `prod`／`production`／`shared`／`common` token），MySQL `SELECT DATABASE()` 也必須精確等於該名稱。
+- Flyway 執行前除了保留上述 Primary DataSource 檢查，還會對 Flyway 實際持有的 DataSource 另開連線執行 `SELECT DATABASE()`；結果必須精確等於 `DEMO_ALLOWED_DATABASE`。`spring.flyway.url`、`@FlywayDataSource` 或其他方式建立的獨立 Migration DataSource 都不能繞過此檢查。
+- Flyway 的 `defaultSchema` 與 `schemas` 若有設定，每一個值都必須同時符合 Demo 命名規則並精確等於 `DEMO_ALLOWED_DATABASE`；額外 schema、非 Demo schema、空白 schema 一律在 `flyway.migrate()` 前 fail closed。
 - `DOCUMENT_STORAGE_PATH` 的正規化絕對路徑，其最後一層 storage root 名稱必須符合相同的明確 Demo 命名規則（例如 `demo-documents`）；只有上層目錄叫 `demo-project` 而實際 root 是 `data/documents` 不會被放行。
 
 Reset 另外要求：
@@ -66,10 +68,11 @@ $env:DEMO_ACCOUNT_PASSWORD = '...'
 - `DemoNonDemoDatabaseSafetyIntegrationTests`：PASS，1 test、0 failures、0 errors；即使 caller 把實際共用 database 名稱原樣填入 allowed 值，首次 Seed 與 Reset 仍拒絕，既有資料列及原檔不變。
 - `DemoResetCommandRunnerTests`：PASS，4 tests、0 failures、0 errors；驗證單次執行、成功關閉 context、失敗回傳非零與例外傳遞。
 - `DemoResetIntegrationTests`：PASS，1 test、0 failures、0 errors；使用隔離 MySQL、文件目錄與 PostgreSQL semantic tables 驗證清除及 baseline 重建，拒絕非 Demo semantic allowed database，並確認後續一般初始化不會再次刪除操作後資料。
+- P1-06 Flyway Preflight：PASS，`DemoFlywayPreflightIntegrationTests` 6 tests、0 failures、0 errors、0 skipped。除原有 P1-05 的 shared Primary 拒絕、合法 Demo 正向 Migration／Seed、非 Demo profile 正常 Migration 外，新增三組隔離 Testcontainers MySQL 負向案例：合法 Demo Primary 搭配非 Demo `spring.flyway.url`、含合法與非 Demo 值的 `spring.flyway.schemas`、非 Demo `spring.flyway.default-schema`。三者均以正確原因在 `flyway.migrate()` 前拒絕，合法 Primary 與非 Demo Migration Database 的 table/schema snapshot、sentinel row、`flyway_schema_history`、文件 sentinel 均未變動。
 - P2-01 PowerShell 腳本生命週期：PASS，11 cases、0 failures。原始四個環境變數「存在且有值」與「不存在」兩組，均通過 Runner success `0`、non-zero `17`、exception 傳遞與 `finally` 還原；Runner 期間收到正規化絕對 `DOCUMENT_STORAGE_PATH`。同一相對路徑由 repository root 或無關暫存 CWD 解析的結果相同，且均以 backend root 為基準；絕對路徑不會被再加上 backend root。合法 Demo leaf 會執行 Runner，`demo-project/data/documents` 因最後一層為 `documents` 而在 Runner 前被拒絕，環境與 sentinel 檔案不變。此測試以 AST 載入正式函式、注入 Command Runner，未啟動 Maven、Spring Boot、資料庫或真正 Reset。
 - PowerShell AST Parser：PASS；`scripts/reset-demo.ps1` 與 `scripts/tests/reset-demo.Tests.ps1` 均無 parser error。
-- SP-901 targeted Backend：PASS，21 tests、0 failures、0 errors、0 skipped；含 `DemoFlywayPreflightIntegrationTests` 3、`DemoDataInitializerActivationTests` 5、`DemoResetCommandRunnerTests` 4、`DemoNonDemoDatabaseSafetyIntegrationTests` 1、`DemoSeedTargetSafetyIntegrationTests` 2、`DemoResetIntegrationTests` 1、`DemoSeedSmokeIntegrationTests` 5。
-- Backend full regression：2026-10-14 19:12:09 +08:00 啟動的本次 `mvnw.cmd -B --no-transfer-progress verify` PASS，Maven exit code `0`、`BUILD SUCCESS`，529 tests、0 failures、0 errors、1 skipped；100 份 Surefire XML 均於本次啟動後產生。skipped 為未提供金鑰的 `SemanticRealProviderSmokeTests` 真實 Gemini smoke，未以 Fake provider 取代。七個 SP-901 targeted 類別均在此次 full regression 執行，其 MySQL／pgvector 來自 Testcontainers 的隔離資源。
+- SP-901 targeted Backend：PASS，24 tests、0 failures、0 errors、0 skipped；含 `DemoFlywayPreflightIntegrationTests` 6、`DemoDataInitializerActivationTests` 5、`DemoResetCommandRunnerTests` 4、`DemoNonDemoDatabaseSafetyIntegrationTests` 1、`DemoSeedTargetSafetyIntegrationTests` 2、`DemoResetIntegrationTests` 1、`DemoSeedSmokeIntegrationTests` 5。
+- Backend full regression：2026-10-14 19:49:08 +08:00 啟動的本次 `mvnw.cmd -B --no-transfer-progress verify` PASS，Maven exit code `0`、`BUILD SUCCESS`，532 tests、0 failures、0 errors、1 skipped；skipped 為未提供金鑰的 `SemanticRealProviderSmokeTests` 真實 Gemini smoke，未以 Fake provider 取代。七個 SP-901 targeted 類別及 P1-06 三個新增負向案例均在此次 full regression 執行，其 MySQL／pgvector 來自 Testcontainers 的隔離資源。
 - 實際 CLI Reset 生命週期：PASS。於隔離的 `supplypilot_demo_p103` MySQL、`supplypilot_semantic_demo_p103` pgvector 與 `sp901-demo-reset-storage` 執行 `scripts/reset-demo.ps1`；log 明確顯示 `Starting DemoResetApplication`、`DEMO_RESET_COMMAND_START`／`COMPLETE` 與 `DEMO_RESET_APPLICATION_EXIT code=0`。程序自行結束且 shell exit code 為 0；將 MAT-001 inventory 改為 999 後第二次執行，恢復為 300、五份 READY 文件與完整 12/6/30/12、10 張 PO 基線，五個原檔 storage UUID 全數重建，第六份不存在。
 - 實際 CLI 失敗與一般重啟：PASS。以錯誤 PostgreSQL credential 執行時 `DemoResetApplication` exit code 為 1，既有 MySQL marker、MAT-001=300、五份 READY 與五個原檔均保留；其後把 MAT-001 改為 999，以預設 Maven profile 啟動一般 Backend，log 顯示 `Starting SupplyPilotApplication` 與 `DEMO_DATASET_ALREADY_COMPLETE`，執行期間 inventory 仍為 999，證明重啟沒有再次 Reset。
 - Manual Browser Reset 前後一致性：NOT RUN。上述是實際 CLI／Backend 生命週期驗證，不是 Browser E2E；仍須依 Browser checklist 從 UI 操作狀態跨越 Reset 前後核對。

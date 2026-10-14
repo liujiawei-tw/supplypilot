@@ -19,9 +19,7 @@ final class DemoTargetGuard {
     private DemoTargetGuard() { }
 
     static void requirePrimaryTargets(String actualDatabase, String allowedDatabase, Path storageRoot) {
-        if (!isExplicitDemoTargetName(allowedDatabase)) {
-            throw new IllegalStateException("The allowed MySQL database is not explicitly demo-isolated");
-        }
+        requireAllowedDatabase(allowedDatabase);
         if (actualDatabase == null || !actualDatabase.equals(allowedDatabase)) {
             throw new IllegalStateException("Refusing demo initialization for unexpected MySQL database: "
                     + actualDatabase);
@@ -29,6 +27,38 @@ final class DemoTargetGuard {
         if (!isDemoStorageRoot(storageRoot)) {
             throw new IllegalStateException(
                     "Refusing demo initialization for a document storage path not identified as demo");
+        }
+    }
+
+    static void requireFlywayTargets(
+            String actualDatabase, String allowedDatabase, String defaultSchema, String[] schemas) {
+        requireAllowedDatabase(allowedDatabase);
+        if (actualDatabase == null || !actualDatabase.equals(allowedDatabase)) {
+            throw new IllegalStateException("Refusing Flyway migration for unexpected MySQL database: "
+                    + actualDatabase);
+        }
+        requireFlywaySchema("default schema", defaultSchema, allowedDatabase, true);
+        if (schemas != null) {
+            for (String schema : schemas) {
+                requireFlywaySchema("schema", schema, allowedDatabase, false);
+            }
+        }
+    }
+
+    private static void requireAllowedDatabase(String allowedDatabase) {
+        if (!isExplicitDemoTargetName(allowedDatabase)) {
+            throw new IllegalStateException("The allowed MySQL database is not explicitly demo-isolated");
+        }
+    }
+
+    private static void requireFlywaySchema(
+            String settingName, String schema, String allowedDatabase, boolean allowUnset) {
+        if (allowUnset && (schema == null || schema.isBlank())) return;
+        if (schema == null || schema.isBlank()
+                || !isExplicitDemoTargetName(schema)
+                || !schema.equals(allowedDatabase)) {
+            throw new IllegalStateException("Refusing Flyway migration because configured " + settingName
+                    + " is not the allowed demo database: " + schema);
         }
     }
 

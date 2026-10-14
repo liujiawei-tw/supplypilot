@@ -31,18 +31,30 @@ class DemoFlywayPreflightConfiguration {
             @Value("${supplypilot.document-storage.path:./data/demo-documents}") String documentStoragePath) {
         Path storageRoot = Path.of(documentStoragePath).toAbsolutePath().normalize();
         return flyway -> {
-            DemoTargetGuard.requirePrimaryTargets(currentDatabase(dataSource), properties.getAllowedDatabase(), storageRoot);
+            DemoTargetGuard.requirePrimaryTargets(
+                    currentDatabase(dataSource, "primary"), properties.getAllowedDatabase(), storageRoot);
+            var flywayConfiguration = flyway.getConfiguration();
+            DemoTargetGuard.requireFlywayTargets(
+                    currentDatabase(flywayConfiguration.getDataSource(), "Flyway migration"),
+                    properties.getAllowedDatabase(),
+                    flywayConfiguration.getDefaultSchema(),
+                    flywayConfiguration.getSchemas());
             flyway.migrate();
         };
     }
 
-    private static String currentDatabase(DataSource dataSource) {
+    private static String currentDatabase(DataSource dataSource, String targetName) {
+        if (dataSource == null) {
+            throw new FlywayException("Unable to verify the physical MySQL database for " + targetName
+                    + " because no DataSource is configured");
+        }
         try (Connection connection = dataSource.getConnection();
                 var statement = connection.createStatement();
                 var result = statement.executeQuery("SELECT DATABASE()")) {
             return result.next() ? result.getString(1) : null;
         } catch (SQLException exception) {
-            throw new FlywayException("Unable to verify the physical MySQL database before demo migration", exception);
+            throw new FlywayException("Unable to verify the physical MySQL database for " + targetName
+                    + " before demo migration", exception);
         }
     }
 }
