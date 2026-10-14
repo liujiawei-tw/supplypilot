@@ -1,0 +1,13 @@
+Title: SUP-002 Fictional Quotation Terms
+DocumentType: QUOTATION
+Version: 1.0
+Fictional demo document. All commercial conditions are invented.
+
+East Harbor Trading (SUP-002) offers MAT-001 and MAT-002 under the unit prices maintained in the
+SupplyPilot demo database. This quotation remains valid for thirty calendar days from issue.
+Standard delivery is three calendar days for MAT-001 when the requested quantity follows the
+configured package multiple. Freight is included for delivery to the fictional demo warehouse.
+An accepted quotation does not replace the required purchase-order approval workflow.
+
+Question: How long is the SUP-002 quotation valid?
+Expected basis: thirty calendar days from issue.

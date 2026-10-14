@@ -138,6 +138,20 @@ resettable environment
 
 不要使用真實公司資料。
 
+SP-901 的 `DemoDataInitializer` 另使用：
+
+```text
+DEMO_ACCOUNT_PASSWORD
+DEMO_BASELINE_DATE
+DEMO_DATASET_VERSION
+DEMO_SAMPLES_PATH
+```
+
+帳號密碼只由執行環境注入，沒有 Repository 預設值。`DEMO_BASELINE_DATE` 留空時由 Spring `Clock`
+取得並記錄在 dataset marker；重啟不會改寫。破壞性 Reset 預設停用，啟用時還必須提供
+`DEMO_RESET_CONFIRMATION`、`DEMO_ALLOWED_DATABASE`、`DEMO_ALLOWED_SEMANTIC_DATABASE`，並使用明確含
+`demo` 的 `DOCUMENT_STORAGE_PATH`。完整步驟見 `SP-901-DEMO-RESET-RUNBOOK.md`。
+
 ---
 
 # 6. Production

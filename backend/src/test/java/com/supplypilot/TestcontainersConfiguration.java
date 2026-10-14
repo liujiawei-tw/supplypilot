@@ -13,6 +13,7 @@ public class TestcontainersConfiguration {
 	@ServiceConnection
 	MySQLContainer mysqlContainer() {
 		return new MySQLContainer(DockerImageName.parse("mysql:8.4.11"))
+				.withDatabaseName("supplypilot_demo_test")
 				.withCommand("--log-bin-trust-function-creators=1");
 	}
 

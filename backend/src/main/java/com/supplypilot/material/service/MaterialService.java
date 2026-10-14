@@ -62,11 +62,19 @@ public class MaterialService {
 
     @Transactional(readOnly = true)
     public PageResponse<MaterialResponse> listMaterials(MaterialStatus status, String code, String name, Pageable pageable) {
-        Specification<Material> specification = Specification.allOf(
-                status == null ? null : (root, query, builder) -> builder.equal(root.get("status"), status),
-                hasText(code) ? (root, query, builder) -> builder.like(root.get("code"), "%" + code.trim() + "%") : null,
-                hasText(name) ? (root, query, builder) -> builder.like(root.get("name"), "%" + name.trim() + "%") : null
-        );
+        Specification<Material> specification = Specification.unrestricted();
+        if (status != null) {
+            specification = specification.and(
+                    (root, query, builder) -> builder.equal(root.get("status"), status));
+        }
+        if (hasText(code)) {
+            specification = specification.and(
+                    (root, query, builder) -> builder.like(root.get("code"), "%" + code.trim() + "%"));
+        }
+        if (hasText(name)) {
+            specification = specification.and(
+                    (root, query, builder) -> builder.like(root.get("name"), "%" + name.trim() + "%"));
+        }
         Page<Material> page = materialRepository.findAll(specification, pageable);
         return PageResponse.from(page.map(materialMapper::toResponse));
     }

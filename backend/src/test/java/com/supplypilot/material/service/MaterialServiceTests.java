@@ -23,6 +23,9 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.jpa.domain.Specification;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -96,5 +99,17 @@ class MaterialServiceTests {
                 .isInstanceOf(BusinessException.class)
                 .extracting("errorCode")
                 .isEqualTo(ErrorCode.DUPLICATE_CODE);
+    }
+
+    @Test
+    void listsMaterialsWhenOptionalFiltersAreMissing() {
+        PageRequest pageable = PageRequest.of(0, 20);
+        when(materialRepository.findAll(any(Specification.class), any(PageRequest.class)))
+                .thenReturn(Page.empty(pageable));
+
+        var response = materialService.listMaterials(null, null, null, pageable);
+
+        assertThat(response.content()).isEmpty();
+        verify(materialRepository).findAll(any(Specification.class), any(PageRequest.class));
     }
 }

@@ -37,10 +37,19 @@ public class SupplierService {
     }
     @Transactional(readOnly = true) @PreAuthorize("hasAnyRole('PROCUREMENT_STAFF','PROCUREMENT_MANAGER','ADMIN')")
     public PageResponse<SupplierResponse> listSuppliers(SupplierStatus status, String code, String name, Pageable pageable) {
-        Specification<Supplier> specification = Specification.allOf(
-                status == null ? null : (root, query, builder) -> builder.equal(root.get("status"), status),
-                hasText(code) ? (root, query, builder) -> builder.like(root.get("code"), "%" + code.trim() + "%") : null,
-                hasText(name) ? (root, query, builder) -> builder.like(root.get("name"), "%" + name.trim() + "%") : null);
+        Specification<Supplier> specification = Specification.unrestricted();
+        if (status != null) {
+            specification = specification.and(
+                    (root, query, builder) -> builder.equal(root.get("status"), status));
+        }
+        if (hasText(code)) {
+            specification = specification.and(
+                    (root, query, builder) -> builder.like(root.get("code"), "%" + code.trim() + "%"));
+        }
+        if (hasText(name)) {
+            specification = specification.and(
+                    (root, query, builder) -> builder.like(root.get("name"), "%" + name.trim() + "%"));
+        }
         Page<Supplier> page = supplierRepository.findAll(specification, pageable);
         return PageResponse.from(page.map(supplierMapper::toResponse));
     }

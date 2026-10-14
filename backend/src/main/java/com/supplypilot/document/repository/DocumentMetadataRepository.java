@@ -5,6 +5,7 @@ import java.util.List;
 
 import com.supplypilot.document.domain.DocumentMetadata;
 import com.supplypilot.document.domain.DocumentStatus;
+import com.supplypilot.document.domain.DocumentType;
 import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
@@ -26,4 +27,6 @@ public interface DocumentMetadataRepository extends JpaRepository<DocumentMetada
     List<DocumentMetadata> findBackfillPage(@Param("status") DocumentStatus status,
                                             @Param("afterId") Long afterId,
                                             org.springframework.data.domain.Pageable pageable);
+
+    boolean existsByDocumentTypeAndTitleAndVersion(DocumentType documentType, String title, String version);
 }
