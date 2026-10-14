@@ -1,0 +1,13 @@
+Title: SUP-001 Delivery and Responsibility Agreement
+DocumentType: SUPPLIER_CONTRACT
+Version: 1.0
+Fictional demo document. It does not represent a real company or agreement.
+
+Formosa Ingredients (SUP-001) supplies Assam Tea Extract (MAT-001) for the SupplyPilot demo.
+The standard lead time is five calendar days after an order is marked ORDERED. The supplier must
+notify the buyer before the expected delivery date if a delay is likely. Delivery responsibility
+ends only after the warehouse confirms quantity and package integrity. Rejected lots remain the
+supplier's responsibility until replacement or written disposition is agreed.
+
+Question: What is SUP-001's standard lead time for MAT-001?
+Expected basis: five calendar days after the order is marked ORDERED.

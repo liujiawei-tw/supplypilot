@@ -1,0 +1,12 @@
+Title: MAT-001 Assam Tea Extract Specification
+DocumentType: PRODUCT_SPECIFICATION
+Version: 1.0
+Fictional demo specification.
+
+Material MAT-001 is Assam Tea Extract and its base unit is KG. It is a dark amber, water-soluble
+tea concentrate intended for fictional beverage trials. Packages must be sealed, dry, and labelled
+with the material code and lot identifier. Store the material in a cool, dry area away from direct
+sunlight. The demo receiving inspection checks identity, intact packaging, and declared quantity.
+
+Question: What is the base unit and required storage condition for MAT-001?
+Expected basis: KG; cool and dry, away from direct sunlight.

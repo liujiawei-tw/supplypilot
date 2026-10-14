@@ -103,6 +103,18 @@ class SupplierServiceTests {
     }
 
     @Test
+    void listsSuppliersWhenOptionalFiltersAreMissing() {
+        PageRequest pageable = PageRequest.of(0, 20);
+        when(supplierRepository.findAll(any(Specification.class), any(PageRequest.class)))
+                .thenReturn(new PageImpl<>(List.of(), pageable, 0));
+
+        PageResponse<SupplierResponse> result = supplierService.listSuppliers(null, null, null, pageable);
+
+        assertThat(result.content()).isEmpty();
+        verify(supplierRepository).findAll(any(Specification.class), any(PageRequest.class));
+    }
+
+    @Test
     void updatesOnlyProvidedFieldsAndSupportsLifecycleWithoutDeletingSupplier() {
         Supplier supplier = supplier("SUP-UPD", "Original", "TW", "50", "60");
         when(supplierRepository.findById(20L)).thenReturn(Optional.of(supplier));

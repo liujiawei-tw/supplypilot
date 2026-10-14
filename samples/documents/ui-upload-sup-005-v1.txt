@@ -1,0 +1,12 @@
+Title: SUP-005 Seasonal Delivery Addendum
+DocumentType: SUPPLIER_CONTRACT
+Version: 1.0
+Fictional sixth document for the manual UI scenario; it is intentionally not in the baseline seed.
+
+Pacific Food Materials (SUP-005) requests that seasonal delivery changes be reported two business
+days before the expected delivery date. The buyer must record the revised plan in the purchase-order
+workflow; this addendum never authorizes skipping manager approval. Warehouse staff continue to
+receive only orders already marked ORDERED.
+
+Question: When should SUP-005 report a seasonal delivery change?
+Expected basis: two business days before the expected delivery date.

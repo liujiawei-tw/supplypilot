@@ -167,6 +167,17 @@ public class SemanticStore {
         return !latest.isEmpty() && latest.getFirst();
     }
 
+    /** Clears the dedicated demo semantic store. Callers must enforce the demo-only environment guard. */
+    public void resetAllDemoData() {
+        ensureSchema();
+        transactions.executeWithoutResult(transaction -> {
+            jdbc.update("DELETE FROM semantic_gate_audit");
+            jdbc.update("DELETE FROM semantic_chunks");
+            jdbc.update("DELETE FROM semantic_document_indexes");
+            jdbc.update("DELETE FROM semantic_generations");
+        });
+    }
+
     public List<Candidate> search(List<Float> query, int topK) {
         return search(query, topK, 0);
     }

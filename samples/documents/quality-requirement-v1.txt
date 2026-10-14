@@ -1,0 +1,13 @@
+Title: Demo Ingredient Quality Requirements
+DocumentType: QUALITY_REQUIREMENT
+Version: 1.0
+Fictional demo quality requirements.
+
+Every delivered ingredient must match the purchase-order material code, declared quantity, and
+sealed package count. The warehouse records visible damage before receiving. A lot with a missing
+identifier, broken seal, contamination, or material mismatch is placed on hold and is not received
+into usable inventory. Procurement coordinates disposition with the supplier. The system does not
+support partial receiving in V1, so the full order must be accepted or the receiving action deferred.
+
+Question: Which defects require a delivered lot to be placed on hold?
+Expected basis: missing identifier, broken seal, contamination, or material mismatch.

@@ -1,0 +1,14 @@
+Title: SupplyPilot Demo Procurement SOP
+DocumentType: PROCUREMENT_SOP
+Version: 1.0
+Fictional demo procedure.
+
+The production planner records demand. Procurement staff review inventory, incoming ORDERED
+purchase orders, and the recommendation snapshot before creating a DRAFT purchase order. A
+procurement manager may approve or reject only a DRAFT. Procurement staff may mark an APPROVED
+order as ORDERED. Warehouse staff receive only an ORDERED order. Receiving increases inventory,
+creates a PURCHASE_RECEIVE stock transaction, and changes the order to RECEIVED in one transaction.
+No role may skip a lifecycle state through the user interface.
+
+Question: Which role receives an ORDERED purchase order?
+Expected basis: warehouse staff.
