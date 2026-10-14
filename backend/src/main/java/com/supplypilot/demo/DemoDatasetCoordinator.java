@@ -8,10 +8,8 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.function.Supplier;
-import java.util.regex.Pattern;
 
 import com.supplypilot.demand.domain.Demand;
 import com.supplypilot.demand.repository.DemandRepository;
@@ -67,10 +65,6 @@ public class DemoDatasetCoordinator implements DemoDataCoordinator {
     static final String DATASET_KEY = "SP-901";
     static final String RESET_CONFIRMATION = "RESET-SP-901-DEMO";
     private static final Logger log = LoggerFactory.getLogger(DemoDatasetCoordinator.class);
-    private static final Pattern DEMO_TARGET_MARKER = Pattern.compile(
-            "(^|[-_.])demo($|[-_.])", Pattern.CASE_INSENSITIVE);
-    private static final Pattern SHARED_OR_PROD_MARKER = Pattern.compile(
-            "(^|[-_.])(prod|production|shared|common)($|[-_.])", Pattern.CASE_INSENSITIVE);
 
     private final DemoProperties properties;
     private final Clock clock;
@@ -444,29 +438,12 @@ public class DemoDatasetCoordinator implements DemoDataCoordinator {
     }
 
     private void requireDemoPrimaryTargets() {
-        if (!isExplicitDemoTargetName(properties.getAllowedDatabase())) {
-            throw new IllegalStateException("The allowed MySQL database is not explicitly demo-isolated");
-        }
         String database = jdbc.queryForObject("SELECT DATABASE()", String.class);
-        if (database == null || !database.equals(properties.getAllowedDatabase())) {
-            throw new IllegalStateException("Refusing demo initialization for unexpected MySQL database: " + database);
-        }
-        if (!isDemoStorageRoot(documentStorageRoot)) {
-            throw new IllegalStateException(
-                    "Refusing demo initialization for a document storage path not identified as demo");
-        }
-    }
-
-    private static boolean isDemoStorageRoot(Path path) {
-        Path rootName = path.getFileName();
-        return rootName != null && isExplicitDemoTargetName(rootName.toString());
+        DemoTargetGuard.requirePrimaryTargets(database, properties.getAllowedDatabase(), documentStorageRoot);
     }
 
     static boolean isExplicitDemoTargetName(String value) {
-        if (value == null || value.isBlank()) return false;
-        String normalized = value.toLowerCase(Locale.ROOT);
-        return DEMO_TARGET_MARKER.matcher(normalized).find()
-                && !SHARED_OR_PROD_MARKER.matcher(normalized).find();
+        return DemoTargetGuard.isExplicitDemoTargetName(value);
     }
 
     private void requireEmptyDatabase() {
