@@ -121,10 +121,18 @@ public class DemoDatasetCoordinator implements DemoDataCoordinator {
 
     @Override
     public void initialize() {
-        if (properties.isResetEnabled()) {
-            reset();
-        }
+        requireDemoPrimaryTargets();
+        initializeBaseline();
+    }
 
+    @Override
+    public void resetAndInitialize() {
+        requireDemoPrimaryTargets();
+        reset();
+        initializeBaseline();
+    }
+
+    private void initializeBaseline() {
         Map<String, Object> state = state();
         if (state != null) {
             if ("COMPLETE".equals(state.get("status"))
@@ -403,13 +411,6 @@ public class DemoDatasetCoordinator implements DemoDataCoordinator {
         if (!RESET_CONFIRMATION.equals(properties.getResetConfirmation())) {
             throw new IllegalStateException("Demo reset confirmation is missing or invalid");
         }
-        String database = jdbc.queryForObject("SELECT DATABASE()", String.class);
-        if (!properties.getAllowedDatabase().equals(database)) {
-            throw new IllegalStateException("Refusing demo reset for unexpected MySQL database: " + database);
-        }
-        if (!documentStorageRoot.toString().toLowerCase(java.util.Locale.ROOT).contains("demo")) {
-            throw new IllegalStateException("Refusing reset for a document storage path not identified as demo");
-        }
         String semanticUrl = semanticProperties.jdbcUrl();
         if (semanticUrl == null || !databaseName(semanticUrl).equals(properties.getAllowedSemanticDatabase())) {
             throw new IllegalStateException("Refusing reset without the explicitly allowed demo semantic database");
@@ -429,8 +430,27 @@ public class DemoDatasetCoordinator implements DemoDataCoordinator {
                 jdbc.update("DELETE FROM " + table);
             }
         });
-        log.warn("DEMO_DATASET_RESET database={} semanticDatabase={}", database,
+        log.warn("DEMO_DATASET_RESET database={} semanticDatabase={}", properties.getAllowedDatabase(),
                 properties.getAllowedSemanticDatabase());
+    }
+
+    private void requireDemoPrimaryTargets() {
+        String database = jdbc.queryForObject("SELECT DATABASE()", String.class);
+        if (database == null || !database.equals(properties.getAllowedDatabase())) {
+            throw new IllegalStateException("Refusing demo initialization for unexpected MySQL database: " + database);
+        }
+        if (!isDemoStoragePath(documentStorageRoot)) {
+            throw new IllegalStateException(
+                    "Refusing demo initialization for a document storage path not identified as demo");
+        }
+    }
+
+    private static boolean isDemoStoragePath(Path path) {
+        for (Path segment : path) {
+            String value = segment.toString().toLowerCase(java.util.Locale.ROOT);
+            if (value.matches(".*(^|[-_.])demo($|[-_.]).*")) return true;
+        }
+        return false;
     }
 
     private void requireEmptyDatabase() {

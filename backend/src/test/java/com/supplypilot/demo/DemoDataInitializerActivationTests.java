@@ -7,13 +7,31 @@ import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 
 class DemoDataInitializerActivationTests {
     private final ApplicationContextRunner contextRunner = new ApplicationContextRunner()
-            .withBean(DemoDataCoordinator.class, () -> () -> { })
-            .withUserConfiguration(DemoDataInitializer.class);
+            .withBean(DemoDataCoordinator.class, () -> new DemoDataCoordinator() {
+                @Override public void initialize() { }
+                @Override public void resetAndInitialize() { }
+            })
+            .withUserConfiguration(DemoDataInitializer.class, DemoResetCommandRunner.class);
 
     @Test
     void createsInitializerOnlyForEnabledDemoProfile() {
         contextRunner.withPropertyValues("spring.profiles.active=demo", "supplypilot.demo-data-enabled=true")
-                .run(context -> assertThat(context).hasSingleBean(DemoDataInitializer.class));
+                .run(context -> {
+                    assertThat(context).hasSingleBean(DemoDataInitializer.class);
+                    assertThat(context).doesNotHaveBean(DemoResetCommandRunner.class);
+                });
+    }
+
+    @Test
+    void createsOnlyOneShotResetRunnerWhenResetCommandIsExplicitlyEnabled() {
+        contextRunner.withPropertyValues(
+                        "spring.profiles.active=demo",
+                        "supplypilot.demo-data-enabled=true",
+                        "supplypilot.demo.reset-command-enabled=true")
+                .run(context -> {
+                    assertThat(context).doesNotHaveBean(DemoDataInitializer.class);
+                    assertThat(context).hasSingleBean(DemoResetCommandRunner.class);
+                });
     }
 
     @Test
@@ -30,7 +48,13 @@ class DemoDataInitializerActivationTests {
 
     @Test
     void doesNotCreateInitializerWhenDemoAndProdProfilesAreBothActive() {
-        contextRunner.withPropertyValues("spring.profiles.active=demo,prod", "supplypilot.demo-data-enabled=true")
-                .run(context -> assertThat(context).doesNotHaveBean(DemoDataInitializer.class));
+        contextRunner.withPropertyValues(
+                        "spring.profiles.active=demo,prod",
+                        "supplypilot.demo-data-enabled=true",
+                        "supplypilot.demo.reset-command-enabled=true")
+                .run(context -> {
+                    assertThat(context).doesNotHaveBean(DemoDataInitializer.class);
+                    assertThat(context).doesNotHaveBean(DemoResetCommandRunner.class);
+                });
     }
 }

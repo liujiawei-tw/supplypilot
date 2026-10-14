@@ -115,9 +115,11 @@ Seeder 使用既有 `DocumentService.upload` 與 `DocumentIngestionService.inges
 
 ## 自動化證據與限制
 
-- `DemoDataInitializerActivationTests`：demo／flag／prod isolation。
+- `DemoDataInitializerActivationTests`：demo／flag／prod isolation，以及一般初始化與單次 reset command 互斥。
+- `DemoSeedTargetSafetyIntegrationTests`：首次 seed 的實際 MySQL database 與 Demo 原始文件路徑 fail-closed；拒絕時 dataset state、users、metadata 與 filesystem 零寫入。
+- `DemoResetCommandRunnerTests`：一次性 Reset 成功／失敗退出生命週期與 context 關閉。
 - `DemoSeedSmokeIntegrationTests`：MySQL Testcontainers、資料量與狀態、冪等、partial-state fail closed、750 KG 真實 Recommendation API、完整採購 API、CSV success/failure、文件 READY。
-- `DemoResetIntegrationTests`：MySQL、文件原檔及 PostgreSQL Gate／index 清除後重建。
+- `DemoResetIntegrationTests`：MySQL、文件原檔及 PostgreSQL Gate／index 清除後重建；完成後的一般初始化不會再次清除操作後資料。
 - 自動測試不呼叫付費 Gemini。Fake provider 的既有 Semantic 測試不能代替真實 Gemini。
 - Browser E2E、真實 Gemini Chat／Embedding、實際 Semantic Gate、AWS 定時重置與 AWS 部署必須以當次實測結果另行標記 PASS／FAIL／NOT RUN／BLOCKED。
 
@@ -125,8 +127,8 @@ Seeder 使用既有 `DocumentService.upload` 與 `DocumentIngestionService.inges
 
 | 驗證 | 結果 | 證據／限制 |
 | --- | --- | --- |
-| Backend full regression | PASS（既有證據） | `backend\\.\\mvnw.cmd -B --no-transfer-progress verify`：516 tests、0 failures、0 errors、1 skipped，BUILD SUCCESS；此 run 早於 Browser E2E 發現的 Material／Supplier optional-filter 相容性最小修正，最終 worktree 未重跑 full regression |
-| 最終 targeted Backend | PASS | `-Dtest=MaterialServiceTests,SupplierServiceTests,DemoSeedSmokeIntegrationTests test`：16 tests、0 failures、0 errors；包含 5 個 SP-901 smoke 與 optional-filter 回歸測試 |
+| Backend full regression | PASS | `backend\\.\\mvnw.cmd -B --no-transfer-progress verify`：525 tests、0 failures、0 errors、1 skipped，BUILD SUCCESS；在 P1-01／P1-02 修正後的最終 worktree 執行 |
+| P1 targeted Backend | PASS | `-Dtest=DemoDataInitializerActivationTests,DemoResetCommandRunnerTests,DemoSeedTargetSafetyIntegrationTests,DemoResetIntegrationTests,DemoSeedSmokeIntegrationTests test`：17 tests、0 failures、0 errors；包含首次 seed 零寫入負向測試、一次性 Reset 退出生命週期、Reset 後不重複刪除與 5 個 SP-901 smoke |
 | Frontend dependency install | PASS | `npm ci`：212 packages、0 vulnerabilities；第一次 npm 自身 `Exit handler never called`，獨立重跑成功 |
 | Frontend lint | PASS | `npm run lint` |
 | Frontend tests | PASS | 獨占資源 `npm test`：18 test files、149 tests PASS；先前並行 Testcontainers 時的 UI timeout 不記為通過 |

@@ -16,6 +16,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
@@ -24,6 +25,7 @@ import org.testcontainers.utility.DockerImageName;
 
 @SpringBootTest(properties = {
         "supplypilot.demo.account-password=Demo-Password-For-Tests-901!",
+        "supplypilot.demo.allowed-database=test",
         "supplypilot.demo.samples-path=../samples/documents",
         "supplypilot.jwt.secret=dGVzdC1zZWNyZXQtZm9yLWRlbW8tcmVzZXQtdGVzdC1hdC1sZWFzdC0yNTYtYml0cw==",
         "supplypilot.frontend-origin=http://localhost:5173"
@@ -57,6 +59,7 @@ class DemoResetIntegrationTests {
     @Autowired private SemanticStore semanticStore;
     @Autowired private UserRepository users;
     @Autowired private DocumentMetadataRepository documents;
+    @Autowired private JdbcTemplate jdbc;
 
     @Test
     void guardedResetClearsBothDatabasesAndOriginalFilesBeforeRebuildingBaseline() throws Exception {
@@ -65,24 +68,22 @@ class DemoResetIntegrationTests {
         assertThat(postgresCount("semantic_gate_audit")).isEqualTo(1);
         assertThat(fileCount()).isEqualTo(5);
 
-        properties.setResetEnabled(true);
         properties.setResetConfirmation("wrong-confirmation");
-        assertThatThrownBy(coordinator::initialize).isInstanceOf(IllegalStateException.class)
+        assertThatThrownBy(coordinator::resetAndInitialize).isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("confirmation");
         assertThat(users.count()).isEqualTo(5);
 
         properties.setResetConfirmation(DemoDatasetCoordinator.RESET_CONFIRMATION);
         properties.setAllowedDatabase("not-the-active-database");
-        assertThatThrownBy(coordinator::initialize).isInstanceOf(IllegalStateException.class)
+        assertThatThrownBy(coordinator::resetAndInitialize).isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("unexpected MySQL database");
         assertThat(users.count()).isEqualTo(5);
 
         properties.setAllowedDatabase("test");
         properties.setAllowedSemanticDatabase("test");
         try {
-            coordinator.initialize();
+            coordinator.resetAndInitialize();
         } finally {
-            properties.setResetEnabled(false);
             properties.setResetConfirmation(null);
         }
 
@@ -91,6 +92,14 @@ class DemoResetIntegrationTests {
         assertThat(users.count()).isEqualTo(5);
         assertThat(documents.count()).isEqualTo(5);
         assertThat(fileCount()).isEqualTo(5);
+
+        long materialId = jdbc.queryForObject(
+                "SELECT id FROM materials WHERE code = 'MAT-001'", Long.class);
+        jdbc.update("UPDATE inventory SET quantity = 999 WHERE material_id = ?", materialId);
+        coordinator.initialize();
+        assertThat(jdbc.queryForObject(
+                "SELECT quantity FROM inventory WHERE material_id = ?", java.math.BigDecimal.class, materialId))
+                .isEqualByComparingTo("999");
     }
 
     private long postgresCount(String table) throws Exception {

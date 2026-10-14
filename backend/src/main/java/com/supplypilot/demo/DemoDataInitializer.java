@@ -13,6 +13,7 @@ import org.springframework.stereotype.Component;
 @Component
 @Profile("demo & !prod")
 @ConditionalOnProperty(name = "supplypilot.demo-data-enabled", havingValue = "true")
+@ConditionalOnProperty(name = "supplypilot.demo.reset-command-enabled", havingValue = "false", matchIfMissing = true)
 @EnableConfigurationProperties(DemoProperties.class)
 public class DemoDataInitializer implements ApplicationRunner {
     private final Environment environment;

@@ -8,7 +8,6 @@ public class DemoProperties {
     private String baselineDate;
     private String datasetVersion = "sp-901-v1";
     private String samplesPath = "../samples/documents";
-    private boolean resetEnabled;
     private String resetConfirmation;
     private String allowedDatabase = "supplypilot_demo";
     private String allowedSemanticDatabase = "supplypilot_semantic_demo";
@@ -21,8 +20,6 @@ public class DemoProperties {
     public void setDatasetVersion(String datasetVersion) { this.datasetVersion = datasetVersion; }
     public String getSamplesPath() { return samplesPath; }
     public void setSamplesPath(String samplesPath) { this.samplesPath = samplesPath; }
-    public boolean isResetEnabled() { return resetEnabled; }
-    public void setResetEnabled(boolean resetEnabled) { this.resetEnabled = resetEnabled; }
     public String getResetConfirmation() { return resetConfirmation; }
     public void setResetConfirmation(String resetConfirmation) { this.resetConfirmation = resetConfirmation; }
     public String getAllowedDatabase() { return allowedDatabase; }
