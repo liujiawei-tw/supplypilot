@@ -1279,3 +1279,31 @@ End-to-end demo / bug fix
 ```
 
 不要等到 Day 13 才第一次開始前端。
+
+---
+
+# 45. Impeccable 前端品質改善與 E9 依賴（2026-10-14；規劃，尚未實作）
+
+> **正式細節與驗收矩陣：** [Impeccable 前端改善審查與執行計畫](impeccable-ui-review-plan.md)。本附錄屬現有 Thin Frontend 的增量品質規劃，**不回溯改寫 V1 的既定 Backend/API/Role 合約**，也不把「原本 14 天 MVP 時程」當成現行剩餘工期。
+
+## 工作包與對應 Issue
+
+| 工作包 | GitHub Issue | 規格、改善焦點 | 執行性質 |
+| --- | --- | --- | --- |
+| UI-A | [SP-905 #110](https://github.com/liujiawei-tw/supplypilot/issues/110) | 全站 zh-TW、Ant Design locale、統一 Raw Enum display label、六份虛構 Demo 文件翻譯與語意檢索回歸 | 已有 Issue，不重開；既定 SP-901 前置條件不變 |
+| UI-B | [SP-906 #112](https://github.com/liujiawei-tw/supplypilot/issues/112) | ADMIN 在本機 UI 執行出站核准/排除、Backfill、Readiness、Gate Audit、來源查核 | 第六份文件全 UI Browser E2E 的必要前端缺口 |
+| UI-C | [SP-907 #113](https://github.com/liujiawei-tw/supplypilot/issues/113) | Role-Based Operations Inbox、Recommendation 結論→證據→下一步層級，避免假 KPI/假清單 | 產品展示品質改善，不替代 SP-901 真實驗收 |
+| UI-D | [SP-908 #114](https://github.com/liujiawei-tw/supplypilot/issues/114) | 超過前 100 筆主檔可選性、RWD/Keyboard/Zoom、Design Tokens 與量測後的低風險效能改善 | 先修可用性，再依 Browser 證據修視覺缺陷 |
+| 規格文件 | [SP-909 #115](https://github.com/liujiawei-tw/supplypilot/issues/115) | 本附錄、新增改善審查文件及 Runbook 互鏈 | 純文件，與功能 PR 隔離 |
+
+## 流程與安全底線
+
+1. **Operate Mode 先於裝飾**：直接呈現角色授權的工作與下一步；維持 Ant Design 標準控制元件與清楚的視覺層級。建議的一般網站 fancy 動畫與大規模自訂 Design System 仍不納入。
+2. **Semantic 狀態是多階段且權威不同**：MySQL 文件 `READY` 不代表 PostgreSQL semantic index 可查，亦不等於全域 Gate PASS 或 Semantic Read Switch 已開啟。ADMIN UI 應呈現實際 Backend Response，不得偽造完成狀態；AWS 共用的 `PROCUREMENT_MANAGER` 不能上傳／核准文件。
+3. **保留業務授權與真實數字**：任何 Dashboard／Recommendation 的 Quantity、Score、Supplier Ranking、PO Lifecycle、Overdue、Token 與錯誤狀態繼續由 Backend 決定。沒有 Aggregate/List API 不應以硬編碼假資料代替。
+4. **高風險操作不盲目重送**：Inventory Import Snapshot Replace、PO Approve/Order/Receive、AI Draft Confirm 與文件索引審核均保留既有確認／未知結果查核策略。
+5. **驗收證據分層**：Code Review、CI、真實 Gemini Chat／Embedding、Browser E2E、Local Docker、AWS 與最終影片分別驗證。UI-D 的 RWD、WCAG／觸控達標未經 Browser/Device 實測前只能標示待確認。
+6. **執行依賴**：先處理 SP-901 #43／PR #111 未完成的實測與合併條件，再依 AGENTS.md 安排 UI-B 與第六份 Browser E2E、UI-A #110、需要納入本次 Demo 的 UI-C/D；**SP-903 一律本機 Docker 先於 AWS**，SP-904 影片最後。若 #111 的 `Closes #43` 與真實驗收尚未完成的狀態衝突，應正式對齊，不可藉自動關閉 Issue 掩蓋缺口。
+7. **不任意擴充 Release Gate**：UI-C/UI-D 為可明確排程或延期的品質工作，不直接將風格改善列為 SP-901 的真實 Semantic PASS 條件；但若已納入實際展示版本，SP-903 必須以最終合併版回歸驗證。
+
+工期粗估：UI-A 2–4、UI-B 2–3、UI-C 2–3、UI-D 3–5、整合審查緩衝 1 工作天，合計 **10–16 工作天**。不含 SP-900／SP-901 剩餘外部驗收、SP-903 本機/AWS 部署、SP-904 影片。
