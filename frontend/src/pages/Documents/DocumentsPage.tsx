@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  Alert, Button, Descriptions, Drawer, Form, Input, InputNumber, Modal, Select, Space, Table, Tag, Typography,
+  Alert, Button, Collapse, Descriptions, Drawer, Form, Input, InputNumber, Modal, Select, Space, Table, Tag, Typography,
   type TablePaginationConfig,
 } from 'antd';
 import { UploadOutlined } from '@ant-design/icons';
@@ -16,8 +16,20 @@ import EmptyState from '../../components/EmptyState';
 import ErrorState from '../../components/ErrorState';
 import type { ApiErrorResponse, PageResponse } from '../../types/api';
 import { validateDocumentFile } from './documentValidation';
+import SemanticOperationsPanel from './SemanticOperationsPanel';
+import { approveOutbound, excludeOutbound, type OutboundReviewResponse } from '../../api/semanticIndex';
+import AiQueryPanel from '../../components/AiAssistant/AiQueryPanel';
 
 const { Title, Text } = Typography;
+const REVIEW_UNKNOWN_KEY = 'supplypilot.semanticUnknownReviews';
+
+function storedUnknownReviews(): string[] {
+  try {
+    const value: unknown = JSON.parse(sessionStorage.getItem(REVIEW_UNKNOWN_KEY) ?? '[]');
+    return Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : [];
+  } catch { return []; }
+}
+
 const documentTypes: DocumentType[] = ['SUPPLIER_CONTRACT', 'QUOTATION', 'PROCUREMENT_SOP', 'PRODUCT_SPECIFICATION', 'QUALITY_REQUIREMENT'];
 const statuses: DocumentStatus[] = ['PROCESSING', 'READY', 'FAILED', 'INACTIVE'];
 const statusColor: Record<DocumentStatus, string> = { PROCESSING: 'processing', READY: 'success', FAILED: 'error', INACTIVE: 'default' };
@@ -54,13 +66,20 @@ export default function DocumentsPage() {
   const [ingestConfirm, setIngestConfirm] = useState(false);
   const [ingestionUnknown, setIngestionUnknown] = useState(false);
   const [acting, setActing] = useState(false);
+  const [reviewLoading, setReviewLoading] = useState(false);
+  const [reviewConfirm, setReviewConfirm] = useState<'approve' | 'exclude' | null>(null);
+  const [reviewResult, setReviewResult] = useState<OutboundReviewResponse | null>(null);
+  const [reviewUnknownKeys, setReviewUnknownKeys] = useState<string[]>(storedUnknownReviews);
+  const [reviewUnlockKey, setReviewUnlockKey] = useState<string | null>(null);
   const [form] = Form.useForm<UploadValues>();
   const uploadRef = useRef(false);
   const ingestingRef = useRef(false);
+  const reviewRef = useRef(false);
   const ingestionUnknownRef = useRef<number | null>(null);
   const canUpload = !!user && can(user.role, 'documentUpload');
   const canUpdate = !!user && can(user.role, 'documentUpdate');
   const canIngest = !!user && can(user.role, 'documentIngest');
+  const canManageSemantic = !!user && can(user.role, 'semanticManagement');
 
   const loadList = useCallback(async (next = query) => {
     setLoading(true); setError(null);
@@ -72,6 +91,7 @@ export default function DocumentsPage() {
   useEffect(() => { const timer = window.setTimeout(() => void loadList(), 0); return () => window.clearTimeout(timer); }, [loadList]);
 
   const openDetail = useCallback(async (id: number) => {
+    setSelected(null); setReviewResult(null);
     setDetailLoading(true); setDetailError(null); setActionError(null);
     try {
       const document = await getDocument(id);
@@ -122,6 +142,28 @@ export default function DocumentsPage() {
   };
 
   const refreshDetail = async () => { if (selected) await openDetail(selected.id); };
+
+  const confirmOutboundReview = async () => {
+    if (!selected || !reviewConfirm || reviewRef.current) return;
+    const operation = reviewConfirm;
+    const reviewKey = `${selected.id}:${selected.version}`;
+    if (reviewUnknownKeys.includes(reviewKey)) return;
+    reviewRef.current = true; setReviewLoading(true); setActionError(null); setReviewConfirm(null); setReviewResult(null);
+    try {
+      const result = await (operation === 'approve' ? approveOutbound(selected.id) : excludeOutbound(selected.id));
+      setReviewResult(result);
+    } catch (requestError) {
+      const apiError = toApiError(requestError);
+      if (requiresMutationVerification(requestError) || isUnknownResult(requestError)) {
+        setReviewUnknownKeys((keys) => {
+          const next = keys.includes(reviewKey) ? keys : [...keys, reviewKey];
+          sessionStorage.setItem(REVIEW_UNKNOWN_KEY, JSON.stringify(next));
+          return next;
+        });
+        setActionError({ ...apiError, message: `${operation === 'approve' ? '核准' : '排除'}結果未知，且目前沒有可查詢持久化審核狀態的 API。請依後端稽核記錄人工查核；不可把 Document READY 或 Readiness 當作審核成功，也不要重送。` });
+      } else setActionError(apiError);
+    } finally { reviewRef.current = false; setReviewLoading(false); }
+  };
 
   const verifyIngestionStatus = async () => {
     const id = ingestionUnknownRef.current;
@@ -196,6 +238,7 @@ export default function DocumentsPage() {
       {uploaded && <Alert type="success" showIcon closable onClose={() => setUploaded(null)}
         title={`Document #${uploaded.id} 上傳成功`}
         description={`Backend 狀態：${uploaded.status}；Version：${uploaded.version}。文件尚未因上傳成功而自動成為 READY。`} />}
+      {canManageSemantic && <SemanticOperationsPanel />}
       {uploadUnknown && <Alert type="warning" showIcon title="文件上傳結果不明，已鎖定重送"
         description="請人工查核 Document List；相同 Title／Version 僅能作輔助資訊，不能單憑它推定上傳成功或失敗。" />}
       <Space wrap>
@@ -233,11 +276,12 @@ export default function DocumentsPage() {
       {detailError && <ErrorState title="文件明細載入失敗" error={detailError} onRetry={() => { const id = Number(searchParams.get('documentId')); if (id) void openDetail(id); }} />}
       {detailLoading && <Text>Loading document…</Text>}
       {selected && <Space orientation="vertical" size="large" style={{ width: '100%' }}>
-        {actionError && <ErrorState title={ingestionUnknown ? '索引結果待查核' : '文件操作訊息'} error={actionError}
-          onRetry={ingestionUnknown ? () => void verifyIngestionStatus() : () => void refreshDetail()}
+        {actionError && <ErrorState title={ingestionUnknown ? '索引結果待查核' : reviewUnknownKeys.includes(`${selected.id}:${selected.version}`) ? 'Outbound Review 結果待人工查核' : '文件操作訊息'} error={actionError}
+          onRetry={ingestionUnknown ? () => void verifyIngestionStatus() : reviewUnknownKeys.includes(`${selected.id}:${selected.version}`) ? undefined : () => void refreshDetail()}
           retryText={ingestionUnknown ? '查核真實文件狀態' : '重新取得文件資訊'} />}
         <Descriptions bordered size="small" column={1} items={[
           { key: 'id', label: 'Document ID', children: selected.id },
+          { key: 'title', label: 'Title', children: <Typography.Text style={{ overflowWrap: 'anywhere' }}>{selected.title}</Typography.Text> },
           { key: 'type', label: 'Document Type', children: selected.documentType },
           { key: 'supplier', label: 'Supplier ID', children: selected.supplierId ?? '—' },
           { key: 'version', label: 'Version', children: selected.version },
@@ -246,6 +290,22 @@ export default function DocumentsPage() {
           { key: 'uploaded', label: 'Uploaded At', children: formatInstant(selected.uploadedAt) },
           { key: 'updated', label: 'Updated At', children: formatInstant(selected.updatedAt) },
         ]} />
+        {canManageSemantic && <>
+          <Alert type="info" showIcon title="文件狀態與 Semantic 狀態分開管理" description="此處只顯示 Documents API 的狀態。持久化出站審核狀態未包含在 DocumentResponse；請以每次 Review POST 回應為準，來源版本變更後需重新審核。" />
+          {reviewResult?.documentId === selected.id && reviewResult.version === selected.version && <Alert showIcon type={reviewResult.status === 'APPROVED' ? 'success' : reviewResult.status === 'REQUIRES_REVIEW' ? 'warning' : 'info'} title={`Backend 本次審核回應：${reviewResult.status}`} description={<Descriptions size="small" column={1} items={[
+            { key: 'version', label: 'Version', children: reviewResult.version },
+            { key: 'hash', label: 'Source Hash', children: <Typography.Text code copyable>{reviewResult.sourceHash}</Typography.Text> },
+            { key: 'reviewer', label: '審核者（approvedBy）', children: reviewResult.approvedBy },
+            { key: 'reason', label: 'Reason', children: reviewResult.reason || '—' },
+          ]} />} />}
+          {reviewUnknownKeys.includes(`${selected.id}:${selected.version}`) && <Alert type="warning" showIcon title="Outbound Review 結果 UNKNOWN；已鎖定本版本重送" description="Backend 沒有可供前端重新查詢持久化審核結果的端點。需人工查核後端紀錄；文件狀態或 Readiness 不能證明核准／排除 POST 成功。" action={<Button size="small" onClick={() => setReviewUnlockKey(`${selected.id}:${selected.version}`)}>我已完成人工查核</Button>} />}
+          <Space wrap>
+            <Button type="primary" disabled={selected.status !== 'READY' || reviewUnknownKeys.includes(`${selected.id}:${selected.version}`)} loading={reviewLoading} onClick={() => setReviewConfirm('approve')}>核准出站</Button>
+            <Button danger disabled={selected.status !== 'READY' || reviewUnknownKeys.includes(`${selected.id}:${selected.version}`)} loading={reviewLoading} onClick={() => setReviewConfirm('exclude')}>排除出站</Button>
+          </Space>
+          {selected.status !== 'READY' && <Text type="secondary">文件目前為 {selected.status}；需先由 Backend 文件流程達到 READY 才能審核出站。</Text>}
+          <Collapse items={[{ key: 'ai-query', label: '下一步：使用既有 AI Query 核對來源', children: <><Alert type="info" showIcon title="Query 結果由 Backend 決定" description="僅 Gate Audit PASS 不保證此文件會命中。請核對回傳的 Document ID、Version、Chunk、Offset；沒有充分證據時 Backend 會回報證據不足。" /><div style={{ marginTop: 16 }}><AiQueryPanel /></div></> }]} />
+        </>}
         {canUpdate && <Space orientation="vertical" style={{ width: '100%' }}>
           <Text strong>Title</Text><Input aria-label="Document title" value={editTitle} maxLength={255} onChange={(event) => setEditTitle(event.target.value)} />
           <Space wrap><Button loading={acting} disabled={!editTitle.trim()} onClick={() => void saveTitle()}>Save Title</Button>
@@ -262,6 +322,23 @@ export default function DocumentsPage() {
     <Modal title="Confirm Document Ingestion" open={ingestConfirm} okText="Confirm Ingestion" confirmLoading={acting}
       onOk={() => void ingest()} onCancel={() => { if (!acting) setIngestConfirm(false); }} closable={!acting} mask={{ closable: !acting }}>
       <Alert type="warning" showIcon title="將呼叫正式索引流程" description="執行中不會重複送出；逾時或網路中斷時不會自動重送。完成後會重新取得 Backend 文件狀態。" />
+    </Modal>
+
+    <Modal title={reviewConfirm === 'approve' ? '確認核准文件出站' : '確認排除此文件出站'} open={reviewConfirm !== null} okText={reviewConfirm === 'approve' ? '確認核准出站' : '確認排除出站'} confirmLoading={reviewLoading}
+      okButtonProps={{ danger: reviewConfirm === 'exclude' }} onOk={() => void confirmOutboundReview()} onCancel={() => { if (!reviewLoading) setReviewConfirm(null); }} closable={!reviewLoading} mask={{ closable: !reviewLoading }}>
+      {reviewConfirm === 'approve'
+        ? <Alert type="warning" showIcon title="文件內容可能送至外部 Embedding Provider" description="Backend 會依出站政策檢查內容；若需要人工審查，實際回應可能是 REQUIRES_REVIEW，不會被前端覆寫成已核准。只對你有權授權外送的文件繼續。" />
+        : <Alert type="info" showIcon title="排除後 Backfill 不會索引此文件" description="Backend 會記錄排除決策；請確認你要將此文件排除於 Semantic 出站索引。" />}
+    </Modal>
+    <Modal title="解除 Outbound Review 未知結果鎖定" open={reviewUnlockKey !== null} okText="確認已人工查核" onOk={() => {
+      if (reviewUnlockKey) setReviewUnknownKeys((keys) => {
+        const next = keys.filter((key) => key !== reviewUnlockKey);
+        sessionStorage.setItem(REVIEW_UNKNOWN_KEY, JSON.stringify(next));
+        return next;
+      });
+      setReviewUnlockKey(null); setActionError(null);
+    }} onCancel={() => setReviewUnlockKey(null)}>
+      <Alert type="warning" showIcon title="請先查核後端審核紀錄" description="Document GET 和 Readiness 都不能證明原核准／排除操作結果。只在人工查核後，才解除此文件版本的重送鎖定。" />
     </Modal>
   </>;
 }

@@ -7,6 +7,7 @@ import { axiosClient, TOKEN_STORAGE_KEY } from '../src/api/axiosClient';
 import { router } from '../src/router/routes';
 import type { AuthenticatedUser } from '../src/types/api';
 import { validateDocumentFile } from '../src/pages/Documents/documentValidation';
+import { cleanup } from '@testing-library/react';
 
 const staff: AuthenticatedUser = { id: 2, username: 'buyer', displayName: 'Buyer', role: 'PROCUREMENT_STAFF' };
 const manager: AuthenticatedUser = { id: 3, username: 'manager', displayName: 'Manager', role: 'PROCUREMENT_MANAGER' };
@@ -30,6 +31,47 @@ async function openDraftProposal(user: ReturnType<typeof userEvent.setup>) {
 beforeEach(() => { localStorage.clear(); });
 
 describe('SP-806 Document Management UI', () => {
+  it.each([
+    [{ id: 1, username: 'admin', displayName: 'Admin', role: 'ADMIN' } as AuthenticatedUser, true],
+    [manager, false], [staff, false], [warehouse, false],
+  ])('exposes Semantic operations only to ADMIN on the existing Documents route', async (identity, isAdmin) => {
+    axiosClient.defaults.adapter = vi.fn(async (config) => {
+      if (config.url === '/auth/me') return response(config, identity);
+      if (config.url === '/documents') return response(config, page([]));
+      throw new Error(`Unexpected ${config.method} ${config.url}`);
+    });
+    await open('/documents');
+    if (isAdmin) expect(await screen.findByText('Semantic 索引管理')).toBeTruthy();
+    else {
+      await screen.findByText('SupplyPilot');
+      expect(screen.queryByText('Semantic 索引管理')).toBeNull();
+      expect(screen.queryByRole('button', { name: '執行並保存 Gate Audit' })).toBeNull();
+    }
+    cleanup();
+  });
+
+  it('confirms outbound approval and renders the actual Backend Review result', async () => {
+    const ready = { ...documentProcessing, status: 'READY' };
+    const requests: InternalAxiosRequestConfig[] = [];
+    axiosClient.defaults.adapter = vi.fn(async (config) => {
+      requests.push(config);
+      if (config.url === '/auth/me') return response(config, { id: 1, username: 'admin', displayName: 'Admin', role: 'ADMIN' });
+      if (config.url === '/documents') return response(config, page([ready]));
+      if (config.url === '/documents/21') return response(config, ready);
+      if (config.url === '/semantic-index/documents/21/approve-outbound') return response(config, { documentId: 21, version: 'v1', sourceHash: 'abc123', approvedBy: 1, status: 'APPROVED', reason: null });
+      throw new Error(`Unexpected ${config.method} ${config.url}`);
+    });
+    await open('/documents'); const user = userEvent.setup();
+    await screen.findByText('Supplier quote');
+    await user.click(screen.getByRole('button', { name: '#21' }));
+    await user.click(await screen.findByRole('button', { name: '核准出站' }));
+    expect(await screen.findByText(/可能送至外部 Embedding Provider/)).toBeTruthy();
+    await user.click(within(latestDialog()).getByRole('button', { name: '確認核准出站' }));
+    expect(await screen.findByText('Backend 本次審核回應：APPROVED')).toBeTruthy();
+    expect(screen.getByText('abc123')).toBeTruthy();
+    expect(requests.filter(({ url }) => url === '/semantic-index/documents/21/approve-outbound')).toHaveLength(1);
+  });
+
   it('shows backend status, hides storagePath, and performs one explicitly confirmed ingestion followed by refresh', async () => {
     const requests: InternalAxiosRequestConfig[] = [];
     axiosClient.defaults.adapter = vi.fn(async (config) => {

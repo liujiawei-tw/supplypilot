@@ -23,6 +23,11 @@ describe('SP-806 API and permission contracts', () => {
     expect(can('WAREHOUSE_STAFF', 'aiQuery')).toBe(false);
     expect(can('PRODUCTION_PLANNER', 'documents')).toBe(false);
     expect(can('ADMIN', 'documentIngest')).toBe(true);
+    expect(can('ADMIN', 'semanticManagement')).toBe(true);
+    expect(can('PROCUREMENT_MANAGER', 'semanticManagement')).toBe(false);
+    expect(can('PROCUREMENT_STAFF', 'semanticManagement')).toBe(false);
+    expect(can('WAREHOUSE_STAFF', 'semanticManagement')).toBe(false);
+    expect(can('PRODUCTION_PLANNER', 'semanticManagement')).toBe(false);
   });
 
   it('uses backend Document filters, detail, archive, and explicit ingestion endpoints', async () => {
