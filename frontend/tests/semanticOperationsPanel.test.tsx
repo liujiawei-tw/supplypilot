@@ -11,6 +11,11 @@ vi.mock('../src/api/semanticIndex', () => ({
 }));
 
 const report: semantic.SemanticGateReport = { passed: true, generationKey: 'gen-1', modelId: 'embedding-model', dimensions: 768, ready: 6, skipped: 0, failed: 0, requiresReview: 0, pending: 0, findings: [], auditId: null };
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((done) => { resolve = done; });
+  return { promise, resolve };
+}
 
 function mount(documentMutationVersion = 0) { return render(<MemoryRouter><SemanticOperationsPanel documentMutationVersion={documentMutationVersion} /></MemoryRouter>); }
 
@@ -74,6 +79,48 @@ describe('Semantic admin operations UI', () => {
     expect(await screen.findByText('Readiness 條件目前符合')).toBeTruthy();
     expect(screen.getByText('本次 Gate Audit 未通過')).toBeTruthy();
     expect(screen.getByText(/不代表已保存 Gate Audit/)).toBeTruthy();
+  });
+
+  it('does not restore a pending Readiness PASS after a document mutation', async () => {
+    const pending = deferred<semantic.SemanticGateReport>();
+    vi.mocked(semantic.getSemanticReadiness).mockReturnValue(pending.promise);
+    const user = userEvent.setup(); const view = mount();
+    await user.click(screen.getByRole('button', { name: '讀取目前 Readiness' }));
+    expect(semantic.getSemanticReadiness).toHaveBeenCalledTimes(1);
+    view.rerender(<MemoryRouter><SemanticOperationsPanel documentMutationVersion={1} /></MemoryRouter>);
+    pending.resolve(report);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(screen.queryByText('Readiness 條件目前符合')).toBeNull();
+  });
+
+  it('keeps an Audit PASS historical when a document mutation occurs before its response', async () => {
+    const pending = deferred<semantic.SemanticGateReport>();
+    vi.mocked(semantic.runSemanticGateAudit).mockReturnValue(pending.promise);
+    const user = userEvent.setup(); const view = mount();
+    await user.click(screen.getByRole('button', { name: '執行並保存 Gate Audit' }));
+    await user.click(screen.getByRole('button', { name: '確認並保存 Audit' }));
+    expect(semantic.runSemanticGateAudit).toHaveBeenCalledTimes(1);
+    view.rerender(<MemoryRouter><SemanticOperationsPanel documentMutationVersion={1} /></MemoryRouter>);
+    pending.resolve({ ...report, auditId: 85 });
+    expect(await screen.findByText('歷史 Gate Audit 回應（已過期）')).toBeTruthy();
+    expect(screen.queryByText('本次 Gate Audit 通過')).toBeNull();
+    expect(screen.getByText('85')).toBeTruthy();
+  });
+
+  it('does not restore a pending Readiness response after Backfill completes', async () => {
+    const pendingReadiness = deferred<semantic.SemanticGateReport>();
+    const pendingBackfill = deferred<semantic.BackfillBatchResponse>();
+    vi.mocked(semantic.getSemanticReadiness).mockReturnValue(pendingReadiness.promise);
+    vi.mocked(semantic.runBackfill).mockReturnValue(pendingBackfill.promise);
+    const user = userEvent.setup(); mount();
+    await user.click(screen.getByRole('button', { name: '讀取目前 Readiness' }));
+    await user.click(screen.getByRole('button', { name: '執行一批' }));
+    expect(semantic.runBackfill).toHaveBeenCalledTimes(1);
+    pendingBackfill.resolve({ processed: 1, ready: 1, failed: 0, skipped: 0, requiresReview: 0, lastId: 1, morePossible: false });
+    expect(await screen.findByText(/本批處理 1 份/)).toBeTruthy();
+    pendingReadiness.resolve(report);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(screen.queryByText('Readiness 條件目前符合')).toBeNull();
   });
 
   it('uses the Backend lastId and sends only one batch when clicked rapidly', async () => {

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useLayoutEffect, useRef, useState } from 'react';
 import { Alert, Button, Card, Col, Descriptions, InputNumber, Modal, Row, Space, Statistic, Table, Tag, Typography } from 'antd';
 import { useNavigate, type NavigateFunction } from 'react-router-dom';
 import { getSemanticReadiness, runBackfill, runSemanticGateAudit, type BackfillBatchResponse, type SemanticGateReport } from '../../api/semanticIndex';
@@ -71,32 +71,38 @@ export default function SemanticOperationsPanel({ documentMutationVersion = 0 }:
   const [unknown, setUnknown] = useState<Operation[]>(storedUnknownOperations);
   const [confirmAudit, setConfirmAudit] = useState(false);
   const [confirmUnknownClear, setConfirmUnknownClear] = useState<Operation | null>(null);
-  const busyRef = useRef(false);
+  const mutationBusyRef = useRef(false);
+  const readinessBusyRef = useRef(false);
+  const requestEpoch = useRef(0);
   const previousDocumentMutationVersion = useRef(documentMutationVersion);
 
   const invalidateReports = useCallback(() => {
+    requestEpoch.current += 1;
     setReadiness(null);
     if (audit) setAuditStale(true);
   }, [audit]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (previousDocumentMutationVersion.current === documentMutationVersion) return;
     previousDocumentMutationVersion.current = documentMutationVersion;
     invalidateReports();
   }, [documentMutationVersion, invalidateReports]);
 
   const start = async <T,>(operation: Operation, request: () => Promise<T>, success: (result: T) => void) => {
-    if (busyRef.current || unknown.includes(operation)) return;
-    busyRef.current = true;
+    if (mutationBusyRef.current || unknown.includes(operation)) return;
+    mutationBusyRef.current = true;
     setLoading(operation);
     setError(null);
     setErrorIsRead(false);
     invalidateReports();
+    const operationEpoch = requestEpoch.current;
     if (operation === 'backfill') setBatch(null);
     try {
       const result = await request();
-      success(result);
-      if (operation === 'audit') setAuditStale(false);
+      if (operation === 'audit') {
+        success(result);
+        setAuditStale(operationEpoch !== requestEpoch.current);
+      } else if (operationEpoch === requestEpoch.current) success(result);
     } catch (cause) {
       const apiError = toApiError(cause);
       setError(apiError); setErrorIsRead(false);
@@ -108,17 +114,21 @@ export default function SemanticOperationsPanel({ documentMutationVersion = 0 }:
         });
       }
     } finally {
-      busyRef.current = false;
-      setLoading(null);
+      mutationBusyRef.current = false;
+      setLoading((current) => current === operation ? null : current);
     }
   };
 
   const refreshReadiness = async () => {
-    if (busyRef.current) return;
-    busyRef.current = true; setLoading('readiness'); setError(null); setErrorIsRead(false); setReadiness(null);
-    try { setReadiness(await getSemanticReadiness()); }
-    catch (cause) { setError(toApiError(cause)); setErrorIsRead(true); }
-    finally { busyRef.current = false; setLoading(null); }
+    if (mutationBusyRef.current || readinessBusyRef.current) return;
+    readinessBusyRef.current = true; setLoading('readiness'); setError(null); setErrorIsRead(false); setReadiness(null);
+    const operationEpoch = requestEpoch.current;
+    try {
+      const result = await getSemanticReadiness();
+      if (operationEpoch === requestEpoch.current) setReadiness(result);
+    }
+    catch (cause) { if (operationEpoch === requestEpoch.current) { setError(toApiError(cause)); setErrorIsRead(true); } }
+    finally { readinessBusyRef.current = false; setLoading((current) => current === 'readiness' ? null : current); }
   };
 
   return <Card title={<Space direction="vertical" size={0}><Title level={4} style={{ margin: 0 }}>Semantic 索引管理</Title><Text type="secondary">Document READY、Semantic Index READY、Gate PASS 與 Semantic Read 啟用是不同狀態。</Text></Space>}>
@@ -132,7 +142,7 @@ export default function SemanticOperationsPanel({ documentMutationVersion = 0 }:
         <Space wrap align="end">
           <label>afterId<InputNumber aria-label="Backfill afterId" min={0} precision={0} value={afterId} onChange={(value) => setAfterId(value ?? 0)} /></label>
           <label>limit<InputNumber aria-label="Backfill limit" min={1} max={100} precision={0} value={limit} onChange={(value) => setLimit(value ?? 25)} /></label>
-          <Button type="primary" loading={loading === 'backfill'} disabled={unknown.includes('backfill') || loading !== null} onClick={() => void start('backfill', () => runBackfill(afterId, limit), (result) => { setBatch(result); })}>執行一批</Button>
+          <Button type="primary" loading={loading === 'backfill'} disabled={unknown.includes('backfill') || (loading !== null && loading !== 'readiness')} onClick={() => void start('backfill', () => runBackfill(afterId, limit), (result) => { setBatch(result); })}>執行一批</Button>
         </Space>
         <Text type="secondary" style={{ display: 'block', marginTop: 8 }}>每次最多 100 份；不會自動連續執行。以 Backend 回傳的 lastId 做下一批游標。</Text>
         {batch && <div style={{ marginTop: 16 }}>
@@ -145,7 +155,7 @@ export default function SemanticOperationsPanel({ documentMutationVersion = 0 }:
         </div>}
       </Card>
 
-      <Card size="small" title="Readiness Inspection" extra={<Button loading={loading === 'readiness'} disabled={loading !== null} onClick={() => void refreshReadiness()}>讀取目前 Readiness</Button>}>
+      <Card size="small" title="Readiness Inspection" extra={<Button loading={loading === 'readiness'} disabled={loading !== null && loading !== 'readiness'} onClick={() => void refreshReadiness()}>讀取目前 Readiness</Button>}>
         <Text type="secondary">GET 只計算目前索引完整性，不會保存稽核，也不會確認先前 Approval／Audit POST 是否成功。</Text>
         {readiness && <div style={{ marginTop: 16 }}><SemanticReport report={readiness} title="目前 Readiness（即時計算）" saved={false} navigate={navigate} /></div>}
         {!readiness && errorIsRead && <Alert style={{ marginTop: 16 }} type="warning" showIcon title="無法確認目前 Readiness" description="最新 Readiness 查詢失敗；先前回應已清除，不可視為目前 Gate 狀態。" />}
@@ -154,7 +164,7 @@ export default function SemanticOperationsPanel({ documentMutationVersion = 0 }:
       <Card size="small" title="Gate Audit">
         <Space direction="vertical" style={{ width: '100%' }}>
           <Alert type="info" showIcon title="Audit 會保存正式稽核結果" description="PASS 不會啟用 Semantic Read。請依 semantic-rag-runbook.md 完成人工環境設定與重啟；新增或變更 READY 文件可能使 Gate 重新關閉。" />
-          <Button danger disabled={loading !== null || unknown.includes('audit')} loading={loading === 'audit'} onClick={() => setConfirmAudit(true)}>執行並保存 Gate Audit</Button>
+          <Button danger disabled={(loading !== null && loading !== 'readiness') || unknown.includes('audit')} loading={loading === 'audit'} onClick={() => setConfirmAudit(true)}>執行並保存 Gate Audit</Button>
           {audit && <SemanticReport report={audit} title={auditStale ? '歷史 Gate Audit 回應' : '最近一次本頁取得的 Audit 回應'} saved stale={auditStale} navigate={navigate} />}
         </Space>
       </Card>

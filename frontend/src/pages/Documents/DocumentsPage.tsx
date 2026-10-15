@@ -64,7 +64,7 @@ export default function DocumentsPage() {
   const [editTitle, setEditTitle] = useState('');
   const [actionError, setActionError] = useState<ApiErrorResponse | null>(null);
   const [ingestConfirm, setIngestConfirm] = useState(false);
-  const [ingestionUnknown, setIngestionUnknown] = useState(false);
+  const [ingestionUnknownDocumentId, setIngestionUnknownDocumentId] = useState<number | null>(null);
   const [acting, setActing] = useState(false);
   const [reviewLoading, setReviewLoading] = useState(false);
   const [reviewConfirm, setReviewConfirm] = useState<'approve' | 'exclude' | null>(null);
@@ -80,6 +80,7 @@ export default function DocumentsPage() {
   useLayoutEffect(() => { selectedDocumentRef.current = selected; }, [selected]);
   const detailRequestSequence = useRef(0);
   const detailEffectTimer = useRef<number | null>(null);
+  const activeDocumentIdRef = useRef<number | null>(null);
   const ingestionUnknownRef = useRef<number | null>(null);
   const canUpload = !!user && can(user.role, 'documentUpload');
   const canUpdate = !!user && can(user.role, 'documentUpdate');
@@ -90,6 +91,13 @@ export default function DocumentsPage() {
   const requestedDocumentId = requestedDocumentIdText && /^\d+$/.test(requestedDocumentIdText)
     && Number.isSafeInteger(requestedDocumentIdValue) && requestedDocumentIdValue > 0 ? requestedDocumentIdValue : null;
   const selectedMatchesUrl = !!selected && requestedDocumentId === selected.id;
+  const selectedIngestionUnknown = !!selected && ingestionUnknownDocumentId === selected.id;
+  useLayoutEffect(() => { activeDocumentIdRef.current = requestedDocumentId; }, [requestedDocumentId]);
+
+  const isCurrentDocumentRequest = (id: number, requestSequence: number) =>
+    detailRequestSequence.current === requestSequence
+    && activeDocumentIdRef.current === id
+    && selectedDocumentRef.current?.id === id;
 
   const loadList = useCallback(async (next = query) => {
     setLoading(true); setError(null);
@@ -119,7 +127,8 @@ export default function DocumentsPage() {
     if (detailEffectTimer.current !== null) window.clearTimeout(detailEffectTimer.current);
     detailEffectTimer.current = null;
     detailRequestSequence.current += 1;
-    setSelected(null); setReviewResult(null); setReviewConfirm(null);
+    activeDocumentIdRef.current = id;
+    setSelected(null); setReviewResult(null); setReviewConfirm(null); setIngestConfirm(false); setActing(false);
     setDetailLoading(true); setDetailError(null); setActionError(null);
     if (searchParams.get('documentId') === String(id)) {
       void loadDetail(id);
@@ -145,6 +154,7 @@ export default function DocumentsPage() {
 
   const closeDetail = () => {
     detailRequestSequence.current += 1;
+    activeDocumentIdRef.current = null;
     setSelected(null); setDetailLoading(false); setDetailError(null); setActionError(null); setIngestConfirm(false); setReviewConfirm(null);
     setSearchParams((current) => { const next = new URLSearchParams(current); next.delete('documentId'); return next; });
   };
@@ -209,34 +219,40 @@ export default function DocumentsPage() {
 
   const verifyIngestionStatus = async () => {
     const id = ingestionUnknownRef.current;
-    if (!id) return;
+    if (!id || !isCurrentDocumentRequest(id, detailRequestSequence.current)) return;
+    const requestSequence = detailRequestSequence.current;
     setActing(true); setActionError(null);
     try {
       const document = await getDocument(id);
-      if (selected?.id !== id) return;
+      if (!isCurrentDocumentRequest(id, requestSequence)) return;
       setSelected(document); setEditTitle(document.title);
-      ingestionUnknownRef.current = null; setIngestionUnknown(false);
+      ingestionUnknownRef.current = null; setIngestionUnknownDocumentId(null);
       setActionError({ code: 'DOCUMENT_STATUS_VERIFIED', message: `已查核 Backend 真實狀態：${document.status}。此查核不代表先前索引成功；可用操作依目前狀態與 Domain Rule 決定。`, traceId: '', timestamp: '', path: '' });
     } catch (requestError) {
+      if (!isCurrentDocumentRequest(id, requestSequence)) return;
       const apiError = toApiError(requestError);
       setActionError({ ...apiError, message: `文件狀態查核失敗；索引操作維持鎖定。${apiError.message}` });
-    } finally { setActing(false); }
+    } finally { if (isCurrentDocumentRequest(id, requestSequence)) setActing(false); }
   };
 
   const saveTitle = async () => {
     if (!selected || !editTitle.trim()) return;
+    const id = selected.id;
+    const requestSequence = detailRequestSequence.current;
     setActing(true); setActionError(null);
-    try { invalidateSemanticReports(); const next = await updateDocument(selected.id, { title: editTitle.trim() }); setSelected(next); await loadList(); }
-    catch (requestError) { setActionError(toApiError(requestError)); }
-    finally { setActing(false); }
+    try { invalidateSemanticReports(); const next = await updateDocument(id, { title: editTitle.trim() }); if (isCurrentDocumentRequest(id, requestSequence)) { setSelected(next); setEditTitle(next.title); } await loadList(); }
+    catch (requestError) { if (isCurrentDocumentRequest(id, requestSequence)) setActionError(toApiError(requestError)); }
+    finally { if (isCurrentDocumentRequest(id, requestSequence)) setActing(false); }
   };
 
   const archive = async () => {
     if (!selected) return;
+    const id = selected.id;
+    const requestSequence = detailRequestSequence.current;
     setActing(true); setActionError(null);
-    try { invalidateSemanticReports(); const next = await updateDocument(selected.id, { status: 'INACTIVE' }); setSelected(next); await loadList(); }
-    catch (requestError) { setActionError(toApiError(requestError)); }
-    finally { setActing(false); }
+    try { invalidateSemanticReports(); const next = await updateDocument(id, { status: 'INACTIVE' }); if (isCurrentDocumentRequest(id, requestSequence)) setSelected(next); await loadList(); }
+    catch (requestError) { if (isCurrentDocumentRequest(id, requestSequence)) setActionError(toApiError(requestError)); }
+    finally { if (isCurrentDocumentRequest(id, requestSequence)) setActing(false); }
   };
 
   const loadDetailForRetry = () => {
@@ -246,18 +262,21 @@ export default function DocumentsPage() {
 
   const ingest = async () => {
     if (!selected || ingestingRef.current || ingestionUnknownRef.current !== null) return;
+    const id = selected.id;
+    const requestSequence = detailRequestSequence.current;
     ingestingRef.current = true; setActing(true); setActionError(null); setIngestConfirm(false);
-    try { invalidateSemanticReports(); const next = await ingestDocument(selected.id); setSelected(next); await loadList(); }
+    try { invalidateSemanticReports(); const next = await ingestDocument(id); if (isCurrentDocumentRequest(id, requestSequence)) setSelected(next); await loadList(); }
     catch (requestError) {
       const apiError = toApiError(requestError);
       const requiresVerification = requiresMutationVerification(requestError);
       if (requiresVerification) {
-        ingestionUnknownRef.current = selected.id; setIngestionUnknown(true);
-        setActionError({ ...apiError, message: '索引結果尚未確認；系統不會重送。請使用正式文件狀態查核，再依 Backend 真實狀態決定後續操作。' });
+        ingestionUnknownRef.current = id;
+        setIngestionUnknownDocumentId(id);
+        if (isCurrentDocumentRequest(id, requestSequence)) setActionError({ ...apiError, message: '索引結果尚未確認；系統不會重送。請使用正式文件狀態查核，再依 Backend 真實狀態決定後續操作。' });
       } else {
-        setActionError(apiError);
+        if (isCurrentDocumentRequest(id, requestSequence)) setActionError(apiError);
       }
-    } finally { ingestingRef.current = false; setActing(false); }
+    } finally { ingestingRef.current = false; if (isCurrentDocumentRequest(id, requestSequence)) setActing(false); }
   };
 
   const updateQuery = (patch: Partial<DocumentQuery>) => {
@@ -325,9 +344,9 @@ export default function DocumentsPage() {
       {(detailLoading || (requestedDocumentId !== null && !selectedMatchesUrl && !detailError)) && <Text>Loading document…</Text>}
       {selected && selectedMatchesUrl && <Space orientation="vertical" size="large" style={{ width: '100%' }}>
         <Button loading={detailLoading} disabled={detailLoading} onClick={() => void refreshDetail()}>重新取得文件資訊</Button>
-        {actionError && <ErrorState title={ingestionUnknown ? '索引結果待查核' : reviewUnknownKeys.includes(`${selected.id}:${selected.version}`) ? 'Outbound Review 結果待人工查核' : '文件操作訊息'} error={actionError}
-          onRetry={ingestionUnknown ? () => void verifyIngestionStatus() : reviewUnknownKeys.includes(`${selected.id}:${selected.version}`) ? undefined : () => void refreshDetail()}
-          retryText={ingestionUnknown ? '查核真實文件狀態' : '重新取得文件資訊'} />}
+        {actionError && <ErrorState title={selectedIngestionUnknown ? '索引結果待查核' : reviewUnknownKeys.includes(`${selected.id}:${selected.version}`) ? 'Outbound Review 結果待人工查核' : '文件操作訊息'} error={actionError}
+          onRetry={selectedIngestionUnknown ? () => void verifyIngestionStatus() : reviewUnknownKeys.includes(`${selected.id}:${selected.version}`) ? undefined : () => void refreshDetail()}
+          retryText={selectedIngestionUnknown ? '查核真實文件狀態' : '重新取得文件資訊'} />}
         <Descriptions bordered size="small" column={1} items={[
           { key: 'id', label: 'Document ID', children: selected.id },
           { key: 'title', label: 'Title', children: <Typography.Text style={{ overflowWrap: 'anywhere' }}>{selected.title}</Typography.Text> },
@@ -360,10 +379,10 @@ export default function DocumentsPage() {
           <Space wrap><Button loading={acting} disabled={!editTitle.trim()} onClick={() => void saveTitle()}>Save Title</Button>
             {selected.status !== 'INACTIVE' && <Button danger loading={acting} onClick={() => void archive()}>Archive as INACTIVE</Button>}</Space>
         </Space>}
-        {ingestionUnknown && <Alert type="warning" showIcon title="索引結果不明，已鎖定重送"
+        {selectedIngestionUnknown && <Alert type="warning" showIcon title="索引結果不明，已鎖定重送"
           description="必須先使用正式 GET /documents/{id} 查核 Backend 真實狀態；查核失敗時鎖定會保留。"
           action={<Button size="small" loading={acting} onClick={() => void verifyIngestionStatus()}>查核真實文件狀態</Button>} />}
-        {canIngest && !ingestionUnknown && (selected.status === 'PROCESSING' || selected.status === 'READY') && <Button type="primary" loading={acting} onClick={() => setIngestConfirm(true)}>Start Explicit Ingestion</Button>}
+        {canIngest && !selectedIngestionUnknown && (selected.status === 'PROCESSING' || selected.status === 'READY') && <Button type="primary" loading={acting} onClick={() => setIngestConfirm(true)}>Start Explicit Ingestion</Button>}
         {(selected.status === 'FAILED' || selected.status === 'INACTIVE') && <Alert type="info" showIcon title={`Backend 狀態 ${selected.status} 不允許從此介面直接重新索引。`} />}
       </Space>}
     </Drawer>
