@@ -4,6 +4,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.List;
 
 import com.supplypilot.document.domain.DocumentChunk;
@@ -54,7 +57,7 @@ class EvidenceValidatorTests {
     @Test
     void aDifferentClaimsRateDoesNotSupportFrozenSeaFreightInsuranceRate() {
         RetrievedChunk source = chunk(
-                "冷凍海運貨物的保險費率尚未訂定。其他貨物的理賠費率為 0.3%。", 0.95);
+                "冷凍海運貨物的保險費率尚未訂定，其他貨物的理賠費率為 0.3%。", 0.95);
 
         assertThat(validator.isSemanticallySufficient(
                 "冷凍海運貨物的保險費率是多少？", List.of(source), 0.45)).isFalse();
@@ -129,9 +132,140 @@ class EvidenceValidatorTests {
                 .isEqualTo("MAT-001 標準交期為 ORDERED 後 5 個曆日。");
     }
 
+    @Test
+    void realQualitySampleKeepsAllQuarantineConditionsAndExcludesQuestionHints() throws IOException {
+        String content = Files.readString(Path.of("..", "samples", "documents", "quality-requirement-v1.txt"));
+        String question = "品質要求中哪些狀況需要隔離批次？";
+        RetrievedChunk source = chunk(content, 0.9);
+
+        assertThat(validator.isSemanticallySufficient(question, List.of(source), 0.45)).isTrue();
+        assertThat(validator.supportedExcerpt(question, content))
+                .contains("若批次缺少批次識別、封條破損、受到污染或物料不符，須將該批隔離")
+                .doesNotContain("問答：", "預期依據：");
+        assertThat(new ExtractiveAnswerProvider(validator).answer(question, List.of(source)))
+                .contains("缺少批次識別", "封條破損", "受到污染", "物料不符", "隔離")
+                .doesNotContain("問答：", "預期依據：");
+    }
+
+    @Test
+    void chineseConditionalEnumerationKeepsAllConditionsWithSharedAction() {
+        assertSupported("哪些情況應停止作業？", "若發生 A、B、C 或 D，應停止作業。", 0.9);
+        assertThat(validator.supportedExcerpt("哪些情況應停止作業？", "若發生 A、B、C 或 D，應停止作業。"))
+                .contains("A、B、C 或 D", "應停止作業");
+    }
+
+    @Test
+    void englishConditionalEnumerationKeepsAllConditionsWithSharedAction() {
+        String source = "If the seal is broken, the batch is contaminated, or the material is incorrect, "
+                + "quarantine the batch.";
+        assertSupported("When should the batch be quarantined?", source, 0.9);
+        assertThat(validator.supportedExcerpt("When should the batch be quarantined?", source))
+                .contains("the seal is broken", "the batch is contaminated", "the material is incorrect",
+                        "quarantine the batch");
+    }
+
+    @Test
+    void semicolonSeparatedConditionsKeepTheirSharedDisposition() {
+        String source = "If the seal is broken; if contamination is confirmed, quarantine the batch.";
+        String excerpt = validator.supportedExcerpt("When should the batch be quarantined?", source);
+
+        assertThat(excerpt).contains("If the seal is broken", "if contamination is confirmed",
+                "quarantine the batch");
+    }
+
+    @Test
+    void neighboringConditionAndActionSentencesRemainLinked() {
+        String source = "若批次缺少識別、封條破損或受到污染。這些情況均須隔離。";
+        String question = "哪些情況需要隔離批次？";
+
+        assertSupported(question, source, 0.9);
+        assertThat(validator.supportedExcerpt(question, source))
+                .contains("缺少識別", "封條破損", "受到污染", "這些情況均須隔離");
+    }
+
+    @Test
+    void lineWrappedConditionalEnumerationRemainsComplete() {
+        String source = "若發生批次識別缺失、封條破損、\n受到污染或物料不符，\n應隔離該批。";
+        String excerpt = validator.supportedExcerpt("哪些情況需要隔離批次？", source);
+
+        assertThat(excerpt).contains("批次識別缺失", "封條破損", "受到污染", "物料不符", "應隔離該批");
+    }
+
+    @Test
+    void quarantineActionWithoutConditionsIsInsufficientForWhichQuestion() {
+        String source = "異常批次須隔離。";
+        String question = "哪些異常需要隔離？";
+        RetrievedChunk result = chunk(source, 0.9);
+
+        assertThat(validator.isSemanticallySufficient(question, List.of(result), 0.45)).isFalse();
+        assertThat(validator.supportedExcerpt(question, source)).isEmpty();
+    }
+
+    @Test
+    void questionHintAloneIsNotAQuarantineFact() {
+        String source = "問答：哪些情況需要隔離？";
+        String question = "哪些情況需要隔離？";
+        RetrievedChunk result = chunk(source, 0.9);
+
+        assertThat(validator.isSemanticallySufficient(question, List.of(result), 0.45)).isFalse();
+        assertThat(validator.supportedExcerpt(question, source)).isEmpty();
+    }
+
+    @Test
+    void ordinaryBackgroundCommasDoNotEstablishSpecificQuarantineConditions() {
+        String question = "哪些情況需要隔離批次？";
+        assertInsufficientConditions(question, "依照品質管理規定，異常批次須隔離。");
+        assertInsufficientConditions(question, "若依照品質管理規定，異常批次須隔離。");
+        assertInsufficientConditions(question, "若依照規定，異常批次須隔離。");
+        assertInsufficientConditions(question, "若有異常情況，應隔離該批次。");
+        assertInsufficientConditions(question, "If required by policy, quarantine abnormal batches.");
+        assertInsufficientConditions("哪些異常需要隔離？", "倉庫人員，應依標準程序隔離異常批次。");
+        assertInsufficientConditions(question,
+                "問答：哪些情況需要隔離批次？依照規定，異常批次須隔離。");
+    }
+
+    @Test
+    void conditionEvidenceDoesNotRequireOnlyPrelistedConditionKeywords() {
+        assertSupported("哪些情況需要隔離批次？", "若供應商延遲，應隔離該批次。", 0.9);
+        assertSupported("哪些情況需要隔離批次？", "若缺少批次識別，須將該批隔離。", 0.9);
+        assertSupported("哪些情況需要隔離批次？", "若封條破損或物料不符，應隔離批次。", 0.9);
+    }
+
+    @Test
+    void independentConditionalClausesKeepTheirOwnActionsAcrossSemicolonAndSentence() {
+        String question = "哪些情況需要隔離批次？";
+        assertOnlyRelevantCondition(question,
+                "若設備停機，立即通知維修；若封條破損，須隔離批次。",
+                "若封條破損，須隔離批次。");
+        assertOnlyRelevantCondition(question,
+                "若設備停機，立即通知維修。若封條破損，須隔離批次。",
+                "若封條破損，須隔離批次。");
+        assertOnlyRelevantCondition("When should the batch be quarantined?",
+                "If the machine stops, notify maintenance; if the seal is broken, quarantine the batch.",
+                "if the seal is broken, quarantine the batch.");
+        assertOnlyRelevantCondition("When should the batch be quarantined?",
+                "If the machine stops, notify maintenance, and if the seal is broken, quarantine the batch.",
+                "if the seal is broken, quarantine the batch.");
+    }
+
+    private void assertInsufficientConditions(String question, String content) {
+        RetrievedChunk source = chunk(content, 0.95);
+        assertThat(validator.isSemanticallySufficient(question, List.of(source), 0.45)).isFalse();
+        assertThat(validator.supportedExcerpt(question, content)).isEmpty();
+    }
+
+    private void assertOnlyRelevantCondition(String question, String content, String expectedExcerpt) {
+        RetrievedChunk source = chunk(content, 0.95);
+        assertThat(validator.isSemanticallySufficient(question, List.of(source), 0.45)).isTrue();
+        assertThat(validator.supportedExcerpt(question, content).replaceAll("[。.]$", ""))
+                .isEqualTo(expectedExcerpt.replaceAll("[。.]$", ""));
+    }
+
     private void assertSupported(String question, String content, double score) {
         assertThat(validator.isSemanticallySufficient(
-                question, List.of(chunk(content, score)), 0.45)).isTrue();
+                question, List.of(chunk(content, score)), 0.45))
+                .as("condition evidence for <%s>; excerpt=<%s>", content,
+                        validator.supportedExcerpt(question, content)).isTrue();
     }
 
     private RetrievedChunk chunk(String content, double score) {
