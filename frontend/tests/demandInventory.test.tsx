@@ -57,8 +57,8 @@ describe('SP-802 Demand UI', () => {
     });
     await open('/demands');
     expect(await screen.findByRole('row', { name: /MAT-001 — Steel/ }, { timeout: 5_000 })).toBeTruthy();
-    expect(screen.queryByRole('button', { name: 'Create Demand' })).toBeNull();
-    expect(screen.queryByRole('button', { name: 'Edit' })).toBeNull();
+    expect(screen.queryByRole('button', { name: '新增需求' })).toBeNull();
+    expect(screen.queryByRole('button', { name: '編輯' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Cancel' })).toBeNull();
     expect(requests).toContain('/demands');
   }, 15_000);
@@ -77,8 +77,8 @@ describe('SP-802 Demand UI', () => {
       throw new Error(`Unexpected request ${config.url}`);
     });
     await open('/demands');
-    expect(await screen.findByRole('row', { name: /Material #1/ }, { timeout: 5_000 })).toBeTruthy();
-    const retry = await screen.findByRole('button', { name: 'Retry material details' });
+    expect(await screen.findByRole('row', { name: /物料 #1/ }, { timeout: 5_000 })).toBeTruthy();
+    const retry = await screen.findByRole('button', { name: '重新載入物料資訊' });
     expect(materialDetailCalls).toBe(1);
     await userEvent.setup().click(retry);
     expect(await screen.findByRole('row', { name: /MAT-001 — Steel/ })).toBeTruthy();
@@ -107,27 +107,27 @@ describe('SP-802 Demand UI', () => {
     expect(await screen.findByRole('row', { name: /MAT-001 — Steel/ }, { timeout: 5_000 })).toBeTruthy();
     const user = userEvent.setup();
 
-    await user.click(screen.getByRole('button', { name: /Create Demand/ }));
+    await user.click(screen.getByRole('button', { name: /新增需求/ }));
     const createDialog = screen.getByRole('dialog');
-    expect(within(createDialog).getByLabelText('Select material')).toBeTruthy();
-    expect(within(createDialog).getByRole('spinbutton', { name: 'Demand quantity' })).toBeTruthy();
-    expect(within(createDialog).getByLabelText('Demand required date')).toBeTruthy();
-    await user.click(within(createDialog).getByRole('button', { name: 'Cancel' }));
+    expect(within(createDialog).getByLabelText('選取物料')).toBeTruthy();
+    expect(within(createDialog).getByRole('spinbutton', { name: '需求數量' })).toBeTruthy();
+    expect(within(createDialog).getByLabelText('需求日期')).toBeTruthy();
+    await user.click(within(createDialog).getByRole('button', { name: /取\s*消/ }));
 
-    await user.click(screen.getByRole('button', { name: 'Edit' }));
+    await user.click(screen.getByRole('button', { name: /編\s*輯/ }));
     await user.click(screen.getByRole('checkbox'));
-    fireEvent.change(screen.getByLabelText('Demand note'), { target: { value: '' } });
-    await user.click(screen.getByRole('button', { name: 'OK' }));
-    expect(await screen.findByText('Demand submit failed')).toBeTruthy();
-    expect((screen.getByLabelText('Demand note') as HTMLTextAreaElement).value).toBe('');
-    await user.click(screen.getByRole('button', { name: 'OK' }));
+    fireEvent.change(screen.getByLabelText('需求備註'), { target: { value: '' } });
+    await user.click(screen.getByRole('button', { name: /儲存變更/ }));
+    expect(await screen.findByText('需求送出失敗')).toBeTruthy();
+    expect((screen.getByLabelText('需求備註') as HTMLTextAreaElement).value).toBe('');
+    await user.click(screen.getByRole('button', { name: /儲存變更/ }));
     await waitFor(() => expect(requests.filter(({ method, url }) => method === 'patch' && url === '/demands/9')).toHaveLength(2));
     const patchRequest = requests.find(({ method, url }) => method === 'patch' && url === '/demands/9')!;
     expect(JSON.parse(patchRequest.data as string)).toEqual({ quantity: 100, requiredDate: '2026-10-20', note: null });
 
-    await user.click(screen.getByRole('button', { name: 'Cancel' }));
-    expect(await screen.findByText('取消 Demand #9？')).toBeTruthy();
-    await user.click(screen.getByRole('button', { name: 'Confirm Cancel' }));
+    await user.click(screen.getByRole('button', { name: /取\s*消/ }));
+    expect(await screen.findByText('確定取消需求 #9？')).toBeTruthy();
+    await user.click(screen.getByRole('button', { name: '確認取消' }));
     await waitFor(() => expect(requests.filter(({ url }) => url === '/demands/9/cancel')).toHaveLength(1));
     expect(requests.filter(({ method, url }) => method === 'get' && url === '/demands').length).toBeGreaterThanOrEqual(3);
   }, 60_000);
@@ -138,20 +138,20 @@ describe('SP-802 Inventory UI', () => {
     for (const value of ['5', '-5.25', '0.0001', '-0.0001', '999999999999999.1234']) {
       expect(getAdjustmentQuantityError(value)).toBeUndefined();
     }
-    expect(getAdjustmentQuantityError('0')).toBe('Quantity must not be zero');
-    expect(getAdjustmentQuantityError('1000000000000000')).toBe('Use at most 15 integer digits and 4 decimal places');
-    expect(getAdjustmentQuantityError('1.00001')).toBe('Use at most 15 integer digits and 4 decimal places');
-    expect(getAdjustmentReasonError('   ')).toBe('Reason is required');
-    expect(getAdjustmentReasonError('x'.repeat(501))).toBe('Reason must be 500 characters or fewer');
+    expect(getAdjustmentQuantityError('0')).toBe('數量不可為 0');
+    expect(getAdjustmentQuantityError('1000000000000000')).toBe('最多 15 位整數與 4 位小數');
+    expect(getAdjustmentQuantityError('1.00001')).toBe('最多 15 位整數與 4 位小數');
+    expect(getAdjustmentReasonError('   ')).toBe('請輸入調整原因');
+    expect(getAdjustmentReasonError('x'.repeat(501))).toBe('調整原因不可超過 500 個字元');
     expect(getAdjustmentReasonError('Cycle count')).toBeUndefined();
   });
 
   it.each([
-    ['PRODUCTION_PLANNER', ['Stock Levels'], 'stock-levels', true],
-    ['PROCUREMENT_STAFF', ['Stock Levels'], 'stock-levels', true],
-    ['PROCUREMENT_MANAGER', ['Stock Transactions'], 'stock-transactions', false],
-    ['WAREHOUSE_STAFF', ['Stock Levels', 'Stock Transactions'], 'stock-levels', true],
-    ['ADMIN', ['Stock Levels', 'Stock Transactions'], 'stock-levels', true],
+    ['PRODUCTION_PLANNER', ['庫存水位'], 'stock-levels', true],
+    ['PROCUREMENT_STAFF', ['庫存水位'], 'stock-levels', true],
+    ['PROCUREMENT_MANAGER', ['庫存異動'], 'stock-transactions', false],
+    ['WAREHOUSE_STAFF', ['庫存水位', '庫存異動'], 'stock-levels', true],
+    ['ADMIN', ['庫存水位', '庫存異動'], 'stock-levels', true],
   ] as const)('enforces the tab matrix for %s', async (role, visibleTabs, defaultTab, expectsInventory) => {
     const requests: string[] = [];
     axiosClient.defaults.adapter = vi.fn(async (config) => {
@@ -181,13 +181,13 @@ describe('SP-802 Inventory UI', () => {
     await open('/inventory?tab=stock-levels');
     expect(await screen.findByText('MAT-001')).toBeTruthy();
     const user = userEvent.setup();
-    await user.click(screen.getByRole('button', { name: 'Detail' }));
-    expect(await screen.findByText('MAT-001 Inventory')).toBeTruthy();
-    await user.click(screen.getByRole('button', { name: 'Close' }));
-    await user.click(screen.getByRole('button', { name: 'Adjust' }));
-    fireEvent.change(screen.getByRole('spinbutton', { name: 'Adjustment quantity' }), { target: { value: '-5.25' } });
-    await user.type(screen.getByLabelText('Adjustment reason'), 'Damaged stock');
-    const confirm = screen.getByRole('button', { name: 'Confirm Adjustment' });
+    await user.click(screen.getByRole('button', { name: /檢\s*視/ }));
+    expect(await screen.findByText('MAT-001 庫存明細')).toBeTruthy();
+    await user.click(screen.getByRole('button', { name: '關閉' }));
+    await user.click(screen.getByRole('button', { name: '調整庫存' }));
+    fireEvent.change(screen.getByRole('spinbutton', { name: '異動數量' }), { target: { value: '-5.25' } });
+    await user.type(screen.getByLabelText('調整原因'), 'Damaged stock');
+    const confirm = screen.getByRole('button', { name: '確認調整' });
     await user.click(confirm);
     fireEvent.click(confirm);
     await waitFor(() => expect(requests.filter(({ url }) => url === '/inventory/1/adjustments')).toHaveLength(1));
@@ -208,18 +208,18 @@ describe('SP-802 Inventory UI', () => {
     });
     await open('/inventory?tab=stock-levels');
     const user = userEvent.setup();
-    await user.click(await screen.findByRole('button', { name: 'Adjust' }, { timeout: 5_000 }));
-    fireEvent.change(screen.getByRole('spinbutton', { name: 'Adjustment quantity' }), { target: { value: '0' } });
-    await user.click(screen.getByRole('button', { name: 'Confirm Adjustment' }));
-    expect(await screen.findByText('Quantity must not be zero')).toBeTruthy();
-    expect(screen.getByText('Reason is required')).toBeTruthy();
+    await user.click(await screen.findByRole('button', { name: '調整庫存' }, { timeout: 5_000 }));
+    fireEvent.change(screen.getByRole('spinbutton', { name: '異動數量' }), { target: { value: '0' } });
+    await user.click(screen.getByRole('button', { name: '確認調整' }));
+    expect(await screen.findByText('數量不可為 0')).toBeTruthy();
+    expect(screen.getByText('請輸入調整原因')).toBeTruthy();
     expect(requests.filter(({ url }) => url === '/inventory/1/adjustments')).toHaveLength(0);
-    fireEvent.change(screen.getByRole('spinbutton', { name: 'Adjustment quantity' }), { target: { value: '5' } });
-    await user.type(screen.getByLabelText('Adjustment reason'), 'Cycle count');
-    await user.click(screen.getByRole('button', { name: 'Confirm Adjustment' }));
+    fireEvent.change(screen.getByRole('spinbutton', { name: '異動數量' }), { target: { value: '5' } });
+    await user.type(screen.getByLabelText('調整原因'), 'Cycle count');
+    await user.click(screen.getByRole('button', { name: '確認調整' }));
     expect(await screen.findByText('操作結果待確認')).toBeTruthy();
-    expect((screen.getByLabelText('Adjustment reason') as HTMLTextAreaElement).value).toBe('Cycle count');
-    expect((screen.getByRole('spinbutton', { name: 'Adjustment quantity' }) as HTMLInputElement).value).toBe('5');
+    expect((screen.getByLabelText('調整原因') as HTMLTextAreaElement).value).toBe('Cycle count');
+    expect((screen.getByRole('spinbutton', { name: '異動數量' }) as HTMLInputElement).value).toBe('5');
     expect(requests.filter(({ url }) => url === '/inventory/1/adjustments')).toHaveLength(1);
   }, 30_000);
 });

@@ -47,7 +47,7 @@ describe('RelatedEntitySelect', () => {
     });
     renderSelect('ADMIN', 99);
     expect(await screen.findByText('MAT-099 — Selected milk')).toBeTruthy();
-    const combobox = screen.getByRole('combobox', { name: 'Select material' });
+    const combobox = screen.getByRole('combobox', { name: '選取物料' });
     await userEvent.click(combobox);
     expect(await screen.findByText('MAT-001 — First material')).toBeTruthy();
     const scrollHolder = document.querySelector('.ant-select-dropdown-list-holder');
@@ -70,7 +70,7 @@ describe('RelatedEntitySelect', () => {
       return Promise.resolve(response(config, page([firstMaterial])));
     });
     renderSelect('ADMIN');
-    const combobox = screen.getByRole('combobox', { name: 'Select material' });
+    const combobox = screen.getByRole('combobox', { name: '選取物料' });
     await userEvent.click(combobox);
     await screen.findByText('MAT-001 — First material');
 
@@ -92,7 +92,7 @@ describe('RelatedEntitySelect', () => {
     });
     renderSelect('ADMIN', 99, onError);
     expect(await screen.findByText('MAT-099 — Selected milk')).toBeTruthy();
-    const combobox = screen.getByRole('combobox', { name: 'Select material' });
+    const combobox = screen.getByRole('combobox', { name: '選取物料' });
     fireEvent.change(combobox, { target: { value: 'FAIL' } });
     await waitFor(() => expect(onError).toHaveBeenCalledOnce());
     expect(screen.getAllByText('MAT-099 — Selected milk').length).toBeGreaterThan(0);
@@ -104,6 +104,6 @@ describe('RelatedEntitySelect', () => {
     render(<AuthContext.Provider value={auth('PRODUCTION_PLANNER')}><RelatedEntitySelect entity="supplier" /></AuthContext.Provider>);
     await new Promise((resolve) => window.setTimeout(resolve, 10));
     expect(requests).toHaveLength(0);
-    expect((screen.getByRole('combobox', { name: 'Select supplier' }) as HTMLInputElement).disabled).toBe(true);
+    expect((screen.getByRole('combobox', { name: '選取供應商' }) as HTMLInputElement).disabled).toBe(true);
   });
 });

@@ -69,7 +69,7 @@ describe('SP-804 role-aware routes', () => {
       throw new Error(`Unexpected request ${config.url}`);
     });
     await open('/recommendations');
-    expect(await screen.findByText('Recommendation Workstation')).toBeTruthy();
+    expect(await screen.findByText('採購建議工作區')).toBeTruthy();
   });
 
   it.each(['PRODUCTION_PLANNER', 'WAREHOUSE_STAFF'] as const)('blocks %s from create but allows known-ID detail without a create API call', async (role) => {
@@ -85,7 +85,7 @@ describe('SP-804 role-aware routes', () => {
     expect(await screen.findByText('403')).toBeTruthy();
     expect(requests).toEqual(['/auth/me']);
     await router.navigate('/recommendations/91');
-    expect(await screen.findByText('Recommendation #91')).toBeTruthy();
+    expect(await screen.findByText('採購建議 #91')).toBeTruthy();
     expect(requests).not.toContain('/recommendations');
   });
 });
@@ -103,12 +103,12 @@ describe('SP-804 Recommendation rendering', () => {
       throw new Error(`Unexpected request ${config.url}`);
     });
     await open('/recommendations/91');
-    expect(await screen.findByText(label)).toBeTruthy();
+    expect((await screen.findAllByText(label)).length).toBeGreaterThan(0);
     expect(screen.getByText(netRequirement)).toBeTruthy();
     expect(screen.getByText('MAT-007')).toBeTruthy();
     expect(screen.getByText('Copper snapshot')).toBeTruthy();
-    expect(screen.queryByRole('button', { name: 'Create PO Draft' })).toBeNull();
-    if (outcome !== 'SUPPLIER_RECOMMENDED') expect(screen.getAllByText('N/A').length).toBeGreaterThan(0);
+    expect(screen.queryByRole('button', { name: '檢視採購單草稿' })).toBeNull();
+    if (outcome !== 'SUPPLIER_RECOMMENDED') expect(screen.getAllByText('—').length).toBeGreaterThan(0);
   });
 
   it('preserves backend ranking order, renders disqualification enum and score breakdown without a draft POST', async () => {
@@ -121,17 +121,17 @@ describe('SP-804 Recommendation rendering', () => {
       throw new Error(`Unexpected request ${config.url}`);
     });
     await open('/recommendations/91');
-    const table = await screen.findByRole('table', { name: 'Supplier ranking' });
+    const table = await screen.findByRole('table', { name: '供應商排名' });
     const rows = within(table).getAllByRole('row');
     expect(rows[1].textContent).toContain('SUP-012');
     expect(rows[2].textContent).toContain('SUP-013');
-    expect(screen.getByText('DELIVERY_DATE_NOT_FEASIBLE')).toBeTruthy();
     expect(screen.getByText('交期無法滿足需求日期')).toBeTruthy();
-    const expandButtons = within(table).getAllByRole('button', { name: 'Expand row' });
+    expect(screen.getByText('交期無法滿足需求日期')).toBeTruthy();
+    const expandButtons = within(table).getAllByRole('button', { name: /展開|Expand row/ });
     await userEvent.setup().click(expandButtons[0]);
-    expect(await screen.findByText('Price Score')).toBeTruthy();
+    expect(await screen.findByText('價格評分')).toBeTruthy();
     expect(screen.getAllByText('88.5000').length).toBeGreaterThan(0);
-    expect(screen.getByRole('button', { name: 'Review PO Draft' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: '檢視採購單草稿' })).toBeTruthy();
     expect(requests.filter(({ url }) => url === '/purchase-orders')).toHaveLength(0);
   }, 30_000);
 
@@ -148,9 +148,9 @@ describe('SP-804 Recommendation rendering', () => {
       throw new Error(`Unexpected request ${config.url}`);
     });
     await open('/recommendations/91');
-    expect(await screen.findByText('Recommendation #91')).toBeTruthy();
-    expect(await screen.findByText('Supplier ranking query failed')).toBeTruthy();
-    await userEvent.setup().click(screen.getByRole('button', { name: 'Retry supplier ranking' }));
+    expect(await screen.findByText('採購建議 #91')).toBeTruthy();
+    expect(await screen.findByText('供應商排名查詢失敗')).toBeTruthy();
+    await userEvent.setup().click(screen.getByRole('button', { name: '重新查詢供應商排名' }));
     expect(await screen.findByText('SUP-012')).toBeTruthy();
     expect(rankingCalls).toBe(2);
   }, 30_000);
@@ -159,14 +159,14 @@ describe('SP-804 Recommendation rendering', () => {
     axiosClient.defaults.adapter = vi.fn(async (config) => {
       if (config.url === '/auth/me') return response(config, identities.WAREHOUSE_STAFF);
       if (config.url === '/recommendations/404' || config.url === '/recommendations/404/suppliers') {
-        throw new AxiosError('Not found', 'ERR_BAD_REQUEST', config, undefined, response(config, { code: 'RECOMMENDATION_NOT_FOUND', message: 'Recommendation not found', traceId: 'not-found-trace', timestamp: '', path: config.url }, 404));
+        throw new AxiosError('Not found', 'ERR_BAD_REQUEST', config, undefined, response(config, { code: 'RECOMMENDATION_NOT_FOUND', message: '找不到採購建議', traceId: 'not-found-trace', timestamp: '', path: config.url }, 404));
       }
       throw new Error(`Unexpected request ${config.url}`);
     });
     await open('/recommendations/404');
-    expect((await screen.findAllByText('Recommendation not found')).length).toBeGreaterThan(0);
+    expect((await screen.findAllByText('找不到採購建議')).length).toBeGreaterThan(0);
     expect(screen.getByText('RECOMMENDATION_NOT_FOUND')).toBeTruthy();
-    expect(screen.queryByText('Recommendation #404')).toBeNull();
+    expect(screen.queryByText('採購建議 #404')).toBeNull();
   });
 });
 
@@ -181,14 +181,14 @@ describe('SP-804 Recommendation create', () => {
     });
     await open('/recommendations');
     const user = userEvent.setup();
-    await user.click(await screen.findByRole('button', { name: 'Calculate Recommendation' }));
-    expect(await screen.findByText('Material is required')).toBeTruthy();
-    expect(screen.getByText('Period start is required')).toBeTruthy();
-    expect(screen.getByText('Period end is required')).toBeTruthy();
-    fireEvent.change(screen.getByLabelText('Recommendation period start'), { target: { value: '2026-10-31' } });
-    fireEvent.change(screen.getByLabelText('Recommendation period end'), { target: { value: '2026-10-01' } });
-    await user.click(screen.getByRole('button', { name: 'Calculate Recommendation' }));
-    expect(await screen.findByText('Period start must not be later than period end')).toBeTruthy();
+    await user.click(await screen.findByRole('button', { name: '計算採購建議' }));
+    expect(await screen.findByText('請選擇物料')).toBeTruthy();
+    expect(screen.getByText('請選擇期間起日')).toBeTruthy();
+    expect(screen.getByText('請選擇期間迄日')).toBeTruthy();
+    fireEvent.change(screen.getByLabelText('建議期間起日'), { target: { value: '2026-10-31' } });
+    fireEvent.change(screen.getByLabelText('建議期間迄日'), { target: { value: '2026-10-01' } });
+    await user.click(screen.getByRole('button', { name: '計算採購建議' }));
+    expect(await screen.findByText('期間起日不可晚於迄日')).toBeTruthy();
     expect(requests.filter(({ url }) => url === '/recommendations')).toHaveLength(0);
   }, 30_000);
 
@@ -205,16 +205,16 @@ describe('SP-804 Recommendation create', () => {
     });
     await open('/recommendations');
     const user = userEvent.setup();
-    await user.click(await screen.findByLabelText('Select material'));
+    await user.click(await screen.findByLabelText('選取物料'));
     await user.click(await screen.findByText('MAT-007 — Copper'));
-    fireEvent.change(screen.getByLabelText('Recommendation period start'), { target: { value: '2026-10-01' } });
-    fireEvent.change(screen.getByLabelText('Recommendation period end'), { target: { value: '2026-10-31' } });
-    const submit = screen.getByRole('button', { name: 'Calculate Recommendation' });
+    fireEvent.change(screen.getByLabelText('建議期間起日'), { target: { value: '2026-10-01' } });
+    fireEvent.change(screen.getByLabelText('建議期間迄日'), { target: { value: '2026-10-31' } });
+    const submit = screen.getByRole('button', { name: '計算採購建議' });
     await user.click(submit);
     fireEvent.click(submit);
     await waitFor(() => expect(requests.filter(({ method, url }) => method === 'post' && url === '/recommendations')).toHaveLength(1));
     finish();
-    expect(await screen.findByText('Recommendation #91')).toBeTruthy();
+    expect(await screen.findByText('採購建議 #91')).toBeTruthy();
     const post = requests.find(({ method, url }) => method === 'post' && url === '/recommendations')!;
     expect(JSON.parse(post.data as string)).toEqual({ materialId: 7, periodStart: '2026-10-01', periodEnd: '2026-10-31' });
   }, 30_000);
@@ -228,16 +228,16 @@ describe('SP-804 Recommendation create', () => {
     });
     await open('/recommendations');
     const user = userEvent.setup();
-    await user.click(await screen.findByLabelText('Select material'));
+    await user.click(await screen.findByLabelText('選取物料'));
     await user.click(await screen.findByText('MAT-007 — Copper'));
-    fireEvent.change(screen.getByLabelText('Recommendation period start'), { target: { value: '2026-10-01' } });
-    fireEvent.change(screen.getByLabelText('Recommendation period end'), { target: { value: '2026-10-31' } });
-    await user.click(screen.getByRole('button', { name: 'Calculate Recommendation' }));
-    expect(await screen.findByText('Recommendation create failed')).toBeTruthy();
+    fireEvent.change(screen.getByLabelText('建議期間起日'), { target: { value: '2026-10-01' } });
+    fireEvent.change(screen.getByLabelText('建議期間迄日'), { target: { value: '2026-10-31' } });
+    await user.click(screen.getByRole('button', { name: '計算採購建議' }));
+    expect(await screen.findByText('建立採購建議失敗')).toBeTruthy();
     expect(screen.getByText('VALIDATION_FAILED')).toBeTruthy();
-    expect((screen.getByLabelText('Recommendation period start') as HTMLInputElement).value).toBe('2026-10-01');
-    expect((screen.getByLabelText('Recommendation period end') as HTMLInputElement).value).toBe('2026-10-31');
-    expect(screen.queryByText('Recommendation #91')).toBeNull();
+    expect((screen.getByLabelText('建議期間起日') as HTMLInputElement).value).toBe('2026-10-01');
+    expect((screen.getByLabelText('建議期間迄日') as HTMLInputElement).value).toBe('2026-10-31');
+    expect(screen.queryByText('採購建議 #91')).toBeNull();
   }, 30_000);
 });
 
@@ -253,11 +253,11 @@ describe('SP-804 Recommendation to linked PO Draft', () => {
       throw new Error(`Unexpected request ${config.url}`);
     });
     await open('/recommendations/91');
-    await userEvent.setup().click(await screen.findByRole('button', { name: 'Review PO Draft' }, { timeout: 10_000 }));
-    expect(await screen.findByText('Confirm Create PO DRAFT')).toBeTruthy();
+    await userEvent.setup().click(await screen.findByRole('button', { name: '檢視採購單草稿' }, { timeout: 10_000 }));
+    expect(await screen.findByText('確認建立採購單草稿')).toBeTruthy();
     expect(screen.getAllByText('101').length).toBeGreaterThan(0);
-    await userEvent.setup().click(screen.getByRole('button', { name: 'Confirm Create DRAFT' }));
-    expect(await screen.findByText('PO DRAFT #501 已建立')).toBeTruthy();
+    await userEvent.setup().click(screen.getByRole('button', { name: '確認建立草稿' }));
+    expect(await screen.findByText('採購單草稿 #501 已建立')).toBeTruthy();
 
     const createRequests = requests.filter(({ method, url }) => method === 'post' && url === '/purchase-orders');
     expect(createRequests).toHaveLength(1);
@@ -284,9 +284,9 @@ describe('SP-804 Recommendation to linked PO Draft', () => {
       throw new Error(`Unexpected request ${config.url}`);
     });
     await open('/recommendations/91');
-    expect(await screen.findByText('Recommendation #91')).toBeTruthy();
+    expect(await screen.findByText('採購建議 #91')).toBeTruthy();
     await screen.findByText('SUP-012');
-    expect(screen.queryByRole('button', { name: 'Review PO Draft' })).toBeNull();
+    expect(screen.queryByRole('button', { name: '檢視採購單草稿' })).toBeNull();
     expect(requests.filter(({ url }) => url === '/purchase-orders')).toHaveLength(0);
   }, 30_000);
 
@@ -302,21 +302,21 @@ describe('SP-804 Recommendation to linked PO Draft', () => {
     });
     await open('/recommendations/91');
     const user = userEvent.setup();
-    await user.click(await screen.findByLabelText('Qualified supplier result'));
+    await user.click(await screen.findByLabelText('合格供應商結果'));
     await user.click(await screen.findByText('SUP-014 — Alternate Supplier (Result #103)'));
-    expect(await screen.findByLabelText('Supplier override reason')).toBeTruthy();
-    expect(screen.getByLabelText('Quantity override reason')).toBeTruthy();
-    await user.click(screen.getByRole('button', { name: 'Review PO Draft' }));
-    expect(await screen.findByText('Supplier override reason is required')).toBeTruthy();
-    expect(screen.getByText('Quantity override reason is required')).toBeTruthy();
+    expect(await screen.findByLabelText('供應商覆寫原因')).toBeTruthy();
+    expect(screen.getByLabelText('數量覆寫原因')).toBeTruthy();
+    await user.click(screen.getByRole('button', { name: '檢視採購單草稿' }));
+    expect(await screen.findByText('請填寫供應商覆寫原因')).toBeTruthy();
+    expect(screen.getByText('請填寫數量覆寫原因')).toBeTruthy();
     expect(requests.filter(({ url }) => url === '/purchase-orders')).toHaveLength(0);
 
-    await user.type(screen.getByLabelText('Supplier override reason'), 'Capacity confirmed');
-    await user.type(screen.getByLabelText('Quantity override reason'), 'Supplier package quantity');
-    fireEvent.change(screen.getByLabelText('Expected delivery date'), { target: { value: '2026-10-31' } });
-    await user.click(screen.getByRole('button', { name: 'Review PO Draft' }));
-    await user.click(await screen.findByRole('button', { name: 'Confirm Create DRAFT' }, { timeout: 10_000 }));
-    expect(await screen.findByText('PO DRAFT #502 已建立')).toBeTruthy();
+    await user.type(screen.getByLabelText('供應商覆寫原因'), 'Capacity confirmed');
+    await user.type(screen.getByLabelText('數量覆寫原因'), 'Supplier package quantity');
+    fireEvent.change(screen.getByLabelText('預計交期'), { target: { value: '2026-10-31' } });
+    await user.click(screen.getByRole('button', { name: '檢視採購單草稿' }));
+    await user.click(await screen.findByRole('button', { name: '確認建立草稿' }, { timeout: 10_000 }));
+    expect(await screen.findByText('採購單草稿 #502 已建立')).toBeTruthy();
     const request = requests.find(({ url }) => url === '/purchase-orders')!;
     expect(JSON.parse(request.data as string)).toEqual({
       supplierId: 14,
@@ -344,7 +344,7 @@ describe('SP-804 Recommendation to linked PO Draft', () => {
     });
     await open('/recommendations/91');
     expect(await screen.findByText('無法建立 Linked PO Draft')).toBeTruthy();
-    expect(screen.queryByRole('button', { name: 'Review PO Draft' })).toBeNull();
+    expect(screen.queryByRole('button', { name: '檢視採購單草稿' })).toBeNull();
     expect(requests.filter(({ url }) => url === '/purchase-orders')).toHaveLength(0);
   }, 30_000);
 
@@ -360,13 +360,13 @@ describe('SP-804 Recommendation to linked PO Draft', () => {
       return Promise.reject(new Error(`Unexpected request ${config.url}`));
     });
     await open('/recommendations/91');
-    await userEvent.setup().click(await screen.findByRole('button', { name: 'Review PO Draft' }, { timeout: 10_000 }));
-    const confirm = await screen.findByRole('button', { name: 'Confirm Create DRAFT' }, { timeout: 10_000 });
+    await userEvent.setup().click(await screen.findByRole('button', { name: '檢視採購單草稿' }, { timeout: 10_000 }));
+    const confirm = await screen.findByRole('button', { name: '確認建立草稿' }, { timeout: 10_000 });
     fireEvent.click(confirm);
     fireEvent.click(confirm);
     await waitFor(() => expect(requests.filter(({ url }) => url === '/purchase-orders')).toHaveLength(1));
     finish();
-    expect(await screen.findByText('PO DRAFT #503 已建立')).toBeTruthy();
+    expect(await screen.findByText('採購單草稿 #503 已建立')).toBeTruthy();
   }, 30_000);
 
   it.each([
@@ -383,18 +383,18 @@ describe('SP-804 Recommendation to linked PO Draft', () => {
       throw new Error(`Unexpected request ${config.url}`);
     });
     await open('/recommendations/91');
-    const review = await screen.findByRole('button', { name: 'Review PO Draft' }, { timeout: 10_000 });
+    const review = await screen.findByRole('button', { name: '檢視採購單草稿' }, { timeout: 10_000 });
     await userEvent.setup().click(review);
-    await userEvent.setup().click(await screen.findByRole('button', { name: 'Confirm Create DRAFT' }, { timeout: 10_000 }));
+    await userEvent.setup().click(await screen.findByRole('button', { name: '確認建立草稿' }, { timeout: 10_000 }));
     expect(await screen.findByText('建立結果不明，請先人工查核')).toBeTruthy();
-    expect(screen.getByText(/Backend 可能已完成建立/)).toBeTruthy();
+    expect(screen.getByText(/後端可能已完成建立/)).toBeTruthy();
     expect((review as HTMLButtonElement).disabled).toBe(true);
 
     fireEvent.click(review);
-    expect(screen.queryByRole('dialog', { name: 'Confirm Create PO DRAFT' })).toBeNull();
+    expect(screen.queryByRole('dialog', { name: '確認建立採購單草稿' })).toBeNull();
     await new Promise((resolve) => window.setTimeout(resolve, 20));
     expect(requests.filter(({ url }) => url === '/purchase-orders')).toHaveLength(1);
-    expect(screen.queryByText(/PO DRAFT #\d+ 已建立/)).toBeNull();
+    expect(screen.queryByText(/採購單草稿 #\d+ 已建立/)).toBeNull();
   }, 30_000);
 
   it('shows the backend error for 409 without treating the result as unknown', async () => {
@@ -411,10 +411,10 @@ describe('SP-804 Recommendation to linked PO Draft', () => {
       throw new Error(`Unexpected request ${config.url}`);
     });
     await open('/recommendations/91');
-    const review = await screen.findByRole('button', { name: 'Review PO Draft' }, { timeout: 10_000 });
+    const review = await screen.findByRole('button', { name: '檢視採購單草稿' }, { timeout: 10_000 });
     await userEvent.setup().click(review);
-    await userEvent.setup().click(await screen.findByRole('button', { name: 'Confirm Create DRAFT' }, { timeout: 10_000 }));
-    expect(await screen.findByText('PO Draft 建立失敗')).toBeTruthy();
+    await userEvent.setup().click(await screen.findByRole('button', { name: '確認建立草稿' }, { timeout: 10_000 }));
+    expect(await screen.findByText('採購單草稿建立失敗')).toBeTruthy();
     expect(screen.getByText('Conflict')).toBeTruthy();
     expect((review as HTMLButtonElement).disabled).toBe(false);
     expect(requests.filter(({ url }) => url === '/purchase-orders')).toHaveLength(1);

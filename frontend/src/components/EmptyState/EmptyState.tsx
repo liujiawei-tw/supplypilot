@@ -10,7 +10,7 @@ export interface EmptyStateProps {
 }
 
 export const EmptyState: React.FC<EmptyStateProps> = ({
-  description = 'No data available',
+  description = '目前沒有資料',
   actionText,
   onAction,
   extra,

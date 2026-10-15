@@ -7,6 +7,7 @@ import { useAuth } from '../../auth/useAuth';
 import { can } from '../../auth/permissions';
 import ErrorState from '../ErrorState';
 import type { ApiErrorResponse } from '../../types/api';
+import { displayLabel } from '../../utils/displayLabels';
 
 interface DraftValues {
   supplierResultId: number;
@@ -147,18 +148,18 @@ export default function RecommendationDraftForm({
   };
 
   return <>
-    <Card title="Create Linked PO Draft" extra={<Typography.Text type="secondary">SP-804 scope: create DRAFT only</Typography.Text>}>
-      {created && <Alert type="success" showIcon title={`PO DRAFT #${created.id} 已建立`}
-        description={<span>Backend 狀態：{created.status}；PO Number：{created.poNumber}。PO Detail 與後續 Approve／Order／Receive 屬於 SP-805。</span>} />}
-      {error && <ErrorState title={resultUnknown ? '建立結果不明，請先人工查核' : 'PO Draft 建立失敗'}
-        message={resultUnknown ? '連線逾時或中斷，Backend 可能已完成建立。本頁已鎖定重新送出；請先人工查核 PO 資料，確認結果後再重新載入頁面。' : undefined}
+    <Card title="建立關聯採購單草稿" extra={<Typography.Text type="secondary">僅建立草稿，不會核准或下單</Typography.Text>}>
+      {created && <Alert type="success" showIcon title={`採購單草稿 #${created.id} 已建立`}
+        description={<span>後端狀態：{displayLabel(created.status)}；採購單編號：{created.poNumber}。採購單明細與後續核准／下單／收貨流程屬於 SP-805。</span>} />}
+      {error && <ErrorState title={resultUnknown ? '建立結果不明，請先人工查核' : '採購單草稿建立失敗'}
+        message={resultUnknown ? '連線逾時或中斷，後端可能已完成建立。本頁已鎖定重新送出；請先人工查核採購單資料，確認結果後再重新載入頁面。' : undefined}
         error={error} />}
       {!created && <Form form={form} layout="vertical" initialValues={{
         supplierResultId: defaultCandidate.id,
         quantity: decimalText(defaultCandidate.recommendedQuantity!),
       }}>
-        <Form.Item name="supplierResultId" label="Qualified Supplier Result" rules={[{ required: true, message: 'Supplier Result is required' }]}>
-          <Select aria-label="Qualified supplier result" onChange={(id: number) => {
+        <Form.Item name="supplierResultId" label="合格供應商結果" rules={[{ required: true, message: '請選擇供應商結果' }]}>
+          <Select aria-label="合格供應商結果" onChange={(id: number) => {
             const candidate = candidates.find((row) => row.id === id);
             if (candidate?.recommendedQuantity !== null && candidate?.recommendedQuantity !== undefined) {
               form.setFieldValue('quantity', decimalText(candidate.recommendedQuantity));
@@ -169,45 +170,45 @@ export default function RecommendationDraftForm({
           }))} />
         </Form.Item>
         <Descriptions bordered size="small" column={{ xs: 1, sm: 2 }} items={selected ? [
-          { key: 'recommendation', label: 'Recommendation ID', children: recommendation.id },
-          { key: 'result', label: 'Backend Result Reference', children: selected.id },
-          { key: 'supplier', label: 'Supplier', children: `${selected.supplierName} (#${selected.supplierId})` },
-          { key: 'material', label: 'Material', children: `${recommendation.material.code} — ${recommendation.material.name} (#${recommendation.material.id})` },
-          { key: 'price', label: 'Unit Price Snapshot', children: `${decimalText(selected.unitPrice!)} TWD` },
-          { key: 'recommendedQuantity', label: 'Supplier Recommended Quantity', children: `${decimalText(selected.recommendedQuantity!)} ${recommendation.material.unit}` },
+          { key: 'recommendation', label: '採購建議編號', children: recommendation.id },
+          { key: 'result', label: '後端結果參照編號', children: selected.id },
+          { key: 'supplier', label: '供應商', children: `${selected.supplierName} (#${selected.supplierId})` },
+          { key: 'material', label: '物料', children: `${recommendation.material.code} — ${recommendation.material.name} (#${recommendation.material.id})` },
+          { key: 'price', label: '單價快照', children: `${decimalText(selected.unitPrice!)} TWD` },
+          { key: 'recommendedQuantity', label: '供應商建議數量', children: `${decimalText(selected.recommendedQuantity!)} ${recommendation.material.unit}` },
         ] : []} />
-        <Form.Item name="quantity" label={`Purchase Quantity (${recommendation.material.unit})`} rules={[
-          { required: true, message: 'Quantity is required' },
-          { validator: (_, value: string | undefined) => isPositiveDecimal(value) ? Promise.resolve() : Promise.reject(new Error('Enter a positive decimal quantity')) },
+        <Form.Item name="quantity" label={`採購數量（${recommendation.material.unit}）`} rules={[
+          { required: true, message: '請輸入採購數量' },
+          { validator: (_, value: string | undefined) => isPositiveDecimal(value) ? Promise.resolve() : Promise.reject(new Error('請輸入大於 0 的數量')) },
         ]} style={{ marginTop: 16 }}>
-          <Input aria-label="Purchase quantity" inputMode="decimal" />
+          <Input aria-label="採購數量" inputMode="decimal" />
         </Form.Item>
-        {supplierOverride && <Form.Item name="supplierOverrideReason" label="Supplier Override Reason" rules={[
-          { required: true, whitespace: true, message: 'Supplier override reason is required' },
-          { max: 2000, message: 'Supplier override reason must not exceed 2000 characters' },
-        ]}><Input.TextArea aria-label="Supplier override reason" rows={2} /></Form.Item>}
-        {quantityOverride && <Form.Item name="quantityOverrideReason" label="Quantity Override Reason" rules={[
-          { required: true, whitespace: true, message: 'Quantity override reason is required' },
-          { max: 2000, message: 'Quantity override reason must not exceed 2000 characters' },
-        ]}><Input.TextArea aria-label="Quantity override reason" rows={2} /></Form.Item>}
-        <Form.Item name="expectedDeliveryDate" label="Expected Delivery Date (optional for DRAFT)">
-          <Input aria-label="Expected delivery date" type="date" />
+        {supplierOverride && <Form.Item name="supplierOverrideReason" label="供應商覆寫原因" rules={[
+          { required: true, whitespace: true, message: '請填寫供應商覆寫原因' },
+          { max: 2000, message: '供應商覆寫原因不可超過 2,000 個字元' },
+        ]}><Input.TextArea aria-label="供應商覆寫原因" rows={2} /></Form.Item>}
+        {quantityOverride && <Form.Item name="quantityOverrideReason" label="數量覆寫原因" rules={[
+          { required: true, whitespace: true, message: '請填寫數量覆寫原因' },
+          { max: 2000, message: '數量覆寫原因不可超過 2,000 個字元' },
+        ]}><Input.TextArea aria-label="數量覆寫原因" rows={2} /></Form.Item>}
+        <Form.Item name="expectedDeliveryDate" label="預計交期（建立草稿時可留空）">
+          <Input aria-label="預計交期" type="date" />
         </Form.Item>
-        <Button type="primary" disabled={resultUnknown} onClick={() => void openConfirmation()}>Review PO Draft</Button>
+        <Button type="primary" disabled={resultUnknown} onClick={() => void openConfirmation()}>檢視採購單草稿</Button>
       </Form>}
     </Card>
-    <Modal title="Confirm Create PO DRAFT" open={pending !== null} confirmLoading={submitting}
-      okText="Confirm Create DRAFT" cancelText="Back to edit" onOk={() => void confirmCreate()}
+    <Modal title="確認建立採購單草稿" open={pending !== null} confirmLoading={submitting}
+      okText="確認建立草稿" cancelText="返回編輯" onOk={() => void confirmCreate()}
       onCancel={() => { if (!submittingRef.current) setPending(null); }} closable={!submitting} mask={{ closable: !submitting }}>
       {pending && <Space orientation="vertical" style={{ width: '100%' }}>
-        <Alert type="warning" showIcon title="確認後才會建立一筆新的 DRAFT；不會自動 Approve、Order 或 Receive。" />
+        <Alert type="warning" showIcon title="確認後才會建立一筆新草稿；不會自動核准、下單或收貨。" />
         <Descriptions bordered size="small" column={1} items={[
-          { key: 'recommendation', label: 'Recommendation ID', children: recommendation.id },
-          { key: 'result', label: 'Result Reference', children: pending.supplier.id },
-          { key: 'supplier', label: 'Supplier', children: `${pending.supplier.supplierName} (#${pending.supplier.supplierId})` },
-          { key: 'material', label: 'Material', children: `${recommendation.material.code} — ${recommendation.material.name}` },
-          { key: 'quantity', label: 'Quantity', children: `${pending.quantity} ${recommendation.material.unit}` },
-          { key: 'price', label: 'Unit Price', children: `${pending.unitPrice} TWD` },
+          { key: 'recommendation', label: '採購建議編號', children: recommendation.id },
+          { key: 'result', label: '結果參照編號', children: pending.supplier.id },
+          { key: 'supplier', label: '供應商', children: `${pending.supplier.supplierName} (#${pending.supplier.supplierId})` },
+          { key: 'material', label: '物料', children: `${recommendation.material.code} — ${recommendation.material.name}` },
+          { key: 'quantity', label: '數量', children: `${pending.quantity} ${recommendation.material.unit}` },
+          { key: 'price', label: '單價', children: `${pending.unitPrice} TWD` },
           { key: 'delivery', label: 'Expected Delivery Date', children: pending.request.expectedDeliveryDate ?? 'Not set (allowed for DRAFT)' },
           { key: 'supplierReason', label: 'Supplier Override Reason', children: pending.supplierOverrideReason ?? 'N/A' },
           { key: 'quantityReason', label: 'Quantity Override Reason', children: pending.quantityOverrideReason ?? 'N/A' },

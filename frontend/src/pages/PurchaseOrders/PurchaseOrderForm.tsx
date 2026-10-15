@@ -54,7 +54,7 @@ export default function PurchaseOrderForm({ purchaseOrder, onReview, disabled }:
     try { values = await form.validateFields(); } catch { return; }
     const rows = values.items ?? [];
     if (new Set(rows.map((row) => row.materialId)).size !== rows.length) {
-      form.setFields([{ name: 'items', errors: ['Material 不可重複'] }]); return;
+      form.setFields([{ name: 'items', errors: ['物料不可重複'] }]); return;
     }
     const items = rows.map((row) => ({
       materialId: row.materialId!, quantity: row.quantity!.trim(), unitPrice: row.unitPrice!.trim(),
@@ -74,34 +74,34 @@ export default function PurchaseOrderForm({ purchaseOrder, onReview, disabled }:
     onReview(request);
   };
 
-  if (loadError) return <ErrorState title="Master data 載入失敗" error={loadError} onRetry={() => void loadOptions()} />;
+  if (loadError) return <ErrorState title="主檔資料載入失敗" error={loadError} onRetry={() => void loadOptions()} />;
   return <Form form={form} layout="vertical" initialValues={initialValues} disabled={disabled || loading}>
-    <Form.Item name="supplierId" label="Supplier" rules={[{ required: true, message: 'Supplier is required' }]}>
-      <Select showSearch optionFilterProp="label" aria-label="PO supplier" disabled={hasRecommendationEvidence} options={suppliers.map((supplier) => ({ value: supplier.id, label: `${supplier.code} — ${supplier.name}` }))} />
+    <Form.Item name="supplierId" label="供應商" rules={[{ required: true, message: '請選擇供應商' }]}>
+      <Select showSearch optionFilterProp="label" aria-label="採購單供應商" disabled={hasRecommendationEvidence} options={suppliers.map((supplier) => ({ value: supplier.id, label: `${supplier.code} — ${supplier.name}` }))} />
     </Form.Item>
     <Space align="start" style={{ width: '100%' }}>
-      <Form.Item name="expectedDeliveryDate" label="Expected Delivery Date (DRAFT 可空)"><Input type="date" aria-label="PO expected delivery date" /></Form.Item>
-      {editing && <Form.Item name="clearExpectedDeliveryDate" valuePropName="checked" label=" "><Checkbox aria-label="Clear expected delivery date">清除交期</Checkbox></Form.Item>}
+      <Form.Item name="expectedDeliveryDate" label="預計交期（草稿可留空）"><Input type="date" aria-label="採購單預計交期" /></Form.Item>
+      {editing && <Form.Item name="clearExpectedDeliveryDate" valuePropName="checked" label=" "><Checkbox aria-label="清除預計交期">清除交期</Checkbox></Form.Item>}
     </Space>
     <Form.List name="items" rules={[{ validator: async (_, rows) => { if (!rows?.length) throw new Error('至少需要一筆 Item'); } }]}>
       {(fields, { add, remove }, { errors }) => <Space orientation="vertical" style={{ width: '100%' }}>
         {fields.map((field, index) => <Space key={field.key} align="start" wrap>
-          <Form.Item {...field} name={[field.name, 'materialId']} label={`Item ${index + 1} Material`} rules={[{ required: true, message: 'Material is required' }]}>
-            <Select style={{ width: 240 }} showSearch optionFilterProp="label" aria-label={`PO item ${index + 1} material`} options={materials.map((material) => ({ value: material.id, label: `${material.code} — ${material.name} (${material.baseUnit})` }))} />
+          <Form.Item {...field} name={[field.name, 'materialId']} label={`品項 ${index + 1} 物料`} rules={[{ required: true, message: '請選擇物料' }]}>
+            <Select style={{ width: 240 }} showSearch optionFilterProp="label" aria-label={`採購單品項 ${index + 1} 物料`} options={materials.map((material) => ({ value: material.id, label: `${material.code} — ${material.name} (${material.baseUnit})` }))} />
           </Form.Item>
-          <Form.Item {...field} name={[field.name, 'quantity']} label="Quantity" rules={[{ validator: async (_, value) => { if (!isPositiveDecimal(value)) throw new Error('Enter a positive decimal'); } }]}><Input inputMode="decimal" aria-label={`PO item ${index + 1} quantity`} /></Form.Item>
-          <Form.Item {...field} name={[field.name, 'unitPrice']} label="Unit Price" rules={[{ validator: async (_, value) => { if (!isNonNegativeDecimal(value)) throw new Error('Enter a non-negative decimal'); } }]}><Input inputMode="decimal" aria-label={`PO item ${index + 1} unit price`} /></Form.Item>
-          {fields.length > 1 && <Button aria-label={`Remove PO item ${index + 1}`} icon={<MinusCircleOutlined />} onClick={() => remove(field.name)} />}
+          <Form.Item {...field} name={[field.name, 'quantity']} label="數量" rules={[{ validator: async (_, value) => { if (!isPositiveDecimal(value)) throw new Error('請輸入大於 0 的數字'); } }]}><Input inputMode="decimal" aria-label={`採購單品項 ${index + 1} 數量`} /></Form.Item>
+          <Form.Item {...field} name={[field.name, 'unitPrice']} label="單價" rules={[{ validator: async (_, value) => { if (!isNonNegativeDecimal(value)) throw new Error('請輸入大於或等於 0 的數字'); } }]}><Input inputMode="decimal" aria-label={`採購單品項 ${index + 1} 單價`} /></Form.Item>
+          {fields.length > 1 && <Button aria-label={`移除採購單品項 ${index + 1}`} icon={<MinusCircleOutlined />} onClick={() => remove(field.name)} />}
           <Form.Item {...field} name={[field.name, 'recommendationId']} hidden><Input /></Form.Item>
           <Form.Item {...field} name={[field.name, 'supplierRecommendationResultId']} hidden><Input /></Form.Item>
           <Form.Item {...field} name={[field.name, 'supplierOverrideReason']} hidden><Input /></Form.Item>
           <Form.Item {...field} name={[field.name, 'quantityOverrideReason']} hidden><Input /></Form.Item>
         </Space>)}
         <Form.ErrorList errors={errors} />
-        <Button icon={<PlusOutlined />} onClick={() => add()}>Add Item</Button>
+        <Button icon={<PlusOutlined />} onClick={() => add()}>新增品項</Button>
       </Space>}
     </Form.List>
-    {editing && <Alert style={{ marginTop: 16 }} type="info" showIcon title={hasRecommendationEvidence ? '此 DRAFT 含 Recommendation 證據，因此 Supplier 已鎖定；儲存完整 Items 時會原樣保留所有 Reference 與 Override Reason。' : '儲存時會送出完整 Items 清單。'} />}
-    <Button style={{ marginTop: 16 }} type="primary" onClick={() => void review()}>Review {editing ? 'Draft Changes' : 'New Draft'}</Button>
+    {editing && <Alert style={{ marginTop: 16 }} type="info" showIcon title={hasRecommendationEvidence ? '此草稿含採購建議依據，因此供應商已鎖定；儲存完整品項清單時會原樣保留所有參照與覆寫原因。' : '儲存時會送出完整品項清單。'} />}
+    <Button style={{ marginTop: 16 }} type="primary" onClick={() => void review()}>{editing ? '檢視草稿修改' : '檢視新草稿'}</Button>
   </Form>;
 }

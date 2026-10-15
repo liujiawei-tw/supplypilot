@@ -22,7 +22,7 @@ export const AppLayout: React.FC = () => {
   if (!user) return null;
   const groups = [...new Set(routeCatalog.map((entry) => entry.group))];
   const menuItems = [
-    { key: '/dashboard', icon: <DashboardOutlined />, label: 'Dashboard' },
+    { key: '/dashboard', icon: <DashboardOutlined />, label: '儀表板' },
     ...groups.map((group) => ({
       key: group,
       label: group,
@@ -45,7 +45,7 @@ export const AppLayout: React.FC = () => {
             SupplyPilot
           </Title>
           <Text style={{ color: '#8c8c8c', fontSize: '11px', display: 'block', marginTop: '4px' }}>
-            Decision Platform
+            採購決策平台
           </Text>
         </div>
         <Menu
@@ -69,11 +69,11 @@ export const AppLayout: React.FC = () => {
         >
           <div>
             <Text strong style={{ fontSize: '16px' }}>
-              SupplyPilot — AI Procurement & Supply Chain Decision Platform
+              SupplyPilot — AI 採購與供應鏈決策平台
             </Text>
           </div>
           <Space wrap>
-            {can(user.role, 'aiQuery') && <Button icon={<RobotOutlined />} onClick={() => setAiOpen(true)}>AI Assistant</Button>}
+            {can(user.role, 'aiQuery') && <Button icon={<RobotOutlined />} onClick={() => setAiOpen(true)}>AI 助理</Button>}
             <Text>{user.displayName}（{user.username}）</Text>
             <Text type="secondary">{roleLabels[user.role]}</Text>
             <Button icon={<LogoutOutlined />} onClick={() => { logout(); navigate('/login', { replace: true, state: null }); }}>登出</Button>

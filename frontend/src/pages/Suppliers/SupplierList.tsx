@@ -8,6 +8,7 @@ import EmptyState from '../../components/EmptyState';
 import ErrorState from '../../components/ErrorState';
 import LoadingState from '../../components/LoadingState';
 import type { ApiErrorResponse, PageResponse } from '../../types/api';
+import { displayLabel } from '../../utils/displayLabels';
 
 const statuses: SupplierStatus[] = ['ACTIVE', 'INACTIVE'];
 type SupplierFormValues = CreateSupplierRequest & { status?: SupplierStatus };
@@ -59,10 +60,10 @@ export default function SupplierList({ isAdmin }: { isAdmin: boolean }) {
     try {
       if (editing) {
         const request: UpdateSupplierRequest = { name: values.name.trim(), country: values.country?.trim() ?? '', reliabilityScore: values.reliabilityScore, qualityScore: values.qualityScore, status: values.status };
-        await updateSupplier(editing.id, request); apiMessage.success('Supplier 已更新');
+        await updateSupplier(editing.id, request); apiMessage.success('供應商已更新');
       } else {
         const request: CreateSupplierRequest = { code: values.code.trim(), name: values.name.trim(), country: values.country?.trim() || undefined, reliabilityScore: values.reliabilityScore, qualityScore: values.qualityScore };
-        await createSupplier(request); apiMessage.success('Supplier 已建立');
+        await createSupplier(request); apiMessage.success('供應商已建立');
       }
       setModalOpen(false); form.resetFields(); await load();
     } catch (submitError) {
@@ -81,38 +82,38 @@ export default function SupplierList({ isAdmin }: { isAdmin: boolean }) {
   };
   const filtered = !!(query.code || query.name || query.status);
   const columns = [
-    { title: 'Code', dataIndex: 'code', sorter: true }, { title: 'Name', dataIndex: 'name', sorter: true },
-    { title: 'Country', dataIndex: 'country', sorter: true, render: (country: string | null) => country || '—' },
-    { title: 'Reliability', dataIndex: 'reliabilityScore', sorter: true }, { title: 'Quality', dataIndex: 'qualityScore', sorter: true },
-    { title: 'Status', dataIndex: 'status', sorter: true, render: (status: SupplierStatus) => <Tag color={status === 'ACTIVE' ? 'green' : 'default'}>{status}</Tag> },
-    ...(isAdmin ? [{ title: 'Actions', key: 'actions', render: (_: unknown, supplier: SupplierResponse) => <Space>
-      <Button size="small" onClick={() => openEdit(supplier)}>Edit</Button>
-      <Popconfirm title={`確定要將此 Supplier 設為 ${supplier.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE'}？`} onConfirm={() => void changeStatus(supplier)}><Button size="small">{supplier.status === 'ACTIVE' ? 'Deactivate' : 'Activate'}</Button></Popconfirm>
+    { title: '供應商代碼', dataIndex: 'code', sorter: true }, { title: '名稱', dataIndex: 'name', sorter: true },
+    { title: '國家／地區', dataIndex: 'country', sorter: true, render: (country: string | null) => country || '—' },
+    { title: '可靠度', dataIndex: 'reliabilityScore', sorter: true }, { title: '品質評分', dataIndex: 'qualityScore', sorter: true },
+    { title: '狀態', dataIndex: 'status', sorter: true, render: (status: SupplierStatus) => <Tag color={status === 'ACTIVE' ? 'green' : 'default'}>{displayLabel(status)}</Tag> },
+    ...(isAdmin ? [{ title: '操作', key: 'actions', render: (_: unknown, supplier: SupplierResponse) => <Space>
+      <Button size="small" onClick={() => openEdit(supplier)}>編輯</Button>
+      <Popconfirm title={`確定要將此供應商設為${supplier.status === 'ACTIVE' ? '停用' : '啟用'}？`} onConfirm={() => void changeStatus(supplier)}><Button size="small">{supplier.status === 'ACTIVE' ? '停用' : '啟用'}</Button></Popconfirm>
     </Space> }] : []),
   ];
   return <Space orientation="vertical" size="large" style={{ width: '100%' }}>
     {contextHolder}
     <Space style={{ width: '100%', justifyContent: 'space-between' }} wrap>
       <Space wrap>
-        <Input aria-label="Supplier code filter" placeholder="Code" value={query.code} onChange={(event) => setQuery((current) => ({ ...current, code: event.target.value, page: 0 }))} allowClear />
-        <Input aria-label="Supplier name filter" placeholder="Name" value={query.name} onChange={(event) => setQuery((current) => ({ ...current, name: event.target.value, page: 0 }))} allowClear />
-        <Select aria-label="Supplier status filter" placeholder="Status" value={query.status} options={statuses.map((status) => ({ value: status, label: status }))} onChange={(status) => setQuery((current) => ({ ...current, status, page: 0 }))} allowClear style={{ width: 150 }} />
+        <Input aria-label="供應商代碼篩選" placeholder="供應商代碼" value={query.code} onChange={(event) => setQuery((current) => ({ ...current, code: event.target.value, page: 0 }))} allowClear />
+        <Input aria-label="供應商名稱篩選" placeholder="供應商名稱" value={query.name} onChange={(event) => setQuery((current) => ({ ...current, name: event.target.value, page: 0 }))} allowClear />
+        <Select aria-label="供應商狀態篩選" placeholder="狀態" value={query.status} options={statuses.map((status) => ({ value: status, label: displayLabel(status) }))} onChange={(status) => setQuery((current) => ({ ...current, status, page: 0 }))} allowClear style={{ width: 150 }} />
       </Space>
-      {isAdmin && <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>Create Supplier</Button>}
+      {isAdmin && <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>新增供應商</Button>}
     </Space>
-    {listError && <ErrorState title="Supplier request failed" error={listError} onRetry={() => void load()} />}
-    {loading && !data ? <LoadingState tip="Loading suppliers..." /> : <Table<SupplierResponse> rowKey="id" columns={columns} dataSource={data?.content ?? []} loading={loading}
-      locale={{ emptyText: <EmptyState simple description={filtered ? '沒有符合查詢條件的 Supplier' : '尚無 Supplier 資料'} actionText={isAdmin && !filtered ? 'Create Supplier' : undefined} onAction={isAdmin && !filtered ? openCreate : undefined} /> }}
+    {listError && <ErrorState title="供應商查詢失敗" error={listError} onRetry={() => void load()} />}
+    {loading && !data ? <LoadingState tip="正在載入供應商…" /> : <Table<SupplierResponse> rowKey="id" columns={columns} dataSource={data?.content ?? []} loading={loading}
+      locale={{ emptyText: <EmptyState simple description={filtered ? '沒有符合條件的供應商' : '目前沒有供應商資料'} actionText={isAdmin && !filtered ? '新增供應商' : undefined} onAction={isAdmin && !filtered ? openCreate : undefined} /> }}
       pagination={{ current: (data?.page ?? 0) + 1, pageSize: data?.size ?? query.size, total: data?.totalElements ?? 0, showSizeChanger: true }} onChange={handleTableChange} />}
-    <Modal title={editing ? 'Edit Supplier' : 'Create Supplier'} open={modalOpen} onCancel={() => !submitting && setModalOpen(false)} onOk={() => void submit()} confirmLoading={submitting} okButtonProps={{ disabled: submitting }} destroyOnHidden>
-      {submitError && <ErrorState title="Supplier submit failed" error={submitError} />}
+    <Modal title={editing ? '編輯供應商' : '新增供應商'} open={modalOpen} onCancel={() => !submitting && setModalOpen(false)} onOk={() => void submit()} confirmLoading={submitting} okButtonProps={{ disabled: submitting }} destroyOnHidden>
+      {submitError && <ErrorState title="供應商送出失敗" error={submitError} />}
       <Form form={form} layout="vertical" preserve={false}>
-        <Form.Item name="code" label="Code" rules={[{ required: true, whitespace: true }, { max: 50 }]}><Input disabled={!!editing} /></Form.Item>
-        <Form.Item name="name" label="Name" rules={[{ required: true, whitespace: true }, { max: 100 }]}><Input /></Form.Item>
-        <Form.Item name="country" label="Country" rules={[{ max: 100 }]}><Input /></Form.Item>
-        <Form.Item name="reliabilityScore" label="Reliability Score" rules={[{ required: true }, { type: 'number', min: 0, max: 100 }]}><InputNumber min={0} max={100} style={{ width: '100%' }} /></Form.Item>
-        <Form.Item name="qualityScore" label="Quality Score" rules={[{ required: true }, { type: 'number', min: 0, max: 100 }]}><InputNumber min={0} max={100} style={{ width: '100%' }} /></Form.Item>
-        {editing && <Form.Item name="status" label="Status" rules={[{ required: true }]}><Select options={statuses.map((status) => ({ value: status, label: status }))} /></Form.Item>}
+        <Form.Item name="code" label="供應商代碼" rules={[{ required: true, whitespace: true, message: '請輸入供應商代碼' }, { max: 50 }]}><Input disabled={!!editing} /></Form.Item>
+        <Form.Item name="name" label="名稱" rules={[{ required: true, whitespace: true, message: '請輸入供應商名稱' }, { max: 100 }]}><Input /></Form.Item>
+        <Form.Item name="country" label="國家／地區" rules={[{ max: 100 }]}><Input /></Form.Item>
+        <Form.Item name="reliabilityScore" label="可靠度評分" rules={[{ required: true }, { type: 'number', min: 0, max: 100 }]}><InputNumber min={0} max={100} style={{ width: '100%' }} /></Form.Item>
+        <Form.Item name="qualityScore" label="品質評分" rules={[{ required: true }, { type: 'number', min: 0, max: 100 }]}><InputNumber min={0} max={100} style={{ width: '100%' }} /></Form.Item>
+        {editing && <Form.Item name="status" label="狀態" rules={[{ required: true }]}><Select options={statuses.map((status) => ({ value: status, label: displayLabel(status) }))} /></Form.Item>}
       </Form>
     </Modal>
   </Space>;

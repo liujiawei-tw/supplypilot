@@ -20,21 +20,21 @@ function sourceLink(source: AiSourceResponse) {
 }
 
 export default function AiSources({ sources }: { sources: AiSourceResponse[] }) {
-  if (sources.length === 0) return <Text type="secondary">Backend 未提供可核對來源。</Text>;
+  if (sources.length === 0) return <Text type="secondary">後端 未提供可核對來源。</Text>;
   return <Space orientation="vertical" style={{ width: '100%' }}>
     {sources.map((source, index) => {
       const link = sourceLink(source);
       return <Card key={`${source.resourceType}-${source.resourceId}-${index}`} size="small"
         title={<Space wrap><Tag>{source.resourceType}</Tag><Text>{source.title}</Text></Space>}>
         <Descriptions size="small" column={1} items={[
-          { key: 'id', label: 'Resource ID', children: link ? <Link to={link}>{source.resourceId}</Link> : source.resourceId },
-          ...(source.version ? [{ key: 'version', label: 'Document Version', children: source.version }] : []),
-          ...(source.supplierId !== null ? [{ key: 'supplier', label: 'Supplier ID', children: source.supplierId }] : []),
-          ...(source.chunkIndex !== null ? [{ key: 'chunk', label: 'Chunk', children: source.chunkIndex }] : []),
-          ...(source.startOffset !== null || source.endOffset !== null ? [{ key: 'offset', label: 'Offset', children: `${source.startOffset ?? '—'}–${source.endOffset ?? '—'}` }] : []),
-          ...(source.relevanceScore !== null ? [{ key: 'score', label: 'Relevance Score', children: String(source.relevanceScore) }] : []),
+          { key: 'id', label: '來源 ID', children: link ? <Link to={link}>{source.resourceId}</Link> : source.resourceId },
+          ...(source.version ? [{ key: 'version', label: '文件版本', children: source.version }] : []),
+          ...(source.supplierId !== null ? [{ key: 'supplier', label: '供應商 ID', children: source.supplierId }] : []),
+          ...(source.chunkIndex !== null ? [{ key: 'chunk', label: 'Chunk 索引', children: source.chunkIndex }] : []),
+          ...(source.startOffset !== null || source.endOffset !== null ? [{ key: 'offset', label: '原文 Offset', children: `${source.startOffset ?? '—'}–${source.endOffset ?? '—'}` }] : []),
+          ...(source.relevanceScore !== null ? [{ key: 'score', label: '相關度分數', children: String(source.relevanceScore) }] : []),
         ]} />
-        {source.excerpt && <Paragraph style={{ marginTop: 12, whiteSpace: 'pre-wrap' }}><Text strong>Relevant Excerpt</Text><br />{source.excerpt}</Paragraph>}
+        {source.excerpt && <Paragraph style={{ marginTop: 12, whiteSpace: 'pre-wrap' }}><Text strong>引用內容</Text><br />{source.excerpt}</Paragraph>}
       </Card>;
     })}
   </Space>;

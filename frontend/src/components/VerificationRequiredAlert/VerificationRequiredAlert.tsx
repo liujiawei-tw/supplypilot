@@ -13,7 +13,7 @@ export default function VerificationRequiredAlert({
   message,
   state = 'required',
   onVerify,
-  verifyText = '查詢 Backend 真實狀態',
+  verifyText = '查詢真實狀態',
 }: VerificationRequiredAlertProps) {
   const type = state === 'verified' ? 'success' : state === 'failed' ? 'error' : 'warning';
   return <Alert

@@ -1,13 +1,9 @@
-Title: SUP-001 Delivery and Responsibility Agreement
-DocumentType: SUPPLIER_CONTRACT
-Version: 1.0
-Fictional demo document. It does not represent a real company or agreement.
+標題：SUP-001 交付與責任協議
+文件類型：SUPPLIER_CONTRACT
+版本：1.0
+虛構展示文件：本文內容、公司名稱與商業條件均為虛構，不代表真實公司或契約。
 
-Formosa Ingredients (SUP-001) supplies Assam Tea Extract (MAT-001) for the SupplyPilot demo.
-The standard lead time is five calendar days after an order is marked ORDERED. The supplier must
-notify the buyer before the expected delivery date if a delay is likely. Delivery responsibility
-ends only after the warehouse confirms quantity and package integrity. Rejected lots remain the
-supplier's responsibility until replacement or written disposition is agreed.
+Formosa Ingredients（SUP-001）為 SupplyPilot 虛構展示資料中的 MAT-001（阿薩姆紅茶萃取物）供應商。MAT-001 標準交期為採購單狀態轉為 ORDERED 後 5 個曆日。若預期交期可能延誤，供應商須事先通知採購人員。倉庫人員確認數量與包裝完整後，交付責任才算完成。遭拒收的批次仍由供應商負責，直到完成換貨或雙方以書面確認處置方式。
 
-Question: What is SUP-001's standard lead time for MAT-001?
-Expected basis: five calendar days after the order is marked ORDERED.
+問答：SUP-001 的 MAT-001 標準交期是多久？
+預期依據：採購單轉為 ORDERED 後 5 個曆日。

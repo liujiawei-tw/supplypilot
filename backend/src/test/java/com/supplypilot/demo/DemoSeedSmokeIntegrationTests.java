@@ -22,6 +22,8 @@ import com.supplypilot.TestcontainersConfiguration;
 import com.supplypilot.document.domain.DocumentStatus;
 import com.supplypilot.document.domain.DocumentType;
 import com.supplypilot.document.repository.DocumentMetadataRepository;
+import com.supplypilot.document.repository.DocumentChunkRepository;
+import com.supplypilot.document.rag.DocumentTextExtractor;
 import com.supplypilot.material.repository.MaterialRepository;
 import com.supplypilot.inventory.repository.InventoryRepository;
 import com.supplypilot.procurement.domain.PurchaseOrderStatus;
@@ -47,6 +49,7 @@ import org.springframework.transaction.annotation.Transactional;
 @SpringBootTest(properties = {
         "supplypilot.demo.account-password=Demo-Password-For-Tests-901!",
         "supplypilot.demo.allowed-database=supplypilot_demo_test",
+        "supplypilot.demo.dataset-version=sp-905-zh-tw-v1",
         "supplypilot.demo.samples-path=../samples/documents",
         "supplypilot.document-storage.path=${java.io.tmpdir}/supplypilot-demo-seed-test-documents",
         "supplypilot.jwt.secret=dGVzdC1zZWNyZXQtZm9yLWRlbW8tc2VlZC10ZXN0cy1hdC1sZWFzdC0yNTYtYml0cw==",
@@ -65,7 +68,10 @@ class DemoSeedSmokeIntegrationTests {
     @Autowired private SupplierMaterialRepository supplierMaterials;
     @Autowired private PurchaseOrderRepository purchaseOrders;
     @Autowired private DocumentMetadataRepository documents;
+    @Autowired private DocumentChunkRepository documentChunks;
+    @Autowired private DocumentTextExtractor documentTextExtractor;
     @Autowired private DemoDataCoordinator coordinator;
+    @Autowired private DemoProperties demoProperties;
     @Autowired private PasswordEncoder passwordEncoder;
     @Autowired private JdbcTemplate jdbc;
     @Autowired private MockMvc mockMvc;
@@ -81,6 +87,9 @@ class DemoSeedSmokeIntegrationTests {
         assertThat(purchaseOrders.count()).isEqualTo(10);
         assertThat(documents.count()).isEqualTo(5);
         assertThat(documents.findAll()).allMatch(document -> document.getStatus() == DocumentStatus.READY);
+        assertThat(documents.findAll()).extracting(document -> document.getTitle()).containsExactlyInAnyOrder(
+                "SUP-001 交付與責任協議", "SUP-002 虛構報價條件", "SupplyPilot 虛構展示採購作業程序",
+                "MAT-001 阿薩姆紅茶萃取物規格", "虛構展示原料品質要求");
         assertThat(documents.findAll()).extracting(document -> document.getDocumentType()).containsExactlyInAnyOrder(
                 DocumentType.SUPPLIER_CONTRACT, DocumentType.QUOTATION, DocumentType.PROCUREMENT_SOP,
                 DocumentType.PRODUCT_SPECIFICATION, DocumentType.QUALITY_REQUIREMENT);
@@ -90,7 +99,21 @@ class DemoSeedSmokeIntegrationTests {
             assertThat(Path.of(System.getProperty("java.io.tmpdir"), "supplypilot-demo-seed-test-documents",
                     document.getStoragePath())).isRegularFile();
         });
-        assertThat(documents.findAll()).noneMatch(document -> document.getTitle().contains("Seasonal Delivery Addendum"));
+        assertThat(documents.findAll()).noneMatch(document -> document.getTitle().contains("SUP-005 季節性"));
+        assertThat(jdbc.queryForObject("SELECT dataset_version FROM demo_dataset_state WHERE dataset_key = 'SP-901'", String.class))
+                .isEqualTo("sp-905-zh-tw-v1");
+        assertThat(documents.findAll()).allSatisfy(document -> {
+            Path source = Path.of(System.getProperty("java.io.tmpdir"), "supplypilot-demo-seed-test-documents",
+                    document.getStoragePath());
+            String text = documentTextExtractor.extract(document.getStoragePath());
+            assertThat(text).contains("虛構展示文件", "標題：" + document.getTitle());
+            var chunks = documentChunks.findByDocumentIdOrderByChunkIndex(document.getId());
+            assertThat(chunks).isNotEmpty();
+            assertThat(chunks).allSatisfy(chunk -> {
+                assertThat(chunk.getContent()).isEqualTo(text.substring(chunk.getStartOffset(), chunk.getEndOffset()).trim());
+                assertThat(chunk.getEmbedding()).isNotBlank();
+            });
+        });
 
         Map<PurchaseOrderStatus, Long> expected = Map.of(
                 PurchaseOrderStatus.DRAFT, 2L,
@@ -115,6 +138,12 @@ class DemoSeedSmokeIntegrationTests {
         assertThat(users.count()).isEqualTo(5);
         assertThat(purchaseOrders.count()).isEqualTo(10);
         assertThat(documents.count()).isEqualTo(5);
+
+        demoProperties.setDatasetVersion("sp-901-v1");
+        assertThatThrownBy(coordinator::initialize).isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("different version");
+        assertThat(documents.count()).isEqualTo(5);
+        demoProperties.setDatasetVersion("sp-905-zh-tw-v1");
     }
 
     @Test

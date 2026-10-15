@@ -19,6 +19,7 @@ import { validateDocumentFile } from './documentValidation';
 import SemanticOperationsPanel from './SemanticOperationsPanel';
 import { approveOutbound, excludeOutbound, type OutboundReviewResponse } from '../../api/semanticIndex';
 import AiQueryPanel from '../../components/AiAssistant/AiQueryPanel';
+import { displayLabel } from '../../utils/displayLabels';
 
 const { Title, Text } = Typography;
 const REVIEW_UNKNOWN_KEY = 'supplypilot.semanticUnknownReviews';
@@ -38,7 +39,7 @@ interface UploadValues { documentType: DocumentType; supplierId?: number; title:
 
 function formatInstant(value: string): string {
   const parsed = new Date(value);
-  return Number.isNaN(parsed.getTime()) ? value : parsed.toLocaleString();
+  return Number.isNaN(parsed.getTime()) ? value : parsed.toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' });
 }
 
 function isUnknownResult(error: unknown): boolean {
@@ -227,7 +228,7 @@ export default function DocumentsPage() {
       if (!isCurrentDocumentRequest(id, requestSequence)) return;
       setSelected(document); setEditTitle(document.title);
       ingestionUnknownRef.current = null; setIngestionUnknownDocumentId(null);
-      setActionError({ code: 'DOCUMENT_STATUS_VERIFIED', message: `已查核 Backend 真實狀態：${document.status}。此查核不代表先前索引成功；可用操作依目前狀態與 Domain Rule 決定。`, traceId: '', timestamp: '', path: '' });
+      setActionError({ code: 'DOCUMENT_STATUS_VERIFIED', message: `已查核後端真實狀態：${displayLabel(document.status)}。此查核不代表先前索引成功；可用操作依目前狀態與領域規則決定。`, traceId: '', timestamp: '', path: '' });
     } catch (requestError) {
       if (!isCurrentDocumentRequest(id, requestSequence)) return;
       const apiError = toApiError(requestError);
@@ -272,7 +273,7 @@ export default function DocumentsPage() {
       if (requiresVerification) {
         ingestionUnknownRef.current = id;
         setIngestionUnknownDocumentId(id);
-        if (isCurrentDocumentRequest(id, requestSequence)) setActionError({ ...apiError, message: '索引結果尚未確認；系統不會重送。請使用正式文件狀態查核，再依 Backend 真實狀態決定後續操作。' });
+        if (isCurrentDocumentRequest(id, requestSequence)) setActionError({ ...apiError, message: '索引結果尚未確認；系統不會重送。請使用正式文件狀態查核，再依 後端 真實狀態決定後續操作。' });
       } else {
         if (isCurrentDocumentRequest(id, requestSequence)) setActionError(apiError);
       }
@@ -285,37 +286,37 @@ export default function DocumentsPage() {
   };
 
   const columns = [
-    { title: 'Document ID', dataIndex: 'id', key: 'id', render: (id: number) => <Button type="link" onClick={() => void openDetail(id)}>#{id}</Button> },
-    { title: 'Title', dataIndex: 'title', key: 'title' },
-    { title: 'Document Type', dataIndex: 'documentType', key: 'documentType' },
-    { title: 'Supplier ID', dataIndex: 'supplierId', key: 'supplierId', render: (value: number | null) => value ?? '—' },
-    { title: 'Version', dataIndex: 'version', key: 'version' },
-    { title: 'Status', dataIndex: 'status', key: 'status', render: (value: DocumentStatus) => <Tag color={statusColor[value]}>{value}</Tag> },
-    { title: 'Uploaded By', dataIndex: 'uploadedBy', key: 'uploadedBy' },
-    { title: 'Uploaded At', dataIndex: 'uploadedAt', key: 'uploadedAt', render: formatInstant },
-    { title: 'Updated At', dataIndex: 'updatedAt', key: 'updatedAt', render: formatInstant },
+    { title: '文件 ID', dataIndex: 'id', key: 'id', render: (id: number) => <Button type="link" onClick={() => void openDetail(id)}>#{id}</Button> },
+    { title: '標題', dataIndex: 'title', key: 'title' },
+    { title: '文件類型', dataIndex: 'documentType', key: 'documentType', render: (value: DocumentType) => displayLabel(value) },
+    { title: '供應商 ID', dataIndex: 'supplierId', key: 'supplierId', render: (value: number | null) => value ?? '—' },
+    { title: '版本', dataIndex: 'version', key: 'version' },
+    { title: '狀態', dataIndex: 'status', key: 'status', render: (value: DocumentStatus) => <Tag color={statusColor[value]}>{displayLabel(value)}</Tag> },
+    { title: '上傳者', dataIndex: 'uploadedBy', key: 'uploadedBy' },
+    { title: '上傳時間', dataIndex: 'uploadedAt', key: 'uploadedAt', render: formatInstant },
+    { title: '更新時間', dataIndex: 'updatedAt', key: 'updatedAt', render: formatInstant },
   ];
 
   return <>
     <Space orientation="vertical" size="large" style={{ width: '100%' }}>
       <Space style={{ width: '100%', justifyContent: 'space-between' }} wrap>
-        <div><Title level={2} style={{ marginBottom: 0 }}>Document Management</Title><Text type="secondary">Upload 與索引是兩個獨立步驟；狀態以 Backend 為準。</Text></div>
-        {canUpload && <Button type="primary" icon={<UploadOutlined />} disabled={uploadUnknown} onClick={() => { setUploadError(null); setUploadOpen(true); }}>Upload Document</Button>}
+        <div><Title level={2} style={{ marginBottom: 0 }}>文件管理</Title><Text type="secondary">上傳與文件解析／索引是不同步驟；狀態以 後端 為準。</Text></div>
+        {canUpload && <Button type="primary" icon={<UploadOutlined />} disabled={uploadUnknown} onClick={() => { setUploadError(null); setUploadOpen(true); }}>上傳文件</Button>}
       </Space>
       {uploaded && <Alert type="success" showIcon closable onClose={() => setUploaded(null)}
-        title={`Document #${uploaded.id} 上傳成功`}
-        description={`Backend 狀態：${uploaded.status}；Version：${uploaded.version}。文件尚未因上傳成功而自動成為 READY。`} />}
+        title={`文件 #${uploaded.id} 上傳成功`}
+        description={`後端 狀態：${displayLabel(uploaded.status)}；版本：${uploaded.version}。上傳完成不代表文件已就緒。`} />}
       {canManageSemantic && <SemanticOperationsPanel documentMutationVersion={semanticMutationVersion} />}
       {uploadUnknown && <Alert type="warning" showIcon title="文件上傳結果不明，已鎖定重送"
         description="請人工查核 Document List；相同 Title／Version 僅能作輔助資訊，不能單憑它推定上傳成功或失敗。" />}
       <Space wrap>
-        <Select allowClear placeholder="Document Type" aria-label="Document type filter" style={{ width: 220 }} value={query.documentType}
-          options={documentTypes.map((value) => ({ value, label: value }))} onChange={(value) => updateQuery({ documentType: value })} />
-        <InputNumber min={1} placeholder="Supplier ID" aria-label="Supplier ID filter" value={query.supplierId}
+        <Select allowClear placeholder="文件類型" aria-label="文件類型篩選" style={{ width: 220 }} value={query.documentType}
+          options={documentTypes.map((value) => ({ value, label: displayLabel(value) }))} onChange={(value) => updateQuery({ documentType: value })} />
+        <InputNumber min={1} placeholder="供應商 ID" aria-label="供應商 ID 篩選" value={query.supplierId}
           onChange={(value) => updateQuery({ supplierId: value ?? undefined })} />
-        <Select allowClear placeholder="Status" aria-label="Document status filter" style={{ width: 160 }} value={query.status}
-          options={statuses.map((value) => ({ value, label: value }))} onChange={(value) => updateQuery({ status: value })} />
-        <Button onClick={() => void loadList()}>Retry / Refresh</Button>
+        <Select allowClear placeholder="狀態" aria-label="文件狀態篩選" style={{ width: 160 }} value={query.status}
+          options={statuses.map((value) => ({ value, label: displayLabel(value) }))} onChange={(value) => updateQuery({ status: value })} />
+        <Button onClick={() => void loadList()}>重新載入</Button>
       </Space>
       {error ? <ErrorState title="文件列表載入失敗" error={error} onRetry={() => void loadList()} />
         : <Table rowKey="id" loading={loading} columns={columns} dataSource={page?.content ?? []}
@@ -324,79 +325,79 @@ export default function DocumentsPage() {
           onChange={(pagination: TablePaginationConfig) => updateQuery({ page: Math.max(0, (pagination.current ?? 1) - 1), size: pagination.pageSize ?? 20 })} />}
     </Space>
 
-    <Modal title="Upload Document" open={uploadOpen} confirmLoading={uploading} okText="Upload" okButtonProps={{ disabled: uploadUnknown }} onOk={() => void submitUpload()}
+    <Modal title="上傳文件" open={uploadOpen} confirmLoading={uploading} okText="上傳" okButtonProps={{ disabled: uploadUnknown }} onOk={() => void submitUpload()}
       onCancel={() => { if (!uploading) { setUploadOpen(false); setUploadError(null); } }} closable={!uploading} mask={{ closable: !uploading }}>
       {uploadError && <ErrorState title="文件上傳失敗" error={uploadError} />}
       <Form form={form} layout="vertical">
-        <Form.Item name="documentType" label="Document Type" rules={[{ required: true }]}><Select aria-label="Upload document type" options={documentTypes.map((value) => ({ value, label: value }))} /></Form.Item>
-        <Form.Item name="supplierId" label="Supplier ID (optional)"><InputNumber min={1} precision={0} aria-label="Upload supplier ID" style={{ width: '100%' }} /></Form.Item>
-        <Form.Item name="title" label="Title" rules={[{ required: true, whitespace: true }, { max: 255 }]}><Input aria-label="Upload title" /></Form.Item>
-        <Form.Item name="version" label="Version" rules={[{ required: true, whitespace: true }, { max: 50 }]}><Input aria-label="Upload version" /></Form.Item>
-        <Form.Item label="File" required help="PDF、TXT、DOCX；最大 20 MiB。副檔名與瀏覽器回報的內容類型皆須相符。">
-          <input aria-label="Upload file" type="file" accept=".pdf,.txt,.docx,application/pdf,text/plain,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        <Form.Item name="documentType" label="文件類型" rules={[{ required: true, message: '請選擇文件類型' }]}><Select aria-label="上傳文件類型" options={documentTypes.map((value) => ({ value, label: displayLabel(value) }))} /></Form.Item>
+        <Form.Item name="supplierId" label="供應商 ID（選填）"><InputNumber min={1} precision={0} aria-label="上傳文件供應商 ID" style={{ width: '100%' }} /></Form.Item>
+        <Form.Item name="title" label="文件標題" rules={[{ required: true, whitespace: true, message: '請輸入文件標題' }, { max: 255 }]}><Input aria-label="文件標題" /></Form.Item>
+        <Form.Item name="version" label="版本" rules={[{ required: true, whitespace: true, message: '請輸入版本' }, { max: 50 }]}><Input aria-label="文件版本" /></Form.Item>
+        <Form.Item label="檔案" required help="支援 PDF、TXT、DOCX，最大 20 MiB。副檔名與瀏覽器回報的內容類型都必須相符。">
+          <input aria-label="上傳檔案" type="file" accept=".pdf,.txt,.docx,application/pdf,text/plain,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
             onChange={(event) => { setUploadFile(event.target.files?.[0] ?? null); setUploadError(null); }} />
         </Form.Item>
       </Form>
     </Modal>
 
-    <Drawer title="Document Detail" open={requestedDocumentId !== null} onClose={closeDetail} width={520}>
+    <Drawer title="文件明細" open={requestedDocumentId !== null} onClose={closeDetail} width={520}>
       {detailError && requestedDocumentId !== null && <ErrorState title="文件明細載入失敗" error={detailError} onRetry={loadDetailForRetry} />}
-      {(detailLoading || (requestedDocumentId !== null && !selectedMatchesUrl && !detailError)) && <Text>Loading document…</Text>}
+      {(detailLoading || (requestedDocumentId !== null && !selectedMatchesUrl && !detailError)) && <Text>正在載入文件…</Text>}
       {selected && selectedMatchesUrl && <Space orientation="vertical" size="large" style={{ width: '100%' }}>
         <Button loading={detailLoading} disabled={detailLoading} onClick={() => void refreshDetail()}>重新取得文件資訊</Button>
-        {actionError && <ErrorState title={selectedIngestionUnknown ? '索引結果待查核' : reviewUnknownKeys.includes(`${selected.id}:${selected.version}`) ? 'Outbound Review 結果待人工查核' : '文件操作訊息'} error={actionError}
+        {actionError && <ErrorState title={selectedIngestionUnknown ? '索引結果待查核' : reviewUnknownKeys.includes(`${selected.id}:${selected.version}`) ? '出站審核結果待人工查核' : '文件操作訊息'} error={actionError}
           onRetry={selectedIngestionUnknown ? () => void verifyIngestionStatus() : reviewUnknownKeys.includes(`${selected.id}:${selected.version}`) ? undefined : () => void refreshDetail()}
           retryText={selectedIngestionUnknown ? '查核真實文件狀態' : '重新取得文件資訊'} />}
         <Descriptions bordered size="small" column={1} items={[
-          { key: 'id', label: 'Document ID', children: selected.id },
-          { key: 'title', label: 'Title', children: <Typography.Text style={{ overflowWrap: 'anywhere' }}>{selected.title}</Typography.Text> },
-          { key: 'type', label: 'Document Type', children: selected.documentType },
-          { key: 'supplier', label: 'Supplier ID', children: selected.supplierId ?? '—' },
-          { key: 'version', label: 'Version', children: selected.version },
-          { key: 'status', label: 'Status', children: <Tag color={statusColor[selected.status]}>{selected.status}</Tag> },
-          { key: 'by', label: 'Uploaded By', children: selected.uploadedBy },
-          { key: 'uploaded', label: 'Uploaded At', children: formatInstant(selected.uploadedAt) },
-          { key: 'updated', label: 'Updated At', children: formatInstant(selected.updatedAt) },
+          { key: 'id', label: '文件 ID', children: selected.id },
+          { key: 'title', label: '標題', children: <Typography.Text style={{ overflowWrap: 'anywhere' }}>{selected.title}</Typography.Text> },
+          { key: 'type', label: '文件類型', children: displayLabel(selected.documentType) },
+          { key: 'supplier', label: '供應商 ID', children: selected.supplierId ?? '—' },
+          { key: 'version', label: '版本', children: selected.version },
+          { key: 'status', label: '狀態', children: <Tag color={statusColor[selected.status]}>{displayLabel(selected.status)}</Tag> },
+          { key: 'by', label: '上傳者', children: selected.uploadedBy },
+          { key: 'uploaded', label: '上傳時間', children: formatInstant(selected.uploadedAt) },
+          { key: 'updated', label: '更新時間', children: formatInstant(selected.updatedAt) },
         ]} />
         {canManageSemantic && <>
-          <Alert type="info" showIcon title="文件狀態與 Semantic 狀態分開管理" description="此處只顯示 Documents API 的狀態。持久化出站審核狀態未包含在 DocumentResponse；請以每次 Review POST 回應為準，來源版本變更後需重新審核。" />
-          {reviewResult?.documentId === selected.id && reviewResult.version === selected.version && <Alert showIcon type={reviewResult.status === 'APPROVED' ? 'success' : reviewResult.status === 'REQUIRES_REVIEW' ? 'warning' : 'info'} title={`Backend 本次審核回應：${reviewResult.status}`} description={<Descriptions size="small" column={1} items={[
-            { key: 'version', label: 'Version', children: reviewResult.version },
-            { key: 'hash', label: 'Source Hash', children: <Typography.Text code copyable>{reviewResult.sourceHash}</Typography.Text> },
+          <Alert type="info" showIcon title="文件狀態與 Semantic 狀態分開管理" description="此處顯示 Documents API 的狀態。持久化出站審核狀態未包含在 DocumentResponse；請以每次審核 POST 回應為準，來源或版本變更後須重新審核。" />
+          {reviewResult?.documentId === selected.id && reviewResult.version === selected.version && <Alert showIcon type={reviewResult.status === 'APPROVED' ? 'success' : reviewResult.status === 'REQUIRES_REVIEW' ? 'warning' : 'info'} title={`本次審核回應：${displayLabel(reviewResult.status)}`} description={<Descriptions size="small" column={1} items={[
+            { key: 'version', label: '版本', children: reviewResult.version },
+            { key: 'hash', label: '來源雜湊', children: <Typography.Text code copyable>{reviewResult.sourceHash}</Typography.Text> },
             { key: 'reviewer', label: '審核者（approvedBy）', children: reviewResult.approvedBy },
-            { key: 'reason', label: 'Reason', children: reviewResult.reason || '—' },
+            { key: 'reason', label: '原因', children: reviewResult.reason || '—' },
           ]} />} />}
-          {reviewUnknownKeys.includes(`${selected.id}:${selected.version}`) && <Alert type="warning" showIcon title="Outbound Review 結果 UNKNOWN；已鎖定本版本重送" description="Backend 沒有可供前端重新查詢持久化審核結果的端點。需人工查核後端紀錄；文件狀態或 Readiness 不能證明核准／排除 POST 成功。" action={<Button size="small" onClick={() => setReviewUnlockKey(`${selected.id}:${selected.version}`)}>我已完成人工查核</Button>} />}
+          {reviewUnknownKeys.includes(`${selected.id}:${selected.version}`) && <Alert type="warning" showIcon title="出站審核結果不明；已鎖定此版本重送" description="後端 沒有可供前端重新查詢持久化審核結果的端點。請人工查核後端紀錄；文件狀態或 Readiness 不能證明核准／排除請求成功。" action={<Button size="small" onClick={() => setReviewUnlockKey(`${selected.id}:${selected.version}`)}>我已完成人工查核</Button>} />}
           <Space wrap>
             <Button type="primary" disabled={!selectedMatchesUrl || selected.status !== 'READY' || reviewUnknownKeys.includes(`${selected.id}:${selected.version}`)} loading={reviewLoading} onClick={() => setReviewConfirm('approve')}>核准出站</Button>
             <Button danger disabled={!selectedMatchesUrl || selected.status !== 'READY' || reviewUnknownKeys.includes(`${selected.id}:${selected.version}`)} loading={reviewLoading} onClick={() => setReviewConfirm('exclude')}>排除出站</Button>
           </Space>
-          {selected.status !== 'READY' && <Text type="secondary">文件目前為 {selected.status}；需先由 Backend 文件流程達到 READY 才能審核出站。</Text>}
-          <Collapse items={[{ key: 'ai-query', label: '下一步：使用既有 AI Query 核對來源', children: <><Alert type="info" showIcon title="Query 結果由 Backend 決定" description="僅 Gate Audit PASS 不保證此文件會命中。請核對回傳的 Document ID、Version、Chunk、Offset；沒有充分證據時 Backend 會回報證據不足。" /><div style={{ marginTop: 16 }}><AiQueryPanel /></div></> }]} />
+          {selected.status !== 'READY' && <Text type="secondary">文件目前為「{displayLabel(selected.status)}」；須先由 後端 文件流程處理至已就緒，才能審核出站。</Text>}
+          <Collapse items={[{ key: 'ai-query', label: '下一步：使用 AI Query 核對來源', children: <><Alert type="info" showIcon title="查詢結果由 後端 決定" description="Gate 稽核 通過不保證一定查到此文件。請核對回傳的 Document ID、版本、Chunk 與 Offset；證據不足時 後端 會回報證據不足。" /><div style={{ marginTop: 16 }}><AiQueryPanel /></div></> }]} />
         </>}
         {canUpdate && <Space orientation="vertical" style={{ width: '100%' }}>
-          <Text strong>Title</Text><Input aria-label="Document title" value={editTitle} maxLength={255} onChange={(event) => setEditTitle(event.target.value)} />
-          <Space wrap><Button loading={acting} disabled={!editTitle.trim()} onClick={() => void saveTitle()}>Save Title</Button>
-            {selected.status !== 'INACTIVE' && <Button danger loading={acting} onClick={() => void archive()}>Archive as INACTIVE</Button>}</Space>
+          <Text strong>標題</Text><Input aria-label="文件標題" value={editTitle} maxLength={255} onChange={(event) => setEditTitle(event.target.value)} />
+          <Space wrap><Button loading={acting} disabled={!editTitle.trim()} onClick={() => void saveTitle()}>儲存標題</Button>
+            {selected.status !== 'INACTIVE' && <Button danger loading={acting} onClick={() => void archive()}>封存文件</Button>}</Space>
         </Space>}
         {selectedIngestionUnknown && <Alert type="warning" showIcon title="索引結果不明，已鎖定重送"
-          description="必須先使用正式 GET /documents/{id} 查核 Backend 真實狀態；查核失敗時鎖定會保留。"
+          description="必須先使用正式 GET /documents/{id} 查核 後端 真實狀態；查核失敗時鎖定會保留。"
           action={<Button size="small" loading={acting} onClick={() => void verifyIngestionStatus()}>查核真實文件狀態</Button>} />}
-        {canIngest && !selectedIngestionUnknown && (selected.status === 'PROCESSING' || selected.status === 'READY') && <Button type="primary" loading={acting} onClick={() => setIngestConfirm(true)}>Start Explicit Ingestion</Button>}
-        {(selected.status === 'FAILED' || selected.status === 'INACTIVE') && <Alert type="info" showIcon title={`Backend 狀態 ${selected.status} 不允許從此介面直接重新索引。`} />}
+        {canIngest && !selectedIngestionUnknown && (selected.status === 'PROCESSING' || selected.status === 'READY') && <Button type="primary" loading={acting} onClick={() => setIngestConfirm(true)}>開始文件解析與索引</Button>}
+        {(selected.status === 'FAILED' || selected.status === 'INACTIVE') && <Alert type="info" showIcon title={`後端 狀態「${displayLabel(selected.status)}」不允許從此介面直接重新索引。`} />}
       </Space>}
     </Drawer>
 
-    <Modal title="Confirm Document Ingestion" open={ingestConfirm} okText="Confirm Ingestion" confirmLoading={acting}
+    <Modal title="確認解析與索引文件" open={ingestConfirm} okText="確認開始" confirmLoading={acting}
       onOk={() => void ingest()} onCancel={() => { if (!acting) setIngestConfirm(false); }} closable={!acting} mask={{ closable: !acting }}>
-      <Alert type="warning" showIcon title="將呼叫正式索引流程" description="執行中不會重複送出；逾時或網路中斷時不會自動重送。完成後會重新取得 Backend 文件狀態。" />
+      <Alert type="warning" showIcon title="將呼叫正式索引流程" description="執行中不會重複送出；逾時或網路中斷時不會自動重送。完成後會重新取得 後端 文件狀態。" />
     </Modal>
 
     <Modal title={reviewConfirm === 'approve' ? '確認核准文件出站' : '確認排除此文件出站'} open={reviewConfirm !== null} okText={reviewConfirm === 'approve' ? '確認核准出站' : '確認排除出站'} confirmLoading={reviewLoading}
       okButtonProps={{ danger: reviewConfirm === 'exclude' }} onOk={() => void confirmOutboundReview()} onCancel={() => { if (!reviewLoading) setReviewConfirm(null); }} closable={!reviewLoading} mask={{ closable: !reviewLoading }}>
       {reviewConfirm === 'approve'
-        ? <Alert type="warning" showIcon title="文件內容可能送至外部 Embedding Provider" description="Backend 會依出站政策檢查內容；若需要人工審查，實際回應可能是 REQUIRES_REVIEW，不會被前端覆寫成已核准。只對你有權授權外送的文件繼續。" />
-        : <Alert type="info" showIcon title="排除後 Backfill 不會索引此文件" description="Backend 會記錄排除決策；請確認你要將此文件排除於 Semantic 出站索引。" />}
+        ? <Alert type="warning" showIcon title="文件內容可能送至外部 Embedding Provider" description="後端 會依出站政策檢查內容；若需要人工審查，實際回應可能是 REQUIRES_REVIEW，不會被前端覆寫成已核准。只對你有權授權外送的文件繼續。" />
+        : <Alert type="info" showIcon title="排除後 Backfill 不會索引此文件" description="後端 會記錄排除決策；請確認你要將此文件排除於 Semantic 出站索引。" />}
     </Modal>
     <Modal title="解除 Outbound Review 未知結果鎖定" open={reviewUnlockKey !== null} okText="確認已人工查核" onOk={() => {
       if (reviewUnlockKey) setReviewUnknownKeys((keys) => {

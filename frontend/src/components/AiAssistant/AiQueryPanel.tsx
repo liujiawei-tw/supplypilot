@@ -11,7 +11,7 @@ const { Paragraph, Text, Title } = Typography;
 function queryErrorMessage(error: ApiErrorResponse): string {
   if (error.code === 'AI_PROVIDER_UNAVAILABLE') return 'AI 服務暫時無法使用。核心採購功能與導覽仍可正常操作。';
   if (error.code === 'AI_TIMEOUT') return 'AI Provider 回應逾時，系統沒有製造替代答案。你可以稍後重新提問。';
-  if (error.code === 'AI_INVALID_RESPONSE') return 'AI Provider 回覆未通過 Backend 驗證，未顯示不可信答案。';
+  if (error.code === 'AI_INVALID_RESPONSE') return 'AI Provider 回覆未通過 後端 驗證，未顯示不可信答案。';
   if (error.code === 'ACCESS_DENIED') return '你沒有執行 AI Query 的權限。';
   return error.message;
 }
@@ -34,21 +34,21 @@ export default function AiQueryPanel() {
   };
 
   return <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
-    <div><Title level={4} style={{ marginBottom: 0 }}>Ask SupplyPilot</Title><Text type="secondary">單輪同步查詢；不保留對話記憶，也不提供 Streaming。</Text></div>
-    <Input.TextArea aria-label="AI question" rows={4} maxLength={2000} showCount value={message}
+    <div><Title level={4} style={{ marginBottom: 0 }}>向 SupplyPilot 提問</Title><Text type="secondary">單輪同步查詢；不保留對話記憶，也不提供串流回應。</Text></div>
+    <Input.TextArea aria-label="AI 問題" rows={4} maxLength={2000} showCount value={message}
       placeholder="例如：為什麼 Recommendation #91 推薦此供應商？"
       onChange={(event) => setMessage(event.target.value)} onPressEnter={(event) => { if (!event.shiftKey) { event.preventDefault(); void submit(); } }} />
     <Button type="primary" loading={loading} disabled={!message.trim()} onClick={() => void submit()}>送出問題</Button>
-    {error && <ErrorState title="AI Query 失敗" error={error} onRetry={lastMessage ? () => void submit(lastMessage) : undefined} retryText="重新提問" />}
+    {error && <ErrorState title="AI 問答失敗" error={error} onRetry={lastMessage ? () => void submit(lastMessage) : undefined} retryText="重新提問" />}
     {response?.status === 'NEEDS_CLARIFICATION' && <Alert type="warning" showIcon title="需要補充資料"
-      description={response.answer || 'Backend 無法辨識必要的 Recommendation、Material、Supplier 或 PO 識別資料；請在新的完整問題中補充。'} />}
+      description={response.answer || '後端 無法辨識必要的 Recommendation、Material、Supplier 或 PO 識別資料；請在新的完整問題中補充。'} />}
     {response?.status === 'INSUFFICIENT_EVIDENCE' && <Alert type="info" showIcon title="證據不足"
-      description="Backend 沒有足夠證據支持肯定答案，因此不會顯示推測內容。" />}
-    {response?.status === 'ANSWERED' && <Card size="small" title="Backend Answer">
+      description="後端 沒有足夠證據支持肯定答案，因此不會顯示推測內容。" />}
+    {response?.status === 'ANSWERED' && <Card size="small" title="回答">
       <Paragraph style={{ whiteSpace: 'pre-wrap' }}>{response.answer}</Paragraph>
       {response.answerSource && <Text type="secondary">Answer Source：{response.answerSource}</Text>}
       {response.tools.length > 0 && <div style={{ marginTop: 8 }}>{response.tools.map((tool) => <Tag key={tool}>{tool}</Tag>)}</div>}
     </Card>}
-    {response && <Card size="small" title="Sources"><AiSources sources={response.sources} /></Card>}
+    {response && <Card size="small" title="資料來源"><AiSources sources={response.sources} /></Card>}
   </Space>;
 }

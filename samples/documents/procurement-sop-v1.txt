@@ -1,14 +1,11 @@
-Title: SupplyPilot Demo Procurement SOP
-DocumentType: PROCUREMENT_SOP
-Version: 1.0
-Fictional demo procedure.
+標題：SupplyPilot 虛構展示採購作業程序
+文件類型：PROCUREMENT_SOP
+版本：1.0
+虛構展示文件：本文為流程示例，不代表真實公司的制度或授權。
 
-The production planner records demand. Procurement staff review inventory, incoming ORDERED
-purchase orders, and the recommendation snapshot before creating a DRAFT purchase order. A
-procurement manager may approve or reject only a DRAFT. Procurement staff may mark an APPROVED
-order as ORDERED. Warehouse staff receive only an ORDERED order. Receiving increases inventory,
-creates a PURCHASE_RECEIVE stock transaction, and changes the order to RECEIVED in one transaction.
-No role may skip a lifecycle state through the user interface.
+生產規劃人員登錄需求。採購人員建立採購單草稿前，須檢視庫存、狀態為 ORDERED 的進貨採購單，以及採購建議快照。採購經理只能核准或駁回 DRAFT 草稿。採購人員可將已核准的採購單標記為 ORDERED。只有倉庫人員可收取狀態為 ORDERED 的採購單。收貨會增加庫存、建立 PURCHASE_RECEIVE 庫存異動，並在同一交易中將採購單狀態更新為 RECEIVED。任何角色都不得透過使用者介面跳過採購單狀態流程。
 
-Question: Which role receives an ORDERED purchase order?
-Expected basis: warehouse staff.
+正式流程：DRAFT → APPROVED → ORDERED → RECEIVED。
+
+問答：由哪個角色收取狀態為 ORDERED 的採購單？
+預期依據：倉庫人員。

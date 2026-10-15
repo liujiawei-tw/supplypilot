@@ -56,13 +56,13 @@ describe('SP-805 PO lifecycle UI', () => {
       throw new Error(`Unexpected ${config.url}`);
     });
     await open('/purchase-orders'); const user = userEvent.setup();
-    await user.click(await screen.findByRole('button', { name: 'Create Manual DRAFT' }));
-    await user.click(await screen.findByLabelText('PO supplier')); await user.click(await screen.findByText('SUP-007 — Supplier'));
-    await user.click(screen.getByLabelText('PO item 1 material')); await user.click(await screen.findByText('MAT-008 — Steel (KG)'));
-    await user.type(screen.getByLabelText('PO item 1 quantity'), '100');
-    await user.type(screen.getByLabelText('PO item 1 unit price'), '123.4500');
-    await user.click(screen.getByRole('button', { name: 'Review New Draft' }));
-    await user.click(await screen.findByRole('button', { name: 'Confirm Create DRAFT' }));
+    await user.click(await screen.findByRole('button', { name: '建立手動草稿' }));
+    await user.click(await screen.findByLabelText('採購單供應商')); await user.click(await screen.findByText('SUP-007 — Supplier'));
+    await user.click(screen.getByLabelText('採購單品項 1 物料')); await user.click(await screen.findByText('MAT-008 — Steel (KG)'));
+    await user.type(screen.getByLabelText('採購單品項 1 數量'), '100');
+    await user.type(screen.getByLabelText('採購單品項 1 單價'), '123.4500');
+    await user.click(screen.getByRole('button', { name: '檢視新草稿' }));
+    await user.click(await screen.findByRole('button', { name: '確認建立草稿' }));
     await waitFor(() => expect(requests.filter(({ url, method }) => url === '/purchase-orders' && method === 'post')).toHaveLength(1));
     expect(JSON.parse(requests.find(({ url, method }) => url === '/purchase-orders' && method === 'post')!.data as string)).toEqual({ supplierId: 7, items: [{ materialId: 8, quantity: '100', unitPrice: '123.4500' }] });
   }, 30_000);
@@ -81,16 +81,16 @@ describe('SP-805 PO lifecycle UI', () => {
       throw new Error(`Unexpected ${config.url}`);
     });
     await open('/purchase-orders/42'); const user = userEvent.setup();
-    await user.click(await screen.findByRole('button', { name: 'Edit DRAFT' }));
-    fireEvent.change(await screen.findByLabelText('PO expected delivery date'), { target: { value: '2026-10-10' } });
-    await user.click(screen.getByRole('button', { name: 'Review Draft Changes' }));
-    await user.click(await screen.findByRole('button', { name: 'Confirm Update DRAFT' }));
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Approve' }).hasAttribute('disabled')).toBe(false));
+    await user.click(await screen.findByRole('button', { name: '編輯草稿' }));
+    fireEvent.change(await screen.findByLabelText('採購單預計交期'), { target: { value: '2026-10-10' } });
+    await user.click(screen.getByRole('button', { name: '檢視草稿修改' }));
+    await user.click(await screen.findByRole('button', { name: '確認更新草稿' }));
+    await waitFor(() => expect(screen.getByRole('button', { name: /核\s*准/ }).hasAttribute('disabled')).toBe(false));
     const patchRequest = requests.find(({ url, method }) => url === '/purchase-orders/42' && method === 'patch')!;
     expect(JSON.parse(patchRequest.data as string)).toMatchObject({ expectedDeliveryDate: '2026-10-10', items: [{ recommendationId: 91, supplierRecommendationResultId: 101, supplierOverrideReason: 'Capacity', quantityOverrideReason: 'Demand changed' }] });
-    await user.click(screen.getByRole('button', { name: 'Approve' })); await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Confirm Approve' }));
-    await user.click(await screen.findByRole('button', { name: 'Mark Ordered' })); await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Confirm Mark Ordered' }));
-    expect(await screen.findByText('ORDERED')).toBeTruthy();
+    await user.click(screen.getByRole('button', { name: /核\s*准/ })); await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: '確認核准' }));
+    await user.click(await screen.findByRole('button', { name: '標記為已下單' })); await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: '確認下單' }));
+    expect(await screen.findByText('已下單')).toBeTruthy();
     expect(requests.filter(({ url }) => url === '/purchase-orders/42/approve')).toHaveLength(1);
     expect(requests.filter(({ url }) => url === '/purchase-orders/42/order')).toHaveLength(1);
   }, 30_000);
@@ -100,10 +100,10 @@ describe('SP-805 PO lifecycle UI', () => {
     axiosClient.defaults.adapter = vi.fn(async (config) => { requests.push(config.url ?? ''); if (config.url === '/auth/me') return response(config, manager); if (config.url === '/purchase-orders/42') return response(config, po); throw new Error(`Unexpected ${config.url}`); });
     await open('/purchase-orders/42');
     expect(await screen.findByText('PO-000042')).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Approve' }).hasAttribute('disabled')).toBe(true);
+    expect(screen.getByRole('button', { name: /核\s*准/ }).hasAttribute('disabled')).toBe(true);
     expect(screen.getByText(/尚未設定交期/)).toBeTruthy();
-    expect(screen.queryByRole('button', { name: 'Edit DRAFT' })).toBeNull();
-    expect(screen.queryByRole('button', { name: 'Mark Ordered' })).toBeNull();
+    expect(screen.queryByRole('button', { name: '編輯草稿' })).toBeNull();
+    expect(screen.queryByRole('button', { name: '標記為已下單' })).toBeNull();
     expect(screen.getByText('999999999999999.1234000 KG')).toBeTruthy();
     expect(requests).toEqual(['/auth/me', '/purchase-orders/42']);
   });
@@ -111,9 +111,9 @@ describe('SP-805 PO lifecycle UI', () => {
   it('requires a non-blank reject reason before enabling the confirmed request', async () => {
     const requests: InternalAxiosRequestConfig[] = [];
     axiosClient.defaults.adapter = vi.fn(async (config) => { requests.push(config); if (config.url === '/auth/me') return response(config, manager); if (config.url === '/purchase-orders/42') return response(config, po); if (config.url === '/purchase-orders/42/reject') return response(config, { ...po, status: 'REJECTED', rejectReason: 'Budget', rejectedBy: 3, rejectedByDisplayName: 'Manager', rejectedAt: '2026-10-02T00:00:00Z' }); throw new Error(`Unexpected ${config.url}`); });
-    await open('/purchase-orders/42'); const user = userEvent.setup(); await user.click(await screen.findByRole('button', { name: 'Reject' }));
-    const dialog = screen.getByRole('dialog'); const confirm = within(dialog).getByRole('button', { name: 'Confirm Reject' });
-    expect(confirm.hasAttribute('disabled')).toBe(true); fireEvent.change(within(dialog).getByLabelText('PO reject reason'), { target: { value: 'Budget' } }); expect(confirm.hasAttribute('disabled')).toBe(false);
+    await open('/purchase-orders/42'); const user = userEvent.setup(); await user.click(await screen.findByRole('button', { name: /駁\s*回/ }));
+    const dialog = screen.getByRole('dialog'); const confirm = within(dialog).getByRole('button', { name: '確認駁回' });
+    expect(confirm.hasAttribute('disabled')).toBe(true); fireEvent.change(within(dialog).getByLabelText('採購單駁回原因'), { target: { value: 'Budget' } }); expect(confirm.hasAttribute('disabled')).toBe(false);
     await user.click(confirm); await waitFor(() => expect(requests.filter(({ url }) => url === '/purchase-orders/42/reject')).toHaveLength(1));
     expect(JSON.parse(requests.find(({ url }) => url === '/purchase-orders/42/reject')!.data as string)).toEqual({ reason: 'Budget' });
   });
@@ -125,18 +125,18 @@ describe('SP-805 receiving and stock security boundaries', () => {
     axiosClient.defaults.adapter = vi.fn((config) => { requests.push(config); if (config.url === '/auth/me') return Promise.resolve(response(config, warehouse)); if (config.url === '/receiving/purchase-orders/42') return Promise.resolve(response(config, receiving)); if (config.url === '/purchase-orders/42/receive') return new Promise((resolve) => { finish = () => resolve(response(config, { ...receiving, status: 'RECEIVED', isOverdue: false, receivedBy: 4, receivedByDisplayName: 'Warehouse', receivedAt: '2026-10-02T00:00:00Z' })); }); return Promise.reject(new Error(`Unexpected ${config.url}`)); });
     await open('/receiving/purchase-orders/42'); const user = userEvent.setup(); expect(await screen.findByText('PO-000042')).toBeTruthy();
     expect(requests.some(({ url }) => url === '/purchase-orders/42' && configMethod(requests, url) === 'get')).toBe(false);
-    expect(screen.queryByText('Unit Price')).toBeNull(); expect(screen.queryByText('Recommendation Evidence')).toBeNull();
-    await user.click(screen.getByRole('button', { name: 'Confirm Full Receive' })); const confirm = within(screen.getByRole('dialog')).getByRole('button', { name: 'Confirm Full Receive' }); await user.click(confirm); fireEvent.click(confirm);
-    await waitFor(() => expect(requests.filter(({ url }) => url === '/purchase-orders/42/receive')).toHaveLength(1)); finish(); await screen.findByText('RECEIVED');
+    expect(screen.queryByText('單價')).toBeNull(); expect(screen.queryByText('採購建議依據')).toBeNull();
+    await user.click(screen.getByRole('button', { name: '確認整筆收貨' })); const confirm = within(screen.getByRole('dialog')).getByRole('button', { name: '確認整筆收貨' }); await user.click(confirm); fireEvent.click(confirm);
+    await waitFor(() => expect(requests.filter(({ url }) => url === '/purchase-orders/42/receive')).toHaveLength(1)); finish(); await screen.findByText('已收貨');
   });
 
   it('locks a 409 receive result until an explicit restricted refetch and never auto-retries', async () => {
     const requests: InternalAxiosRequestConfig[] = [];
     axiosClient.defaults.adapter = vi.fn(async (config) => { requests.push(config); if (config.url === '/auth/me') return response(config, warehouse); if (config.url === '/receiving/purchase-orders/42') return response(config, receiving); if (config.url === '/purchase-orders/42/receive') throw new AxiosError('Conflict', 'ERR_BAD_REQUEST', config, undefined, response(config, { code: 'DUPLICATE_RECEIVING', message: 'Already received', traceId: '', timestamp: '', path: '' }, 409)); throw new Error(`Unexpected ${config.url}`); });
-    await open('/receiving/purchase-orders/42'); const user = userEvent.setup(); await user.click(await screen.findByRole('button', { name: 'Confirm Full Receive' })); await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Confirm Full Receive' }));
+    await open('/receiving/purchase-orders/42'); const user = userEvent.setup(); await user.click(await screen.findByRole('button', { name: '確認整筆收貨' })); await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: '確認整筆收貨' }));
     expect(await screen.findByText('收貨結果需要查核，已鎖定再次提交')).toBeTruthy(); expect(requests.filter(({ url }) => url === '/purchase-orders/42/receive')).toHaveLength(1);
-    expect(screen.getByRole('button', { name: 'Confirm Full Receive' }).hasAttribute('disabled')).toBe(true); await user.click(screen.getByRole('button', { name: '重新查詢 Receiving 狀態' }));
-    await waitFor(() => expect(requests.filter(({ url }) => url === '/receiving/purchase-orders/42')).toHaveLength(2)); expect(requests.filter(({ url }) => url === '/purchase-orders/42/receive')).toHaveLength(1); expect(screen.getByText('ORDERED')).toBeTruthy();
+    expect(screen.getByRole('button', { name: '確認整筆收貨' }).hasAttribute('disabled')).toBe(true); await user.click(screen.getByRole('button', { name: '重新查詢收貨狀態' }));
+    await waitFor(() => expect(requests.filter(({ url }) => url === '/receiving/purchase-orders/42')).toHaveLength(2)); expect(requests.filter(({ url }) => url === '/purchase-orders/42/receive')).toHaveLength(1); expect(screen.getByText('已下單')).toBeTruthy();
   }, 30_000);
 
   it('handles a receiving timeout by refetching RECEIVED without automatically resending', async () => {
@@ -152,10 +152,10 @@ describe('SP-805 receiving and stock security boundaries', () => {
       throw new Error(`Unexpected ${config.url}`);
     });
     await open('/receiving/purchase-orders/42'); const user = userEvent.setup();
-    await user.click(await screen.findByRole('button', { name: 'Confirm Full Receive' })); await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Confirm Full Receive' }));
+    await user.click(await screen.findByRole('button', { name: '確認整筆收貨' })); await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: '確認整筆收貨' }));
     expect(await screen.findByText('收貨結果需要查核，已鎖定再次提交')).toBeTruthy();
-    await user.click(screen.getByRole('button', { name: '重新查詢 Receiving 狀態' }));
-    expect(await screen.findByText('RECEIVED')).toBeTruthy();
+    await user.click(screen.getByRole('button', { name: '重新查詢收貨狀態' }));
+    expect(await screen.findByText('已收貨')).toBeTruthy();
     expect(requests.filter(({ url }) => url === '/purchase-orders/42/receive')).toHaveLength(1);
     expect(requests.filter(({ url }) => url === '/receiving/purchase-orders/42')).toHaveLength(2);
   }, 30_000);
