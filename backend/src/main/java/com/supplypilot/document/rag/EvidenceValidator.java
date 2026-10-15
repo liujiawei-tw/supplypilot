@@ -29,7 +29,6 @@ public class EvidenceValidator {
     private static final Pattern CONDITION_LEAD = Pattern.compile(
             "(?i)(?:若|如果|假如|倘若|當|凡是|凡發生|\\bif\\b|\\bwhen\\b|\\bunless\\b|"
                     + "\\bprovided\\s+that\\b|\\bin\\s+case\\b)");
-    private static final Pattern ENUMERATION_SEPARATOR = Pattern.compile("[、，,]");
     private static final Pattern CONDITION_REFERENCE = Pattern.compile(
             "(?i)(?:這些(?:情況|狀況|條件)|上述(?:情況|狀況|條件)?|以上(?:情況|狀況|條件)?|"
                     + "these\\s+(?:conditions|cases|situations)|those\\s+(?:conditions|cases|situations)|"
@@ -38,8 +37,19 @@ public class EvidenceValidator {
             "(?i)(?:缺(?:少|失)|不足|破損|損壞|受(?:到)?污染|污染|不符|停機|故障|逾期|遺失|錯誤|失效|洩漏|"
                     + "超(?:出|過)|broken|damaged?|contaminated|incorrect|mismatch(?:ed)?|missing|absent|"
                     + "stops?|stopped|failure|failed|expired|overdue|defective|leak(?:ing)?)");
+    private static final Pattern CONDITION_BACKGROUND = Pattern.compile(
+            "(?i)(?:依照|依據|根據|按照|依)(?:品質管理|品質)?(?:的)?(?:規定|政策|要求)|"
+                    + "according\\s+to\\s+(?:the\\s+)?(?:quality\\s+management\\s+)?(?:policy|rules?|requirements?)|"
+                    + "as\\s+required\\s+by\\s+(?:the\\s+)?(?:policy|rules?)|"
+                    + "required\\s+by\\s+(?:the\\s+)?policy");
+    private static final Pattern GENERIC_CONDITION = Pattern.compile(
+            "(?i)(?:異常(?:批次|情況|狀況|事件|問題)?|異常|"
+                    + "abnormal(?:\\s+(?:batches?|situations?|conditions?|cases?))?|"
+                    + "anomal(?:y|ies)|(?:有|發生|存在|遇到|出現)|"
+                    + "(?:this|these|such)\\s+(?:conditions?|situations?|cases?)|"
+                    + "(?:情況|狀況|條件))");
     private static final Pattern CONDITION_ACTION = Pattern.compile(
-            "(?i)(?:須|必須|應|需要|應該|隔離|通知|聯繫|維修|處理|清除|退回|停用|"
+            "(?i)(?:須|必須|(?<!供)應|需要|應該|隔離|通知|聯繫|維修|處理|清除|退回|停用|"
                     + "must|should|need\\s+to|quarantine|isolate|notify|contact|repair|remove|return|disable)");
     private static final Pattern INDEPENDENT_ACTION = Pattern.compile(
             "(?i)(?:通知|聯繫|維修|隔離|處理|清除|退回|停用|更換|停止|"
@@ -348,10 +358,16 @@ public class EvidenceValidator {
         String afterLead = sentence.substring(lead.end());
         Matcher action = CONDITION_ACTION.matcher(afterLead);
         String antecedent = action.find() ? afterLead.substring(0, action.start()) : afterLead;
-        int listSeparators = 0;
-        Matcher separator = ENUMERATION_SEPARATOR.matcher(antecedent);
-        while (separator.find()) listSeparators++;
-        return SPECIFIC_CONDITION.matcher(antecedent).find() || listSeparators >= 1;
+        if (SPECIFIC_CONDITION.matcher(antecedent).find()) return true;
+
+        String substantiveCondition = CONDITION_BACKGROUND.matcher(antecedent).replaceAll(" ");
+        substantiveCondition = GENERIC_CONDITION.matcher(substantiveCondition).replaceAll(" ");
+        substantiveCondition = substantiveCondition.replaceAll("(?i)\\b(?:the|a|an|is|are|was|were)\\b", " ")
+                .replaceAll("[^\\p{L}\\p{N}]", "");
+        // Separators are structural only: policy preambles and generic abnormality wording must
+        // reduce to no substantive facts, while an unlisted concrete condition (e.g. supplier delay)
+        // remains sufficient even without a separator.
+        return substantiveCondition.length() >= 2;
     }
 
     private boolean hasConditionLead(String sentence) {

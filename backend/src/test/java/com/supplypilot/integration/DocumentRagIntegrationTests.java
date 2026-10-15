@@ -230,6 +230,31 @@ class DocumentRagIntegrationTests extends AbstractIntegrationTest {
     }
 
     @Test
+    void quarantineQueryTreatsPolicyPreambleAndGenericAbnormalityAsInsufficientEvidence() throws Exception {
+        User admin = user(UserRole.ADMIN);
+        String question = "哪些情況需要隔離批次？";
+        for (String content : List.of(
+                "若依照品質管理規定，異常批次須隔離。",
+                "若依照規定，異常批次須隔離。",
+                "若有異常情況，應隔離該批次。",
+                "If required by policy, quarantine abnormal batches.")) {
+            long documentId = uploadTxt(admin, content);
+            mockMvc.perform(post("/api/v1/documents/{id}/ingestions", documentId)
+                            .header("Authorization", bearer(admin)))
+                    .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("READY"));
+            mockMvc.perform(post("/api/v1/document-queries").contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(java.util.Map.of("question", question)))
+                            .header("Authorization", bearer(admin)))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.status").value("INSUFFICIENT_EVIDENCE"))
+                    .andExpect(jsonPath("$.answer").doesNotExist())
+                    .andExpect(jsonPath("$.sources").isEmpty());
+            chunks.deleteAllInBatch();
+            documents.deleteAllInBatch();
+        }
+    }
+
+    @Test
     void parsingAndEmbeddingFailuresNeverProduceUsableReadyIndex() throws Exception {
         User admin = user(UserRole.ADMIN);
         long blankId = uploadTxt(admin, "   \n   ");

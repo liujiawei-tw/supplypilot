@@ -73,6 +73,11 @@ class DocumentQueryServiceTests {
         assertInsufficientConditionList("哪些異常需要隔離？", "異常批次須隔離。");
         assertInsufficientConditionList("哪些情況需要隔離？", "問答：哪些情況需要隔離？");
         assertInsufficientConditionList("哪些情況需要隔離批次？", "依照品質管理規定，異常批次須隔離。");
+        assertInsufficientConditionList("哪些情況需要隔離批次？", "若依照品質管理規定，異常批次須隔離。");
+        assertInsufficientConditionList("哪些情況需要隔離批次？", "若依照規定，異常批次須隔離。");
+        assertInsufficientConditionList("哪些情況需要隔離批次？", "若有異常情況，應隔離該批次。");
+        assertInsufficientConditionList("哪些情況需要隔離批次？",
+                "If required by policy, quarantine abnormal batches.");
         assertInsufficientConditionList("哪些異常需要隔離？", "倉庫人員，應依標準程序隔離異常批次。");
         assertInsufficientConditionList("哪些情況需要隔離批次？",
                 "問答：哪些情況需要隔離批次？依照規定，異常批次須隔離。");
@@ -121,6 +126,7 @@ class DocumentQueryServiceTests {
         AnswerProvider answers = mock(AnswerProvider.class);
         RetrievedChunk retrieved = chunk(content, 0.99, 3L);
         when(semantic.retrieve(question)).thenReturn(List.of(retrieved));
+        when(answers.answer(eq(question), anyList())).thenReturn("異常批次須隔離。");
         DocumentQueryService service = new DocumentQueryService(null, new EvidenceValidator(), answers,
                 semantic, properties(true));
 

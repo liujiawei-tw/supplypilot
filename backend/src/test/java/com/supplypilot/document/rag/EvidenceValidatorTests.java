@@ -215,9 +215,20 @@ class EvidenceValidatorTests {
     void ordinaryBackgroundCommasDoNotEstablishSpecificQuarantineConditions() {
         String question = "哪些情況需要隔離批次？";
         assertInsufficientConditions(question, "依照品質管理規定，異常批次須隔離。");
+        assertInsufficientConditions(question, "若依照品質管理規定，異常批次須隔離。");
+        assertInsufficientConditions(question, "若依照規定，異常批次須隔離。");
+        assertInsufficientConditions(question, "若有異常情況，應隔離該批次。");
+        assertInsufficientConditions(question, "If required by policy, quarantine abnormal batches.");
         assertInsufficientConditions("哪些異常需要隔離？", "倉庫人員，應依標準程序隔離異常批次。");
         assertInsufficientConditions(question,
                 "問答：哪些情況需要隔離批次？依照規定，異常批次須隔離。");
+    }
+
+    @Test
+    void conditionEvidenceDoesNotRequireOnlyPrelistedConditionKeywords() {
+        assertSupported("哪些情況需要隔離批次？", "若供應商延遲，應隔離該批次。", 0.9);
+        assertSupported("哪些情況需要隔離批次？", "若缺少批次識別，須將該批隔離。", 0.9);
+        assertSupported("哪些情況需要隔離批次？", "若封條破損或物料不符，應隔離批次。", 0.9);
     }
 
     @Test
@@ -252,7 +263,9 @@ class EvidenceValidatorTests {
 
     private void assertSupported(String question, String content, double score) {
         assertThat(validator.isSemanticallySufficient(
-                question, List.of(chunk(content, score)), 0.45)).isTrue();
+                question, List.of(chunk(content, score)), 0.45))
+                .as("condition evidence for <%s>; excerpt=<%s>", content,
+                        validator.supportedExcerpt(question, content)).isTrue();
     }
 
     private RetrievedChunk chunk(String content, double score) {
