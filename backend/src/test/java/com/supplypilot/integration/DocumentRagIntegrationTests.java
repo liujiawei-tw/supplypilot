@@ -1,6 +1,8 @@
 package com.supplypilot.integration;
 
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.Clock;
 import java.util.List;
 import java.util.UUID;
@@ -144,6 +146,53 @@ class DocumentRagIntegrationTests extends AbstractIntegrationTest {
     }
 
     @Test
+    void realQualitySampleAnswersConditionListAndHintOnlyTextIsInsufficient() throws Exception {
+        User admin = user(UserRole.ADMIN);
+        String qualityText = Files.readString(Path.of("..", "samples", "documents", "quality-requirement-v1.txt"));
+        long qualityId = uploadTxt(admin, qualityText, "1.0");
+        mockMvc.perform(post("/api/v1/documents/{id}/ingestions", qualityId)
+                        .header("Authorization", bearer(admin)))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("READY"));
+
+        String answerResponse = mockMvc.perform(post("/api/v1/document-queries")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"question\":\"品質要求中哪些狀況需要隔離批次？\"}")
+                        .header("Authorization", bearer(admin)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("ANSWERED"))
+                .andExpect(jsonPath("$.answer").value(org.hamcrest.Matchers.containsString("缺少批次識別")))
+                .andExpect(jsonPath("$.answer").value(org.hamcrest.Matchers.containsString("封條破損")))
+                .andExpect(jsonPath("$.answer").value(org.hamcrest.Matchers.containsString("受到污染")))
+                .andExpect(jsonPath("$.answer").value(org.hamcrest.Matchers.containsString("物料不符")))
+                .andReturn().getResponse().getContentAsString();
+        JsonNode answer = objectMapper.readTree(answerResponse);
+        JsonNode source = answer.path("sources").get(0);
+        DocumentChunk persistedChunk = chunks.findByDocumentIdOrderByChunkIndex(qualityId).getFirst();
+        assertThat(source.path("documentId").asLong()).isEqualTo(qualityId);
+        assertThat(source.path("version").asText()).isEqualTo("1.0");
+        assertThat(source.path("chunkIndex").asInt()).isZero();
+        assertThat(source.path("startOffset").asInt()).isEqualTo(persistedChunk.getStartOffset());
+        assertThat(source.path("endOffset").asInt()).isEqualTo(persistedChunk.getEndOffset());
+        assertThat(source.path("endOffset").asInt()).isEqualTo(persistedChunk.getContent().length());
+        assertThat(source.path("excerpt").asText()).isEqualTo(persistedChunk.getContent());
+
+        chunks.deleteAllInBatch();
+        documents.deleteAllInBatch();
+        long hintId = uploadTxt(admin, "問答：哪些情況需要隔離？");
+        mockMvc.perform(post("/api/v1/documents/{id}/ingestions", hintId)
+                        .header("Authorization", bearer(admin)))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("READY"));
+        mockMvc.perform(post("/api/v1/document-queries")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"question\":\"哪些情況需要隔離？\"}")
+                        .header("Authorization", bearer(admin)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("INSUFFICIENT_EVIDENCE"))
+                .andExpect(jsonPath("$.answer").doesNotExist())
+                .andExpect(jsonPath("$.sources").isEmpty());
+    }
+
+    @Test
     void parsingAndEmbeddingFailuresNeverProduceUsableReadyIndex() throws Exception {
         User admin = user(UserRole.ADMIN);
         long blankId = uploadTxt(admin, "   \n   ");
@@ -218,11 +267,15 @@ class DocumentRagIntegrationTests extends AbstractIntegrationTest {
     }
 
     private long uploadTxt(User actor, String text) throws Exception {
+        return uploadTxt(actor, text, "v7");
+    }
+
+    private long uploadTxt(User actor, String text, String version) throws Exception {
         MockMultipartFile file = new MockMultipartFile(
                 "file", "contract.txt", "text/plain", text.getBytes(StandardCharsets.UTF_8));
         String response = mockMvc.perform(multipart("/api/v1/documents").file(file)
                         .param("documentType", "SUPPLIER_CONTRACT")
-                        .param("title", "Supplier Contract").param("version", "v7")
+                        .param("title", "Supplier Contract").param("version", version)
                         .header("Authorization", bearer(actor)))
                 .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString();
         return new com.fasterxml.jackson.databind.ObjectMapper().readTree(response).get("id").asLong();

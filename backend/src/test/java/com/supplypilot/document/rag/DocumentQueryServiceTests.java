@@ -8,6 +8,9 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.Duration;
 import java.util.List;
 
@@ -63,6 +66,53 @@ class DocumentQueryServiceTests {
         assertThat(result.answer()).isNull();
         assertThat(result.sources()).isEmpty();
         verify(answers, never()).answer(eq("這些文件是否規定冷凍海運的保險費率？"), anyList());
+    }
+
+    @Test
+    void conditionListQuestionWithoutConditionEvidenceReturnsInsufficientEvidence() {
+        assertInsufficientConditionList("哪些異常需要隔離？", "異常批次須隔離。");
+        assertInsufficientConditionList("哪些情況需要隔離？", "問答：哪些情況需要隔離？");
+    }
+
+    @Test
+    void realQualitySourceReturnsCompleteAnswerAndKeepsFullChunkCitation() throws IOException {
+        String question = "品質要求中哪些狀況需要隔離批次？";
+        String sourceText = Files.readString(Path.of("..", "samples", "documents", "quality-requirement-v1.txt"));
+        SemanticRetrievalService semantic = mock(SemanticRetrievalService.class);
+        RetrievedChunk source = chunk(sourceText, 0.92, 5L);
+        when(semantic.retrieve(question)).thenReturn(List.of(source));
+        DocumentQueryService service = new DocumentQueryService(null, new EvidenceValidator(),
+                new ExtractiveAnswerProvider(new EvidenceValidator()), semantic, properties(true));
+
+        var result = service.query(question);
+
+        assertThat(result.status()).isEqualTo(DocumentQueryStatus.ANSWERED);
+        assertThat(result.answer()).contains("缺少批次識別", "封條破損", "受到污染", "物料不符", "隔離")
+                .doesNotContain("問答：", "預期依據：");
+        assertThat(result.sources()).singleElement().satisfies(citation -> {
+            assertThat(citation.documentId()).isEqualTo(5L);
+            assertThat(citation.version()).isEqualTo("1.0");
+            assertThat(citation.chunkIndex()).isZero();
+            assertThat(citation.startOffset()).isZero();
+            assertThat(citation.endOffset()).isEqualTo(sourceText.length());
+            assertThat(citation.excerpt()).isEqualTo(sourceText);
+        });
+    }
+
+    private void assertInsufficientConditionList(String question, String content) {
+        SemanticRetrievalService semantic = mock(SemanticRetrievalService.class);
+        AnswerProvider answers = mock(AnswerProvider.class);
+        RetrievedChunk retrieved = chunk(content, 0.99, 3L);
+        when(semantic.retrieve(question)).thenReturn(List.of(retrieved));
+        DocumentQueryService service = new DocumentQueryService(null, new EvidenceValidator(), answers,
+                semantic, properties(true));
+
+        var result = service.query(question);
+
+        assertThat(result.status()).isEqualTo(DocumentQueryStatus.INSUFFICIENT_EVIDENCE);
+        assertThat(result.answer()).isNull();
+        assertThat(result.sources()).isEmpty();
+        verify(answers, never()).answer(eq(question), anyList());
     }
 
     private SemanticProperties properties(boolean readEnabled) {
