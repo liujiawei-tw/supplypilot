@@ -41,6 +41,41 @@ class EvidenceValidatorTests {
     }
 
     @Test
+    void anUpdateCadenceDoesNotSupportAnUndeterminedDeliveryLeadTime() {
+        RetrievedChunk source = chunk(
+                "MAT-001 的標準交期尚未確定，每 3 個曆日更新一次交期狀態。", 0.92);
+
+        assertThat(validator.isSemanticallySufficient(
+                "MAT-001 標準交期是多少？", List.of(source), 0.45)).isFalse();
+        assertThat(validator.supportedExcerpt(
+                "MAT-001 標準交期是多少？", source.chunk().getContent())).isEmpty();
+    }
+
+    @Test
+    void aDifferentClaimsRateDoesNotSupportFrozenSeaFreightInsuranceRate() {
+        RetrievedChunk source = chunk(
+                "冷凍海運貨物的保險費率尚未訂定。其他貨物的理賠費率為 0.3%。", 0.95);
+
+        assertThat(validator.isSemanticallySufficient(
+                "冷凍海運貨物的保險費率是多少？", List.of(source), 0.45)).isFalse();
+        assertThat(validator.supportedExcerpt(
+                "冷凍海運貨物的保險費率是多少？", source.chunk().getContent())).isEmpty();
+    }
+
+    @Test
+    void materialDeliveryAnswerExcludesAnotherMaterialsDeliveryClause() {
+        String question = "SUP-001 的 MAT-001 標準交期是多少？";
+        String sourceText = "SUP-001 的 MAT-001 交期為 ORDERED 後 5 個曆日；"
+                + "MAT-002 交期為 7 個曆日。";
+        RetrievedChunk source = chunk(sourceText, 0.9);
+
+        assertThat(validator.isSemanticallySufficient(question, List.of(source), 0.45)).isTrue();
+        assertThat(validator.supportedExcerpt(question, sourceText))
+                .contains("MAT-001 交期為 ORDERED 後 5 個曆日")
+                .doesNotContain("MAT-002", "7 個曆日");
+    }
+
+    @Test
     void materialRelationSelectsOnlyTheMatchingFactWhenSeveralMaterialsShareAChunk() {
         String content = "SUP-001 供應商供應 MAT-001 及 MAT-002。"
                 + "MAT-001 標準交期為 ORDERED 後 5 個曆日。"
