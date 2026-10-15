@@ -90,7 +90,9 @@ class DocumentRagIntegrationTests extends AbstractIntegrationTest {
         assertThat(source.path("chunkIndex").asInt()).isEqualTo(persistedChunk.getChunkIndex());
         assertThat(source.path("startOffset").asInt()).isEqualTo(persistedChunk.getStartOffset());
         assertThat(source.path("endOffset").asInt()).isEqualTo(persistedChunk.getEndOffset());
-        assertThat(source.path("excerpt").asText()).isEqualTo(persistedChunk.getContent());
+        assertThat(source.path("excerpt").asText())
+                .isEqualTo("Supplier payment terms are net 30 days.");
+        assertThat(source.path("excerpt").asText()).isNotEqualTo(persistedChunk.getContent());
 
         mockMvc.perform(post("/api/v1/documents/{id}/ingestions", documentId)
                         .header("Authorization", bearer(staff)))

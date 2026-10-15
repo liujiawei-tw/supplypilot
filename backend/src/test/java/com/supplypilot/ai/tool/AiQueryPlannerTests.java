@@ -2,14 +2,28 @@ package com.supplypilot.ai.tool;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import com.supplypilot.ai.dto.AiToolType;
 import com.supplypilot.common.exception.BusinessException;
 import com.supplypilot.common.exception.ErrorCode;
+import com.supplypilot.material.service.MaterialService;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 class AiQueryPlannerTests {
-    private final AiQueryPlanner planner = new AiQueryPlanner();
+    private final MaterialService materials = mock(MaterialService.class);
+    private final AiQueryPlanner planner = new AiQueryPlanner(materials);
+
+    @BeforeEach
+    void configureMaterialLookup() {
+        when(materials.existsByCode(anyString())).thenAnswer(invocation -> {
+            String code = invocation.getArgument(0);
+            return code.equals("MAT-001") || code.equals("MAT-A1") || code.equals("MATERIAL-A1");
+        });
+    }
 
     @Test
     void selectsOnlyTheFixedReadToolAllowlist() {
@@ -33,6 +47,10 @@ class AiQueryPlannerTests {
         assertThat(plan.recommendationId()).isEqualTo(42L);
         assertThat(plan.materialCode()).isEqualTo("MAT-001");
         assertThat(planner.plan("為什麼 MAT-001 建議買 200kg？").recommendationId()).isNull();
+        assertThat(planner.materialCode("SUP-001 的 MAT-001 標準交期是多久？")).isEqualTo("MAT-001");
+        assertThat(planner.materialCode("SUP-001 的交期是多少？")).isNull();
+        assertThat(planner.materialCode("MAT-A1 的庫存是多少？")).isEqualTo("MAT-A1");
+        assertThat(planner.materialCode("MATERIAL-A1 的庫存是多少？")).isEqualTo("MATERIAL-A1");
     }
 
     @Test
@@ -45,6 +63,31 @@ class AiQueryPlannerTests {
             assertThatThrownBy(() -> planner.plan(input))
                     .isInstanceOf(BusinessException.class)
                     .extracting("errorCode").isEqualTo(ErrorCode.ACCESS_DENIED);
+        }
+    }
+
+    @Test
+    void allowsReadOnlyQuestionsAboutReceivingAndApprovalWhileBlockingCommands() {
+        for (String question : new String[] {
+                "SupplyPilot 採購 SOP 由哪個角色執行收貨？",
+                "誰負責收貨？", "收貨 SOP 是什麼？", "哪個角色可以核准採購單？",
+                "APPROVED 後的下一步是什麼？", "Which role can receive an ordered purchase order?",
+                "Who is allowed to approve a purchase order?", "未收貨的採購單有哪些？",
+                "Do not receive the PO; explain the receiving procedure."
+        }) {
+            org.assertj.core.api.Assertions.assertThatCode(() -> planner.plan(question))
+                    .as(question).doesNotThrowAnyException();
+        }
+        for (String command : new String[] {
+                "幫我執行收貨", "立即核准這張採購單", "幫我下單", "調整庫存數量", "建立採購單草稿",
+                "Please receive PO 12 now", "Help me approve purchase order 12", "Create a purchase draft"
+        }) {
+            try {
+                planner.plan(command);
+                throw new AssertionError("Mutation request was allowed: " + command);
+            } catch (BusinessException exception) {
+                assertThat(exception).extracting("errorCode").isEqualTo(ErrorCode.ACCESS_DENIED);
+            }
         }
     }
 

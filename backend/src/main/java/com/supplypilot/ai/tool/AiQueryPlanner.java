@@ -7,6 +7,7 @@ import java.util.regex.Pattern;
 import com.supplypilot.ai.dto.AiToolType;
 import com.supplypilot.common.exception.BusinessException;
 import com.supplypilot.common.exception.ErrorCode;
+import com.supplypilot.material.service.MaterialService;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -14,10 +15,26 @@ public class AiQueryPlanner {
     private static final Pattern MATERIAL_CODE = Pattern.compile("(?i)\\b[A-Z]{2,}[A-Z0-9_]*-[A-Z0-9]+\\b");
     private static final Pattern RECOMMENDATION_ID = Pattern.compile(
             "(?i)(?:recommendation\\s*(?:id|#)|建議(?:編號| ID))\\s*[:#]?\\s*(\\d+)");
-    private static final Pattern FORBIDDEN = Pattern.compile(
-            "(?i)(approve|reject|order\\s*po|receive\\s*po|adjust\\s*inventory|user\\s*management|"
-                    + "master\\s*data\\s*write|create\\s*(?:purchase\\s*)?draft|核准|駁回|下單|(?<!未)收貨|"
-                    + "調整庫存|使用者管理|主檔寫入|建立(?:採購)?草稿)");
+    private static final Pattern FORBIDDEN = Pattern.compile("(?i)(?:"
+            + "\\b(?:user\\s+management|master\\s+data\\s+write)\\b|使用者管理|主檔寫入"
+            + "|忽略.{0,20}(?:規則|指示).{0,30}(?:approve|reject|order|receive|核准|駁回|下單|收貨)"
+            + "|^\\s*(?:please\\s+)?(?:ignore\\s+instructions\\s+and\\s+)?"
+            + "(?:approve|reject|order\\s+(?:po|purchase\\s+order)|"
+            + "receive\\s+(?:po|purchase\\s+order)|adjust\\s+inventory|create\\s+(?:a\\s+)?(?:purchase\\s+)?draft)\\b"
+            + "|^\\s*(?:下單|調整庫存(?:數量)?|建立(?:採購單?|採購)?草稿|核准(?:這張|採購單|PO)|駁回(?:這張|採購單|PO))"
+            + "|^\\s*(?:please\\s+)?(?:help\\s+me|do\\s+it\\s+for\\s+me|can\\s+you|could\\s+you|would\\s+you)\\s+"
+            + "(?:please\\s+)?(?:approve|reject|place\\s+(?:an?\\s+)?order|order\\s+(?:po|purchase\\s+order)|"
+            + "receive\\s+(?:po|purchase\\s+order)|adjust\\s+inventory|create\\s+(?:a\\s+)?(?:purchase\\s+)?draft)\\b"
+            + "|^\\s*(?:請(?!問)(?:你)?|幫我|替我|立即|直接)(?:立即|直接)?(?:幫我|替我)?"
+            + "(?:執行|操作|進行)?(?:收貨|核准|駁回|下單|調整庫存|建立(?:採購)?草稿)"
+            + "|(?:幫我|替我)(?:立即|直接)?(?:執行|操作|進行)?"
+            + "(?:收貨|核准|駁回|下單|調整庫存|建立(?:採購)?草稿))");
+
+    private final MaterialService materials;
+
+    public AiQueryPlanner(MaterialService materials) {
+        this.materials = materials;
+    }
 
     public AiQueryPlan plan(String message) {
         String normalized = validate(message);
@@ -79,6 +96,10 @@ public class AiQueryPlanner {
 
     public String materialCode(String message) {
         Matcher matcher = MATERIAL_CODE.matcher(message);
-        return matcher.find() ? matcher.group().toUpperCase(Locale.ROOT) : null;
+        while (matcher.find()) {
+            String candidate = matcher.group().toUpperCase(Locale.ROOT);
+            if (materials.existsByCode(candidate)) return candidate;
+        }
+        return null;
     }
 }

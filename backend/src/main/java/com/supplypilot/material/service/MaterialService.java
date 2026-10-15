@@ -80,6 +80,11 @@ public class MaterialService {
     }
 
     @Transactional(readOnly = true)
+    public boolean existsByCode(String code) {
+        return code != null && materialRepository.existsByCode(code);
+    }
+
+    @Transactional(readOnly = true)
     public MaterialResponse getMaterialById(Long id) {
         return materialMapper.toResponse(findMaterial(id));
     }

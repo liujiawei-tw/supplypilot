@@ -16,6 +16,7 @@ import com.supplypilot.ai.tool.AiQueryPlanner;
 import com.supplypilot.ai.tool.AiToolRegistry;
 import com.supplypilot.ai.usage.AiMonthlyUsageMonitor;
 import com.supplypilot.common.exception.ErrorCode;
+import com.supplypilot.material.service.MaterialService;
 import com.supplypilot.procurement.dto.request.CreatePurchaseOrderItemRequest;
 import com.supplypilot.procurement.dto.request.CreatePurchaseOrderRequest;
 import org.junit.jupiter.api.Test;
@@ -52,7 +53,8 @@ class SpringAiDraftProposalGeneratorTests {
         draft.setItems(List.of(item));
         var executor = Executors.newVirtualThreadPerTaskExecutor();
         try {
-            var generator = new SpringAiDraftProposalGenerator(models, registry, new AiQueryPlanner(),
+            var generator = new SpringAiDraftProposalGenerator(models, registry,
+                    new AiQueryPlanner(mock(MaterialService.class)),
                     new AiProperties(Duration.ofSeconds(10), 256, 4, 5, false, 1_000_000),
                     executor, new ObjectMapper(), new SimpleMeterRegistry(), mock(AiMonthlyUsageMonitor.class));
             assertThatThrownBy(() -> generator.generate("請建立草稿", draft))

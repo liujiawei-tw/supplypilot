@@ -41,9 +41,12 @@ public class DocumentQueryService {
         String normalizedQuestion = question.trim();
         List<RetrievedChunk> evidence = semanticProperties.readEnabled()
                 ? semantic.retrieve(normalizedQuestion) : retrieval.retrieve(normalizedQuestion);
+        if (semanticProperties.readEnabled()) {
+            evidence = evidenceValidator.supportingEvidence(
+                    normalizedQuestion, evidence, semanticProperties.similarityThreshold());
+        }
         boolean sufficient = semanticProperties.readEnabled()
-                ? evidenceValidator.isSemanticallySufficient(evidence, semanticProperties.similarityThreshold())
-                : evidenceValidator.isSufficient(normalizedQuestion, evidence);
+                ? !evidence.isEmpty() : evidenceValidator.isSufficient(normalizedQuestion, evidence);
         if (!sufficient) {
             return DocumentQueryResponse.insufficientEvidence();
         }
@@ -58,16 +61,18 @@ public class DocumentQueryService {
         if (answer == null || answer.isBlank()) {
             throw new BusinessException(ErrorCode.AI_INVALID_RESPONSE);
         }
-        List<DocumentSourceResponse> sources = evidence.stream().map(this::source).toList();
+        List<DocumentSourceResponse> sources = evidence.stream()
+                .map(result -> source(normalizedQuestion, result)).toList();
         return new DocumentQueryResponse(DocumentQueryStatus.ANSWERED, answer, sources);
     }
 
-    private DocumentSourceResponse source(RetrievedChunk result) {
+    private DocumentSourceResponse source(String question, RetrievedChunk result) {
         var chunk = result.chunk();
         DocumentMetadata document = chunk.getDocument();
         return new DocumentSourceResponse(
                 document.getId(), document.getDocumentType(), document.getTitle(), document.getVersion(),
                 document.getSupplier() == null ? null : document.getSupplier().getId(), chunk.getChunkIndex(),
-                chunk.getStartOffset(), chunk.getEndOffset(), chunk.getContent(), result.score());
+                chunk.getStartOffset(), chunk.getEndOffset(),
+                evidenceValidator.supportedExcerpt(question, chunk.getContent()), result.score());
     }
 }

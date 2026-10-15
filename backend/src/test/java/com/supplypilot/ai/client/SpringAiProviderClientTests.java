@@ -26,6 +26,7 @@ import com.supplypilot.ai.tool.AiToolResult;
 import com.supplypilot.ai.tool.SpringAiReadTools;
 import com.supplypilot.ai.usage.AiMonthlyUsageMonitor;
 import com.supplypilot.common.exception.ErrorCode;
+import com.supplypilot.material.service.MaterialService;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -67,7 +68,7 @@ class SpringAiProviderClientTests {
         AiToolResult toolResult = inventoryResult();
         when(registry.execute(any())).thenReturn(toolResult);
         assertThat(List.of(ToolCallbacks.from(new SpringAiReadTools(
-                registry, new AiQueryPlanner(), "MAT-001 的庫存", 4))).stream()
+                registry, planner(), "MAT-001 的庫存", 4))).stream()
                 .map(callback -> callback.getToolDefinition().name()).sorted().toList())
                 .containsExactly("EXPLAIN_RECOMMENDATION", "QUERY_INVENTORY", "QUERY_OPEN_PO",
                         "QUERY_RECOMMENDATION", "QUERY_SUPPLIER_RANKING", "SEARCH_DOCUMENTS");
@@ -169,6 +170,23 @@ class SpringAiProviderClientTests {
     }
 
     @Test
+    void supplierIdentifierDoesNotRejectAnExplicitKnownMaterialInSameQuestion() {
+        AiToolRegistry registry = mock(AiToolRegistry.class);
+        AiToolResult inventory = inventoryResult();
+        when(registry.execute(any())).thenReturn(inventory);
+        ChatModel model = fakeModel(prompt -> hasToolResponse(prompt)
+                ? finalAnswer(1)
+                : toolCall("QUERY_INVENTORY", "{\"materialCode\":\"MAT-001\"}"));
+        SpringAiProviderClient provider = provider(model, registry, Duration.ofSeconds(2));
+
+        AiProviderResponse response = provider.query(new AiProviderRequest(
+                "SUP-001 的 MAT-001 標準交期是多久？"));
+
+        assertThat(response.results()).containsExactly(inventory);
+        verify(registry).execute(new AiQueryPlan(AiToolType.QUERY_INVENTORY, null, "MAT-001", null));
+    }
+
+    @Test
     void rejectsNaturalLanguageOrFabricatedProviderAnswersWithoutAToolExecution() {
         ChatModel model = fakeModel(prompt -> new ChatResponse(List.of(
                 new Generation(new AssistantMessage("MAT-001 庫存為 999 KG")))));
@@ -220,9 +238,15 @@ class SpringAiProviderClientTests {
     private SpringAiProviderClient provider(ObjectProvider<ChatModel> models, AiToolRegistry registry,
                                             Duration timeout, int maxTools, int maxModels) {
         return new SpringAiProviderClient(models, registry,
-                new AiQueryPlanner(), new AiResponseGuard(new ObjectMapper()),
+                planner(), new AiResponseGuard(new ObjectMapper()),
                 new AiProperties(timeout, 256, maxTools, maxModels, false, 1_000_000),
                 executor, new SimpleMeterRegistry(), usageMonitor);
+    }
+
+    private AiQueryPlanner planner() {
+        MaterialService materials = mock(MaterialService.class);
+        when(materials.existsByCode("MAT-001")).thenReturn(true);
+        return new AiQueryPlanner(materials);
     }
 
     private boolean hasToolResponse(Prompt prompt) {
