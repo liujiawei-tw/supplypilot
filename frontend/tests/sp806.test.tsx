@@ -7,6 +7,7 @@ import { axiosClient, TOKEN_STORAGE_KEY } from '../src/api/axiosClient';
 import { router } from '../src/router/routes';
 import type { AuthenticatedUser } from '../src/types/api';
 import { validateDocumentFile } from '../src/pages/Documents/documentValidation';
+import { cleanup } from '@testing-library/react';
 
 const staff: AuthenticatedUser = { id: 2, username: 'buyer', displayName: 'Buyer', role: 'PROCUREMENT_STAFF' };
 const manager: AuthenticatedUser = { id: 3, username: 'manager', displayName: 'Manager', role: 'PROCUREMENT_MANAGER' };
@@ -14,8 +15,14 @@ const warehouse: AuthenticatedUser = { id: 4, username: 'warehouse', displayName
 const documentProcessing = { id: 21, documentType: 'QUOTATION', supplierId: 7, title: 'Supplier quote', version: 'v1', storagePath: '/private/do-not-show', status: 'PROCESSING', uploadedBy: 2, uploadedAt: '2026-10-12T00:00:00Z', updatedAt: '2026-10-12T00:00:00Z' };
 const page = (content: unknown[]) => ({ content, page: 0, size: 20, totalElements: content.length, totalPages: content.length ? 1 : 0 });
 function response(config: InternalAxiosRequestConfig, data: unknown, status = 200): AxiosResponse { return { config, data, status, statusText: String(status), headers: {} }; }
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((done) => { resolve = done; });
+  return { promise, resolve };
+}
 async function open(path: string) { localStorage.setItem(TOKEN_STORAGE_KEY, 'valid-token'); await router.navigate(path); render(<App />); }
 function latestDialog() { const dialogs = screen.getAllByRole('dialog'); return dialogs[dialogs.length - 1]; }
+function documentDrawer() { return screen.getByText('Document Detail').closest('.ant-drawer')!; }
 async function openDraftProposal(user: ReturnType<typeof userEvent.setup>) {
   await open('/dashboard');
   await user.click(await screen.findByRole('button', { name: /AI Assistant/ }));
@@ -30,6 +37,250 @@ async function openDraftProposal(user: ReturnType<typeof userEvent.setup>) {
 beforeEach(() => { localStorage.clear(); });
 
 describe('SP-806 Document Management UI', () => {
+  it.each([
+    [{ id: 1, username: 'admin', displayName: 'Admin', role: 'ADMIN' } as AuthenticatedUser, true],
+    [manager, false], [staff, false], [warehouse, false],
+  ])('exposes Semantic operations only to ADMIN on the existing Documents route', async (identity, isAdmin) => {
+    axiosClient.defaults.adapter = vi.fn(async (config) => {
+      if (config.url === '/auth/me') return response(config, identity);
+      if (config.url === '/documents') return response(config, page([]));
+      throw new Error(`Unexpected ${config.method} ${config.url}`);
+    });
+    await open('/documents');
+    if (isAdmin) expect(await screen.findByText('Semantic 索引管理')).toBeTruthy();
+    else {
+      await screen.findByText('SupplyPilot');
+      expect(screen.queryByText('Semantic 索引管理')).toBeNull();
+      expect(screen.queryByRole('button', { name: '執行並保存 Gate Audit' })).toBeNull();
+    }
+    cleanup();
+  });
+
+  it('confirms outbound approval and renders the actual Backend Review result', async () => {
+    const ready = { ...documentProcessing, status: 'READY' };
+    const requests: InternalAxiosRequestConfig[] = [];
+    axiosClient.defaults.adapter = vi.fn(async (config) => {
+      requests.push(config);
+      if (config.url === '/auth/me') return response(config, { id: 1, username: 'admin', displayName: 'Admin', role: 'ADMIN' });
+      if (config.url === '/documents') return response(config, page([ready]));
+      if (config.url === '/documents/21') return response(config, ready);
+      if (config.url === '/semantic-index/documents/21/approve-outbound') return response(config, { documentId: 21, version: 'v1', sourceHash: 'abc123', approvedBy: 1, status: 'APPROVED', reason: null });
+      throw new Error(`Unexpected ${config.method} ${config.url}`);
+    });
+    await open('/documents'); const user = userEvent.setup();
+    await screen.findByText('Semantic 索引管理');
+    await screen.findByText('Supplier quote');
+    await user.click(screen.getByRole('button', { name: '#21' }));
+    await user.click(await screen.findByRole('button', { name: '核准出站' }));
+    expect(await screen.findByText(/可能送至外部 Embedding Provider/)).toBeTruthy();
+    await user.click(within(latestDialog()).getByRole('button', { name: '確認核准出站' }));
+    expect(await screen.findByText('Backend 本次審核回應：APPROVED')).toBeTruthy();
+    expect(screen.getByText('abc123')).toBeTruthy();
+    expect(requests.filter(({ url }) => url === '/semantic-index/documents/21/approve-outbound')).toHaveLength(1);
+  });
+
+  it('keeps a deep-linked #21 from overwriting a fast #22 switch and reviews only the current document', async () => {
+    const first = { ...documentProcessing, id: 21, title: 'Quote 21', version: 'v21', status: 'READY' };
+    const second = { ...documentProcessing, id: 22, title: 'Quote 22', version: 'v22', status: 'READY' };
+    const delayed21 = deferred<AxiosResponse>();
+    const delayed22 = deferred<AxiosResponse>();
+    const requests: InternalAxiosRequestConfig[] = [];
+    axiosClient.defaults.adapter = vi.fn(async (config) => {
+      requests.push(config);
+      if (config.url === '/auth/me') return response(config, { id: 1, username: 'admin', displayName: 'Admin', role: 'ADMIN' });
+      if (config.url === '/documents') return response(config, page([first, second]));
+      if (config.url === '/documents/21') return delayed21.promise;
+      if (config.url === '/documents/22') return delayed22.promise;
+      if (config.url === '/semantic-index/documents/22/approve-outbound') return response(config, { documentId: 22, version: 'v22', sourceHash: 'hash22', approvedBy: 1, status: 'APPROVED', reason: null });
+      throw new Error(`Unexpected ${config.method} ${config.url}`);
+    });
+    await open('/documents?documentId=21');
+    await waitFor(() => expect(requests.some(({ url }) => url === '/documents/21')).toBe(true));
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('button', { name: '#22' }));
+    await waitFor(() => expect(requests.some(({ url }) => url === '/documents/22')).toBe(true));
+    delayed22.resolve(response(requests.find(({ url }) => url === '/documents/22')!, second));
+    const drawer = documentDrawer();
+    await within(drawer).findByText('v22');
+    delayed21.resolve(response(requests.find(({ url }) => url === '/documents/21')!, first));
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(within(drawer).getByText('v22')).toBeTruthy();
+    await user.click(within(drawer).getByRole('button', { name: '核准出站' }));
+    await user.click(within(latestDialog()).getByRole('button', { name: '確認核准出站' }));
+    expect(await within(drawer).findByText('Backend 本次審核回應：APPROVED')).toBeTruthy();
+    expect(requests.filter(({ url }) => url === '/semantic-index/documents/22/approve-outbound')).toHaveLength(1);
+    expect(requests.some(({ url }) => url === '/semantic-index/documents/21/approve-outbound')).toBe(false);
+  });
+
+  it.each(['title', 'archive', 'ingestion'] as const)('ignores a delayed %s response after switching documents', async (operation) => {
+    const first = { ...documentProcessing, title: 'Quote 21', status: operation === 'ingestion' ? 'PROCESSING' : 'READY' };
+    const second = { ...documentProcessing, id: 22, title: 'Quote 22', version: 'v22', status: 'READY' };
+    const delayedMutation = deferred<AxiosResponse>();
+    const requests: InternalAxiosRequestConfig[] = [];
+    axiosClient.defaults.adapter = vi.fn(async (config) => {
+      requests.push(config);
+      if (config.url === '/auth/me') return response(config, { id: 1, username: 'admin', displayName: 'Admin', role: 'ADMIN' });
+      if (config.url === '/documents' && config.method === 'get') return response(config, page([first, second]));
+      if (config.url === '/documents/21' && config.method === 'get') return response(config, first);
+      if (config.url === '/documents/22' && config.method === 'get') return response(config, second);
+      if (config.url === '/documents/21' && config.method === 'patch') return delayedMutation.promise;
+      if (config.url === '/documents/21/ingestions') return delayedMutation.promise;
+      if (config.url === '/semantic-index/documents/22/approve-outbound') return response(config, { documentId: 22, version: 'v22', sourceHash: 'hash22', approvedBy: 1, status: 'APPROVED', reason: null });
+      throw new Error(`Unexpected ${config.method} ${config.url}`);
+    });
+    await open('/documents'); const user = userEvent.setup();
+    await screen.findByText('Semantic 索引管理');
+    await user.click(screen.getByRole('button', { name: '#21' }));
+    const drawer = documentDrawer();
+    await within(drawer).findByText('Quote 21');
+
+    if (operation === 'title') {
+      const title = within(drawer).getByRole('textbox', { name: 'Document title' });
+      await user.clear(title); await user.type(title, 'Changed quote');
+      await user.click(within(drawer).getByRole('button', { name: 'Save Title' }));
+      await waitFor(() => expect(requests.some(({ url, method }) => url === '/documents/21' && method === 'patch')).toBe(true));
+    } else if (operation === 'archive') {
+      await user.click(within(drawer).getByRole('button', { name: 'Archive as INACTIVE' }));
+      await waitFor(() => expect(requests.some(({ url, method }) => url === '/documents/21' && method === 'patch')).toBe(true));
+    } else {
+      await user.click(within(drawer).getByRole('button', { name: 'Start Explicit Ingestion' }));
+      await user.click(within(latestDialog()).getByRole('button', { name: 'Confirm Ingestion' }));
+      await waitFor(() => expect(requests.some(({ url }) => url === '/documents/21/ingestions')).toBe(true));
+    }
+
+    await router.navigate('/documents?documentId=22');
+    await within(drawer).findByText('v22');
+    const lateResult = { ...first, title: `Late ${operation} result`, status: operation === 'ingestion' ? 'READY' : 'INACTIVE' };
+    delayedMutation.resolve(response(requests.find(({ url, method }) => url === (operation === 'ingestion' ? '/documents/21/ingestions' : '/documents/21') && (operation === 'ingestion' || method === 'patch'))!, lateResult));
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(within(drawer).getByText('Quote 22')).toBeTruthy();
+    expect(within(drawer).getByText('v22')).toBeTruthy();
+    expect(within(drawer).queryByText(/Late .* result/)).toBeNull();
+    await user.click(within(drawer).getByRole('button', { name: '核准出站' }));
+    await user.click(within(latestDialog()).getByRole('button', { name: '確認核准出站' }));
+    expect(await within(drawer).findByText('Backend 本次審核回應：APPROVED')).toBeTruthy();
+    expect(requests.filter(({ url }) => url === '/semantic-index/documents/22/approve-outbound')).toHaveLength(1);
+    expect(requests.some(({ url }) => url === '/semantic-index/documents/21/approve-outbound')).toBe(false);
+  });
+
+  it('ignores a delayed ingestion verification response after switching documents', async () => {
+    const first = { ...documentProcessing, title: 'Quote 21', status: 'PROCESSING' };
+    const second = { ...documentProcessing, id: 22, title: 'Quote 22', version: 'v22', status: 'READY' };
+    const delayedVerification = deferred<AxiosResponse>();
+    const requests: InternalAxiosRequestConfig[] = [];
+    let detail21Count = 0;
+    axiosClient.defaults.adapter = vi.fn(async (config) => {
+      requests.push(config);
+      if (config.url === '/auth/me') return response(config, { id: 1, username: 'admin', displayName: 'Admin', role: 'ADMIN' });
+      if (config.url === '/documents' && config.method === 'get') return response(config, page([first, second]));
+      if (config.url === '/documents/21' && config.method === 'get') return ++detail21Count === 1 ? response(config, first) : delayedVerification.promise;
+      if (config.url === '/documents/22' && config.method === 'get') return response(config, second);
+      if (config.url === '/documents/21/ingestions') throw new AxiosError('timeout', 'ETIMEDOUT');
+      if (config.url === '/semantic-index/documents/22/approve-outbound') return response(config, { documentId: 22, version: 'v22', sourceHash: 'hash22', approvedBy: 1, status: 'APPROVED', reason: null });
+      throw new Error(`Unexpected ${config.method} ${config.url}`);
+    });
+    await open('/documents'); const user = userEvent.setup();
+    await screen.findByText('Semantic 索引管理');
+    await user.click(screen.getByRole('button', { name: '#21' }));
+    const drawer = documentDrawer();
+    await within(drawer).findByText('Quote 21');
+    await user.click(within(drawer).getByRole('button', { name: 'Start Explicit Ingestion' }));
+    await user.click(within(latestDialog()).getByRole('button', { name: 'Confirm Ingestion' }));
+    await within(drawer).findByText('索引結果不明，已鎖定重送');
+    const verificationButtons = within(drawer).getAllByRole('button', { name: '查核真實文件狀態' });
+    await user.click(verificationButtons[verificationButtons.length - 1]);
+    await waitFor(() => expect(detail21Count).toBe(2));
+    await router.navigate('/documents?documentId=22');
+    await within(drawer).findByText('v22');
+    delayedVerification.resolve(response(requests.find(({ url }) => url === '/documents/21')!, { ...first, title: 'Late verification', status: 'READY' }));
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(within(drawer).getByText('Quote 22')).toBeTruthy();
+    expect(within(drawer).queryByText(/已查核 Backend 真實狀態/)).toBeNull();
+    expect(within(drawer).queryByText('索引結果不明，已鎖定重送')).toBeNull();
+  });
+
+  it('refreshes the same deep-linked document and closes without reloading it', async () => {
+    const original = { ...documentProcessing, title: 'Original quote', version: 'v1' };
+    const refreshed = { ...documentProcessing, title: 'Updated quote', version: 'v2' };
+    const calls: InternalAxiosRequestConfig[] = [];
+    axiosClient.defaults.adapter = vi.fn(async (config) => {
+      calls.push(config);
+      if (config.url === '/auth/me') return response(config, { id: 1, username: 'admin', displayName: 'Admin', role: 'ADMIN' });
+      if (config.url === '/documents') return response(config, page([original]));
+      if (config.url === '/documents/21') return response(config, calls.filter(({ url }) => url === '/documents/21').length === 1 ? original : refreshed);
+      throw new Error(`Unexpected ${config.method} ${config.url}`);
+    });
+    await open('/documents?documentId=21');
+    await waitFor(() => expect(calls.filter(({ url }) => url === '/documents/21')).toHaveLength(1));
+    const drawer = documentDrawer();
+    await userEvent.setup().click(await within(drawer).findByRole('button', { name: '重新取得文件資訊' }));
+    await within(drawer).findByText('v2');
+    expect(within(drawer).getByText('v2')).toBeTruthy();
+    const getCountBeforeClose = calls.filter(({ url }) => url === '/documents/21').length;
+    await userEvent.setup().click(within(drawer).getByRole('button', { name: /close/i }));
+    await waitFor(() => expect(new URLSearchParams(window.location.search).has('documentId')).toBe(false));
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    expect(calls.filter(({ url }) => url === '/documents/21')).toHaveLength(getCountBeforeClose);
+    await waitFor(() => expect(documentDrawer().className).not.toContain('ant-drawer-open'));
+  });
+
+  it('marks saved Audit responses historical after document upload, ingestion and outbound approval or exclusion', async () => {
+    let auditId = 90;
+    const requests: InternalAxiosRequestConfig[] = [];
+    axiosClient.defaults.adapter = vi.fn(async (config) => {
+      requests.push(config);
+      if (config.url === '/auth/me') return response(config, { id: 1, username: 'admin', displayName: 'Admin', role: 'ADMIN' });
+      if (config.url === '/documents' && config.method === 'get') return response(config, page([documentProcessing]));
+      if (config.url === '/documents/21' && config.method === 'get') return response(config, documentProcessing);
+      if (config.url === '/documents/21/ingestions') return response(config, { ...documentProcessing, status: 'READY' });
+      if (config.url === '/documents' && config.method === 'post') return response(config, { ...documentProcessing, id: 22, title: 'New quote' });
+      if (config.url === '/semantic-index/gate-audit') return response(config, { passed: true, generationKey: 'gen', modelId: 'model', dimensions: 768, ready: 1, skipped: 0, failed: 0, requiresReview: 0, pending: 0, findings: [], auditId: auditId++ });
+      if (config.url === '/semantic-index/documents/21/approve-outbound') return response(config, { documentId: 21, version: 'v1', sourceHash: 'hash', approvedBy: 1, status: 'APPROVED', reason: null });
+      if (config.url === '/semantic-index/documents/21/exclude-outbound') return response(config, { documentId: 21, version: 'v1', sourceHash: 'hash', approvedBy: 1, status: 'SKIPPED', reason: null });
+      throw new Error(`Unexpected ${config.method} ${config.url}`);
+    });
+    await open('/documents'); const user = userEvent.setup();
+    await screen.findByText('Semantic 索引管理');
+    const saveAudit = async () => {
+      await user.click(screen.getByRole('button', { name: '執行並保存 Gate Audit' }));
+      await user.click(screen.getByRole('button', { name: '確認並保存 Audit' }));
+      await screen.findByText('本次 Gate Audit 通過');
+    };
+
+    await saveAudit();
+    await user.click(screen.getByRole('button', { name: /Upload Document/ }));
+    const uploadDialog = latestDialog();
+    fireEvent.mouseDown(within(uploadDialog).getByLabelText('Upload document type'));
+    await user.click(await screen.findByText('QUOTATION', { selector: '.ant-select-item-option-content' }));
+    await user.type(within(uploadDialog).getByLabelText('Upload title'), 'New quote');
+    await user.type(within(uploadDialog).getByLabelText('Upload version'), 'v1');
+    await user.upload(within(uploadDialog).getByLabelText('Upload file'), new File(['quote'], 'quote.txt', { type: 'text/plain' }));
+    await user.click(within(uploadDialog).getByRole('button', { name: 'Upload' }));
+    await screen.findByText('歷史 Gate Audit 回應（已過期）');
+
+    await saveAudit();
+    await user.click(screen.getByRole('button', { name: '#21' }));
+    const drawer = documentDrawer();
+    await within(drawer).findByRole('button', { name: 'Start Explicit Ingestion' });
+    await user.click(within(drawer).getByRole('button', { name: 'Start Explicit Ingestion' }));
+    await user.click(within(latestDialog()).getByRole('button', { name: 'Confirm Ingestion' }));
+    expect(await within(drawer).findByText('READY')).toBeTruthy();
+    await screen.findByText('歷史 Gate Audit 回應（已過期）');
+
+    await saveAudit();
+    await user.click(within(drawer).getByRole('button', { name: '核准出站' }));
+    await user.click(within(latestDialog()).getByRole('button', { name: '確認核准出站' }));
+    await within(drawer).findByText('Backend 本次審核回應：APPROVED');
+    await screen.findByText('歷史 Gate Audit 回應（已過期）');
+
+    await saveAudit();
+    await user.click(within(drawer).getByRole('button', { name: '排除出站' }));
+    await user.click(within(latestDialog()).getByRole('button', { name: '確認排除出站' }));
+    await within(drawer).findByText('Backend 本次審核回應：SKIPPED');
+    expect(await screen.findByText('歷史 Gate Audit 回應（已過期）')).toBeTruthy();
+    expect(requests.filter(({ url, method }) => url === '/documents' && method === 'post')).toHaveLength(1);
+  }, 120_000);
+
   it('shows backend status, hides storagePath, and performs one explicitly confirmed ingestion followed by refresh', async () => {
     const requests: InternalAxiosRequestConfig[] = [];
     axiosClient.defaults.adapter = vi.fn(async (config) => {

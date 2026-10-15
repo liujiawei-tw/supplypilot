@@ -36,12 +36,16 @@ MySQL V19 增加審核版本、狀態與原因。V18 時期只有來源雜湊的
 
 ---
 
-## 前端管理流程與展示驗收界線（2026-10-14 補充；規劃）
+## 前端管理流程與展示驗收界線（2026-10-15 補充）
 
 本 Runbook 上述 API、審核政策及 Semantic Read Switch 操作仍為權威，UI 改善只提供既有操作的視覺入口，不改後端語意或安全規則。
 
-- **相關工作：** [UI-B／SP-906 #112](https://github.com/liujiawei-tw/supplypilot/issues/112) 及 [Impeccable 前端改善計畫](impeccable-ui-review-plan.md)。目前 `DocumentsPage` 有 Upload／Ingestion，但管理員在同一 UI 完成 outbound approval／backfill／readiness／gate audit 尚是新增的工作項目；不能把現有 Backend API 當成 Browser E2E 已完成。
+- **管理員操作 UI：** UI-B／SP-906 #112 在 Documents 工作區提供 outbound approval／exclude、Backfill、Readiness、Gate Audit 與 AI Query 來源核對入口，操作及錯誤／UNKNOWN 查核界線見 [Semantic 管理員 UI 操作說明](semantic-admin-ui.md)。這是 UI 技術交付，不代表真實 Provider／完整 Browser E2E 已完成。
 - **本機六文件驗收：** 先核對五份正常可查的虛構文件基線；第六份文件由有權限帳號在瀏覽器實際上傳，經既有 Ingestion → ADMIN 出站審核 → Backfill → Gate Audit →（依操作手冊顯式設定讀取路徑）→ AI Query → Document ID／Version／Chunk／Offset 引用核對。新增 READY 文件後 Gate 暫時失效時，記錄恢復條件與實際耗時；未測不得宣稱可立即查詢。
 - **Demo 權限：** AWS 公開展示共用 `PROCUREMENT_MANAGER` 帳號不具 Upload／Admin Review 權限；完整六文件人工操作安排於本機，以現有 Security Matrix 為準，不應擅自擴權。
-- **保留未完成證據：** [SP-901 #43](https://github.com/liujiawei-tw/supplypilot/issues/43)／[PR #111](https://github.com/liujiawei-tw/supplypilot/pull/111) 的 Code Review FINAL PASS 不包含真實 Gemini Chat/Embedding、Gate、第六份 Source-cited Query 及 Browser Reset E2E；外部驗收失敗不得僅憑 Fake Provider 或 CI 綠燈標為 PASS。
+- **保留未完成證據：** [SP-901 #43](https://github.com/liujiawei-tw/supplypilot/issues/43) 的程式交付已關閉；真實 Gemini Chat/Embedding、Gate、第六份 Source-cited Query 及 Browser Reset E2E 由仍開啟的 [SP-910 #117](https://github.com/liujiawei-tw/supplypilot/issues/117) 接手。Fake Provider 或 CI 綠燈不得標成真實環境 PASS。
 - **不改既有部署順序：** SP-905 #110 文件繁中化後須重建新索引及 Gate；SP-903 先本機 Docker、後 AWS；最終驗收和影片在 SP-904 進行。
+
+## Semantic 管理員 UI 操作（SP-906／Issue #112）
+
+ADMIN 從 Documents 工作區進入 Semantic 索引管理；使用方式、各步驟 API、錯誤與 UNKNOWN 查核界線，以及第六份文件交接 #117 的 Browser 步驟，見 [`semantic-admin-ui.md`](semantic-admin-ui.md)。UI 僅提供既有 API 的明確操作入口，不新增審核狀態查詢 API，也不控制 `SEMANTIC_READ_ENABLED`。

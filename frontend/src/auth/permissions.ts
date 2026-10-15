@@ -29,6 +29,7 @@ export const permissions = {
   documentUpload: ['PROCUREMENT_STAFF', 'ADMIN'],
   documentUpdate: ['PROCUREMENT_STAFF', 'ADMIN'],
   documentIngest: ['PROCUREMENT_STAFF', 'ADMIN'],
+  semanticManagement: ['ADMIN'],
   aiQuery: ['PROCUREMENT_STAFF', 'PROCUREMENT_MANAGER', 'ADMIN'],
   aiProposal: ['PROCUREMENT_STAFF', 'ADMIN'],
 } as const satisfies Record<string, readonly UserRole[]>;
