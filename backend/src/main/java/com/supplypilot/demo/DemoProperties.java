@@ -6,7 +6,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 public class DemoProperties {
     private String accountPassword;
     private String baselineDate;
-    private String datasetVersion = "sp-901-v1";
+    private String datasetVersion = "sp-905-zh-tw-v1";
     private String samplesPath = "../samples/documents";
     private String resetConfirmation;
     private String allowedDatabase = "supplypilot_demo";

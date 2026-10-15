@@ -19,10 +19,10 @@ interface RecommendationResultProps {
 export default function RecommendationResult({ recommendation, ranking, rankingLoading, rankingError, retryRanking, showDeepLink }: RecommendationResultProps) {
   return <Space orientation="vertical" size="large" style={{ width: '100%' }}>
     <RecommendationSummary recommendation={recommendation} showDeepLink={showDeepLink} />
-    <Card title="Supplier Ranking Snapshot" extra={<Typography.Text type="secondary">Backend order and rank preserved</Typography.Text>}>
-      {rankingError && <ErrorState title="Supplier ranking query failed" error={rankingError} onRetry={retryRanking} retryText="Retry supplier ranking" />}
-      {rankingLoading && ranking === null ? <LoadingState tip="Loading supplier ranking..." /> : ranking !== null && <SupplierRankingTable rows={ranking} unit={recommendation.material.unit} />}
-      {rankingError && ranking !== null && <Button onClick={retryRanking}>Retry supplier ranking</Button>}
+    <Card title="供應商排名快照" extra={<Typography.Text type="secondary">保留後端排序與名次</Typography.Text>}>
+      {rankingError && <ErrorState title="供應商排名查詢失敗" error={rankingError} onRetry={retryRanking} retryText="重新查詢供應商排名" />}
+      {rankingLoading && ranking === null ? <LoadingState tip="正在載入供應商排名…" /> : ranking !== null && <SupplierRankingTable rows={ranking} unit={recommendation.material.unit} />}
+      {rankingError && ranking !== null && <Button onClick={retryRanking}>重新查詢供應商排名</Button>}
     </Card>
     {ranking !== null && <RecommendationDraftForm key={recommendation.id} recommendation={recommendation} ranking={ranking} />}
   </Space>;

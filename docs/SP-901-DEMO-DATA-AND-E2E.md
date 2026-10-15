@@ -3,7 +3,7 @@
 ## 交付定位
 
 - Issue：[SP-901 #43](https://github.com/liujiawei-tw/supplypilot/issues/43)
-- Dataset Version：`sp-901-v1`
+- Dataset Version：`sp-905-zh-tw-v1`（五份 baseline 文件已完成繁體中文化；舊 `sp-901-v1` 不可視為相同語料）
 - Profile：僅 `demo`，且 `supplypilot.demo-data-enabled=true`
 - Date Anchor：啟動時由 Spring `Clock` 取得，或以 `DEMO_BASELINE_DATE` 指定；實際值寫入 `demo_dataset_state.baseline_date`
 - 所有公司、文件、需求與報價條件均為虛構資料。

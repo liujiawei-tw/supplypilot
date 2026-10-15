@@ -10,10 +10,10 @@ export const NotFoundPage: React.FC = () => {
       <Result
         status="404"
         title="404"
-        subTitle="Sorry, the page you visited does not exist."
+        subTitle="找不到您要瀏覽的頁面。"
         extra={
           <Button type="primary" onClick={() => navigate('/dashboard')}>
-            Back to Dashboard
+            返回儀表板
           </Button>
         }
       />

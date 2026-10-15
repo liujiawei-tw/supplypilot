@@ -1,13 +1,12 @@
-Title: SUP-002 Fictional Quotation Terms
-DocumentType: QUOTATION
-Version: 1.0
-Fictional demo document. All commercial conditions are invented.
+標題：SUP-002 虛構報價條件
+文件類型：QUOTATION
+版本：1.0
+虛構展示文件：本文內容、公司名稱與商業條件均為虛構，不代表真實公司或報價契約。
 
-East Harbor Trading (SUP-002) offers MAT-001 and MAT-002 under the unit prices maintained in the
-SupplyPilot demo database. This quotation remains valid for thirty calendar days from issue.
-Standard delivery is three calendar days for MAT-001 when the requested quantity follows the
-configured package multiple. Freight is included for delivery to the fictional demo warehouse.
-An accepted quotation does not replace the required purchase-order approval workflow.
+East Harbor Trading（SUP-002）於 SupplyPilot 虛構展示資料中供應 MAT-001 與 MAT-002，單價以展示資料庫中的設定為準。本報價自開立日起 30 個曆日內有效。MAT-001 訂購數量符合設定的包裝倍數時，標準交期為 3 個曆日。運費包含送至虛構展示倉庫。接受報價不會取代必要的採購單核准流程。
 
-Question: How long is the SUP-002 quotation valid?
-Expected basis: thirty calendar days from issue.
+問答：SUP-002 的報價自開立日起有效多久？
+預期依據：30 個曆日。
+
+問答：MAT-001 數量符合包裝倍數時，SUP-002 的標準交期為多久？
+預期依據：3 個曆日。

@@ -94,7 +94,7 @@ function StockLevels() {
     setUnknownResult(false);
     try {
       await adjustInventory(adjusting.materialId, { quantity: values.quantity!, reason: values.reason!.trim() });
-      apiMessage.success('Inventory adjustment 已完成');
+      apiMessage.success('庫存調整已完成');
       setAdjusting(null);
       form.resetFields();
       await load();
@@ -121,15 +121,15 @@ function StockLevels() {
   };
 
   const columns: TableProps<InventoryResponse>['columns'] = [
-    { title: 'Material ID', dataIndex: 'materialId' },
-    { title: 'Material Code', dataIndex: 'materialCode' },
-    { title: 'Material Name', dataIndex: 'materialName' },
-    { title: 'Quantity', dataIndex: 'quantity' },
-    { title: 'Unit', dataIndex: 'unit' },
-    { title: 'Updated At', dataIndex: 'updatedAt', render: formatTimestamp },
-    { title: 'Actions', key: 'actions', render: (_value, inventory) => <Space>
-      <Button size="small" onClick={() => void openDetail(inventory.materialId)}>Detail</Button>
-      {canAdjust && <Button size="small" type="primary" onClick={() => openAdjustment(inventory)}>Adjust</Button>}
+    { title: '物料編號', dataIndex: 'materialId' },
+    { title: '物料代碼', dataIndex: 'materialCode' },
+    { title: '物料名稱', dataIndex: 'materialName' },
+    { title: '庫存數量', dataIndex: 'quantity' },
+    { title: '單位', dataIndex: 'unit' },
+    { title: '更新時間', dataIndex: 'updatedAt', render: formatTimestamp },
+    { title: '操作', key: 'actions', render: (_value, inventory) => <Space>
+      <Button size="small" onClick={() => void openDetail(inventory.materialId)}>檢視</Button>
+      {canAdjust && <Button size="small" type="primary" onClick={() => openAdjustment(inventory)}>調整庫存</Button>}
     </Space> },
   ];
   const filtered = query.materialId !== undefined || !!query.materialCode;
@@ -137,49 +137,49 @@ function StockLevels() {
   return <Space orientation="vertical" size="large" style={{ width: '100%' }}>
     {contextHolder}
     <Space wrap>
-      <InputNumber aria-label="Inventory material ID filter" placeholder="Material ID" min={1} precision={0} value={query.materialId} onChange={(materialId) => setQuery((current) => ({ ...current, materialId: materialId ?? undefined, page: 0 }))} />
-      <Input aria-label="Inventory material code filter" placeholder="Material Code" allowClear value={query.materialCode} onChange={(event) => setQuery((current) => ({ ...current, materialCode: event.target.value, page: 0 }))} />
+      <InputNumber aria-label="物料編號篩選" placeholder="物料編號" min={1} precision={0} value={query.materialId} onChange={(materialId) => setQuery((current) => ({ ...current, materialId: materialId ?? undefined, page: 0 }))} />
+      <Input aria-label="物料代碼篩選" placeholder="物料代碼" allowClear value={query.materialCode} onChange={(event) => setQuery((current) => ({ ...current, materialCode: event.target.value, page: 0 }))} />
     </Space>
-    {listError && <ErrorState title="Inventory request failed" error={listError} onRetry={() => void load()} />}
-    {loading && !data ? <LoadingState tip="Loading inventory..." /> : <Table<InventoryResponse>
+    {listError && <ErrorState title="庫存查詢失敗" error={listError} onRetry={() => void load()} />}
+    {loading && !data ? <LoadingState tip="正在載入庫存…" /> : <Table<InventoryResponse>
       rowKey="materialId" columns={columns} dataSource={data?.content ?? []} loading={loading}
-      locale={{ emptyText: <EmptyState simple description={filtered ? '沒有符合查詢條件的 Inventory' : '尚無 Inventory 資料'} /> }}
+      locale={{ emptyText: <EmptyState simple description={filtered ? '沒有符合查詢條件的庫存' : '目前沒有庫存資料'} /> }}
       pagination={{ current: (data?.page ?? 0) + 1, pageSize: data?.size ?? query.size, total: data?.totalElements ?? 0, showSizeChanger: true }}
       onChange={(pagination) => setQuery((current) => ({ ...current, page: (pagination.current ?? 1) - 1, size: pagination.pageSize ?? 20 }))}
     />}
-    <Drawer title={detail ? `${detail.materialCode} Inventory` : 'Inventory Detail'} open={detailLoading || !!detail || !!detailError} onClose={() => { detailRequestId.current += 1; setDetail(null); setDetailError(null); setDetailLoading(false); }} size="large">
-      {detailLoading && <LoadingState tip="Loading inventory detail..." />}
-      {detailError && <ErrorState title="Inventory detail failed" error={detailError} />}
+    <Drawer title={detail ? `${detail.materialCode} 庫存明細` : '庫存明細'} open={detailLoading || !!detail || !!detailError} onClose={() => { detailRequestId.current += 1; setDetail(null); setDetailError(null); setDetailLoading(false); }} size="large">
+      {detailLoading && <LoadingState tip="正在載入庫存明細…" />}
+      {detailError && <ErrorState title="庫存詳細資料載入失敗" error={detailError} />}
       {detail && <Descriptions column={1} bordered size="small" items={[
-        { key: 'id', label: 'Material ID', children: detail.materialId },
-        { key: 'code', label: 'Material Code', children: detail.materialCode },
-        { key: 'name', label: 'Material Name', children: detail.materialName },
-        { key: 'quantity', label: 'Quantity', children: detail.quantity },
-        { key: 'unit', label: 'Unit', children: detail.unit },
-        { key: 'updatedAt', label: 'Updated At', children: formatTimestamp(detail.updatedAt) },
+        { key: 'id', label: '物料編號', children: detail.materialId },
+        { key: 'code', label: '物料代碼', children: detail.materialCode },
+        { key: 'name', label: '物料名稱', children: detail.materialName },
+        { key: 'quantity', label: '庫存數量', children: detail.quantity },
+        { key: 'unit', label: '單位', children: detail.unit },
+        { key: 'updatedAt', label: '更新時間', children: formatTimestamp(detail.updatedAt) },
       ]} />}
     </Drawer>
-    <Modal title="Manual Inventory Adjustment" open={!!adjusting} onCancel={() => { if (!submitting) setAdjusting(null); }} onOk={() => void submitAdjustment()} okText="Confirm Adjustment" confirmLoading={submitting} okButtonProps={{ disabled: submitting }} destroyOnHidden>
+    <Modal title="手動調整庫存" open={!!adjusting} onCancel={() => { if (!submitting) setAdjusting(null); }} onOk={() => void submitAdjustment()} okText="確認調整" confirmLoading={submitting} okButtonProps={{ disabled: submitting }} destroyOnHidden>
       {adjusting && <>
         <Descriptions column={1} size="small" bordered items={[
-          { key: 'material', label: 'Material', children: `${adjusting.materialCode} — ${adjusting.materialName}` },
-          { key: 'current', label: 'Current Quantity', children: `${adjusting.quantity} ${adjusting.unit}` },
+          { key: 'material', label: '物料', children: `${adjusting.materialCode} — ${adjusting.materialName}` },
+          { key: 'current', label: '目前數量', children: `${adjusting.quantity} ${adjusting.unit}` },
         ]} />
         <Alert style={{ marginTop: 16 }} type="info" showIcon title="正數增加庫存，負數減少庫存；輸入的是異動量，不是調整後總量。" />
         {unknownResult && <Alert style={{ marginTop: 16 }} type="warning" showIcon title="操作結果待確認" description={<Space orientation="vertical"><span>請先重新查詢庫存確認實際結果，再決定是否重新送出。本系統不會自動重送。</span><Button size="small" onClick={() => void verifyAdjustmentResult()}>重新查詢庫存</Button></Space>} />}
-        {adjustmentError && <ErrorState title="Inventory adjustment failed" error={adjustmentError} />}
+        {adjustmentError && <ErrorState title="庫存調整失敗" error={adjustmentError} />}
         <Form form={form} layout="vertical" style={{ marginTop: 16 }}>
-          <Form.Item name="quantity" label="Change Quantity" rules={[
-            { required: true, message: 'Quantity is required' },
+          <Form.Item name="quantity" label="異動數量" rules={[
+            { required: true, message: '請輸入異動數量' },
             { validator: async (_rule, value: string | undefined) => {
               const error = getAdjustmentQuantityError(value);
               if (error) throw new Error(error);
             } },
-          ]}><InputNumber<string> aria-label="Adjustment quantity" stringMode style={{ width: '100%' }} /></Form.Item>
-          <Form.Item name="reason" label="Reason" rules={[{ validator: async (_rule, value: string | undefined) => {
+          ]}><InputNumber<string> aria-label="異動數量" stringMode style={{ width: '100%' }} /></Form.Item>
+          <Form.Item name="reason" label="原因" rules={[{ validator: async (_rule, value: string | undefined) => {
             const error = getAdjustmentReasonError(value);
             if (error) throw new Error(error);
-          } }]}><Input.TextArea aria-label="Adjustment reason" maxLength={500} showCount rows={3} /></Form.Item>
+          } }]}><Input.TextArea aria-label="調整原因" maxLength={500} showCount rows={3} /></Form.Item>
         </Form>
       </>}
     </Modal>
@@ -210,7 +210,7 @@ export default function InventoryPage() {
   if (!activeKey) return <UnauthorizedPage />;
   const items = allowedTabs.map((key) => ({
     key,
-    label: key === 'stock-levels' ? 'Stock Levels' : 'Stock Transactions',
+    label: key === 'stock-levels' ? '庫存水位' : '庫存異動',
     children: key === activeKey
       ? key === 'stock-levels'
         ? <StockLevels />
@@ -219,7 +219,7 @@ export default function InventoryPage() {
   }));
 
   return <Space orientation="vertical" size="large" style={{ width: '100%' }}>
-    <div><Typography.Title level={2} style={{ marginBottom: 0 }}>Inventory</Typography.Title><Typography.Text type="secondary">庫存水位與異動查詢</Typography.Text></div>
+    <div><Typography.Title level={2} style={{ marginBottom: 0 }}>庫存管理</Typography.Title><Typography.Text type="secondary">查詢庫存水位與庫存異動</Typography.Text></div>
     <Tabs items={items} activeKey={activeKey} onChange={(key) => {
       const next = new URLSearchParams(params);
       next.set('tab', key);

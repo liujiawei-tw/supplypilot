@@ -1,12 +1,9 @@
-Title: MAT-001 Assam Tea Extract Specification
-DocumentType: PRODUCT_SPECIFICATION
-Version: 1.0
-Fictional demo specification.
+標題：MAT-001 阿薩姆紅茶萃取物規格
+文件類型：PRODUCT_SPECIFICATION
+版本：1.0
+虛構展示文件：本文內容與物料規格均為虛構，不代表真實公司或商品規格。
 
-Material MAT-001 is Assam Tea Extract and its base unit is KG. It is a dark amber, water-soluble
-tea concentrate intended for fictional beverage trials. Packages must be sealed, dry, and labelled
-with the material code and lot identifier. Store the material in a cool, dry area away from direct
-sunlight. The demo receiving inspection checks identity, intact packaging, and declared quantity.
+MAT-001 為阿薩姆紅茶萃取物，基本單位為 KG，供虛構飲品試製使用。產品為深琥珀色、水溶性茶濃縮液。包裝須密封、保持乾燥，並標示物料代碼與批次識別。請存放於陰涼乾燥處，避免陽光直射。展示收貨檢查會核對物料識別、包裝完整性與標示數量。
 
-Question: What is the base unit and required storage condition for MAT-001?
-Expected basis: KG; cool and dry, away from direct sunlight.
+問答：MAT-001 的基本單位與儲存條件為何？
+預期依據：基本單位為 KG；存放於陰涼乾燥處並避免陽光直射。

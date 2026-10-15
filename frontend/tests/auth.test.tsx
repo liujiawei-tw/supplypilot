@@ -89,12 +89,12 @@ describe('authentication and routing', () => {
     const requests = mockServer('ADMIN');
     localStorage.setItem(TOKEN_STORAGE_KEY, 'valid-token');
     await open('/dashboard');
-    expect(await screen.findByText('Operations Inbox')).toBeTruthy();
+    expect(await screen.findByText('工作總覽')).toBeTruthy();
     expect(requests).toEqual(['/auth/me']);
     fireEvent.click(screen.getByRole('button', { name: /登出/ }));
     await waitFor(() => expect(router.state.location.pathname).toBe('/login'));
     expect(localStorage.getItem(TOKEN_STORAGE_KEY)).toBeNull();
-    expect(screen.queryByText('Operations Inbox')).toBeNull();
+    expect(screen.queryByText('工作總覽')).toBeNull();
   });
 
   it('clears an expired token and does not show protected content during initialization', async () => {
@@ -104,7 +104,7 @@ describe('authentication and routing', () => {
     }));
     localStorage.setItem(TOKEN_STORAGE_KEY, 'expired');
     await open('/dashboard');
-    expect(screen.queryByText('Operations Inbox')).toBeNull();
+    expect(screen.queryByText('工作總覽')).toBeNull();
     await waitFor(() => expect(rejectMe).toBeTypeOf('function'));
     rejectMe();
     expect(await screen.findByText('登入採購與供應鏈決策平台')).toBeTruthy();
@@ -123,12 +123,12 @@ describe('authentication and routing', () => {
     });
     localStorage.setItem(TOKEN_STORAGE_KEY, 'valid-token');
     await open('/dashboard');
-    expect(screen.queryByText('Operations Inbox')).toBeNull();
+    expect(screen.queryByText('工作總覽')).toBeNull();
     expect(await screen.findByText('暫時無法驗證登入狀態')).toBeTruthy();
     expect(localStorage.getItem(TOKEN_STORAGE_KEY)).toBe('valid-token');
     expect(router.state.location.pathname).toBe('/dashboard');
     fireEvent.click(screen.getByRole('button', { name: '重試驗證' }));
-    expect(await screen.findByText('Operations Inbox')).toBeTruthy();
+    expect(await screen.findByText('工作總覽')).toBeTruthy();
     expect(requests).toEqual(['/auth/me', '/auth/me']);
   });
 
@@ -173,9 +173,9 @@ describe('authentication and routing', () => {
     expect(await screen.findByText('暫時無法驗證登入狀態')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: '重試驗證' }));
     await waitFor(() => expect(finishRetry).toBeTypeOf('function'));
-    expect(screen.queryByText('Operations Inbox')).toBeNull();
+    expect(screen.queryByText('工作總覽')).toBeNull();
     await act(async () => finishRetry());
-    expect(await screen.findByText('Operations Inbox')).toBeTruthy();
+    expect(await screen.findByText('工作總覽')).toBeTruthy();
   });
 
   it('clears a just-issued token when post-login /auth/me returns 401', async () => {
@@ -189,7 +189,7 @@ describe('authentication and routing', () => {
     await user.type(screen.getByLabelText('密碼'), 'password');
     await user.click(screen.getByRole('button', { name: '登 入' }));
     expect(await screen.findByText(/登入失敗。/)).toBeTruthy();
-    expect(screen.queryByText('Operations Inbox')).toBeNull();
+    expect(screen.queryByText('工作總覽')).toBeNull();
     expect(localStorage.getItem(TOKEN_STORAGE_KEY)).toBeNull();
   });
 
@@ -197,16 +197,16 @@ describe('authentication and routing', () => {
     const requests = mockServer(role);
     localStorage.setItem(TOKEN_STORAGE_KEY, 'valid-token');
     await open('/dashboard');
-    expect(await screen.findByText('Operations Inbox')).toBeTruthy();
+    expect(await screen.findByText('工作總覽')).toBeTruthy();
     expect(document.querySelector('.ant-layout-header')?.textContent).toContain(identities[role].displayName);
     const sidebar = document.querySelector('.ant-layout-sider')!;
-    expect(sidebar.textContent).toContain('Demand / Inventory');
-    fireEvent.click([...sidebar.querySelectorAll('.ant-menu-submenu-title')].find((item) => item.textContent === 'Demand / Inventory')!);
-    await waitFor(() => expect([...sidebar.querySelectorAll('.ant-menu-item')].some((item) => item.textContent === 'Inventory')).toBe(true));
+    expect(sidebar.textContent).toContain('需求與庫存');
+    fireEvent.click([...sidebar.querySelectorAll('.ant-menu-submenu-title')].find((item) => item.textContent === '需求與庫存')!);
+    await waitFor(() => expect([...sidebar.querySelectorAll('.ant-menu-item')].some((item) => item.textContent === '庫存管理')).toBe(true));
     const workLinks = [...document.querySelectorAll('.ant-card a')].map((link) => link.textContent);
-    expect(workLinks.includes('Receiving')).toBe(role === 'WAREHOUSE_STAFF' || role === 'ADMIN');
-    expect(workLinks.includes('Purchase Orders')).toBe(role === 'PROCUREMENT_STAFF' || role === 'PROCUREMENT_MANAGER' || role === 'ADMIN');
-    expect(screen.queryByRole('button', { name: /AI Assistant/ }) !== null).toBe(role === 'PROCUREMENT_STAFF' || role === 'PROCUREMENT_MANAGER' || role === 'ADMIN');
+    expect(workLinks.includes('收貨作業')).toBe(role === 'WAREHOUSE_STAFF' || role === 'ADMIN');
+    expect(workLinks.includes('採購單管理')).toBe(role === 'PROCUREMENT_STAFF' || role === 'PROCUREMENT_MANAGER' || role === 'ADMIN');
+    expect(screen.queryByRole('button', { name: /AI 助理/ }) !== null).toBe(role === 'PROCUREMENT_STAFF' || role === 'PROCUREMENT_MANAGER' || role === 'ADMIN');
     await router.navigate('/purchase-orders/42');
     if (role === 'WAREHOUSE_STAFF' || role === 'PRODUCTION_PLANNER') expect(await screen.findByText('403')).toBeTruthy();
     else expect(await screen.findByText('PO-000042')).toBeTruthy();
@@ -217,8 +217,8 @@ describe('authentication and routing', () => {
     const requests = mockServer('PROCUREMENT_MANAGER');
     localStorage.setItem(TOKEN_STORAGE_KEY, 'valid-token');
     await open('/inventory?tab=stock-levels&purchaseOrderId=42');
-    expect(await screen.findByText('Stock Transactions')).toBeTruthy();
-    expect(screen.queryByText('Stock Levels')).toBeNull();
+    expect(await screen.findByText('庫存異動')).toBeTruthy();
+    expect(screen.queryByText('庫存水位')).toBeNull();
     await waitFor(() => expect(router.state.location.search).toBe('?tab=stock-transactions&purchaseOrderId=42'));
     expect(router.state.historyAction).toBe('REPLACE');
     expect(requests).toEqual(['/auth/me', '/stock-transactions']);
@@ -230,8 +230,8 @@ describe('authentication and routing', () => {
     const requests = mockServer('PRODUCTION_PLANNER');
     localStorage.setItem(TOKEN_STORAGE_KEY, 'valid-token');
     await open('/inventory?tab=stock-transactions&materialId=7');
-    expect(await screen.findByText('Stock Levels')).toBeTruthy();
-    expect(screen.queryByText('Stock Transactions')).toBeNull();
+    expect(await screen.findByText('庫存水位')).toBeTruthy();
+    expect(screen.queryByText('庫存異動')).toBeNull();
     await waitFor(() => expect(router.state.location.search).toBe('?tab=stock-levels&materialId=7'));
     expect(router.state.historyAction).toBe('REPLACE');
     expect(requests).toEqual(['/auth/me', '/inventory']);

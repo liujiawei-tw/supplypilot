@@ -12,6 +12,7 @@ import ErrorState from '../../components/ErrorState';
 import LoadingState from '../../components/LoadingState';
 import RelatedEntitySelect from '../../components/RelatedEntitySelect';
 import type { ApiErrorResponse, PageResponse } from '../../types/api';
+import { displayLabel } from '../../utils/displayLabels';
 
 const statuses: DemandStatus[] = ['ACTIVE', 'CANCELLED'];
 const sortableFields = new Set(['id', 'quantity', 'requiredDate', 'status', 'createdAt', 'updatedAt']);
@@ -192,19 +193,19 @@ export default function DemandsPage() {
 
   const filtered = !!(query.materialId || query.status || query.requiredFrom || query.requiredTo);
   const columns: TableProps<DemandResponse>['columns'] = [
-    { title: 'Demand ID', dataIndex: 'id', sorter: true },
-    { title: 'Material', dataIndex: 'materialId', render: (id: number) => materials[id] ? `${materials[id].code} — ${materials[id].name}` : `Material #${id}` },
-    { title: 'Quantity', dataIndex: 'quantity', sorter: true },
-    { title: 'Required Date', dataIndex: 'requiredDate', sorter: true },
-    { title: 'Status', dataIndex: 'status', sorter: true, render: (status: DemandStatus) => <Tag color={status === 'ACTIVE' ? 'green' : 'default'}>{status}</Tag> },
-    { title: 'Note', dataIndex: 'note', ellipsis: true, render: (note: string | null) => note || '—' },
-    { title: 'Created At', dataIndex: 'createdAt', sorter: true, render: formatTimestamp },
-    { title: 'Actions', key: 'actions', render: (_value, demand) => <Space>
-      <Button size="small" onClick={() => void openDetail(demand.id)}>Detail</Button>
+    { title: '需求編號', dataIndex: 'id', sorter: true },
+    { title: '物料', dataIndex: 'materialId', render: (id: number) => materials[id] ? `${materials[id].code} — ${materials[id].name}` : `物料 #${id}` },
+    { title: '數量', dataIndex: 'quantity', sorter: true },
+    { title: '需求日期', dataIndex: 'requiredDate', sorter: true },
+    { title: '狀態', dataIndex: 'status', sorter: true, render: (status: DemandStatus) => <Tag color={status === 'ACTIVE' ? 'green' : 'default'}>{displayLabel(status)}</Tag> },
+    { title: '備註', dataIndex: 'note', ellipsis: true, render: (note: string | null) => note || '—' },
+    { title: '建立時間', dataIndex: 'createdAt', sorter: true, render: formatTimestamp },
+    { title: '操作', key: 'actions', render: (_value, demand) => <Space>
+      <Button size="small" onClick={() => void openDetail(demand.id)}>檢視</Button>
       {canWrite && demand.status === 'ACTIVE' && <>
-        <Button size="small" onClick={() => openEdit(demand)}>Edit</Button>
-        <Popconfirm title={`取消 Demand #${demand.id}？`} description="此動作會將 Demand 標記為 CANCELLED。" okText="Confirm Cancel" cancelText="Keep Demand" onConfirm={() => void cancel(demand)}>
-          <Button danger size="small">Cancel</Button>
+        <Button size="small" onClick={() => openEdit(demand)}>編輯</Button>
+        <Popconfirm title={`確定取消需求 #${demand.id}？`} description="此動作會將需求標記為「已取消」。" okText="確認取消" cancelText="保留需求" onConfirm={() => void cancel(demand)}>
+          <Button danger size="small">取消需求</Button>
         </Popconfirm>
       </>}
     </Space> },
@@ -214,37 +215,37 @@ export default function DemandsPage() {
   return <Space orientation="vertical" size="large" style={{ width: '100%' }}>
     {contextHolder}
     <Space style={{ width: '100%', justifyContent: 'space-between' }} wrap>
-      <div><Typography.Title level={2} style={{ marginBottom: 0 }}>Demands</Typography.Title><Typography.Text type="secondary">生產需求與狀態管理</Typography.Text></div>
-      {canWrite && <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>Create Demand</Button>}
+      <div><Typography.Title level={2} style={{ marginBottom: 0 }}>需求管理</Typography.Title><Typography.Text type="secondary">管理生產需求與處理狀態</Typography.Text></div>
+      {canWrite && <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>新增需求</Button>}
     </Space>
     <Space wrap>
       <div style={{ minWidth: 280 }}><RelatedEntitySelect entity="material" activeOnly={false} value={query.materialId} onChange={(materialId) => setQuery((current) => ({ ...current, materialId, page: 0 }))} /></div>
-      <Select aria-label="Demand status filter" placeholder="Status" allowClear value={query.status} options={statuses.map((status) => ({ value: status }))} onChange={(status) => setQuery((current) => ({ ...current, status, page: 0 }))} style={{ width: 150 }} />
-      <Input aria-label="Required from" type="date" value={query.requiredFrom} onChange={(event) => setQuery((current) => ({ ...current, requiredFrom: event.target.value, page: 0 }))} />
-      <Input aria-label="Required to" type="date" value={query.requiredTo} onChange={(event) => setQuery((current) => ({ ...current, requiredTo: event.target.value, page: 0 }))} />
+      <Select aria-label="需求狀態篩選" placeholder="狀態" allowClear value={query.status} options={statuses.map((status) => ({ value: status, label: displayLabel(status) }))} onChange={(status) => setQuery((current) => ({ ...current, status, page: 0 }))} style={{ width: 150 }} />
+      <Input aria-label="需求日期起日" type="date" value={query.requiredFrom} onChange={(event) => setQuery((current) => ({ ...current, requiredFrom: event.target.value, page: 0 }))} />
+      <Input aria-label="需求日期迄日" type="date" value={query.requiredTo} onChange={(event) => setQuery((current) => ({ ...current, requiredTo: event.target.value, page: 0 }))} />
     </Space>
-    {listError && <ErrorState title="Demand request failed" error={listError} onRetry={() => void load()} />}
-    {currentFailedMaterialIds.length > 0 && <Alert type="warning" showIcon title="部分 Material 資訊載入失敗" description={<Space orientation="vertical"><span>Demand 資料仍可使用；可重新載入本頁的 Material Code／Name。</span><Button size="small" onClick={retryMaterials}>Retry material details</Button></Space>} />}
+    {listError && <ErrorState title="需求清單載入失敗" error={listError} onRetry={() => void load()} />}
+    {currentFailedMaterialIds.length > 0 && <Alert type="warning" showIcon title="部分物料資訊載入失敗" description={<Space orientation="vertical"><span>需求資料仍可使用；可重新載入本頁的物料代碼與名稱。</span><Button size="small" onClick={retryMaterials}>重新載入物料資訊</Button></Space>} />}
     {loading && !data ? <LoadingState tip="Loading demands..." /> : <Table<DemandResponse>
       rowKey="id" columns={columns} dataSource={data?.content ?? []} loading={loading}
       locale={{ emptyText: <EmptyState simple description={filtered ? '沒有符合查詢條件的 Demand' : '尚無 Demand 資料'} actionText={canWrite && !filtered ? 'Create Demand' : undefined} onAction={canWrite && !filtered ? openCreate : undefined} /> }}
       pagination={{ current: (data?.page ?? 0) + 1, pageSize: data?.size ?? query.size, total: data?.totalElements ?? 0, showSizeChanger: true }} onChange={handleTableChange}
     />}
-    <Modal title={editing ? `Edit Demand #${editing.id}` : 'Create Demand'} open={modalOpen} onCancel={() => setModalOpen(false)} onOk={() => void submit()} confirmLoading={submitting} destroyOnHidden>
-      {submitError && <ErrorState title="Demand submit failed" error={submitError} />}
+    <Modal title={editing ? `編輯需求 #${editing.id}` : '新增需求'} open={modalOpen} onCancel={() => setModalOpen(false)} onOk={() => void submit()} okText={editing ? '儲存變更' : '建立需求'} confirmLoading={submitting} destroyOnHidden>
+      {submitError && <ErrorState title="需求送出失敗" error={submitError} />}
       <Form form={form} layout="vertical">
-        {!editing && <Form.Item name="materialId" label="Material" rules={[{ required: true, message: 'Material is required' }]}><RelatedEntitySelect entity="material" /></Form.Item>}
-        <Form.Item name="quantity" label="Quantity" rules={[{ required: true, message: 'Quantity is required' }, { type: 'number', min: 0.0001, message: 'Quantity must be greater than 0' }]}><InputNumber aria-label="Demand quantity" precision={4} style={{ width: '100%' }} /></Form.Item>
-        <Form.Item name="requiredDate" label="Required Date" rules={[{ required: true, message: 'Required date is required' }]}><Input aria-label="Demand required date" type="date" /></Form.Item>
+        {!editing && <Form.Item name="materialId" label="物料" rules={[{ required: true, message: '請選擇物料' }]}><RelatedEntitySelect entity="material" /></Form.Item>}
+        <Form.Item name="quantity" label="數量" rules={[{ required: true, message: '請輸入數量' }, { type: 'number', min: 0.0001, message: '數量必須大於 0' }]}><InputNumber aria-label="需求數量" precision={4} style={{ width: '100%' }} /></Form.Item>
+        <Form.Item name="requiredDate" label="需求日期" rules={[{ required: true, message: '請選擇需求日期' }]}><Input aria-label="需求日期" type="date" /></Form.Item>
         {editing && <Form.Item name="changeNote" valuePropName="checked"><Checkbox>Change note（未勾選時不修改；勾選後留空會清除）</Checkbox></Form.Item>}
-        <Form.Item name="note" label="Note" rules={[{ max: 500, message: 'Note must be 500 characters or fewer' }]}><Input.TextArea aria-label="Demand note" maxLength={500} showCount rows={3} disabled={!!editing && !changeNote} /></Form.Item>
+        <Form.Item name="note" label="備註" rules={[{ max: 500, message: '備註不可超過 500 個字元' }]}><Input.TextArea aria-label="需求備註" maxLength={500} showCount rows={3} disabled={!!editing && !changeNote} /></Form.Item>
       </Form>
     </Modal>
     <Drawer title={detail ? `Demand #${detail.id}` : 'Demand Detail'} open={detailLoading || !!detail || !!detailError} onClose={() => { detailRequestId.current += 1; setDetail(null); setDetailError(null); setDetailLoading(false); }} size="large">
       {detailLoading && <LoadingState tip="Loading demand detail..." />}
-      {detailError && <ErrorState title="Demand detail failed" error={detailError} />}
+      {detailError && <ErrorState title="需求詳細資料載入失敗" error={detailError} />}
       {detail && <Descriptions column={1} bordered size="small" items={[
-        { key: 'material', label: 'Material', children: detailMaterial ? `${detailMaterial.code} — ${detailMaterial.name}` : `Material #${detail.materialId}` },
+        { key: 'material', label: '物料', children: detailMaterial ? `${detailMaterial.code} — ${detailMaterial.name}` : `物料 #${detail.materialId}` },
         { key: 'quantity', label: 'Quantity', children: detail.quantity },
         { key: 'requiredDate', label: 'Required Date', children: detail.requiredDate },
         { key: 'status', label: 'Status', children: <Tag color={detail.status === 'ACTIVE' ? 'green' : 'default'}>{detail.status}</Tag> },

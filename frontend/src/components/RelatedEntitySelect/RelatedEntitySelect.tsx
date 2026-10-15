@@ -114,9 +114,9 @@ export default function RelatedEntitySelect({ entity, value, onChange, disabled,
 
   return <Select<number>
     showSearch filterOption={false} value={value} onChange={onChange} disabled={disabled || !canLoad} allowClear
-    aria-label={`Select ${entity}`}
-    placeholder={`Search ${entity} code; use name: for name`}
-    notFoundContent={loading ? <Spin size="small" /> : 'No results'}
+    aria-label={entity === 'supplier' ? '選取供應商' : '選取物料'}
+    placeholder={`搜尋${entity === 'supplier' ? '供應商' : '物料'}代碼或名稱`}
+    notFoundContent={loading ? <Spin size="small" /> : '沒有符合的項目'}
     options={options}
     onSearch={handleSearch}
     onPopupScroll={(event) => {

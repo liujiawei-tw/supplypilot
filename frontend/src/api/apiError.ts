@@ -55,12 +55,12 @@ function safeHttpMessage(status: number, code: string, backendMessage: string): 
   if (status === 403) return backendMessage || '你沒有執行此操作的權限。';
   if (status === 404) return backendMessage || '找不到指定的資料，請回到清單確認最新狀態。';
   if (status === 409 && code === 'CONCURRENT_MODIFICATION') {
-    return '資料可能已被其他使用者更新。請先取得 Backend 最新狀態並重新審閱，不要直接重送原操作。';
+    return '資料可能已被其他使用者更新。請先取得 後端 最新狀態並重新審閱，不要直接重送原操作。';
   }
   if (status === 409 && code === 'DUPLICATE_RECEIVING') {
     return '收貨請求可能已完成。請使用 Receiving 專用查詢確認真實狀態，系統不會自動重送。';
   }
-  if (status === 409) return backendMessage || '資料狀態發生衝突。請先查詢 Backend 最新狀態後再決定下一步，系統不會自動重送。';
+  if (status === 409) return backendMessage || '資料狀態發生衝突。請先查詢 後端 最新狀態後再決定下一步，系統不會自動重送。';
   if (status === 500) return '伺服器發生暫時性問題，請稍後再試；如持續發生，請提供 Trace ID 給管理人員。';
   if (status === 503 && code === 'AI_TIMEOUT') return 'AI 服務回應逾時。未產生或採用替代答案；核心採購功能仍可正常使用。';
   if (status === 503 && code === 'AI_INVALID_RESPONSE') return 'AI 服務回覆未通過驗證，未顯示不可信的內容；核心採購功能仍可正常使用。';
@@ -94,7 +94,7 @@ export function toApiError(error: unknown): ApiErrorResponse {
       ...fallbackError,
       code: timedOut ? 'NETWORK_TIMEOUT' : 'NETWORK_ERROR',
       message: timedOut
-        ? '網路回應逾時，無法確認請求是否已被 Backend 處理。'
+        ? '網路回應逾時，無法確認請求是否已被 後端 處理。'
         : '無法連線至伺服器，請檢查網路後再試。',
       transportError: true,
       timedOut,
@@ -124,7 +124,7 @@ export function classifyApiError(error: ApiErrorResponse, operation: 'read' | 'm
   if (status === 503 && aiProviderCodes.has(error.code)) return { kind: 'ai-provider-unavailable', title: 'AI 服務暫時無法使用', message: error.message, severity: 'warning', retryAllowed: operation === 'read' };
   if ((status !== undefined && status >= 500) || error.code === 'INTERNAL_SERVER_ERROR') return { kind: 'internal-server-error', title: '伺服器暫時發生問題', message: error.message, severity: 'error', retryAllowed: operation === 'read' };
   if (operation === 'mutation' && (error.transportError || error.code === 'NETWORK_TIMEOUT' || error.code === 'NETWORK_ERROR')) {
-    return { kind: 'unknown-mutation-result', title: '操作結果尚未確認', message: '連線中斷或逾時可能發生在 Backend 完成操作之後。不會自動重送；請先使用正式查詢取得真實狀態。', severity: 'warning', retryAllowed: false };
+    return { kind: 'unknown-mutation-result', title: '操作結果尚未確認', message: '連線中斷或逾時可能發生在 後端 完成操作之後。不會自動重送；請先使用正式查詢取得真實狀態。', severity: 'warning', retryAllowed: false };
   }
   return { kind: 'request-failed', title: '無法完成請求', message: error.message, severity: 'error', retryAllowed: operation === 'read' };
 }

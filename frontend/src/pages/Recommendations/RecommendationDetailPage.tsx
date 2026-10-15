@@ -63,15 +63,15 @@ export default function RecommendationDetailPage() {
     };
   }, [id, loadDetail, loadRanking]);
 
-  if (id === null) return <ErrorState asResult title="Invalid Recommendation ID" message="Recommendation ID must be a positive safe integer." />;
+  if (id === null) return <ErrorState asResult title="採購建議編號無效" message="請輸入正整數格式的採購建議編號。" />;
 
   return <Space orientation="vertical" size="large" style={{ width: '100%' }}>
     <Space style={{ width: '100%', justifyContent: 'space-between' }} wrap>
-      <div><Typography.Title level={2} style={{ marginBottom: 0 }}>Recommendation Detail</Typography.Title><Typography.Text type="secondary">Persisted decision snapshot #{id}</Typography.Text></div>
-      <Link to="/recommendations"><Button>Back to Workstation</Button></Link>
+      <div><Typography.Title level={2} style={{ marginBottom: 0 }}>採購建議明細</Typography.Title><Typography.Text type="secondary">已儲存的決策快照 #{id}</Typography.Text></div>
+      <Link to="/recommendations"><Button>返回採購建議</Button></Link>
     </Space>
-    {detailLoading && !recommendation && <LoadingState tip="Loading recommendation detail..." />}
-    {detailError && <ErrorState asResult title={detailError.code === 'RECOMMENDATION_NOT_FOUND' ? 'Recommendation not found' : 'Recommendation detail query failed'} error={detailError} onRetry={() => void loadDetail()} retryText="Retry detail query" />}
+    {detailLoading && !recommendation && <LoadingState tip="正在載入採購建議明細…" />}
+    {detailError && <ErrorState asResult title={detailError.code === 'RECOMMENDATION_NOT_FOUND' ? '找不到採購建議' : '採購建議明細查詢失敗'} error={detailError} onRetry={() => void loadDetail()} retryText="重新查詢明細" />}
     {recommendation && <RecommendationResult recommendation={recommendation} ranking={ranking} rankingLoading={rankingLoading} rankingError={rankingError} retryRanking={() => void loadRanking()} />}
   </Space>;
 }

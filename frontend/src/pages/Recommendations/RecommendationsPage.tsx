@@ -69,29 +69,29 @@ export default function RecommendationsPage() {
   };
 
   return <Space orientation="vertical" size="large" style={{ width: '100%' }}>
-    <div><Typography.Title level={2} style={{ marginBottom: 0 }}>Recommendation Workstation</Typography.Title><Typography.Text type="secondary">建立單次採購決策，或以已知 Recommendation ID 查詢已保存的 Snapshot。</Typography.Text></div>
+    <div><Typography.Title level={2} style={{ marginBottom: 0 }}>採購建議工作區</Typography.Title><Typography.Text type="secondary">建立新的採購建議，或依 Recommendation ID 查詢已儲存的決策快照。</Typography.Text></div>
     <Space align="start" size="large" wrap style={{ width: '100%' }}>
-      <Card title="Create Recommendation" style={{ flex: '1 1 520px' }}>
-        {createError && <ErrorState title="Recommendation create failed" error={createError} />}
+      <Card title="建立採購建議" style={{ flex: '1 1 520px' }}>
+        {createError && <ErrorState title="建立採購建議失敗" error={createError} />}
         <Form form={createForm} layout="vertical">
-          <Form.Item name="materialId" label="Active Material" rules={[{ required: true, message: 'Material is required' }]}><RelatedEntitySelect entity="material" activeOnly /></Form.Item>
+          <Form.Item name="materialId" label="啟用中的物料" rules={[{ required: true, message: '請選擇物料' }]}><RelatedEntitySelect entity="material" activeOnly /></Form.Item>
           <Space align="start" wrap>
-            <Form.Item name="periodStart" label="Period Start" rules={[{ required: true, message: 'Period start is required' }]}><Input aria-label="Recommendation period start" type="date" /></Form.Item>
-            <Form.Item name="periodEnd" label="Period End" dependencies={['periodStart']} rules={[
-              { required: true, message: 'Period end is required' },
-              ({ getFieldValue }) => ({ validator(_, value: string | undefined) { const start = getFieldValue('periodStart') as string | undefined; return !value || !start || start <= value ? Promise.resolve() : Promise.reject(new Error('Period start must not be later than period end')); } }),
-            ]}><Input aria-label="Recommendation period end" type="date" /></Form.Item>
+            <Form.Item name="periodStart" label="期間起日" rules={[{ required: true, message: '請選擇期間起日' }]}><Input aria-label="建議期間起日" type="date" /></Form.Item>
+            <Form.Item name="periodEnd" label="期間迄日" dependencies={['periodStart']} rules={[
+              { required: true, message: '請選擇期間迄日' },
+              ({ getFieldValue }) => ({ validator(_, value: string | undefined) { const start = getFieldValue('periodStart') as string | undefined; return !value || !start || start <= value ? Promise.resolve() : Promise.reject(new Error('期間起日不可晚於迄日')); } }),
+            ]}><Input aria-label="建議期間迄日" type="date" /></Form.Item>
           </Space>
-          <Button type="primary" loading={submitting} disabled={submitting} onClick={() => void submit()}>Calculate Recommendation</Button>
+          <Button type="primary" loading={submitting} disabled={submitting} onClick={() => void submit()}>計算採購建議</Button>
         </Form>
       </Card>
-      <Card title="Open Known Recommendation" style={{ flex: '1 1 320px' }}>
+      <Card title="查詢既有採購建議" style={{ flex: '1 1 320px' }}>
         <Form form={lookupForm} layout="vertical">
-          <Form.Item name="recommendationId" label="Recommendation ID" rules={[
-            { required: true, message: 'Recommendation ID is required' },
-            { pattern: /^[1-9]\d*$/, message: 'Enter a positive Recommendation ID' },
-          ]}><Input aria-label="Recommendation ID" inputMode="numeric" /></Form.Item>
-          <Button onClick={() => void lookup()}>Query Recommendation</Button>
+          <Form.Item name="recommendationId" label="採購建議編號" rules={[
+            { required: true, message: '請輸入採購建議編號' },
+            { pattern: /^[1-9]\d*$/, message: '請輸入正整數格式的採購建議編號' },
+          ]}><Input aria-label="採購建議編號" inputMode="numeric" /></Form.Item>
+          <Button onClick={() => void lookup()}>查詢建議</Button>
         </Form>
       </Card>
     </Space>

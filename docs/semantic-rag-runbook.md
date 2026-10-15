@@ -49,3 +49,9 @@ MySQL V19 增加審核版本、狀態與原因。V18 時期只有來源雜湊的
 ## Semantic 管理員 UI 操作（SP-906／Issue #112）
 
 ADMIN 從 Documents 工作區進入 Semantic 索引管理；使用方式、各步驟 API、錯誤與 UNKNOWN 查核界線，以及第六份文件交接 #117 的 Browser 步驟，見 [`semantic-admin-ui.md`](semantic-admin-ui.md)。UI 僅提供既有 API 的明確操作入口，不新增審核狀態查詢 API，也不控制 `SEMANTIC_READ_ENABLED`。
+
+## SP-905 繁中 Demo 語料索引更新
+
+五份 baseline 文件現以 UTF-8 繁體中文保存，Demo Dataset Version 為 `sp-905-zh-tw-v1`。這些文件的舊英文 chunk、Source Hash、Embedding 與 Gate Audit 不可沿用。透過受控 Guarded Reset 建立新版 MySQL 文件及 chunk 後，重新執行每份文件的 ADMIN outbound review、Backfill、Readiness 與 Gate Audit；只有新 generation 的 Gate 通過後才可顯式啟用 Semantic Read。第六份 SUP-005 是人工 UI upload 驗收素材，永遠不加入 baseline Seeder。
+
+SP-905 自動契約測試僅驗證 UTF-8／Unicode 儲存、Chunk offset 與來源切片一致，以及既有 API／來源契約；Fake Provider 或本機 lexical representation 不證明 Gemini 多語語意品質。中文問題查英文文件、英文問題查中文文件需由 SP-910 #117 使用實際 Provider 及 Browser 按其 Release Gate 驗證；在該驗收完成前不得宣稱跨語 Semantic PASS。

@@ -42,10 +42,10 @@ describe('SP-803 role isolation', () => {
     });
     await open(role);
     expect(await screen.findByText('403')).toBeTruthy();
-    expect(screen.queryByLabelText('Inventory CSV file')).toBeNull();
+    expect(screen.queryByLabelText('庫存 CSV 檔案')).toBeNull();
     const sidebar = document.querySelector('.ant-layout-sider')!;
-    fireEvent.click([...sidebar.querySelectorAll('.ant-menu-submenu-title')].find((item) => item.textContent === 'Demand / Inventory')!);
-    await waitFor(() => expect(sidebar.textContent).not.toContain('Inventory Import'));
+    fireEvent.click([...sidebar.querySelectorAll('.ant-menu-submenu-title')].find((item) => item.textContent === '需求與庫存')!);
+    await waitFor(() => expect(sidebar.textContent).not.toContain('庫存匯入'));
     expect(requests).toEqual(['/auth/me']);
   });
 
@@ -55,10 +55,10 @@ describe('SP-803 role isolation', () => {
       throw new Error(`Unexpected request ${config.url}`);
     });
     await open(role);
-    expect(await screen.findByRole('heading', { name: 'Inventory Import' })).toBeTruthy();
+    expect(await screen.findByRole('heading', { name: '庫存匯入' })).toBeTruthy();
     const sidebar = document.querySelector('.ant-layout-sider')!;
-    fireEvent.click([...sidebar.querySelectorAll('.ant-menu-submenu-title')].find((item) => item.textContent === 'Demand / Inventory')!);
-    await waitFor(() => expect(sidebar.textContent).toContain('Inventory Import'));
+    fireEvent.click([...sidebar.querySelectorAll('.ant-menu-submenu-title')].find((item) => item.textContent === '需求與庫存')!);
+    await waitFor(() => expect(sidebar.textContent).toContain('庫存匯入'));
   });
 });
 
@@ -75,28 +75,28 @@ describe('SP-803 validate, preview and confirm flow', () => {
     });
     await open('WAREHOUSE_STAFF');
     const user = userEvent.setup();
-    const validateButton = await screen.findByRole('button', { name: 'Validate & Preview' });
+    const validateButton = await screen.findByRole('button', { name: '驗證並預覽' });
     expect(validateButton.hasAttribute('disabled')).toBe(true);
-    await user.upload(screen.getByLabelText('Inventory CSV file'), csv());
-    expect(await screen.findByText('Client source')).toBeTruthy();
-    expect(screen.getByText(/不是 Backend Persisted Preview/)).toBeTruthy();
+    await user.upload(screen.getByLabelText('庫存 CSV 檔案'), csv());
+    expect(await screen.findByText('瀏覽器讀取')).toBeTruthy();
+    expect(screen.getByText(/本機預覽，不會決定批次狀態或確認資格/)).toBeTruthy();
     expect(screen.queryByText('後端驗證通過，尚未匯入')).toBeNull();
     await user.click(validateButton);
     expect(await screen.findByText('後端驗證通過，尚未匯入')).toBeTruthy();
     expect(screen.getByText('123')).toBeTruthy();
-    expect(screen.queryByText('Inventory Import 已完成')).toBeNull();
+    expect(screen.queryByText('庫存匯入已完成')).toBeNull();
 
-    await user.click(screen.getByRole('button', { name: 'Confirm Import' }));
+    await user.click(screen.getByRole('button', { name: '確認匯入' }));
     const dialog = screen.getByRole('dialog');
     expect(within(dialog).getByText(/取代所列物料的現有庫存/)).toBeTruthy();
-    const finalConfirm = within(dialog).getByRole('button', { name: 'Confirm Import' });
+    const finalConfirm = within(dialog).getByRole('button', { name: '確認匯入' });
     await user.click(finalConfirm);
     fireEvent.click(finalConfirm);
     await waitFor(() => expect(requests.filter(({ url }) => url === '/inventory-imports/123/confirm')).toHaveLength(1));
     expect(await screen.findByText(/正在確認匯入/)).toBeTruthy();
     await act(async () => finishConfirm());
-    expect(await screen.findByText('Inventory Import 已完成')).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Confirm Import' }).hasAttribute('disabled')).toBe(true);
+    expect(await screen.findByText('庫存匯入已完成')).toBeTruthy();
+    expect(screen.getByRole('button', { name: '確認匯入' }).hasAttribute('disabled')).toBe(true);
   }, 30_000);
 
   it('shows every backend row error and never enables confirm for VALIDATION_FAILED', async () => {
@@ -113,13 +113,13 @@ describe('SP-803 validate, preview and confirm flow', () => {
     });
     await open('ADMIN');
     const user = userEvent.setup();
-    await user.upload(await screen.findByLabelText('Inventory CSV file'), csv());
-    await user.click(screen.getByRole('button', { name: 'Validate & Preview' }));
+    await user.upload(await screen.findByLabelText('庫存 CSV 檔案'), csv());
+    await user.click(screen.getByRole('button', { name: '驗證並預覽' }));
     expect(await screen.findByText('驗證失敗，尚未匯入')).toBeTruthy();
     expect(screen.getByText('INVALID_QUANTITY')).toBeTruthy();
     expect(screen.getByText('UNIT_MISMATCH')).toBeTruthy();
     expect(screen.getByText('Expected KG')).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Confirm Import' }).hasAttribute('disabled')).toBe(true);
+    expect(screen.getByRole('button', { name: '確認匯入' }).hasAttribute('disabled')).toBe(true);
   }, 30_000);
 
   it('invalidates an old batch when the file changes and ignores its late validation response', async () => {
@@ -135,9 +135,9 @@ describe('SP-803 validate, preview and confirm flow', () => {
     });
     await open('ADMIN');
     const user = userEvent.setup();
-    const input = await screen.findByLabelText('Inventory CSV file');
+    const input = await screen.findByLabelText('庫存 CSV 檔案');
     await user.upload(input, csv('first.csv'));
-    const validateButton = screen.getByRole('button', { name: 'Validate & Preview' });
+    const validateButton = screen.getByRole('button', { name: '驗證並預覽' });
     await user.click(validateButton);
     fireEvent.click(validateButton);
     await waitFor(() => expect(finishFirst).toBeTypeOf('function'));
@@ -146,7 +146,7 @@ describe('SP-803 validate, preview and confirm flow', () => {
     await act(async () => finishFirst());
     expect(screen.getByText('second.csv')).toBeTruthy();
     expect(screen.queryByText('500')).toBeNull();
-    expect(screen.queryByRole('button', { name: 'Confirm Import' })).toBeNull();
+    expect(screen.queryByRole('button', { name: '確認匯入' })).toBeNull();
     expect(requests.filter(({ url }) => url === '/inventory-imports/validate')).toHaveLength(1);
   }, 30_000);
 
@@ -163,14 +163,14 @@ describe('SP-803 validate, preview and confirm flow', () => {
     });
     await open('ADMIN');
     const user = userEvent.setup();
-    await user.upload(await screen.findByLabelText('Inventory CSV file'), csv());
-    await user.click(screen.getByRole('button', { name: 'Validate & Preview' }));
+    await user.upload(await screen.findByLabelText('庫存 CSV 檔案'), csv());
+    await user.click(screen.getByRole('button', { name: '驗證並預覽' }));
     await screen.findByText('後端驗證通過，尚未匯入');
-    await user.click(screen.getByRole('button', { name: 'Confirm Import' }));
-    await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Confirm Import' }));
+    await user.click(screen.getByRole('button', { name: '確認匯入' }));
+    await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: '確認匯入' }));
     expect(await screen.findByText('確認結果未知')).toBeTruthy();
     expect(confirmAttempt).toBe(1);
-    const locked = screen.getByRole('button', { name: 'Confirm Import' });
+    const locked = screen.getByRole('button', { name: '確認匯入' });
     expect(locked.hasAttribute('disabled')).toBe(true);
     fireEvent.click(locked);
     expect(confirmAttempt).toBe(1);
@@ -191,15 +191,15 @@ describe('SP-803 validate, preview and confirm flow', () => {
     });
     await open('WAREHOUSE_STAFF');
     const user = userEvent.setup();
-    await user.upload(await screen.findByLabelText('Inventory CSV file'), csv());
-    await user.click(screen.getByRole('button', { name: 'Validate & Preview' }));
+    await user.upload(await screen.findByLabelText('庫存 CSV 檔案'), csv());
+    await user.click(screen.getByRole('button', { name: '驗證並預覽' }));
     await screen.findByText('後端驗證通過，尚未匯入');
-    await user.click(screen.getByRole('button', { name: 'Confirm Import' }));
-    await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Confirm Import' }));
+    await user.click(screen.getByRole('button', { name: '確認匯入' }));
+    await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: '確認匯入' }));
     expect(await screen.findByText('INVENTORY_IMPORT_ALREADY_CONFIRMED')).toBeTruthy();
     expect(screen.getByText('確認匯入未成功')).toBeTruthy();
-    expect(screen.queryByText('Inventory Import 已完成')).toBeNull();
-    expect(screen.getByRole('button', { name: 'Confirm Import' }).hasAttribute('disabled')).toBe(true);
+    expect(screen.queryByText('庫存匯入已完成')).toBeNull();
+    expect(screen.getByRole('button', { name: '確認匯入' }).hasAttribute('disabled')).toBe(true);
     expect(confirmAttempt).toBe(1);
   }, 30_000);
 });

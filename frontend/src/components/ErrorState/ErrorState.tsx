@@ -21,7 +21,7 @@ export const ErrorState: React.FC<ErrorStateProps> = ({
   message,
   error,
   onRetry,
-  retryText = 'Retry',
+  retryText = '重新載入',
   asResult = false,
   operation = 'read',
 }) => {
@@ -42,7 +42,7 @@ export const ErrorState: React.FC<ErrorStateProps> = ({
     }
   }
 
-  displayMessage = displayMessage || 'Something went wrong. Please try again later.';
+  displayMessage = displayMessage || '發生問題，請稍後再試。';
 
   const apiError = error && 'code' in error && 'message' in error
     ? error as ApiErrorResponse
@@ -53,13 +53,13 @@ export const ErrorState: React.FC<ErrorStateProps> = ({
     <div style={{ marginTop: '8px', fontSize: '12px' }}>
       {errorCode && (
         <div>
-          <Text type="secondary">Error Code: </Text>
+          <Text type="secondary">錯誤代碼： </Text>
           <Text code>{errorCode}</Text>
         </div>
       )}
       {traceId && (
         <div>
-          <Text type="secondary">Trace ID: </Text>
+          <Text type="secondary">追蹤 ID： </Text>
           <Text code>{traceId}</Text>
         </div>
       )}

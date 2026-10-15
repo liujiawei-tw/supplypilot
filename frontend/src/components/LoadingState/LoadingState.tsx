@@ -9,7 +9,7 @@ export interface LoadingStateProps {
 }
 
 export const LoadingState: React.FC<LoadingStateProps> = ({
-  tip = 'Loading...',
+  tip = '載入中…',
   skeleton = false,
   rows = 4,
   fullPage = false,

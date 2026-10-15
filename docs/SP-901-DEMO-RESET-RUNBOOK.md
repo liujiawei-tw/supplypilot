@@ -54,7 +54,7 @@ $env:DEMO_ACCOUNT_PASSWORD = '...'
 
 ## Reset 後檢查
 
-1. `demo_dataset_state` 唯一一筆 `SP-901 / sp-901-v1 / COMPLETE`，並記錄 baseline date。
+1. `demo_dataset_state` 唯一一筆 `SP-901 / sp-905-zh-tw-v1 / COMPLETE`，並記錄 baseline date。
 2. 五個帳號可用新注入密碼登入；不公開 `admin` 密碼。
 3. Materials 12、Suppliers 6、SupplierMaterial 30、Demands 12。
 4. PO 分布為 DRAFT 2、APPROVED 2、ORDERED 3、RECEIVED 2、REJECTED 1。
@@ -62,6 +62,16 @@ $env:DEMO_ACCOUNT_PASSWORD = '...'
 6. 五份文件原檔存在，Metadata／Chunk 為 READY；第六份不存在。
 7. PostgreSQL 舊 index 與 Gate audit 已清空，因此此時 Semantic Gate **不是 PASS**。
 8. 逐份重新人工核准出站、真實 Backfill、Readiness 與 Gate Audit；只有成功後才啟用 Semantic Read 並驗證來源。
+
+## SP-905 繁中語料版本與受控重建
+
+SP-905 將五份 baseline 原檔及 Metadata 標題更新為繁體中文，Dataset Version 固定為 `sp-905-zh-tw-v1`。原本 `sp-901-v1` 的 COMPLETE marker 代表舊英文語料；應用遇到版本不一致會 fail closed，不會將其靜默當作中文資料，也不會在一般啟動時覆寫既有資料。
+
+- Fresh、空白且已驗證隔離的 Demo 環境會使用新版本上傳五份 sample，並透過一般 Ingestion 重新建立 Document Chunk；第六份 SUP-005 文件不會 Seed。
+- 既有 Demo 若要更換語料，先確認 MySQL、PostgreSQL semantic database、文件 root 都是專用 Demo 目標，完整遵守本 Runbook 前述 Demo／Prod、Database Allowlist、Flyway Preflight、Storage Path、Reset Confirmation 及 Semantic Database Guard，再依「Manual Reset」執行一次性 Guarded Reset。保留資料需先依環境程序備份；不可手動刪除 marker、直接 SQL 清表或複製舊向量。
+- Reset 完成後核對 `SP-901 / sp-905-zh-tw-v1 / COMPLETE`、五份 Metadata 標題與 sample `標題：` 相符、Version `1.0`、Document READY、Chunk 由本次原檔 Ingestion 產生、第六份文件不存在。
+- Reset 同時清除舊 Semantic Index、出站核准與 Gate Audit。五份文件 READY 不等於 Semantic READY 或 Gate PASS；須以新版 chunks 重新 ADMIN 審核、真實 Embedding Backfill、Readiness、Gate Audit，再依 Runbook 顯式啟用 Semantic Read。
+- 沒有真實 Gemini 憑證或隔離服務時，僅執行自動測試；真實重建與 Gate 狀態列為 BLOCKED，禁止在未知或共用資料庫嘗試 Reset。
 
 ## 2026-10-14 驗證狀態
 

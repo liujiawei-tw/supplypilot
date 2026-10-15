@@ -31,12 +31,12 @@ describe('master data pages', () => {
     let finish!: () => void;
     axiosClient.defaults.adapter = vi.fn((config) => new Promise((resolve) => { finish = () => resolve(response(config, page([material]))); }));
     renderWithRole(<MaterialsPage />, 'ADMIN');
-    expect(await screen.findByText('Loading materials...')).toBeTruthy();
+    expect(await screen.findByText('正在載入物料…')).toBeTruthy();
     await act(async () => finish());
     expect(await screen.findByText('MAT-001')).toBeTruthy();
-    expect(screen.getByRole('button', { name: /Create Material/ })).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Edit' })).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Deactivate' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: /新增物料/ })).toBeTruthy();
+    expect(screen.getByRole('button', { name: /編\s*輯/ })).toBeTruthy();
+    expect(screen.getByRole('button', { name: /停\s*用/ })).toBeTruthy();
   });
 
   it('keeps Materials read-only for an authorized non-ADMIN role', async () => {
@@ -44,8 +44,8 @@ describe('master data pages', () => {
     axiosClient.defaults.adapter = vi.fn(async (config) => { requests.push(config.url ?? ''); return response(config, page([material])); });
     renderWithRole(<MaterialsPage />, 'PRODUCTION_PLANNER');
     expect(await screen.findByText('MAT-001')).toBeTruthy();
-    expect(screen.queryByRole('button', { name: /Create Material/ })).toBeNull();
-    expect(screen.queryByRole('button', { name: 'Edit' })).toBeNull();
+    expect(screen.queryByRole('button', { name: /新增物料/ })).toBeNull();
+    expect(screen.queryByRole('button', { name: /編\s*輯/ })).toBeNull();
     expect(requests).toEqual(['/materials']);
   });
 
@@ -58,14 +58,15 @@ describe('master data pages', () => {
       return Promise.resolve(response(config, page([])));
     });
     renderWithRole(<MaterialsPage />, 'ADMIN');
-    await screen.findByText('尚無 Material 資料');
+    await screen.findByText('目前沒有物料資料');
     const user = userEvent.setup();
-    await user.click(screen.getAllByRole('button', { name: /Create Material/ })[0]);
+    await user.click(screen.getAllByRole('button', { name: /新增物料/ })[0]);
     await user.click(screen.getByRole('button', { name: 'OK' }));
-    expect(await screen.findAllByText(/required/i)).toHaveLength(2);
-    fireEvent.change(screen.getByRole('textbox', { name: 'Code' }), { target: { value: 'X'.repeat(51) } });
-    fireEvent.change(screen.getByRole('textbox', { name: 'Name' }), { target: { value: 'New material' } });
-    const safetyStock = screen.getByRole('spinbutton', { name: 'Safety Stock' });
+    expect(await screen.findByText('請輸入物料代碼')).toBeTruthy();
+    expect(screen.getByText('請輸入物料名稱')).toBeTruthy();
+    fireEvent.change(screen.getByRole('textbox', { name: '物料代碼' }), { target: { value: 'X'.repeat(51) } });
+    fireEvent.change(screen.getByRole('textbox', { name: '名稱' }), { target: { value: 'New material' } });
+    const safetyStock = screen.getByRole('spinbutton', { name: '安全庫存' });
     await user.clear(safetyStock);
     await user.type(safetyStock, '-1');
     fireEvent.blur(safetyStock);
@@ -73,8 +74,8 @@ describe('master data pages', () => {
     expect(await screen.findByText(/cannot be longer than 50/i)).toBeTruthy();
     expect(await screen.findByText(/cannot be less than 0/i)).toBeTruthy();
     expect(requests.filter(({ method }) => method === 'post')).toHaveLength(0);
-    fireEvent.change(screen.getByRole('textbox', { name: 'Code' }), { target: { value: 'MAT-NEW' } });
-    fireEvent.change(screen.getByRole('spinbutton', { name: 'Safety Stock' }), { target: { value: '0' } });
+    fireEvent.change(screen.getByRole('textbox', { name: '物料代碼' }), { target: { value: 'MAT-NEW' } });
+    fireEvent.change(screen.getByRole('spinbutton', { name: '安全庫存' }), { target: { value: '0' } });
     await user.click(screen.getByRole('button', { name: 'OK' }));
     await waitFor(() => expect(finishCreate).toBeTypeOf('function'));
     expect(screen.getByRole('button', { name: /OK/ }).hasAttribute('disabled')).toBe(true);
@@ -92,8 +93,8 @@ describe('master data pages', () => {
     });
     renderWithRole(<MaterialsPage />, 'ADMIN');
     await screen.findByText('MAT-001');
-    fireEvent.click(screen.getByRole('button', { name: 'Deactivate' }));
-    await screen.findByText(/確定要將此 Material/);
+    fireEvent.click(screen.getByRole('button', { name: /停\s*用/ }));
+    await screen.findByText(/確定要將此物料/);
     fireEvent.click(screen.getAllByRole('button', { name: 'OK' }).at(-1)!);
     expect(await screen.findByText('Material conflict')).toBeTruthy();
     expect(screen.getByText('DUPLICATE_CODE')).toBeTruthy();
@@ -118,29 +119,29 @@ describe('master data pages', () => {
       return response(config, page([]));
     });
     renderWithRole(<MaterialsPage />, 'ADMIN');
-    await screen.findByText('尚無 Material 資料');
+    await screen.findByText('目前沒有物料資料');
     const user = userEvent.setup();
-    await user.click(screen.getAllByRole('button', { name: /Create Material/ })[0]);
-    await user.type(screen.getByRole('textbox', { name: 'Code' }), 'MAT-DUP');
-    await user.type(screen.getByRole('textbox', { name: 'Name' }), 'Duplicate milk');
+    await user.click(screen.getAllByRole('button', { name: /新增物料/ })[0]);
+    await user.type(screen.getByRole('textbox', { name: '物料代碼' }), 'MAT-DUP');
+    await user.type(screen.getByRole('textbox', { name: '名稱' }), 'Duplicate milk');
     await user.click(screen.getByRole('button', { name: 'OK' }));
 
-    expect(await screen.findByText('Material submit failed')).toBeTruthy();
+    expect(await screen.findByText('物料送出失敗')).toBeTruthy();
     expect(screen.getByText('Material code already exists')).toBeTruthy();
     expect(screen.getByText('DUPLICATE_CODE')).toBeTruthy();
     expect(screen.getByText('Code must be unique')).toBeTruthy();
     expect(screen.getByText('trace-create')).toBeTruthy();
-    expect((screen.getByRole('textbox', { name: 'Code' }) as HTMLInputElement).value).toBe('MAT-DUP');
-    expect((screen.getByRole('textbox', { name: 'Name' }) as HTMLInputElement).value).toBe('Duplicate milk');
+    expect((screen.getByRole('textbox', { name: '物料代碼' }) as HTMLInputElement).value).toBe('MAT-DUP');
+    expect((screen.getByRole('textbox', { name: '名稱' }) as HTMLInputElement).value).toBe('Duplicate milk');
     expect(screen.queryByText('Material 已建立')).toBeNull();
     expect(requests.filter(({ method }) => method === 'get')).toHaveLength(1);
 
-    await user.clear(screen.getByRole('textbox', { name: 'Code' }));
-    await user.type(screen.getByRole('textbox', { name: 'Code' }), 'MAT-NEW');
+    await user.clear(screen.getByRole('textbox', { name: '物料代碼' }));
+    await user.type(screen.getByRole('textbox', { name: '物料代碼' }), 'MAT-NEW');
     await user.click(screen.getByRole('button', { name: 'OK' }));
     await waitFor(() => expect(requests.filter(({ method }) => method === 'post')).toHaveLength(2));
     await waitFor(() => expect(requests.filter(({ method }) => method === 'get')).toHaveLength(2));
-    expect(screen.queryByRole('dialog', { name: 'Create Material' })).toBeNull();
+    expect(screen.queryByRole('dialog', { name: '新增物料' })).toBeNull();
   }, 40_000);
 
   it('shows Material edit validation errors inside the modal and keeps edited values', async () => {
@@ -154,16 +155,16 @@ describe('master data pages', () => {
     renderWithRole(<MaterialsPage />, 'ADMIN');
     await screen.findByText('MAT-001');
     const user = userEvent.setup();
-    await user.click(screen.getByRole('button', { name: 'Edit' }));
-    const name = screen.getByRole('textbox', { name: 'Name' });
+    await user.click(screen.getByRole('button', { name: /編\s*輯/ }));
+    const name = screen.getByRole('textbox', { name: '名稱' });
     await user.clear(name);
     await user.type(name, 'Reserved name');
     await user.click(screen.getByRole('button', { name: 'OK' }));
-    expect(await screen.findByText('Material submit failed')).toBeTruthy();
+    expect(await screen.findByText('物料送出失敗')).toBeTruthy();
     expect(screen.getByText('VALIDATION_FAILED')).toBeTruthy();
     expect(screen.getByText('Name is reserved')).toBeTruthy();
     expect((name as HTMLInputElement).value).toBe('Reserved name');
-    expect(screen.getByText('Edit Material')).toBeTruthy();
+    expect(screen.getByText('編輯物料')).toBeTruthy();
   }, 15_000);
 
   it('shows Suppliers and SupplierMaterials as read-only tabs for procurement roles', async () => {
@@ -177,10 +178,10 @@ describe('master data pages', () => {
     });
     renderWithRole(<SuppliersPage />, 'PROCUREMENT_STAFF');
     expect(await screen.findByText('SUP-001')).toBeTruthy();
-    expect(screen.queryByRole('button', { name: 'Create Supplier' })).toBeNull();
-    fireEvent.click(screen.getByRole('tab', { name: 'Supplier Materials' }));
-    expect(await screen.findByText('尚無 SupplierMaterial 資料')).toBeTruthy();
-    expect(screen.queryByRole('button', { name: 'Create SupplierMaterial' })).toBeNull();
+    expect(screen.queryByRole('button', { name: '新增供應商' })).toBeNull();
+    fireEvent.click(screen.getByRole('tab', { name: '供應商物料' }));
+    expect(await screen.findByText('目前沒有供應商物料關聯')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: '新增供應商物料關聯' })).toBeNull();
     expect(requests).toContain('/supplier-materials');
   });
 
@@ -194,8 +195,8 @@ describe('master data pages', () => {
     });
     renderWithRole(<SuppliersPage />, 'ADMIN');
     await screen.findByText('SUP-001');
-    fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
-    const name = screen.getByRole('textbox', { name: 'Name' });
+    fireEvent.click(screen.getByRole('button', { name: /編\s*輯/ }));
+    const name = screen.getByRole('textbox', { name: '名稱' });
     fireEvent.change(name, { target: { value: 'Updated Foods' } });
     fireEvent.click(screen.getByRole('button', { name: 'OK' }));
     await waitFor(() => expect(requests.filter(({ method }) => method === 'patch')).toHaveLength(1));
@@ -222,18 +223,18 @@ describe('master data pages', () => {
     await screen.findByText('SUP-001');
     const user = userEvent.setup();
 
-    await user.click(screen.getByRole('button', { name: /Create Supplier/ }));
-    await user.type(screen.getByRole('textbox', { name: 'Code' }), 'SUP-NEW');
-    await user.type(screen.getByRole('textbox', { name: 'Name' }), 'New supplier');
+    await user.click(screen.getByRole('button', { name: /新增供應商/ }));
+    await user.type(screen.getByRole('textbox', { name: '供應商代碼' }), 'SUP-NEW');
+    await user.type(screen.getByRole('textbox', { name: '名稱' }), 'New supplier');
     await user.click(screen.getByRole('button', { name: 'OK' }));
     expect(await screen.findByText('Admin permission required')).toBeTruthy();
     expect(screen.getByText('FORBIDDEN')).toBeTruthy();
-    expect((screen.getByRole('textbox', { name: 'Code' }) as HTMLInputElement).value).toBe('SUP-NEW');
-    expect((screen.getByRole('textbox', { name: 'Name' }) as HTMLInputElement).value).toBe('New supplier');
+    expect((screen.getByRole('textbox', { name: '供應商代碼' }) as HTMLInputElement).value).toBe('SUP-NEW');
+    expect((screen.getByRole('textbox', { name: '名稱' }) as HTMLInputElement).value).toBe('New supplier');
     await user.click(screen.getByRole('button', { name: 'Cancel' }));
 
-    await user.click(screen.getByRole('button', { name: 'Edit' }));
-    const editName = screen.getByRole('textbox', { name: 'Name' });
+    await user.click(screen.getByRole('button', { name: /編\s*輯/ }));
+    const editName = screen.getByRole('textbox', { name: '名稱' });
     await user.clear(editName);
     await user.type(editName, 'Rejected supplier');
     await user.click(screen.getByRole('button', { name: 'OK' }));
@@ -270,29 +271,29 @@ describe('master data pages', () => {
     renderWithRole(<SuppliersPage />, 'ADMIN');
     await screen.findByText('SUP-001');
     const user = userEvent.setup();
-    await user.click(screen.getByRole('tab', { name: 'Supplier Materials' }));
-    await screen.findByText('尚無 SupplierMaterial 資料');
-    await user.click(screen.getAllByRole('button', { name: /Create SupplierMaterial/ })[0]);
+    await user.click(screen.getByRole('tab', { name: '供應商物料' }));
+    await screen.findByText('目前沒有供應商物料關聯');
+    await user.click(screen.getAllByRole('button', { name: /新增供應商物料關聯/ })[0]);
 
     await waitFor(() => expect(requests.some(({ url, params }) => url === '/suppliers' && params?.status === 'ACTIVE')).toBe(true), { timeout: 5_000 });
 
-    const supplierSelects = screen.getAllByRole('combobox', { name: 'Select supplier' });
+    const supplierSelects = screen.getAllByRole('combobox', { name: '選取供應商' });
     await user.click(supplierSelects.at(-1)!);
     await user.click((await screen.findAllByText('SUP-001 — Taiwan Foods', {}, { timeout: 5_000 })).at(-1)!);
     await waitFor(() => expect(requests.some(({ url, params }) => url === '/materials' && params?.status === 'ACTIVE')).toBe(true), { timeout: 5_000 });
-    const materialSelects = screen.getAllByRole('combobox', { name: 'Select material' });
+    const materialSelects = screen.getAllByRole('combobox', { name: '選取物料' });
     await user.click(materialSelects.at(-1)!);
     await user.click((await screen.findAllByText('MAT-001 — Milk', {}, { timeout: 5_000 })).at(-1)!);
-    fireEvent.change(screen.getByRole('spinbutton', { name: 'Unit Price' }), { target: { value: '80' } });
-    fireEvent.change(screen.getByRole('spinbutton', { name: 'MOQ' }), { target: { value: '100' } });
-    fireEvent.change(screen.getByRole('spinbutton', { name: 'Package Multiple' }), { target: { value: '25' } });
-    fireEvent.change(screen.getByRole('spinbutton', { name: 'Lead Time Days' }), { target: { value: '14' } });
+    fireEvent.change(screen.getByRole('spinbutton', { name: '單價' }), { target: { value: '80' } });
+    fireEvent.change(screen.getByRole('spinbutton', { name: /最低訂購量/ }), { target: { value: '100' } });
+    fireEvent.change(screen.getByRole('spinbutton', { name: '包裝倍數' }), { target: { value: '25' } });
+    fireEvent.change(screen.getByRole('spinbutton', { name: '交期（天）' }), { target: { value: '14' } });
     await user.click(screen.getByRole('button', { name: 'OK' }));
 
-    expect(await screen.findByText('SupplierMaterial submit failed')).toBeTruthy();
+    expect(await screen.findByText('供應商物料資料送出失敗')).toBeTruthy();
     expect(screen.getByText('VALIDATION_FAILED')).toBeTruthy();
     expect(screen.getByText('MOQ violates supplier rule')).toBeTruthy();
-    expect((screen.getByRole('spinbutton', { name: 'MOQ' }) as HTMLInputElement).value).toBe('100');
+    expect((screen.getByRole('spinbutton', { name: /最低訂購量/ }) as HTMLInputElement).value).toBe('100');
     expect(screen.queryByText('SupplierMaterial 已建立')).toBeNull();
     await user.click(screen.getByRole('button', { name: 'OK' }));
     expect(await screen.findByText('80')).toBeTruthy();
@@ -303,8 +304,8 @@ describe('master data pages', () => {
       { supplierId: 2, materialId: 1, unitPrice: 80, moq: 100, packageMultiple: 25, leadTimeDays: 14, currency: 'TWD' },
     ]);
 
-    await user.click(screen.getByRole('button', { name: 'Edit' }));
-    fireEvent.change(screen.getByRole('spinbutton', { name: 'Unit Price' }), { target: { value: '85' } });
+    await user.click(screen.getByRole('button', { name: /編\s*輯/ }));
+    fireEvent.change(screen.getByRole('spinbutton', { name: '單價' }), { target: { value: '85' } });
     await user.click(screen.getByRole('button', { name: 'OK' }));
     await waitFor(() => expect(requests.filter(({ method }) => method === 'patch')).toHaveLength(1));
     const patchPayload = JSON.parse(requests.find(({ method }) => method === 'patch')?.data as string) as Record<string, unknown>;

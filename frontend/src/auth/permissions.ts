@@ -1,11 +1,11 @@
 import type { UserRole } from '../types/api';
 
 export const roleLabels: Record<UserRole, string> = {
-  PRODUCTION_PLANNER: 'Production Planner',
-  PROCUREMENT_STAFF: 'Procurement Staff',
-  PROCUREMENT_MANAGER: 'Procurement Manager',
-  WAREHOUSE_STAFF: 'Warehouse Staff',
-  ADMIN: 'Administrator',
+  PRODUCTION_PLANNER: '生產規劃人員',
+  PROCUREMENT_STAFF: '採購人員',
+  PROCUREMENT_MANAGER: '採購經理',
+  WAREHOUSE_STAFF: '倉庫人員',
+  ADMIN: '系統管理員',
 };
 
 // Mirrors security-design.md and the backend service-level @PreAuthorize rules.

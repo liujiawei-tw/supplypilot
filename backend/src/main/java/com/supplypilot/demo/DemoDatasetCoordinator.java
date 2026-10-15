@@ -358,15 +358,15 @@ public class DemoDatasetCoordinator implements DemoDataCoordinator {
         User admin = users.findByUsername("admin").orElseThrow();
         List<DocumentSeed> seeds = List.of(
                 new DocumentSeed("supplier-contract-sup-001-v1.txt", DocumentType.SUPPLIER_CONTRACT,
-                        "SUP-001 Delivery and Responsibility Agreement", "1.0", "SUP-001"),
+                        "SUP-001 交付與責任協議", "1.0", "SUP-001"),
                 new DocumentSeed("quotation-sup-002-v1.txt", DocumentType.QUOTATION,
-                        "SUP-002 Fictional Quotation Terms", "1.0", "SUP-002"),
+                        "SUP-002 虛構報價條件", "1.0", "SUP-002"),
                 new DocumentSeed("procurement-sop-v1.txt", DocumentType.PROCUREMENT_SOP,
-                        "SupplyPilot Demo Procurement SOP", "1.0", null),
+                        "SupplyPilot 虛構展示採購作業程序", "1.0", null),
                 new DocumentSeed("product-specification-mat-001-v1.txt", DocumentType.PRODUCT_SPECIFICATION,
-                        "MAT-001 Assam Tea Extract Specification", "1.0", "SUP-001"),
+                        "MAT-001 阿薩姆紅茶萃取物規格", "1.0", "SUP-001"),
                 new DocumentSeed("quality-requirement-v1.txt", DocumentType.QUALITY_REQUIREMENT,
-                        "Demo Ingredient Quality Requirements", "1.0", "SUP-003"));
+                        "虛構展示原料品質要求", "1.0", "SUP-003"));
         Path root = Path.of(properties.getSamplesPath()).toAbsolutePath().normalize();
         for (DocumentSeed seed : seeds) {
             if (documents.existsByDocumentTypeAndTitleAndVersion(seed.type(), seed.title(), seed.version())) {

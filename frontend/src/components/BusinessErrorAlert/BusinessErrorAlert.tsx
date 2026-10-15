@@ -31,8 +31,8 @@ export default function BusinessErrorAlert({
     description={<Space orientation="vertical" size={8} style={{ width: '100%' }}>
       <div>{message ?? presentation.message}</div>
       {(error.code || error.traceId || error.fieldErrors?.length) && <div style={{ fontSize: 12 }}>
-        {error.code && <div><Text type="secondary">Error Code: </Text><Text code>{error.code}</Text></div>}
-        {error.traceId && <div><Text type="secondary">Trace ID: </Text><Text code>{error.traceId}</Text></div>}
+        {error.code && <div><Text type="secondary">錯誤代碼： </Text><Text code>{error.code}</Text></div>}
+        {error.traceId && <div><Text type="secondary">追蹤 ID： </Text><Text code>{error.traceId}</Text></div>}
         {error.fieldErrors?.map((fieldError) => <div key={`${fieldError.field}-${fieldError.message}`}>
           <Text type="secondary">{fieldError.field}: </Text><Text>{fieldError.message}</Text>
         </div>)}

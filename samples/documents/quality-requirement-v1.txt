@@ -1,13 +1,9 @@
-Title: Demo Ingredient Quality Requirements
-DocumentType: QUALITY_REQUIREMENT
-Version: 1.0
-Fictional demo quality requirements.
+標題：虛構展示原料品質要求
+文件類型：QUALITY_REQUIREMENT
+版本：1.0
+虛構展示文件：本文內容與品質條件均為虛構，不代表真實公司的品質制度。
 
-Every delivered ingredient must match the purchase-order material code, declared quantity, and
-sealed package count. The warehouse records visible damage before receiving. A lot with a missing
-identifier, broken seal, contamination, or material mismatch is placed on hold and is not received
-into usable inventory. Procurement coordinates disposition with the supplier. The system does not
-support partial receiving in V1, so the full order must be accepted or the receiving action deferred.
+每批交付原料須符合採購單上的物料代碼、申報數量與密封包裝數。倉庫人員應在收貨前記錄可見損傷。若批次缺少批次識別、封條破損、受到污染或物料不符，須將該批隔離，不得收進可用庫存。採購人員須與供應商協調後續處置。V1 不支援部分收貨，因此須接受整筆採購單，或暫緩收貨作業。
 
-Question: Which defects require a delivered lot to be placed on hold?
-Expected basis: missing identifier, broken seal, contamination, or material mismatch.
+問答：哪些狀況需要隔離交付批次，且不可視為可用庫存？
+預期依據：缺少批次識別、封條破損、污染或物料不符。

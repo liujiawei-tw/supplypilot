@@ -86,7 +86,7 @@ describe('SP-807 reusable business error alert', () => {
     const retry = vi.fn();
     render(<ErrorState error={toApiError(failure(403, 'ACCESS_DENIED', 'No permission'))} onRetry={retry} />);
     expect(screen.queryByText(/Trace ID/)).toBeNull();
-    expect(screen.queryByRole('button', { name: 'Retry' })).toBeNull();
+    expect(screen.queryByRole('button', { name: '重新載入' })).toBeNull();
   });
 
   it('uses GET retry for a list failure without triggering any write request', async () => {
@@ -97,7 +97,7 @@ describe('SP-807 reusable business error alert', () => {
       onRetry={() => reads.push('GET /purchase-orders')}
     />);
     const user = userEvent.setup();
-    await user.click(screen.getByRole('button', { name: 'Retry' }));
+    await user.click(screen.getByRole('button', { name: '重新載入' }));
     expect(reads).toEqual(['GET /purchase-orders']);
     expect(writes).toHaveLength(0);
   });
@@ -123,21 +123,21 @@ describe('SP-807 purchase order verification boundary', () => {
     });
     await open('/purchase-orders/42');
     const user = userEvent.setup();
-    await user.click(await screen.findByRole('button', { name: 'Approve' }));
-    await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Confirm Approve' }));
+    await user.click(await screen.findByRole('button', { name: /核\s*准/ }));
+    await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: '確認核准' }));
     expect(await screen.findByText('狀態可能已變更，操作已鎖定')).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Edit DRAFT' }).hasAttribute('disabled')).toBe(true);
-    expect(screen.getByRole('button', { name: 'Approve' }).hasAttribute('disabled')).toBe(true);
+    expect(screen.getByRole('button', { name: '編輯草稿' }).hasAttribute('disabled')).toBe(true);
+    expect(screen.getByRole('button', { name: /核\s*准/ }).hasAttribute('disabled')).toBe(true);
 
-    await user.click(screen.getByRole('button', { name: '重新查詢 PO' }));
+    await user.click(screen.getByRole('button', { name: '重新查詢採購單' }));
     expect(await screen.findByText('結果尚未確認，操作維持鎖定')).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Edit DRAFT' }).hasAttribute('disabled')).toBe(true);
+    expect(screen.getByRole('button', { name: '編輯草稿' }).hasAttribute('disabled')).toBe(true);
     expect(requests.filter(({ url }) => url === '/purchase-orders/42/approve')).toHaveLength(1);
 
-    await user.click(screen.getByRole('button', { name: '重新查詢 PO' }));
-    expect(await screen.findByText(/Backend 最新資料：目前狀態為 DRAFT/)).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Edit DRAFT' }).hasAttribute('disabled')).toBe(false);
-    expect(screen.getByRole('button', { name: 'Approve' }).hasAttribute('disabled')).toBe(false);
+    await user.click(screen.getByRole('button', { name: '重新查詢採購單' }));
+    expect(await screen.findByText(/已取得後端最新資料：目前狀態為「草稿」/)).toBeTruthy();
+    expect(screen.getByRole('button', { name: '編輯草稿' }).hasAttribute('disabled')).toBe(false);
+    expect(screen.getByRole('button', { name: /核\s*准/ }).hasAttribute('disabled')).toBe(false);
     expect(requests.filter(({ url }) => url === '/purchase-orders/42/approve')).toHaveLength(1);
   }, 30_000);
 
@@ -153,15 +153,15 @@ describe('SP-807 purchase order verification boundary', () => {
     });
     await open('/purchase-orders/42');
     const user = userEvent.setup();
-    await user.click(await screen.findByRole('button', { name: 'Mark Ordered' }));
-    await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Confirm Mark Ordered' }));
+    await user.click(await screen.findByRole('button', { name: '標記為已下單' }));
+    await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: '確認下單' }));
     expect(await screen.findByText('狀態可能已變更，操作已鎖定')).toBeTruthy();
     expect(requests.filter(({ url }) => url === '/purchase-orders/42/order')).toHaveLength(1);
-    await user.click(screen.getByRole('button', { name: '重新查詢 PO' }));
-    expect(await screen.findByText(/Backend 最新資料：目前狀態為 APPROVED/)).toBeTruthy();
+    await user.click(screen.getByRole('button', { name: '重新查詢採購單' }));
+    expect(await screen.findByText(/已取得後端最新資料：目前狀態為「已核准」/)).toBeTruthy();
     expect(requests.filter(({ url }) => url === '/purchase-orders/42/order')).toHaveLength(1);
-    await user.click(screen.getByRole('button', { name: 'Mark Ordered' }));
-    expect(within(screen.getByRole('dialog')).getByText(/Approved Expected Delivery Date/)).toBeTruthy();
+    await user.click(screen.getByRole('button', { name: '標記為已下單' }));
+    expect(within(screen.getByRole('dialog')).getByText(/核准的預計交期/)).toBeTruthy();
     expect(requests.filter(({ url }) => url === '/purchase-orders/42/order')).toHaveLength(1);
   }, 30_000);
 });
@@ -169,7 +169,7 @@ describe('SP-807 purchase order verification boundary', () => {
 describe('SP-807 receiving and import verification boundaries', () => {
   it.each([
     ['RECEIVED', '此採購單已完成收貨'],
-    ['ORDERED', '目前 Backend 仍顯示待收貨（ORDERED）'],
+    ['ORDERED', '目前仍為待收貨（已下單）'],
   ] as const)('verifies DUPLICATE_RECEIVING through restricted GET and reports %s without a resend', async (verifiedStatus, expectedMessage) => {
     const requests: InternalAxiosRequestConfig[] = [];
     let reads = 0;
@@ -188,16 +188,16 @@ describe('SP-807 receiving and import verification boundaries', () => {
     });
     await open('/receiving/purchase-orders/42');
     const user = userEvent.setup();
-    await user.click(await screen.findByRole('button', { name: 'Confirm Full Receive' }));
-    await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Confirm Full Receive' }));
+    await user.click(await screen.findByRole('button', { name: '確認整筆收貨' }));
+    await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: '確認整筆收貨' }));
     expect(await screen.findByText('收貨結果需要查核，已鎖定再次提交')).toBeTruthy();
-    await user.click(screen.getByRole('button', { name: '重新查詢 Receiving 狀態' }));
+    await user.click(screen.getByRole('button', { name: '重新查詢收貨狀態' }));
     expect(await screen.findByText(new RegExp(expectedMessage))).toBeTruthy();
     expect(requests.filter(({ url }) => url === '/purchase-orders/42/receive')).toHaveLength(1);
     expect(requests.filter(({ url }) => url === '/receiving/purchase-orders/42')).toHaveLength(2);
     expect(requests.some(({ url, method }) => url === '/purchase-orders/42' && method === 'get')).toBe(false);
-    expect(screen.queryByText('Unit Price')).toBeNull();
-    expect(screen.queryByText('Recommendation Evidence')).toBeNull();
+    expect(screen.queryByText('單價')).toBeNull();
+    expect(screen.queryByText('採購建議依據')).toBeNull();
   }, 30_000);
 
   it('keeps CONFIRM_UNKNOWN locked after a server-side unknown result and does not invent a batch status GET', async () => {
@@ -213,13 +213,13 @@ describe('SP-807 receiving and import verification boundaries', () => {
     await open('/inventory/import');
     const user = userEvent.setup();
     const file = new File(['material_code,quantity,unit\nMAT-001,10,KG\n'], 'inventory.csv', { type: 'text/csv' });
-    await user.upload(await screen.findByLabelText('Inventory CSV file'), file);
-    await user.click(screen.getByRole('button', { name: 'Validate & Preview' }));
+    await user.upload(await screen.findByLabelText('庫存 CSV 檔案'), file);
+    await user.click(screen.getByRole('button', { name: '驗證並預覽' }));
     await screen.findByText('後端驗證通過，尚未匯入');
-    await user.click(screen.getByRole('button', { name: 'Confirm Import' }));
-    await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Confirm Import' }));
+    await user.click(screen.getByRole('button', { name: '確認匯入' }));
+    await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: '確認匯入' }));
     expect(await screen.findByText('確認結果未知')).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Confirm Import' }).hasAttribute('disabled')).toBe(true);
+    expect(screen.getByRole('button', { name: '確認匯入' }).hasAttribute('disabled')).toBe(true);
     expect(screen.queryByText(/SQL path/)).toBeNull();
     expect(requests.filter(({ url }) => url === '/inventory-imports/807/confirm')).toHaveLength(1);
     expect(requests.some(({ url, method }) => method === 'get' && url?.includes('inventory-imports/807'))).toBe(false);

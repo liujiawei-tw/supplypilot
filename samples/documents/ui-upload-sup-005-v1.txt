@@ -1,12 +1,9 @@
-Title: SUP-005 Seasonal Delivery Addendum
-DocumentType: SUPPLIER_CONTRACT
-Version: 1.0
-Fictional sixth document for the manual UI scenario; it is intentionally not in the baseline seed.
+標題：SUP-005 季節性交期補充條款
+文件類型：SUPPLIER_CONTRACT
+版本：1.0
+虛構展示文件：本文為第六份虛構 UI 上傳展示文件，不代表真實公司或契約。本文件僅供人工上傳驗收，不屬於五份基線文件，也不得自動 Seed。
 
-Pacific Food Materials (SUP-005) requests that seasonal delivery changes be reported two business
-days before the expected delivery date. The buyer must record the revised plan in the purchase-order
-workflow; this addendum never authorizes skipping manager approval. Warehouse staff continue to
-receive only orders already marked ORDERED.
+Pacific Food Materials（SUP-005）要求季節性交期變更須於預計交期前 2 個工作天通報。採購人員須在採購單流程中記錄更新後的交貨計畫；本補充條款不允許略過採購經理核准。倉庫人員仍只能收取狀態已標記為 ORDERED 的採購單。
 
-Question: When should SUP-005 report a seasonal delivery change?
-Expected basis: two business days before the expected delivery date.
+問答：SUP-005 應於何時通報季節性交期變更？
+預期依據：預計交期前 2 個工作天。

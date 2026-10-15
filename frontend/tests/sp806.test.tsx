@@ -22,17 +22,17 @@ function deferred<T>() {
 }
 async function open(path: string) { localStorage.setItem(TOKEN_STORAGE_KEY, 'valid-token'); await router.navigate(path); render(<App />); }
 function latestDialog() { const dialogs = screen.getAllByRole('dialog'); return dialogs[dialogs.length - 1]; }
-function documentDrawer() { return screen.getByText('Document Detail').closest('.ant-drawer')!; }
+function documentDrawer() { return screen.getByText('文件明細').closest('.ant-drawer')!; }
 async function openDraftProposal(user: ReturnType<typeof userEvent.setup>) {
   await open('/dashboard');
-  await user.click(await screen.findByRole('button', { name: /AI Assistant/ }));
-  await user.click(screen.getByRole('tab', { name: 'Draft Proposal' }));
-  fireEvent.change(screen.getByLabelText('AI draft supplier ID'), { target: { value: '12' } });
-  fireEvent.change(screen.getByLabelText('AI draft item 1 material ID'), { target: { value: '7' } });
-  await user.type(screen.getByLabelText('AI draft item 1 quantity'), '1');
-  await user.type(screen.getByLabelText('AI draft item 1 unit price'), '2');
-  await user.click(screen.getByRole('button', { name: 'Create Proposal for Review' }));
-  await screen.findByText('Backend Proposal Snapshot');
+  await user.click(await screen.findByRole('button', { name: /AI 助理/ }));
+  await user.click(screen.getByRole('tab', { name: '採購草稿提案' }));
+  fireEvent.change(screen.getByLabelText('AI 草稿供應商編號'), { target: { value: '12' } });
+  fireEvent.change(screen.getByLabelText('AI 草稿品項 1 物料編號'), { target: { value: '7' } });
+  await user.type(screen.getByLabelText('AI 草稿品項 1 數量'), '1');
+  await user.type(screen.getByLabelText('AI 草稿品項 1 單價'), '2');
+  await user.click(screen.getByRole('button', { name: '產生提案供審閱' }));
+  await screen.findByText('後端提案快照');
 }
 beforeEach(() => { localStorage.clear(); });
 
@@ -51,12 +51,12 @@ describe('SP-806 Document Management UI', () => {
     else {
       await screen.findByText('SupplyPilot');
       expect(screen.queryByText('Semantic 索引管理')).toBeNull();
-      expect(screen.queryByRole('button', { name: '執行並保存 Gate Audit' })).toBeNull();
+      expect(screen.queryByRole('button', { name: '執行並保存 Gate 稽核' })).toBeNull();
     }
     cleanup();
   });
 
-  it('confirms outbound approval and renders the actual Backend Review result', async () => {
+  it('confirms outbound approval and renders the actual 後端 Review result', async () => {
     const ready = { ...documentProcessing, status: 'READY' };
     const requests: InternalAxiosRequestConfig[] = [];
     axiosClient.defaults.adapter = vi.fn(async (config) => {
@@ -74,7 +74,7 @@ describe('SP-806 Document Management UI', () => {
     await user.click(await screen.findByRole('button', { name: '核准出站' }));
     expect(await screen.findByText(/可能送至外部 Embedding Provider/)).toBeTruthy();
     await user.click(within(latestDialog()).getByRole('button', { name: '確認核准出站' }));
-    expect(await screen.findByText('Backend 本次審核回應：APPROVED')).toBeTruthy();
+    expect(await screen.findByText('本次審核回應：已核准')).toBeTruthy();
     expect(screen.getByText('abc123')).toBeTruthy();
     expect(requests.filter(({ url }) => url === '/semantic-index/documents/21/approve-outbound')).toHaveLength(1);
   });
@@ -107,7 +107,7 @@ describe('SP-806 Document Management UI', () => {
     expect(within(drawer).getByText('v22')).toBeTruthy();
     await user.click(within(drawer).getByRole('button', { name: '核准出站' }));
     await user.click(within(latestDialog()).getByRole('button', { name: '確認核准出站' }));
-    expect(await within(drawer).findByText('Backend 本次審核回應：APPROVED')).toBeTruthy();
+    expect(await within(drawer).findByText('本次審核回應：已核准')).toBeTruthy();
     expect(requests.filter(({ url }) => url === '/semantic-index/documents/22/approve-outbound')).toHaveLength(1);
     expect(requests.some(({ url }) => url === '/semantic-index/documents/21/approve-outbound')).toBe(false);
   });
@@ -135,16 +135,16 @@ describe('SP-806 Document Management UI', () => {
     await within(drawer).findByText('Quote 21');
 
     if (operation === 'title') {
-      const title = within(drawer).getByRole('textbox', { name: 'Document title' });
+      const title = within(drawer).getByRole('textbox', { name: '文件標題' });
       await user.clear(title); await user.type(title, 'Changed quote');
-      await user.click(within(drawer).getByRole('button', { name: 'Save Title' }));
+      await user.click(within(drawer).getByRole('button', { name: '儲存標題' }));
       await waitFor(() => expect(requests.some(({ url, method }) => url === '/documents/21' && method === 'patch')).toBe(true));
     } else if (operation === 'archive') {
-      await user.click(within(drawer).getByRole('button', { name: 'Archive as INACTIVE' }));
+      await user.click(within(drawer).getByRole('button', { name: '封存文件' }));
       await waitFor(() => expect(requests.some(({ url, method }) => url === '/documents/21' && method === 'patch')).toBe(true));
     } else {
-      await user.click(within(drawer).getByRole('button', { name: 'Start Explicit Ingestion' }));
-      await user.click(within(latestDialog()).getByRole('button', { name: 'Confirm Ingestion' }));
+      await user.click(within(drawer).getByRole('button', { name: '開始文件解析與索引' }));
+      await user.click(within(latestDialog()).getByRole('button', { name: '確認開始' }));
       await waitFor(() => expect(requests.some(({ url }) => url === '/documents/21/ingestions')).toBe(true));
     }
 
@@ -158,7 +158,7 @@ describe('SP-806 Document Management UI', () => {
     expect(within(drawer).queryByText(/Late .* result/)).toBeNull();
     await user.click(within(drawer).getByRole('button', { name: '核准出站' }));
     await user.click(within(latestDialog()).getByRole('button', { name: '確認核准出站' }));
-    expect(await within(drawer).findByText('Backend 本次審核回應：APPROVED')).toBeTruthy();
+    expect(await within(drawer).findByText('本次審核回應：已核准')).toBeTruthy();
     expect(requests.filter(({ url }) => url === '/semantic-index/documents/22/approve-outbound')).toHaveLength(1);
     expect(requests.some(({ url }) => url === '/semantic-index/documents/21/approve-outbound')).toBe(false);
   });
@@ -184,8 +184,8 @@ describe('SP-806 Document Management UI', () => {
     await user.click(screen.getByRole('button', { name: '#21' }));
     const drawer = documentDrawer();
     await within(drawer).findByText('Quote 21');
-    await user.click(within(drawer).getByRole('button', { name: 'Start Explicit Ingestion' }));
-    await user.click(within(latestDialog()).getByRole('button', { name: 'Confirm Ingestion' }));
+    await user.click(within(drawer).getByRole('button', { name: '開始文件解析與索引' }));
+    await user.click(within(latestDialog()).getByRole('button', { name: '確認開始' }));
     await within(drawer).findByText('索引結果不明，已鎖定重送');
     const verificationButtons = within(drawer).getAllByRole('button', { name: '查核真實文件狀態' });
     await user.click(verificationButtons[verificationButtons.length - 1]);
@@ -195,7 +195,7 @@ describe('SP-806 Document Management UI', () => {
     delayedVerification.resolve(response(requests.find(({ url }) => url === '/documents/21')!, { ...first, title: 'Late verification', status: 'READY' }));
     await new Promise((resolve) => setTimeout(resolve, 0));
     expect(within(drawer).getByText('Quote 22')).toBeTruthy();
-    expect(within(drawer).queryByText(/已查核 Backend 真實狀態/)).toBeNull();
+    expect(within(drawer).queryByText(/已查核後端真實狀態/)).toBeNull();
     expect(within(drawer).queryByText('索引結果不明，已鎖定重送')).toBeNull();
   });
 
@@ -217,14 +217,14 @@ describe('SP-806 Document Management UI', () => {
     await within(drawer).findByText('v2');
     expect(within(drawer).getByText('v2')).toBeTruthy();
     const getCountBeforeClose = calls.filter(({ url }) => url === '/documents/21').length;
-    await userEvent.setup().click(within(drawer).getByRole('button', { name: /close/i }));
+    await userEvent.setup().click(within(drawer).getByRole('button', { name: '關閉' }));
     await waitFor(() => expect(new URLSearchParams(window.location.search).has('documentId')).toBe(false));
     await new Promise((resolve) => setTimeout(resolve, 10));
     expect(calls.filter(({ url }) => url === '/documents/21')).toHaveLength(getCountBeforeClose);
     await waitFor(() => expect(documentDrawer().className).not.toContain('ant-drawer-open'));
   });
 
-  it('marks saved Audit responses historical after document upload, ingestion and outbound approval or exclusion', async () => {
+  it('marks saved Gate 稽核 responses historical after document upload, ingestion and outbound approval or exclusion', async () => {
     let auditId = 90;
     const requests: InternalAxiosRequestConfig[] = [];
     axiosClient.defaults.adapter = vi.fn(async (config) => {
@@ -242,42 +242,42 @@ describe('SP-806 Document Management UI', () => {
     await open('/documents'); const user = userEvent.setup();
     await screen.findByText('Semantic 索引管理');
     const saveAudit = async () => {
-      await user.click(screen.getByRole('button', { name: '執行並保存 Gate Audit' }));
-      await user.click(screen.getByRole('button', { name: '確認並保存 Audit' }));
-      await screen.findByText('本次 Gate Audit 通過');
+      await user.click(screen.getByRole('button', { name: '執行並保存 Gate 稽核' }));
+      await user.click(screen.getByRole('button', { name: '確認並保存稽核結果' }));
+      await screen.findByText('本次 Gate 稽核通過');
     };
 
     await saveAudit();
-    await user.click(screen.getByRole('button', { name: /Upload Document/ }));
+    await user.click(screen.getByRole('button', { name: /上傳文件/ }));
     const uploadDialog = latestDialog();
-    fireEvent.mouseDown(within(uploadDialog).getByLabelText('Upload document type'));
-    await user.click(await screen.findByText('QUOTATION', { selector: '.ant-select-item-option-content' }));
-    await user.type(within(uploadDialog).getByLabelText('Upload title'), 'New quote');
-    await user.type(within(uploadDialog).getByLabelText('Upload version'), 'v1');
-    await user.upload(within(uploadDialog).getByLabelText('Upload file'), new File(['quote'], 'quote.txt', { type: 'text/plain' }));
-    await user.click(within(uploadDialog).getByRole('button', { name: 'Upload' }));
-    await screen.findByText('歷史 Gate Audit 回應（已過期）');
+    fireEvent.mouseDown(within(uploadDialog).getByLabelText('上傳文件類型'));
+    await user.click(await screen.findByText('報價單', { selector: '.ant-select-item-option-content' }));
+    await user.type(within(uploadDialog).getByLabelText('文件標題'), 'New quote');
+    await user.type(within(uploadDialog).getByLabelText('文件版本'), 'v1');
+    await user.upload(within(uploadDialog).getByLabelText('上傳檔案'), new File(['quote'], 'quote.txt', { type: 'text/plain' }));
+    await user.click(within(uploadDialog).getByRole('button', { name: /上\s*傳/ }));
+    await screen.findByText('歷史 Gate 稽核回應（已過期）');
 
     await saveAudit();
     await user.click(screen.getByRole('button', { name: '#21' }));
     const drawer = documentDrawer();
-    await within(drawer).findByRole('button', { name: 'Start Explicit Ingestion' });
-    await user.click(within(drawer).getByRole('button', { name: 'Start Explicit Ingestion' }));
-    await user.click(within(latestDialog()).getByRole('button', { name: 'Confirm Ingestion' }));
-    expect(await within(drawer).findByText('READY')).toBeTruthy();
-    await screen.findByText('歷史 Gate Audit 回應（已過期）');
+    await within(drawer).findByRole('button', { name: '開始文件解析與索引' });
+    await user.click(within(drawer).getByRole('button', { name: '開始文件解析與索引' }));
+    await user.click(within(latestDialog()).getByRole('button', { name: '確認開始' }));
+    expect(await within(drawer).findByText('已就緒')).toBeTruthy();
+    await screen.findByText('歷史 Gate 稽核回應（已過期）');
 
     await saveAudit();
     await user.click(within(drawer).getByRole('button', { name: '核准出站' }));
     await user.click(within(latestDialog()).getByRole('button', { name: '確認核准出站' }));
-    await within(drawer).findByText('Backend 本次審核回應：APPROVED');
-    await screen.findByText('歷史 Gate Audit 回應（已過期）');
+    await within(drawer).findByText('本次審核回應：已核准');
+    await screen.findByText('歷史 Gate 稽核回應（已過期）');
 
     await saveAudit();
     await user.click(within(drawer).getByRole('button', { name: '排除出站' }));
     await user.click(within(latestDialog()).getByRole('button', { name: '確認排除出站' }));
-    await within(drawer).findByText('Backend 本次審核回應：SKIPPED');
-    expect(await screen.findByText('歷史 Gate Audit 回應（已過期）')).toBeTruthy();
+    await within(drawer).findByText('本次審核回應：已略過');
+    expect(await screen.findByText('歷史 Gate 稽核回應（已過期）')).toBeTruthy();
     expect(requests.filter(({ url, method }) => url === '/documents' && method === 'post')).toHaveLength(1);
   }, 120_000);
 
@@ -294,15 +294,15 @@ describe('SP-806 Document Management UI', () => {
     await open('/documents'); const user = userEvent.setup();
     await waitFor(() => expect(requests.map(({ method, url }) => `${method} ${url}`)).toContain('get /documents'));
     expect(await screen.findByText('Supplier quote')).toBeTruthy();
-    expect(screen.getByText('PROCESSING')).toBeTruthy();
-    expect(screen.getByRole('button', { name: /Upload Document/ })).toBeTruthy();
+    expect(screen.getByText('處理中')).toBeTruthy();
+    expect(screen.getByRole('button', { name: /上傳文件/ })).toBeTruthy();
     await user.click(screen.getByRole('button', { name: '#21' }));
-    expect(await screen.findByText('Document Detail')).toBeTruthy();
+    expect(await screen.findByText('文件明細')).toBeTruthy();
     expect(screen.queryByText('/private/do-not-show')).toBeNull();
-    await user.click(screen.getByRole('button', { name: 'Start Explicit Ingestion' }));
+    await user.click(screen.getByRole('button', { name: '開始文件解析與索引' }));
     const dialog = latestDialog();
-    await user.click(within(dialog).getByRole('button', { name: 'Confirm Ingestion' }));
-    expect((await screen.findAllByText('READY')).length).toBeGreaterThan(0);
+    await user.click(within(dialog).getByRole('button', { name: '確認開始' }));
+    expect((await screen.findAllByText('已就緒')).length).toBeGreaterThan(0);
     expect(requests.filter(({ url }) => url === '/documents/21/ingestions')).toHaveLength(1);
   }, 30_000);
 
@@ -328,21 +328,21 @@ describe('SP-806 Document Management UI', () => {
     await waitFor(() => expect(requests.map(({ method, url }) => `${method} ${url}`)).toContain('get /documents'));
     expect(await screen.findByText('Supplier quote')).toBeTruthy();
     await user.click(await screen.findByRole('button', { name: '#21' }));
-    await user.click(screen.getByRole('button', { name: 'Start Explicit Ingestion' }));
-    await user.click(within(latestDialog()).getByRole('button', { name: 'Confirm Ingestion' }));
+    await user.click(screen.getByRole('button', { name: '開始文件解析與索引' }));
+    await user.click(within(latestDialog()).getByRole('button', { name: '確認開始' }));
     expect(await screen.findByText(/系統不會重送/)).toBeTruthy();
     expect(requests.filter(({ url }) => url === '/documents/21/ingestions')).toHaveLength(1);
-    expect(screen.queryByRole('button', { name: 'Start Explicit Ingestion' })).toBeNull();
+    expect(screen.queryByRole('button', { name: '開始文件解析與索引' })).toBeNull();
 
     await user.click(screen.getAllByRole('button', { name: '查核真實文件狀態' })[0]);
     expect(await screen.findByText(/索引操作維持鎖定/)).toBeTruthy();
-    expect(screen.queryByRole('button', { name: 'Start Explicit Ingestion' })).toBeNull();
+    expect(screen.queryByRole('button', { name: '開始文件解析與索引' })).toBeNull();
     expect(requests.filter(({ url }) => url === '/documents/21/ingestions')).toHaveLength(1);
 
     const verifyButtons = screen.getAllByRole('button', { name: '查核真實文件狀態' });
     await user.click(verifyButtons[verifyButtons.length - 1]);
-    expect(await screen.findByText(/已查核 Backend 真實狀態：READY/)).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Start Explicit Ingestion' })).toBeTruthy();
+    expect(await screen.findByText(/已查核後端真實狀態：已就緒/)).toBeTruthy();
+    expect(screen.getByRole('button', { name: '開始文件解析與索引' })).toBeTruthy();
     expect(requests.filter(({ url }) => url === '/documents/21/ingestions')).toHaveLength(1);
   }, 30_000);
 
@@ -362,21 +362,21 @@ describe('SP-806 Document Management UI', () => {
       throw new Error(`Unexpected ${config.method} ${config.url}`);
     });
     await open('/documents'); const user = userEvent.setup();
-    await user.click(await screen.findByRole('button', { name: /Upload Document/ }));
+    await user.click(await screen.findByRole('button', { name: /上傳文件/ }));
     const uploadDialog = latestDialog();
-    const type = within(uploadDialog).getByLabelText('Upload document type');
+    const type = within(uploadDialog).getByLabelText('上傳文件類型');
     fireEvent.mouseDown(type);
-    const quotationOption = await screen.findByText('QUOTATION', { selector: '.ant-select-item-option-content' });
+    const quotationOption = await screen.findByText('報價單', { selector: '.ant-select-item-option-content' });
     await user.click(quotationOption);
-    expect(within(uploadDialog).getByTitle('QUOTATION')).toBeTruthy();
-    await user.type(within(uploadDialog).getByLabelText('Upload title'), 'Quote');
-    await user.type(within(uploadDialog).getByLabelText('Upload version'), 'v1');
-    await user.upload(within(uploadDialog).getByLabelText('Upload file'), new File(['quote'], 'quote.txt', { type: 'text/plain' }));
-    const upload = within(uploadDialog).getByRole('button', { name: 'Upload' });
+    expect(within(uploadDialog).getByTitle('報價單')).toBeTruthy();
+    await user.type(within(uploadDialog).getByLabelText('文件標題'), 'Quote');
+    await user.type(within(uploadDialog).getByLabelText('文件版本'), 'v1');
+    await user.upload(within(uploadDialog).getByLabelText('上傳檔案'), new File(['quote'], 'quote.txt', { type: 'text/plain' }));
+    const upload = within(uploadDialog).getByRole('button', { name: /上\s*傳/ });
     fireEvent.click(upload); fireEvent.click(upload);
     await waitFor(() => expect(requests.filter(({ method, url }) => method === 'post' && url === '/documents')).toHaveLength(1));
     expect(await within(uploadDialog).findByText(/上傳結果不明/)).toBeTruthy();
-    expect(screen.getByRole('button', { name: /Upload Document/ }).hasAttribute('disabled')).toBe(true);
+    expect(screen.getByRole('button', { name: /上傳文件/ }).hasAttribute('disabled')).toBe(true);
   }, 30_000);
 
   it('gives manager read-only Documents without upload, edit, or ingestion controls', async () => {
@@ -390,11 +390,11 @@ describe('SP-806 Document Management UI', () => {
     });
     await open('/documents'); const user = userEvent.setup();
     expect(await screen.findByText('Supplier quote')).toBeTruthy();
-    expect(screen.queryByRole('button', { name: /Upload Document/ })).toBeNull();
+    expect(screen.queryByRole('button', { name: /上傳文件/ })).toBeNull();
     await user.click(screen.getByRole('button', { name: '#21' }));
-    await screen.findByText('Document Detail');
-    expect(screen.queryByRole('button', { name: 'Save Title' })).toBeNull();
-    expect(screen.queryByRole('button', { name: 'Start Explicit Ingestion' })).toBeNull();
+    await screen.findByText('文件明細');
+    expect(screen.queryByRole('button', { name: '儲存標題' })).toBeNull();
+    expect(screen.queryByRole('button', { name: '開始文件解析與索引' })).toBeNull();
     expect(requests).toEqual(['/auth/me', '/documents', '/documents/21']);
   }, 30_000);
 
@@ -403,12 +403,12 @@ describe('SP-806 Document Management UI', () => {
     axiosClient.defaults.adapter = vi.fn(async (config) => { requests.push(config.url ?? ''); if (config.url === '/auth/me') return response(config, warehouse); throw new Error(`Unexpected ${config.url}`); });
     await open('/documents');
     expect(await screen.findByText('403')).toBeTruthy();
-    expect(screen.queryByRole('button', { name: /AI Assistant/ })).toBeNull();
+    expect(screen.queryByRole('button', { name: /AI 助理/ })).toBeNull();
     expect(requests).toEqual(['/auth/me']);
   }, 30_000);
 });
 
-describe('SP-806 Global AI Assistant', () => {
+describe('SP-806 Global AI 助理', () => {
   it('keeps the route unchanged, renders verified query sources, and gives manager no Proposal tab', async () => {
     const requests: InternalAxiosRequestConfig[] = [];
     axiosClient.defaults.adapter = vi.fn(async (config) => {
@@ -422,9 +422,9 @@ describe('SP-806 Global AI Assistant', () => {
     });
     await open('/dashboard'); const user = userEvent.setup();
     await screen.findByText('Manager（manager）');
-    await user.click(await screen.findByRole('button', { name: /AI Assistant/ }));
-    expect(screen.queryByRole('tab', { name: 'Draft Proposal' })).toBeNull();
-    await user.type(screen.getByLabelText('AI question'), 'Explain Recommendation #91');
+    await user.click(await screen.findByRole('button', { name: /AI 助理/ }));
+    expect(screen.queryByRole('tab', { name: '採購草稿提案' })).toBeNull();
+    await user.type(screen.getByLabelText('AI 問題'), 'Explain Recommendation #91');
     await user.click(screen.getByRole('button', { name: '送出問題' }));
     expect(await screen.findByText('Recommendation #91 uses the verified ranking.')).toBeTruthy();
     expect(screen.getByRole('link', { name: '91' }).getAttribute('href')).toBe('/recommendations/91');
@@ -440,12 +440,12 @@ describe('SP-806 Global AI Assistant', () => {
       throw new Error(`Unexpected ${config.url}`);
     });
     await open('/dashboard'); const user = userEvent.setup();
-    await user.click(await screen.findByRole('button', { name: /AI Assistant/ }));
-    await user.type(screen.getByLabelText('AI question'), 'Question');
+    await user.click(await screen.findByRole('button', { name: /AI 助理/ }));
+    await user.type(screen.getByLabelText('AI 問題'), 'Question');
     await user.click(screen.getByRole('button', { name: '送出問題' }));
     expect(await screen.findByText(/核心採購功能與導覽仍可正常操作/)).toBeTruthy();
-    expect(screen.getByText('SupplyPilot — AI Procurement & Supply Chain Decision Platform')).toBeTruthy();
-    await user.click(screen.getByRole('button', { name: 'Close' }));
+    expect(screen.getByText('SupplyPilot — AI 採購與供應鏈決策平台')).toBeTruthy();
+    await user.click(screen.getByRole('button', { name: '關閉' }));
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
     expect(router.state.location.pathname).toBe('/dashboard');
   }, 30_000);
@@ -467,28 +467,28 @@ describe('SP-806 Global AI Assistant', () => {
       return Promise.reject(new Error(`Unexpected ${config.url}`));
     });
     await open('/dashboard'); const user = userEvent.setup();
-    await user.click(await screen.findByRole('button', { name: /AI Assistant/ }));
-    await user.click(screen.getByRole('tab', { name: 'Draft Proposal' }));
-    fireEvent.change(screen.getByLabelText('AI draft supplier ID'), { target: { value: '12' } });
-    fireEvent.change(screen.getByLabelText('AI draft delivery date'), { target: { value: '2099-10-20' } });
-    fireEvent.change(screen.getByLabelText('AI draft item 1 material ID'), { target: { value: '7' } });
-    await user.type(screen.getByLabelText('AI draft item 1 quantity'), '999999999999999.1234000');
-    await user.type(screen.getByLabelText('AI draft item 1 unit price'), '0.0000001234500');
-    await user.click(screen.getByRole('button', { name: /Add Item/ }));
-    fireEvent.change(screen.getByLabelText('AI draft item 2 material ID'), { target: { value: '8' } });
-    await user.type(screen.getByLabelText('AI draft item 2 quantity'), '2.0000');
-    await user.type(screen.getByLabelText('AI draft item 2 unit price'), '50.0000');
-    await user.click(screen.getByRole('button', { name: 'Create Proposal for Review' }));
-    expect(await screen.findByText('Backend Proposal Snapshot')).toBeTruthy();
+    await user.click(await screen.findByRole('button', { name: /AI 助理/ }));
+    await user.click(screen.getByRole('tab', { name: '採購草稿提案' }));
+    fireEvent.change(screen.getByLabelText('AI 草稿供應商編號'), { target: { value: '12' } });
+    fireEvent.change(screen.getByLabelText('AI 草稿預計交期'), { target: { value: '2099-10-20' } });
+    fireEvent.change(screen.getByLabelText('AI 草稿品項 1 物料編號'), { target: { value: '7' } });
+    await user.type(screen.getByLabelText('AI 草稿品項 1 數量'), '999999999999999.1234000');
+    await user.type(screen.getByLabelText('AI 草稿品項 1 單價'), '0.0000001234500');
+    await user.click(screen.getByRole('button', { name: /新增品項/ }));
+    fireEvent.change(screen.getByLabelText('AI 草稿品項 2 物料編號'), { target: { value: '8' } });
+    await user.type(screen.getByLabelText('AI 草稿品項 2 數量'), '2.0000');
+    await user.type(screen.getByLabelText('AI 草稿品項 2 單價'), '50.0000');
+    await user.click(screen.getByRole('button', { name: '產生提案供審閱' }));
+    expect(await screen.findByText('後端提案快照')).toBeTruthy();
     expect(screen.getByText('999999999999999.1234000')).toBeTruthy();
     expect(screen.queryByText('server-secret-token')).toBeNull();
     expect(requests.filter(({ url }) => url === '/purchase-orders')).toHaveLength(0);
-    await user.click(screen.getByRole('button', { name: 'Review / Confirm DRAFT' }));
-    const confirm = within(latestDialog()).getByRole('button', { name: 'Confirm Create DRAFT' });
+    await user.click(screen.getByRole('button', { name: '審閱並確認草稿' }));
+    const confirm = within(latestDialog()).getByRole('button', { name: '確認建立草稿' });
     fireEvent.click(confirm); fireEvent.click(confirm);
     await waitFor(() => expect(requests.filter(({ url }) => url === '/ai/purchase-draft-proposals/proposal-1/confirm')).toHaveLength(1));
     finishConfirm();
-    expect(await screen.findByText(/PO PO-000042 已由 Backend 建立/)).toBeTruthy();
+    expect(await screen.findByText(/採購單 PO-000042 已建立/)).toBeTruthy();
     const confirmRequest = requests.find(({ url }) => url === '/ai/purchase-draft-proposals/proposal-1/confirm')!;
     expect(JSON.parse(confirmRequest.data as string)).toEqual({ confirmationToken: 'server-secret-token', draft: backendDraft });
     expect(requests.filter(({ url }) => url === '/purchase-orders')).toHaveLength(0);
@@ -509,24 +509,24 @@ describe('SP-806 Global AI Assistant', () => {
       throw new Error(`Unexpected ${config.url}`);
     });
     await open('/dashboard'); const user = userEvent.setup();
-    await user.click(await screen.findByRole('button', { name: /AI Assistant/ }));
-    await user.click(screen.getByRole('tab', { name: 'Draft Proposal' }));
-    fireEvent.change(screen.getByLabelText('AI draft supplier ID'), { target: { value: '12' } });
-    fireEvent.change(screen.getByLabelText('AI draft item 1 material ID'), { target: { value: '7' } });
-    await user.type(screen.getByLabelText('AI draft item 1 quantity'), '1');
-    await user.type(screen.getByLabelText('AI draft item 1 unit price'), '2');
-    await user.click(screen.getByRole('button', { name: 'Create Proposal for Review' }));
+    await user.click(await screen.findByRole('button', { name: /AI 助理/ }));
+    await user.click(screen.getByRole('tab', { name: '採購草稿提案' }));
+    fireEvent.change(screen.getByLabelText('AI 草稿供應商編號'), { target: { value: '12' } });
+    fireEvent.change(screen.getByLabelText('AI 草稿品項 1 物料編號'), { target: { value: '7' } });
+    await user.type(screen.getByLabelText('AI 草稿品項 1 數量'), '1');
+    await user.type(screen.getByLabelText('AI 草稿品項 1 單價'), '2');
+    await user.click(screen.getByRole('button', { name: '產生提案供審閱' }));
     expect(await screen.findByText(/items\[0\]\.unitPrice/)).toBeTruthy();
-    expect(screen.queryByRole('button', { name: 'Review / Confirm DRAFT' })).toBeNull();
-    await user.click(screen.getByRole('button', { name: 'Create Proposal for Review' }));
-    await user.click(await screen.findByRole('button', { name: 'Review / Confirm DRAFT' }));
-    await user.click(within(latestDialog()).getByRole('button', { name: 'Confirm Create DRAFT' }));
+    expect(screen.queryByRole('button', { name: '審閱並確認草稿' })).toBeNull();
+    await user.click(screen.getByRole('button', { name: '產生提案供審閱' }));
+    await user.click(await screen.findByRole('button', { name: '審閱並確認草稿' }));
+    await user.click(within(latestDialog()).getByRole('button', { name: '確認建立草稿' }));
     expect(await screen.findByText(/系統已鎖定重送/)).toBeTruthy();
     expect(requests.filter(({ url }) => url === '/ai/purchase-draft-proposals/p2/confirm')).toHaveLength(1);
-    expect(screen.getByRole('button', { name: 'Review / Confirm DRAFT' }).hasAttribute('disabled')).toBe(true);
-    expect(screen.getByRole('button', { name: 'Discard & Edit' }).hasAttribute('disabled')).toBe(true);
-    await user.click(screen.getByRole('button', { name: 'Discard & Edit' }));
-    expect(screen.getByText('Backend Proposal Snapshot')).toBeTruthy();
+    expect(screen.getByRole('button', { name: '審閱並確認草稿' }).hasAttribute('disabled')).toBe(true);
+    expect(screen.getByRole('button', { name: '捨棄並編輯' }).hasAttribute('disabled')).toBe(true);
+    await user.click(screen.getByRole('button', { name: '捨棄並編輯' }));
+    expect(screen.getByText('後端提案快照')).toBeTruthy();
     expect(requests.filter(({ url }) => url === '/ai/purchase-draft-proposals')).toHaveLength(2);
   }, 30_000);
 
@@ -547,11 +547,11 @@ describe('SP-806 Global AI Assistant', () => {
     });
     const user = userEvent.setup();
     await openDraftProposal(user);
-    await user.click(screen.getByRole('button', { name: 'Review / Confirm DRAFT' }));
-    await user.click(within(latestDialog()).getByRole('button', { name: 'Confirm Create DRAFT' }));
-    expect(await screen.findByText(code === 'AI_PROPOSAL_ALREADY_CONFIRMED' ? /可能已建立採購單/ : /舊 token 不可重用/)).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Review / Confirm DRAFT' }).hasAttribute('disabled')).toBe(true);
-    if (code === 'AI_PROPOSAL_ALREADY_CONFIRMED') expect(screen.getByRole('button', { name: 'Discard & Edit' }).hasAttribute('disabled')).toBe(true);
+    await user.click(screen.getByRole('button', { name: '審閱並確認草稿' }));
+    await user.click(within(latestDialog()).getByRole('button', { name: '確認建立草稿' }));
+    expect(await screen.findByText(code === 'AI_PROPOSAL_ALREADY_CONFIRMED' ? /可能已建立採購單/ : /舊權杖不可重用/)).toBeTruthy();
+    expect(screen.getByRole('button', { name: '審閱並確認草稿' }).hasAttribute('disabled')).toBe(true);
+    if (code === 'AI_PROPOSAL_ALREADY_CONFIRMED') expect(screen.getByRole('button', { name: '捨棄並編輯' }).hasAttribute('disabled')).toBe(true);
     expect(requests.filter(({ url }) => url === '/ai/purchase-draft-proposals/terminal-proposal/confirm')).toHaveLength(1);
   }, 30_000);
 
@@ -568,8 +568,8 @@ describe('SP-806 Global AI Assistant', () => {
     });
     const user = userEvent.setup();
     await openDraftProposal(user);
-    expect(screen.getByText('Proposal 到期時間無效')).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Review / Confirm DRAFT' }).hasAttribute('disabled')).toBe(true);
+    expect(screen.getByText('提案到期時間無效')).toBeTruthy();
+    expect(screen.getByRole('button', { name: '審閱並確認草稿' }).hasAttribute('disabled')).toBe(true);
     expect(requests.filter(({ url }) => url === '/ai/purchase-draft-proposals/invalid-expiry/confirm')).toHaveLength(0);
   }, 30_000);
 });
