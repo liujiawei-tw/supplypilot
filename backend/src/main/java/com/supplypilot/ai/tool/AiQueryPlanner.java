@@ -14,10 +14,37 @@ public class AiQueryPlanner {
     private static final Pattern MATERIAL_CODE = Pattern.compile("(?i)\\b[A-Z]{2,}[A-Z0-9_]*-[A-Z0-9]+\\b");
     private static final Pattern RECOMMENDATION_ID = Pattern.compile(
             "(?i)(?:recommendation\\s*(?:id|#)|建議(?:編號| ID))\\s*[:#]?\\s*(\\d+)");
-    private static final Pattern FORBIDDEN = Pattern.compile(
-            "(?i)(approve|reject|order\\s*po|receive\\s*po|adjust\\s*inventory|user\\s*management|"
-                    + "master\\s*data\\s*write|create\\s*(?:purchase\\s*)?draft|核准|駁回|下單|(?<!未)收貨|"
-                    + "調整庫存|使用者管理|主檔寫入|建立(?:採購)?草稿)");
+    private static final Pattern FORBIDDEN = Pattern.compile("(?i)(?:"
+            + "\\b(?:user\\s+management|master\\s+data\\s+write)\\b|使用者管理|主檔寫入"
+            + "|忽略.{0,20}(?:規則|指示).{0,30}(?:approve|reject|order|receive|核准|駁回|下單|收貨)"
+            + "|^\\s*(?:please\\s+)?(?:ignore\\s+instructions\\s+and\\s+)?"
+            + "(?:approve|reject|order\\s+(?:po|purchase\\s+order)|"
+            + "receive\\s+(?:po|purchase\\s+order)|adjust\\s+inventory|create\\s+(?:a\\s+)?(?:purchase\\s+)?draft)\\b"
+            + "|^\\s*(?:下單|調整庫存(?:數量)?|建立(?:採購單?|採購)?草稿|核准(?:這張|採購單|PO)|駁回(?:這張|採購單|PO))"
+            + "|^\\s*(?:執行|操作|進行)(?:採購單|PO)?(?:收貨|核准|駁回|下單|調整庫存|建立(?:採購)?草稿)"
+            + "|^\\s*(?:在.{0,12})?(?:幫我|替我)(?:把|將)?(?:這張|這筆|此)?(?:採購單|PO|庫存(?:數量)?|採購)?"
+            + "(?:直接|立即)?(?:執行|操作|進行)?(?:收貨|核准|駁回|下單|調整庫存|建立(?:採購)?草稿)"
+            + "|^\\s*(?:立即|直接).{0,20}(?:標記|設為|改為|轉為).{0,20}\\b(?:ORDERED|RECEIVED|APPROVED|REJECTED)\\b"
+            + "|^\\s*(?:please\\s+)?(?:execute|perform|carry\\s+out)\\s+(?:the\\s+)?"
+            + "(?:receiv(?:e|ing)|approval|reject(?:ion)?|order(?:ing)?|inventory\\s+adjustment)\\b"
+            + "|^\\s*(?:please\\s+)?(?:can|could|would)\\s+you\\s+(?:please\\s+)?"
+            + "(?:(?:help\\s+me|assist\\s+me\\s+to?)\\s+)?"
+            + "(?:approve|reject|receive|order|place\\s+(?:an?\\s+)?order|adjust\\s+inventory|"
+            + "mark.{0,30}\\b(?:ORDERED|RECEIVED|APPROVED)\\b)\\b"
+            + "|^\\s*(?:please\\s+)?(?:help\\s+me|assist\\s+me\\s+to?)\\s+"
+            + "(?:approve|reject|receive|order|place\\s+(?:an?\\s+)?order|adjust\\s+inventory)\\b"
+            + "|^\\s*(?:please\\s+)?(?:help\\s+me|do\\s+it\\s+for\\s+me|can\\s+you|could\\s+you|would\\s+you)\\s+"
+            + "(?:please\\s+)?(?:approve|reject|place\\s+(?:an?\\s+)?order|order\\s+(?:po|purchase\\s+order)|"
+            + "receive\\s+(?:po|purchase\\s+order)|adjust\\s+inventory|create\\s+(?:a\\s+)?(?:purchase\\s+)?draft)\\b"
+            + "|^\\s*(?:請\\s*)?(?:把|將).{0,50}(?:核准|批准|駁回|收貨|下單|"
+            + "標記為\\s*(?:ORDERED|RECEIVED|APPROVED|REJECTED)|調整庫存)\\s*(?:一下|一次)?[。！？.!?]*\\s*$"
+            + "|^\\s*(?:請\\s*)?(?:替我|幫我).{0,60}(?:完成|執行|進行|操作|處理)"
+            + ".{0,40}(?:核准|批准|駁回|收貨|下單|調整庫存|建立(?:採購)?草稿)"
+            + "\\s*(?:一下|一次)?[。！？.!?]*\\s*$"
+            + "|^\\s*(?:請(?!問)(?:你)?|幫我|替我|立即|直接)(?:立即|直接)?(?:幫我|替我)?"
+            + "(?:執行|操作|進行)?(?:收貨|核准|駁回|下單|調整庫存|建立(?:採購)?草稿)"
+            + "|(?:幫我|替我)(?:立即|直接)?(?:執行|操作|進行)?"
+            + "(?:收貨|核准|駁回|下單|調整庫存|建立(?:採購)?草稿))");
 
     public AiQueryPlan plan(String message) {
         String normalized = validate(message);
@@ -77,8 +104,13 @@ public class AiQueryPlanner {
         return matcher.find() ? Long.valueOf(matcher.group(1)) : null;
     }
 
+    /** Extracts only explicit code syntax; the selected read tool remains responsible for existence and access checks. */
     public String materialCode(String message) {
         Matcher matcher = MATERIAL_CODE.matcher(message);
-        return matcher.find() ? matcher.group().toUpperCase(Locale.ROOT) : null;
+        while (matcher.find()) {
+            String candidate = matcher.group().toUpperCase(Locale.ROOT);
+            if (!candidate.startsWith("SUP-") && !candidate.startsWith("SUPPLIER-")) return candidate;
+        }
+        return null;
     }
 }
