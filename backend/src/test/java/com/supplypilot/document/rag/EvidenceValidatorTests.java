@@ -23,6 +23,38 @@ class EvidenceValidatorTests {
     }
 
     @Test
+    void topicMentionsWithoutTheRequestedRateAreInsufficient() {
+        RetrievedChunk topicOnly = chunk(
+                "冷凍貨物應採海運方式。保險申請應附上提單及包裝清單。", 0.94);
+
+        assertThat(validator.isSemanticallySufficient(
+                "冷凍海運的保險費率是多少？", List.of(topicOnly), 0.45)).isFalse();
+    }
+
+    @Test
+    void matchingTopicsAndIdentifiersMustDescribeTheSameMaterialFact() {
+        RetrievedChunk differentMaterial = chunk(
+                "SUP-001 供應商供應 MAT-001 及 MAT-002。MAT-002 標準交期為 ORDERED 後 7 個曆日。", 0.93);
+
+        assertThat(validator.isSemanticallySufficient(
+                "SUP-001 的 MAT-001 交期是多少？", List.of(differentMaterial), 0.45)).isFalse();
+    }
+
+    @Test
+    void materialRelationSelectsOnlyTheMatchingFactWhenSeveralMaterialsShareAChunk() {
+        String content = "SUP-001 供應商供應 MAT-001 及 MAT-002。"
+                + "MAT-001 標準交期為 ORDERED 後 5 個曆日。"
+                + "MAT-002 標準交期為 ORDERED 後 7 個曆日。";
+        RetrievedChunk source = chunk(content, 0.88);
+
+        assertThat(validator.supportedExcerpt("SUP-001 的 MAT-001 交期是多少？", content))
+                .contains("MAT-001 標準交期為 ORDERED 後 5 個曆日。")
+                .doesNotContain("MAT-002 標準交期");
+        assertThat(validator.isSemanticallySufficient(
+                "SUP-001 的 MAT-001 交期是多少？", List.of(source), 0.45)).isTrue();
+    }
+
+    @Test
     void validatesSupportedProcurementQuestionsIncludingCrossLanguageQueries() {
         assertSupported("SUP-001 的 MAT-001 標準交期是多久？",
                 "SUP-001 supplies MAT-001\nMAT-001 標準交期為採購單轉為 ORDERED 後 5 個曆日。", 0.82);
@@ -34,6 +66,14 @@ class EvidenceValidatorTests {
                 "若批次識別缺失、封條破損、受到污染或物料不符，須將該批隔離。", 0.74);
         assertSupported("Which role is responsible for receiving an ordered purchase order?",
                 "只有倉庫人員可收取狀態為 ORDERED 的採購單。", 0.81);
+        assertSupported("SUP-001's standard lead time for MAT-001?",
+                "SUP-001 supplies MAT-001. The standard lead time for MAT-001 is 5 calendar days after ORDERED.", 0.76);
+        String rateQuestion = "冷凍海運的保險費率是多少？";
+        String rateSource = "冷凍海運貨物保險費率為貨值的 0.3%。";
+        assertThat(validator.supportedExcerpt(rateQuestion, rateSource)).isEqualTo(rateSource);
+        assertSupported(rateQuestion, rateSource, 0.76);
+        assertSupported("What is the standard delivery time for MAT-001?",
+                "MAT-001 標準交期為採購單轉為 ORDERED 後 5 個曆日。", 0.76);
     }
 
     @Test

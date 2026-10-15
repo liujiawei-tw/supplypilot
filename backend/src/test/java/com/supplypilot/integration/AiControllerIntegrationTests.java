@@ -100,6 +100,15 @@ class AiControllerIntegrationTests extends AbstractIntegrationTest {
     }
 
     @Test
+    void explicitUnknownMaterialCodeIsQueriedAndCannotBeInventedByTheModel() throws Exception {
+        User staff = user(UserRole.PROCUREMENT_STAFF);
+
+        query(staff, "MAT-999 庫存是多少？")
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("MATERIAL_NOT_FOUND"));
+    }
+
+    @Test
     void explainsPersistedRecommendationAndSupplierRankingWithoutRecalculation() throws Exception {
         Material material = materialWithInventory("999");
         User staff = user(UserRole.PROCUREMENT_STAFF);

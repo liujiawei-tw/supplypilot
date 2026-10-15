@@ -20,7 +20,20 @@ public class EvidenceValidator {
 
     private static final double MINIMUM_SCORE = 0.15;
     private static final Pattern IDENTIFIER = Pattern.compile("(?i)\\b[A-Z]{2,}[A-Z0-9_]*-[A-Z0-9]+\\b");
-    private static final Pattern SENTENCE_BOUNDARY = Pattern.compile("(?<=[。！？.!?])\\s*|[\\r\\n]+");
+    private static final Pattern MATERIAL_IDENTIFIER = Pattern.compile("(?i)\\b(?:MAT|MATERIAL)-[A-Z0-9_]+\\b");
+    private static final Pattern SENTENCE_BOUNDARY = Pattern.compile(
+            "(?<=[。！？!?])\\s*|(?<!\\d)\\.(?!\\d)\\s*|[\\r\\n]+");
+    private static final Pattern NUMBER = Pattern.compile("(?<![\\p{L}\\d])\\d+(?:[.,]\\d+)?");
+    private static final Pattern DURATION = Pattern.compile(
+            "(?i)(?:calendar\\s+days?|business\\s+days?|days?|weeks?|months?|years?|hours?|minutes?|"
+                    + "個曆日|曆日|工作天|天|日|週|星期|個月|年|小時|分鐘)");
+    private static final Pattern RATE_VALUE = Pattern.compile(
+            "(?i)(?:\\d+(?:[.,]\\d+)?\\s*(?:%|百分比)|"
+                    + "(?:費率|保險費|保費|rate|premium|fee)\\s*(?:為|是|is|:|：)?\\s*"
+                    + "(?:貨值的?\\s*)?\\d+(?:[.,]\\d+)?\\s*(?:%|百分比|元|TWD|USD|NTD))");
+    private static final Pattern CURRENCY_VALUE = Pattern.compile(
+            "(?i)(?:NT\\$|US\\$|[$€¥]|\\b(?:TWD|USD|NTD|EUR)\\b)\\s*\\d"
+                    + "|\\d+(?:[.,]\\d+)?\\s*(?:元|圓)");
     private static final Set<String> QUESTION_WORDS = Set.of(
             "a", "an", "and", "are", "be", "can", "could", "do", "does", "for", "from", "how",
             "i", "in", "is", "it", "me", "of", "on", "the", "to", "was", "what", "when", "where",
@@ -82,12 +95,19 @@ public class EvidenceValidator {
     public String supportedExcerpt(String question, String content) {
         List<Topic> requestedTopics = requestedTopics(question);
         Set<String> identifiers = identifiers(question);
+        Set<String> materialIdentifiers = materialIdentifiers(question);
+        Set<String> sourceMaterialIdentifiers = materialIdentifiers(content);
+        if (!sourceMaterialIdentifiers.containsAll(materialIdentifiers)) return "";
         List<String> sentences = splitSentences(content);
         List<String> matching = new ArrayList<>();
         if (!requestedTopics.isEmpty()) {
             for (String sentence : sentences) {
                 String normalized = normalize(sentence);
-                if (requestedTopics.stream().anyMatch(topic -> topic.matches(normalized))) {
+                boolean topicMatch = requestedTopics.stream().anyMatch(topic -> topic.matches(normalized));
+                boolean materialMatch = materialIdentifiers.isEmpty()
+                        || sourceMaterialIdentifiers.size() <= 1
+                        || materialIdentifiers.stream().allMatch(id -> normalize(sentence).contains(id.toLowerCase(Locale.ROOT)));
+                if (topicMatch && materialMatch) {
                     matching.add(sentence.trim());
                 }
             }
@@ -102,6 +122,8 @@ public class EvidenceValidator {
         String excerpt = matching.stream().filter(value -> !value.isBlank()).distinct()
                 .collect(java.util.stream.Collectors.joining(" "));
         if (excerpt.isBlank() || !containsAllIdentifiers(content, identifiers)) return "";
+        if (!containsAllTopics(question, matching)) return "";
+        if (needsQuantitativeAnswer(question) && !containsSupportedValue(question, matching)) return "";
         return excerpt;
     }
 
@@ -148,6 +170,45 @@ public class EvidenceValidator {
         return result;
     }
 
+    private Set<String> materialIdentifiers(String text) {
+        Matcher matcher = MATERIAL_IDENTIFIER.matcher(text);
+        Set<String> result = new HashSet<>();
+        while (matcher.find()) result.add(matcher.group().toUpperCase(Locale.ROOT));
+        return result;
+    }
+
+    private boolean needsQuantitativeAnswer(String question) {
+        String normalized = normalize(question);
+        return containsAny(normalized, "多少", "幾", "多久", "費率", "保費", "rate", "premium",
+                "how much", "how many", "how long", "what is the fee", "what is the cost");
+    }
+
+    private boolean containsAllTopics(String question, List<String> sentences) {
+        List<Topic> requested = requestedTopics(question);
+        return requested.stream().allMatch(topic -> sentences.stream()
+                .anyMatch(sentence -> topic.matches(normalize(sentence))));
+    }
+
+    private boolean containsSupportedValue(String question, List<String> sentences) {
+        String normalizedQuestion = normalize(question);
+        boolean rate = containsAny(normalizedQuestion, "費率", "rate", "premium");
+        boolean money = rate || containsAny(normalizedQuestion, "費用", "費", "金額", "price", "cost", "fee", "多少錢");
+        boolean duration = containsAny(normalizedQuestion, "多久", "幾天", "交期", "有效期限", "how long");
+        return sentences.stream().anyMatch(sentence -> {
+            String normalized = normalize(sentence);
+            if (!NUMBER.matcher(sentence).find()) return false;
+            if (rate) return RATE_VALUE.matcher(sentence).find();
+            if (money) return CURRENCY_VALUE.matcher(sentence).find();
+            if (duration) return DURATION.matcher(normalized).find();
+            return true;
+        });
+    }
+
+    private boolean containsAny(String value, String... terms) {
+        for (String term : terms) if (value.contains(term)) return true;
+        return false;
+    }
+
     private boolean containsAllIdentifiers(String content, Set<String> identifiers) {
         String normalized = normalize(content);
         return identifiers.stream().allMatch(identifier -> normalized.contains(identifier.toLowerCase(Locale.ROOT)));
@@ -167,7 +228,13 @@ public class EvidenceValidator {
         }
 
         private boolean matches(String normalizedText) {
-            return synonyms.stream().anyMatch(normalizedText::contains);
+            return synonyms.stream().anyMatch(synonym -> {
+                if (synonym.codePoints().anyMatch(codePoint -> codePoint >= 0x4E00)) {
+                    return normalizedText.contains(synonym);
+                }
+                String pattern = "(?<![a-z0-9])" + Pattern.quote(synonym) + "(?![a-z0-9])";
+                return Pattern.compile(pattern).matcher(normalizedText).find();
+            });
         }
     }
 }

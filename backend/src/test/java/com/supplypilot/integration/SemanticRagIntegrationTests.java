@@ -140,7 +140,8 @@ class SemanticRagIntegrationTests extends AbstractIntegrationTest {
                 .andExpect(jsonPath("$.sources[0].documentId").value(safeId))
                 .andExpect(jsonPath("$.sources[0].version").value("v1"))
                 .andExpect(jsonPath("$.sources[0].startOffset").value(0))
-                .andExpect(jsonPath("$.sources[0].excerpt").value("Forklift capacity is 500 kilograms."))
+                .andExpect(jsonPath("$.sources[0].excerpt").value(org.hamcrest.Matchers.containsString(
+                        "Forklift capacity is 500 kilograms. Contact [EMAIL_REDACTED], [PHONE_REDACTED], [ID_REDACTED].")))
                 .andExpect(jsonPath("$.sources[0].excerpt").value(
                         org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("alice@example.com"))));
         assertThat(model.tasks).contains(GoogleGenAiTextEmbeddingOptions.TaskType.RETRIEVAL_QUERY);

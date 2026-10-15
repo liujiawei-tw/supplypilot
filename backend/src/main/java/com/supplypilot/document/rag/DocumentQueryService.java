@@ -72,7 +72,6 @@ public class DocumentQueryService {
         return new DocumentSourceResponse(
                 document.getId(), document.getDocumentType(), document.getTitle(), document.getVersion(),
                 document.getSupplier() == null ? null : document.getSupplier().getId(), chunk.getChunkIndex(),
-                chunk.getStartOffset(), chunk.getEndOffset(),
-                evidenceValidator.supportedExcerpt(question, chunk.getContent()), result.score());
+                chunk.getStartOffset(), chunk.getEndOffset(), chunk.getContent(), result.score());
     }
 }

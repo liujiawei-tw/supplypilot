@@ -244,9 +244,7 @@ class SpringAiProviderClientTests {
     }
 
     private AiQueryPlanner planner() {
-        MaterialService materials = mock(MaterialService.class);
-        when(materials.existsByCode("MAT-001")).thenReturn(true);
-        return new AiQueryPlanner(materials);
+        return new AiQueryPlanner();
     }
 
     private boolean hasToolResponse(Prompt prompt) {

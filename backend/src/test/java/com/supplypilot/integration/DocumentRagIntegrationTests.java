@@ -12,6 +12,7 @@ import com.supplypilot.document.domain.DocumentChunk;
 import com.supplypilot.document.domain.DocumentMetadata;
 import com.supplypilot.document.domain.DocumentStatus;
 import com.supplypilot.document.rag.EmbeddingProvider;
+import com.supplypilot.document.rag.DocumentTextExtractor;
 import com.supplypilot.document.rag.LocalLexicalEmbeddingProvider;
 import com.supplypilot.document.repository.DocumentChunkRepository;
 import com.supplypilot.document.repository.DocumentMetadataRepository;
@@ -50,6 +51,7 @@ class DocumentRagIntegrationTests extends AbstractIntegrationTest {
     @Autowired private Clock clock;
     @Autowired private ObjectMapper objectMapper;
     @Autowired private ControllableEmbeddingProvider embeddings;
+    @Autowired private DocumentTextExtractor textExtractor;
 
     @BeforeEach
     void resetProviders() {
@@ -79,9 +81,10 @@ class DocumentRagIntegrationTests extends AbstractIntegrationTest {
 
         DocumentMetadata persistedDocument = documents.findById(documentId).orElseThrow();
         DocumentChunk persistedChunk = chunks.findByDocumentIdOrderByChunkIndex(documentId).getFirst();
+        String sourceText = textExtractor.extract(persistedDocument.getStoragePath());
         JsonNode response = objectMapper.readTree(queryResponse);
         JsonNode source = response.path("sources").get(0);
-        assertThat(response.path("answer").asText()).isEqualTo(source.path("excerpt").asText());
+        assertThat(response.path("answer").asText()).isNotEqualTo(source.path("excerpt").asText());
         assertThat(source.path("documentId").asLong()).isEqualTo(persistedDocument.getId());
         assertThat(source.path("documentType").asText()).isEqualTo(persistedDocument.getDocumentType().name());
         assertThat(source.path("title").asText()).isEqualTo(persistedDocument.getTitle());
@@ -90,9 +93,11 @@ class DocumentRagIntegrationTests extends AbstractIntegrationTest {
         assertThat(source.path("chunkIndex").asInt()).isEqualTo(persistedChunk.getChunkIndex());
         assertThat(source.path("startOffset").asInt()).isEqualTo(persistedChunk.getStartOffset());
         assertThat(source.path("endOffset").asInt()).isEqualTo(persistedChunk.getEndOffset());
-        assertThat(source.path("excerpt").asText())
-                .isEqualTo("Supplier payment terms are net 30 days.");
-        assertThat(source.path("excerpt").asText()).isNotEqualTo(persistedChunk.getContent());
+        assertThat(source.path("excerpt").asText()).isEqualTo(persistedChunk.getContent());
+        assertThat(source.path("excerpt").asText()).isEqualTo(sourceText.substring(
+                source.path("startOffset").asInt(), source.path("endOffset").asInt()).trim());
+        assertThat(response.path("answer").asText()).contains("net 30 days")
+                .doesNotContain("Contract renewal");
 
         mockMvc.perform(post("/api/v1/documents/{id}/ingestions", documentId)
                         .header("Authorization", bearer(staff)))

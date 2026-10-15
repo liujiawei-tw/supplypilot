@@ -7,7 +7,6 @@ import java.util.regex.Pattern;
 import com.supplypilot.ai.dto.AiToolType;
 import com.supplypilot.common.exception.BusinessException;
 import com.supplypilot.common.exception.ErrorCode;
-import com.supplypilot.material.service.MaterialService;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -22,6 +21,18 @@ public class AiQueryPlanner {
             + "(?:approve|reject|order\\s+(?:po|purchase\\s+order)|"
             + "receive\\s+(?:po|purchase\\s+order)|adjust\\s+inventory|create\\s+(?:a\\s+)?(?:purchase\\s+)?draft)\\b"
             + "|^\\s*(?:下單|調整庫存(?:數量)?|建立(?:採購單?|採購)?草稿|核准(?:這張|採購單|PO)|駁回(?:這張|採購單|PO))"
+            + "|^\\s*(?:執行|操作|進行)(?:採購單|PO)?(?:收貨|核准|駁回|下單|調整庫存|建立(?:採購)?草稿)"
+            + "|^\\s*(?:在.{0,12})?(?:幫我|替我)(?:把|將)?(?:這張|這筆|此)?(?:採購單|PO|庫存(?:數量)?|採購)?"
+            + "(?:直接|立即)?(?:執行|操作|進行)?(?:收貨|核准|駁回|下單|調整庫存|建立(?:採購)?草稿)"
+            + "|^\\s*(?:立即|直接).{0,20}(?:標記|設為|改為|轉為).{0,20}\\b(?:ORDERED|RECEIVED|APPROVED|REJECTED)\\b"
+            + "|^\\s*(?:please\\s+)?(?:execute|perform|carry\\s+out)\\s+(?:the\\s+)?"
+            + "(?:receiv(?:e|ing)|approval|reject(?:ion)?|order(?:ing)?|inventory\\s+adjustment)\\b"
+            + "|^\\s*(?:please\\s+)?(?:can|could|would)\\s+you\\s+(?:please\\s+)?"
+            + "(?:(?:help\\s+me|assist\\s+me\\s+to?)\\s+)?"
+            + "(?:approve|reject|receive|order|place\\s+(?:an?\\s+)?order|adjust\\s+inventory|"
+            + "mark.{0,30}\\b(?:ORDERED|RECEIVED|APPROVED)\\b)\\b"
+            + "|^\\s*(?:please\\s+)?(?:help\\s+me|assist\\s+me\\s+to?)\\s+"
+            + "(?:approve|reject|receive|order|place\\s+(?:an?\\s+)?order|adjust\\s+inventory)\\b"
             + "|^\\s*(?:please\\s+)?(?:help\\s+me|do\\s+it\\s+for\\s+me|can\\s+you|could\\s+you|would\\s+you)\\s+"
             + "(?:please\\s+)?(?:approve|reject|place\\s+(?:an?\\s+)?order|order\\s+(?:po|purchase\\s+order)|"
             + "receive\\s+(?:po|purchase\\s+order)|adjust\\s+inventory|create\\s+(?:a\\s+)?(?:purchase\\s+)?draft)\\b"
@@ -29,12 +40,6 @@ public class AiQueryPlanner {
             + "(?:執行|操作|進行)?(?:收貨|核准|駁回|下單|調整庫存|建立(?:採購)?草稿)"
             + "|(?:幫我|替我)(?:立即|直接)?(?:執行|操作|進行)?"
             + "(?:收貨|核准|駁回|下單|調整庫存|建立(?:採購)?草稿))");
-
-    private final MaterialService materials;
-
-    public AiQueryPlanner(MaterialService materials) {
-        this.materials = materials;
-    }
 
     public AiQueryPlan plan(String message) {
         String normalized = validate(message);
@@ -94,11 +99,12 @@ public class AiQueryPlanner {
         return matcher.find() ? Long.valueOf(matcher.group(1)) : null;
     }
 
+    /** Extracts only explicit code syntax; the selected read tool remains responsible for existence and access checks. */
     public String materialCode(String message) {
         Matcher matcher = MATERIAL_CODE.matcher(message);
         while (matcher.find()) {
             String candidate = matcher.group().toUpperCase(Locale.ROOT);
-            if (materials.existsByCode(candidate)) return candidate;
+            if (!candidate.startsWith("SUP-") && !candidate.startsWith("SUPPLIER-")) return candidate;
         }
         return null;
     }

@@ -54,7 +54,7 @@ class SpringAiDraftProposalGeneratorTests {
         var executor = Executors.newVirtualThreadPerTaskExecutor();
         try {
             var generator = new SpringAiDraftProposalGenerator(models, registry,
-                    new AiQueryPlanner(mock(MaterialService.class)),
+                    new AiQueryPlanner(),
                     new AiProperties(Duration.ofSeconds(10), 256, 4, 5, false, 1_000_000),
                     executor, new ObjectMapper(), new SimpleMeterRegistry(), mock(AiMonthlyUsageMonitor.class));
             assertThatThrownBy(() -> generator.generate("請建立草稿", draft))

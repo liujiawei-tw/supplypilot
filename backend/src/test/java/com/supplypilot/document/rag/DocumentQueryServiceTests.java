@@ -27,8 +27,8 @@ class DocumentQueryServiceTests {
         SemanticRetrievalService semantic = mock(SemanticRetrievalService.class);
         AnswerProvider answers = mock(AnswerProvider.class);
         RetrievedChunk unrelated = chunk("SUP-001 的報價自開立日起 30 個曆日內有效。", 0.96, 1L);
-        RetrievedChunk supporting = chunk("SUP-001 supplies MAT-001\n"
-                + "MAT-001 標準交期為 ORDERED 後 5 個曆日。", 0.72, 2L);
+        RetrievedChunk supporting = chunk("前言😀 English 中文混合。\nSUP-001 supplies MAT-001\n"
+                + "MAT-001 標準交期為 ORDERED 後 5 個曆日。\n文件尾端。", 0.72, 2L);
         when(semantic.retrieve(QUESTION)).thenReturn(List.of(unrelated, supporting));
         when(answers.answer(eq(QUESTION), anyList())).thenReturn(
                 "MAT-001 標準交期為 ORDERED 後 5 個曆日。");
@@ -38,9 +38,12 @@ class DocumentQueryServiceTests {
         var result = service.query(QUESTION);
 
         assertThat(result.status()).isEqualTo(DocumentQueryStatus.ANSWERED);
-        assertThat(result.answer()).contains("5 個曆日").doesNotContain("30 個曆日");
+        assertThat(result.answer()).contains("5 個曆日").doesNotContain("30 個曆日", "前言", "文件尾端");
         assertThat(result.sources()).singleElement().satisfies(source ->
                 assertThat(source.documentId()).isEqualTo(2L));
+        assertThat(result.sources().getFirst().startOffset()).isZero();
+        assertThat(result.sources().getFirst().endOffset()).isEqualTo(supporting.chunk().getContent().length());
+        assertThat(result.sources().getFirst().excerpt()).isEqualTo(supporting.chunk().getContent());
         verify(answers).answer(eq(QUESTION), org.mockito.ArgumentMatchers.argThat(chunks ->
                 chunks.size() == 1 && chunks.getFirst() == supporting));
     }
