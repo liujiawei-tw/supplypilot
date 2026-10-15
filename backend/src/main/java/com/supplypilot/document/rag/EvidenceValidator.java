@@ -34,6 +34,16 @@ public class EvidenceValidator {
             "(?i)(?:這些(?:情況|狀況|條件)|上述(?:情況|狀況|條件)?|以上(?:情況|狀況|條件)?|"
                     + "these\\s+(?:conditions|cases|situations)|those\\s+(?:conditions|cases|situations)|"
                     + "such\\s+(?:conditions|cases|situations)|\\bthey\\b)");
+    private static final Pattern SPECIFIC_CONDITION = Pattern.compile(
+            "(?i)(?:缺(?:少|失)|不足|破損|損壞|受(?:到)?污染|污染|不符|停機|故障|逾期|遺失|錯誤|失效|洩漏|"
+                    + "超(?:出|過)|broken|damaged?|contaminated|incorrect|mismatch(?:ed)?|missing|absent|"
+                    + "stops?|stopped|failure|failed|expired|overdue|defective|leak(?:ing)?)");
+    private static final Pattern CONDITION_ACTION = Pattern.compile(
+            "(?i)(?:須|必須|應|需要|應該|隔離|通知|聯繫|維修|處理|清除|退回|停用|"
+                    + "must|should|need\\s+to|quarantine|isolate|notify|contact|repair|remove|return|disable)");
+    private static final Pattern INDEPENDENT_ACTION = Pattern.compile(
+            "(?i)(?:通知|聯繫|維修|隔離|處理|清除|退回|停用|更換|停止|"
+                    + "notify|contact|repair|quarantine|isolate|handle|remove|return|disable|replace|stop)");
     private static final Pattern NUMBER = Pattern.compile("(?<![\\p{L}\\d])\\d+(?:[.,]\\d+)?");
     private static final Pattern RATE_VALUE = Pattern.compile(
             "(?i)(?:\\d+(?:[.,]\\d+)?\\s*(?:%|百分比)|"
@@ -260,17 +270,23 @@ public class EvidenceValidator {
         List<String> supported = new ArrayList<>();
         for (int index = 0; index < sentences.size(); index++) {
             String sentence = sentences.get(index);
-            boolean topicMatch = supportsListQuestion(question, sentence, topics);
-            if (topicMatch && hasConditionInformation(sentence)) supported.add(sentence);
+            for (String clause : splitConditionClauses(sentence)) {
+                if (supportsListQuestion(question, clause, topics) && hasConditionInformation(clause)) {
+                    supported.add(clause);
+                }
+            }
 
-            if (topicMatch && index > 0 && CONDITION_REFERENCE.matcher(sentence).find()
+            if (supportsListQuestion(question, sentence, topics) && index > 0
+                    && CONDITION_REFERENCE.matcher(sentence).find()
                     && hasConditionInformation(sentences.get(index - 1))) {
                 supported.add(sentences.get(index - 1) + " " + sentence);
             }
-            if (topicMatch && index > 0 && endsWithEnumerationContinuation(sentences.get(index - 1))) {
+            if (supportsListQuestion(question, sentence, topics) && index > 0
+                    && endsWithEnumerationContinuation(sentences.get(index - 1))) {
                 int start = index - 1;
                 while (start > 0 && endsWithEnumerationContinuation(sentences.get(start - 1))) start--;
-                supported.add(String.join(" ", sentences.subList(start, index + 1)));
+                String continuation = String.join(" ", sentences.subList(start, index + 1));
+                if (hasConditionInformation(continuation)) supported.add(continuation);
             }
             if (index + 1 < sentences.size()) {
                 String nextSentence = sentences.get(index + 1);
@@ -281,6 +297,33 @@ public class EvidenceValidator {
             }
         }
         return supported.stream().distinct().toList();
+    }
+
+    private List<String> splitConditionClauses(String sentence) {
+        List<String> clauses = List.of(sentence.split("(?<=[;；])|(?<=[,，])\\s*(?=(?:(?:and|or)\\s+)?"
+                        + "(?:若|如果|假如|倘若|當|凡是|凡發生|if\\b|when\\b|unless\\b))"))
+                .stream().map(String::trim).map(clause -> clause.replaceFirst("(?i)^(?:and|or)\\s+", ""))
+                .filter(clause -> !clause.isBlank()).toList();
+        if (clauses.size() < 2) return clauses;
+
+        List<String> grouped = new ArrayList<>();
+        String pendingCondition = "";
+        for (String clause : clauses) {
+            String current = pendingCondition.isBlank() ? clause : pendingCondition + " " + clause;
+            if (hasConditionLead(clause) && hasConditionInformation(current)
+                    && INDEPENDENT_ACTION.matcher(clause).find()) {
+                grouped.add(current);
+                pendingCondition = "";
+            } else if (hasConditionLead(clause) && !INDEPENDENT_ACTION.matcher(clause).find()) {
+                pendingCondition = current;
+            } else {
+                if (!pendingCondition.isBlank()) grouped.add(pendingCondition);
+                pendingCondition = "";
+                grouped.add(clause);
+            }
+        }
+        if (!pendingCondition.isBlank()) grouped.add(pendingCondition);
+        return grouped;
     }
 
     private boolean asksForConditions(String question) {
@@ -300,7 +343,19 @@ public class EvidenceValidator {
     }
 
     private boolean hasConditionInformation(String sentence) {
-        return CONDITION_LEAD.matcher(sentence).find() || ENUMERATION_SEPARATOR.matcher(sentence).find();
+        Matcher lead = CONDITION_LEAD.matcher(sentence);
+        if (!lead.find()) return false;
+        String afterLead = sentence.substring(lead.end());
+        Matcher action = CONDITION_ACTION.matcher(afterLead);
+        String antecedent = action.find() ? afterLead.substring(0, action.start()) : afterLead;
+        int listSeparators = 0;
+        Matcher separator = ENUMERATION_SEPARATOR.matcher(antecedent);
+        while (separator.find()) listSeparators++;
+        return SPECIFIC_CONDITION.matcher(antecedent).find() || listSeparators >= 1;
+    }
+
+    private boolean hasConditionLead(String sentence) {
+        return CONDITION_LEAD.matcher(sentence).find();
     }
 
     private boolean endsWithEnumerationContinuation(String sentence) {

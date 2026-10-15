@@ -193,6 +193,43 @@ class DocumentRagIntegrationTests extends AbstractIntegrationTest {
     }
 
     @Test
+    void quarantineQueryRejectsGenericTreatmentAndDoesNotBorrowAnotherConditionAction() throws Exception {
+        User admin = user(UserRole.ADMIN);
+        String question = "哪些情況需要隔離批次？";
+        long genericId = uploadTxt(admin, "依照品質管理規定，異常批次須隔離。");
+        mockMvc.perform(post("/api/v1/documents/{id}/ingestions", genericId)
+                        .header("Authorization", bearer(admin)))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("READY"));
+        mockMvc.perform(post("/api/v1/document-queries").contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(java.util.Map.of("question", question)))
+                        .header("Authorization", bearer(admin)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("INSUFFICIENT_EVIDENCE"))
+                .andExpect(jsonPath("$.answer").doesNotExist())
+                .andExpect(jsonPath("$.sources").isEmpty());
+
+        chunks.deleteAllInBatch();
+        documents.deleteAllInBatch();
+        String compound = "若設備停機，立即通知維修；若封條破損，須隔離批次。";
+        long compoundId = uploadTxt(admin, compound);
+        mockMvc.perform(post("/api/v1/documents/{id}/ingestions", compoundId)
+                        .header("Authorization", bearer(admin)))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("READY"));
+        String response = mockMvc.perform(post("/api/v1/document-queries").contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(java.util.Map.of("question", question)))
+                        .header("Authorization", bearer(admin)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("ANSWERED"))
+                .andReturn().getResponse().getContentAsString();
+        JsonNode answer = objectMapper.readTree(response);
+        assertThat(answer.path("answer").asText()).contains("封條破損").doesNotContain("設備停機");
+        assertThat(answer.path("sources").get(0).path("documentId").asLong()).isEqualTo(compoundId);
+        assertThat(answer.path("sources").get(0).path("version").asText()).isEqualTo("v7");
+        assertThat(answer.path("sources").get(0).path("excerpt").asText())
+                .isEqualTo(chunks.findByDocumentIdOrderByChunkIndex(compoundId).getFirst().getContent());
+    }
+
+    @Test
     void parsingAndEmbeddingFailuresNeverProduceUsableReadyIndex() throws Exception {
         User admin = user(UserRole.ADMIN);
         long blankId = uploadTxt(admin, "   \n   ");

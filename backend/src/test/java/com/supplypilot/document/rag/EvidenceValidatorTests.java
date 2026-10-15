@@ -211,6 +211,45 @@ class EvidenceValidatorTests {
         assertThat(validator.supportedExcerpt(question, source)).isEmpty();
     }
 
+    @Test
+    void ordinaryBackgroundCommasDoNotEstablishSpecificQuarantineConditions() {
+        String question = "哪些情況需要隔離批次？";
+        assertInsufficientConditions(question, "依照品質管理規定，異常批次須隔離。");
+        assertInsufficientConditions("哪些異常需要隔離？", "倉庫人員，應依標準程序隔離異常批次。");
+        assertInsufficientConditions(question,
+                "問答：哪些情況需要隔離批次？依照規定，異常批次須隔離。");
+    }
+
+    @Test
+    void independentConditionalClausesKeepTheirOwnActionsAcrossSemicolonAndSentence() {
+        String question = "哪些情況需要隔離批次？";
+        assertOnlyRelevantCondition(question,
+                "若設備停機，立即通知維修；若封條破損，須隔離批次。",
+                "若封條破損，須隔離批次。");
+        assertOnlyRelevantCondition(question,
+                "若設備停機，立即通知維修。若封條破損，須隔離批次。",
+                "若封條破損，須隔離批次。");
+        assertOnlyRelevantCondition("When should the batch be quarantined?",
+                "If the machine stops, notify maintenance; if the seal is broken, quarantine the batch.",
+                "if the seal is broken, quarantine the batch.");
+        assertOnlyRelevantCondition("When should the batch be quarantined?",
+                "If the machine stops, notify maintenance, and if the seal is broken, quarantine the batch.",
+                "if the seal is broken, quarantine the batch.");
+    }
+
+    private void assertInsufficientConditions(String question, String content) {
+        RetrievedChunk source = chunk(content, 0.95);
+        assertThat(validator.isSemanticallySufficient(question, List.of(source), 0.45)).isFalse();
+        assertThat(validator.supportedExcerpt(question, content)).isEmpty();
+    }
+
+    private void assertOnlyRelevantCondition(String question, String content, String expectedExcerpt) {
+        RetrievedChunk source = chunk(content, 0.95);
+        assertThat(validator.isSemanticallySufficient(question, List.of(source), 0.45)).isTrue();
+        assertThat(validator.supportedExcerpt(question, content).replaceAll("[。.]$", ""))
+                .isEqualTo(expectedExcerpt.replaceAll("[。.]$", ""));
+    }
+
     private void assertSupported(String question, String content, double score) {
         assertThat(validator.isSemanticallySufficient(
                 question, List.of(chunk(content, score)), 0.45)).isTrue();

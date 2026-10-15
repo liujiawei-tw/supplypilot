@@ -72,6 +72,23 @@ class DocumentQueryServiceTests {
     void conditionListQuestionWithoutConditionEvidenceReturnsInsufficientEvidence() {
         assertInsufficientConditionList("哪些異常需要隔離？", "異常批次須隔離。");
         assertInsufficientConditionList("哪些情況需要隔離？", "問答：哪些情況需要隔離？");
+        assertInsufficientConditionList("哪些情況需要隔離批次？", "依照品質管理規定，異常批次須隔離。");
+        assertInsufficientConditionList("哪些異常需要隔離？", "倉庫人員，應依標準程序隔離異常批次。");
+        assertInsufficientConditionList("哪些情況需要隔離批次？",
+                "問答：哪些情況需要隔離批次？依照規定，異常批次須隔離。");
+    }
+
+    @Test
+    void independentConditionalClauseReturnsOnlyTheClauseThatSupportsQuarantine() {
+        assertConditionAnswer("哪些情況需要隔離批次？",
+                "若設備停機，立即通知維修；若封條破損，須隔離批次。",
+                "封條破損", "設備停機");
+        assertConditionAnswer("哪些情況需要隔離批次？",
+                "若設備停機，立即通知維修。若封條破損，須隔離批次。",
+                "封條破損", "設備停機");
+        assertConditionAnswer("When should the batch be quarantined?",
+                "If the machine stops, notify maintenance; if the seal is broken, quarantine the batch.",
+                "seal is broken", "machine stops");
     }
 
     @Test
@@ -113,6 +130,25 @@ class DocumentQueryServiceTests {
         assertThat(result.answer()).isNull();
         assertThat(result.sources()).isEmpty();
         verify(answers, never()).answer(eq(question), anyList());
+    }
+
+    private void assertConditionAnswer(String question, String content, String expected, String unrelated) {
+        SemanticRetrievalService semantic = mock(SemanticRetrievalService.class);
+        AnswerProvider answers = mock(AnswerProvider.class);
+        RetrievedChunk retrieved = chunk(content, 0.97, 4L);
+        when(semantic.retrieve(question)).thenReturn(List.of(retrieved));
+        when(answers.answer(eq(question), anyList())).thenAnswer(invocation ->
+                new ExtractiveAnswerProvider(new EvidenceValidator()).answer(
+                        question, invocation.getArgument(1)));
+        DocumentQueryService service = new DocumentQueryService(null, new EvidenceValidator(), answers,
+                semantic, properties(true));
+
+        var result = service.query(question);
+
+        assertThat(result.status()).isEqualTo(DocumentQueryStatus.ANSWERED);
+        assertThat(result.answer()).contains(expected).doesNotContain(unrelated);
+        assertThat(result.sources()).singleElement().satisfies(source ->
+                assertThat(source.excerpt()).isEqualTo(content));
     }
 
     private SemanticProperties properties(boolean readEnabled) {
