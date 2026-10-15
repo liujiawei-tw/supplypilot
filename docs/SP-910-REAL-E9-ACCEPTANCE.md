@@ -167,3 +167,45 @@ Guarded Reset 沒有執行。雖然 DB、Volume 與文件目錄為隔離專用�
 5. 恢復可控的本機服務後完成 E5 一般 Backend restart 驗證。
 
 本次未修改安全政策、業務規則或驗收條件；未清除資料庫、未手工 SQL 清表、未刪除 Marker、未變更 AWS 資源。證據目錄只收錄實際 Browser 畫面、真實回應及虛構 D1 測試檔，不含 API key、密碼、JWT、資料庫 dump 或真實公司資料。
+
+## 第二輪 E9 驗收（合併 #121 後）
+
+**狀態：SP-910 E9 BLOCKED — PARTIAL EVIDENCE AVAILABLE**
+
+本節保留第一輪 FAIL 證據與結果，不覆寫第一輪記錄。第二輪使用合併 #121 的程式碼執行環境檢查及 Backend 回歸；新版 Backend 啟動時被現有 Demo Dataset Guard 阻擋，因此沒有重建或改動資料，也沒有把先前 Gemini／Gate／Browser 查詢結果套用為第二輪 PASS。
+
+### Git 與執行環境
+
+- 日期：2026-10-15，Asia/Taipei。
+- Repository：`liujiawei-tw/supplypilot`；分支：`codex/sp-910-real-e9-acceptance`。
+- 起始 `origin/main`：`363f8639e56aea120ab756549dc90226a4ebd7c1`（PR #121 merge commit；#120 已 Closed）。
+- 第二輪工作 HEAD：`39433b8465f943e3741a10040b87d029091dac4e`，為將上述 main 合入原驗收分支後的本機 merge commit。未 Force Push；本次報告尚未提交。
+- 原第一輪文件與 `docs/evidence/sp910/` 均保留。第二輪新增 Edge 截圖位於 `docs/evidence/sp910/round2/preflight-home.png`。
+- 預檢時曾確認 SP-910 MySQL 與 pgvector 容器名稱、loopback 綁定與獨立 named volume；當時 PostgreSQL readiness 成功。結束檢查時 Docker Desktop named pipe 回報拒絕存取，無法再次確認目前容器狀態。未連接、停止或修改其他容器與 Volume。
+- 原 Backend 程序記憶體環境曾確認 `demo` profile、專用 MySQL／PostgreSQL database、專用文件目錄、Google GenAI Chat、Embedding `gemini-embedding-001`／768 維及 generation `gemini-embedding-001-768-v1`。Chat Model ID 為 `gemini-3.6-flash`。只確認 API 憑證存在及 Provider 曾配置，未讀出或記錄 Secret 值。舊程序停止後，無法從受支援的安全注入方式恢復完整憑證組。Repository `.env` 含空白 placeholder 且 profile 不是 `demo`，不能用來啟動驗收服務。沒有猜測或覆寫資料庫認證。
+
+### 第二輪案例與實際結果
+
+| 案例 | 預期 | 第二輪實際結果 | 狀態 | 證據／耗時 |
+|---|---|---|---|---|
+| R2-ENV-01 專用 DB 容器 | 專用 MySQL、pgvector 可用 | 預檢時容器存在；結束時 Docker API 因 named pipe 權限拒絕而無法再次確認 | PARTIAL | 預檢結果；未修改容器或 Volume |
+| R2-BROWSER-01 Edge UI 基本連線 | 真實 Browser 首頁可載入 | Windows 主機 Microsoft Edge + Playwright headed 實際載入 `http://127.0.0.1:5173/`，HTTP 200 並導向 `/login`，頁面可見登入欄位與說明；保存真實畫面 | PASS（僅首頁載入） | `round2/preflight-home.png` 與同名 JSON；2026-10-15 19:56:48 Asia/Taipei，瀏覽器步驟約 8.6 秒。未登入，未測 Dashboard、查詢或授權流程 |
+| R2-BACKEND-01 合併後 Backend 啟動 | 新版 Backend 使用已核對 Demo 目標並可服務 | 舊 PID 23944 曾在 8081 運行並持有安全注入環境。以該環境啟動合併後程式後，Spring Boot 約 9.165 秒進入應用啟動，隨即於 `DemoDatasetCoordinator.initializeBaseline` 拋出 `IllegalStateException: Demo dataset is partial or has a different version; run the guarded reset`，程序非零退出。未執行 Reset | BLOCKED | 非敏感啟動紀錄在本機 Temp，不納入 Repository；錯誤時間 2026-10-15 19:49:55 +08:00 |
+| R2-VERIFY-01 Backend 回歸 | `backend\\mvnw.cmd -B --no-transfer-progress verify` 成功 | BUILD SUCCESS；549 tests，0 failure、0 error、1 skipped；耗時 16:35，完成於 2026-10-15 19:48:07 Asia/Taipei。此為 Backend regression，不是 Real Provider 或 Browser E9 | PASS（Backend regression） | 本機 Maven 輸出；Semantic RAG 整合測試不構成 Gemini E9 證據 |
+| R2-GEMINI-01 五份文件與真實 Gemini | 使用有效 Provider、現行 Gate、Edge 查詢及正確引用 | Backend 未能持續運行；無法安全恢復有效環境組，也未重新核對五份文件出站審核、索引及 Gate | BLOCKED | 無第二輪 Query JSON／截圖；第一輪結果維持原狀，不重用 |
+| R2-CROSS-01 跨語查詢 | 獨立英文資料集與中文來源實際互查 | 本輪 Backend 未就緒，未執行 | NOT RUN | 無第二輪證據 |
+| R2-SUP005-01 SUP-005 UI 流程 | 五份基線 Source Query 全通過後再上傳 | 五題沒有在本輪驗證全數通過，不符合開始條件 | NOT RUN | 未建立或上傳正式 SUP-005 文件 |
+| R2-RESET-01 Guarded Reset | 完整 E9 前置、快照與隔離再次確認後才執行 | 未執行 `scripts/reset-demo.ps1`；Marker／資料狀態異常正是程式阻擋啟動的原因之一，且本輪沒有可用的完整 Reset 前快照 | NOT RUN | 未清除或手動修改資料庫、文件目錄或 Volume |
+| R2-RESTART-01 普通重啟 | 重啟後既有資料保留且 Reset Command 不執行 | 啟動被 Dataset Guard 拒絕，無法驗證一般重啟後的服務行為 | BLOCKED | Backend 啟動紀錄；Reset Command 未執行 |
+
+### Browser 與啟動阻擋診斷
+
+本輪採同一台 Windows 主機上的 Edge，而非遠端 in-app Browser。一般權限下的 Port 檢查未能列出 5173 Listener；提升權限後 Vite 回報 5173 已占用，主機 HTTP 與真實 Edge 均能取得登入頁 HTTP 200。因此可確認 Vite／主機網路／Browser 路徑可用。Backend 8081 已退出且未恢復。Edge 畫面只到登入頁，不能視為 Browser E2E 或登入驗收。結束時 Docker named pipe 不可用。
+
+Backend 啟動錯誤明確指出：Demo Dataset Marker 狀態並非完整的目前版本，初始化器拒絕啟動並要求正式 Guarded Reset。這是資料狀態／初始化 Guard 阻擋，不是 Gemini Provider 的測試結果。因使用者要求不可為登入或啟動而直接 Reset，且無法保存可再次核對的 Reset 前快照，本輪停止於此。沒有修改 `DemoDatasetCoordinator`、Marker、Guard、SQL 資料或安全政策。
+
+### 解除條件
+
+需在具 Docker Desktop 存取權的 Windows 使用者工作階段唯讀核對 SP-910 專用容器，並透過核准的安全 Secret 注入流程重新提供 Demo DB、JWT、Demo Account、Semantic DB 與 Gemini 憑證；不得從聊天、Log 或 Repository 取得值。之後先保存目前 Marker、Demo 業務狀態、文件、Semantic 索引／核准／Gate 的完整快照，再依 Runbook 與使用者確認的隔離目標處理 partial／version mismatch。登入、Gemini、五份來源題、跨語、SUP-005、Reset 前後驗收均待解除後重新實測。
+
+本輪結論為 **SP-910 E9 BLOCKED — PARTIAL EVIDENCE AVAILABLE**。549 項 Backend regression 測試通過及 Edge 首頁載入只代表各自範圍的結果。沒有宣稱 Real Gemini、Semantic Gate、五角色流程、SUP-005、Reset 或重啟驗收通過。
