@@ -380,7 +380,7 @@ Process／User／Machine 環境與 r4 DPAPI Secret 名稱清單皆沒有 `GEMINI
 | [#38771907250](https://github.com/liujiawei-tw/supplypilot/actions/runs/38771907250) | SUCCESS，包含 `Run Maven verify` | SKIPPED | Backend CI PASS；不能稱完整 Backend＋Frontend 回歸 |
 | [main #38765349851](https://github.com/liujiawei-tw/supplypilot/actions/runs/38765349851) | SUCCESS | FAILURE，Test step 失敗 | Frontend Build 因測試失敗跳過；保留為既有 main 失敗，不在 #117 驗收分支修改 |
 
-main run 前端測試紀錄為 `tests/sp806.test.tsx` 的「exposes Semantic operations only to ADMIN on the existing Documents route」：測試找不到名稱為 `#21` 的 button（該 job 報告 21 個 test files passed、1 failed；180 tests passed、1 failed）。這是獨立前端測試問題，沒有改寫成成功，也沒有擴張 #117 範圍。
+main run 前端實際失敗案例為 `tests/sp806.test.tsx` 的「ignores a delayed archive response after switching documents」。Vitest 報告 21 個 test files passed、1 failed；180 tests passed、1 failed。失敗診斷為 Testing Library 在測試中找不到 accessible button `#21`。這是獨立前端測試問題，沒有改寫成成功，也沒有擴張 #117 範圍。
 
 ### 本次結論及下一步
 

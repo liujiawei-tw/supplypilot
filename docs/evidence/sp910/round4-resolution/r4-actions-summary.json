@@ -24,7 +24,7 @@
       "frontendCi": "failure",
       "frontendTestStep": "failure",
       "backendCi": "success",
-      "failure": "frontend/tests/sp806.test.tsx: exposes Semantic operations only to ADMIN on the existing Documents route; expected button #21 not found"
+      "failure": "frontend/tests/sp806.test.tsx: ignores a delayed archive response after switching documents; Testing Library could not find accessible button #21"
     }
   ],
   "scopeNote": "The main frontend failure was not modified on the SP-910 branch."
