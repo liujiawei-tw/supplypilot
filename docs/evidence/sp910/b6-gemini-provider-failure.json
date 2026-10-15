@@ -1,0 +1,11 @@
+{
+  "httpStatus": 503,
+  "elapsedMs": 864,
+  "body": {
+    "code": "AI_PROVIDER_UNAVAILABLE",
+    "message": "AI provider is unavailable.",
+    "traceId": "5cdb5754-c8f5-4051-9dea-e6961036ec87",
+    "timestamp": "2026-10-15T07:38:58.204261Z",
+    "path": "/api/v1/ai/query"
+  }
+}

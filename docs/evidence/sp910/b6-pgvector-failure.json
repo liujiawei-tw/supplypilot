@@ -1,0 +1,39 @@
+{
+  "semantic": {
+    "httpStatus": 503,
+    "elapsedMs": 2411,
+    "body": {
+      "code": "AI_PROVIDER_UNAVAILABLE",
+      "message": "AI provider is unavailable.",
+      "traceId": "8ae0bd01-95be-485f-9df1-2135832593fd",
+      "timestamp": "2026-10-15T07:37:41.224794700Z",
+      "path": "/api/v1/ai/query"
+    }
+  },
+  "inventory": {
+    "httpStatus": 200,
+    "elapsedMs": 5517,
+    "body": {
+      "status": "ANSWERED",
+      "answer": "查詢結果整理如下。\nAssam Tea Extract（MAT-001）的目前庫存為 1050.0000 KG，庫存資料更新時間為 2026-10-15T07:12:12.009266Z。",
+      "tools": [
+        "QUERY_INVENTORY"
+      ],
+      "sources": [
+        {
+          "resourceType": "INVENTORY",
+          "resourceId": "1",
+          "title": "MAT-001",
+          "version": null,
+          "supplierId": null,
+          "chunkIndex": null,
+          "startOffset": null,
+          "endOffset": null,
+          "excerpt": null,
+          "relevanceScore": null
+        }
+      ],
+      "answerSource": "MODEL_EXPLANATION"
+    }
+  }
+}

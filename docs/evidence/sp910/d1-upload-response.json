@@ -1,0 +1,10 @@
+{
+  "httpStatus": 201,
+  "elapsedMs": 414,
+  "documentId": 6,
+  "documentType": "SUPPLIER_CONTRACT",
+  "supplierId": 1,
+  "title": "Fictional SUP-001 Delivery Terms — English Cross-Language Test",
+  "version": "1.0",
+  "status": "PROCESSING"
+}
