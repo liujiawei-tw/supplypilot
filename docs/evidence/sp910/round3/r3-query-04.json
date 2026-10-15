@@ -1,0 +1,44 @@
+{
+  "caseId": "R3-QUERY-04",
+  "question": "MAT-001 的基本單位及儲存條件為何？",
+  "httpStatus": 200,
+  "elapsedMs": 9532,
+  "response": {
+    "status": "ANSWERED",
+    "answer": "Assam Tea Extract（MAT-001）的目前庫存為 300.0000 KG，庫存資料更新時間為 2026-10-15T12:12:39.408182Z。\n基本單位為 KG 請存放於陰涼乾燥處 問答：MAT-001 的基本單位與儲存條件為何？ 預期依據：基本單位為 KG 存放於陰涼乾燥處並避免陽光直射。",
+    "tools": [
+      "QUERY_INVENTORY",
+      "SEARCH_DOCUMENTS"
+    ],
+    "sources": [
+      {
+        "resourceType": "INVENTORY",
+        "resourceId": "1",
+        "title": "MAT-001",
+        "version": null,
+        "supplierId": null,
+        "chunkIndex": null,
+        "startOffset": null,
+        "endOffset": null,
+        "excerpt": null,
+        "relevanceScore": null
+      },
+      {
+        "resourceType": "DOCUMENT",
+        "resourceId": "4",
+        "title": "MAT-001 阿薩姆紅茶萃取物規格",
+        "version": "1.0",
+        "supplierId": 1,
+        "chunkIndex": 0,
+        "startOffset": 0,
+        "endOffset": 268,
+        "excerpt": "標題：MAT-001 阿薩姆紅茶萃取物規格\n文件類型：PRODUCT_SPECIFICATION\n版本：1.0\n虛構展示文件：本文內容與物料規格均為虛構，不代表真實公司或商品規格。\n\nMAT-001 為阿薩姆紅茶萃取物，基本單位為 KG，供虛構飲品試製使用。產品為深琥珀色、水溶性茶濃縮液。包裝須密封、保持乾燥，並標示物料代碼與批次識別。請存放於陰涼乾燥處，避免陽光直射。展示收貨檢查會核對物料識別、包裝完整性與標示數量。\n\n問答：MAT-001 的基本單位與儲存條件為何？\n預期依據：基本單位為 KG；存放於陰涼乾燥處並避免陽光直射。",
+        "relevanceScore": 0.7867598533630371
+      }
+    ],
+    "answerSource": "BACKEND_FACTS"
+  },
+  "visibleText": "SupplyPilot\n採購決策平台\n儀表板\n主檔管理\n需求與庫存\n採購決策\n採購單與收貨\n文件與 AI\nSupplyPilot — AI 採購與供應鏈決策平台\nAI 助理\nDemo Administrator（admin）\n系統管理員\n登出\n工作總覽\nDemo Administrator · 系統管理員\n目前沒有待辦資料\n請從下方入口前往您有權限使用的業務功能。\n主檔管理\n物料管理\n供應商管理\n需求與庫存\n需求管理\n庫存管理\n庫存匯入\n採購決策\n採購建議\n採購單與收貨\n採購單管理\n收貨作業\n文件與 AI\n文件管理\nSupplyPilot AI 助理\nAI 功能與核心頁面隔離；關閉 Drawer 不會改變目前路由。\n查詢與來源\n採購草稿提案\n向 SupplyPilot 提問\n單輪同步查詢；不保留對話記憶，也不提供串流回應。\n21 / 2000\n送出問題\n回答\nAssam Tea Extract（MAT-001）的目前庫存為 300.0000 KG，庫存資料更新時間為 2026-10-15T12:12:39.408182Z。\n基本單位為 KG 請存放於陰涼乾燥處 問答：MAT-001 的基本單位與儲存條件為何？ 預期依據：基本單位為 KG 存放於陰涼乾燥處並避免陽光直射。\nAnswer Source：BACKEND_FACTS\nQUERY_INVENTORYSEARCH_DOCUMENTS\n資料來源\nINVENTORY\nMAT-001\n來源 ID\n1\nDOCUMENT\nMAT-001 阿薩姆紅茶萃取物規格\n來源 ID\n4\n\n\n文件版本\n1.0\n\n\n供應商 ID\n1\n\n\nChunk 索引\n0\n\n\n原文 Offset\n0–268\n\n\n相關度分數\n0.7867598533630371\n引用內容\n標題：MAT-001 阿薩姆紅茶萃取物規格\n文件類型：PRODUCT_SPECIFICATION\n版本：1.0\n虛構展示文件：本文內容與物料規格均為虛構，不代表真實公司或商品規格。\n\nMAT-001 為阿薩姆紅茶萃取物，基本單位為 KG，供虛構飲品試製使用。產品為深琥珀色、水溶性茶濃縮液。包裝須密封、保持乾燥，並標示物料代碼與批次識別。請存放於陰涼乾燥處，避免陽光直射。展示收貨檢查會核對物料識別、包裝完整性與標示數量。\n\n問答：MAT-001 的基本單位與儲存條件為何？\n預期依據：基本單位為 KG；存放於陰涼乾燥處並避免陽光直射。",
+  "provider": "google-genai",
+  "chatModel": "gemini-3.6-flash"
+}

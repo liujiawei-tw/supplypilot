@@ -1,0 +1,23 @@
+{
+  "caseId": "R3-EMBEDDING-BACKFILL",
+  "httpStatus": 200,
+  "elapsedMs": 1752,
+  "request": {
+    "afterId": 0,
+    "limit": 25
+  },
+  "response": {
+    "processed": 5,
+    "ready": 5,
+    "failed": 0,
+    "skipped": 0,
+    "requiresReview": 0,
+    "lastId": 5,
+    "morePossible": false
+  },
+  "providerForInitialIndexBuild": "google-genai",
+  "embeddingModel": "gemini-embedding-001",
+  "dimensions": 768,
+  "generationKey": "gemini-embedding-001-768-v1",
+  "note": "The initial call created five READY indexes. This follow-up UI batch confirmed the completed state; identical source hashes were already indexed, so the backend idempotently returned READY without regenerating vectors."
+}

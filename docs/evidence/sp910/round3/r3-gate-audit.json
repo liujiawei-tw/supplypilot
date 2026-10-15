@@ -1,0 +1,18 @@
+{
+  "caseId": "R3-SEMANTIC-GATE-AUDIT",
+  "httpStatus": 200,
+  "elapsedMs": 2268,
+  "response": {
+    "passed": true,
+    "generationKey": "gemini-embedding-001-768-v1",
+    "modelId": "gemini-embedding-001",
+    "dimensions": 768,
+    "ready": 5,
+    "skipped": 0,
+    "failed": 0,
+    "requiresReview": 0,
+    "pending": 0,
+    "findings": [],
+    "auditId": 1
+  }
+}

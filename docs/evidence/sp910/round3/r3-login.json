@@ -1,0 +1,8 @@
+{
+  "caseId": "R3-BROWSER-LOGIN",
+  "environment": "Windows Microsoft Edge headed Playwright",
+  "url": "http://127.0.0.1:5173/dashboard",
+  "loginHttpStatus": 200,
+  "body": "SupplyPilot\n採購決策平台\n儀表板\n主檔管理\n需求與庫存\n採購決策\n採購單與收貨\n文件與 AI\nSupplyPilot — AI 採購與供應鏈決策平台\nAI 助理\nDemo Administrator（admin）\n系統管理員\n登出\n工作總覽\nDemo Administrator · 系統管理員\n目前沒有待辦資料\n請從下方入口前往您有權限使用的業務功能。\n主檔管理\n物料管理\n供應商管理\n需求與庫存\n需求管理\n庫存管理\n庫存匯入\n採購決策\n採購建議\n採購單與收貨\n採購單管理\n收貨作業\n文件與 AI\n文件管理",
+  "secretCaptured": false
+}

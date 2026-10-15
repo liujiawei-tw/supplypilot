@@ -209,3 +209,66 @@ Backend 啟動錯誤明確指出：Demo Dataset Marker 狀態並非完整的目�
 需在具 Docker Desktop 存取權的 Windows 使用者工作階段唯讀核對 SP-910 專用容器，並透過核准的安全 Secret 注入流程重新提供 Demo DB、JWT、Demo Account、Semantic DB 與 Gemini 憑證；不得從聊天、Log 或 Repository 取得值。之後先保存目前 Marker、Demo 業務狀態、文件、Semantic 索引／核准／Gate 的完整快照，再依 Runbook 與使用者確認的隔離目標處理 partial／version mismatch。登入、Gemini、五份來源題、跨語、SUP-005、Reset 前後驗收均待解除後重新實測。
 
 本輪結論為 **SP-910 E9 BLOCKED — PARTIAL EVIDENCE AVAILABLE**。549 項 Backend regression 測試通過及 Edge 首頁載入只代表各自範圍的結果。沒有宣稱 Real Gemini、Semantic Gate、五角色流程、SUP-005、Reset 或重啟驗收通過。
+
+## 第三輪 E9 驗收（合併 #121 後的新隔離 Demo）
+
+**整體狀態：SP-910 E9 FAIL — REPRODUCIBLE FINDINGS**
+
+本輪沿用 SP-910 分支，保留第一、二輪記錄及其證據。新環境使用正式 Demo 初始化，真實 Edge、Google GenAI Chat／Embedding 與專用 pgvector 執行驗收。五份基線已建立 Gate；品質隔離查詢雖取得正確文件來源，但答案漏列必要條件，因此是實際 FAIL。依前置規則，SUP-005 與 Reset 不執行。
+
+### Git、舊環境診斷與第三輪隔離資源
+
+- Repository：`liujiawei-tw/supplypilot`；分支：`codex/sp-910-real-e9-acceptance`。
+- 第三輪開始時分支 HEAD：`90ff068d431da761901eae027c11787ea841476e`；`origin/main`：`363f8639e56aea120ab756549dc90226a4ebd7c1`。該 main 已包含 PR #121；#120 已 Closed。第三輪尚未建立交付提交。
+- 舊 SP-910 資料庫 Marker 的唯讀查詢結果為 `SP-901 / sp-905-zh-tw-v1 / 2026-10-15 / COMPLETE`。五份中文 Seed 文件、既有額外英文測試文件及操作後 PO 均仍在舊專用環境。先前啟動阻擋的可實證設定原因是 `.env` 的 `DEMO_DATASET_VERSION=sp-901-v1`、`SPRING_PROFILES_ACTIVE=local`，以及其資料庫名稱／密碼欄位與舊容器實際目標不一致；不是 Marker 損壞，也沒有執行 Reset。為保留舊環境與前兩輪證據，本輪另建全新專用環境。
+- 新資源：MySQL 容器 `supplypilot-sp910-r3-mysql`、資料庫 `supplypilot_sp910_r3_demo`、Volume `supplypilot-sp910-r3-mysql-data`、loopback port 13317；PostgreSQL／pgvector 容器 `supplypilot-sp910-r3-pgvector`、資料庫 `supplypilot_sp910_r3_semantic_demo`、Volume `supplypilot-sp910-r3-pgvector-data`、loopback port 15440。文件根目錄為 `backend/data/sp910-r3-demo-documents`。各項皆與前兩輪分離，沒有刪除、覆寫或重新掛載舊資源。
+- 第三輪使用新的隨機測試 DB／Demo/JWT Secret，DPAPI 加密檔存於 Repository 外且 ACL 限制於目前 Windows 身分；Gemini Key 使用已存在的本機安全來源，僅載入 Backend 程序環境。沒有把值輸出或提交。臨時環境檔已移除。
+- 第三輪啟動時 Backend 使用 `demo` profile、明確 allowlist 與同名 MySQL／PostgreSQL 目標、獨立 Flyway 目標及文件目錄；Health 回 HTTP 200。正式初始化結果為 Marker `SP-901 / sp-905-zh-tw-v1 / 2026-10-15 / COMPLETE`，Users 5、Materials 12、Suppliers 6、SupplierMaterial 30、Demands 12、Purchase Orders 10、Documents 5、Chunks 5。PO 分布 DRAFT 2、APPROVED 2、ORDERED 3、RECEIVED 2、REJECTED 1。五份文件均 READY、Version 1.0；沒有 Seed SUP-005。
+- 完成 Gate 後以 `SEMANTIC_READ_ENABLED=true` 正常重啟 Backend；健康檢查仍為 200，啟動記錄為 `DEMO_DATASET_ALREADY_COMPLETE`，沒有執行 Reset，資料集未重新 Seed。這只驗證本輪一次正常 Backend restart。工作階段後續 Docker Desktop named pipe 回報 permission denied，因此收尾時無法再次讀取容器狀態；不可將開始時的存活狀態推定為現在仍存活。
+
+### Browser、出站審核、Backfill 與 Gate
+
+- 使用 Windows Microsoft Edge headed Playwright，於真實 UI 以 `admin` 登入，HTTP 200，Dashboard 顯示系統管理員導覽；Materials 頁讀取 MAT-001 成功。截圖及 JSON：`docs/evidence/sp910/round3/r3-login-page.png`、`r3-after-login.png`、`r3-login.json`、`r3-materials.png`、`r3-materials.json`。
+- ADMIN UI 顯示五份 Baseline 文件；逐一執行真實 Outbound Approval，五份均回 HTTP 200、Version 1.0、Reviewer ID 5、狀態 APPROVED。各 Source Hash 及實際回應見 `r3-outbound-approvals.json`；五份操作畫面為 `r3-outbound-doc-1.png` 至 `r3-outbound-doc-5.png`。
+- ADMIN UI 正式 Backfill 使用 `afterId=0, limit=25`。已核對實際 PostgreSQL 索引為 `gemini-embedding-001-768-v1`、READY 5、5 chunks；UI 回應 `processed=5, ready=5, failed=0, skipped=0, requiresReview=0, lastId=5, morePossible=false`。保存的 UI 回應是初次索引完成後的一次冪等確認，耗時 1.752 秒；不得把此確認耗時誤作初次 Embedding 呼叫時間。模型 `gemini-embedding-001`、維度 768。證據 `r3-backfill.json/png`。
+- Readiness 回 `passed=true`、READY 5、FAILED／SKIPPED／REQUIRES_REVIEW／PENDING 均 0、findings 空，耗時 2.612 秒；Gate Audit 持久化 `passed=true, auditId=1`，耗時 2.268 秒。Readiness／Audit 回應與畫面分別見 `r3-readiness.json/png`、`r3-gate-audit.json/png`。
+- Semantic Read 在上述 Gate 通過後才顯式開啟；Gemini Chat 設定為 `google-genai`／`gemini-3.6-flash`。六次查詢均在 Edge AI Assistant 發出，Browser 保存實際回應與畫面。Embedding 設定為 `google-genai`／`gemini-embedding-001`／768／`gemini-embedding-001-768-v1`。
+
+### 六組真實 Gemini Browser 查詢
+
+下表時間為各 Browser 查詢的實測耗時。各來源完整 JSON 與真實畫面為 `docs/evidence/sp910/round3/r3-query-01` 至 `r3-query-06` 的 `.json`／`.png`。來源 offset 依 Java UTF-16 字串索引核對原始 Seed 文件；文件來源 excerpt 與其宣稱的完整 Chunk 範圍相符。
+
+| 案例 | 實際結果 | 狀態 | 耗時 |
+|---|---|---|---:|
+| SUP-001 MAT-001 交期 | HTTP 200 `ANSWERED`；回答 ORDERED 後 5 個曆日；Document 1、v1.0、chunk 0、offset 0–336，原文核對一致 | PASS | 10.222 秒 |
+| SUP-002 報價有效期 | HTTP 200 `ANSWERED`；回答自開立日起 30 個曆日；Document 2、v1.0、chunk 0、offset 0–343 | PASS | 7.785 秒 |
+| SOP 收貨角色 | HTTP 200 `ANSWERED`；回答包含「倉庫人員」，引用 SOP Document 3、v1.0、chunk 0、offset 0–383；另有 Document 5 輔助來源。回答冗長，仍有額外段落 | PASS（內容命中；品質註記） | 7.956 秒 |
+| MAT-001 單位／儲存 | HTTP 200 `ANSWERED`；回答 KG、陰涼乾燥處；Document 4、v1.0、chunk 0、offset 0–268。另帶入 Inventory 工具的目前庫存 300 KG | PASS（來源正確；有額外事實） | 9.532 秒 |
+| 品質隔離條件 | HTTP 200 `ANSWERED`，但只說「須將該批隔離」，沒有列出缺少批次識別、封條破損、污染或物料不符。Document 5、v1.0、chunk 0、offset 0–269 的原文確實包含四項條件；來源正確但答案不完整 | **FAIL** | 7.806 秒 |
+| 冷凍海運保險費率證據不足 | HTTP 200 `INSUFFICIENT_EVIDENCE`、answer null、sources 空；沒有編造答案或無關引用 | PASS | 11.506 秒 |
+
+品質隔離題的 Evidence 是文件實際原文，故此 FAIL 是 Gemini 生成答案不完整，不是找錯文件或 Offset 不一致。保留原始失敗回應，沒有重試、改商業條款、修改政策或偽造來源。Gemini Chat 六次 Browser 請求均實際使用 `google-genai`；沒有 Fake Provider。證據只足以證明本地回應顯示 Provider／Model 設定和實際呼叫成功，未保存供應商原始內部 trace；不能聲稱已取得 Gemini 內部推理 trace。
+
+### 後續項目狀態
+
+| Case | 第三輪結果 | 狀態 |
+|---|---|---|
+| 舊 Demo Guard 診斷 | Marker 正確 COMPLETE；實際生效的舊設定版本、profile 與舊容器目標不符；未 Reset 舊資料 | PASS（診斷） |
+| 新 Demo 初始化與五文件 | 正式初始化、基線數量及 READY 文件符合規格 | PASS |
+| Browser 登入與 Dashboard／Materials 讀取 | 真實 Edge 登入與讀取成功 | PASS（此範圍） |
+| 五份 Outbound Approval／Embedding／Readiness／Gate Audit | 五份 Approved、Backfill READY、Readiness 通過、Audit ID 1 通過 | PASS |
+| 五份 Source Query | 前四題核心預期可回答，第五題漏列商業要求的四個條件 | **FAIL** |
+| 獨立中英文跨語測試 | 尚未建立隔離的第二組 cross-language Dataset；當工作階段 Docker named pipe 回報權限拒絕，無法安全建立／核對其 MySQL、pgvector 與 Storage | BLOCKED；NOT RUN |
+| SUP-005 Browser E2E | 品質隔離來源查詢未通過完整性條件，不符合先完成基線查詢再上傳的前置；未上傳、未解析、未建立第六份文件 | BLOCKED；NOT RUN |
+| Guarded Reset | E9 前置未全通過；未執行 `scripts/reset-demo.ps1`，沒有清表、刪 Marker 或手動資料庫操作 | NOT RUN（依規則停止） |
+| Reset 後 Gate 重建 | Reset 未執行 | NOT RUN |
+| 採購五角色 Browser 流程 | 本輪重新建立的 r3 Dataset 尚未執行該流程；第一輪結果不能挪用為本輪 PASS | NOT RUN |
+| Backend regression／GitHub CI | 本輪另行啟動 `backend\\mvnw.cmd -B --no-transfer-progress verify`，Maven 進入 Surefire 後停在 `SpringAiDraftProposalGeneratorTests` 且長時間無新輸出，未產生本輪完成摘要；為避免無限等待而中斷，故本輪回歸為 BLOCKED，不能記 PASS。可確認的最近完整結果仍是同一合併 #121 程式碼第二輪 `mvnw verify`：549 tests、0 failure、0 error、1 skipped。`gh` CLI 不存在，無法查本輪新增 CI。既有 Actions #38691504272 Backend／Frontend jobs 為 SKIPPED，不是完整回歸 PASS | BLOCKED（本輪命令未完成） |
+
+### Findings 與交接
+
+**P0 — 品質隔離查詢的 Gemini 答案不完整。** 重現問題為「品質要求中哪些狀況需要隔離批次？」；預期需明確列出批次識別缺失、封條破損、污染或物料不符。第三輪真實 Edge／Gemini 回答只稱須隔離，雖引對 Document 5 原文，未回答四種狀況。來源 offsets 正確，但使用者問題仍未得到完整答案。應在 Issue 範圍內另行審查產品修正，修復後重跑該題及全部五份 Source Query；不得為此降低答案要求。
+
+**P1 — 本輪尚未完成剩餘 E9 Gate。** Cross-language、SUP-005、Guarded Reset、Reset 後 Gate 重建及 r3 採購流程均無第三輪 PASS。SUP-005 與 Reset 因前置 FAIL 而停止；Cross-language 因 Docker 權限無法建立獨立資料集而未執行。開始時建立的 r3 環境與 Browser 證據仍在；結束時 Docker Desktop API 回報 `permission denied`，5173／8081 無法在該次收尾命令取得 Listening 資訊。不可將 Browser 證據等同服務目前仍運行。
+
+#45 仍需在其本機 Docker 與 AWS 各自驗證：真正安全 Secret 注入、資料持久化、Gemini／pgvector、Reset 後人工或自動 Gate 重建、普通重啟資料保留、Browser 流程與實際復原時間。本輪沒有執行 Reset，也沒有宣稱午夜 Reset 後 AI 會自動恢復。
