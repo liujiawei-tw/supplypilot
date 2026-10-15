@@ -23,6 +23,37 @@ public class EvidenceValidator {
     private static final Pattern MATERIAL_IDENTIFIER = Pattern.compile("(?i)\\b(?:MAT|MATERIAL)-[A-Z0-9_]+\\b");
     private static final Pattern EVIDENCE_CLAUSE_BOUNDARY = Pattern.compile(
             "(?<=[。！？!?])\\s*|(?<!\\d)\\.(?!\\d)\\s*|[，,；;\\r\\n]+");
+    private static final Pattern EVIDENCE_SENTENCE_BOUNDARY = Pattern.compile(
+            "(?<=[。！？!?])\\s*|(?<!\\d)\\.(?!\\d)\\s*|\\r?\\n+");
+    private static final Pattern QUESTION_HINT = Pattern.compile("(?i)^(?:問答\\s*[:：]|預期依據\\s*[:：]|q\\s*&\\s*a\\s*[:：])");
+    private static final Pattern CONDITION_LEAD = Pattern.compile(
+            "(?i)(?:若|如果|假如|倘若|當|凡是|凡發生|\\bif\\b|\\bwhen\\b|\\bunless\\b|"
+                    + "\\bprovided\\s+that\\b|\\bin\\s+case\\b)");
+    private static final Pattern CONDITION_REFERENCE = Pattern.compile(
+            "(?i)(?:這些(?:情況|狀況|條件)|上述(?:情況|狀況|條件)?|以上(?:情況|狀況|條件)?|"
+                    + "these\\s+(?:conditions|cases|situations)|those\\s+(?:conditions|cases|situations)|"
+                    + "such\\s+(?:conditions|cases|situations)|\\bthey\\b)");
+    private static final Pattern SPECIFIC_CONDITION = Pattern.compile(
+            "(?i)(?:缺(?:少|失)|不足|破損|損壞|受(?:到)?污染|污染|不符|停機|故障|逾期|遺失|錯誤|失效|洩漏|"
+                    + "超(?:出|過)|broken|damaged?|contaminated|incorrect|mismatch(?:ed)?|missing|absent|"
+                    + "stops?|stopped|failure|failed|expired|overdue|defective|leak(?:ing)?)");
+    private static final Pattern CONDITION_BACKGROUND = Pattern.compile(
+            "(?i)(?:依照|依據|根據|按照|依)(?:品質管理|品質)?(?:的)?(?:規定|政策|要求)|"
+                    + "according\\s+to\\s+(?:the\\s+)?(?:quality\\s+management\\s+)?(?:policy|rules?|requirements?)|"
+                    + "as\\s+required\\s+by\\s+(?:the\\s+)?(?:policy|rules?)|"
+                    + "required\\s+by\\s+(?:the\\s+)?policy");
+    private static final Pattern GENERIC_CONDITION = Pattern.compile(
+            "(?i)(?:異常(?:批次|情況|狀況|事件|問題)?|異常|"
+                    + "abnormal(?:\\s+(?:batches?|situations?|conditions?|cases?))?|"
+                    + "anomal(?:y|ies)|(?:有|發生|存在|遇到|出現)|"
+                    + "(?:this|these|such)\\s+(?:conditions?|situations?|cases?)|"
+                    + "(?:情況|狀況|條件))");
+    private static final Pattern CONDITION_ACTION = Pattern.compile(
+            "(?i)(?:須|必須|(?<!供)應|需要|應該|隔離|通知|聯繫|維修|處理|清除|退回|停用|"
+                    + "must|should|need\\s+to|quarantine|isolate|notify|contact|repair|remove|return|disable)");
+    private static final Pattern INDEPENDENT_ACTION = Pattern.compile(
+            "(?i)(?:通知|聯繫|維修|隔離|處理|清除|退回|停用|更換|停止|"
+                    + "notify|contact|repair|quarantine|isolate|handle|remove|return|disable|replace|stop)");
     private static final Pattern NUMBER = Pattern.compile("(?<![\\p{L}\\d])\\d+(?:[.,]\\d+)?");
     private static final Pattern RATE_VALUE = Pattern.compile(
             "(?i)(?:\\d+(?:[.,]\\d+)?\\s*(?:%|百分比)|"
@@ -55,9 +86,9 @@ public class EvidenceValidator {
             "i", "in", "is", "it", "me", "of", "on", "the", "to", "was", "what", "when", "where",
             "which", "who", "why", "would", "you");
     private static final Set<String> CJK_STOP_CHARACTERS = Set.of(
-            "的", "了", "是", "有", "哪", "些", "為", "何", "麼", "嗎", "呢", "請", "問", "這",
+            "的", "了", "是", "有", "中", "哪", "些", "為", "何", "麼", "嗎", "呢", "請", "問", "這",
             "文", "件", "由", "及", "與", "和", "否", "可", "能", "在", "把", "對", "之", "其",
-            "我", "們", "你", "他", "她", "它", "個", "種", "狀", "況", "怎", "多", "久");
+            "我", "們", "你", "他", "她", "它", "個", "種", "情", "狀", "況", "怎", "多", "少", "久", "需", "要");
 
     /** Query concept aliases support common Chinese/English terminology without supplying answers. */
     private static final List<Topic> TOPICS = List.of(
@@ -71,8 +102,9 @@ public class EvidenceValidator {
             new Topic("role", "role", "who", "responsible", "operator", "人員", "角色", "誰"),
             new Topic("receiving", "receive", "receiving", "receipt", "收貨", "收取"),
             new Topic("approval", "approve", "approval", "核准"),
-            new Topic("quarantine", "isolate", "isolated", "isolation", "quarantine", "隔離"),
+            new Topic("quarantine", "isolate", "isolated", "isolation", "quarantine", "quarantined", "隔離"),
             new Topic("payment", "payment", "pay", "payment terms", "付款"),
+            new Topic("fees", "fee", "fees", "charge", "charges", "cancellation", "取消費", "費用"),
             new Topic("insurance", "insurance", "保險"),
             new Topic("freight", "freight", "shipping", "sea freight", "海運", "船運"),
             new Topic("frozen", "frozen", "freezing", "冷凍"));
@@ -81,17 +113,14 @@ public class EvidenceValidator {
         if (results.isEmpty() || results.getFirst().score() < MINIMUM_SCORE) {
             return false;
         }
-        Set<String> queryTerms = new HashSet<>(LocalLexicalEmbeddingProvider.tokens(question));
-        queryTerms.removeIf(term -> QUESTION_WORDS.contains(term)
-                || term.length() <= 1 && term.charAt(0) < 0x4E00);
-        if (queryTerms.isEmpty()) {
-            return false;
-        }
-        return results.stream().anyMatch(result -> {
-            Set<String> evidenceTerms = new HashSet<>(
-                    LocalLexicalEmbeddingProvider.tokens(result.chunk().getContent()));
-            return evidenceTerms.containsAll(queryTerms);
-        });
+        Set<String> queryTerms = meaningfulTerms(question);
+        if (queryTerms.isEmpty()) return false;
+        return results.stream().filter(result -> result.score() >= MINIMUM_SCORE)
+                .anyMatch(result -> {
+                    Set<String> evidenceTerms = meaningfulTerms(result.chunk().getContent());
+                    return evidenceTerms.containsAll(queryTerms)
+                            && supportsQuestion(question, result.chunk().getContent());
+                });
     }
 
     public boolean isSemanticallySufficient(String question, List<RetrievedChunk> results, double minimumScore) {
@@ -107,18 +136,21 @@ public class EvidenceValidator {
                 .toList();
     }
 
-    /** Returns exact source sentences that contain the requested topics, never generated business claims. */
+    /** Returns bounded source clauses/sentences that support requested facts, never generated business claims. */
     public String supportedExcerpt(String question, String content) {
         List<Topic> requestedTopics = requestedTopics(question);
         Set<String> identifiers = identifiers(question);
         Set<String> materialIdentifiers = materialIdentifiers(question);
         Set<String> sourceMaterialIdentifiers = materialIdentifiers(content);
         if (!sourceMaterialIdentifiers.containsAll(materialIdentifiers)) return "";
-        List<String> clauses = splitEvidenceClauses(content);
+        boolean conditionListQuestion = asksForConditions(question);
+        List<String> clauses = conditionListQuestion
+                ? supportedConditionWindows(question, content) : splitEvidenceClauses(content);
         List<String> matching = new ArrayList<>();
         boolean quantitative = needsQuantitativeAnswer(question);
         if (!requestedTopics.isEmpty()) {
             for (String clause : clauses) {
+                if (isQuestionHint(clause)) continue;
                 String normalized = normalize(clause);
                 boolean topicMatch = quantitative
                         ? requestedTopics.stream().allMatch(topic -> topic.matches(normalized))
@@ -237,7 +269,118 @@ public class EvidenceValidator {
     }
 
     private List<String> splitEvidenceClauses(String content) {
-        return List.of(EVIDENCE_CLAUSE_BOUNDARY.split(content));
+        return List.of(EVIDENCE_CLAUSE_BOUNDARY.split(content)).stream()
+                .filter(clause -> !isQuestionHint(clause)).toList();
+    }
+
+    private List<String> supportedConditionWindows(String question, String content) {
+        List<String> sentences = List.of(EVIDENCE_SENTENCE_BOUNDARY.split(content)).stream()
+                .map(String::trim).filter(sentence -> !sentence.isBlank() && !isQuestionHint(sentence)).toList();
+        List<Topic> topics = requestedTopics(question);
+        List<String> supported = new ArrayList<>();
+        for (int index = 0; index < sentences.size(); index++) {
+            String sentence = sentences.get(index);
+            for (String clause : splitConditionClauses(sentence)) {
+                if (supportsListQuestion(question, clause, topics) && hasConditionInformation(clause)) {
+                    supported.add(clause);
+                }
+            }
+
+            if (supportsListQuestion(question, sentence, topics) && index > 0
+                    && CONDITION_REFERENCE.matcher(sentence).find()
+                    && hasConditionInformation(sentences.get(index - 1))) {
+                supported.add(sentences.get(index - 1) + " " + sentence);
+            }
+            if (supportsListQuestion(question, sentence, topics) && index > 0
+                    && endsWithEnumerationContinuation(sentences.get(index - 1))) {
+                int start = index - 1;
+                while (start > 0 && endsWithEnumerationContinuation(sentences.get(start - 1))) start--;
+                String continuation = String.join(" ", sentences.subList(start, index + 1));
+                if (hasConditionInformation(continuation)) supported.add(continuation);
+            }
+            if (index + 1 < sentences.size()) {
+                String nextSentence = sentences.get(index + 1);
+                if (hasConditionInformation(sentence) && CONDITION_REFERENCE.matcher(nextSentence).find()
+                        && supportsListQuestion(question, nextSentence, topics)) {
+                    supported.add(sentence + " " + nextSentence);
+                }
+            }
+        }
+        return supported.stream().distinct().toList();
+    }
+
+    private List<String> splitConditionClauses(String sentence) {
+        List<String> clauses = List.of(sentence.split("(?<=[;；])|(?<=[,，])\\s*(?=(?:(?:and|or)\\s+)?"
+                        + "(?:若|如果|假如|倘若|當|凡是|凡發生|if\\b|when\\b|unless\\b))"))
+                .stream().map(String::trim).map(clause -> clause.replaceFirst("(?i)^(?:and|or)\\s+", ""))
+                .filter(clause -> !clause.isBlank()).toList();
+        if (clauses.size() < 2) return clauses;
+
+        List<String> grouped = new ArrayList<>();
+        String pendingCondition = "";
+        for (String clause : clauses) {
+            String current = pendingCondition.isBlank() ? clause : pendingCondition + " " + clause;
+            if (hasConditionLead(clause) && hasConditionInformation(current)
+                    && INDEPENDENT_ACTION.matcher(clause).find()) {
+                grouped.add(current);
+                pendingCondition = "";
+            } else if (hasConditionLead(clause) && !INDEPENDENT_ACTION.matcher(clause).find()) {
+                pendingCondition = current;
+            } else {
+                if (!pendingCondition.isBlank()) grouped.add(pendingCondition);
+                pendingCondition = "";
+                grouped.add(clause);
+            }
+        }
+        if (!pendingCondition.isBlank()) grouped.add(pendingCondition);
+        return grouped;
+    }
+
+    private boolean asksForConditions(String question) {
+        String normalized = normalize(question);
+        return normalized.matches(".*(?:哪些|哪種|何種|什麼).*(?:情況|狀況|情形|條件|原因|時候|異常).*|"
+                + ".*(?:which|what)\\s+(?:conditions?|circumstances?|situations?|cases?).*|"
+                + "^when\\s+should\\b.*");
+    }
+
+    private boolean supportsListQuestion(String question, String sentence, List<Topic> topics) {
+        if (topics.stream().anyMatch(topic -> topic.matches(normalize(sentence)))) return true;
+        if (!topics.isEmpty()) return false;
+        Set<String> queryTerms = meaningfulTerms(question);
+        Set<String> sentenceTerms = meaningfulTerms(sentence);
+        long overlap = queryTerms.stream().filter(sentenceTerms::contains).count();
+        return hasEnoughLexicalSupport(queryTerms, overlap);
+    }
+
+    private boolean hasConditionInformation(String sentence) {
+        Matcher lead = CONDITION_LEAD.matcher(sentence);
+        if (!lead.find()) return false;
+        String afterLead = sentence.substring(lead.end());
+        Matcher action = CONDITION_ACTION.matcher(afterLead);
+        String antecedent = action.find() ? afterLead.substring(0, action.start()) : afterLead;
+        if (SPECIFIC_CONDITION.matcher(antecedent).find()) return true;
+
+        String substantiveCondition = CONDITION_BACKGROUND.matcher(antecedent).replaceAll(" ");
+        substantiveCondition = GENERIC_CONDITION.matcher(substantiveCondition).replaceAll(" ");
+        substantiveCondition = substantiveCondition.replaceAll("(?i)\\b(?:the|a|an|is|are|was|were)\\b", " ")
+                .replaceAll("[^\\p{L}\\p{N}]", "");
+        // Separators are structural only: policy preambles and generic abnormality wording must
+        // reduce to no substantive facts, while an unlisted concrete condition (e.g. supplier delay)
+        // remains sufficient even without a separator.
+        return substantiveCondition.length() >= 2;
+    }
+
+    private boolean hasConditionLead(String sentence) {
+        return CONDITION_LEAD.matcher(sentence).find();
+    }
+
+    private boolean endsWithEnumerationContinuation(String sentence) {
+        String trimmed = sentence.stripTrailing();
+        return trimmed.matches(".*(?:、|，|,|;|；|或|及|和|\\band|\\bor)$");
+    }
+
+    private boolean isQuestionHint(String clause) {
+        return QUESTION_HINT.matcher(clause.stripLeading()).find();
     }
 
     private String normalize(String value) {
