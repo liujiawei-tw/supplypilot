@@ -179,7 +179,7 @@ Guarded Reset 沒有執行。雖然 DB、Volume 與文件目錄為隔離專用�
 - 日期：2026-10-15，Asia/Taipei。
 - Repository：`liujiawei-tw/supplypilot`；分支：`codex/sp-910-real-e9-acceptance`。
 - 起始 `origin/main`：`363f8639e56aea120ab756549dc90226a4ebd7c1`（PR #121 merge commit；#120 已 Closed）。
-- 第二輪工作 HEAD：`39433b8465f943e3741a10040b87d029091dac4e`，為將上述 main 合入原驗收分支後的本機 merge commit。未 Force Push；本次報告尚未提交。
+- 第二輪執行基準 HEAD：`39433b8465f943e3741a10040b87d029091dac4e`，為將上述 main 合入原驗收分支後的本機 merge commit。驗收報告與 Edge 證據已透過一般 Push 發佈；交付提交 `86f5781f6ceff917d21bad59c6312d048fc78358`，遠端分支核對到相同 SHA。未 Force Push。
 - 原第一輪文件與 `docs/evidence/sp910/` 均保留。第二輪新增 Edge 截圖位於 `docs/evidence/sp910/round2/preflight-home.png`。
 - 預檢時曾確認 SP-910 MySQL 與 pgvector 容器名稱、loopback 綁定與獨立 named volume；當時 PostgreSQL readiness 成功。結束檢查時 Docker Desktop named pipe 回報拒絕存取，無法再次確認目前容器狀態。未連接、停止或修改其他容器與 Volume。
 - 原 Backend 程序記憶體環境曾確認 `demo` profile、專用 MySQL／PostgreSQL database、專用文件目錄、Google GenAI Chat、Embedding `gemini-embedding-001`／768 維及 generation `gemini-embedding-001-768-v1`。Chat Model ID 為 `gemini-3.6-flash`。只確認 API 憑證存在及 Provider 曾配置，未讀出或記錄 Secret 值。舊程序停止後，無法從受支援的安全注入方式恢復完整憑證組。Repository `.env` 含空白 placeholder 且 profile 不是 `demo`，不能用來啟動驗收服務。沒有猜測或覆寫資料庫認證。
