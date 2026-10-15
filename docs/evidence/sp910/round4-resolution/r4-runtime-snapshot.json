@@ -1,0 +1,67 @@
+{
+  "capturedAt": "2026-10-16T01:22:00+08:00",
+  "environment": "local Windows host; isolated SP-910 r4 Demo",
+  "gitHeadAtStart": "fe8b598c4e244e04eede3c434d7c1c131ced00f7",
+  "branch": "codex/sp-910-real-e9-acceptance",
+  "resources": {
+    "mysqlContainer": "supplypilot-sp910-r4-mysql",
+    "mysqlHostPort": "127.0.0.1:13327",
+    "mysqlDatabase": "supplypilot_sp910_r4_demo",
+    "mysqlVolume": "supplypilot-sp910-r4-mysql-data",
+    "semanticContainer": "supplypilot-sp910-r4-pgvector",
+    "semanticHostPort": "127.0.0.1:15450",
+    "semanticDatabase": "supplypilot_sp910_r4_semantic_demo",
+    "semanticVolume": "supplypilot-sp910-r4-pgvector-data",
+    "documentStorage": "C:\\Users\\z0976\\AppData\\Local\\SupplyPilot\\sp910-r4-demo-documents",
+    "backend": "http://127.0.0.1:8184",
+    "frontend": "http://127.0.0.1:5174"
+  },
+  "runtimeChecks": {
+    "mysqlContainerRunning": true,
+    "pgvectorContainerRunning": true,
+    "backendListening": true,
+    "frontendListening": true,
+    "backendHealthHttp": 200,
+    "frontendLoginHttp": 200
+  },
+  "dataset": {
+    "marker": "SP-901",
+    "version": "sp-905-zh-tw-v1",
+    "baselineDate": "2026-10-16",
+    "status": "COMPLETE",
+    "users": 5,
+    "materials": 12,
+    "suppliers": 6,
+    "supplierMaterials": 30,
+    "demands": 12,
+    "purchaseOrders": 10,
+    "purchaseOrderStatuses": {
+      "DRAFT": 2,
+      "APPROVED": 2,
+      "ORDERED": 3,
+      "RECEIVED": 2,
+      "REJECTED": 1
+    },
+    "baselineDocuments": 5,
+    "baselineDocumentsReadyVersion1": 5,
+    "sup005Present": false
+  },
+  "provider": {
+    "chatProvider": "none",
+    "embeddingProvider": "none",
+    "geminiKeyConfigured": false,
+    "semanticReadEnabled": false,
+    "semanticIndexCopied": false,
+    "gateAuditCopied": false
+  },
+  "secretHandling": {
+    "demoAndDatabaseCredentials": "randomly generated; stored in Repository-external Windows DPAPI CurrentUser file with restricted ACL",
+    "secretValuesRecorded": false,
+    "repositoryEnvUsed": false
+  },
+  "r3": {
+    "modified": false,
+    "reset": false,
+    "writeOperations": false
+  }
+}

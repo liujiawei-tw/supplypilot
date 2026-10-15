@@ -330,3 +330,58 @@ Gate 舊 Audit 雖在 PostgreSQL 中仍為 passed，本輪沒有重新核對 Sou
 解除登入阻擋需要：以安全方式取得並注入明確指向 r3、與 allowlist 相符的 MySQL／pgvector 設定及憑證、JWT Secret；安全啟動前端與 Backend。由於現有 COMPLETE Dataset 的帳號密碼雜湊不會隨 `DEMO_ACCOUNT_PASSWORD` 環境值變更，須使用既有帳號密碼或另行核對正式允許的帳號復原流程；不可為了套用新密碼而 Reset。真實 Gemini E9 另需有效 Gemini API Secret 與正確 Provider 設定。之後從品質隔離 Browser 查詢重新開始；只有所有前置 Gate 通過才進入 SUP-005 與 Guarded Reset。
 
 第四輪結論：**SP-910 E9 BLOCKED — PARTIAL EVIDENCE AVAILABLE**。本輪沒有因舊 Gate Audit、既有 Health、舊回合證據或單純 Browser 登入頁而宣稱 E9 PASS。
+
+## 第四輪阻擋解除增補：r4 全新隔離 Demo（2026-10-16，Asia/Taipei）
+
+本節是對第四輪紀錄的追加，不取代或改寫前述 r3 狀態及失敗證據。工作分支為 `codex/sp-910-real-e9-acceptance`，本次執行時 HEAD 為 `fe8b598c4e244e04eede3c434d7c1c131ced00f7`。依授權建立全新 r4 資源；r3 Marker 為 COMPLETE 的資料庫、容器、Volume、五份文件、索引及 Gate 均未重置、覆寫或修改。
+
+### r4 隔離環境與初始化
+
+| 項目 | r4 實際值／結果 |
+|---|---|
+| MySQL | `supplypilot-sp910-r4-mysql`，`127.0.0.1:13327`，專用 Volume `supplypilot-sp910-r4-mysql-data`，DB `supplypilot_sp910_r4_demo` |
+| PostgreSQL／pgvector | `supplypilot-sp910-r4-pgvector`，`127.0.0.1:15450`，專用 Volume `supplypilot-sp910-r4-pgvector-data`，DB `supplypilot_sp910_r4_semantic_demo` |
+| 文件儲存 | `C:\Users\z0976\AppData\Local\SupplyPilot\sp910-r4-demo-documents` |
+| Backend／Frontend | Backend `127.0.0.1:8184`、Vite `127.0.0.1:5174`；兩者持續 Listening，Health／登入頁 HTTP 200 |
+| Profile／Guard | `SPRING_PROFILES_ACTIVE=demo`；兩個 Demo allowlist database 名稱與實際連線目標相符；沒有使用 Repository `.env` |
+| Secret 保存 | 新隨機 DB 密碼、JWT Secret、Demo Account Password 保存於 Repository 外的 Windows DPAPI CurrentUser 保護檔；受限 ACL。文件及證據不含 Secret 值 |
+| Dataset | 正式 Seeder 從新空白 DB 初始化，Marker `SP-901 / sp-905-zh-tw-v1 / 2026-10-16 / COMPLETE`；Users 5、Materials 12、Suppliers 6、SupplierMaterial 30、Demands 12、POs 10；PO 狀態為 DRAFT 2、APPROVED 2、ORDERED 3、RECEIVED 2、REJECTED 1 |
+| 文件 | Backend 建立的五份 Baseline 文件均 READY、Version 1.0，Storage 內五份原檔；未建立 SUP-005 第六份文件 |
+| Semantic 初始狀態 | 新 pgvector DB 未複製 r3 的索引或 Gate；尚未執行 Gemini Backfill／Readiness／Gate Audit |
+
+建立 r4 時 Backend 僅設定為 `AI_CHAT_PROVIDER=none`、`AI_EMBEDDING_PROVIDER=none`、Semantic Read 關閉，確保不會誤繼承或使用 Repository `.env`。此設定不構成 Gemini 測試。
+
+### 安全憑證核對與真實 Browser 結果
+
+Process／User／Machine 環境與 r4 DPAPI Secret 名稱清單皆沒有 `GEMINI_API_KEY`、`AI_CHAT_PROVIDER`、`AI_EMBEDDING_PROVIDER`、`SEMANTIC_READ_ENABLED` 或 `SEMANTIC_GENERATION_KEY`。Credential Manager 的 `gemini:antigravity` 僅能辨識為來源不明確的舊式 Antigravity target，無法證明它是授權的 Gemini Developer API Key；未讀取、解密或拿來當 API Key。既有廣泛 ACL 的 Temp `.cred` 也未讀取。故唯一已確認的外部憑證阻擋是：**需要使用者原已授權、可驗證的 Gemini Developer API Key 安全來源**。不要在對話貼 Key；請將它以本機互動式安全輸入方式寫入 r4 DPAPI Secret，再重啟 Backend 並核對 Provider 初始化。不得以 Mock／Fake Provider 代替。
+
+真實 Microsoft Edge（headed Playwright，隔離 Profile）已完成 Buyer 登入：登入 API HTTP 200，畫面顯示 Buyer Dashboard；應用程式載入 `/api/v1/materials` 回 HTTP 200。Planner 登入與 Dashboard 亦有保存的真實 Edge 畫面。證據為 `docs/evidence/sp910/round4-resolution/r4-buyer-dashboard.png`、`r4-demo-planner-login-dashboard.png`、`r4-browser-procurement.json`。物料選擇的 Browser 自動化在 `/recommendations` 表單未成功完成選項選取，沒有建立 PO；採購核准、下單及收貨流程為 BLOCKED／NOT RUN。錯誤截圖 `r4-procurement-stop.png` 及執行紀錄保留作為可重現失敗證據，不將未完成動作標為 PASS。Edge 隔離 Profile 已從 Repository／證據目錄移除，避免留下登入工作階段資料。
+
+| 案例 | 實際結果 | 狀態 | 證據 |
+|---|---|---|---|
+| r4 資料與資源隔離 | 全新專用容器、Volume、DB、Storage 與 Marker；r3 維持唯讀且未觸碰 | PASS（隔離／初始化） | 本節；r4 Browser／執行紀錄 |
+| Backend／Frontend 可達 | 8184／5174 Listening；Health 與登入頁 HTTP 200 | PASS（可達性） | 本機唯讀 listener／HTTP 檢查 |
+| 真實 Browser 登入／Dashboard | Edge Buyer 登入 HTTP 200；Dashboard 顯示 Buyer 角色；Materials API 200 | PASS（此範圍） | `r4-buyer-dashboard.png`、`r4-browser-procurement.json` |
+| 五角色採購流程 | 推薦表單物料下拉選取未完成；未建立採購單 | BLOCKED | `r4-procurement-stop.png`、`r4-browser-procurement.json` |
+| 真實 Gemini Chat／Embedding | 沒有已驗證且可用的授權 API Key；Backend 明確使用 none | BLOCKED | 本機 Secret-presence 記錄；此報告 |
+| 五份文件出站核准／Backfill／Readiness／Gate | r4 尚未操作；沒有沿用 r3 Gate | NOT RUN | 新環境初始資料快照 |
+| 品質隔離及其餘 Source Queries | 沒有 Gemini Provider／Semantic Gate，未執行 | BLOCKED | 本節 |
+| 中英文跨語 | 未建立第二份受控文件／索引，未執行 | NOT RUN | Gate 前置未滿足 |
+| SUP-005 UI Upload／Ingestion／Gate | 未上傳，避免未通過五份來源查詢前置 | NOT RUN | r4 文件清單只有五份 Baseline |
+| Guarded Reset／Reset 後恢復 | 未執行 Reset；r4 目前保留完整初始 Baseline | NOT RUN | 無 Reset 命令執行紀錄 |
+
+### Actions CI 與前端已知失敗
+
+透過 GitHub Actions job API 核對：
+
+| Run | Backend CI | Frontend CI | 結論 |
+|---|---|---|---|
+| [#38771906743](https://github.com/liujiawei-tw/supplypilot/actions/runs/38771906743) | SUCCESS，包含 `Run Maven verify` | SKIPPED | Backend CI PASS；不能稱完整 Backend＋Frontend 回歸 |
+| [#38771907250](https://github.com/liujiawei-tw/supplypilot/actions/runs/38771907250) | SUCCESS，包含 `Run Maven verify` | SKIPPED | Backend CI PASS；不能稱完整 Backend＋Frontend 回歸 |
+| [main #38765349851](https://github.com/liujiawei-tw/supplypilot/actions/runs/38765349851) | SUCCESS | FAILURE，Test step 失敗 | Frontend Build 因測試失敗跳過；保留為既有 main 失敗，不在 #117 驗收分支修改 |
+
+main run 前端測試紀錄為 `tests/sp806.test.tsx` 的「exposes Semantic operations only to ADMIN on the existing Documents route」：測試找不到名稱為 `#21` 的 button（該 job 報告 21 個 test files passed、1 failed；180 tests passed、1 failed）。這是獨立前端測試問題，沒有改寫成成功，也沒有擴張 #117 範圍。
+
+### 本次結論及下一步
+
+本次已解除「缺少 Demo 登入帳密／服務未啟動」阻擋：r4 是可持續運作、專用且登入成功的新環境。仍未取得可驗證的 Gemini API Key；此外目前真實 Edge 採購流程在物料下拉選取處留下可重現的自動化失敗，故不能聲稱僅剩 Gemini 憑證這一個阻擋。五份 Gemini 查詢、跨語、SUP-005 與 Reset 必須在恢復真實 Provider 並完成 Browser 流程後接續。r3 未重置，r4 也未執行 Guarded Reset。結論仍為 **SP-910 E9 BLOCKED — PARTIAL EVIDENCE AVAILABLE**。
