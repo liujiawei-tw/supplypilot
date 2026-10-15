@@ -219,7 +219,7 @@ Backend 啟動錯誤明確指出：Demo Dataset Marker 狀態並非完整的目�
 ### Git、舊環境診斷與第三輪隔離資源
 
 - Repository：`liujiawei-tw/supplypilot`；分支：`codex/sp-910-real-e9-acceptance`。
-- 第三輪開始時分支 HEAD：`90ff068d431da761901eae027c11787ea841476e`；`origin/main`：`363f8639e56aea120ab756549dc90226a4ebd7c1`。該 main 已包含 PR #121；#120 已 Closed。第三輪尚未建立交付提交。
+- 第三輪開始時分支 HEAD：`90ff068d431da761901eae027c11787ea841476e`；`origin/main`：`363f8639e56aea120ab756549dc90226a4ebd7c1`。該 main 已包含 PR #121；#120 已 Closed。第三輪實測報告與證據已提交並一般推送至原分支（首個證據提交 `a14363e080f944dc3b381a2444346d1e6e6878aa`）。
 - 舊 SP-910 資料庫 Marker 的唯讀查詢結果為 `SP-901 / sp-905-zh-tw-v1 / 2026-10-15 / COMPLETE`。五份中文 Seed 文件、既有額外英文測試文件及操作後 PO 均仍在舊專用環境。先前啟動阻擋的可實證設定原因是 `.env` 的 `DEMO_DATASET_VERSION=sp-901-v1`、`SPRING_PROFILES_ACTIVE=local`，以及其資料庫名稱／密碼欄位與舊容器實際目標不一致；不是 Marker 損壞，也沒有執行 Reset。為保留舊環境與前兩輪證據，本輪另建全新專用環境。
 - 新資源：MySQL 容器 `supplypilot-sp910-r3-mysql`、資料庫 `supplypilot_sp910_r3_demo`、Volume `supplypilot-sp910-r3-mysql-data`、loopback port 13317；PostgreSQL／pgvector 容器 `supplypilot-sp910-r3-pgvector`、資料庫 `supplypilot_sp910_r3_semantic_demo`、Volume `supplypilot-sp910-r3-pgvector-data`、loopback port 15440。文件根目錄為 `backend/data/sp910-r3-demo-documents`。各項皆與前兩輪分離，沒有刪除、覆寫或重新掛載舊資源。
 - 第三輪使用新的隨機測試 DB／Demo/JWT Secret，DPAPI 加密檔存於 Repository 外且 ACL 限制於目前 Windows 身分；Gemini Key 使用已存在的本機安全來源，僅載入 Backend 程序環境。沒有把值輸出或提交。臨時環境檔已移除。
@@ -263,7 +263,7 @@ Backend 啟動錯誤明確指出：Demo Dataset Marker 狀態並非完整的目�
 | Guarded Reset | E9 前置未全通過；未執行 `scripts/reset-demo.ps1`，沒有清表、刪 Marker 或手動資料庫操作 | NOT RUN（依規則停止） |
 | Reset 後 Gate 重建 | Reset 未執行 | NOT RUN |
 | 採購五角色 Browser 流程 | 本輪重新建立的 r3 Dataset 尚未執行該流程；第一輪結果不能挪用為本輪 PASS | NOT RUN |
-| Backend regression／GitHub CI | 本輪另行啟動 `backend\\mvnw.cmd -B --no-transfer-progress verify`，Maven 進入 Surefire 後停在 `SpringAiDraftProposalGeneratorTests` 且長時間無新輸出，未產生本輪完成摘要；為避免無限等待而中斷，故本輪回歸為 BLOCKED，不能記 PASS。可確認的最近完整結果仍是同一合併 #121 程式碼第二輪 `mvnw verify`：549 tests、0 failure、0 error、1 skipped。`gh` CLI 不存在，無法查本輪新增 CI。既有 Actions #38691504272 Backend／Frontend jobs 為 SKIPPED，不是完整回歸 PASS | BLOCKED（本輪命令未完成） |
+| Backend regression／GitHub CI | 本輪另行啟動 `backend\\mvnw.cmd -B --no-transfer-progress verify`，Maven 進入 Surefire 後停在 `SpringAiDraftProposalGeneratorTests` 且長時間無新輸出，未產生本輪完成摘要；為避免無限等待而中斷，故本輪回歸為 BLOCKED，不能記 PASS。可確認的最近完整結果仍是同一合併 #121 程式碼第二輪 `mvnw verify`：549 tests、0 failure、0 error、1 skipped。`gh` CLI 不存在；對 GitHub Actions API 的唯讀查詢回 404，故無法確認本輪提交的 CI。既有 Actions #38691504272 Backend／Frontend jobs 為 SKIPPED，不是完整回歸 PASS | BLOCKED（本輪命令未完成） |
 
 ### Findings 與交接
 
