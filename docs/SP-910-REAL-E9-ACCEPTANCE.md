@@ -272,3 +272,61 @@ Backend 啟動錯誤明確指出：Demo Dataset Marker 狀態並非完整的目�
 **P1 — 本輪尚未完成剩餘 E9 Gate。** Cross-language、SUP-005、Guarded Reset、Reset 後 Gate 重建及 r3 採購流程均無第三輪 PASS。SUP-005 與 Reset 因前置 FAIL 而停止；Cross-language 因 Docker 權限無法建立獨立資料集而未執行。開始時建立的 r3 環境與 Browser 證據仍在；結束時 Docker Desktop API 回報 `permission denied`，5173／8081 無法在該次收尾命令取得 Listening 資訊。不可將 Browser 證據等同服務目前仍運行。
 
 #45 仍需在其本機 Docker 與 AWS 各自驗證：真正安全 Secret 注入、資料持久化、Gemini／pgvector、Reset 後人工或自動 Gate 重建、普通重啟資料保留、Browser 流程與實際復原時間。本輪沒有執行 Reset，也沒有宣稱午夜 Reset 後 AI 會自動恢復。
+
+## 第四輪 E9 驗收（PR #123 合併後）
+
+**整體狀態：SP-910 E9 BLOCKED — PARTIAL EVIDENCE AVAILABLE**
+
+本輪沿用原驗收分支，將 `origin/main` 的 PR #123 Merge SHA `08b9d079dad4aaf42f90a61891e2794fbc888eee` 以一般 merge 合入；沒有改動產品程式碼、Demo 資料、Marker、文件、容器或 Volume。第一至第三輪記錄與證據均保留。第四輪證據位於 `docs/evidence/sp910/round4/`。
+
+### Git 與環境
+
+- Repository：`liujiawei-tw/supplypilot`；Branch：`codex/sp-910-real-e9-acceptance`。
+- Round 4 合併後 HEAD：`cf068cf33c0d9b4f5e36e900fd097670720778a3`，父 Commit 為原驗收分支 `ac3ac34352a4274a11ed3b73223280f251eda4cf` 與 main `08b9d079dad4aaf42f90a61891e2794fbc888eee`。
+- Windows 11 10.0.26200、Java 21.0.10、Node.js 24.15.0、npm 11.12.1、Docker Engine 29.6.1。Docker 專用 r3 MySQL／pgvector 容器可透過具權限的 Windows 工作階段唯讀查詢；port 僅綁定 loopback：13317、15440。
+- Demo Storage：`backend/data/sp910-r3-demo-documents`，五個原始檔。資源身份與第四輪唯讀快照詳見 `docs/evidence/sp910/round4/preflight.json`。沒有使用或觸碰其他 SP-910 容器／資料庫。
+- Vite：既有 Node 程序 PID 30428 在 `127.0.0.1:5173`，主機 HTTP 200。8080 與 8081 有既存 Java Backend Listener，兩者 `/actuator/health` 均 HTTP 200。兩者對 `Origin: http://127.0.0.1:5173` 的 CORS preflight 都回 200 且明確允許該 Origin。這只能確認存活及 Origin 路徑；本輪沒有證據可將任一 Backend Listener 的運行設定對應到 r3，未呼叫業務 API。
+- Codex in-app Browser 實際載入 `http://127.0.0.1:5173/login`，畫面顯示登入表單；另保存 Microsoft Edge headless 頁面截圖 `round4/browser-login-page.png`。CUA 當前沒有可選的 Edge 視窗，因此本輪未在 Edge 中完成登入或 UI 操作。首頁截圖不等於 E9 Browser E2E。
+
+### r3 資料唯讀快照
+
+| 項目 | 實際觀察 | 本輪判定 |
+|---|---|---|
+| Demo Marker | `sp-905-zh-tw-v1 / COMPLETE`，Baseline date `2026-10-15` | 快照；未初始化或重置 |
+| Relational baseline | Users 5、Materials 12、Suppliers 6、SupplierMaterial 30、Demands 12、POs 10 | 快照符合數量 |
+| PO 狀態 | DRAFT 2、APPROVED 2、ORDERED 3、RECEIVED 2、REJECTED 1 | 快照符合分布 |
+| MAT-001 Inventory | 300 KG | 初始基線快照 |
+| 五份中文文件 | Metadata 1–5，READY／Version 1.0／Outbound APPROVED；Storage 五個原檔 | 快照符合五份基線 |
+| SUP-005 | MySQL metadata 無此文件 | 第六份正式文件未建立 |
+| Semantic Index | `gemini-embedding-001-768-v1`；Model `gemini-embedding-001`；768 維；READY 五份 | 索引快照，未重新 Backfill |
+| Gate Audit | Audit #1 passed，ready 5，其他狀態 0；時間 `2026-10-15 20:22:58 +08:00` | 舊 Audit 快照；本輪未重跑 Gate 或 Query |
+
+Gate 舊 Audit 雖在 PostgreSQL 中仍為 passed，本輪沒有重新核對 Source Hash、目前 Backend 版本及 Gate validity，故不得以此宣稱第四輪 Gate 或查詢 PASS。
+
+### 安全憑證與 Browser 阻擋
+
+目前 PowerShell 的 Process／User／Machine 環境範圍都沒有繼承所需變數；Repository `.env` 存在且包含 DB／JWT／Demo credential 變數名稱，但沒有讀取任何值。其非敏感設定選擇 `SPRING_PROFILES_ACTIVE=local`、`supplypilot`／`supplypilot_semantic`，而 Demo allowlist 卻是 `supplypilot_demo`／`supplypilot_semantic_demo`，目標不一致，因此沒有載入或使用該設定。Windows Credential Manager 中沒有 SupplyPilot／SP-910／Gemini 相關 target；`%LOCALAPPDATA%\SupplyPilot` 沒有檔案。唯一找到的 Temp `.cred` 有廣泛 ACL，且建立時間早於 r3 資源；沒有讀取、解密或使用該檔。沒有猜測密碼，也沒有輸出或讀取既有 Java 程序環境／命令列中的 Secret。
+
+本輪初始檢查（00:20 Asia/Taipei）曾看到 Vite 與兩個 Backend Listener 回應；到 00:46 再檢查時，5173、8080、8081 均無 Listening／HTTP 回應。in-app Browser 的分頁仍保留登入表單，但在服務停止時重新載入沒有證明主機可達，不能視為新鮮頁面或成功登入。沒有提交登入請求。
+
+即使在 `.env` 設定 `DEMO_ACCOUNT_PASSWORD`，`DemoDatasetCoordinator` 只在建立全新 Demo 時使用它產生帳號密碼雜湊；Marker 已是 COMPLETE 時會直接跳過初始化，不會更新既有帳號密碼。不得為了登入而 Reset。
+
+| 案例 | 預期 | 本輪實際 | 狀態 | 證據 |
+|---|---|---|---|---|
+| R4-PREFLIGHT-01 專用資源 | r3 隔離且可唯讀核對 | 容器、loopback port、資料庫 Marker／基線、五文件 Storage、pgvector Index／Audit 均已唯讀核對；未做寫入 | PARTIAL | `round4/preflight.json` |
+| R4-BROWSER-01 UI 載入 | 真實 Browser 顯示並操作登入頁 | 初始階段載入 `/login` 並保存 Edge headless 截圖；00:46 服務已停止，in-app Browser 分頁殘留登入表單，未登入或執行操作 | PARTIAL | `round4/browser-login-page.png`；主機連線探測紀錄 |
+| R4-GATE-01 品質隔離條件 | Edge＋Gemini 最終答案完整包含四項條件，正確來源及 offset | 未登入，沒有 Query JSON／Source／Provider Trace | BLOCKED | 缺少安全 Demo 帳密與可核對 Backend 環境 |
+| R4-BASELINE-02 五個其他 Source Query | 五題都在 Browser 真實查詢並核對 Source | 未執行 | BLOCKED | 同上 |
+| R4-CROSS-01 跨語 | 獨立資料集雙向跨語查詢 | 未建立隔離測試資料集，未執行 | NOT RUN | 基線查詢前置未通過，且無安全 Backend Secret |
+| R4-BUSINESS-01 五角色流程 | 五角色採購 Browser E2E | 未執行 | BLOCKED | 無 Demo 帳號密碼／登入未完成 |
+| R4-SUP005-01 UI 上傳與索引 | 五份基線查詢全部 PASS 後才上傳 | 未上傳；基線查詢未通過前置 | NOT RUN | 前置條件未滿足 |
+| R4-RESET-01 Guarded Reset | 完整 E9 前置通過後正式 Reset | 未執行正式 Reset；沒有修改資料 | NOT RUN | E9 前置不全，不符合 Reset 條件 |
+| R4-VERIFY-01 Backend regression | `backend\mvnw.cmd -B --no-transfer-progress verify` 完成成功 | Docker-enabled elevated run 搭配 Mockito 5.23.0 Java agent 後 BUILD SUCCESS；566 tests，0 failures、0 errors、1 skipped；耗時 7:17，完成於 2026-10-16 00:43:38 Asia/Taipei。Testcontainers 使用暫存 MySQL／PostgreSQL，不操作 SP-910 r3 持久化資料。先前兩次執行受 Mockito 動態 Agent／Docker 權限環境影響，不作為最終回歸結果 | PASS（Backend regression） | 本機 Maven 輸出；Mockito agent 僅由命令列指定，未修改 Repository 設定 |
+
+### 本輪結果與解除條件
+
+本輪可確認的是：r3 五文件資料與 Semantic 索引快照曾經唯讀核對；初始時 Vite 與兩個 Backend Listener 存活並接受 Vite Origin 的 CORS preflight，但 00:46 再檢查時服務已停止。沒有完成登入、Gemini Chat／Embedding、六題來源查詢、跨語、五角色流程、SUP-005、Reset 或 Reset 後 Gate 恢復。沒有 API 業務呼叫，沒有寫入或破壞性資料操作。
+
+解除登入阻擋需要：以安全方式取得並注入明確指向 r3、與 allowlist 相符的 MySQL／pgvector 設定及憑證、JWT Secret；安全啟動前端與 Backend。由於現有 COMPLETE Dataset 的帳號密碼雜湊不會隨 `DEMO_ACCOUNT_PASSWORD` 環境值變更，須使用既有帳號密碼或另行核對正式允許的帳號復原流程；不可為了套用新密碼而 Reset。真實 Gemini E9 另需有效 Gemini API Secret 與正確 Provider 設定。之後從品質隔離 Browser 查詢重新開始；只有所有前置 Gate 通過才進入 SUP-005 與 Guarded Reset。
+
+第四輪結論：**SP-910 E9 BLOCKED — PARTIAL EVIDENCE AVAILABLE**。本輪沒有因舊 Gate Audit、既有 Health、舊回合證據或單純 Browser 登入頁而宣稱 E9 PASS。
