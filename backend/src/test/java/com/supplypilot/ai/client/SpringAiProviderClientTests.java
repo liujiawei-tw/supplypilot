@@ -137,6 +137,8 @@ class SpringAiProviderClientTests {
                 "QUERY_INVENTORY", "{\"materialCode\":\"MAT-001\"}"));
         assertProviderCode(provider(looping, registry, Duration.ofSeconds(2)),
                 ErrorCode.AI_INVALID_RESPONSE, "MAT-001 庫存");
+        assertProviderReason(provider(looping, registry, Duration.ofSeconds(2), 4, 1),
+                "MAT-001 庫存", AiFailureReason.MODEL_CALL_LIMIT);
     }
 
     @Test
@@ -154,6 +156,8 @@ class SpringAiProviderClientTests {
         assertProviderCode(provider(looping, registry, Duration.ofSeconds(2), 1, 5),
                 ErrorCode.AI_INVALID_RESPONSE, "MAT-001 庫存");
         org.mockito.Mockito.verify(registry, org.mockito.Mockito.times(1)).execute(any());
+        assertProviderReason(provider(looping, registry, Duration.ofSeconds(2), 1, 5),
+                "MAT-001 庫存", AiFailureReason.TOOL_CALL_LIMIT);
     }
 
     @Test
@@ -166,7 +170,34 @@ class SpringAiProviderClientTests {
                 "QUERY_INVENTORY", "{\"materialCode\":\"MAT-999\"}"));
         assertProviderCode(provider(invented, registry, Duration.ofSeconds(2)),
                 ErrorCode.AI_INVALID_RESPONSE);
+        assertProviderReason(provider(forbidden, registry, Duration.ofSeconds(2)),
+                "採購單核准狀態", AiFailureReason.UNKNOWN_OR_FORBIDDEN_TOOL);
+        assertProviderReason(provider(invented, registry, Duration.ofSeconds(2)),
+                "question", AiFailureReason.UNAUTHORIZED_OR_MISMATCHED_TOOL_IDENTIFIER);
         org.mockito.Mockito.verifyNoInteractions(registry);
+    }
+
+    @Test
+    void missingFinalResponseAndToolExecutionFailureHaveFixedDiagnosticReasons() {
+        ChatModel missing = fakeModel(prompt -> new ChatResponse(List.of()));
+        assertProviderReason(provider(missing, mock(AiToolRegistry.class), Duration.ofSeconds(2)),
+                "查詢", AiFailureReason.MISSING_FINAL_MODEL_RESPONSE);
+
+        AiToolRegistry failingRegistry = mock(AiToolRegistry.class);
+        when(failingRegistry.execute(any())).thenThrow(new IllegalStateException("sensitive tool details"));
+        ChatModel callsInventory = fakeModel(prompt -> toolCall(
+                "QUERY_INVENTORY", "{\"materialCode\":\"MAT-001\"}"));
+        assertProviderReason(provider(callsInventory, failingRegistry, Duration.ofSeconds(2)),
+                "MAT-001 庫存", AiFailureReason.TOOL_EXECUTION_FAILURE);
+    }
+
+    @Test
+    void providerFailureWithoutKnownCategoryUsesOtherProviderFailure() {
+        ChatModel broken = fakeModel(prompt -> {
+            throw new IllegalStateException("sensitive provider details");
+        });
+        assertProviderReason(provider(broken, mock(AiToolRegistry.class), Duration.ofSeconds(2)),
+                "查詢", AiFailureReason.OTHER_PROVIDER_FAILURE);
     }
 
     @Test
@@ -192,6 +223,8 @@ class SpringAiProviderClientTests {
                 new Generation(new AssistantMessage("MAT-001 庫存為 999 KG")))));
         assertProviderCode(provider(model, mock(AiToolRegistry.class), Duration.ofSeconds(2)),
                 ErrorCode.AI_INVALID_RESPONSE);
+        assertProviderReason(provider(model, mock(AiToolRegistry.class), Duration.ofSeconds(2)),
+                "查詢", AiFailureReason.NO_TOOL_EXECUTION);
     }
 
     @Test
@@ -297,5 +330,12 @@ class SpringAiProviderClientTests {
     private void assertProviderCode(SpringAiProviderClient provider, ErrorCode code, String message) {
         assertThatThrownBy(() -> provider.query(new AiProviderRequest(message)))
                 .isInstanceOf(AiProviderException.class).extracting("errorCode").isEqualTo(code);
+    }
+
+    private void assertProviderReason(SpringAiProviderClient provider, String message, AiFailureReason reason) {
+        assertThatThrownBy(() -> provider.query(new AiProviderRequest(message)))
+                .isInstanceOf(AiProviderException.class)
+                .extracting(exception -> ((AiProviderException) exception).getFailureReason())
+                .isEqualTo(reason);
     }
 }

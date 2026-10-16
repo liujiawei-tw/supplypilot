@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Locale;
 
 import com.supplypilot.ai.client.AiProviderException;
+import com.supplypilot.ai.client.AiFailureReason;
 import com.supplypilot.ai.dto.AiToolType;
 import com.supplypilot.common.exception.ErrorCode;
 import org.jspecify.annotations.Nullable;
@@ -81,19 +82,22 @@ public final class SpringAiReadTools {
 
     private String execute(AiQueryPlan plan) {
         if (executions.size() >= maxToolCalls) {
-            throw new AiProviderException(ErrorCode.AI_INVALID_RESPONSE);
+            throw new AiProviderException(ErrorCode.AI_INVALID_RESPONSE, AiFailureReason.TOOL_CALL_LIMIT);
         }
         if (plan.tool() != AiToolType.SEARCH_DOCUMENTS) {
             String material = plan.materialCode() == null ? null
                     : plan.materialCode().toUpperCase(Locale.ROOT);
             if (material != null && !material.equals(permittedMaterial)) {
-                throw new AiProviderException(ErrorCode.AI_INVALID_RESPONSE);
+                throw new AiProviderException(ErrorCode.AI_INVALID_RESPONSE,
+                        AiFailureReason.UNAUTHORIZED_OR_MISMATCHED_TOOL_IDENTIFIER);
             }
             if (plan.recommendationId() != null && !plan.recommendationId().equals(permittedRecommendation)) {
-                throw new AiProviderException(ErrorCode.AI_INVALID_RESPONSE);
+                throw new AiProviderException(ErrorCode.AI_INVALID_RESPONSE,
+                        AiFailureReason.UNAUTHORIZED_OR_MISMATCHED_TOOL_IDENTIFIER);
             }
             if (plan.tool() == AiToolType.QUERY_OPEN_PO && permittedMaterial != null && material == null) {
-                throw new AiProviderException(ErrorCode.AI_INVALID_RESPONSE);
+                throw new AiProviderException(ErrorCode.AI_INVALID_RESPONSE,
+                        AiFailureReason.UNAUTHORIZED_OR_MISMATCHED_TOOL_IDENTIFIER);
             }
         }
         AiToolResult result = registry.execute(plan);

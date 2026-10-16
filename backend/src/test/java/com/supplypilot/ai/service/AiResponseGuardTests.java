@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import java.util.List;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.supplypilot.ai.client.AiFailureReason;
 import com.supplypilot.ai.client.AiProviderException;
 import com.supplypilot.ai.dto.AiQueryStatus;
 import com.supplypilot.ai.dto.AiSourceResponse;
@@ -32,6 +33,7 @@ class AiResponseGuardTests {
         AiToolResult executed = result("目前庫存=100 KG；建議採購量=200 KG");
         var answer = guard.compose("目前庫存=200 KG；建議採購量=100 KG", List.of(executed));
         assertThat(answer.answerSource()).isEqualTo("BACKEND_FACTS");
+        assertThat(answer.diagnosticReason()).isEqualTo(AiFailureReason.INVALID_FINAL_RESPONSE_STRUCTURE);
         assertThat(answer.answer()).isEqualTo(executed.trustedFacts());
     }
 
@@ -45,6 +47,9 @@ class AiResponseGuardTests {
         assertThatThrownBy(() -> guard.compose("{}", List.of()))
                 .isInstanceOf(AiProviderException.class).extracting("errorCode")
                 .isEqualTo(ErrorCode.AI_INVALID_RESPONSE);
+        assertThatThrownBy(() -> guard.compose("{}", List.of()))
+                .isInstanceOf(AiProviderException.class).extracting("failureReason")
+                .isEqualTo(AiFailureReason.NO_TOOL_EXECUTION);
     }
 
     @Test
@@ -55,6 +60,7 @@ class AiResponseGuardTests {
         var answer = guard.compose("{\"intro\":\"查詢結果整理如下。\",\"factIndexes\":[0]}",
                 List.of(inventory, po));
         assertThat(answer.answerSource()).isEqualTo("BACKEND_FACTS");
+        assertThat(answer.diagnosticReason()).isEqualTo(AiFailureReason.INVALID_FINAL_RESPONSE_STRUCTURE);
         assertThat(answer.answer()).contains("100 KG", "200 TWD");
     }
 
