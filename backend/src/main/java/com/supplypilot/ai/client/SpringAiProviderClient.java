@@ -14,6 +14,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import com.supplypilot.ai.config.AiProperties;
 import com.supplypilot.ai.dto.AiQueryStatus;
+import com.supplypilot.ai.dto.AiSourceResponse;
 import com.supplypilot.ai.dto.AiToolType;
 import com.supplypilot.ai.service.AiResponseGuard;
 import com.supplypilot.ai.tool.AiToolResult;
@@ -149,16 +150,17 @@ public class SpringAiProviderClient implements AiProviderClient {
                 failureReason = AiFailureReason.NO_TOOL_EXECUTION;
                 failureDetail = AiFailureDetail.NO_TOOL_EXECUTION;
             }
-            recordDiagnostic(failureReason, failureDetail, executions);
             RuntimeException applicationFailure = findApplicationFailure(exception.getCause());
-            if (applicationFailure != null) throw applicationFailure;
-            if (failureReason == AiFailureReason.MISSING_FINAL_MODEL_RESPONSE
-                    || failureReason == AiFailureReason.UNAUTHORIZED_OR_MISMATCHED_TOOL_IDENTIFIER) {
-                AiProviderResponse fallback = backendFactsFallback(executions);
-                if (fallback != null) {
-                    record("success_backend_fallback", Duration.ofNanos(System.nanoTime() - started), null);
-                    return fallback;
-                }
+            if (applicationFailure != null) {
+                recordDiagnostic(failureReason, failureDetail, executions, false);
+                throw applicationFailure;
+            }
+            AiProviderResponse fallback = failureReason == AiFailureReason.MISSING_FINAL_MODEL_RESPONSE
+                    ? backendFactsFallback(executions) : null;
+            recordDiagnostic(failureReason, failureDetail, executions, fallback != null);
+            if (fallback != null) {
+                record("success_backend_fallback", Duration.ofNanos(System.nanoTime() - started), null);
+                return fallback;
             }
             ErrorCode code = findProviderError(exception.getCause());
             record(code.name().toLowerCase(), Duration.ofNanos(System.nanoTime() - started), null);
@@ -322,8 +324,16 @@ public class SpringAiProviderClient implements AiProviderClient {
     }
 
     private AiProviderResponse backendFactsFallback(List<AiToolResult> executions) {
-        if (executions.stream().noneMatch(result -> result.tool() == AiToolType.SEARCH_DOCUMENTS
-                && result.status() == AiQueryStatus.ANSWERED)) return null;
+        List<AiToolResult> answeredDocuments = executions.stream()
+                .filter(result -> result != null && result.tool() == AiToolType.SEARCH_DOCUMENTS
+                        && result.status() == AiQueryStatus.ANSWERED)
+                .toList();
+        if (answeredDocuments.isEmpty() || answeredDocuments.stream().anyMatch(result ->
+                result.trustedFacts() == null || result.trustedFacts().isBlank()
+                        || result.sources() == null || result.sources().isEmpty()
+                        || result.sources().stream().anyMatch(source -> !isValidDocumentSource(source)))) {
+            return null;
+        }
         try {
             AiResponseGuard.VerifiedAnswer verified = responseGuard.compose("", executions);
             if (verified.answer() == null || verified.answerSource() == null) return null;
@@ -333,20 +343,44 @@ public class SpringAiProviderClient implements AiProviderClient {
         }
     }
 
+    private boolean isValidDocumentSource(AiSourceResponse source) {
+        if (source == null || !"DOCUMENT".equals(source.resourceType())
+                || source.resourceId() == null || source.title() == null || source.title().isBlank()
+                || source.version() == null || source.version().isBlank()
+                || source.chunkIndex() == null || source.chunkIndex() < 0
+                || source.startOffset() == null || source.startOffset() < 0
+                || source.endOffset() == null || source.endOffset() <= source.startOffset()
+                || source.excerpt() == null || source.excerpt().isBlank()
+                || source.endOffset() - source.startOffset() != source.excerpt().length()) {
+            return false;
+        }
+        try {
+            return Long.parseLong(source.resourceId()) > 0;
+        } catch (NumberFormatException invalidDocumentId) {
+            return false;
+        }
+    }
+
     private void recordDiagnostic(AiFailureReason reason, AiFailureDetail detail) {
         recordDiagnostic(reason, detail, List.of());
     }
 
     private void recordDiagnostic(AiFailureReason reason, AiFailureDetail detail,
                                   List<AiToolResult> executions) {
+        recordDiagnostic(reason, detail, executions, false);
+    }
+
+    private void recordDiagnostic(AiFailureReason reason, AiFailureDetail detail,
+                                  List<AiToolResult> executions, boolean safeFallbackExecuted) {
         String detailName = detail == null ? "NONE" : detail.name();
         long answeredCount = executions.stream().filter(result -> result.status() == AiQueryStatus.ANSWERED).count();
         long documentAnsweredCount = executions.stream().filter(result -> result.tool() == AiToolType.SEARCH_DOCUMENTS
                 && result.status() == AiQueryStatus.ANSWERED).count();
         meters.counter("supplypilot.ai.provider.diagnostics", "reason", reason.name(), "detail", detailName)
                 .increment();
-        log.info("AI provider diagnostic reason={} detail={} toolCount={} answeredCount={} documentAnsweredCount={}",
-                reason.name(), detailName, executions.size(), answeredCount, documentAnsweredCount);
+        log.info("AI provider diagnostic reason={} detail={} toolCount={} answeredCount={} documentAnsweredCount={} safeFallbackExecuted={}",
+                reason.name(), detailName, executions.size(), answeredCount, documentAnsweredCount,
+                safeFallbackExecuted);
     }
 
     private RuntimeException findApplicationFailure(Throwable throwable) {
