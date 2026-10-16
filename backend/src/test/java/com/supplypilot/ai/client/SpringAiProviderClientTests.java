@@ -11,6 +11,7 @@ import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -30,6 +31,10 @@ import com.supplypilot.material.service.MaterialService;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
+import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.messages.AssistantMessage;
 import org.springframework.ai.chat.messages.ToolResponseMessage;
 import org.springframework.ai.chat.metadata.ChatResponseMetadata;
@@ -210,8 +215,8 @@ class SpringAiProviderClientTests {
     void missingModelAndFinalResponsesHaveDistinctFixedDetails() {
         ChatModel noModelResult = fakeModel(prompt -> new ChatResponse(List.of()));
         assertProviderDetail(provider(noModelResult, mock(AiToolRegistry.class), Duration.ofSeconds(2)),
-                "查詢", AiFailureReason.NO_TOOL_EXECUTION,
-                AiFailureDetail.NO_TOOL_EXECUTION);
+                "查詢", AiFailureReason.MISSING_FINAL_MODEL_RESPONSE,
+                AiFailureDetail.MODEL_RESPONSE_MISSING_RESULT);
 
         AiToolRegistry registry = mock(AiToolRegistry.class);
         AiToolResult document = documentResult(AiQueryStatus.ANSWERED);
@@ -231,6 +236,94 @@ class SpringAiProviderClientTests {
                 .query(new AiProviderRequest("SUP-001 的 MAT-001 標準交期是多久？"));
         assertThat(emptyTextFallback.answerSource()).isEqualTo("BACKEND_FACTS");
         assertThat(emptyTextFallback.answer()).contains(document.trustedFacts());
+    }
+
+    @Test
+    void noToolAndMissingFinalResponseFailuresHaveDistinctSafeDiagnostics() {
+        assertDiagnosticFailure(fakeModel(prompt -> new ChatResponse(List.of(
+                        new Generation(new AssistantMessage("一般文字，不得當成事實"))))),
+                mock(AiToolRegistry.class), AiFailureReason.NO_TOOL_EXECUTION,
+                "MODEL_RESPONSE_TEXT_WITHOUT_TOOL", 1, 0, 0, false);
+
+        assertDiagnosticFailure(fakeModel(prompt -> new ChatResponse(List.of(
+                        new Generation(new AssistantMessage(""))))),
+                mock(AiToolRegistry.class), AiFailureReason.MISSING_FINAL_MODEL_RESPONSE,
+                "MODEL_RESPONSE_EMPTY_WITHOUT_TOOL", 2, 0, 0, true);
+
+        assertDiagnosticFailure(fakeModel(prompt -> new ChatResponse(List.of())),
+                mock(AiToolRegistry.class), AiFailureReason.MISSING_FINAL_MODEL_RESPONSE,
+                "MODEL_RESPONSE_MISSING_RESULT", 1, 0, 0, false);
+    }
+
+    @Test
+    void invalidToolIdentifierAndExecutedDocumentWithEmptyFinalTextHaveDistinctDiagnostics() {
+        AiToolRegistry invalidRegistry = mock(AiToolRegistry.class);
+        ChatModel invalidIdentifier = fakeModel(prompt -> toolCall(
+                "QUERY_RECOMMENDATION", "{\"recommendationId\":1}"));
+        assertDiagnosticFailure(invalidIdentifier, invalidRegistry,
+                AiFailureReason.UNAUTHORIZED_OR_MISMATCHED_TOOL_IDENTIFIER,
+                "RECOMMENDATION_ID_NOT_IN_QUESTION", 1, 1, 0, false);
+        org.mockito.Mockito.verifyNoInteractions(invalidRegistry);
+
+        AiToolRegistry documentRegistry = mock(AiToolRegistry.class);
+        AiToolResult document = documentResult(AiQueryStatus.ANSWERED);
+        when(documentRegistry.execute(any())).thenReturn(document);
+        ChatModel emptyFinalAfterDocument = fakeModel(prompt -> hasToolResponse(prompt)
+                ? new ChatResponse(List.of(new Generation(new AssistantMessage(""))))
+                : toolCall("SEARCH_DOCUMENTS", "{\"question\":\"文件條款\"}"));
+        ListAppender<ILoggingEvent> appender = captureDiagnostics();
+        try {
+            AiProviderResponse response = provider(emptyFinalAfterDocument, documentRegistry,
+                    Duration.ofSeconds(2)).query(new AiProviderRequest("SUP-001 的 MAT-001 標準交期是多久？"));
+            assertThat(response.answerSource()).isEqualTo("BACKEND_FACTS");
+            assertDiagnosticLine(appender, AiFailureReason.MISSING_FINAL_MODEL_RESPONSE,
+                    "FINAL_RESPONSE_TEXT_EMPTY", 2, 1, 1, false);
+        } finally {
+            detachDiagnostics(appender);
+        }
+    }
+
+    @Test
+    void oneEmptyInitialResponseGetsExactlyOneBoundedToolSelectionRetry() {
+        AiToolRegistry registry = mock(AiToolRegistry.class);
+        AiToolResult document = documentResult(AiQueryStatus.ANSWERED);
+        when(registry.execute(any())).thenReturn(document);
+        AtomicInteger calls = new AtomicInteger();
+        ChatModel model = fakeModel(prompt -> switch (calls.incrementAndGet()) {
+            case 1 -> new ChatResponse(List.of(new Generation(new AssistantMessage(""))));
+            case 2 -> {
+                assertThat(prompt.getInstructions()).anyMatch(message -> message.getText()
+                        .contains("one bounded retry"));
+                yield toolCall("SEARCH_DOCUMENTS", "{\"question\":\"文件條款\"}");
+            }
+            default -> finalAnswer(1);
+        });
+
+        AiProviderResponse response = provider(model, registry, Duration.ofSeconds(2))
+                .query(new AiProviderRequest("SUP-001 的 MAT-001 標準交期是多久？"));
+
+        assertThat(calls).hasValue(3);
+        assertThat(response.results()).containsExactly(document);
+        assertThat(response.answerSource()).isEqualTo("MODEL_EXPLANATION");
+        verify(registry).execute(new AiQueryPlan(AiToolType.SEARCH_DOCUMENTS, null, null,
+                "SUP-001 的 MAT-001 標準交期是多久？"));
+    }
+
+    @Test
+    void emptyInitialResponseDoesNotRetryPastTheConfiguredModelCallLimit() {
+        AtomicInteger calls = new AtomicInteger();
+        ChatModel model = fakeModel(prompt -> {
+            calls.incrementAndGet();
+            return new ChatResponse(List.of(new Generation(new AssistantMessage(""))));
+        });
+        AiToolRegistry registry = mock(AiToolRegistry.class);
+
+        assertProviderReason(provider(model, registry, Duration.ofSeconds(2), 4, 1),
+                "SUP-001 的 MAT-001 標準交期是多久？",
+                AiFailureReason.MISSING_FINAL_MODEL_RESPONSE);
+
+        assertThat(calls).hasValue(1);
+        org.mockito.Mockito.verifyNoInteractions(registry);
     }
 
     @Test
@@ -415,7 +508,7 @@ class SpringAiProviderClientTests {
     void missingFinalResponseAndToolExecutionFailureHaveFixedDiagnosticReasons() {
         ChatModel missing = fakeModel(prompt -> new ChatResponse(List.of()));
         assertProviderReason(provider(missing, mock(AiToolRegistry.class), Duration.ofSeconds(2)),
-                "查詢", AiFailureReason.NO_TOOL_EXECUTION);
+                "查詢", AiFailureReason.MISSING_FINAL_MODEL_RESPONSE);
 
         AiToolRegistry failingRegistry = mock(AiToolRegistry.class);
         when(failingRegistry.execute(any())).thenThrow(new IllegalStateException("sensitive tool details"));
@@ -589,5 +682,51 @@ class SpringAiProviderClientTests {
                     assertThat(failure.getFailureReason()).isEqualTo(reason);
                     assertThat(failure.getFailureDetail()).isEqualTo(detail);
                 });
+    }
+
+    private void assertDiagnosticFailure(ChatModel model, AiToolRegistry registry, AiFailureReason reason,
+                                         String detail, int modelCalls, int attemptedTools, int executedTools,
+                                         boolean retryAttempted) {
+        ListAppender<ILoggingEvent> appender = captureDiagnostics();
+        try {
+            assertThatThrownBy(() -> provider(model, registry, Duration.ofSeconds(2))
+                    .query(new AiProviderRequest("SUP-001 的 MAT-001 標準交期是多久？")))
+                    .isInstanceOf(AiProviderException.class)
+                    .extracting(exception -> ((AiProviderException) exception).getErrorCode())
+                    .isEqualTo(ErrorCode.AI_INVALID_RESPONSE);
+            assertDiagnosticLine(appender, reason, detail, modelCalls, attemptedTools, executedTools,
+                    retryAttempted);
+        } finally {
+            detachDiagnostics(appender);
+        }
+    }
+
+    private ListAppender<ILoggingEvent> captureDiagnostics() {
+        Logger logger = (Logger) LoggerFactory.getLogger(SpringAiProviderClient.class);
+        ListAppender<ILoggingEvent> appender = new ListAppender<>();
+        appender.start();
+        logger.addAppender(appender);
+        return appender;
+    }
+
+    private void detachDiagnostics(ListAppender<ILoggingEvent> appender) {
+        Logger logger = (Logger) LoggerFactory.getLogger(SpringAiProviderClient.class);
+        logger.detachAppender(appender);
+        appender.stop();
+    }
+
+    private void assertDiagnosticLine(ListAppender<ILoggingEvent> appender, AiFailureReason reason,
+                                      String detail, int modelCalls, int attemptedTools, int executedTools,
+                                      boolean retryAttempted) {
+        assertThat(appender.list).anySatisfy(event -> {
+            String message = event.getFormattedMessage();
+            assertThat(message).contains("reason=" + reason.name());
+            assertThat(message).contains("detail=" + detail);
+            assertThat(message).contains("modelCallCount=" + modelCalls);
+            assertThat(message).contains("attemptedToolCallCount=" + attemptedTools);
+            assertThat(message).contains("executedToolCount=" + executedTools);
+            assertThat(message).contains("toolSelectionRetryAttempted=" + retryAttempted);
+            assertThat(message).doesNotContain("SUP-001", "MAT-001", "recommendationId", "文件條款");
+        });
     }
 }

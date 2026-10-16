@@ -65,6 +65,13 @@ public class SpringAiProviderClient implements AiProviderClient {
             Do not put numbers, identifiers, statuses, currency, units, suppliers or materials in intro.
             The server will append the unmodified authoritative facts and sources; do not reproduce them.
             """;
+    private static final String TOOL_SELECTION_RETRY_PROMPT = """
+            Your previous response was empty. This is one bounded retry to select an appropriate tool.
+            Call only the read-only tools already provided, using only identifiers present in the original question.
+            For document terms, use SEARCH_DOCUMENTS with the original question. Do not answer from model memory,
+            invent identifiers, or claim facts without tool results. If no permitted tool can support an answer,
+            do not fabricate one.
+            """;
 
     private final ObjectProvider<ChatModel> chatModels;
     private final AiToolRegistry toolRegistry;
@@ -121,8 +128,9 @@ public class SpringAiProviderClient implements AiProviderClient {
         long started = System.nanoTime();
         AtomicReference<AiFailureDetail> toolFailureDetail = new AtomicReference<>();
         AtomicReference<SpringAiReadTools> toolContext = new AtomicReference<>();
+        DiagnosticCounts diagnosticCounts = new DiagnosticCounts();
         Future<AiProviderResponse> future = executor.submit(new DelegatingSecurityContextCallable<>(
-                () -> execute(chatModel, request, toolFailureDetail, toolContext),
+                () -> execute(chatModel, request, toolFailureDetail, toolContext, diagnosticCounts),
                 SecurityContextHolder.getContext()));
         try {
             AiProviderResponse response = future.get(properties.providerTimeout().toMillis(), TimeUnit.MILLISECONDS);
@@ -146,18 +154,20 @@ public class SpringAiProviderClient implements AiProviderClient {
             if (failureDetail == null) failureDetail = toolFailureDetail.get();
             List<AiToolResult> executions = toolContext.get() == null
                     ? List.of() : toolContext.get().executions();
-            if (failureReason == AiFailureReason.MISSING_FINAL_MODEL_RESPONSE && executions.isEmpty()) {
-                failureReason = AiFailureReason.NO_TOOL_EXECUTION;
-                failureDetail = AiFailureDetail.NO_TOOL_EXECUTION;
+            if (failureDetail == null) {
+                failureDetail = diagnosticCounts.noToolResponseDetail.get();
+            }
+            if (failureDetail == null && diagnosticCounts.attemptedToolCallCount.get() > executions.size()) {
+                failureDetail = AiFailureDetail.TOOL_CALL_NOT_EXECUTED;
             }
             RuntimeException applicationFailure = findApplicationFailure(exception.getCause());
             if (applicationFailure != null) {
-                recordDiagnostic(failureReason, failureDetail, executions, false);
+                recordDiagnostic(failureReason, failureDetail, executions, false, diagnosticCounts);
                 throw applicationFailure;
             }
             AiProviderResponse fallback = failureReason == AiFailureReason.MISSING_FINAL_MODEL_RESPONSE
                     ? backendFactsFallback(executions) : null;
-            recordDiagnostic(failureReason, failureDetail, executions, fallback != null);
+            recordDiagnostic(failureReason, failureDetail, executions, fallback != null, diagnosticCounts);
             if (fallback != null) {
                 record("success_backend_fallback", Duration.ofNanos(System.nanoTime() - started), null);
                 return fallback;
@@ -170,7 +180,8 @@ public class SpringAiProviderClient implements AiProviderClient {
 
     private AiProviderResponse execute(ChatModel chatModel, AiProviderRequest request,
                                        AtomicReference<AiFailureDetail> toolFailureDetail,
-                                       AtomicReference<SpringAiReadTools> toolContext) {
+                                       AtomicReference<SpringAiReadTools> toolContext,
+                                       DiagnosticCounts diagnosticCounts) {
         SpringAiReadTools tools = new SpringAiReadTools(
                 toolRegistry, planner, request.message(), properties.maxToolCalls());
         toolContext.set(tools);
@@ -191,38 +202,28 @@ public class SpringAiProviderClient implements AiProviderClient {
                 .maxTotalToolCalls(properties.maxToolCalls())
                 .onLimitExceeded(ToolCallLimitBehavior.THROW)
                 .build();
-        AtomicInteger modelCalls = new AtomicInteger();
         AtomicInteger observedTokens = new AtomicInteger();
         AtomicBoolean tokenUsageSeen = new AtomicBoolean();
         AtomicBoolean finalModelAnswerSeen = new AtomicBoolean();
         ChatModel boundedModel = new ChatModel() {
             @Override
             public ChatResponse call(Prompt prompt) {
-                if (modelCalls.incrementAndGet() > properties.maxModelCalls()) {
-                    throw new AiProviderException(ErrorCode.AI_INVALID_RESPONSE, AiFailureReason.MODEL_CALL_LIMIT);
-                }
-                ChatResponse modelResponse = chatModel.call(prompt);
-                if (modelResponse == null || modelResponse.getResult() == null) {
-                    throw new AiProviderException(ErrorCode.AI_INVALID_RESPONSE,
-                            AiFailureReason.MISSING_FINAL_MODEL_RESPONSE,
-                            AiFailureDetail.MODEL_RESPONSE_MISSING_RESULT);
-                }
-                if (modelResponse != null && modelResponse.getMetadata() != null
-                        && modelResponse.getMetadata().getUsage() != null
-                        && modelResponse.getMetadata().getUsage().getTotalTokens() != null) {
-                    observedTokens.addAndGet(modelResponse.getMetadata().getUsage().getTotalTokens());
-                    tokenUsageSeen.set(true);
-                }
-                if (modelResponse != null && modelResponse.getResult() != null) {
-                    var output = modelResponse.getResult().getOutput();
-                    if (output.getToolCalls().stream().anyMatch(call -> !ALLOWED_TOOLS.contains(call.name()))) {
-                        throw new AiProviderException(ErrorCode.AI_INVALID_RESPONSE,
-                                AiFailureReason.UNKNOWN_OR_FORBIDDEN_TOOL);
-                    }
-                    if (output.getToolCalls().isEmpty() && output.getText() != null
-                            && !output.getText().isBlank()) {
-                        finalModelAnswerSeen.set(true);
-                    }
+                ChatResponse modelResponse = callModel(chatModel, prompt, tools, diagnosticCounts,
+                        observedTokens, tokenUsageSeen, finalModelAnswerSeen);
+                var output = modelResponse.getResult().getOutput();
+                boolean eligibleForOneToolSelectionRetry = diagnosticCounts.modelCallCount.get() == 1
+                        && diagnosticCounts.attemptedToolCallCount.get() == 0
+                        && tools.executions().isEmpty()
+                        && output.getToolCalls().isEmpty()
+                        && (output.getText() == null || output.getText().isBlank())
+                        && diagnosticCounts.modelCallCount.get() < properties.maxModelCalls()
+                        && diagnosticCounts.toolSelectionRetryAttempted.compareAndSet(false, true);
+                if (eligibleForOneToolSelectionRetry) {
+                    meters.counter("supplypilot.ai.provider.tool_selection_retries").increment();
+                    log.info("AI provider bounded tool-selection retry modelCallCount={} attemptedToolCallCount={} executedToolCount=0",
+                            diagnosticCounts.modelCallCount.get(), diagnosticCounts.attemptedToolCallCount.get());
+                    return callModel(chatModel, prompt.augmentSystemMessage(TOOL_SELECTION_RETRY_PROMPT),
+                            tools, diagnosticCounts, observedTokens, tokenUsageSeen, finalModelAnswerSeen);
                 }
                 return modelResponse;
             }
@@ -260,6 +261,9 @@ public class SpringAiProviderClient implements AiProviderClient {
             }
             AiFailureDetail failureDetail = toolFailureDetail.get();
             var finalOutput = response.getResult().getOutput();
+            if (failureDetail == null && tools.executions().isEmpty()) {
+                failureDetail = diagnosticCounts.noToolResponseDetail.get();
+            }
             if (failureDetail == null) {
                 if (!finalOutput.getToolCalls().isEmpty()) {
                     failureDetail = AiFailureDetail.FINAL_RESPONSE_REQUESTS_TOOL;
@@ -277,10 +281,44 @@ public class SpringAiProviderClient implements AiProviderClient {
         var executions = tools.executions();
         var verified = responseGuard.compose(payload, executions);
         if (verified.diagnosticReason() != null) {
-            recordDiagnostic(verified.diagnosticReason(), null, executions);
+            recordDiagnostic(verified.diagnosticReason(), null, executions, false, diagnosticCounts);
         }
         Integer totalTokens = tokenUsageSeen.get() ? observedTokens.get() : null;
         return new AiProviderResponse(executions, verified.answer(), verified.answerSource(), totalTokens);
+    }
+
+    private ChatResponse callModel(ChatModel chatModel, Prompt prompt, SpringAiReadTools tools,
+                                   DiagnosticCounts diagnosticCounts, AtomicInteger observedTokens,
+                                   AtomicBoolean tokenUsageSeen, AtomicBoolean finalModelAnswerSeen) {
+        if (diagnosticCounts.modelCallCount.incrementAndGet() > properties.maxModelCalls()) {
+            throw new AiProviderException(ErrorCode.AI_INVALID_RESPONSE, AiFailureReason.MODEL_CALL_LIMIT);
+        }
+        ChatResponse modelResponse = chatModel.call(prompt);
+        if (modelResponse == null || modelResponse.getResult() == null) {
+            throw new AiProviderException(ErrorCode.AI_INVALID_RESPONSE,
+                    AiFailureReason.MISSING_FINAL_MODEL_RESPONSE,
+                    AiFailureDetail.MODEL_RESPONSE_MISSING_RESULT);
+        }
+        if (modelResponse.getMetadata() != null && modelResponse.getMetadata().getUsage() != null
+                && modelResponse.getMetadata().getUsage().getTotalTokens() != null) {
+            observedTokens.addAndGet(modelResponse.getMetadata().getUsage().getTotalTokens());
+            tokenUsageSeen.set(true);
+        }
+        var output = modelResponse.getResult().getOutput();
+        diagnosticCounts.addAttemptedToolCalls(output.getToolCalls().size(), properties.maxToolCalls());
+        if (output.getToolCalls().isEmpty() && tools.executions().isEmpty()) {
+            diagnosticCounts.noToolResponseDetail.set(output.getText() == null || output.getText().isBlank()
+                    ? AiFailureDetail.MODEL_RESPONSE_EMPTY_WITHOUT_TOOL
+                    : AiFailureDetail.MODEL_RESPONSE_TEXT_WITHOUT_TOOL);
+        }
+        if (output.getToolCalls().stream().anyMatch(call -> !ALLOWED_TOOLS.contains(call.name()))) {
+            throw new AiProviderException(ErrorCode.AI_INVALID_RESPONSE,
+                    AiFailureReason.UNKNOWN_OR_FORBIDDEN_TOOL);
+        }
+        if (output.getToolCalls().isEmpty() && output.getText() != null && !output.getText().isBlank()) {
+            finalModelAnswerSeen.set(true);
+        }
+        return modelResponse;
     }
 
     private ErrorCode findProviderError(Throwable throwable) {
@@ -372,15 +410,43 @@ public class SpringAiProviderClient implements AiProviderClient {
 
     private void recordDiagnostic(AiFailureReason reason, AiFailureDetail detail,
                                   List<AiToolResult> executions, boolean safeFallbackExecuted) {
+        recordDiagnostic(reason, detail, executions, safeFallbackExecuted, DiagnosticCounts.empty());
+    }
+
+    private void recordDiagnostic(AiFailureReason reason, AiFailureDetail detail,
+                                  List<AiToolResult> executions, boolean safeFallbackExecuted,
+                                  DiagnosticCounts diagnosticCounts) {
         String detailName = detail == null ? "NONE" : detail.name();
         long answeredCount = executions.stream().filter(result -> result.status() == AiQueryStatus.ANSWERED).count();
         long documentAnsweredCount = executions.stream().filter(result -> result.tool() == AiToolType.SEARCH_DOCUMENTS
                 && result.status() == AiQueryStatus.ANSWERED).count();
         meters.counter("supplypilot.ai.provider.diagnostics", "reason", reason.name(), "detail", detailName)
                 .increment();
-        log.info("AI provider diagnostic reason={} detail={} toolCount={} answeredCount={} documentAnsweredCount={} safeFallbackExecuted={}",
-                reason.name(), detailName, executions.size(), answeredCount, documentAnsweredCount,
-                safeFallbackExecuted);
+        int executedToolCount = executions.size();
+        int modelCallCount = diagnosticCounts.modelCallCount.get();
+        int attemptedToolCallCount = diagnosticCounts.attemptedToolCallCount.get();
+        log.info("AI provider diagnostic reason={} detail={} modelCallCount={} attemptedToolCallCount={} executedToolCount={} toolCount={} answeredCount={} documentAnsweredCount={} toolSelectionRetryAttempted={} safeFallbackExecuted={}",
+                reason.name(), detailName, modelCallCount, attemptedToolCallCount, executedToolCount,
+                executedToolCount, answeredCount, documentAnsweredCount,
+                diagnosticCounts.toolSelectionRetryAttempted.get(), safeFallbackExecuted);
+    }
+
+    private static final class DiagnosticCounts {
+        private final AtomicInteger modelCallCount = new AtomicInteger();
+        private final AtomicInteger attemptedToolCallCount = new AtomicInteger();
+        private final AtomicReference<AiFailureDetail> noToolResponseDetail = new AtomicReference<>();
+        private final AtomicBoolean toolSelectionRetryAttempted = new AtomicBoolean();
+
+        private static DiagnosticCounts empty() {
+            return new DiagnosticCounts();
+        }
+
+        private void addAttemptedToolCalls(int count, int configuredLimit) {
+            int saturationLimit = configuredLimit == Integer.MAX_VALUE
+                    ? Integer.MAX_VALUE : Math.max(0, configuredLimit) + 1;
+            attemptedToolCallCount.updateAndGet(current -> (int) Math.min(
+                    saturationLimit, (long) current + Math.max(0, count)));
+        }
     }
 
     private RuntimeException findApplicationFailure(Throwable throwable) {
