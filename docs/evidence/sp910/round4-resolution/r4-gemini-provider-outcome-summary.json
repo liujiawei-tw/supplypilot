@@ -1,0 +1,73 @@
+{
+  "environment": "isolated r4 Demo",
+  "gitHead": "53e3743290d69c224a3ea200e61969fb411e19d3",
+  "browser": "Microsoft Edge headed via CDP/Playwright",
+  "chatProvider": "google-genai",
+  "chatModel": "gemini-3.6-flash",
+  "logSource": "r4-only Backend log; sanitized to outcome, elapsed milliseconds, and token availability",
+  "secretValuesIncluded": false,
+  "rawModelResponsesIncluded": false,
+  "toolArgumentsIncluded": false,
+  "requests": [
+    {
+      "caseId": "R4-CHAT-SUP001-01",
+      "uiEvidence": "r4-browser-query-sup001-after-true-gemini.json",
+      "providerOutcome": "ai_invalid_response",
+      "backendLatencyMs": 3951,
+      "totalTokens": null
+    },
+    {
+      "caseId": "R4-CHAT-SOP-ROLE-01",
+      "uiEvidence": "r4-browser-query-sop-role-after-true-gemini.json",
+      "providerOutcome": "success",
+      "backendLatencyMs": 7467,
+      "totalTokens": 2075
+    },
+    {
+      "caseId": "R4-CHAT-SUP001-02-RETRY",
+      "uiEvidence": "r4-browser-query-sup001-retry-after-sop.json",
+      "providerOutcome": "ai_invalid_response",
+      "backendLatencyMs": 3425,
+      "totalTokens": null
+    },
+    {
+      "caseId": "R4-CHAT-SUP002-01",
+      "uiEvidence": "r4-browser-query-sup002-after-true-gemini.json",
+      "providerOutcome": "success",
+      "backendLatencyMs": 6522,
+      "totalTokens": 1905
+    },
+    {
+      "caseId": "R4-CHAT-MAT001-SPEC-01",
+      "uiEvidence": "r4-browser-query-mat001-storage-after-true-gemini.json",
+      "providerOutcome": "ai_invalid_response",
+      "backendLatencyMs": 3632,
+      "totalTokens": null
+    },
+    {
+      "caseId": "R4-CHAT-QUALITY-01",
+      "uiEvidence": "r4-browser-query-quality-isolation-after-true-gemini.json",
+      "providerOutcome": "success",
+      "backendLatencyMs": 6048,
+      "totalTokens": 1808
+    },
+    {
+      "caseId": "R4-CHAT-INSURANCE-NEGATIVE-01",
+      "uiEvidence": "r4-browser-query-insurance-insufficient-after-true-gemini.json",
+      "providerOutcome": "success",
+      "backendLatencyMs": 12916,
+      "totalTokens": 3571
+    },
+    {
+      "caseId": "R4-CROSS-LANG-EN-TO-ZH-01",
+      "uiEvidence": "r4-browser-query-en-to-zh-sup002.json",
+      "providerOutcome": "success",
+      "backendLatencyMs": 6110,
+      "totalTokens": 1998
+    }
+  ],
+  "limitations": [
+    "The application log exposes only the safe mapped provider outcome, latency, and token use.",
+    "It does not preserve raw provider output or tool arguments, so it cannot identify the exact internal AI_INVALID_RESPONSE branch."
+  ]
+}

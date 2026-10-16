@@ -1,0 +1,57 @@
+{
+  "startedAt": "2026-10-16T01:14:21.502Z",
+  "browser": "Microsoft Edge headed via CDP / Playwright",
+  "steps": [
+    {
+      "step": "draft_before_edit",
+      "pageStatus": false,
+      "detailText": [
+        "PO-20261016-000011",
+        "MAT-001 — Assam Tea Extract (#1)\t750.0000 KG\t104.0000\t78000.00000000\t"
+      ]
+    },
+    {
+      "step": "draft_delivery_date_updated",
+      "httpStatus": 200,
+      "record": {
+        "method": "PATCH",
+        "status": 200,
+        "id": 11,
+        "statusValue": "DRAFT",
+        "expectedDeliveryDate": "2026-10-19",
+        "createdByDisplayName": "Demo Procurement Buyer",
+        "items": [
+          {
+            "materialId": 1,
+            "materialCode": "MAT-001",
+            "quantity": 750,
+            "recommendationId": 1
+          }
+        ]
+      }
+    }
+  ],
+  "screenshots": [
+    "r4-browser-po-draft-before-approval.png",
+    "r4-browser-po-date-confirmation.png",
+    "r4-browser-po-draft-ready-for-approval.png"
+  ],
+  "latestPo": {
+    "method": "PATCH",
+    "status": 200,
+    "id": 11,
+    "statusValue": "DRAFT",
+    "expectedDeliveryDate": "2026-10-19",
+    "createdByDisplayName": "Demo Procurement Buyer",
+    "items": [
+      {
+        "materialId": 1,
+        "materialCode": "MAT-001",
+        "quantity": 750,
+        "recommendationId": 1
+      }
+    ]
+  },
+  "finishedAt": "2026-10-16T01:14:24.432Z",
+  "elapsedSeconds": 2.93
+}

@@ -1,0 +1,93 @@
+{
+  "startedAt": "2026-10-16T01:13:40.863Z",
+  "browser": "Microsoft Edge headed via CDP / Playwright",
+  "steps": [
+    {
+      "step": "draft_review_form",
+      "buttonCount": 1,
+      "bodySummary": [
+        "MAT-001 — Assam Tea Extract",
+        "物料代碼\tMAT-001",
+        "750.0000 KG",
+        "建議數量\t750.0000 KG",
+        "SUP-002",
+        "\t符合資格\t750.0000 KG\t104.0000 TWD\t78000.0000 TWD\t3 天\t—",
+        "合格供應商結果",
+        "SUP-002 — East Harbor Trading (Result #2)",
+        "物料\tMAT-001 — Assam Tea Extract (#1)",
+        "供應商建議數量\t750.0000 KG"
+      ]
+    },
+    {
+      "step": "draft_created",
+      "httpStatus": 201,
+      "record": {
+        "status": 201,
+        "request": {
+          "supplierId": 2,
+          "items": [
+            {
+              "materialId": 1,
+              "quantity": "750.0000",
+              "unitPrice": "104.0000",
+              "recommendationId": 1,
+              "supplierRecommendationResultId": 2
+            }
+          ]
+        },
+        "response": {
+          "id": 11,
+          "poNumber": "PO-20261016-000011",
+          "status": "DRAFT",
+          "supplierCode": "SUP-002",
+          "items": [
+            {
+              "materialId": 1,
+              "materialCode": "MAT-001",
+              "quantity": 750,
+              "recommendationId": 1
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "draftApi": [
+    {
+      "status": 201,
+      "request": {
+        "supplierId": 2,
+        "items": [
+          {
+            "materialId": 1,
+            "quantity": "750.0000",
+            "unitPrice": "104.0000",
+            "recommendationId": 1,
+            "supplierRecommendationResultId": 2
+          }
+        ]
+      },
+      "response": {
+        "id": 11,
+        "poNumber": "PO-20261016-000011",
+        "status": "DRAFT",
+        "supplierCode": "SUP-002",
+        "items": [
+          {
+            "materialId": 1,
+            "materialCode": "MAT-001",
+            "quantity": 750,
+            "recommendationId": 1
+          }
+        ]
+      }
+    }
+  ],
+  "screenshots": [
+    "r4-browser-draft-confirmation.png",
+    "r4-browser-draft-created.png"
+  ],
+  "confirmation": "確認建立採購單草稿\n確認後才會建立一筆新草稿；不會自動核准、下單或收貨。\n採購建議編號\t1\n結果參照編號\t2\n供應商\tEast Harbor Trading (#2)\n物料\tMAT-001 — Assam Tea Extract\n數量\t750.0000 KG\n單價\t104.0000 TWD\nExpected Delivery Date\tNot set (allowed for DRAFT)\nSupplier Override Reason\tN/A\nQuantity Override Reason\tN/A\n返回編輯\n確認建立草稿",
+  "finishedAt": "2026-10-16T01:13:41.959Z",
+  "elapsedSeconds": 1.096
+}

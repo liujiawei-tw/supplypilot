@@ -1,0 +1,15 @@
+{
+  "caseId": "R4-CHAT-INSURANCE-NEGATIVE-01",
+  "browser": "Microsoft Edge headed via CDP/Playwright",
+  "question": "這些文件是否規定冷凍海運的保險費率？",
+  "startedAt": "2026-10-16T02:00:49.630Z",
+  "completedAt": "2026-10-16T02:01:03.294Z",
+  "http": {
+    "method": "POST",
+    "url": "/api/v1/ai/query",
+    "httpStatus": 200,
+    "elapsedMs": 12939
+  },
+  "visibleResult": "SupplyPilot\n採購決策平台\n儀表板\n主檔管理\n需求與庫存\n採購決策\n採購單與收貨\n文件與 AI\nSupplyPilot — AI 採購與供應鏈決策平台\nAI 助理\nDemo Administrator（admin）\n系統管理員\n登出\n文件管理\n上傳與文件解析／索引是不同步驟；狀態以 後端 為準。\n上傳文件\nSemantic 索引管理\nDocument READY、Semantic Index READY、Gate PASS 與 Semantic Read 啟用是不同狀態。\n語意索引補建（Backfill）\n起始編號 afterId\n每批上限\n執行一批\n每次最多 100 份；不會自動連續執行。以 後端 回傳的 lastId 做下一批游標。\n本批處理 5 份\nREADY 5 · FAILED 0 · SKIPPED 0 · REQUIRES_REVIEW 0 · lastId 5 · morePossible false\n就緒狀態檢查\n讀取目前就緒狀態\nGET 只計算目前索引完整性，不會保存稽核，也不會確認先前 Approval／Audit POST 是否成功。\nGate 稽核\nGate 稽核會保存正式稽核結果\n稽核通過不會啟用 Semantic Read。請依 semantic-rag-runbook.md 完成人工環境設定與重啟；新增或變更 READY 文件可能使 Gate 重新關閉。\n執行並保存 Gate 稽核\n本頁最近取得的稽核回應\n本次 Gate 稽核通過\nGate 通過不會自動啟用 Semantic Read。\n已就緒\n5\n已略過\n0\n處理失敗\n0\n需要人工審核\n0\n待處理\n0\n模型編號\ngemini-embedding-001\n\t\n向量維度\n768\n\n\n生成識別碼\ngemini-embedding-001-768-v1\n\t\n稽核編號\n1\n檢查結果\n文件編號\t版本\t狀態\t原因\n\n文件編號\n\t\n版本\n\t\n狀態\n\t\n原因\n\n\n後端未回傳檢查結果\nSemantic Read 開關不由此介面控制\n只有正式 Gate 稽核通過後，才依 Runbook 明確設定 SEMANTIC_READ_ENABLED 並重新啟動 後端。此頁不會顯示或推定開關已啟用。\n文件類型\n狀態\n重新載入\n文件 ID\t標題\t文件類型\t供應商 ID\t版本\t狀態\t上傳者\t上傳時間\t更新時間\n\n文件 ID\n\t\n標題\n\t\n文件類型\n\t\n供應商 ID\n\t\n版本\n\t\n狀態\n\t\n上傳者\n\t\n上傳時間\n\t\n更新時間\n\n\n#5\n\t虛構展示原料品質要求\t品質要求\t3\t1.0\t已就緒\t5\t2026/10/16 上午1:03:50\t2026/10/16 上午9:20:15\n\n#4\n\tMAT-001 阿薩姆紅茶萃取物規格\t產品規格\t1\t1.0\t已就緒\t5\t2026/10/16 上午1:03:50\t2026/10/16 上午9:21:03\n\n#3\n\tSupplyPilot 虛構展示採購作業程序\t採購作業程序\t—\t1.0\t已就緒\t5\t2026/10/16 上午1:03:50\t2026/10/16 上午9:21:06\n\n#2\n\tSUP-002 虛構報價條件\t報價單\t2\t1.0\t已就緒\t5\t2026/10/16 上午1:03:50\t2026/10/16 上午9:21:08\n\n#1\n\tSUP-001 交付與責任協議\t供應商合約\t1\t1.0\t已就緒\t5\t2026/10/16 上午1:03:50\t2026/10/16 上午9:21:11\n1\n20 條/頁\nSupplyPilot AI 助理\nAI 功能與核心頁面隔離；關閉 Drawer 不會改變目前路由。\n查詢與來源\n採購草稿提案\n向 SupplyPilot 提問\n單輪同步查詢；不保留對話記憶，也不提供串流回應。\n18 / 2000\n送出問題\n證據不足\n後端 沒有足夠證據支持肯定答案，因此不會顯示推測內容。\n資料來源\n後端 未提供可核對來源。",
+  "screenshot": "r4-browser-query-insurance-insufficient-after-true-gemini.png"
+}

@@ -385,3 +385,103 @@ main run 前端實際失敗案例為 `tests/sp806.test.tsx` 的「ignores a dela
 ### 本次結論及下一步
 
 本次已解除「缺少 Demo 登入帳密／服務未啟動」阻擋：r4 是可持續運作、專用且登入成功的新環境。仍未取得可驗證的 Gemini API Key；此外目前真實 Edge 採購流程在物料下拉選取處留下可重現的自動化失敗，故不能聲稱僅剩 Gemini 憑證這一個阻擋。五份 Gemini 查詢、跨語、SUP-005 與 Reset 必須在恢復真實 Provider 並完成 Browser 流程後接續。r3 未重置，r4 也未執行 Guarded Reset。結論仍為 **SP-910 E9 BLOCKED — PARTIAL EVIDENCE AVAILABLE**。
+
+## r4 續驗增補：Edge 選料與採購流程／五份出站審核（2026-10-16，Asia/Taipei）
+
+本節追加於第四輪紀錄後，不覆寫先前失敗紀錄。執行分支為 `codex/sp-910-real-e9-acceptance`，本次程式碼 HEAD 為 `53e3743290d69c224a3ea200e61969fb411e19d3`；未修改產品程式碼。r4 專用 DB／Volume／文件路徑持續沿用，沒有建立 r5、重新 Seed 或 Reset r3/r4。
+
+### Browser 選料阻擋已解除（真正 Microsoft Edge headed Playwright）
+
+首次定位曾遇到 Ant Design Select 的虛擬選項 DOM 節點不可見；這是 Browser locator／元件虛擬化交互問題，未修改產品程式。改用元件 accessible name `選取物料` 定位 combobox，展開後搜尋 `MAT-001`，以可見選項及鍵盤完成選取。真實頁面上的 Materials 查詢 HTTP 200，清單包含 MAT-001（id=1）；搜尋查詢亦 HTTP 200 並回傳同一物料。表單提交至 Recommendation Backend 的 HTTP 201 請求包含 `materialId=1`，日期 `2026-10-16` 至 `2026-11-15`。Backend 回傳 MAT-001、預期需求 1000 KG、安全庫存 200 KG、現有庫存 300 KG、在途 150 KG、淨需求 750 KG；推薦 SUP-002，數量 750 KG、評分 96.1。這證明 Form 保存了對應 Material ID 並取得真正 Backend Recommendation。
+
+### 五角色 Browser 採購主線
+
+以真正 Edge 操作 Planner、Buyer、Manager、Warehouse、Admin。Planner 登入與 Dashboard 可見；導覽到 `/recommendations` 顯示正式 403，符合角色權限。Buyer 從推薦結果建立 PO #11（`PO-20261016-000011`），Backend HTTP 201，狀態 DRAFT，關聯 Recommendation #1／Supplier Result #2，SUP-002，MAT-001 750 KG。Buyer 在 UI 補上預計交期 `2026-10-19`（PATCH 200）。Manager 於 `2026-10-16T01:17:44.662631300Z` 核准（HTTP 200）；Buyer 於 `2026-10-16T01:17:46.655624800Z` 標記 ORDERED（HTTP 200）；Warehouse 於 `2026-10-16T01:18:18.035580900Z` 收貨（HTTP 200）。重複收貨回 HTTP 409／`DUPLICATE_RECEIVING`。收貨後 Inventory API 與 Browser UI 都顯示 MAT-001 1050 KG，Stock Transaction #3 為 `PURCHASE_RECEIVE` 750 KG，Actor 為 Warehouse。
+
+採購紀錄中有一個保留的自動化執行摘要為 FAIL：在 Buyer 標記 ORDERED 成功後，等待 Locator `getByText('已下單')` 因同時命中狀態標籤和 Modal 標題而 strict-mode 失敗。Backend 仍回 HTTP 200／ORDERED，後續 Warehouse Browser 流程完成且核對同一 PO；因此記錄為腳本 Locator 假失敗，不把它隱去，也不算產品業務失敗。日期更新、核准、下單、收貨各步驟及畫面證據分別保留。
+
+### 五份基線文件 Outbound Approval
+
+Admin 在文件管理 UI 檢視五份中文基線文件，確認 ID 1–5、Version 1.0、READY、標題及文件類型，並逐一透過確認 Dialog 執行正式 Outbound Approval。五個真實 Backend POST 均 HTTP 200，回傳 Version 1.0、Reviewer=ADMIN id 5、Status=APPROVED 及各自 canonical Source Hash。Hash 為 Backend `SemanticBackfillService` 按有序 Chunk tuple 計算，不能直接與原始檔案 SHA-256 比較；兩者已在證據中標明。每份文件均保存確認前後 Edge 截圖。此核准只證明 Outbound Approval，不代表 Embedding、Readiness 或 Gate 已完成。
+
+| Case | 結果 | 狀態 | 主要證據 |
+|---|---|---|---|
+| R4-BROWSER-SELECT-01 Material API／搜尋／選取／Recommendation | Browser UI；Material id=1；推薦 750 KG；Backend HTTP 201 | PASS | `r4-browser-selection-retry.json`、`r4-browser-material-search-visible.png`、`r4-browser-material-selected.png`、`r4-browser-recommendation-result.png` |
+| R4-BROWSER-ROLE-01 Planner 權限 | Planner Dashboard 可見；推薦路由顯示 403 | PASS（授權範圍） | `r4-browser-planner-role-check.json`、Planner 截圖 |
+| R4-BROWSER-PO-01 Buyer Draft | PO #11，HTTP 201，DRAFT，Recommendation 關聯 | PASS | `r4-browser-draft-followup.json`、`r4-browser-draft-created.png` |
+| R4-BROWSER-PO-02 Manager 核准／Buyer 下單 | APPROVED → ORDERED，兩次 HTTP 200；保存角色與時間 | PASS（Backend/UI 動作） | `r4-browser-procurement-through-order.json`、確認／完成截圖；另有保留的 Locator 假失敗 |
+| R4-BROWSER-PO-03 Warehouse 收貨／重複收貨 | RECEIVED；重複 HTTP 409；Inventory 1050 KG；PURCHASE_RECEIVE 750 KG | PASS | `r4-browser-procurement-lifecycle.json`、收貨／庫存／異動截圖 |
+| R4-OUTBOUND-01 五份文件審核 | 五筆 HTTP 200、APPROVED、Version 1.0、ADMIN reviewer | PASS | `r4-browser-admin-outbound-approvals.json`、每份確認與結果截圖 |
+| R4-GEMINI-01 真實 Provider 與 Semantic | 尚未執行 Gemini API、Embedding、Backfill、Readiness、Gate 或 AI Query；未啟用 Semantic Read | BLOCKED／NOT RUN | 安全輸入提示已就緒；目前沒有從使用者取得 Key 的完成確認 |
+
+證據檔保留了先前失敗與目前重試；`r4-browser-planner-role-check.json` 內的 `elapsedSeconds` 與開始／結束時間不一致，故不把該欄位作為耗時證據，僅使用原始時間戳。採購 JSON 中 ORDERED Locator 的失敗也依上述方式揭露，不覆寫原檔。
+
+### 尚未完成與安全限制
+
+五份文件已核准出站，但尚未使用 Gemini Embedding Provider Backfill，沒有 Readiness／Gate Audit、沒有 Semantic Read、沒有六題 Browser Query 或跨語測試。尚未執行 SUP-005 上傳、索引、查詢；尚未執行 Guarded Reset。Reset 仍須等所有 E9 前置測試 PASS，並在當下再次核對 r4 專用連線目標及完整快照後才可進行。
+
+真實 Gemini Developer API Key 不存在於已核對的 r4 DPAPI Secret；已準備 Repository 外、Windows `Read-Host -AsSecureString` 的 CurrentUser DPAPI 安全寫入流程，不接受聊天貼 Key、不讀取來源不明的舊憑證。只有使用者在本機終端完成輸入後，才會驗證 Key 存在（不讀出值）、以相同 Windows 使用者安全啟動 Backend，並對實際 Gemini Chat／Embedding 進行有限呼叫。直到完成該流程前，Gemini／Semantic E9 保持 BLOCKED；不得使用 Fake Provider、沿用 r3 Gate 或把本節的 Browser 採購 PASS 擴大成完整 E9 PASS。
+
+## r4 環境變數別名與目前可達性更正（2026-10-16，Asia/Taipei）
+
+先前只以 `GEMINI_API_KEY` 名稱判斷憑證是否存在，遺漏了 Repository 已明確支援的 `AI_API_KEY` 相容別名。`backend/src/main/resources/application.yml` 的實際設定為 `spring.ai.google.genai.api-key: ${GEMINI_API_KEY:${AI_API_KEY:}}`，因此兩個名稱皆合法；不是使用者設定錯誤。Spring Boot 不會自動載入 Repository `.env`，環境變數必須存在於 Backend 啟動程序環境中。此項更正不表示本輪已驗證環境中的 Key 或實際 Gemini Provider 呼叫。
+
+Codex 命令執行環境回報的 `LOCALAPPDATA` 為隔離 Sandbox 路徑、r4 本機 port 探測無法連線；該環境檢查不能代表使用者 Windows 工作階段，也不能用來否定其 User／Machine 環境變數。透過 Codex In-app Browser 對本機頁面進行唯讀檢查，`http://127.0.0.1:5174/login` 可載入，`http://127.0.0.1:8184/actuator/health` 回傳 `status=UP`。此 Health 僅證明 Backend 可達，不代表 Gemini Provider 已啟用。當前 CUA Edge connector 回報 Edge Browser 不可用；因此本輪沒有把 In-app Browser 冒充 Microsoft Edge，也沒有以其取代要求的 Edge E2E 證據。
+
+**目前 Gemini 狀態維持 BLOCKED／NOT RUN**：需確認 `AI_API_KEY` 或 `GEMINI_API_KEY` 已注入實際 r4 Backend 程序，並從真實 Gemini Chat／Embedding 操作證明 Provider 可用。不得把 Codex Sandbox 的環境變數結果當成使用者 Windows 結果，亦不得將 Backend Health UP 推定為 Provider PASS。
+
+## r4 真實 Gemini／Semantic Gate／Browser 續驗（2026-10-16，Asia/Taipei）
+
+本節是後續實測追加，保留上方歷史紀錄，不覆寫 r3／r4 先前狀態。本次本機程式碼 HEAD 為 `53e3743290d69c224a3ea200e61969fb411e19d3`，分支 `codex/sp-910-real-e9-acceptance`；沒有改產品程式碼，沒有重建 r5、重新 Seed 或 Reset r3／r4。r4 專用 MySQL、pgvector、Volume、Storage 與五份 Dataset 持續沿用。
+
+### Secret、Provider 與隔離狀態
+
+前文只使用 DPAPI Gemini Key 的方式不符合目前已確認的 Repository 設定。`application.yml` 支援 `GEMINI_API_KEY`，並以 `AI_API_KEY` 作為合法 fallback。經使用者指出後，r4 Repository 外的啟動器改為只讀取已存在的 `AI_API_KEY`，不載入 `.env` 的其他 DB／JWT 設定，不輸出 Key，也不寫入 Repository／證據。r4 DPAPI 檔未增加或改寫 Gemini Key。實際 Gemini Embedding Backfill 成功，是此設定已進入 Backend 並成功呼叫 Provider 的實證；之後五題 Chat 回應 HTTP 200，亦證明 Chat Provider 真正被呼叫。沒有使用 Fake／Mock Provider。
+
+| 項目 | 實測值／狀態 |
+|---|---|
+| Backend／Frontend | r4 Backend `127.0.0.1:8184`、Vite `127.0.0.1:5174` 均仍 Listening；Actuator Health `UP`；Microsoft Edge headed CDP 可用。Backend 綁定 loopback，未公開到網路 |
+| Chat Provider／Model | `google-genai`／`gemini-3.6-flash`（r4 Runner 設定）；真實 Chat API 有成功及失敗回應 |
+| Embedding Provider | `google-genai`；模型 `gemini-embedding-001`、768 維、Generation `gemini-embedding-001-768-v1` |
+| Semantic Read | 正式 Gate Audit 通過後明確設定 `SEMANTIC_READ_ENABLED=true` 並重啟 Backend；此次 Browser 文件搜尋取得真正 Semantic Source |
+| Git／環境 | 程式碼 HEAD `53e3743290d69c224a3ea200e61969fb411e19d3`；r4 專用環境；日期 2026-10-16，Asia/Taipei |
+
+### 真實 Embedding、Readiness 與 Gate
+
+Admin 透過真正 Microsoft Edge 操作 Backfill，請求 `afterId=0, limit=25`，Backend HTTP 200、耗時 3,826 ms；處理 5 份、READY 5、FAILED 0、SKIPPED 0、REQUIRES_REVIEW 0、`lastId=5`、`morePossible=false`。Readiness HTTP 200、耗時 1,331 ms，`passed=true`、五份 READY、其餘狀態皆 0、`findings=[]`。之後從 UI 執行正式 Gate Audit，HTTP 200、耗時 1,393 ms，持久化 `passed=true`、`auditId=1`。Gate 通過後才明確啟用 Semantic Read 並重新啟動 Backend。
+
+證據：`r4-browser-backfill-batch-01.json/.png`、`r4-browser-readiness-after-backfill.json/.png`、`r4-browser-gate-audit-result.json/.png`。這只證明 r4 五份文件的真實 Embedding／Gate；不代表 Chat 所有查詢通過，也不代表 Reset 後 AI 已恢復。
+
+### 真實 Edge Browser／Gemini Chat 與 Source 結果
+
+下列操作均在 Admin 已登入的 Microsoft Edge headed Browser 中透過 AI Assistant UI 提交，Backend 實際接收 `POST /api/v1/ai/query`。JSON 保留 UI 可見回答／引用、HTTP 狀態、耗時與實際畫面檔名。來源 Chunk 的 UTF-16 offset 以正式 `TextChunker` end-exclusive 契約核對；三份成功引用文件經 LF 正規化及移除尾端空白後長度，分別與 API 的 `0–383`、`0–343`、`0–269` 相符。
+
+| Case | 實際結果 | 狀態 | Source／證據 |
+|---|---|---|---|
+| SUP-001 MAT-001 標準交期（首次） | HTTP 503，`AI_INVALID_RESPONSE`，4,292 ms；沒有 Answer／Source；trace `e7da8e59-46ba-4940-b98a-d6c2c00b817e` | FAIL | `r4-browser-query-sup001-after-true-gemini.json/.png` |
+| SOP 收貨角色 | HTTP 200，7,508 ms；回答「倉庫人員」。Source #3、Version 1.0、Chunk 0、Offset 0–383，原文確實寫明只有倉庫人員可收取 ORDERED 採購單。另有品質文件 #5 的額外引用，該來源不是此角色答案所需證據，已保留作為來源範圍限制 | PASS（答案來源有效；附帶一筆非必要 Source） | `r4-browser-query-sop-role-after-true-gemini.json/.png` |
+| SUP-001 MAT-001 標準交期（一次重跑） | SOP 題成功後重跑仍 HTTP 503，`AI_INVALID_RESPONSE`，3,444 ms；沒有 Answer／Source；trace `6c5b38be-d22a-4108-9074-3002af4a2e6e` | FAIL（可重現） | `r4-browser-query-sup001-retry-after-sop.json/.png` |
+| SUP-002 報價有效期限 | HTTP 200，6,546 ms；回答自開立日起 30 個曆日。Source #2、Version 1.0、Chunk 0、Offset 0–343，原文支持答案 | PASS | `r4-browser-query-sup002-after-true-gemini.json/.png` |
+| MAT-001 基本單位／儲存條件 | HTTP 503，`AI_INVALID_RESPONSE`，3,641 ms；沒有 Answer／Source；trace `d66d7b0a-845d-4482-89ea-f83a22ddf6f9` | FAIL | `r4-browser-query-mat001-storage-after-true-gemini.json/.png` |
+| 品質隔離條件 | HTTP 200，6,075 ms；Backend Facts 回答缺少批次識別、封條破損、污染、物料不符四種條件。Source #5、Version 1.0、Chunk 0、Offset 0–269，原文完整支持四項 | PASS | `r4-browser-query-quality-isolation-after-true-gemini.json/.png` |
+| 冷凍海運保險費率（證據不足） | HTTP 200，12,939 ms；UI 顯示「證據不足」，沒有答案、沒有 Source，未編造費率 | PASS（安全拒答） | `r4-browser-query-insurance-insufficient-after-true-gemini.json/.png` |
+| 英文問題查中文文件：`How long is SUP-002's quotation valid?` | HTTP 200，6,132 ms；答覆 30 個曆日。Source 為中文 SUP-002 #2、Version 1.0、Chunk 0、Offset 0–343 | PASS（英文→中文） | `r4-browser-query-en-to-zh-sup002.json/.png` |
+
+Provider 日誌只保留安全映射後的 outcome、延遲及 token 用量，不保留 Model 原文／Tool Arguments。此輪八次 Chat 執行記錄到 5 次 `success` 與 3 次 `ai_invalid_response`；三個失敗回應的 Token 均 unavailable。與 UI 耗時略有差異的是後端記錄延遲。日誌沒有足夠 Provider／Tool Trace 可辨識 `AI_INVALID_RESPONSE` 的精確內部分支；不得推定為特定 Gemini 原因或改寫預期答案。SUP-001 題經一次有理由的重跑仍失敗，且 MAT-001 儲存題亦失敗；目前不能宣稱 #117 的五份基線 Source Query 全通過。
+
+### 本輪矩陣更新與未執行項目
+
+| E9 項目 | 本輪狀態 | 說明 |
+|---|---|---|
+| 五角色採購流程 | PASS（已於同一 r4 記錄） | 推薦至 RECEIVED；Inventory 1050 KG、PURCHASE_RECEIVE 750 KG、重複收貨 409；詳前節 |
+| 五份 Outbound Approval | PASS（已於同一 r4 記錄） | Admin UI 逐份核准、Backend 回傳 APPROVED／Version 1.0 |
+| 真實 Gemini Embedding／Readiness／Gate | PASS | 五份 READY，`passed=true`，持久化 Audit ID 1 |
+| 五份來源查詢 | FAIL | SUP-001 交期兩次 503、MAT-001 儲存條件 503；其他三項通過 |
+| 冷凍海運費率不足證據 | PASS | HTTP 200 `INSUFFICIENT_EVIDENCE` UI，沒有推測答案或來源 |
+| 英文→中文跨語 | PASS | 英文 SUP-002 問題命中中文來源 #2 |
+| 中文→英文跨語 | NOT RUN | 需額外英文文件及可控、可清除資料階段；現有五份基線查詢仍有 FAIL，不新增文件污染 r4 |
+| SUP-005 Browser Upload／Ingestion／索引 | BLOCKED | 五份 Baseline Source Query 全部 PASS 的既定前置不滿足；本輪未上傳第六份文件 |
+| Guarded Reset／Reset 後 Gate 恢復 | NOT RUN | E9 前置未全通過，沒有執行破壞性 Reset；r4 目前保留採購操作後狀態與五份已索引文件 |
+| Backend／Frontend CI | NOT RUN（本輪證據更新尚未觸發 CI） | 此前 docs/evidence-only Actions 的 Backend／Frontend job 為 SKIPPED；不得稱完整回歸 PASS |
+
+本輪真實實測結論為 **SP-910 E9 FAIL — REPRODUCIBLE FINDINGS**，同時 SUP-005、跨語中文→英文及 Reset 項目仍受前置／隔離條件限制。阻擋結果不是環境憑證不存在：`AI_API_KEY` 別名已被正確使用、真實 Gemini Chat／Embedding 均有成功呼叫證據。需要後續針對三個 `AI_INVALID_RESPONSE` trace 取得安全的 Provider／Tool 層診斷並修復或另行追蹤；在根因未證實前不修改 #117 的安全政策、Business Rule 或預期答案。r3 未受影響，r4 未 Reset。

@@ -1,0 +1,71 @@
+{
+  "startedAt": "2026-10-16T01:17:43.363Z",
+  "browser": "Microsoft Edge headed via CDP / Playwright",
+  "purchaseOrderId": 11,
+  "roles": [
+    {
+      "username": "manager",
+      "existingSession": true,
+      "profileVisible": true,
+      "url": "http://127.0.0.1:5174/purchase-orders/11"
+    },
+    {
+      "username": "buyer",
+      "loginHttpStatus": 200,
+      "profileVisible": true,
+      "url": "http://127.0.0.1:5174/purchase-orders/11"
+    }
+  ],
+  "actions": [
+    {
+      "step": "manager_approve",
+      "httpStatus": 200,
+      "purchaseOrder": {
+        "id": 11,
+        "status": "APPROVED",
+        "approvedByDisplayName": "Demo Procurement Manager",
+        "approvedAt": "2026-10-16T01:17:44.662631300Z",
+        "orderedByDisplayName": null,
+        "orderedAt": null,
+        "expectedDeliveryDate": "2026-10-19"
+      }
+    },
+    {
+      "step": "manager_approve",
+      "buttonEnabled": true,
+      "httpStatus": 200,
+      "visibleStatus": [
+        "PO-20261016-000011",
+        "已核准"
+      ]
+    },
+    {
+      "step": "buyer_order",
+      "httpStatus": 200,
+      "purchaseOrder": {
+        "id": 11,
+        "status": "ORDERED",
+        "approvedByDisplayName": "Demo Procurement Manager",
+        "approvedAt": "2026-10-16T01:17:44.662631Z",
+        "orderedByDisplayName": "Demo Procurement Buyer",
+        "orderedAt": "2026-10-16T01:17:46.655624800Z",
+        "expectedDeliveryDate": "2026-10-19"
+      }
+    }
+  ],
+  "screenshots": [
+    "r4-browser-manager-approve-confirmation.png",
+    "r4-browser-manager-approved.png",
+    "r4-browser-buyer-order-confirmation.png",
+    "r4-browser-procurement-lifecycle-failure.png"
+  ],
+  "status": "FAIL",
+  "error": {
+    "name": "Error",
+    "message": "locator.waitFor: Error: strict mode violation: getByText('已下單') resolved to 2 elements:\n    1) <span class=\"ant-tag ant-tag-filled ant-tag-gold css-dev-only-do-not-override-oc1rc0 css-var-_r_0_\">已下單</span> aka getByText('已下單', { exact: true })\n    2) <div id=\"_r_f_\" class=\"ant-modal-title\">標記採購單已下單</div> aka getByText('標記採購單已下單')\n\nCall log:\n\u001b[2m  - waiting for getByText('已下單') to be visible\u001b[22m\n",
+    "url": "http://127.0.0.1:5174/purchase-orders/11"
+  },
+  "domText": "SupplyPilot\n採購決策平台\n儀表板\n主\n需\n採\n採\n文\nSupplyPilot — AI 採購與供應鏈決策平台\nAI 助理\nDemo Procurement Buyer（buyer）\n採購人員\n登出\n← 採購單管理\nPO-20261016-000011\n採購單編號\t11\n狀態\t\n已下單\n\n供應商快照\tSUP-002 — East Harbor Trading (#2)\n預計交期\t2026-10-19\n建立資訊\tDemo Procurement Buyer (#2) · 2026年10月16日 上午9:13\n核准資訊\tDemo Procurement Manager (#3) · 2026年10月16日 上午9:17\n駁回資訊\t—\n下單資訊\tDemo Procurement Buyer (#2) · 2026年10月16日 上午9:17\n收貨資訊\t—\n更新時間\t2026年10月16日 上午9:17\n品項\n物料\t數量\t單價\t小計\t採購建議依據\nMAT-001 — Assam Tea Extract (#1)\t750.0000 KG\t104.0000\t78000.00000000\t\n採購建議 #1 / 結果 #2\n標記採購單已下單\n此動作只標記正式下單，不會修改交期，也不會增加庫存。\n核准的預計交期\t2026-10-19\n取 消\n確認下單\nPurchase Order 已更新",
+  "finishedAt": "2026-10-16T01:17:46.895Z",
+  "elapsedSeconds": 3.532
+}

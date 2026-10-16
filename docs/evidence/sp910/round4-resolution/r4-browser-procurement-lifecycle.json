@@ -1,0 +1,112 @@
+{
+  "startedAt": "2026-10-16T01:18:15.984Z",
+  "browser": "Microsoft Edge headed via CDP / Playwright",
+  "purchaseOrderId": 11,
+  "roles": [
+    {
+      "username": "warehouse",
+      "loginHttpStatus": 200,
+      "profileVisible": true,
+      "url": "http://127.0.0.1:5174/dashboard"
+    }
+  ],
+  "actions": [
+    {
+      "step": "warehouse_receive_precondition",
+      "buttonEnabled": true,
+      "body": [
+        "狀態\t已下單",
+        "預計交期\t",
+        "MAT-001 — Assam Tea Extract\t750.0000 KG"
+      ]
+    },
+    {
+      "step": "warehouse_receive",
+      "httpStatus": 200,
+      "response": {
+        "status": 200,
+        "response": {
+          "id": 11,
+          "status": "RECEIVED",
+          "receivedByDisplayName": "Demo Warehouse Staff",
+          "receivedAt": "2026-10-16T01:18:18.035580900Z",
+          "items": [
+            {
+              "materialId": 1,
+              "materialCode": "MAT-001",
+              "quantity": 750
+            }
+          ]
+        }
+      },
+      "after": [
+        "狀態\t已收貨",
+        "收貨資訊\tDemo Warehouse Staff (#4) · 2026年10月16日 上午9:18",
+        "MAT-001 — Assam Tea Extract\t750.0000 KG",
+        "全部品項\tMAT-001：750.0000 KG"
+      ]
+    }
+  ],
+  "screenshots": [
+    "r4-browser-warehouse-receive-confirmation.png",
+    "r4-browser-warehouse-received.png",
+    "r4-browser-inventory-after-receive.png",
+    "r4-browser-stock-transaction.png"
+  ],
+  "status": "PASS",
+  "receiveResponse": {
+    "status": 409,
+    "response": {}
+  },
+  "duplicateReceive": {
+    "status": 409,
+    "code": "DUPLICATE_RECEIVING",
+    "path": "/api/v1/purchase-orders/11/receive"
+  },
+  "inventory": {
+    "status": 200,
+    "query": {
+      "materialCode": "MAT-001",
+      "page": "0",
+      "size": "20"
+    },
+    "items": [
+      {
+        "materialId": 1,
+        "materialCode": "MAT-001",
+        "quantity": 1050,
+        "unit": "KG"
+      }
+    ]
+  },
+  "inventoryVisibleText": [
+    "庫存管理",
+    "查詢庫存水位與庫存異動",
+    "庫存水位",
+    "庫存異動",
+    "物料編號\t物料代碼\t物料名稱\t庫存數量\t單位\t更新時間\t操作",
+    "1\tMAT-001\tAssam Tea Extract\t1050\tKG\t2026年10月16日 上午9:18\t",
+    "調整庫存"
+  ],
+  "stockTransactions": {
+    "status": 200,
+    "query": {
+      "purchaseOrderId": "11",
+      "page": "0",
+      "size": "20"
+    },
+    "rows": [
+      {
+        "id": 3,
+        "type": "PURCHASE_RECEIVE",
+        "materialCode": "MAT-001",
+        "quantity": 750,
+        "purchaseOrderId": 11,
+        "createdByDisplayName": "Demo Warehouse Staff",
+        "createdAt": "2026-10-16T01:18:18.035581Z"
+      }
+    ]
+  },
+  "finishedAt": "2026-10-16T01:18:20.967Z",
+  "elapsedSeconds": 4.983
+}

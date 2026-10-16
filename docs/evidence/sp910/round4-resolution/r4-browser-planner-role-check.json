@@ -1,0 +1,23 @@
+{
+  "startedAt": "2026-10-16T01:22:44.761Z",
+  "browser": "Microsoft Edge headed via CDP / Playwright",
+  "screenshots": [
+    "r4-browser-planner-dashboard.png",
+    "r4-browser-planner-recommendation-denied.png"
+  ],
+  "status": "PASS",
+  "loginStatus": 200,
+  "dashboardRoleVisible": true,
+  "dashboardText": [
+    "儀表板",
+    "Demo Production Planner（planner）",
+    "生產規劃人員",
+    "Demo Production Planner · 生產規劃人員"
+  ],
+  "url": "http://127.0.0.1:5174/recommendations",
+  "finishedAt": "2026-10-16T01:24:12.5088144Z",
+  "elapsedSeconds": 28887.7478144,
+  "recommendationsUrl": "http://127.0.0.1:5174/recommendations",
+  "recommendationAccessText": "403 您沒有權限查看此頁面。返回儀表板",
+  "recommendationDenied": true
+}
