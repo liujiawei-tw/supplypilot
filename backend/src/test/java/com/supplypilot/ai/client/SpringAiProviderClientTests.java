@@ -11,6 +11,7 @@ import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -30,6 +31,10 @@ import com.supplypilot.material.service.MaterialService;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
+import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.messages.AssistantMessage;
 import org.springframework.ai.chat.messages.ToolResponseMessage;
 import org.springframework.ai.chat.metadata.ChatResponseMetadata;
@@ -137,6 +142,8 @@ class SpringAiProviderClientTests {
                 "QUERY_INVENTORY", "{\"materialCode\":\"MAT-001\"}"));
         assertProviderCode(provider(looping, registry, Duration.ofSeconds(2)),
                 ErrorCode.AI_INVALID_RESPONSE, "MAT-001 庫存");
+        assertProviderReason(provider(looping, registry, Duration.ofSeconds(2), 4, 1),
+                "MAT-001 庫存", AiFailureReason.MODEL_CALL_LIMIT);
     }
 
     @Test
@@ -154,6 +161,8 @@ class SpringAiProviderClientTests {
         assertProviderCode(provider(looping, registry, Duration.ofSeconds(2), 1, 5),
                 ErrorCode.AI_INVALID_RESPONSE, "MAT-001 庫存");
         org.mockito.Mockito.verify(registry, org.mockito.Mockito.times(1)).execute(any());
+        assertProviderReason(provider(looping, registry, Duration.ofSeconds(2), 1, 5),
+                "MAT-001 庫存", AiFailureReason.TOOL_CALL_LIMIT);
     }
 
     @Test
@@ -166,7 +175,356 @@ class SpringAiProviderClientTests {
                 "QUERY_INVENTORY", "{\"materialCode\":\"MAT-999\"}"));
         assertProviderCode(provider(invented, registry, Duration.ofSeconds(2)),
                 ErrorCode.AI_INVALID_RESPONSE);
+        assertProviderReason(provider(forbidden, registry, Duration.ofSeconds(2)),
+                "採購單核准狀態", AiFailureReason.UNKNOWN_OR_FORBIDDEN_TOOL);
+        assertProviderReason(provider(invented, registry, Duration.ofSeconds(2)),
+                "question", AiFailureReason.UNAUTHORIZED_OR_MISMATCHED_TOOL_IDENTIFIER);
+        assertProviderDetail(provider(invented, registry, Duration.ofSeconds(2)), "question",
+                AiFailureReason.UNAUTHORIZED_OR_MISMATCHED_TOOL_IDENTIFIER,
+                AiFailureDetail.MATERIAL_CODE_NOT_IN_QUESTION);
         org.mockito.Mockito.verifyNoInteractions(registry);
+    }
+
+    @Test
+    void unaskedRecommendationIdentifierHasFixedSafeFailureDetail() {
+        AiToolRegistry registry = mock(AiToolRegistry.class);
+        ChatModel inventedRecommendation = fakeModel(prompt -> toolCall(
+                "QUERY_RECOMMENDATION", "{\"recommendationId\":1}"));
+
+        assertProviderDetail(provider(inventedRecommendation, registry, Duration.ofSeconds(2)),
+                "SUP-001 的 MAT-001 標準交期是多久？",
+                AiFailureReason.UNAUTHORIZED_OR_MISMATCHED_TOOL_IDENTIFIER,
+                AiFailureDetail.RECOMMENDATION_ID_NOT_IN_QUESTION);
+        org.mockito.Mockito.verifyNoInteractions(registry);
+    }
+
+    @Test
+    void openPurchaseOrderMustKeepTheQuestionMaterialFilter() {
+        AiToolRegistry registry = mock(AiToolRegistry.class);
+        ChatModel unfilteredOrders = fakeModel(prompt -> toolCall(
+                "QUERY_OPEN_PO", "{\"materialCode\":null}"));
+
+        assertProviderDetail(provider(unfilteredOrders, registry, Duration.ofSeconds(2)),
+                "MAT-001 未完成採購單",
+                AiFailureReason.UNAUTHORIZED_OR_MISMATCHED_TOOL_IDENTIFIER,
+                AiFailureDetail.OPEN_PO_MATERIAL_FILTER_MISSING);
+        org.mockito.Mockito.verifyNoInteractions(registry);
+    }
+
+    @Test
+    void missingModelAndFinalResponsesHaveDistinctFixedDetails() {
+        ChatModel noModelResult = fakeModel(prompt -> new ChatResponse(List.of()));
+        assertProviderDetail(provider(noModelResult, mock(AiToolRegistry.class), Duration.ofSeconds(2)),
+                "查詢", AiFailureReason.MISSING_FINAL_MODEL_RESPONSE,
+                AiFailureDetail.MODEL_RESPONSE_MISSING_RESULT);
+
+        AiToolRegistry registry = mock(AiToolRegistry.class);
+        AiToolResult document = documentResult(AiQueryStatus.ANSWERED);
+        when(registry.execute(any())).thenReturn(document);
+        ChatModel noAdvisorFinal = fakeModel(prompt -> hasToolResponse(prompt)
+                ? new ChatResponse(List.of())
+                : toolCall("SEARCH_DOCUMENTS", "{\"question\":\"詢問文件條款\"}"));
+        AiProviderResponse advisorFallback = provider(noAdvisorFinal, registry, Duration.ofSeconds(2))
+                .query(new AiProviderRequest("SUP-001 的 MAT-001 標準交期是多久？"));
+        assertThat(advisorFallback.answerSource()).isEqualTo("BACKEND_FACTS");
+        assertThat(advisorFallback.answer()).contains(document.trustedFacts());
+
+        ChatModel emptyFinalText = fakeModel(prompt -> hasToolResponse(prompt)
+                ? new ChatResponse(List.of(new Generation(new AssistantMessage(""))))
+                : toolCall("SEARCH_DOCUMENTS", "{\"question\":\"詢問文件條款\"}"));
+        AiProviderResponse emptyTextFallback = provider(emptyFinalText, registry, Duration.ofSeconds(2))
+                .query(new AiProviderRequest("SUP-001 的 MAT-001 標準交期是多久？"));
+        assertThat(emptyTextFallback.answerSource()).isEqualTo("BACKEND_FACTS");
+        assertThat(emptyTextFallback.answer()).contains(document.trustedFacts());
+    }
+
+    @Test
+    void noToolAndMissingFinalResponseFailuresHaveDistinctSafeDiagnostics() {
+        assertDiagnosticFailure(fakeModel(prompt -> new ChatResponse(List.of(
+                        new Generation(new AssistantMessage("一般文字，不得當成事實"))))),
+                mock(AiToolRegistry.class), AiFailureReason.NO_TOOL_EXECUTION,
+                "MODEL_RESPONSE_TEXT_WITHOUT_TOOL", 1, 0, 0, false);
+
+        assertDiagnosticFailure(fakeModel(prompt -> new ChatResponse(List.of(
+                        new Generation(new AssistantMessage(""))))),
+                mock(AiToolRegistry.class), AiFailureReason.MISSING_FINAL_MODEL_RESPONSE,
+                "MODEL_RESPONSE_EMPTY_WITHOUT_TOOL", 2, 0, 0, true);
+
+        assertDiagnosticFailure(fakeModel(prompt -> new ChatResponse(List.of())),
+                mock(AiToolRegistry.class), AiFailureReason.MISSING_FINAL_MODEL_RESPONSE,
+                "MODEL_RESPONSE_MISSING_RESULT", 1, 0, 0, false);
+    }
+
+    @Test
+    void invalidToolIdentifierAndExecutedDocumentWithEmptyFinalTextHaveDistinctDiagnostics() {
+        AiToolRegistry invalidRegistry = mock(AiToolRegistry.class);
+        ChatModel invalidIdentifier = fakeModel(prompt -> toolCall(
+                "QUERY_RECOMMENDATION", "{\"recommendationId\":1}"));
+        assertDiagnosticFailure(invalidIdentifier, invalidRegistry,
+                AiFailureReason.UNAUTHORIZED_OR_MISMATCHED_TOOL_IDENTIFIER,
+                "RECOMMENDATION_ID_NOT_IN_QUESTION", 1, 1, 0, false);
+        org.mockito.Mockito.verifyNoInteractions(invalidRegistry);
+
+        AiToolRegistry documentRegistry = mock(AiToolRegistry.class);
+        AiToolResult document = documentResult(AiQueryStatus.ANSWERED);
+        when(documentRegistry.execute(any())).thenReturn(document);
+        ChatModel emptyFinalAfterDocument = fakeModel(prompt -> hasToolResponse(prompt)
+                ? new ChatResponse(List.of(new Generation(new AssistantMessage(""))))
+                : toolCall("SEARCH_DOCUMENTS", "{\"question\":\"文件條款\"}"));
+        ListAppender<ILoggingEvent> appender = captureDiagnostics();
+        try {
+            AiProviderResponse response = provider(emptyFinalAfterDocument, documentRegistry,
+                    Duration.ofSeconds(2)).query(new AiProviderRequest("SUP-001 的 MAT-001 標準交期是多久？"));
+            assertThat(response.answerSource()).isEqualTo("BACKEND_FACTS");
+            assertDiagnosticLine(appender, AiFailureReason.MISSING_FINAL_MODEL_RESPONSE,
+                    "FINAL_RESPONSE_TEXT_EMPTY", 2, 1, 1, false);
+        } finally {
+            detachDiagnostics(appender);
+        }
+    }
+
+    @Test
+    void oneEmptyInitialResponseGetsExactlyOneBoundedToolSelectionRetry() {
+        AiToolRegistry registry = mock(AiToolRegistry.class);
+        AiToolResult document = documentResult(AiQueryStatus.ANSWERED);
+        when(registry.execute(any())).thenReturn(document);
+        AtomicInteger calls = new AtomicInteger();
+        ChatModel model = fakeModel(prompt -> switch (calls.incrementAndGet()) {
+            case 1 -> new ChatResponse(List.of(new Generation(new AssistantMessage(""))));
+            case 2 -> {
+                assertThat(prompt.getInstructions()).anyMatch(message -> message.getText()
+                        .contains("one bounded retry"));
+                yield toolCall("SEARCH_DOCUMENTS", "{\"question\":\"文件條款\"}");
+            }
+            default -> finalAnswer(1);
+        });
+
+        AiProviderResponse response = provider(model, registry, Duration.ofSeconds(2))
+                .query(new AiProviderRequest("SUP-001 的 MAT-001 標準交期是多久？"));
+
+        assertThat(calls).hasValue(3);
+        assertThat(response.results()).containsExactly(document);
+        assertThat(response.answerSource()).isEqualTo("MODEL_EXPLANATION");
+        verify(registry).execute(new AiQueryPlan(AiToolType.SEARCH_DOCUMENTS, null, null,
+                "SUP-001 的 MAT-001 標準交期是多久？"));
+    }
+
+    @Test
+    void emptyInitialResponseDoesNotRetryPastTheConfiguredModelCallLimit() {
+        AtomicInteger calls = new AtomicInteger();
+        ChatModel model = fakeModel(prompt -> {
+            calls.incrementAndGet();
+            return new ChatResponse(List.of(new Generation(new AssistantMessage(""))));
+        });
+        AiToolRegistry registry = mock(AiToolRegistry.class);
+
+        assertProviderReason(provider(model, registry, Duration.ofSeconds(2), 4, 1),
+                "SUP-001 的 MAT-001 標準交期是多久？",
+                AiFailureReason.MISSING_FINAL_MODEL_RESPONSE);
+
+        assertThat(calls).hasValue(1);
+        org.mockito.Mockito.verifyNoInteractions(registry);
+    }
+
+    @Test
+    void mismatchedToolIdentifierAfterValidEvidenceFailsClosedWithoutExecutingIt() {
+        AiToolRegistry registry = mock(AiToolRegistry.class);
+        AiToolResult document = documentResult(AiQueryStatus.ANSWERED);
+        when(registry.execute(any())).thenReturn(document);
+        ChatModel model = fakeModel(prompt -> hasToolResponse(prompt)
+                ? toolCall("QUERY_RECOMMENDATION", "{\"recommendationId\":1}")
+                : toolCall("SEARCH_DOCUMENTS", "{\"question\":\"文件條款\"}"));
+
+        assertProviderDetail(provider(model, registry, Duration.ofSeconds(2)),
+                "SUP-001 的 MAT-001 標準交期是多久？",
+                AiFailureReason.UNAUTHORIZED_OR_MISMATCHED_TOOL_IDENTIFIER,
+                AiFailureDetail.RECOMMENDATION_ID_NOT_IN_QUESTION);
+        verify(registry).execute(new AiQueryPlan(AiToolType.SEARCH_DOCUMENTS, null, null,
+                "SUP-001 的 MAT-001 標準交期是多久？"));
+    }
+
+    @Test
+    void emptyFinalTextFallsBackOnlyWithValidDocumentEvidenceAndSource() {
+        AiToolRegistry registry = mock(AiToolRegistry.class);
+        AiToolResult document = documentResult(AiQueryStatus.ANSWERED);
+        when(registry.execute(any())).thenReturn(document);
+        ChatModel emptyFinalText = fakeModel(prompt -> hasToolResponse(prompt)
+                ? new ChatResponse(List.of(new Generation(new AssistantMessage(""))))
+                : toolCall("SEARCH_DOCUMENTS", "{\"question\":\"詢問文件條款\"}"));
+
+        AiProviderResponse response = provider(emptyFinalText, registry, Duration.ofSeconds(2))
+                .query(new AiProviderRequest("SUP-001 的 MAT-001 標準交期是多久？"));
+
+        assertThat(response.answerSource()).isEqualTo("BACKEND_FACTS");
+        assertThat(response.answer()).contains(document.trustedFacts());
+        assertThat(response.results()).containsExactly(document);
+        assertThat(response.results().getFirst().sources()).singleElement().satisfies(source -> {
+            assertThat(source.resourceType()).isEqualTo("DOCUMENT");
+            assertThat(source.version()).isEqualTo("1.0");
+            assertThat(source.chunkIndex()).isZero();
+            assertThat(source.startOffset()).isZero();
+            assertThat(source.endOffset()).isEqualTo(source.excerpt().length());
+        });
+    }
+
+    @Test
+    void emptyFinalTextDoesNotFallbackWhenDocumentSourcesAreEmptyOrNull() {
+        assertEmptyFinalDoesNotFallback(new AiToolResult(AiToolType.SEARCH_DOCUMENTS,
+                AiQueryStatus.ANSWERED, "有文件事實。", List.of()));
+        assertEmptyFinalDoesNotFallback(new AiToolResult(AiToolType.SEARCH_DOCUMENTS,
+                AiQueryStatus.ANSWERED, "有文件事實。", null));
+    }
+
+    @Test
+    void emptyFinalTextDoesNotFallbackForMalformedDocumentCitation() {
+        AiSourceResponse source = new AiSourceResponse("DOCUMENT", "1", "文件", "1.0",
+                null, 0, 0, 99, "只有短摘錄", 0.9);
+        assertEmptyFinalDoesNotFallback(new AiToolResult(AiToolType.SEARCH_DOCUMENTS,
+                AiQueryStatus.ANSWERED, "有文件事實。", List.of(source)));
+    }
+
+    @Test
+    void emptyFinalTextDoesNotFallbackForInventoryOnlyAnswer() {
+        AiToolRegistry registry = mock(AiToolRegistry.class);
+        when(registry.execute(any())).thenReturn(inventoryResult());
+        ChatModel model = fakeModel(prompt -> hasToolResponse(prompt)
+                ? new ChatResponse(List.of(new Generation(new AssistantMessage(""))))
+                : toolCall("QUERY_INVENTORY", "{\"materialCode\":\"MAT-001\"}"));
+
+        assertProviderReason(provider(model, registry, Duration.ofSeconds(2)), "MAT-001 庫存",
+                AiFailureReason.MISSING_FINAL_MODEL_RESPONSE);
+        org.mockito.Mockito.verify(registry).execute(any());
+    }
+
+    @Test
+    void mixedAnsweredInventoryAndInsufficientDocumentsDoNotFallback() {
+        AiToolRegistry registry = mock(AiToolRegistry.class);
+        when(registry.execute(any())).thenAnswer(call -> {
+            AiQueryPlan plan = call.getArgument(0);
+            return plan.tool() == AiToolType.QUERY_INVENTORY ? inventoryResult()
+                    : AiToolResult.insufficientEvidence(AiToolType.SEARCH_DOCUMENTS);
+        });
+        ChatModel model = fakeModel(prompt -> hasToolResponse(prompt)
+                ? new ChatResponse(List.of(new Generation(new AssistantMessage(""))))
+                : new ChatResponse(List.of(new Generation(AssistantMessage.builder().content("").toolCalls(List.of(
+                        new AssistantMessage.ToolCall("inventory", "function", "QUERY_INVENTORY",
+                                "{\"materialCode\":\"MAT-001\"}"),
+                        new AssistantMessage.ToolCall("docs", "function", "SEARCH_DOCUMENTS",
+                                "{\"question\":\"MAT-001\"}"))).build()))));
+
+        assertProviderReason(provider(model, registry, Duration.ofSeconds(2)), "MAT-001 庫存與文件條款",
+                AiFailureReason.MISSING_FINAL_MODEL_RESPONSE);
+        org.mockito.Mockito.verify(registry, org.mockito.Mockito.times(2)).execute(any());
+    }
+
+    @Test
+    void toolCallLimitDoesNotFallbackDespiteSuccessfulDocumentTool() {
+        AiToolRegistry registry = mock(AiToolRegistry.class);
+        when(registry.execute(any())).thenReturn(documentResult(AiQueryStatus.ANSWERED));
+        ChatModel keepsCalling = fakeModel(prompt -> toolCall(
+                "SEARCH_DOCUMENTS", "{\"question\":\"文件條款\"}"));
+
+        assertProviderReason(provider(keepsCalling, registry, Duration.ofSeconds(2), 1, 5),
+                "SUP-001 的 MAT-001 標準交期是多久？", AiFailureReason.TOOL_CALL_LIMIT);
+    }
+
+    @Test
+    void forbiddenToolDoesNotFallbackDespiteSuccessfulDocumentTool() {
+        AiToolRegistry registry = mock(AiToolRegistry.class);
+        when(registry.execute(any())).thenReturn(documentResult(AiQueryStatus.ANSWERED));
+        ChatModel model = fakeModel(prompt -> hasToolResponse(prompt)
+                ? toolCall("ADMIN_DELETE", "{}")
+                : toolCall("SEARCH_DOCUMENTS", "{\"question\":\"文件條款\"}"));
+
+        assertProviderReason(provider(model, registry, Duration.ofSeconds(2)),
+                "SUP-001 的 MAT-001 標準交期是多久？", AiFailureReason.UNKNOWN_OR_FORBIDDEN_TOOL);
+        verify(registry).execute(new AiQueryPlan(AiToolType.SEARCH_DOCUMENTS, null, null,
+                "SUP-001 的 MAT-001 標準交期是多久？"));
+    }
+
+    @Test
+    void mixedToolCallBatchCannotFallbackWhenOneIdentifierIsIllegal() {
+        AiToolRegistry registry = mock(AiToolRegistry.class);
+        when(registry.execute(any())).thenReturn(documentResult(AiQueryStatus.ANSWERED));
+        ChatModel model = fakeModel(prompt -> {
+            if (hasToolResponse(prompt)) return finalAnswer(1);
+            AssistantMessage calls = AssistantMessage.builder().content("").toolCalls(List.of(
+                    new AssistantMessage.ToolCall("docs", "function", "SEARCH_DOCUMENTS",
+                            "{\"question\":\"SUP-001 交期\"}"),
+                    new AssistantMessage.ToolCall("recommendation", "function", "QUERY_RECOMMENDATION",
+                            "{\"recommendationId\":1}"))).build();
+            return new ChatResponse(List.of(new Generation(calls)));
+        });
+
+        assertProviderDetail(provider(model, registry, Duration.ofSeconds(2)),
+                "SUP-001 的 MAT-001 標準交期是多久？",
+                AiFailureReason.UNAUTHORIZED_OR_MISMATCHED_TOOL_IDENTIFIER,
+                AiFailureDetail.RECOMMENDATION_ID_NOT_IN_QUESTION);
+        verify(registry).execute(new AiQueryPlan(AiToolType.SEARCH_DOCUMENTS, null, null,
+                "SUP-001 的 MAT-001 標準交期是多久？"));
+    }
+
+    private void assertEmptyFinalDoesNotFallback(AiToolResult result) {
+        AiToolRegistry registry = mock(AiToolRegistry.class);
+        when(registry.execute(any())).thenReturn(result);
+        ChatModel model = fakeModel(prompt -> hasToolResponse(prompt)
+                ? new ChatResponse(List.of(new Generation(new AssistantMessage(""))))
+                : toolCall("SEARCH_DOCUMENTS", "{\"question\":\"文件條款\"}"));
+
+        assertProviderReason(provider(model, registry, Duration.ofSeconds(2)),
+                "SUP-001 的 MAT-001 標準交期是多久？", AiFailureReason.MISSING_FINAL_MODEL_RESPONSE);
+    }
+
+    @Test
+    void providerFailureIsNotConvertedToInsufficientEvidenceWithoutAnsweredFacts() {
+        AiToolRegistry registry = mock(AiToolRegistry.class);
+        when(registry.execute(any())).thenReturn(documentResult(AiQueryStatus.INSUFFICIENT_EVIDENCE));
+        ChatModel model = fakeModel(prompt -> hasToolResponse(prompt)
+                ? new ChatResponse(List.of(new Generation(new AssistantMessage(""))))
+                : toolCall("SEARCH_DOCUMENTS", "{\"question\":\"文件條款\"}"));
+
+        assertProviderReason(provider(model, registry, Duration.ofSeconds(2)),
+                "SUP-001 的 MAT-001 標準交期是多久？",
+                AiFailureReason.MISSING_FINAL_MODEL_RESPONSE);
+        assertProviderCode(provider(model, registry, Duration.ofSeconds(2)),
+                ErrorCode.AI_INVALID_RESPONSE, "SUP-001 的 MAT-001 標準交期是多久？");
+    }
+
+    @Test
+    void mismatchedIdentifierDoesNotFallbackToUnrelatedAnsweredToolFacts() {
+        AiToolRegistry registry = mock(AiToolRegistry.class);
+        when(registry.execute(any())).thenReturn(inventoryResult());
+        ChatModel model = fakeModel(prompt -> hasToolResponse(prompt)
+                ? toolCall("QUERY_RECOMMENDATION", "{\"recommendationId\":1}")
+                : toolCall("QUERY_INVENTORY", "{\"materialCode\":\"MAT-001\"}"));
+
+        assertProviderDetail(provider(model, registry, Duration.ofSeconds(2)), "MAT-001 庫存",
+                AiFailureReason.UNAUTHORIZED_OR_MISMATCHED_TOOL_IDENTIFIER,
+                AiFailureDetail.RECOMMENDATION_ID_NOT_IN_QUESTION);
+        verify(registry).execute(new AiQueryPlan(AiToolType.QUERY_INVENTORY, null, "MAT-001", null));
+    }
+
+    @Test
+    void missingFinalResponseAndToolExecutionFailureHaveFixedDiagnosticReasons() {
+        ChatModel missing = fakeModel(prompt -> new ChatResponse(List.of()));
+        assertProviderReason(provider(missing, mock(AiToolRegistry.class), Duration.ofSeconds(2)),
+                "查詢", AiFailureReason.MISSING_FINAL_MODEL_RESPONSE);
+
+        AiToolRegistry failingRegistry = mock(AiToolRegistry.class);
+        when(failingRegistry.execute(any())).thenThrow(new IllegalStateException("sensitive tool details"));
+        ChatModel callsInventory = fakeModel(prompt -> toolCall(
+                "QUERY_INVENTORY", "{\"materialCode\":\"MAT-001\"}"));
+        assertProviderReason(provider(callsInventory, failingRegistry, Duration.ofSeconds(2)),
+                "MAT-001 庫存", AiFailureReason.TOOL_EXECUTION_FAILURE);
+    }
+
+    @Test
+    void providerFailureWithoutKnownCategoryUsesOtherProviderFailure() {
+        ChatModel broken = fakeModel(prompt -> {
+            throw new IllegalStateException("sensitive provider details");
+        });
+        assertProviderReason(provider(broken, mock(AiToolRegistry.class), Duration.ofSeconds(2)),
+                "查詢", AiFailureReason.OTHER_PROVIDER_FAILURE);
     }
 
     @Test
@@ -192,6 +550,8 @@ class SpringAiProviderClientTests {
                 new Generation(new AssistantMessage("MAT-001 庫存為 999 KG")))));
         assertProviderCode(provider(model, mock(AiToolRegistry.class), Duration.ofSeconds(2)),
                 ErrorCode.AI_INVALID_RESPONSE);
+        assertProviderReason(provider(model, mock(AiToolRegistry.class), Duration.ofSeconds(2)),
+                "查詢", AiFailureReason.NO_TOOL_EXECUTION);
     }
 
     @Test
@@ -290,6 +650,14 @@ class SpringAiProviderClientTests {
                 List.of(AiSourceResponse.resource("INVENTORY", 1, "MAT-001")));
     }
 
+    private AiToolResult documentResult(AiQueryStatus status) {
+        String facts = status == AiQueryStatus.ANSWERED ? "MAT-001 標準交期為 ORDERED 後 5 個曆日。" : null;
+        return new AiToolResult(AiToolType.SEARCH_DOCUMENTS, status, facts,
+                List.of(new AiSourceResponse("DOCUMENT", "1", "SUP-001 交付條款", "1.0",
+                        1L, 0, 0, facts == null ? 0 : facts.length(),
+                        facts == null ? "" : facts, 0.9)));
+    }
+
     private void assertProviderCode(SpringAiProviderClient provider, ErrorCode code) {
         assertProviderCode(provider, code, "question");
     }
@@ -297,5 +665,68 @@ class SpringAiProviderClientTests {
     private void assertProviderCode(SpringAiProviderClient provider, ErrorCode code, String message) {
         assertThatThrownBy(() -> provider.query(new AiProviderRequest(message)))
                 .isInstanceOf(AiProviderException.class).extracting("errorCode").isEqualTo(code);
+    }
+
+    private void assertProviderReason(SpringAiProviderClient provider, String message, AiFailureReason reason) {
+        assertThatThrownBy(() -> provider.query(new AiProviderRequest(message)))
+                .isInstanceOf(AiProviderException.class)
+                .extracting(exception -> ((AiProviderException) exception).getFailureReason())
+                .isEqualTo(reason);
+    }
+
+    private void assertProviderDetail(SpringAiProviderClient provider, String message,
+                                      AiFailureReason reason, AiFailureDetail detail) {
+        assertThatThrownBy(() -> provider.query(new AiProviderRequest(message)))
+                .isInstanceOfSatisfying(AiProviderException.class, failure -> {
+                    assertThat(failure.getErrorCode()).isEqualTo(ErrorCode.AI_INVALID_RESPONSE);
+                    assertThat(failure.getFailureReason()).isEqualTo(reason);
+                    assertThat(failure.getFailureDetail()).isEqualTo(detail);
+                });
+    }
+
+    private void assertDiagnosticFailure(ChatModel model, AiToolRegistry registry, AiFailureReason reason,
+                                         String detail, int modelCalls, int attemptedTools, int executedTools,
+                                         boolean retryAttempted) {
+        ListAppender<ILoggingEvent> appender = captureDiagnostics();
+        try {
+            assertThatThrownBy(() -> provider(model, registry, Duration.ofSeconds(2))
+                    .query(new AiProviderRequest("SUP-001 的 MAT-001 標準交期是多久？")))
+                    .isInstanceOf(AiProviderException.class)
+                    .extracting(exception -> ((AiProviderException) exception).getErrorCode())
+                    .isEqualTo(ErrorCode.AI_INVALID_RESPONSE);
+            assertDiagnosticLine(appender, reason, detail, modelCalls, attemptedTools, executedTools,
+                    retryAttempted);
+        } finally {
+            detachDiagnostics(appender);
+        }
+    }
+
+    private ListAppender<ILoggingEvent> captureDiagnostics() {
+        Logger logger = (Logger) LoggerFactory.getLogger(SpringAiProviderClient.class);
+        ListAppender<ILoggingEvent> appender = new ListAppender<>();
+        appender.start();
+        logger.addAppender(appender);
+        return appender;
+    }
+
+    private void detachDiagnostics(ListAppender<ILoggingEvent> appender) {
+        Logger logger = (Logger) LoggerFactory.getLogger(SpringAiProviderClient.class);
+        logger.detachAppender(appender);
+        appender.stop();
+    }
+
+    private void assertDiagnosticLine(ListAppender<ILoggingEvent> appender, AiFailureReason reason,
+                                      String detail, int modelCalls, int attemptedTools, int executedTools,
+                                      boolean retryAttempted) {
+        assertThat(appender.list).anySatisfy(event -> {
+            String message = event.getFormattedMessage();
+            assertThat(message).contains("reason=" + reason.name());
+            assertThat(message).contains("detail=" + detail);
+            assertThat(message).contains("modelCallCount=" + modelCalls);
+            assertThat(message).contains("attemptedToolCallCount=" + attemptedTools);
+            assertThat(message).contains("executedToolCount=" + executedTools);
+            assertThat(message).contains("toolSelectionRetryAttempted=" + retryAttempted);
+            assertThat(message).doesNotContain("SUP-001", "MAT-001", "recommendationId", "文件條款");
+        });
     }
 }

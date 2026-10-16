@@ -5,6 +5,8 @@ import java.util.List;
 import java.util.Locale;
 
 import com.supplypilot.ai.client.AiProviderException;
+import com.supplypilot.ai.client.AiFailureDetail;
+import com.supplypilot.ai.client.AiFailureReason;
 import com.supplypilot.ai.dto.AiToolType;
 import com.supplypilot.common.exception.ErrorCode;
 import org.jspecify.annotations.Nullable;
@@ -81,19 +83,25 @@ public final class SpringAiReadTools {
 
     private String execute(AiQueryPlan plan) {
         if (executions.size() >= maxToolCalls) {
-            throw new AiProviderException(ErrorCode.AI_INVALID_RESPONSE);
+            throw new AiProviderException(ErrorCode.AI_INVALID_RESPONSE, AiFailureReason.TOOL_CALL_LIMIT);
         }
         if (plan.tool() != AiToolType.SEARCH_DOCUMENTS) {
             String material = plan.materialCode() == null ? null
                     : plan.materialCode().toUpperCase(Locale.ROOT);
             if (material != null && !material.equals(permittedMaterial)) {
-                throw new AiProviderException(ErrorCode.AI_INVALID_RESPONSE);
+                throw new AiProviderException(ErrorCode.AI_INVALID_RESPONSE,
+                        AiFailureReason.UNAUTHORIZED_OR_MISMATCHED_TOOL_IDENTIFIER,
+                        AiFailureDetail.MATERIAL_CODE_NOT_IN_QUESTION);
             }
             if (plan.recommendationId() != null && !plan.recommendationId().equals(permittedRecommendation)) {
-                throw new AiProviderException(ErrorCode.AI_INVALID_RESPONSE);
+                throw new AiProviderException(ErrorCode.AI_INVALID_RESPONSE,
+                        AiFailureReason.UNAUTHORIZED_OR_MISMATCHED_TOOL_IDENTIFIER,
+                        AiFailureDetail.RECOMMENDATION_ID_NOT_IN_QUESTION);
             }
             if (plan.tool() == AiToolType.QUERY_OPEN_PO && permittedMaterial != null && material == null) {
-                throw new AiProviderException(ErrorCode.AI_INVALID_RESPONSE);
+                throw new AiProviderException(ErrorCode.AI_INVALID_RESPONSE,
+                        AiFailureReason.UNAUTHORIZED_OR_MISMATCHED_TOOL_IDENTIFIER,
+                        AiFailureDetail.OPEN_PO_MATERIAL_FILTER_MISSING);
             }
         }
         AiToolResult result = registry.execute(plan);
