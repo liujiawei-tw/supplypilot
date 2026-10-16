@@ -13,7 +13,10 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
 import com.supplypilot.ai.config.AiProperties;
+import com.supplypilot.ai.dto.AiQueryStatus;
+import com.supplypilot.ai.dto.AiToolType;
 import com.supplypilot.ai.service.AiResponseGuard;
+import com.supplypilot.ai.tool.AiToolResult;
 import com.supplypilot.ai.tool.AiToolRegistry;
 import com.supplypilot.ai.tool.AiQueryPlanner;
 import com.supplypilot.ai.tool.SpringAiReadTools;
@@ -115,8 +118,11 @@ public class SpringAiProviderClient implements AiProviderClient {
         }
 
         long started = System.nanoTime();
+        AtomicReference<AiFailureDetail> toolFailureDetail = new AtomicReference<>();
+        AtomicReference<SpringAiReadTools> toolContext = new AtomicReference<>();
         Future<AiProviderResponse> future = executor.submit(new DelegatingSecurityContextCallable<>(
-                () -> execute(chatModel, request), SecurityContextHolder.getContext()));
+                () -> execute(chatModel, request, toolFailureDetail, toolContext),
+                SecurityContextHolder.getContext()));
         try {
             AiProviderResponse response = future.get(properties.providerTimeout().toMillis(), TimeUnit.MILLISECONDS);
             record("success", Duration.ofNanos(System.nanoTime() - started), response.totalTokens());
@@ -135,18 +141,37 @@ public class SpringAiProviderClient implements AiProviderClient {
         } catch (ExecutionException exception) {
             accountUsage(null);
             AiFailureReason failureReason = findFailureReason(exception.getCause());
-            recordDiagnostic(failureReason);
+            AiFailureDetail failureDetail = findFailureDetail(exception.getCause());
+            if (failureDetail == null) failureDetail = toolFailureDetail.get();
+            List<AiToolResult> executions = toolContext.get() == null
+                    ? List.of() : toolContext.get().executions();
+            if (failureReason == AiFailureReason.MISSING_FINAL_MODEL_RESPONSE && executions.isEmpty()) {
+                failureReason = AiFailureReason.NO_TOOL_EXECUTION;
+                failureDetail = AiFailureDetail.NO_TOOL_EXECUTION;
+            }
+            recordDiagnostic(failureReason, failureDetail, executions);
             RuntimeException applicationFailure = findApplicationFailure(exception.getCause());
             if (applicationFailure != null) throw applicationFailure;
+            if (failureReason == AiFailureReason.MISSING_FINAL_MODEL_RESPONSE
+                    || failureReason == AiFailureReason.UNAUTHORIZED_OR_MISMATCHED_TOOL_IDENTIFIER) {
+                AiProviderResponse fallback = backendFactsFallback(executions);
+                if (fallback != null) {
+                    record("success_backend_fallback", Duration.ofNanos(System.nanoTime() - started), null);
+                    return fallback;
+                }
+            }
             ErrorCode code = findProviderError(exception.getCause());
             record(code.name().toLowerCase(), Duration.ofNanos(System.nanoTime() - started), null);
-            throw new AiProviderException(code, exception.getCause(), failureReason);
+            throw new AiProviderException(code, exception.getCause(), failureReason, failureDetail);
         }
     }
 
-    private AiProviderResponse execute(ChatModel chatModel, AiProviderRequest request) {
+    private AiProviderResponse execute(ChatModel chatModel, AiProviderRequest request,
+                                       AtomicReference<AiFailureDetail> toolFailureDetail,
+                                       AtomicReference<SpringAiReadTools> toolContext) {
         SpringAiReadTools tools = new SpringAiReadTools(
                 toolRegistry, planner, request.message(), properties.maxToolCalls());
+        toolContext.set(tools);
         AtomicReference<AiFailureReason> toolFailureReason = new AtomicReference<>();
         DefaultToolExecutionExceptionProcessor defaultExceptionProcessor =
                 new DefaultToolExecutionExceptionProcessor(true);
@@ -156,6 +181,7 @@ public class SpringAiProviderClient implements AiProviderClient {
                         return defaultExceptionProcessor.process(exception);
                     } catch (RuntimeException failure) {
                         toolFailureReason.compareAndSet(null, findFailureReason(failure));
+                        toolFailureDetail.compareAndSet(null, findFailureDetail(failure));
                         throw failure;
                     }
                 })
@@ -176,7 +202,8 @@ public class SpringAiProviderClient implements AiProviderClient {
                 ChatResponse modelResponse = chatModel.call(prompt);
                 if (modelResponse == null || modelResponse.getResult() == null) {
                     throw new AiProviderException(ErrorCode.AI_INVALID_RESPONSE,
-                            AiFailureReason.MISSING_FINAL_MODEL_RESPONSE);
+                            AiFailureReason.MISSING_FINAL_MODEL_RESPONSE,
+                            AiFailureDetail.MODEL_RESPONSE_MISSING_RESULT);
                 }
                 if (modelResponse != null && modelResponse.getMetadata() != null
                         && modelResponse.getMetadata().getUsage() != null
@@ -220,7 +247,8 @@ public class SpringAiProviderClient implements AiProviderClient {
                 .chatResponse();
         if (response == null || response.getResult() == null) {
             throw new AiProviderException(ErrorCode.AI_INVALID_RESPONSE,
-                    AiFailureReason.MISSING_FINAL_MODEL_RESPONSE);
+                    AiFailureReason.MISSING_FINAL_MODEL_RESPONSE,
+                    AiFailureDetail.ADVISOR_RESPONSE_MISSING_RESULT);
         }
         if (!finalModelAnswerSeen.get() || !response.getResult().getOutput().getToolCalls().isEmpty()) {
             // A model still asking for tools at the limit has not produced a final explanation.
@@ -228,13 +256,27 @@ public class SpringAiProviderClient implements AiProviderClient {
             if (failureReason == null && tools.executions().size() >= properties.maxToolCalls()) {
                 failureReason = AiFailureReason.TOOL_CALL_LIMIT;
             }
+            AiFailureDetail failureDetail = toolFailureDetail.get();
+            var finalOutput = response.getResult().getOutput();
+            if (failureDetail == null) {
+                if (!finalOutput.getToolCalls().isEmpty()) {
+                    failureDetail = AiFailureDetail.FINAL_RESPONSE_REQUESTS_TOOL;
+                } else if (finalOutput.getText() == null || finalOutput.getText().isBlank()) {
+                    failureDetail = AiFailureDetail.FINAL_RESPONSE_TEXT_EMPTY;
+                } else {
+                    failureDetail = AiFailureDetail.FINAL_RESPONSE_NOT_OBSERVED;
+                }
+            }
             throw new AiProviderException(ErrorCode.AI_INVALID_RESPONSE,
-                    failureReason == null ? AiFailureReason.MISSING_FINAL_MODEL_RESPONSE : failureReason);
+                    failureReason == null ? AiFailureReason.MISSING_FINAL_MODEL_RESPONSE : failureReason,
+                    failureDetail);
         }
         String payload = response.getResult().getOutput().getText();
         var executions = tools.executions();
         var verified = responseGuard.compose(payload, executions);
-        if (verified.diagnosticReason() != null) recordDiagnostic(verified.diagnosticReason());
+        if (verified.diagnosticReason() != null) {
+            recordDiagnostic(verified.diagnosticReason(), null, executions);
+        }
         Integer totalTokens = tokenUsageSeen.get() ? observedTokens.get() : null;
         return new AiProviderResponse(executions, verified.answer(), verified.answerSource(), totalTokens);
     }
@@ -268,9 +310,43 @@ public class SpringAiProviderClient implements AiProviderClient {
         return toolExecutionFailure ? AiFailureReason.TOOL_EXECUTION_FAILURE : AiFailureReason.OTHER_PROVIDER_FAILURE;
     }
 
-    private void recordDiagnostic(AiFailureReason reason) {
-        meters.counter("supplypilot.ai.provider.diagnostics", "reason", reason.name()).increment();
-        log.info("AI provider diagnostic reason={}", reason.name());
+    private AiFailureDetail findFailureDetail(Throwable throwable) {
+        Throwable current = throwable;
+        while (current != null) {
+            if (current instanceof AiProviderException failure && failure.getFailureDetail() != null) {
+                return failure.getFailureDetail();
+            }
+            current = current.getCause();
+        }
+        return null;
+    }
+
+    private AiProviderResponse backendFactsFallback(List<AiToolResult> executions) {
+        if (executions.stream().noneMatch(result -> result.tool() == AiToolType.SEARCH_DOCUMENTS
+                && result.status() == AiQueryStatus.ANSWERED)) return null;
+        try {
+            AiResponseGuard.VerifiedAnswer verified = responseGuard.compose("", executions);
+            if (verified.answer() == null || verified.answerSource() == null) return null;
+            return new AiProviderResponse(executions, verified.answer(), verified.answerSource(), null);
+        } catch (RuntimeException invalidEvidence) {
+            return null;
+        }
+    }
+
+    private void recordDiagnostic(AiFailureReason reason, AiFailureDetail detail) {
+        recordDiagnostic(reason, detail, List.of());
+    }
+
+    private void recordDiagnostic(AiFailureReason reason, AiFailureDetail detail,
+                                  List<AiToolResult> executions) {
+        String detailName = detail == null ? "NONE" : detail.name();
+        long answeredCount = executions.stream().filter(result -> result.status() == AiQueryStatus.ANSWERED).count();
+        long documentAnsweredCount = executions.stream().filter(result -> result.tool() == AiToolType.SEARCH_DOCUMENTS
+                && result.status() == AiQueryStatus.ANSWERED).count();
+        meters.counter("supplypilot.ai.provider.diagnostics", "reason", reason.name(), "detail", detailName)
+                .increment();
+        log.info("AI provider diagnostic reason={} detail={} toolCount={} answeredCount={} documentAnsweredCount={}",
+                reason.name(), detailName, executions.size(), answeredCount, documentAnsweredCount);
     }
 
     private RuntimeException findApplicationFailure(Throwable throwable) {

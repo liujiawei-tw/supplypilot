@@ -1,0 +1,14 @@
+package com.supplypilot.ai.client;
+
+/** Fixed, non-sensitive subcategories for safe provider diagnostics. */
+public enum AiFailureDetail {
+    MATERIAL_CODE_NOT_IN_QUESTION,
+    RECOMMENDATION_ID_NOT_IN_QUESTION,
+    OPEN_PO_MATERIAL_FILTER_MISSING,
+    MODEL_RESPONSE_MISSING_RESULT,
+    ADVISOR_RESPONSE_MISSING_RESULT,
+    NO_TOOL_EXECUTION,
+    FINAL_RESPONSE_REQUESTS_TOOL,
+    FINAL_RESPONSE_TEXT_EMPTY,
+    FINAL_RESPONSE_NOT_OBSERVED
+}

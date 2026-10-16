@@ -5,6 +5,7 @@ import com.supplypilot.common.exception.ErrorCode;
 public class AiProviderException extends RuntimeException {
     private final ErrorCode errorCode;
     private final AiFailureReason failureReason;
+    private final AiFailureDetail failureDetail;
 
     public AiProviderException(ErrorCode errorCode) {
         this(errorCode, (Throwable) null);
@@ -15,10 +16,20 @@ public class AiProviderException extends RuntimeException {
     }
 
     public AiProviderException(ErrorCode errorCode, AiFailureReason failureReason) {
-        this(errorCode, null, failureReason);
+        this(errorCode, null, failureReason, null);
+    }
+
+    public AiProviderException(ErrorCode errorCode, AiFailureReason failureReason,
+                               AiFailureDetail failureDetail) {
+        this(errorCode, null, failureReason, failureDetail);
     }
 
     public AiProviderException(ErrorCode errorCode, Throwable cause, AiFailureReason failureReason) {
+        this(errorCode, cause, failureReason, null);
+    }
+
+    public AiProviderException(ErrorCode errorCode, Throwable cause, AiFailureReason failureReason,
+                               AiFailureDetail failureDetail) {
         super(errorCode.name(), cause);
         if (errorCode != ErrorCode.AI_PROVIDER_UNAVAILABLE
                 && errorCode != ErrorCode.AI_TIMEOUT
@@ -27,6 +38,7 @@ public class AiProviderException extends RuntimeException {
         }
         this.errorCode = errorCode;
         this.failureReason = failureReason == null ? AiFailureReason.OTHER_PROVIDER_FAILURE : failureReason;
+        this.failureDetail = failureDetail;
     }
 
     public ErrorCode getErrorCode() {
@@ -35,5 +47,9 @@ public class AiProviderException extends RuntimeException {
 
     public AiFailureReason getFailureReason() {
         return failureReason;
+    }
+
+    public AiFailureDetail getFailureDetail() {
+        return failureDetail;
     }
 }
