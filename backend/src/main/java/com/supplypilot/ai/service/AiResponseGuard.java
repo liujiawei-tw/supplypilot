@@ -6,6 +6,7 @@ import java.util.Set;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.supplypilot.ai.client.AiProviderException;
+import com.supplypilot.ai.client.AiFailureReason;
 import com.supplypilot.ai.dto.AiQueryStatus;
 import com.supplypilot.ai.tool.AiToolResult;
 import com.supplypilot.common.exception.ErrorCode;
@@ -31,11 +32,11 @@ public class AiResponseGuard {
                 || result.tool() == null || result.status() == null || result.sources() == null
                 || (result.status() == AiQueryStatus.ANSWERED
                     && (result.trustedFacts() == null || result.trustedFacts().isBlank())))) {
-            throw new AiProviderException(ErrorCode.AI_INVALID_RESPONSE);
+            throw new AiProviderException(ErrorCode.AI_INVALID_RESPONSE, AiFailureReason.NO_TOOL_EXECUTION);
         }
         List<AiToolResult> answered = executions.stream()
                 .filter(result -> result.status() == AiQueryStatus.ANSWERED).toList();
-        if (answered.isEmpty()) return new VerifiedAnswer(null, null);
+        if (answered.isEmpty()) return new VerifiedAnswer(null, null, null);
 
         String facts = answered.stream().map(AiToolResult::trustedFacts)
                 .collect(java.util.stream.Collectors.joining("\n"));
@@ -48,20 +49,20 @@ public class AiResponseGuard {
                     || !SAFE_INTROS.contains(root.path("intro").asText())
                     || !root.path("factIndexes").isArray()
                     || root.path("factIndexes").size() != answered.size()) {
-                return new VerifiedAnswer(facts, "BACKEND_FACTS");
+                return new VerifiedAnswer(facts, "BACKEND_FACTS", AiFailureReason.INVALID_FINAL_RESPONSE_STRUCTURE);
             }
             for (int index = 0; index < answered.size(); index++) {
                 JsonNode reference = root.path("factIndexes").get(index);
                 if (!reference.isIntegralNumber() || reference.asInt() != index) {
-                    return new VerifiedAnswer(facts, "BACKEND_FACTS");
+                    return new VerifiedAnswer(facts, "BACKEND_FACTS", AiFailureReason.INVALID_FINAL_RESPONSE_STRUCTURE);
                 }
             }
-            return new VerifiedAnswer(root.path("intro").asText() + "\n" + facts, "MODEL_EXPLANATION");
+            return new VerifiedAnswer(root.path("intro").asText() + "\n" + facts, "MODEL_EXPLANATION", null);
         } catch (Exception invalidModelText) {
-            return new VerifiedAnswer(facts, "BACKEND_FACTS");
+            return new VerifiedAnswer(facts, "BACKEND_FACTS", AiFailureReason.INVALID_FINAL_RESPONSE_STRUCTURE);
         }
     }
 
-    public record VerifiedAnswer(String answer, String answerSource) {
+    public record VerifiedAnswer(String answer, String answerSource, AiFailureReason diagnosticReason) {
     }
 }

@@ -21,15 +21,18 @@ public class AiAssistantService {
     private final AiQueryPlanner planner;
     private final AiProviderClient provider;
     private final CurrentUserProvider currentUserProvider;
+    private final AiAnswerEvidencePolicy evidencePolicy;
 
     public AiAssistantService(
             AiQueryPlanner planner,
             AiProviderClient provider,
-            CurrentUserProvider currentUserProvider
+            CurrentUserProvider currentUserProvider,
+            AiAnswerEvidencePolicy evidencePolicy
     ) {
         this.planner = planner;
         this.provider = provider;
         this.currentUserProvider = currentUserProvider;
+        this.evidencePolicy = evidencePolicy;
     }
 
     @PreAuthorize("hasAnyRole('PROCUREMENT_STAFF', 'PROCUREMENT_MANAGER', 'ADMIN')")
@@ -48,12 +51,16 @@ public class AiAssistantService {
         }
         var result = queryProvider(validated);
         var executions = result.results();
-        boolean answered = executions.stream().anyMatch(item -> item.status() == AiQueryStatus.ANSWERED);
+        var supporting = evidencePolicy.supportingResults(validated, executions);
+        boolean answered = !supporting.isEmpty();
+        boolean untouched = supporting.equals(executions) && result.answer() != null && !result.answer().isBlank();
+        String answer = !answered ? null : untouched ? result.answer() : supporting.stream()
+                .map(item -> item.trustedFacts()).collect(java.util.stream.Collectors.joining("\n"));
         return new AiQueryResponse(answered ? AiQueryStatus.ANSWERED : AiQueryStatus.INSUFFICIENT_EVIDENCE,
-                answered ? result.answer() : null,
+                answer,
                 executions.stream().map(item -> item.tool()).toList(),
-                executions.stream().flatMap(item -> item.sources().stream()).toList(),
-                answered ? result.answerSource() : null);
+                supporting.stream().flatMap(item -> item.sources().stream()).toList(),
+                answered ? untouched ? result.answerSource() : "BACKEND_FACTS" : null);
     }
 
     private com.supplypilot.ai.client.AiProviderResponse queryProvider(String message) {

@@ -7,6 +7,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.lenient;
 
 import java.util.List;
 
@@ -21,6 +22,7 @@ import com.supplypilot.ai.tool.AiQueryPlanner;
 import com.supplypilot.ai.tool.AiToolResult;
 import com.supplypilot.common.exception.BusinessException;
 import com.supplypilot.common.exception.ErrorCode;
+import com.supplypilot.document.rag.EvidenceValidator;
 import com.supplypilot.security.CurrentUserProvider;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -38,11 +40,12 @@ class AiAssistantServiceTests {
 
     @BeforeEach
     void setUp() {
-        service = new AiAssistantService(planner, provider, currentUserProvider);
+        service = new AiAssistantService(planner, provider, currentUserProvider,
+                new AiAnswerEvidencePolicy(new EvidenceValidator()));
         result = new AiToolResult(AiToolType.QUERY_INVENTORY, AiQueryStatus.ANSWERED,
                 "MAT-001 庫存為 200 KG。", List.of(AiSourceResponse.resource("INVENTORY", 7, "MAT-001")));
         when(currentUserProvider.getCurrentUserId()).thenReturn(11L);
-        when(planner.validate("庫存")).thenReturn("庫存");
+        lenient().when(planner.validate("庫存")).thenReturn("庫存");
     }
 
     @Test
@@ -107,6 +110,122 @@ class AiAssistantServiceTests {
         assertThat(response.answer()).contains("Material Code");
         assertThat(response.tools()).isEmpty();
         verify(provider, never()).query(any());
+    }
+
+    @Test
+    void contractLeadTimeCannotBeAnsweredByRecommendationAlone() {
+        assertContractQuestionInsufficient(List.of(tool(AiToolType.QUERY_RECOMMENDATION,
+                "MAT-001 建議採購。", "PURCHASE_RECOMMENDATION")));
+    }
+
+    @Test
+    void contractLeadTimeCannotBeAnsweredBySupplierRankingAlone() {
+        assertContractQuestionInsufficient(List.of(tool(AiToolType.QUERY_SUPPLIER_RANKING,
+                "SUP-001 排名第一。", "SUPPLIER_RANKING")));
+    }
+
+    @Test
+    void rankingLeadTimeDaysIsNotContractEvidence() {
+        assertContractQuestionInsufficient(List.of(tool(AiToolType.QUERY_SUPPLIER_RANKING,
+                "SUP-001 的 MAT-001 leadTimeDays 為 3。", "SUPPLIER_RANKING")));
+    }
+
+    @Test
+    void anotherSuppliersDocumentCannotAnswerContractLeadTime() {
+        assertContractQuestionInsufficient(List.of(document("SUP-002 的 MAT-001 標準交期為 ORDERED 後 3 個曆日。", "2")));
+    }
+
+    @Test
+    void recommendationAndWrongDocumentCannotAnswerContractLeadTime() {
+        assertContractQuestionInsufficient(List.of(
+                tool(AiToolType.QUERY_RECOMMENDATION, "MAT-001 建議採購。", "PURCHASE_RECOMMENDATION"),
+                document("SUP-002 的 MAT-001 標準交期為 ORDERED 後 3 個曆日。", "2")));
+    }
+
+    @Test
+    void relevantContractDocumentExcludesUnrequestedRecommendationFactsAndSources() {
+        String question = "SUP-001 的 MAT-001 標準交期是多久？";
+        String clause = "SUP-001 的 MAT-001 標準交期為 ORDERED 後 6 個曆日。";
+        AiToolResult document = document(clause, "1");
+        AiToolResult recommendation = tool(AiToolType.QUERY_RECOMMENDATION,
+                "MAT-001 建議採購。", "PURCHASE_RECOMMENDATION");
+        var response = queryWith(question, List.of(document, recommendation));
+        assertThat(response.status()).isEqualTo(AiQueryStatus.ANSWERED);
+        assertThat(response.answer()).contains("ORDERED 後 6 個曆日").doesNotContain("建議採購");
+        assertThat(response.sources()).containsExactlyElementsOf(document.sources());
+        assertThat(response.tools()).containsExactly(AiToolType.SEARCH_DOCUMENTS, AiToolType.QUERY_RECOMMENDATION);
+    }
+
+    @Test
+    void relevantContractDocumentAnswersWithoutHardcodedBusinessTerm() {
+        String clause = "SUP-001 的 MAT-001 標準交期為 ORDERED 後 8 個曆日。";
+        var response = queryWith("SUP-001 的 MAT-001 標準交期是多久？", List.of(document(clause, "1")));
+        assertThat(response.status()).isEqualTo(AiQueryStatus.ANSWERED);
+        assertThat(response.answer()).contains("8 個曆日");
+        assertThat(response.sources()).singleElement().satisfies(source -> {
+            assertThat(source.resourceId()).isEqualTo("1");
+            assertThat(source.version()).isEqualTo("1.0");
+            assertThat(source.chunkIndex()).isZero();
+            assertThat(source.endOffset() - source.startOffset()).isEqualTo(source.excerpt().length());
+        });
+    }
+
+    @Test
+    void documentWithoutValidCitationCannotAnswerContractLeadTime() {
+        String clause = "SUP-001 的 MAT-001 標準交期為 ORDERED 後 6 個曆日。";
+        AiToolResult missingSource = new AiToolResult(AiToolType.SEARCH_DOCUMENTS,
+                AiQueryStatus.ANSWERED, clause, List.of());
+        assertContractQuestionInsufficient(List.of(missingSource));
+        AiSourceResponse badOffset = new AiSourceResponse("DOCUMENT", "1", "測試合約", "1.0", 1L,
+                0, 0, clause.length() + 1, clause, 0.9);
+        assertContractQuestionInsufficient(List.of(new AiToolResult(AiToolType.SEARCH_DOCUMENTS,
+                AiQueryStatus.ANSWERED, clause, List.of(badOffset))));
+    }
+
+    @Test
+    void requestedInventoryAndRecommendationRemainValidMultiToolAnswer() {
+        String question = "MAT-001 的庫存與採購建議為何？";
+        AiToolResult inventory = tool(AiToolType.QUERY_INVENTORY, "MAT-001 庫存為 200 KG。", "INVENTORY");
+        AiToolResult recommendation = tool(AiToolType.QUERY_RECOMMENDATION,
+                "MAT-001 建議採購 100 KG。", "PURCHASE_RECOMMENDATION");
+        var response = queryWith(question, List.of(inventory, recommendation));
+        assertThat(response.status()).isEqualTo(AiQueryStatus.ANSWERED);
+        assertThat(response.answer()).contains("庫存為 200 KG", "建議採購 100 KG");
+        assertThat(response.sources()).hasSize(2);
+    }
+
+    @Test
+    void explanationToolCanAnswerExplicitRecommendationQuestion() {
+        var response = queryWith("為什麼推薦 MAT-001？", List.of(tool(AiToolType.EXPLAIN_RECOMMENDATION,
+                "MAT-001 的推薦原因已核對。", "PURCHASE_RECOMMENDATION")));
+        assertThat(response.status()).isEqualTo(AiQueryStatus.ANSWERED);
+    }
+
+    private void assertContractQuestionInsufficient(List<AiToolResult> results) {
+        var response = queryWith("SUP-001 的 MAT-001 標準交期是多久？", results);
+        assertThat(response.status()).isEqualTo(AiQueryStatus.INSUFFICIENT_EVIDENCE);
+        assertThat(response.answer()).isNull();
+        assertThat(response.sources()).isEmpty();
+    }
+
+    private com.supplypilot.ai.dto.AiQueryResponse queryWith(String question, List<AiToolResult> results) {
+        when(planner.validate(question)).thenReturn(question);
+        when(provider.isConfigured()).thenReturn(true);
+        when(provider.query(any())).thenReturn(new AiProviderResponse(results,
+                results.stream().map(AiToolResult::trustedFacts).filter(java.util.Objects::nonNull)
+                        .collect(java.util.stream.Collectors.joining("\n")), "MODEL_EXPLANATION", 21));
+        return service.query(question);
+    }
+
+    private AiToolResult tool(AiToolType type, String fact, String resourceType) {
+        return new AiToolResult(type, AiQueryStatus.ANSWERED, fact,
+                List.of(AiSourceResponse.resource(resourceType, 1, "MAT-001")));
+    }
+
+    private AiToolResult document(String clause, String id) {
+        return new AiToolResult(AiToolType.SEARCH_DOCUMENTS, AiQueryStatus.ANSWERED, clause,
+                List.of(new AiSourceResponse("DOCUMENT", id, "測試合約", "1.0", 1L,
+                        0, 0, clause.length(), clause, 0.9)));
     }
 
     private void assertCode(ErrorCode code) {
