@@ -432,7 +432,7 @@ Codex 命令執行環境回報的 `LOCALAPPDATA` 為隔離 Sandbox 路徑、r4 �
 
 ## r4 真實 Gemini／Semantic Gate／Browser 續驗（2026-10-16，Asia/Taipei）
 
-本節是後續實測追加，保留上方歷史紀錄，不覆寫 r3／r4 先前狀態。本次本機程式碼 HEAD 為 `53e3743290d69c224a3ea200e61969fb411e19d3`，分支 `codex/sp-910-real-e9-acceptance`；沒有改產品程式碼，沒有重建 r5、重新 Seed 或 Reset r3／r4。r4 專用 MySQL、pgvector、Volume、Storage 與五份 Dataset 持續沿用。
+本節是後續實測追加，保留上方歷史紀錄，不覆寫 r3／r4 先前狀態。本次本機程式碼 HEAD 為 `53e3743290d69c224a3ea200e61969fb411e19d3`，分支 `codex/sp-910-real-e9-acceptance`。核對時最新 `origin/main` 為 `08b9d079dad4aaf42f90a61891e2794fbc888eee`，已是此 HEAD 的祖先（經既有 merge commit `cf068cf`），包含 PR #123；因此不需再 merge。沒有改產品程式碼，沒有重建 r5、重新 Seed 或 Reset r3／r4。r4 專用 MySQL、pgvector、Volume、Storage 與五份 Dataset 持續沿用。
 
 ### Secret、Provider 與隔離狀態
 
@@ -482,6 +482,6 @@ Provider 日誌只保留安全映射後的 outcome、延遲及 token 用量，�
 | 中文→英文跨語 | NOT RUN | 需額外英文文件及可控、可清除資料階段；現有五份基線查詢仍有 FAIL，不新增文件污染 r4 |
 | SUP-005 Browser Upload／Ingestion／索引 | BLOCKED | 五份 Baseline Source Query 全部 PASS 的既定前置不滿足；本輪未上傳第六份文件 |
 | Guarded Reset／Reset 後 Gate 恢復 | NOT RUN | E9 前置未全通過，沒有執行破壞性 Reset；r4 目前保留採購操作後狀態與五份已索引文件 |
-| Backend／Frontend CI | NOT RUN（本輪證據更新尚未觸發 CI） | 此前 docs/evidence-only Actions 的 Backend／Frontend job 為 SKIPPED；不得稱完整回歸 PASS |
+| Backend／Frontend CI | NOT RUN（本輪證據更新為文件／截圖／JSON） | workflow 的 branch push scope 對 docs／evidence-only 變更會跳過 Backend／Frontend；目前環境無法讀取私有 Actions 本輪 job 明細，不將推論寫成實際 PASS |
 
 本輪真實實測結論為 **SP-910 E9 FAIL — REPRODUCIBLE FINDINGS**，同時 SUP-005、跨語中文→英文及 Reset 項目仍受前置／隔離條件限制。阻擋結果不是環境憑證不存在：`AI_API_KEY` 別名已被正確使用、真實 Gemini Chat／Embedding 均有成功呼叫證據。需要後續針對三個 `AI_INVALID_RESPONSE` trace 取得安全的 Provider／Tool 層診斷並修復或另行追蹤；在根因未證實前不修改 #117 的安全政策、Business Rule 或預期答案。r3 未受影響，r4 未 Reset。
