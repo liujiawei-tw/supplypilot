@@ -11,20 +11,20 @@ const outcomePresentation = {
   PURCHASE_NOT_REQUIRED: {
     color: 'green',
     alert: 'success',
-    label: '不需要採購',
-    description: '依這筆已保存的計算結果，目前沒有淨採購需求。',
+    alertTitle: '目前沒有淨採購需求',
+    description: '已保存快照顯示淨採購需求為零。',
   },
   SUPPLIER_RECOMMENDED: {
     color: 'blue',
     alert: 'info',
-    label: '已有推薦供應商',
-    description: '建議供應商與數量來自這筆已保存的採購決策。',
+    alertTitle: '可依建議評估建立草稿',
+    description: '建議供應商與數量取自後端已保存決策。',
   },
   NO_QUALIFIED_SUPPLIER: {
     color: 'orange',
     alert: 'warning',
-    label: '沒有合格供應商',
-    description: '存在淨採購需求，但後端沒有回傳符合條件的供應商。',
+    alertTitle: '請先檢視供應商排除原因',
+    description: '目前有淨採購需求，但後端未回傳合格供應商。',
   },
 } as const;
 
@@ -84,7 +84,7 @@ export default function RecommendationSummary({
         <Tag color={outcome.color}>{displayLabel(recommendation.outcome)}</Tag>
         {showDeepLink && <Link to={`/recommendations/${recommendation.id}`}>開啟已儲存明細</Link>}
       </Space>
-      <Alert type={outcome.alert} showIcon title={outcome.label} description={outcome.description} />
+      <Alert type={outcome.alert} showIcon title={outcome.alertTitle} description={outcome.description} />
 
       <div className="recommendation-decision-grid">
         <div className="recommendation-material">

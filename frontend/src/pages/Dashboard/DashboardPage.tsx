@@ -55,13 +55,13 @@ const emptyPanel = (): WorkPanelState => ({ status: 'LOADING', rows: [], totalEl
 
 function panelsForRole(role: UserRole): WorkPanelDefinition[] {
   if (role === 'PROCUREMENT_STAFF') return [
-    { key: 'purchase-draft', title: '採購草稿', description: '後端狀態為 DRAFT 的採購單。', kind: 'purchase-order', permission: 'purchaseOrderRead', status: 'DRAFT', destination: '/purchase-orders', emptyDescription: '目前沒有 DRAFT 採購單。' },
+    { key: 'purchase-draft', title: '採購草稿', description: '查看尚待處理的採購草稿。', kind: 'purchase-order', permission: 'purchaseOrderRead', status: 'DRAFT', destination: '/purchase-orders', emptyDescription: '目前沒有待處理的採購草稿。' },
     { key: 'purchase-approval', title: '待下單採購單', description: '已核准、可由採購人員接續下單的採購單。', kind: 'purchase-order', permission: 'purchaseOrderRead', status: 'APPROVED', destination: '/purchase-orders', emptyDescription: '目前沒有等待下單的已核准採購單。' },
-    { key: 'purchase-ordered', title: '已下單採購單', description: '追蹤已送出的採購單與收貨進度。', kind: 'purchase-order', permission: 'purchaseOrderRead', status: 'ORDERED', destination: '/purchase-orders', emptyDescription: '目前沒有 ORDERED 採購單。' },
+    { key: 'purchase-ordered', title: '已下單採購單', description: '追蹤已送出的採購單與收貨進度。', kind: 'purchase-order', permission: 'purchaseOrderRead', status: 'ORDERED', destination: '/purchase-orders', emptyDescription: '目前沒有已下單、待追蹤的採購單。' },
   ];
 
   if (role === 'PROCUREMENT_MANAGER') return [
-    { key: 'purchase-review', title: '等待核准', description: '僅列出後端狀態為 DRAFT 的採購單。', kind: 'purchase-order', permission: 'purchaseOrderRead', status: 'DRAFT', destination: '/purchase-orders', emptyDescription: '目前沒有等待審核的 DRAFT 採購單。' },
+    { key: 'purchase-review', title: '等待核准', description: '僅顯示仍待核准的採購草稿。', kind: 'purchase-order', permission: 'purchaseOrderRead', status: 'DRAFT', destination: '/purchase-orders', emptyDescription: '目前沒有等待核准的採購草稿。' },
   ];
 
   if (role === 'WAREHOUSE_STAFF') return [
@@ -69,13 +69,13 @@ function panelsForRole(role: UserRole): WorkPanelDefinition[] {
   ];
 
   if (role === 'ADMIN') return [
-    { key: 'admin-purchase-review', title: '待處理採購單', description: '供管理員檢視草稿與已核准採購單。', kind: 'purchase-order', permission: 'purchaseOrderRead', status: 'DRAFT', destination: '/purchase-orders', emptyDescription: '目前沒有 DRAFT 採購單。' },
+    { key: 'admin-purchase-review', title: '待處理採購單', description: '供管理員檢視草稿與已核准採購單。', kind: 'purchase-order', permission: 'purchaseOrderRead', status: 'DRAFT', destination: '/purchase-orders', emptyDescription: '目前沒有待處理的採購草稿。' },
     { key: 'admin-purchase-ordering', title: '已核准待下單', description: '已核准、可繼續下單作業的採購單。', kind: 'purchase-order', permission: 'purchaseOrderRead', status: 'APPROVED', destination: '/purchase-orders', emptyDescription: '目前沒有已核准待下單的採購單。' },
     { key: 'admin-receiving', title: '待收貨採購單', description: '以收貨專用資料檢視到貨作業。', kind: 'receiving', permission: 'receiving', status: 'ORDERED', destination: '/receiving/purchase-orders', emptyDescription: '目前沒有待收貨採購單。' },
   ];
 
   return [
-    { key: 'planner-demands', title: '進行中的需求', description: '依需求日期查看 ACTIVE Demand；數量不跨物料或單位加總。', kind: 'demand', permission: 'demands', status: 'ACTIVE', destination: '/demands', emptyDescription: '目前沒有 ACTIVE 需求。' },
+    { key: 'planner-demands', title: '進行中的需求', description: '依需求日期查看進行中的生產需求；數量不跨物料或單位加總。', kind: 'demand', permission: 'demands', status: 'ACTIVE', destination: '/demands', emptyDescription: '目前沒有進行中的生產需求。' },
   ];
 }
 

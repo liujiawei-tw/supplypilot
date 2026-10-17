@@ -134,7 +134,7 @@ describe('SP-907 role-adaptive dashboard API access', () => {
     });
 
     await openDashboard('PROCUREMENT_MANAGER');
-    expect(await screen.findByText('目前沒有等待審核的 DRAFT 採購單。')).toBeTruthy();
+    expect(await screen.findByText('目前沒有等待核准的採購草稿。')).toBeTruthy();
     expect(screen.getByText('目前 0 筆')).toBeTruthy();
     expect(requests.filter((request) => request.url === '/purchase-orders')).toHaveLength(1);
     expect(params(requests.find((request) => request.url === '/purchase-orders')!).status).toBe('DRAFT');
@@ -229,6 +229,43 @@ describe('SP-907 role-adaptive dashboard API access', () => {
     expect(requests.filter((request) => request.url === '/purchase-orders' && params(request).status === 'DRAFT')).toHaveLength(2);
     expect(requests.filter((request) => request.url === '/purchase-orders' && params(request).status === 'APPROVED')).toHaveLength(1);
     expect(requests.filter((request) => request.url === '/purchase-orders' && params(request).status === 'ORDERED')).toHaveLength(1);
+  });
+
+  it('shows a sanitized forbidden state for HTTP 403 without treating it as empty or retrying', async () => {
+    const requests: InternalAxiosRequestConfig[] = [];
+    axiosClient.defaults.adapter = vi.fn(async (config) => {
+      requests.push(config);
+      if (config.url === '/auth/me') return response(config, identities.PROCUREMENT_STAFF);
+      if (config.url === '/purchase-orders' && params(config).status === 'DRAFT') {
+        throw new AxiosError('Forbidden', 'ERR_BAD_REQUEST', config, undefined, response(config, {
+          code: 'ACCESS_DENIED',
+          message: 'Sensitive backend authorization details',
+          traceId: 'dash-403-00001',
+          timestamp: '2026-10-17T08:00:00Z',
+          path: config.url,
+        }, 403));
+      }
+      if (config.url === '/purchase-orders') {
+        return response(config, page([purchaseOrder(params(config).status as 'APPROVED' | 'ORDERED')]));
+      }
+      throw new Error(`Unexpected request ${config.method} ${config.url}`);
+    });
+
+    await openDashboard('PROCUREMENT_STAFF');
+    const forbiddenPanel = screen.getByRole('region', { name: '採購草稿' });
+    expect(await within(forbiddenPanel).findByText('此工作資料無權限顯示')).toBeTruthy();
+    expect(within(forbiddenPanel).queryByText(/目前 0 筆/)).toBeNull();
+    expect(within(forbiddenPanel).queryByText(/目前沒有 .*採購草稿/)).toBeNull();
+    expect(within(forbiddenPanel).queryByText('Sensitive backend authorization details')).toBeNull();
+    expect(await screen.findByText('部分工作資料無法載入')).toBeTruthy();
+    expect(await screen.findByText('PO-APPROVED')).toBeTruthy();
+    expect(await screen.findByText('PO-ORDERED')).toBeTruthy();
+
+    await waitFor(() => expect(requests.filter((request) => request.url === '/purchase-orders')).toHaveLength(3));
+    expect(requests.filter((request) => request.url === '/purchase-orders').map((request) => params(request).status).sort()).toEqual(['APPROVED', 'DRAFT', 'ORDERED']);
+    expect(requests.some((request) => request.url === '/inventory')).toBe(false);
+    expect(requests.some((request) => request.url?.startsWith('/receiving/'))).toBe(false);
+    expect(requests.some((request) => request.url === '/demands')).toBe(false);
   });
 
   it('ignores an old role response after the authenticated role changes', async () => {

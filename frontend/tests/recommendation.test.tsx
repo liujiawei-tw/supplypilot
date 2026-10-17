@@ -92,8 +92,8 @@ describe('SP-804 role-aware routes', () => {
 
 describe('SP-804 Recommendation rendering', () => {
   it.each([
-    ['PURCHASE_NOT_REQUIRED', '不需要採購', '0.0000 KG'],
-    ['SUPPLIER_RECOMMENDED', '已有推薦供應商', '108.4500 KG'],
+    ['PURCHASE_NOT_REQUIRED', '無須採購', '0.0000 KG'],
+    ['SUPPLIER_RECOMMENDED', '建議供應商', '108.4500 KG'],
     ['NO_QUALIFIED_SUPPLIER', '沒有合格供應商', '108.4500 KG'],
   ] as const)('renders %s using backend snapshot values', async (outcome, label, netRequirement) => {
     axiosClient.defaults.adapter = vi.fn(async (config) => {
@@ -103,7 +103,7 @@ describe('SP-804 Recommendation rendering', () => {
       throw new Error(`Unexpected request ${config.url}`);
     });
     await open('/recommendations/91');
-    expect((await screen.findAllByText(label)).length).toBeGreaterThan(0);
+    expect(await screen.findAllByText(label)).toHaveLength(1);
     expect(screen.getAllByText(netRequirement).length).toBeGreaterThan(0);
     expect(document.querySelector('.recommendation-material .recommendation-wrap-value')?.textContent).toBe('MAT-007 · Copper snapshot');
     expect(screen.queryByRole('button', { name: '檢視採購單草稿' })).toBeNull();
