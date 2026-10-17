@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Input, Select, Space, Table, Tag, Typography } from 'antd';
 import type { TableProps } from 'antd';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { listReceivingPurchaseOrders, type ReceivingPurchaseOrderResponse, type ReceivingQuery } from '../../api/receiving';
 import { toApiError } from '../../api/apiError';
 import EmptyState from '../../components/EmptyState';
@@ -13,10 +13,12 @@ import { displayLabel } from '../../utils/displayLabels';
 const sortable = new Set(['id', 'poNumber', 'expectedDeliveryDate', 'orderedAt', 'receivedAt']);
 
 export default function ReceivingPage() {
+  const [searchParams] = useSearchParams();
+  const initialStatus = searchParams.get('status') === 'RECEIVED' ? 'RECEIVED' : 'ORDERED';
   const [data, setData] = useState<PageResponse<ReceivingPurchaseOrderResponse> | null>(null);
   const [error, setError] = useState<ApiErrorResponse | null>(null);
   const [loading, setLoading] = useState(true);
-  const [query, setQuery] = useState<ReceivingQuery>({ status: 'ORDERED', page: 0, size: 20, sort: 'id,asc' });
+  const [query, setQuery] = useState<ReceivingQuery>(() => ({ status: initialStatus, page: 0, size: 20, sort: 'id,asc' }));
   const requestId = useRef(0);
   const load = useCallback(async () => {
     const current = ++requestId.current; setLoading(true); setError(null);

@@ -1,0 +1,830 @@
+{
+  "generatedAt": "2026-10-17T08:41:53.676Z",
+  "gitSha": "791744b2d2720ec7bf6a65c943efe900580e35ac",
+  "browser": "Microsoft Edge (Playwright channel=msedge, headed)",
+  "edgeVersion": "155.0.4283.60",
+  "viewport": {
+    "width": 1440,
+    "height": 1000
+  },
+  "fixtureMode": true,
+  "backendIntegration": false,
+  "cases": [
+    {
+      "id": "dashboard-procurement-staff",
+      "role": "PROCUREMENT_STAFF",
+      "url": "http://127.0.0.1:5187/dashboard",
+      "status": "PASS",
+      "screenState": "採購草稿、已核准待下單、已下單待追蹤三區均顯示 Fixture 資料。",
+      "screenshot": "screenshots/dashboard-procurement-staff.png",
+      "requests": [
+        {
+          "method": "GET",
+          "path": "/auth/me",
+          "query": {},
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/auth/me",
+          "query": {},
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/auth/me",
+          "query": {},
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/auth/me",
+          "query": {},
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/purchase-orders",
+          "query": {
+            "status": "DRAFT",
+            "page": "0",
+            "size": "5",
+            "sort": "id,desc"
+          },
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/purchase-orders",
+          "query": {
+            "status": "APPROVED",
+            "page": "0",
+            "size": "5",
+            "sort": "id,desc"
+          },
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/purchase-orders",
+          "query": {
+            "status": "ORDERED",
+            "page": "0",
+            "size": "5",
+            "sort": "id,desc"
+          },
+          "status": 200
+        }
+      ]
+    },
+    {
+      "id": "dashboard-procurement-manager",
+      "role": "PROCUREMENT_MANAGER",
+      "url": "http://127.0.0.1:5187/dashboard",
+      "status": "PASS",
+      "screenState": "等待核准區顯示採購草稿。",
+      "screenshot": "screenshots/dashboard-procurement-manager.png",
+      "requests": [
+        {
+          "method": "GET",
+          "path": "/auth/me",
+          "query": {},
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/auth/me",
+          "query": {},
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/purchase-orders",
+          "query": {
+            "status": "DRAFT",
+            "page": "0",
+            "size": "5",
+            "sort": "id,desc"
+          },
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/auth/me",
+          "query": {},
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/auth/me",
+          "query": {},
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/purchase-orders",
+          "query": {
+            "status": "DRAFT",
+            "page": "0",
+            "size": "5",
+            "sort": "id,desc"
+          },
+          "status": 200
+        }
+      ]
+    },
+    {
+      "id": "dashboard-warehouse",
+      "role": "WAREHOUSE_STAFF",
+      "url": "http://127.0.0.1:5187/dashboard",
+      "status": "PASS",
+      "screenState": "待收貨區只顯示收貨專用資料。",
+      "screenshot": "screenshots/dashboard-warehouse.png",
+      "requests": [
+        {
+          "method": "GET",
+          "path": "/auth/me",
+          "query": {},
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/auth/me",
+          "query": {},
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/receiving/purchase-orders",
+          "query": {
+            "status": "ORDERED",
+            "page": "0",
+            "size": "5",
+            "sort": "expectedDeliveryDate,asc"
+          },
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/auth/me",
+          "query": {},
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/auth/me",
+          "query": {},
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/receiving/purchase-orders",
+          "query": {
+            "status": "ORDERED",
+            "page": "0",
+            "size": "5",
+            "sort": "expectedDeliveryDate,asc"
+          },
+          "status": 200
+        }
+      ]
+    },
+    {
+      "id": "dashboard-admin",
+      "role": "ADMIN",
+      "url": "http://127.0.0.1:5187/dashboard",
+      "status": "PASS",
+      "screenState": "採購草稿、已核准待下單與待收貨三區均顯示資料。",
+      "screenshot": "screenshots/dashboard-admin.png",
+      "requests": [
+        {
+          "method": "GET",
+          "path": "/auth/me",
+          "query": {},
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/auth/me",
+          "query": {},
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/purchase-orders",
+          "query": {
+            "status": "DRAFT",
+            "page": "0",
+            "size": "5",
+            "sort": "id,desc"
+          },
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/purchase-orders",
+          "query": {
+            "status": "APPROVED",
+            "page": "0",
+            "size": "5",
+            "sort": "id,desc"
+          },
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/receiving/purchase-orders",
+          "query": {
+            "status": "ORDERED",
+            "page": "0",
+            "size": "5",
+            "sort": "expectedDeliveryDate,asc"
+          },
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/auth/me",
+          "query": {},
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/auth/me",
+          "query": {},
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/purchase-orders",
+          "query": {
+            "status": "DRAFT",
+            "page": "0",
+            "size": "5",
+            "sort": "id,desc"
+          },
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/purchase-orders",
+          "query": {
+            "status": "APPROVED",
+            "page": "0",
+            "size": "5",
+            "sort": "id,desc"
+          },
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/receiving/purchase-orders",
+          "query": {
+            "status": "ORDERED",
+            "page": "0",
+            "size": "5",
+            "sort": "expectedDeliveryDate,asc"
+          },
+          "status": 200
+        }
+      ]
+    },
+    {
+      "id": "dashboard-empty",
+      "role": "PROCUREMENT_STAFF",
+      "url": "http://127.0.0.1:5187/dashboard",
+      "status": "PASS",
+      "screenState": "空清單顯示明確的無待處理工作訊息。",
+      "screenshot": "screenshots/dashboard-empty.png",
+      "requests": [
+        {
+          "method": "GET",
+          "path": "/auth/me",
+          "query": {},
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/auth/me",
+          "query": {},
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/purchase-orders",
+          "query": {
+            "status": "DRAFT",
+            "page": "0",
+            "size": "5",
+            "sort": "id,desc"
+          },
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/purchase-orders",
+          "query": {
+            "status": "APPROVED",
+            "page": "0",
+            "size": "5",
+            "sort": "id,desc"
+          },
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/purchase-orders",
+          "query": {
+            "status": "ORDERED",
+            "page": "0",
+            "size": "5",
+            "sort": "id,desc"
+          },
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/auth/me",
+          "query": {},
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/auth/me",
+          "query": {},
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/purchase-orders",
+          "query": {
+            "status": "DRAFT",
+            "page": "0",
+            "size": "5",
+            "sort": "id,desc"
+          },
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/purchase-orders",
+          "query": {
+            "status": "APPROVED",
+            "page": "0",
+            "size": "5",
+            "sort": "id,desc"
+          },
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/purchase-orders",
+          "query": {
+            "status": "ORDERED",
+            "page": "0",
+            "size": "5",
+            "sort": "id,desc"
+          },
+          "status": 200
+        }
+      ]
+    },
+    {
+      "id": "dashboard-forbidden-403",
+      "role": "PROCUREMENT_STAFF",
+      "url": "http://127.0.0.1:5187/dashboard",
+      "status": "PASS",
+      "screenState": "草稿區顯示無權限訊息且不顯示空清單；其他已載入工作保留並顯示部分資料提示。",
+      "screenshot": "screenshots/dashboard-forbidden-403.png",
+      "requests": [
+        {
+          "method": "GET",
+          "path": "/auth/me",
+          "query": {},
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/auth/me",
+          "query": {},
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/purchase-orders",
+          "query": {
+            "status": "DRAFT",
+            "page": "0",
+            "size": "5",
+            "sort": "id,desc"
+          },
+          "status": 403
+        },
+        {
+          "method": "GET",
+          "path": "/purchase-orders",
+          "query": {
+            "status": "APPROVED",
+            "page": "0",
+            "size": "5",
+            "sort": "id,desc"
+          },
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/purchase-orders",
+          "query": {
+            "status": "ORDERED",
+            "page": "0",
+            "size": "5",
+            "sort": "id,desc"
+          },
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/auth/me",
+          "query": {},
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/auth/me",
+          "query": {},
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/purchase-orders",
+          "query": {
+            "status": "DRAFT",
+            "page": "0",
+            "size": "5",
+            "sort": "id,desc"
+          },
+          "status": 403
+        },
+        {
+          "method": "GET",
+          "path": "/purchase-orders",
+          "query": {
+            "status": "APPROVED",
+            "page": "0",
+            "size": "5",
+            "sort": "id,desc"
+          },
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/purchase-orders",
+          "query": {
+            "status": "ORDERED",
+            "page": "0",
+            "size": "5",
+            "sort": "id,desc"
+          },
+          "status": 200
+        }
+      ]
+    },
+    {
+      "id": "dashboard-error-partial",
+      "role": "PROCUREMENT_STAFF",
+      "url": "http://127.0.0.1:5187/dashboard",
+      "status": "PASS",
+      "screenState": "草稿區顯示查詢失敗；其他已載入工作保留並顯示部分資料提示。",
+      "screenshot": "screenshots/dashboard-error-partial.png",
+      "requests": [
+        {
+          "method": "GET",
+          "path": "/auth/me",
+          "query": {},
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/auth/me",
+          "query": {},
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/purchase-orders",
+          "query": {
+            "status": "DRAFT",
+            "page": "0",
+            "size": "5",
+            "sort": "id,desc"
+          },
+          "status": 500
+        },
+        {
+          "method": "GET",
+          "path": "/purchase-orders",
+          "query": {
+            "status": "APPROVED",
+            "page": "0",
+            "size": "5",
+            "sort": "id,desc"
+          },
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/purchase-orders",
+          "query": {
+            "status": "ORDERED",
+            "page": "0",
+            "size": "5",
+            "sort": "id,desc"
+          },
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/auth/me",
+          "query": {},
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/auth/me",
+          "query": {},
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/purchase-orders",
+          "query": {
+            "status": "DRAFT",
+            "page": "0",
+            "size": "5",
+            "sort": "id,desc"
+          },
+          "status": 500
+        },
+        {
+          "method": "GET",
+          "path": "/purchase-orders",
+          "query": {
+            "status": "APPROVED",
+            "page": "0",
+            "size": "5",
+            "sort": "id,desc"
+          },
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/purchase-orders",
+          "query": {
+            "status": "ORDERED",
+            "page": "0",
+            "size": "5",
+            "sort": "id,desc"
+          },
+          "status": 200
+        }
+      ]
+    },
+    {
+      "id": "recommendation-purchase-not-required",
+      "role": "PROCUREMENT_STAFF",
+      "url": "http://127.0.0.1:5187/recommendations/91",
+      "status": "PASS",
+      "screenState": "顯示無須採購標籤、零淨需求及不需建立草稿的下一步。",
+      "screenshot": "screenshots/recommendation-purchase-not-required.png",
+      "requests": [
+        {
+          "method": "GET",
+          "path": "/auth/me",
+          "query": {},
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/auth/me",
+          "query": {},
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/purchase-orders",
+          "query": {
+            "status": "DRAFT",
+            "page": "0",
+            "size": "5",
+            "sort": "id,desc"
+          },
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/purchase-orders",
+          "query": {
+            "status": "APPROVED",
+            "page": "0",
+            "size": "5",
+            "sort": "id,desc"
+          },
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/purchase-orders",
+          "query": {
+            "status": "ORDERED",
+            "page": "0",
+            "size": "5",
+            "sort": "id,desc"
+          },
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/auth/me",
+          "query": {},
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/auth/me",
+          "query": {},
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/recommendations/91",
+          "query": {},
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/recommendations/91/suppliers",
+          "query": {},
+          "status": 200
+        }
+      ]
+    },
+    {
+      "id": "recommendation-supplier-recommended",
+      "role": "PROCUREMENT_STAFF",
+      "url": "http://127.0.0.1:5187/recommendations/91",
+      "status": "PASS",
+      "screenState": "顯示推薦供應商、淨需求、排名／排除原因與草稿檢視表單。",
+      "screenshot": "screenshots/recommendation-supplier-recommended.png",
+      "requests": [
+        {
+          "method": "GET",
+          "path": "/auth/me",
+          "query": {},
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/auth/me",
+          "query": {},
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/purchase-orders",
+          "query": {
+            "status": "DRAFT",
+            "page": "0",
+            "size": "5",
+            "sort": "id,desc"
+          },
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/purchase-orders",
+          "query": {
+            "status": "APPROVED",
+            "page": "0",
+            "size": "5",
+            "sort": "id,desc"
+          },
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/purchase-orders",
+          "query": {
+            "status": "ORDERED",
+            "page": "0",
+            "size": "5",
+            "sort": "id,desc"
+          },
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/auth/me",
+          "query": {},
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/auth/me",
+          "query": {},
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/recommendations/91",
+          "query": {},
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/recommendations/91/suppliers",
+          "query": {},
+          "status": 200
+        }
+      ]
+    },
+    {
+      "id": "recommendation-no-qualified-supplier",
+      "role": "PROCUREMENT_STAFF",
+      "url": "http://127.0.0.1:5187/recommendations/91",
+      "status": "PASS",
+      "screenState": "顯示未找到合格供應商、淨需求及展開的排除原因排名。",
+      "screenshot": "screenshots/recommendation-no-qualified-supplier.png",
+      "requests": [
+        {
+          "method": "GET",
+          "path": "/auth/me",
+          "query": {},
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/auth/me",
+          "query": {},
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/purchase-orders",
+          "query": {
+            "status": "DRAFT",
+            "page": "0",
+            "size": "5",
+            "sort": "id,desc"
+          },
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/purchase-orders",
+          "query": {
+            "status": "APPROVED",
+            "page": "0",
+            "size": "5",
+            "sort": "id,desc"
+          },
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/purchase-orders",
+          "query": {
+            "status": "ORDERED",
+            "page": "0",
+            "size": "5",
+            "sort": "id,desc"
+          },
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/auth/me",
+          "query": {},
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/auth/me",
+          "query": {},
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/recommendations/91",
+          "query": {},
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/recommendations/91/suppliers",
+          "query": {},
+          "status": 200
+        }
+      ]
+    }
+  ]
+}

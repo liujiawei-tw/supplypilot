@@ -1,0 +1,67 @@
+.recommendation-summary {
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.recommendation-decision-title {
+  margin-bottom: 16px;
+}
+
+.recommendation-decision-title h3.ant-typography {
+  margin: 0;
+}
+
+.recommendation-decision-grid {
+  display: grid;
+  grid-template-columns: minmax(220px, 1.5fr) repeat(3, minmax(130px, 1fr));
+  gap: 20px 28px;
+  margin-block: 24px;
+}
+
+.recommendation-decision-grid > div,
+.recommendation-material,
+.recommendation-net-need,
+.recommendation-supplier,
+.recommendation-quantity {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+.recommendation-wrap-value {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  font-variant-numeric: tabular-nums;
+}
+
+.recommendation-next-step {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  padding-top: 16px;
+  border-top: 1px solid #f0f0f0;
+}
+
+.recommendation-calculation .ant-descriptions-item-content {
+  overflow-wrap: anywhere;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 991px) {
+  .recommendation-decision-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px 20px;
+  }
+}
+
+@media (max-width: 575px) {
+  .recommendation-decision-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 14px;
+  }
+}

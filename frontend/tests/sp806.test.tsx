@@ -482,7 +482,7 @@ describe('SP-806 Global AI 助理', () => {
     expect(await screen.findByText('後端提案快照')).toBeTruthy();
     expect(screen.getByText('999999999999999.1234000')).toBeTruthy();
     expect(screen.queryByText('server-secret-token')).toBeNull();
-    expect(requests.filter(({ url }) => url === '/purchase-orders')).toHaveLength(0);
+    expect(requests.filter(({ url, method }) => url === '/purchase-orders' && method?.toUpperCase() === 'POST')).toHaveLength(0);
     await user.click(screen.getByRole('button', { name: '審閱並確認草稿' }));
     const confirm = within(latestDialog()).getByRole('button', { name: '確認建立草稿' });
     fireEvent.click(confirm); fireEvent.click(confirm);
@@ -491,7 +491,7 @@ describe('SP-806 Global AI 助理', () => {
     expect(await screen.findByText(/採購單 PO-000042 已建立/)).toBeTruthy();
     const confirmRequest = requests.find(({ url }) => url === '/ai/purchase-draft-proposals/proposal-1/confirm')!;
     expect(JSON.parse(confirmRequest.data as string)).toEqual({ confirmationToken: 'server-secret-token', draft: backendDraft });
-    expect(requests.filter(({ url }) => url === '/purchase-orders')).toHaveLength(0);
+    expect(requests.filter(({ url, method }) => url === '/purchase-orders' && method?.toUpperCase() === 'POST')).toHaveLength(0);
   }, 30_000);
 
   it('shows clarification without Confirm and locks unknown Confirm results without resending', async () => {
