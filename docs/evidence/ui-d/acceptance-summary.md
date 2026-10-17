@@ -62,3 +62,33 @@ Playwright route 使用本地受控 Fixture 回應 `/auth/me`、`/purchase-order
 - 本機 `npm run lint` PASS；`npm run build` PASS，JS 1,216.76 kB、gzip 390.29 kB，Vite 500 kB chunk warning 保留。`git diff --check` PASS。
 - 200% 原生瀏覽器縮放仍為 BLOCKED。此次 Computer Use inventory 沒有列出原生 app/window，僅有 IAB 與 Codex MCP Apps；目前工作階段也未提供 `listWindows`。沒有把 CSS viewport、deviceScaleFactor 或模擬縮放冒充 200% Browser Zoom。新補的環境觀察見 [`native-edge-zoom-followup.json`](./native-edge-zoom-followup.json)；原先 `browser-zoom-200` BLOCKED 記錄與未縮放 screenshot 均保留。
 - Impeccable：讀取已安裝 Skill 4.5.2 的 audit/harden 指引並遵循 Operate 原則；未成功執行 CLI，前次 launcher 回報 cache directory failure，因此不宣稱已跑 Impeccable CLI audit。
+
+## 原生 Edge 200% 縮放追補（2026-10-17）
+
+- 結果維持 **BLOCKED**，詳細機器可讀紀錄為 [`native-edge-zoom-200-final.json`](./native-edge-zoom-200-final.json)。沒有把 partial screenshot 宣稱為完整驗收。
+- 使用本機 Windows PowerShell／Win32 `EnumWindows`、`GetWindowThreadProcessId`、`IsWindowVisible`、`GetWindowText`、`GetWindowRect`，Playwright `1.64.1` 以 `channel: msedge`、`headless: false`、獨立 `userDataDir`、`viewport: null` 啟動 Microsoft Edge `155.0.4283.62`。Controlled Fixture URL 為 `http://127.0.0.1:5181/purchase-orders`；沒有連接 Backend 或 r4。
+- 一次隔離 Session 通過了唯一 Profile／可見 HWND 選取、URL 檢查、Edge UIA Zoom 100% 檢查、原生 Zoom 後 UIA 200% 檢查及相對 DPR gate，並保存了含 Edge Chrome 縮放選單的截圖：[`edge-window-zoom-100-native.png`](./screenshots/edge-window-zoom-100-native.png)、[`edge-window-zoom-200-native.png`](./screenshots/edge-window-zoom-200-native.png)。200% screenshot 可見 Edge 縮放 UI 顯示 `200%`；但那次在寫入最終證據時發生 PowerShell 物件屬性錯誤，PID／HWND 與原始 DPR／viewport 數值未持久化。此為部分證據，不能當最終 PASS。
+- 後續重試在發送原生輸入前發現前景 HWND 與目標 Edge HWND 不一致（最後一次：目標 `0x10FBC`、前景 `0xF0E34`），因此安全停止；UI Automation `SetFocus` 也回報 Edge root element 不可聚焦。沒有在前景不符時送出按鍵，沒有碰觸其他 Edge Session。隔離 Profile 與本地 Fixture Server 已停止並清理。
+- 所有 200% 下互動案例都為 **NOT RUN**：Header、Sidebar、PO 表單、Supplier 120／Material 101 ID、多品項、確認 Modal／焦點返回、AI／Document Drawer、捲動。需要在互動式 Windows 桌面手動開啟獨立 Edge Profile，設定原生 200%，保留視窗供 Playwright 同 Session 追補；精確步驟見證據 JSON `requiredManualCompletion` 欄位。啟動 Fixture 的 PowerShell 指令為：
+
+  ```powershell
+  $env:VITE_API_BASE_URL='http://127.0.0.1:8080/api/v1'
+  npm --prefix frontend run dev -- --host 127.0.0.1 --port 5181 --strictPort
+  ```
+
+  另一個互動式 PowerShell 需以新 Profile 和 `--remote-debugging-port=9223` 啟動 Edge 至 `http://127.0.0.1:5181/purchase-orders`；在 Edge「設定及其他 → 縮放」選 `200%`，擷取含網址列及縮放顯示的螢幕截圖，並保持該視窗開啟，供 Playwright 連到同一 Session 後續量測／操作。
+- 本次只新增驗收控制／記錄檔與證據；未改正式 Frontend 程式碼或測試，因此沒有重跑 Lint／Test／Build。既有程式 Run `39036428482` 的成功結果仍是程式驗證依據；文件 Runs `39036554417`、`39039150284` 的 Frontend／Backend Jobs 為 SKIPPED，未當作產品測試成功。
+
+## 原生 Edge 200% 最終追補（2026-10-18）
+
+保留上方原有 BLOCKED／partial 記錄，不改寫歷史結果。本次完成後續的同 Session 原生 Edge 縮放及互動驗收；機器可讀完整證據為 [`native-edge-zoom-200-cdp-final.json`](./native-edge-zoom-200-cdp-final.json)。
+
+- 測試 SHA：`5a636094d728edd8c0fe5ef0e127bde4ccb97bd3`；分支：`codex/sp908-ui-d-frontend-quality`。
+- Browser：Microsoft Edge `155.0.4283.62`，Playwright `1.64.1`，headed、`viewport: null`；使用獨立 Temp Profile。唯一識別為 Edge browser root PID `32328`、本機限定 CDP `127.0.0.1:9223`、Fixture URL `http://127.0.0.1:5181/purchase-orders`，並以 Windows CIM 命令列核對 Profile／Port、以 UI Automation 核對同 PID 的唯一可見 Edge 視窗。HWND 未使用／未記錄。
+- Fixture Server 為本機 Vite PID `21644`，命令列確認屬本 Repository 且只綁 `127.0.0.1:5181`。Playwright 在同一 CDP BrowserContext 設置 API Route，`/auth/me` 回覆 200；沒有連 Backend、r4 或實體裝置。
+- 使用者在上述獨立 Edge 視窗手動選取 Edge 原生「設定及其他 → 縮放」200%。UI Automation 讀到 `縮放: 200%`，且保存含 Edge 工具列與 200% 選單的 Windows 原生畫面：[`edge-window-zoom-200-cdp-verified.png`](./screenshots/edge-window-zoom-200-cdp-verified.png)。沒有使用 CSS zoom、Transform、`deviceScaleFactor` 或 CDP Page Scale。
+- 同一 Page、同一 Browser Session 的縮放前／後：100% 為 `innerWidth=1528`、`innerHeight=732`、DPR `1.25`；200% 為 `764 × 366`、DPR `2.5`，Viewport 寬高比例均為 2，DPR 比例為 2。200% `visualViewport` 為 `756.4 × 366`、scale `1`。OS 系統 DPI `120`（125%）；虛擬螢幕 `3840 × 1080`、左界 `-1920`。
+- 200% 操作結果均 PASS：Header 與 AI 助理按鈕可見且位於 viewport；Sidebar 可開啟並導覽至 Dashboard；建立 PO 表單可選 Supplier `SUP-120`／ID `120`、Material `MAT-101`／ID `101` 及第二項 Material ID `102`，POST Fixture payload 保留正確 ID；Modal 可開啟，Escape 後焦點返回，確認按鈕可操作；長標題 Document Drawer 與 AI Drawer 位於 viewport 內，AI Drawer 可 Escape 關閉且焦點返回；頁面可垂直捲動。細節及每步 API Request 見 JSON `page.cases`、`page.requests`、`page.requestsSummary`。
+- Playwright 原生頁面截圖：`app-header-200-playwright-verified-200.png`、`sidebar-open-200-playwright-verified-200.png`、`sidebar-navigation-200-playwright-verified-200.png`、`po-form-200-playwright-verified-200.png`、`po-confirmation-200-playwright-verified-200.png`、`document-drawer-200-playwright-verified-200.png`、`ai-drawer-200-playwright-verified-200.png`、`po-list-200-playwright-verified-200.png`。
+- 同次 Edge 測試在 100% 的首次 Profile Session 中完成 Fixture 頁面載入，再由使用者於該隔離視窗設定 200%；UI Automation 擷取原生 Zoom 選單後，Playwright 在相同 CDP Page 量到 200% 並執行上述互動。一次性確認 JSON 只記錄本次使用者確認，不包含密碼、Token 或真實資料。
+- 本次前端程式碼含 Header 響應式修正；先前已在修正後執行本機 `npm run lint`、全套 `npm test`（23 files／198 tests PASS）與 `npm run build`（PASS）。本次只新增驗收腳本／證據文件，未重新執行這些測試。既有程式 CI Run `39036428482` 的 Frontend Lint／Test 198/198／Build 為 SUCCESS；文件 Runs `39036554417`、`39039150284` 的 Frontend／Backend Jobs 為 SKIPPED。後續若這次 Commit 產生 GitHub Actions Run，將另外核對實際 Job／Step 終態，不以 docs-only Workflow SUCCESS 代替程式測試。

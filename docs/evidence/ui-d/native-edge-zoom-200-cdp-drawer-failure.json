@@ -1,0 +1,408 @@
+{
+  "issue": 114,
+  "repository": "liujiawei-tw/supplypilot",
+  "branch": "codex/sp908-ui-d-frontend-quality",
+  "testedGitSha": "5a636094d728edd8c0fe5ef0e127bde4ccb97bd3",
+  "status": "FAIL",
+  "observedAt": "2026-10-17T15:45:15.434Z",
+  "edgeVersion": "155.0.4283.62",
+  "playwrightVersion": "1.64.1",
+  "url": "http://127.0.0.1:5181/purchase-orders",
+  "cdpEndpoint": "http://127.0.0.1:9223",
+  "browserProcessId": 33644,
+  "hwnd": "Unknown",
+  "profileIsolated": true,
+  "fixtureRoutingActive": true,
+  "fixtureAuthMeStatus": 200,
+  "role": "PROCUREMENT_STAFF",
+  "beforeZoom": {
+    "measuredAt": "2026-10-17T15:43:55.416Z",
+    "url": "http://127.0.0.1:5181/purchase-orders",
+    "innerWidth": 1028,
+    "innerHeight": 706,
+    "devicePixelRatio": 1.25,
+    "visualViewport": {
+      "width": 1028,
+      "height": 705.5999755859375,
+      "scale": 1,
+      "offsetLeft": 0,
+      "offsetTop": 0
+    },
+    "screen": {
+      "width": 1536,
+      "height": 864,
+      "availWidth": 1536,
+      "availHeight": 816
+    },
+    "document": {
+      "clientWidth": 1028,
+      "scrollWidth": 1028,
+      "clientHeight": 706,
+      "scrollHeight": 706
+    },
+    "activeElement": "SupplyPilot採購決策平台儀表板主檔管理需求與庫存採購決策採購單與收貨文件與 AISupplyPilot — AI 採購與供應鏈決策平台AI 助理UI-D Fixture Buyer（ui-d"
+  },
+  "afterZoom": {
+    "measuredAt": "2026-10-17T15:45:05.773Z",
+    "url": "http://127.0.0.1:5181/purchase-orders",
+    "innerWidth": 764,
+    "innerHeight": 366,
+    "devicePixelRatio": 2.5,
+    "visualViewport": {
+      "width": 756.4000244140625,
+      "height": 366,
+      "scale": 1,
+      "offsetLeft": 0,
+      "offsetTop": 0
+    },
+    "screen": {
+      "width": 1536,
+      "height": 864,
+      "availWidth": 1536,
+      "availHeight": 816
+    },
+    "document": {
+      "clientWidth": 756,
+      "scrollWidth": 756,
+      "clientHeight": 366,
+      "scrollHeight": 717
+    },
+    "activeElement": "SupplyPilot採購決策平台儀表板主需採採文SupplyPilot — AI 採購與供應鏈決策平台AI 助理UI-D Fixture Buyer（ui-d-buyer）採購人員登出採購單管理查詢"
+  },
+  "nativeZoomLabel": "縮放: 200%",
+  "nativeScreenshot": "screenshots/edge-window-zoom-200-cdp-final.png",
+  "playwrightScreenshots": [
+    "screenshots/app-header-200-playwright.png",
+    "screenshots/sidebar-open-200-playwright.png",
+    "screenshots/sidebar-navigation-200-playwright.png",
+    "screenshots/po-confirmation-200-playwright.png"
+  ],
+  "cases": [
+    {
+      "id": "app-header-200",
+      "status": "PASS",
+      "checks": {
+        "header": {
+          "left": 0,
+          "right": 756.4000244140625,
+          "top": 0,
+          "bottom": 65.9375,
+          "width": 756.4000244140625,
+          "scrollWidth": 756,
+          "viewportWidth": 764,
+          "viewportHeight": 366
+        },
+        "aiButton": {
+          "left": 24,
+          "right": 122.1937484741211,
+          "top": 33.13750076293945,
+          "bottom": 65.13750076293945,
+          "inViewport": true,
+          "visible": true
+        },
+        "screenshot": "screenshots/app-header-200-playwright.png"
+      }
+    },
+    {
+      "id": "sidebar-open-200",
+      "status": "PASS",
+      "checks": {
+        "sidebarOpens": true,
+        "screenshot": "screenshots/sidebar-open-200-playwright.png"
+      }
+    },
+    {
+      "id": "sidebar-navigation-200",
+      "status": "PASS",
+      "checks": {
+        "destination": "http://127.0.0.1:5181/dashboard",
+        "screenshot": "screenshots/sidebar-navigation-200-playwright.png"
+      }
+    },
+    {
+      "id": "po-modal-open-escape-focus-200",
+      "status": "PASS",
+      "checks": {
+        "dialog": {
+          "left": 116.224853515625,
+          "right": 640.1751708984375,
+          "top": 180.03738403320312,
+          "bottom": 516.9626159667969,
+          "width": 523.9503173828125,
+          "height": 336.92523193359375,
+          "viewportWidth": 764,
+          "viewportHeight": 366,
+          "withinHorizontalViewport": true
+        },
+        "focusInsideOnOpen": true,
+        "focusReturned": true
+      }
+    },
+    {
+      "id": "po-create-select-scroll-confirm-200",
+      "status": "PASS",
+      "checks": {
+        "supplierId": 120,
+        "materialIds": [
+          101,
+          102
+        ],
+        "supplierLabel": "SUP-120 — 長名稱供應商 120 企業採購測試企業採購測試企業採購測試企業採購測試企業採購測試企業採購測試企業採購測試企業採購測試企業採購測試企業採購測試企業採購測試企業採購測試",
+        "materialLabel": "MAT-101 — Copper Wire",
+        "itemCount": 2,
+        "bodyScroll": {
+          "scrollTop": 0,
+          "scrollHeight": 602,
+          "clientHeight": 602,
+          "reachedBottom": true
+        },
+        "confirmGeometry": {
+          "left": 86.83999633789062,
+          "right": 190.83999633789062,
+          "top": 285.6000061035156,
+          "bottom": 361.76001739501953,
+          "width": 104,
+          "height": 76.1600112915039,
+          "viewportWidth": 764,
+          "viewportHeight": 366,
+          "withinHorizontalViewport": true
+        },
+        "confirmVisible": true,
+        "confirmationFocusReturned": true,
+        "confirmScreenshot": "screenshots/po-confirmation-200-playwright.png",
+        "payload": {
+          "supplierId": 120,
+          "items": [
+            {
+              "materialId": 101,
+              "quantity": "12",
+              "unitPrice": "4.2500"
+            },
+            {
+              "materialId": 102,
+              "quantity": "5",
+              "unitPrice": "1.2500"
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "failure": "Error: Document Drawer exceeds viewport at 200%\n    at assert (file:///C:/Users/z0976/OneDrive/%E6%A1%8C%E9%9D%A2/dev-side/supplypilot/docs/evidence/ui-d/run-native-edge-zoom-200.mjs:163:64)\n    at file:///C:/Users/z0976/OneDrive/%E6%A1%8C%E9%9D%A2/dev-side/supplypilot/docs/evidence/ui-d/run-native-edge-zoom-200.mjs:338:3",
+  "apiRequests": [
+    {
+      "method": "GET",
+      "path": "/auth/me",
+      "query": {},
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/auth/me",
+      "query": {},
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/purchase-orders",
+      "query": {
+        "page": "0",
+        "size": "20",
+        "sort": "createdAt,desc"
+      },
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/purchase-orders",
+      "query": {
+        "status": "DRAFT",
+        "page": "0",
+        "size": "5",
+        "sort": "id,desc"
+      },
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/purchase-orders",
+      "query": {
+        "status": "APPROVED",
+        "page": "0",
+        "size": "5",
+        "sort": "id,desc"
+      },
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/purchase-orders",
+      "query": {
+        "status": "ORDERED",
+        "page": "0",
+        "size": "5",
+        "sort": "id,desc"
+      },
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/auth/me",
+      "query": {},
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/auth/me",
+      "query": {},
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/purchase-orders",
+      "query": {
+        "page": "0",
+        "size": "20",
+        "sort": "createdAt,desc"
+      },
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/suppliers",
+      "query": {
+        "page": "0",
+        "size": "20",
+        "sort": "code,asc",
+        "status": "ACTIVE"
+      },
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/materials",
+      "query": {
+        "page": "0",
+        "size": "20",
+        "sort": "code,asc",
+        "status": "ACTIVE"
+      },
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/suppliers",
+      "query": {
+        "page": "0",
+        "size": "20",
+        "sort": "code,asc",
+        "status": "ACTIVE"
+      },
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/materials",
+      "query": {
+        "page": "0",
+        "size": "20",
+        "sort": "code,asc",
+        "status": "ACTIVE"
+      },
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/suppliers",
+      "query": {
+        "page": "0",
+        "size": "20",
+        "sort": "code,asc",
+        "code": "SUP-120",
+        "status": "ACTIVE"
+      },
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/materials",
+      "query": {
+        "page": "0",
+        "size": "20",
+        "sort": "code,asc",
+        "code": "MAT-101",
+        "status": "ACTIVE"
+      },
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/materials",
+      "query": {
+        "page": "0",
+        "size": "20",
+        "sort": "code,asc",
+        "status": "ACTIVE"
+      },
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/materials",
+      "query": {
+        "page": "0",
+        "size": "20",
+        "sort": "code,asc",
+        "code": "MAT-102",
+        "status": "ACTIVE"
+      },
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/purchase-orders",
+      "query": {},
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/purchase-orders",
+      "query": {
+        "page": "0",
+        "size": "20",
+        "sort": "createdAt,desc"
+      },
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/auth/me",
+      "query": {},
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/auth/me",
+      "query": {},
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/documents",
+      "query": {
+        "page": "0",
+        "size": "20",
+        "sort": "uploadedAt,desc"
+      },
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/documents/501",
+      "query": {},
+      "status": 200
+    }
+  ],
+  "backendIntegration": false,
+  "physicalDeviceTest": false
+}

@@ -1,0 +1,65 @@
+{
+  "issue": 114,
+  "repository": "liujiawei-tw/supplypilot",
+  "branch": "codex/sp908-ui-d-frontend-quality",
+  "testedGitSha": "5a636094d728edd8c0fe5ef0e127bde4ccb97bd3",
+  "status": "BLOCKED",
+  "observedAt": "2026-10-17",
+  "browser": {
+    "name": "Microsoft Edge",
+    "version": "155.0.4283.62",
+    "playwrightVersion": "1.64.1",
+    "contextMode": "launchPersistentContext, channel=msedge, headless=false, independent userDataDir, viewport=null",
+    "fixtureUrl": "http://127.0.0.1:5181/purchase-orders",
+    "fixtureMode": true,
+    "backendIntegration": false,
+    "physicalDeviceTest": false
+  },
+  "partialNativeZoomEvidence": {
+    "status": "PARTIAL",
+    "description": "One isolated Edge session passed the script's unique-profile process-tree and visible-HWND selection, URL check, Edge UI Automation 100% menu check, native Ctrl+0 reset, DPR-relative zoom gate, and Edge UI Automation 200% menu check. A native window screenshot visibly shows the Edge Zoom control at 200%. The script then stopped on a PowerShell evidence-object mutation error before persisting that session's PID, HWND, raw before/after DOM metrics, or running the interaction cases. This is partial evidence only, not a completed acceptance run.",
+    "nativeScreenshots": [
+      "screenshots/edge-window-zoom-100-native.png",
+      "screenshots/edge-window-zoom-200-native.png"
+    ],
+    "rawPidHwndAndMetricsPersisted": false,
+    "dprRatioRawValuesPersisted": false
+  },
+  "blockingEnvironmentEvidence": {
+    "description": "Subsequent isolated runs could not reliably focus the target Edge HWND from the Windows Codex CLI process. The final guarded attempt observed target HWND 0x10FBC while foreground HWND was 0xF0E34 and stopped before sending any browser input. A UI Automation SetFocus attempt reported that the target root element cannot receive focus. This runtime therefore cannot reliably perform the requested native-window control sequence.",
+    "nativeInputSentAfterForegroundMismatch": false,
+    "otherUserEdgeSessionsTouched": false,
+    "isolatedProfilesCleaned": true,
+    "fixtureServerStopped": true
+  },
+  "nativeWindowIdentity": {
+    "processId": null,
+    "hwnd": null,
+    "reason": "The successful partial run did not persist its per-session PID/HWND before its evidence-write error. Later attempts stopped at foreground verification."
+  },
+  "interactionChecks": {
+    "appHeaderVisibleAndClickable": "NOT RUN",
+    "sidebarOpenAndNavigate": "NOT RUN",
+    "purchaseOrderFormEntry": "NOT RUN",
+    "supplier120AndMaterial101Ids": "NOT RUN",
+    "multiItemControls": "NOT RUN",
+    "confirmationModalAndEscapeFocusReturn": "NOT RUN",
+    "aiAndDocumentDrawers": "NOT RUN",
+    "horizontalAndVerticalScrolling": "NOT RUN"
+  },
+  "requiredManualCompletion": [
+    "In an interactive Windows desktop PowerShell at the repository root, run: $env:VITE_API_BASE_URL='http://127.0.0.1:8080/api/v1'; npm --prefix frontend run dev -- --host 127.0.0.1 --port 5181 --strictPort.",
+    "In a second interactive PowerShell, create a unique profile path under docs/evidence/ui-d/.manual-edge-profile-<unique>, then start C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe with arguments --user-data-dir=<that path>, --remote-debugging-port=9223, --new-window, http://127.0.0.1:5181/purchase-orders. Do not reuse the normal Edge profile.",
+    "In Edge Settings and more > Zoom, set the browser zoom to exactly 200%. Capture a Windows desktop/window screenshot that includes the Edge address bar, the Zoom control reading 200%, and the SupplyPilot page. Record the Edge version from edge://settings/help.",
+    "Keep that isolated Edge window open and foreground, and provide the screenshot plus confirmation that the URL and native Zoom label are visible. Keep the local debugging port available so Playwright can attach to this exact session for interaction evidence; do not change status from BLOCKED until those checks are captured."
+  ],
+  "ci": {
+    "existingCodeRun": "https://github.com/liujiawei-tw/supplypilot/actions/runs/39036428482",
+    "existingCodeRunStatus": "SUCCESS; Frontend Install/Lint/Test 198/198/Build steps passed; Backend CI skipped",
+    "existingDocsRuns": [
+      "https://github.com/liujiawei-tw/supplypilot/actions/runs/39036554417",
+      "https://github.com/liujiawei-tw/supplypilot/actions/runs/39039150284"
+    ],
+    "thisTurnRegressionRerun": "NOT RUN; no production frontend code or tests were changed"
+  }
+}
