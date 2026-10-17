@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Button, Layout, Menu, Space, Typography, theme } from 'antd';
 import { DashboardOutlined, LogoutOutlined, RobotOutlined } from '@ant-design/icons';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
+import './AppLayout.css';
 import { useAuth } from '../auth/useAuth';
 import { can, roleLabels } from '../auth/permissions';
 import { routeCatalog } from '../router/routeCatalog';
@@ -58,6 +59,7 @@ export const AppLayout: React.FC = () => {
       </Sider>
       <Layout>
         <Header
+          className="app-header"
           style={{
             padding: '0 24px',
             background: colorBgContainer,
