@@ -1,0 +1,51 @@
+{
+  "repository": "liujiawei-tw/supplypilot",
+  "issue": 114,
+  "baseSha": "6afa095ebbd761c6294789824fdb1b7280cd2bd6",
+  "verifiedAt": "2026-10-17",
+  "runs": [
+    {
+      "id": 39036428482,
+      "url": "https://github.com/liujiawei-tw/supplypilot/actions/runs/39036428482",
+      "headSha": "cbf62297a613d5f0a70fa2361442b1c5dea6913e",
+      "trigger": "push",
+      "jobs": {
+        "Detect CI scope": "success",
+        "Frontend CI": {
+          "conclusion": "success",
+          "steps": {
+            "Install dependencies": "success",
+            "Lint": "success",
+            "Test": "success",
+            "Build": "success"
+          },
+          "testSummary": {
+            "testFilesPassed": 23,
+            "testsPassed": 198,
+            "durationSeconds": 801.44
+          },
+          "buildSummary": {
+            "javascriptBundleKb": 1216.76,
+            "gzipKb": 390.29,
+            "viteChunkWarning": "Existing 500 kB threshold warning"
+          }
+        },
+        "Backend CI": "skipped"
+      }
+    },
+    {
+      "id": 39036554417,
+      "url": "https://github.com/liujiawei-tw/supplypilot/actions/runs/39036554417",
+      "headSha": "d8c621763426c3c58cad90e3c197076384c61d29",
+      "trigger": "push",
+      "changedScope": "documentation-only",
+      "workflowConclusion": "success",
+      "jobs": {
+        "Detect CI scope": "success",
+        "Frontend CI": "skipped",
+        "Backend CI": "skipped"
+      },
+      "isFrontendCodeVerification": false
+    }
+  ]
+}

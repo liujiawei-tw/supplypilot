@@ -51,3 +51,14 @@ Playwright route 使用本地受控 Fixture 回應 `/auth/me`、`/purchase-order
 - 搜尋輸入套用 250ms debounce；120 筆選擇器測試確認完整 code/name 條件各只發出 1 次對應查詢。沒有收集舊實作的計時／請求數作前後基準，因此不宣稱效能百分比改善。
 - 全套測試在目前環境仍有 timeout；隔離後失敗案例通過，但全套未取得一次全綠結果。
 - GitHub Actions：[`CI Merge Gate`](https://github.com/liujiawei-tw/supplypilot/actions/workflows/ci.yml) 設定有 push trigger，但本次沒有取得 run/job/step 明細。已查 commit combined status（`statuses=[]`）及可用的 commit workflow-runs 介面（回傳空清單；此介面只列 PR-triggered runs）；未登入的 REST 查詢回 404。故 CI 終態維持 NOT VERIFIED，不能宣稱 SUCCESS。
+
+## 追補驗收（2026-10-17）
+
+本節追補既有紀錄，不覆寫前次環境／縮放阻擋事實。
+
+- GitHub Actions run [`39036428482`](https://github.com/liujiawei-tw/supplypilot/actions/runs/39036428482) 使用含程式碼 commit `cbf62297a613d5f0a70fa2361442b1c5dea6913e`。`Frontend CI` job 與 `Install dependencies`、`Lint`、`Test`、`Build` steps 均為 SUCCESS；`Backend CI` 為預期的 SKIPPED（前端變更）。CI log 的 `npm test` 結果為 23/23 test files、198/198 tests PASS，測試耗時 801.44 秒；Build 產物 JS 1,216.76 kB、gzip 390.29 kB，仍有既有 500 kB Vite chunk warning。詳見 [`actions-run-verification.json`](./actions-run-verification.json)。
+- 文件追補 commit `d8c621763426c3c58cad90e3c197076384c61d29` 的 run [`39036554417`](https://github.com/liujiawei-tw/supplypilot/actions/runs/39036554417) 為 workflow SUCCESS，但 Frontend CI、Backend CI 都是 SKIPPED。這次文件變更 run 不作為程式碼驗證；程式碼驗證以 run `39036428482` 為準。
+- 本機以預設 `npm test`（Vitest 仍使用 repo 設定的單 worker 與 30 秒個別 test timeout）完整重跑：23/23 files、198/198 tests PASS，耗時 946.43 秒。首次嘗試在受限制的系統 Temp 路徑發生 EPERM rename、尚未進入測試；重跑只將 `TEMP`／`TMP` 指向工作區暫存目錄，沒有更改測試程式、斷言、timeout 或 worker 設定。
+- 本機 `npm run lint` PASS；`npm run build` PASS，JS 1,216.76 kB、gzip 390.29 kB，Vite 500 kB chunk warning 保留。`git diff --check` PASS。
+- 200% 原生瀏覽器縮放仍為 BLOCKED。此次 Computer Use inventory 沒有列出原生 app/window，僅有 IAB 與 Codex MCP Apps；目前工作階段也未提供 `listWindows`。沒有把 CSS viewport、deviceScaleFactor 或模擬縮放冒充 200% Browser Zoom。新補的環境觀察見 [`native-edge-zoom-followup.json`](./native-edge-zoom-followup.json)；原先 `browser-zoom-200` BLOCKED 記錄與未縮放 screenshot 均保留。
+- Impeccable：讀取已安裝 Skill 4.5.2 的 audit/harden 指引並遵循 Operate 原則；未成功執行 CLI，前次 launcher 回報 cache directory failure，因此不宣稱已跑 Impeccable CLI audit。

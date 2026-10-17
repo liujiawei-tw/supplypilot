@@ -1,0 +1,27 @@
+{
+  "repository": "liujiawei-tw/supplypilot",
+  "issue": 114,
+  "observedAt": "2026-10-17",
+  "testedSha": "d8c621763426c3c58cad90e3c197076384c61d29",
+  "requestedCheck": "Native Microsoft Edge browser zoom at 200%",
+  "status": "BLOCKED",
+  "previousEvidence": {
+    "manifestCase": "browser-zoom-200",
+    "status": "BLOCKED",
+    "reason": "Playwright page keyboard shortcuts left CSS viewport at 1440x1000, devicePixelRatio approximately 1, and visualViewport.scale 1."
+  },
+  "currentAttempt": {
+    "tool": "Computer Use cua_repl",
+    "inventory": {
+      "nativeApps": [],
+      "browsers": [
+        { "id": "2", "name": "ChatGPT in-app browser", "type": "iab", "tabs": [] },
+        { "id": "1", "name": "Codex MCP Apps", "type": "mcpapps", "tabs": [] }
+      ]
+    },
+    "nativeWindowEnumeration": "Unavailable: cua.listWindows is not a function",
+    "zoomActionPerformed": false,
+    "reason": "No uniquely identifiable Edge window is exposed by the current UI automation session. Without a confirmed target window, a native browser-chrome zoom action cannot be performed or verified."
+  },
+  "requiredFollowUp": "Provide a Computer Use session that exposes the isolated Microsoft Edge window, or have a human set Edge browser zoom to 200% and capture the effective CSS viewport plus the target screen."
+}
