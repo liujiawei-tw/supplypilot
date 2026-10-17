@@ -48,4 +48,6 @@ Playwright route 使用本地受控 Fixture 回應 `/auth/me`、`/purchase-order
 - 本次最後修改後，RelatedEntitySelect 元件回歸：9/9 通過；Lint 與 Build 亦在最後修改後重跑通過。
 - 本次最後修改後，PO 新增與編輯的 page-6 主檔精確 ID／舊 Draft 快照保留案例：2/2 通過。
 - Production Build：PASS，JS `1,216.76 kB`（gzip `390.29 kB`）；保留既有 Vite 500 kB chunk 警告，未因 warning 做未經量測支持的 bundle 重構。
+- 搜尋輸入套用 250ms debounce；120 筆選擇器測試確認完整 code/name 條件各只發出 1 次對應查詢。沒有收集舊實作的計時／請求數作前後基準，因此不宣稱效能百分比改善。
 - 全套測試在目前環境仍有 timeout；隔離後失敗案例通過，但全套未取得一次全綠結果。
+- GitHub Actions：[`CI Merge Gate`](https://github.com/liujiawei-tw/supplypilot/actions/workflows/ci.yml) 設定有 push trigger，但本次沒有取得 run/job/step 明細。已查 commit combined status（`statuses=[]`）及可用的 commit workflow-runs 介面（回傳空清單；此介面只列 PR-triggered runs）；未登入的 REST 查詢回 404。故 CI 終態維持 NOT VERIFIED，不能宣稱 SUCCESS。
