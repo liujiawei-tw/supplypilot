@@ -8,6 +8,7 @@ import com.supplypilot.ai.client.AiProviderException;
 import com.supplypilot.ai.client.AiFailureDetail;
 import com.supplypilot.ai.client.AiFailureReason;
 import com.supplypilot.ai.dto.AiToolType;
+import com.supplypilot.common.exception.BusinessException;
 import com.supplypilot.common.exception.ErrorCode;
 import org.jspecify.annotations.Nullable;
 import org.springframework.ai.tool.annotation.Tool;
@@ -21,6 +22,7 @@ public final class SpringAiReadTools {
     private final String permittedMaterial;
     private final Long permittedRecommendation;
     private final List<AiToolResult> executions = new ArrayList<>();
+    private int ignoredOptionalRecommendationMisses;
 
     public SpringAiReadTools(AiToolRegistry registry, AiQueryPlanner planner,
                              String originalQuestion, int maxToolCalls) {
@@ -81,6 +83,10 @@ public final class SpringAiReadTools {
         return List.copyOf(executions);
     }
 
+    public int ignoredOptionalRecommendationMisses() {
+        return ignoredOptionalRecommendationMisses;
+    }
+
     private String execute(AiQueryPlan plan) {
         if (executions.size() >= maxToolCalls) {
             throw new AiProviderException(ErrorCode.AI_INVALID_RESPONSE, AiFailureReason.TOOL_CALL_LIMIT);
@@ -104,11 +110,27 @@ public final class SpringAiReadTools {
                         AiFailureDetail.OPEN_PO_MATERIAL_FILTER_MISSING);
             }
         }
-        AiToolResult result = registry.execute(plan);
+        AiToolResult result;
+        try {
+            result = registry.execute(plan);
+        } catch (BusinessException failure) {
+            if (failure.getErrorCode() != ErrorCode.RECOMMENDATION_NOT_FOUND
+                    || !isRecommendationTool(plan.tool())
+                    || AiQuestionIntent.requiresRecommendation(originalQuestion)) {
+                throw failure;
+            }
+            ignoredOptionalRecommendationMisses++;
+            result = AiToolResult.insufficientEvidence(plan.tool());
+        }
         executions.add(result);
         // Model-facing data excludes source excerpts and bounds the outbound procurement payload.
         String facts = result.trustedFacts() == null ? "" : result.trustedFacts();
         return result.tool() + ": " + result.status() + "; "
                 + facts.substring(0, Math.min(facts.length(), 1500));
+    }
+
+    private boolean isRecommendationTool(AiToolType tool) {
+        return tool == AiToolType.QUERY_RECOMMENDATION || tool == AiToolType.EXPLAIN_RECOMMENDATION
+                || tool == AiToolType.QUERY_SUPPLIER_RANKING;
     }
 }

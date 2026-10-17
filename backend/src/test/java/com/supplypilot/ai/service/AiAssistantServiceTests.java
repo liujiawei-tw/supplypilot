@@ -157,6 +157,25 @@ class AiAssistantServiceTests {
     }
 
     @Test
+    void optionalMissingRecommendationDoesNotBlockDocumentAnswerButBlocksCompoundRequest() {
+        String clause = "SUP-001 的 MAT-001 標準交期為 ORDERED 後 8 個曆日。";
+        AiToolResult missingRecommendation = AiToolResult.insufficientEvidence(AiToolType.QUERY_RECOMMENDATION);
+        AiToolResult document = document(clause, "1");
+
+        var documentOnly = queryWith("SUP-001 的 MAT-001 標準交期是多久？",
+                List.of(missingRecommendation, document));
+        assertThat(documentOnly.status()).isEqualTo(AiQueryStatus.ANSWERED);
+        assertThat(documentOnly.answer()).contains("8 個曆日");
+        assertThat(documentOnly.sources()).containsExactlyElementsOf(document.sources());
+
+        var compound = queryWith("SUP-001 的 MAT-001 合約交期與採購建議為何？",
+                List.of(missingRecommendation, document));
+        assertThat(compound.status()).isEqualTo(AiQueryStatus.INSUFFICIENT_EVIDENCE);
+        assertThat(compound.answer()).isNull();
+        assertThat(compound.sources()).isEmpty();
+    }
+
+    @Test
     void relevantContractDocumentAnswersWithoutHardcodedBusinessTerm() {
         String clause = "SUP-001 的 MAT-001 標準交期為 ORDERED 後 8 個曆日。";
         var response = queryWith("SUP-001 的 MAT-001 標準交期是多久？", List.of(document(clause, "1")));
