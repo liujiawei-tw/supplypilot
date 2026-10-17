@@ -1,9 +1,9 @@
 {
-  "createdAt": "2026-10-17T06:30:06.614Z",
+  "createdAt": "2026-10-17T06:48:13.878Z",
   "timezone": "Asia/Taipei",
-  "hashDomain": "exact staged Git blob bytes (post core.autocrlf normalization)",
-  "gitHeadBeforeEvidenceCommit": "c802978d2967bd862b61c49a5dfd87c2db3fe3f8",
-  "fileCount": 38,
+  "hashDomain": "exact staged Git Index Blob bytes",
+  "gitHeadBeforeEvidenceCommit": "9c29e4bee329c102e89442ce7af0b8cd7ab160b8",
+  "fileCount": 41,
   "files": [
     {
       "path": "docs/evidence/sp910/r4-authorized-reset-20261017-attempt2.log",
@@ -22,13 +22,33 @@
     },
     {
       "path": "docs/evidence/sp910/r4-final-reset-20261017-browser.cjs",
-      "bytes": 17391,
-      "sha256": "e4ece9ccbf33e03778d84c0587a8d3e87372b92197948a33460e0cccec6267aa"
+      "bytes": 16573,
+      "sha256": "532513da834921cf60e06e64e6a96bdd0a70ed277440e371dfa16e7f45e1eaf4"
     },
     {
       "path": "docs/evidence/sp910/r4-postreset-baseline-verify-20261017.json",
       "bytes": 4345,
       "sha256": "72e065825041ea6ad57b6a24c60f78fa6b5a94537e513b54dd94f54af3bd9909"
+    },
+    {
+      "path": "docs/evidence/sp910/round5-reset-final-20261017/MAT-001-storage.png",
+      "bytes": 254778,
+      "sha256": "5b36e2d640347323ace797387dcc1f5ea768eed7bbeb4a9d710227138fa38e99"
+    },
+    {
+      "path": "docs/evidence/sp910/round5-reset-final-20261017/SOP-receiving-role.png",
+      "bytes": 279241,
+      "sha256": "a755e29a6cd4d64f1893c1d8d80a33a5c3b330e235c83926024fa046225c5d18"
+    },
+    {
+      "path": "docs/evidence/sp910/round5-reset-final-20261017/SUP-001-leadtime.png",
+      "bytes": 256179,
+      "sha256": "1f8d1c827d5559ca06e55a471e5823e5bf5e00cdc3ad8286770fd36575f79916"
+    },
+    {
+      "path": "docs/evidence/sp910/round5-reset-final-20261017/SUP-002-validity.png",
+      "bytes": 250116,
+      "sha256": "32af0590d155c5409c6129b100a19712f29100b012271ed504ef5d0d31d07f29"
     },
     {
       "path": "docs/evidence/sp910/round5-reset-final-20261017/admin-dashboard-assertion-failure.json",
@@ -79,11 +99,6 @@
       "path": "docs/evidence/sp910/round5-reset-final-20261017/login-page-before-submit.png",
       "bytes": 28434,
       "sha256": "2e3aff0324f799fb4361b2a8881c5aba18e329df3a6859df4117b7de55bc0e21"
-    },
-    {
-      "path": "docs/evidence/sp910/round5-reset-final-20261017/MAT-001-storage.png",
-      "bytes": 254778,
-      "sha256": "5b36e2d640347323ace797387dcc1f5ea768eed7bbeb4a9d710227138fa38e99"
     },
     {
       "path": "docs/evidence/sp910/round5-reset-final-20261017/outbound-approved-12.png",
@@ -156,11 +171,6 @@
       "sha256": "659434d522fda2f7eebc5f51a6116b43e4150c52d224188ca266b97c2a4ffbe0"
     },
     {
-      "path": "docs/evidence/sp910/round5-reset-final-20261017/runtime-environment.json",
-      "bytes": 1694,
-      "sha256": "659434d522fda2f7eebc5f51a6116b43e4150c52d224188ca266b97c2a4ffbe0"
-    },
-    {
       "path": "docs/evidence/sp910/round5-reset-final-20261017/semantic-gate-audit-passed.png",
       "bytes": 256214,
       "sha256": "fc09aef644885d2e639a7f5602d2589e2b38b0d5d9e98a5e277b365e5e7dea13"
@@ -171,29 +181,35 @@
       "sha256": "eac4972903b3124b68ff4989d71fa4a0577f573a9c584f4e3a855a55968020d7"
     },
     {
-      "path": "docs/evidence/sp910/round5-reset-final-20261017/SOP-receiving-role.png",
-      "bytes": 279241,
-      "sha256": "a755e29a6cd4d64f1893c1d8d80a33a5c3b330e235c83926024fa046225c5d18"
-    },
-    {
       "path": "docs/evidence/sp910/round5-reset-final-20261017/source-hash-consistency.json",
       "bytes": 2306,
       "sha256": "5f28fd84c24630da7572315cfd0e6554fa5cbc0d25ab164a13127e2c61f24b0a"
     },
     {
-      "path": "docs/evidence/sp910/round5-reset-final-20261017/SUP-001-leadtime.png",
-      "bytes": 256179,
-      "sha256": "1f8d1c827d5559ca06e55a471e5823e5bf5e00cdc3ad8286770fd36575f79916"
+      "path": "docs/evidence/sp910/round5-reset-final-20261017/source-validation-offline-results.json",
+      "bytes": 2973,
+      "sha256": "7c854c08b04922463d3f643b2d34c16024bafe339de503be1fa0bbb29ec607f8"
     },
     {
-      "path": "docs/evidence/sp910/round5-reset-final-20261017/SUP-002-validity.png",
-      "bytes": 250116,
-      "sha256": "32af0590d155c5409c6129b100a19712f29100b012271ed504ef5d0d31d07f29"
+      "path": "docs/evidence/sp910/round5-reset-final-20261017/source-validation-red-reproduction.json",
+      "bytes": 1676,
+      "sha256": "28f6daf64d904a6035ac302ba8ddf0c8c5d82951f4820c01edb8ddcfe2661ea3"
+    },
+    {
+      "path": "docs/evidence/sp910/round5-reset-final-20261017/source-validation.cjs",
+      "bytes": 4017,
+      "sha256": "19a33dae72f2c3cf10e9114f3d6653d8445f89eae8c42b2788e4abee1e66497f"
+    },
+    {
+      "path": "docs/evidence/sp910/round5-reset-final-20261017/source-validation.test.cjs",
+      "bytes": 6041,
+      "sha256": "2f83e5097d1786a88a60b1cbab6f1afdedaac093f4678e7e654a1ee662e1fd0c"
     },
     {
       "path": "docs/evidence/sp910/round5-reset-final-20261017/sup001-source-validation.json",
       "bytes": 2126,
       "sha256": "d724394637128a8685f08f6abb5779bf88a322f5d98bece1d171dc7c02f1b407"
     }
-  ]
+  ],
+  "scope": "Previously manifested unique SP-910 r4 E9 evidence paths plus this round’s RED/green offline validation utility and results; excludes this manifest and the top-level acceptance report."
 }

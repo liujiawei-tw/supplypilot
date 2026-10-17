@@ -597,3 +597,29 @@ MySQL 文件核准的五筆 Source Hash 與 pgvector READY Index 的 Source Hash
 Windows 11、Zulu Java 21.0.10、Node 24.15.0、npm 11.12.1、Docker Engine 29.6.1、MySQL 8.4.11、PostgreSQL 17.11、Microsoft Edge 155.0.4283.60、Playwright 1.57。r4 Backend／Vite 綁定 loopback；沒有把服務或資料庫公開至網路。Secret 使用既有環境／DPAPI 啟動方式，只記錄 Provider 狀態，不記錄 Key、密碼、JWT、Cookie 或 Token。安全證據清單與 SHA-256 位於 `docs/evidence/sp910/round5-reset-final-20261017/evidence-manifest.json`。
 
 此基準 SHA `c802978d2967bd862b61c49a5dfd87c2db3fe3f8` 的 GitHub Actions [Run 39007248503](https://github.com/liujiawei-tw/supplypilot/actions/runs/39007248503) 中 Backend CI 實際執行並 SUCCESS；Frontend CI 為 SKIPPED，因此不是全套 Backend／Frontend 回歸 PASS。本次僅更新 #117 驗收文件與非敏感實測證據，沒有修改產品碼，未重跑 Maven／Frontend 測試。首次 Reset 嘗試的更深層原因未能從原始紀錄證實。這次沒有重跑已不受影響的 SUP-005 Browser Upload、跨語測試或採購收貨流程；前次證據及其 SHA 適用性保留在前文。SOP 的非必要品質文件來源為唯一 P2 觀察，交由 GPT 獨立核對。
+
+## 2026-10-17 GPT Review P1/P2 離線修正（不重跑 r4）
+
+本節追加在原始 Browser／Gemini／Reset 紀錄後，未修改任何已保存的實測 JSON、截圖或失敗旗標，也沒有再次操作 Browser、Gemini、Backend、資料庫、Storage 或 Reset。
+
+### P1 — Source 驗證的換行穩定性與必要斷言退出碼
+
+先以未修改的 `reset-final-query-results.json`、`remaining-gemini-query-results.json` 及原 harness 分支條件做 RED 重現。原始 SUP-001 與 SOP 的 `expectedStatusPass` 均為 `false`；SOP 額外引用的品質文件 #16 有其自身合法來源，但舊結果把它記為不符合預期文件。舊程式只在核心 `query` phase 失敗時依 `expectedStatusPass` Exit 2；`query-followup` 中即使必要來源斷言為 false，只要 HTTP 仍為 200 就可能 Exit 0。原始資料及旗標維持不變，RED 摘要在 `source-validation-red-reproduction.json`。
+
+Review 指出的長度差異可由檢查輸入換行格式重現：直接把 Git LF Blob 套入舊 JavaScript 正規化會得到文件 #12–#16 長度 334／340／380／266／267，低於 Windows r4 Browser／Backend 來源 Offset 的 336／343／383／268／269。Backend 契約依 `DocumentTextExtractor` 的順序處理 NUL、水平空白及換行，再使用 Java `String.trim()`；實際 Windows r4 輸入為 CRLF。新的 `source-validation.cjs` 先將樣本換行固定模擬為 CRLF，再逐步套用相同 parser 規則，讓結果不受 Git `core.autocrlf` 影響。用原始樣本重驗得到 UTF-16 長度 336／343／383／268／269，與六筆回應中的 Offset 及 Excerpt 一致。
+
+Source 驗證現要求 `resourceType=DOCUMENT`、ID 為預期文件、Version 1.0、Chunk 0、整數且有序的範圍內 Offset，並以 JavaScript UTF-16 `slice(startOffset,endOffset)` **原樣**等於 API `excerpt`；不再對 Citation Excerpt 呼叫 `.trim()`。每筆來源都逐一驗證，SOP 的 #14 正確引用及 #16 有效但非必要引用皆保留並分別驗證。文件問題若缺少必要來源、回答缺少必要條款，或證據不足卻回 ANSWERED，均不能通過。Browser harness 對任何 phase 的任一必要斷言失敗都保存結果並 Exit 2。
+
+離線 GREEN 測試指令：
+
+```powershell
+node docs/evidence/sp910/round5-reset-final-20261017/source-validation.test.cjs
+```
+
+結果為六筆原始回應 6/6 通過離線 Answer／Status／來源核對；來源為 SUP-001 #12 `0–336`、SUP-002 #13 `0–343`、MAT-001 #15 `0–268`、SOP #14 `0–383` 與額外 #16 `0–269`、品質 #16 `0–269`；保險費率為 `INSUFFICIENT_EVIDENCE` 且無來源。14 個負向斷言覆蓋錯誤來源類型／文件 ID、Version、Chunk、越界／反向／長度不符 Offset、改寫或前置空白 Excerpt、多來源任一無效、證據不足被改成 ANSWERED、答案缺必要條款，以及 follow-up 必要失敗需 Exit 2。機器可讀結果為 `source-validation-offline-results.json`。此為**使用既有真實 Browser/Gemini 原始回應的離線重驗**，不是新 Browser／Gemini 執行，也不改寫原始 `expectedStatusPass=false`。
+
+### P2 — Evidence Manifest 唯一路徑與 Blob Hash
+
+Manifest 原有 38 筆，其中 `runtime-environment.json` 重複，實際只有 37 個唯一路徑。修正後的 Manifest 採明確路徑集合：保留原清單所有既有路徑並去重，納入本輪 RED／離線測試／結果檔；按相對路徑排序，排除 Manifest 自身。每筆 bytes 與 SHA-256 由 Git 暫存 Index Blob 的實際內容計算，`fileCount` 等於唯一路徑數；變更前會重新檢查沒有重複及循環 Hash。
+
+本次僅變更 #117 驗收 harness、離線驗證工具／非敏感結果、E9 報告與 Manifest；無產品程式碼、Seeder、RBAC、Gate、API 或資料模型變更。既有 SOP 額外有效但非必要的 #16 引用仍是 P2 觀察。離線驗證不取代完整 E9 Final Review；#117 仍保持 OPEN。

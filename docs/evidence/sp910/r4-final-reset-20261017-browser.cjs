@@ -4,12 +4,13 @@ const path = require('node:path');
 const {createRequire} = require('node:module');
 const runtimeRequire=createRequire('C:/Users/z0976/AppData/Local/OpenAI/Codex/runtimes/cua_node/a5a02988362ca169/bin/runner.cjs');
 const {chromium}=runtimeRequire('playwright');
+const {queryFailureExitCode,validateQueryResult,validateSource}=require('./round5-reset-final-20261017/source-validation.cjs');
 const BASE='http://127.0.0.1:5174';
 const EVIDENCE=process.env.SP910_EVIDENCE_DIR;
 const PROFILE=process.env.SP910_EDGE_PROFILE;
 const PASSWORD=process.env.SP910_DEMO_PASSWORD;
 const PHASE=process.argv[2];
-if(!['admin','query','query-followup'].includes(PHASE)) throw new Error('Expected phase admin or query');
+if(!['admin','query','query-followup'].includes(PHASE)) throw new Error('Expected phase admin, query, or query-followup');
 if(!PASSWORD) throw new Error('Secure Demo password is unavailable');
 if(!fs.existsSync(EVIDENCE)) throw new Error('Evidence directory is missing');
 fs.mkdirSync(PROFILE,{recursive:true});
@@ -126,11 +127,11 @@ fs.mkdirSync(PROFILE,{recursive:true});
       const questionInput=page.getByRole('textbox',{name:'AI 問題'});
       await questionInput.waitFor({state:'visible',timeout:15000});
       const queries=[
-        {caseId:'SUP-001-leadtime',question:'SUP-001 的 MAT-001 標準交期是多久？',terms:['5','曆日'],documentId:12,sample:'supplier-contract-sup-001-v1.txt'},
-        {caseId:'SUP-002-validity',question:'SUP-002 的報價有效期限為多久？',terms:['30','曆日'],documentId:13,sample:'quotation-sup-002-v1.txt'},
-        {caseId:'MAT-001-storage',question:'MAT-001 的基本單位及儲存條件為何？',terms:['KG','陰涼乾燥','陽光直射'],documentId:15,sample:'product-specification-mat-001-v1.txt'},
-        {caseId:'SOP-receiving-role',question:'SupplyPilot 採購 SOP 由哪個角色執行收貨？',terms:['倉庫人員'],documentId:14,sample:'procurement-sop-v1.txt'},
-        {caseId:'quality-quarantine',question:'哪些情況需要隔離批次？',terms:['缺少批次識別','封條破損','污染','物料不符'],documentId:16,sample:'quality-requirement-v1.txt'},
+        {caseId:'SUP-001-leadtime',question:'SUP-001 的 MAT-001 標準交期是多久？',terms:['5','曆日','ORDERED'],documentIds:[12],requiredDocumentIds:[12]},
+        {caseId:'SUP-002-validity',question:'SUP-002 的報價有效期限為多久？',terms:['30','曆日'],documentIds:[13],requiredDocumentIds:[13]},
+        {caseId:'MAT-001-storage',question:'MAT-001 的基本單位及儲存條件為何？',terms:['KG','陰涼乾燥','陽光直射'],documentIds:[15],requiredDocumentIds:[15]},
+        {caseId:'SOP-receiving-role',question:'SupplyPilot 採購 SOP 由哪個角色執行收貨？',terms:['倉庫人員'],documentIds:[14,16],requiredDocumentIds:[14]},
+        {caseId:'quality-quarantine',question:'哪些情況需要隔離批次？',terms:['缺少批次識別','封條破損','污染','物料不符'],documentIds:[16],requiredDocumentIds:[16]},
         {caseId:'insurance-insufficient',question:'這些文件是否規定冷凍海運的保險費率？',expectedStatus:'INSUFFICIENT_EVIDENCE'}
       ];
       if(PHASE==='query-followup')queries.shift();
@@ -143,19 +144,11 @@ fs.mkdirSync(PROFILE,{recursive:true});
         const sources=(Array.isArray(body?.sources)?body.sources:[]).map(s=>({resourceType:s.resourceType,resourceId:s.resourceId,version:s.version,chunkIndex:s.chunkIndex,startOffset:s.startOffset,endOffset:s.endOffset,sourceHash:s.sourceHash,excerpt:s.excerpt}));
         const answer=typeof body?.answer==='string'?body.answer:'';
         const record={caseId:q.caseId,question:q.question,httpStatus:response.status(),status:body?.status??null,answer,answerSource:body?.answerSource??null,tools:Array.isArray(body?.tools)?body.tools.map(t=>typeof t==='string'?t:t?.name).filter(Boolean):[],traceId:body?.traceId??null,sources,elapsedMs:Date.now()-started,sourceValidation:[]};
-        if(q.expectedStatus){record.expectedStatusPass=record.httpStatus===200&&record.status===q.expectedStatus&&sources.length===0;}
-        else{
-          const sourceSamples={'12':'supplier-contract-sup-001-v1.txt','13':'quotation-sup-002-v1.txt','14':'procurement-sop-v1.txt','15':'product-specification-mat-001-v1.txt','16':'quality-requirement-v1.txt'};
-          record.sourceValidation=sources.map(s=>{
-            const sourceSample=sourceSamples[String(s.resourceId)];
-            const sample=sourceSample?fs.readFileSync(path.join(process.cwd(),'samples','documents',sourceSample),'utf8').replace(/\u0000/g,' ').replace(/[\t\x0B\f\r ]+/g,' ').replace(/ *\n+ */g,'\n').trim():'';
-            const structurallyValid=Boolean(sourceSample)&&s.resourceType==='DOCUMENT'&&s.version==='1.0'&&Number.isInteger(s.startOffset)&&Number.isInteger(s.endOffset)&&s.startOffset>=0&&s.endOffset<=sample.length;
-            return {resourceId:s.resourceId,version:s.version,chunkIndex:s.chunkIndex,startOffset:s.startOffset,endOffset:s.endOffset,belongsToExpectedDocument:s.resourceType==='DOCUMENT'&&String(s.resourceId)===String(q.documentId),knownDemoDocument:Boolean(sourceSample),utf16ExcerptMatchesSample:structurallyValid&&sample.slice(s.startOffset,s.endOffset).trim()===s.excerpt};
-          });
-          record.expectedStatusPass=record.httpStatus===200&&record.status==='ANSWERED'&&q.terms.every(t=>answer.includes(t))&&record.sourceValidation.some(s=>s.belongsToExpectedDocument&&s.utf16ExcerptMatchesSample)&&record.sourceValidation.every(s=>s.knownDemoDocument&&s.utf16ExcerptMatchesSample);
-        }
+        record.sourceValidation=sources.map(s=>({resourceId:s.resourceId,version:s.version,chunkIndex:s.chunkIndex,startOffset:s.startOffset,endOffset:s.endOffset,...validateSource(s,q.documentIds??[],path.join(process.cwd(),'samples','documents'))}));
+        record.expectedStatusPass=validateQueryResult(record,{status:q.expectedStatus??'ANSWERED',documentIds:q.documentIds??[],requiredDocumentIds:q.requiredDocumentIds??[],terms:q.terms??[],samplesDirectory:path.join(process.cwd(),'samples','documents')});
         proof.queries.push(record);await shot(`${q.caseId}.png`);
-        if(PHASE==='query'&&i===0&&!record.expectedStatusPass){proof.completedAt=new Date().toISOString();fs.writeFileSync(path.join(EVIDENCE,'reset-final-query-results.json'),JSON.stringify(proof,null,2));console.log(JSON.stringify({phase:PHASE,coreSup001Failed:true,caseId:q.caseId,httpStatus:record.httpStatus,status:record.status,traceId:record.traceId,sourceCount:sources.length}));await context.close();process.exit(2);}
+        const assertionExitCode=queryFailureExitCode(record.expectedStatusPass);
+        if(assertionExitCode!==0){proof.completedAt=new Date().toISOString();const output=path.join(EVIDENCE,PHASE==='query-followup'?'remaining-gemini-query-results.json':'reset-final-query-results.json');fs.writeFileSync(output,JSON.stringify(proof,null,2));console.log(JSON.stringify({phase:PHASE,assertionFailed:true,caseId:q.caseId,httpStatus:record.httpStatus,status:record.status,traceId:record.traceId,sourceCount:sources.length,exitCode:assertionExitCode}));await context.close();process.exit(assertionExitCode);}
         if(response.status()!==200){proof.completedAt=new Date().toISOString();fs.writeFileSync(path.join(EVIDENCE,'reset-final-query-results.json'),JSON.stringify(proof,null,2));console.log(JSON.stringify({phase:PHASE,caseId:q.caseId,httpStatus:record.httpStatus,status:record.status,traceId:record.traceId}));await context.close();process.exit(2);}
       }
     }

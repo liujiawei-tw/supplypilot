@@ -1,0 +1,45 @@
+{
+  "capturedAt": "2026-10-17T06:46:24.523Z",
+  "timezone": "Asia/Taipei",
+  "baseGitHead": "9c29e4bee329c102e89442ce7af0b8cd7ab160b8",
+  "kind": "offline RED characterization against unmodified captured browser responses and Git LF sample blobs; no Browser/Gemini/backend/DB/reset ran",
+  "rawResponseFilesUnmodified": true,
+  "legacyCapturedAssertionFlags": {
+    "sup001": false,
+    "sop": false
+  },
+  "lineEndingNormalization": {
+    "12": {
+      "expectedWindowsUtf16Length": 336,
+      "existingHarnessOnGitLfBlobLength": 334,
+      "matchesExpected": false
+    },
+    "13": {
+      "expectedWindowsUtf16Length": 343,
+      "existingHarnessOnGitLfBlobLength": 340,
+      "matchesExpected": false
+    },
+    "14": {
+      "expectedWindowsUtf16Length": 383,
+      "existingHarnessOnGitLfBlobLength": 380,
+      "matchesExpected": false
+    },
+    "15": {
+      "expectedWindowsUtf16Length": 268,
+      "existingHarnessOnGitLfBlobLength": 266,
+      "matchesExpected": false
+    },
+    "16": {
+      "expectedWindowsUtf16Length": 269,
+      "existingHarnessOnGitLfBlobLength": 267,
+      "matchesExpected": false
+    }
+  },
+  "legacyQueryFollowupExitCode": 0,
+  "legacyQueryFollowupHadFailedRequiredAssertion": true,
+  "redFindings": [
+    "Git LF blob normalization yields shorter text than the Windows CRLF Browser/Backend evidence contract for every baseline document.",
+    "Saved SUP-001 and SOP assertion flags are false despite valid source excerpts in the same immutable raw results.",
+    "The legacy harness conditions process failure on the core query phase only; query-followup can report process success while a recorded expectedStatusPass is false."
+  ]
+}
