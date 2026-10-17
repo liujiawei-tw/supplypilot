@@ -1,0 +1,53 @@
+{
+  "environment": "local Windows r4 code SHA 6615e29ce69795ec0b922edfb85ac650dd0cb9de",
+  "timezone": "Asia/Taipei",
+  "backend": {
+    "command": "backend/mvnw.cmd -B --no-transfer-progress verify",
+    "workingDirectory": "backend",
+    "exitCode": 0,
+    "result": "BUILD SUCCESS",
+    "tests": 596,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 1,
+    "durationSeconds": 447,
+    "finishedAt": "2026-10-17T09:10:54+08:00"
+  },
+  "frontend": {
+    "lint": { "command": "npm run lint", "exitCode": 0 },
+    "build": { "command": "npm run build", "exitCode": 0 },
+    "fullFirst": {
+      "command": "npm test",
+      "exitCode": 1,
+      "tests": 181,
+      "passed": 177,
+      "failed": 4,
+      "durationSeconds": 1043.93,
+      "failureCases": [
+        "demandInventory.test.tsx: keeps adjustment input and marks a 409 result unknown without retrying",
+        "masterData.test.tsx: keeps Supplier create and edit values when backend submissions fail",
+        "masterData.test.tsx: creates and edits SupplierMaterial through the UI without PATCHing immutable relationships or currency",
+        "sp806.test.tsx: ignores a delayed archive response after switching documents"
+      ],
+      "note": "Ran concurrently with Backend verify; raw output is in task terminal history."
+    },
+    "targetedRetry": {
+      "exitCode": 0,
+      "passed": 4,
+      "skipped": 43,
+      "durationSeconds": 126.62,
+      "note": "Same four cases rerun after Backend verify completed."
+    },
+    "fullRetry": {
+      "command": "npm test",
+      "exitCode": 0,
+      "testFilesPassed": 22,
+      "tests": 181,
+      "passed": 181,
+      "failed": 0,
+      "durationSeconds": 903.7,
+      "startedAt": "2026-10-17T09:22:53+08:00",
+      "note": "No Backend verify running concurrently; raw output stored only in ignored backend/target/sp910-frontend-full-retry.log."
+    }
+  }
+}

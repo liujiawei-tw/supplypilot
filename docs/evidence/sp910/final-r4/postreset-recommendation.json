@@ -1,0 +1,41 @@
+{
+  "environment": "r4 Demo after guarded reset",
+  "browser": "Microsoft Edge headed via CDP",
+  "at": "2026-10-17T00:59:07.629Z",
+  "httpStatus": 201,
+  "elapsedMs": 336,
+  "request": {
+    "materialCode": "MAT-001",
+    "periodStart": "2026-10-16",
+    "periodEnd": "2026-11-15"
+  },
+  "response": {
+    "id": 2,
+    "material": {
+      "id": 13,
+      "code": "MAT-001",
+      "name": "Assam Tea Extract",
+      "unit": "KG"
+    },
+    "period": {
+      "start": "2026-10-16",
+      "end": "2026-11-15"
+    },
+    "calculation": {
+      "expectedDemand": 1000,
+      "safetyStock": 200,
+      "currentInventory": 300,
+      "incomingInventory": 150,
+      "netRequirement": 750
+    },
+    "outcome": "SUPPLIER_RECOMMENDED",
+    "recommendation": {
+      "purchaseRequired": true,
+      "supplierId": 8,
+      "supplierName": "East Harbor Trading",
+      "quantity": 750,
+      "score": 96.1
+    },
+    "createdAt": "2026-10-17T00:59:07.383025500Z"
+  }
+}

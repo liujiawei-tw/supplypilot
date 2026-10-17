@@ -485,3 +485,72 @@ Provider 日誌只保留安全映射後的 outcome、延遲及 token 用量，�
 | Backend／Frontend CI | NOT RUN（本輪證據更新為文件／截圖／JSON） | workflow 的 branch push scope 對 docs／evidence-only 變更會跳過 Backend／Frontend；目前環境無法讀取私有 Actions 本輪 job 明細，不將推論寫成實際 PASS |
 
 本輪真實實測結論為 **SP-910 E9 FAIL — REPRODUCIBLE FINDINGS**，同時 SUP-005、跨語中文→英文及 Reset 項目仍受前置／隔離條件限制。阻擋結果不是環境憑證不存在：`AI_API_KEY` 別名已被正確使用、真實 Gemini Chat／Embedding 均有成功呼叫證據。需要後續針對三個 `AI_INVALID_RESPONSE` trace 取得安全的 Provider／Tool 層診斷並修復或另行追蹤；在根因未證實前不修改 #117 的安全政策、Business Rule 或預期答案。r3 未受影響，r4 未 Reset。
+
+## 最終版本 r4 真實 E9 續驗（2026-10-16 至 17，Asia/Taipei）
+
+本節是獨立的新實測，不覆寫前述 `AI_INVALID_RESPONSE`、憑證或 Browser 阻擋歷史。#124／PR #125 已合併；此輪先將 `origin/main` `bf5f83e38dfd592736e941565672e5f3a8f42569` 正常合入原 #117 分支。實測 Backend 原始碼 SHA 為 `6615e29ce69795ec0b922edfb85ac650dd0cb9de`，包含該修復。沿用 r4 專用 MySQL `supplypilot_sp910_r4_demo@127.0.0.1:13327`、pgvector `supplypilot_sp910_r4_semantic_demo@127.0.0.1:15450` 與 `sp910-r4-demo-documents`；沒有建立 r5、修改 r3 或使用共用資料庫。額外跨語資料集使用同兩個 r4 專用容器內**另外新建且空白**的 `supplypilot_sp910_r4_cross_demo`／`supplypilot_sp910_r4_cross_semantic_demo` 與獨立 Storage，不屬於正式六文件基線。
+
+環境為 Windows 11 Home `10.0.26200`、Docker Engine `29.6.1`／Compose `5.3.0`、Zulu Java `21.0.10`、Node `24.15.0`／npm `11.12.1`、MySQL `8.4.11`、PostgreSQL `17.11`＋pgvector、Microsoft Edge `155.0.4283.60`。r4 Backend `8184`、Vite `5174` 均僅綁定 loopback。Browser 證據前半由**可見 Edge 透過 CDP 操作**，Reset 後另用真正 Playwright `connectOverCDP` 操作同一可見 Edge 重測六題；兩種工具在 JSON 中個別標示，沒有把 CDP 冒稱為 Playwright。正式 Runner 將已授權的 `AI_API_KEY` 別名安全注入 Backend，Chat `google-genai`／`gemini-3.6-flash`、Embedding `google-genai`／`gemini-embedding-001`、768 維、Generation `gemini-embedding-001-768-v1`；證據不含 Key。Semantic Read 只在持久化 Gate PASS 後顯式啟用並重啟。
+
+### A. 最終版五份文件與兩向跨語查詢
+
+Reset 前，Admin UI Readiness 回傳五份 READY、零 PENDING／FAILED／REQUIRES_REVIEW、`passed=true`。下表每一題均由實際 Edge AI Assistant 送出 `POST /api/v1/ai/query` 並保存 HTTP、工具、回答、完整來源欄位與真實截圖。此表中的 #1–#5 為 **Reset 前** Document ID；Reset 後 ID 不可沿用。
+
+| Case | 真實結果 | 狀態 | 證據（皆在 `docs/evidence/sp910/final-r4/`） |
+|---|---|---|---|
+| FINAL-Q1 SUP-001 合約交期 | HTTP 200／ANSWERED；ORDERED 後 5 曆日；僅文件 #1 v1.0 chunk 0、UTF-16 `0–336`。雖有其他 Read-only Tool 執行，最終答案／來源未使用推薦或排名數值；14,511 ms | PASS | `sup001.json/.png` |
+| FINAL-Q2 MAT-001 單位與儲存 | HTTP 200／ANSWERED；KG、陰涼乾燥、避免日照；文件 #4 v1.0 chunk 0 `0–268`；9,278 ms | PASS | `mat001.json/.png` |
+| FINAL-Q3 SUP-002 報價期限 | HTTP 200／ANSWERED；自開立日起 30 曆日；文件 #2 v1.0 chunk 0 `0–343`；7,984 ms | PASS | `sup002.json/.png` |
+| FINAL-Q4 SOP 收貨角色 | HTTP 200／ANSWERED；倉庫人員；文件 #3 v1.0 chunk 0 `0–383`；另附非必要品質文件 #5，列 P2 觀察；7,631 ms | PASS（附帶非必要引用） | `sop.json/.png` |
+| FINAL-Q5 品質隔離 | HTTP 200／ANSWERED；完整列出缺少批次識別、封條破損、污染、物料不符；文件 #5 v1.0 chunk 0 `0–269`；6,980 ms | PASS | `quality.json/.png` |
+| FINAL-Q6 冷凍海運保險費率 | HTTP 200／INSUFFICIENT_EVIDENCE；無答案、無來源；12,479 ms | PASS（安全拒答） | `insurance.json/.png` |
+| FINAL-X1 英文問題→中文文件 | HTTP 200／ANSWERED；30 calendar days，來源為中文 SUP-002 文件 #2 v1.0 `0–343`；7,609 ms | PASS | `en-to-zh.json/.png` |
+| FINAL-X2 中文問題→英文文件 | **獨立跨語測試資料集**：真實 UI 上傳虛構英文文件 #6，五份中文 Seed 已於該資料集封存；Ingestion／Admin Approval／真實 Gemini Backfill READY 1／Gate Audit #1 PASS，顯式開啟 Read；中文 SUP-001 問題 HTTP 200／ANSWERED，僅英文 #6 v1.0 chunk 0 `0–406`，答案 ORDERED 後 5 calendar days；查詢 8,877 ms | PASS（獨立環境） | `cross-upload.json`、`cross-baseline-archived.json`、`cross-ingest-review.json`、`cross-gate.json`、`cross-zh-to-en.json/.png` |
+
+文件引用沒有只檢查 offset 長度：`source-validation.json` 以 JavaScript UTF-16 字串索引，對實際 `samples/documents` 原文先作既有 parser 的 CRLF→LF 正規化，再依 `startOffset/endOffset` 截取；涵蓋 Reset 前後 22 筆引用，**22/22 excerpt 精確相等**。Reset 後五份 Outbound Approval Hash 與 pgvector Index Source Hash 也逐筆一致。英文測試文件另以實際英文上傳內容核對 `0–406`；其來源沒有中文原文冒充英文。
+
+### B. 正式第六份 SUP-005 Browser 流程
+
+上傳前 Admin UI 真實列出五份基線 READY，沒有 SUP-005。可見 Edge UI 上傳 `samples/documents/ui-upload-sup-005-v1.txt`，Backend HTTP 201，自動產生 Document #6、Version 1.0、`SUPPLIER_CONTRACT`、SUP-005、標題 `SUP-005 Seasonal Delivery Addendum`，初始 `PROCESSING`，上傳請求 296 ms。UI Explicit Ingestion HTTP 200 後才為 READY（367 ms），Storage 原檔及 Chunk 與 Metadata 已核對。
+
+新增 READY 後、索引前的 UI Readiness 為 READY 5／PENDING 1、`passed=false`、Document #6 `NOT_INDEXED`；當時真實 Edge AI 查詢回 503／`AI_PROVIDER_UNAVAILABLE`，沒有來源，證明不能沿用舊 Gate 直接查新文件。Admin UI Outbound Approval HTTP 200／APPROVED，Version 1.0、Reviewer id 5、Source Hash 已保存。Admin UI Backfill HTTP 200，processed 6／READY 6／FAILED 0／SKIPPED 0／REQUIRES_REVIEW 0／`morePossible=false`，耗時 1,886 ms；Readiness PASS，持久化新 Gate Audit #2 PASS。最後 Edge 問「SUP-005 應何時回報季節性交期變更？」HTTP 200／ANSWERED，答案為**預計交期前 2 個工作天**，唯一來源為實際 Browser 上傳的文件 #6 v1.0 chunk 0 `0–295`，8,100 ms。上傳 `2026-10-16T13:55:52.970Z` 到成功查詢 `13:58:25.005Z` 的實際牆鐘耗時 **2.53 分鐘**；Ingestion 到新 Gate 完成 **1.45 分鐘**。證據：`sup005-upload.json`、`sup005-ingestion.json`、`sup005-before-index-readiness.json`、`before-index-sup005.json/.png`、`sup005-outbound.json`、`sup005-gate.json`、`sup005.json/.png` 及各步 UI 截圖。
+
+### C. 隔離 Guarded Reset、重新建立 Gate 與一般重啟
+
+Reset 前快照 `reset-pre-snapshot.json` 逐項記錄專用 DB、Volume、Storage Hash、Dataset Marker `sp-905-zh-tw-v1`／COMPLETE、五帳號、11 PO 含 #11 RECEIVED、MAT-001 現有庫存 1,050 KG／PURCHASE_RECEIVE 750 KG、六份 READY／已核准文件、六份 Semantic Index 與 Gate Audit #1／#2。正式 Reset 前再次核對 allowlist、loopback 連線與 Volume 名稱。先以故意不匹配的 allowed database 呼叫正式 Guard，Exit 1，Marker／11 PO／六份文件保持不變。隨後只停止已核對的 r4 Backend，以 Repository 正式 `scripts/reset-demo.ps1` 對隔離 r4 執行一次 Reset；Exit 0，`2026-10-16T14:01:21.906Z` 至 `14:01:42.918Z`，**21.013 秒**。沒有手動清 SQL Table、Marker、索引、Volume 或 r3。
+
+立即後置快照 `reset-post-snapshot.json`：Marker COMPLETE、Users 5、Materials 12、Suppliers 6、SupplierMaterial 30、Demands 12、PO 10（DRAFT 2／APPROVED 2／ORDERED 3／RECEIVED 2／REJECTED 1）、MAT-001 現有庫存 **300 KG**；五份新基線文件 READY，ID 為 **#7–#11**，舊 #1–#6 與 SUP-005 消失；舊 Outbound Approval、Semantic Index、Gate Audit 均清除。750 KG 是公式 `1000 + 200 - 300 - 150` 的**淨需求**，不是 Seeder 的初始庫存。Edge 重新登入後列出新五份 READY；Gate 未重建時查詢沒有取得舊來源，但曾觀察 SUP-001 HTTP 404／`RECOMMENDATION_NOT_FOUND` 及 SOP `INSUFFICIENT_EVIDENCE`，均保存原樣，不推定為預期的 503。
+
+Admin UI 逐份重新審核 #7–#11，五筆 HTTP 200／APPROVED。隔夜工作階段中服務曾停止；次日使用相同安全 Runner、相同隔離 DB／Storage 恢復 Backend，保持 Semantic Read=false。Admin UI 真實 Gemini Backfill processed 5／READY 5／其他 0／`morePossible=false`（4,001 ms）；Readiness PASS（1,332 ms）；持久化 Gate Audit **#3 PASS**（1,522 ms）。其後明確將 Semantic Read 設 true 並重啟，Health 200。重建後五文件 #7–#11 的 Approval Hash／pgvector Index Hash 相等；Generation 仍是 `gemini-embedding-001-768-v1`。`postreset-approvals.json`、`postreset-gate.json` 與三張 Edge 截圖可獨立稽核每一步。
+
+Reset 完成至 Audit #3 完成的實際牆鐘時間 **651.02 分鐘**，至首筆 MAT-001 真實來源查詢成功 **652.08 分鐘**；這**包含隔夜工作中斷**，不是自動恢復時間，也不能當成穩定 RTO。實際 API 耗時與啟動等待時間分別保留於 JSON；本機流程需要人工重新核准、Backfill、Audit 與重啟。#45 的 AWS 午夜 Reset／自動恢復尚未測試。
+
+| Case | Reset 後最新結果 | 狀態／證據 |
+|---|---|---|
+| FINAL-R-Q1 SUP-001 | Gate #3 後、尚無新 Recommendation 時，**同一精確問題連續兩次 HTTP 404／`RECOMMENDATION_NOT_FOUND`**（trace `2cb03a0b-42ab-4bd2-8ac3-640e4c4a0018` 與另一次保留於 JSON）；不是 Provider 503。之後 Admin 從真正 Edge UI 建立 MAT-001 Recommendation #2，Backend HTTP 201，`1000+200−300−150=750 KG`；再問相同問題 HTTP 200／ANSWERED，引用新文件 #7 v1.0 `0–336`。Playwright 再次重測亦 HTTP 200、僅 #7 文件來源 | **FAIL（無推薦快照時的必要問答路徑）；有條件 PASS（建立快照後）**。`postreset-sup001.json/.png`、`postreset-retry1-sup001.json/.png`、`postreset-recommendation.json/.png`、`postreset-after-recommendation-sup001.json/.png`、`playwright-postreset-sup001.json/.png` |
+| FINAL-R-Q2 MAT-001 | HTTP 200／ANSWERED；KG、陰涼乾燥、避免日照；新文件 #10 v1.0 `0–268` | PASS：`postreset-mat001.json/.png`、`playwright-postreset-mat001.json/.png` |
+| FINAL-R-Q3 SUP-002 | HTTP 200／ANSWERED；30 曆日；新文件 #8 v1.0 `0–343` | PASS：`postreset-sup002.json/.png`、`playwright-postreset-sup002.json/.png` |
+| FINAL-R-Q4 SOP | HTTP 200／ANSWERED；倉庫人員；新文件 #9 v1.0 `0–383`，另附非必要 #11 | PASS（附 P2 觀察）：`postreset-sop.json/.png`、`playwright-postreset-sop.json/.png` |
+| FINAL-R-Q5 品質隔離 | HTTP 200／ANSWERED；四項條件；新文件 #11 v1.0 `0–269` | PASS：`postreset-quality.json/.png`、`playwright-postreset-quality.json/.png` |
+| FINAL-R-Q6 保險費率 | HTTP 200／INSUFFICIENT_EVIDENCE；無答案、無來源 | PASS：`postreset-insurance.json/.png`、`playwright-postreset-insurance.json/.png` |
+| FINAL-R-X1 英文→中文 | HTTP 200／ANSWERED；中文新文件 #8 v1.0 `0–343` | PASS：`postreset-en-to-zh.json/.png` |
+| FINAL-R-LOGIN 五帳號 | Reset 後同一 r4，真正 Edge＋Playwright 表單提交；Planner／Buyer／Manager／Warehouse／Admin 各 Login HTTP 200，Dashboard 與登出 UI 可見 | PASS：`playwright-postreset-five-logins.json`、五張 `playwright-postreset-login-*.png` |
+| FINAL-R-RESTART | 一般 Backend 重啟，不呼叫 Reset。前後 MySQL 24 筆摘要、pgvector 13 筆摘要逐項相同，五個 Storage SHA-256 相同；新 Gate #3 仍存在。重啟後 Edge MAT-001 問答仍 HTTP 200／ANSWERED、#10 來源 | PASS：`reset-postgate-snapshot.json`、`reset-postrestart-snapshot.json`、`postrestart-mat001.json/.png` |
+
+**Finding FINAL-P1-01（#117 範圍外的產品缺陷候選）**：在有效五文件、Approval、Index、Audit #3、Semantic Read=true 的 Reset 後狀態，精確合約交期問題連續兩次回 `RECOMMENDATION_NOT_FOUND`。建立正式 Recommendation 後，同題才得到文件答案。可重現步驟：隔離 Demo 正式 Reset → UI 重新審核五份／Backfill／Audit → 明確開啟 Read → 尚未建立推薦快照時詢問 SUP-001 合約標準交期。期望 SEARCH_DOCUMENTS 的已核准合約可獨立提供 5 曆日；實際 404 中止整個 AI Query。已證實錯誤碼與「有無推薦快照」相關，**尚未取得失敗當次每一步 Tool Trace，不能聲稱精確內部呼叫分支已查明**。本 #117 僅保存最小重現與影響，不改 Backend、Prompt、安全 Guard 或商業條款；需依單 Issue 流程另行安排產品修復與重測。SOP 附非必要品質引用仍為已知 P2 觀察。
+
+靜態程式碼指出一條符合觀察的路徑：若模型在合約問題中呼叫 `QUERY_RECOMMENDATION`／`QUERY_SUPPLIER_RANKING` 並帶 MAT-001，`RecommendationTool.find()` 會讀取該物料最新 Recommendation；`PurchaseRecommendationService.getLatestRecommendationByMaterialCode()` 在查無快照時拋 `RECOMMENDATION_NOT_FOUND`，`SpringAiProviderClient` 對 application failure 會向外傳遞。這是**程式路徑推論**，不是該兩次請求已取得的逐步 Tool Trace；後續產品 Issue 應以安全的固定類別診斷及 Regression Test 證實，再決定最小修正。
+
+### #45 交接與本輪結論
+
+本機可重現的順序是：隔離 MySQL／pgvector／Storage 與安全環境注入 → Demo Seeder → 五文件 UI Outbound Approval → 真實 Gemini Embedding Backfill → Readiness → 持久化 Gate Audit → 顯式 Semantic Read 與 Backend 重啟 → Edge 來源查詢。正式 Reset 後上述人工審核／索引／稽核／重啟須重做；21.013 秒僅是這次 Reset 命令本身耗時，651.02 分鐘的牆鐘恢復時間包含隔夜中斷，兩者不能混用。#45 仍需在 Production Container 與 AWS 各自核對持久化、憑證、Provider、Gate 失效／恢復、Browser 行為及午夜自動化；本機 PASS 不轉記為 Docker Production／AWS PASS。
+
+此輪實際資料顯示：Reset 前六題、雙向跨語、SUP-005 完整 UI 流程、隔離 Guarded Reset、五文件重新索引與 Gate #3 均有真實證據；但 Reset 後合約查詢在沒有新推薦快照時可重現兩次 404。故此時**不能宣稱完整 E9 FINAL PASS**，也不能請 GPT 以成功重試蓋掉失敗。回歸與 CI 結果分列下節；只有阻擋性 Finding 有合適修復／審核安排並重新驗證，才能申請 #117 完整 Final Review。
+
+### 回歸、Browser 登入限制與範圍檢查（2026-10-17，Asia/Taipei）
+
+- Backend 在正確 `backend` 目錄執行 `.\mvnw.cmd -B --no-transfer-progress verify`，**BUILD SUCCESS；596 tests、0 failure、0 error、1 skipped**，07:27，完成於 09:10:54 +08:00。先前從 Repository 根目錄呼叫 Wrapper 曾立即因缺少 `pom.xml` 退出；已改在正確目錄重跑並取得完整結果，不將初次錯誤算成測試 PASS。
+- Frontend `npm run lint` Exit 0；`npm run build` Exit 0、Vite 8.3.4 成功建立 production assets（有 chunk size 警告）。完整 `npm test`／Vitest **首次 Exit 1：181 tests 中 177 PASS、4 FAIL，22 個檔案中 19 PASS／3 FAIL**，總耗時 1,043.93 秒。失敗項目是 `demandInventory.test.tsx` 的 409 後輸入保留 timeout、`masterData.test.tsx` 的 Supplier 建立／編輯失敗值保留 timeout 與 SupplierMaterial UI 欄位找不到、`sp806.test.tsx` 的 delayed archive response（先前 main CI 已知同名失敗）。首次與 Backend verify 並行；Backend 結束後單獨執行上述四個案例 **4 PASS／43 SKIPPED、Exit 0**，耗時 126.62 秒。無 Backend 並行負載下再次執行**完整 Frontend 測試 Exit 0：22/22 files、181/181 tests PASS**，耗時 903.70 秒。兩次完整結果都保留：首次失敗不能抹去，第二次證明相同 SHA 在本機可完整通過；不能因此斷言 CI 一定成功。首次結果留在本次終端工具輸出；targeted 與第二次完整原始輸出留在 Git 忽略的本機 `backend/target/`，只將非敏感摘要納入 Repository；不自行修改 #117 範圍外的前端功能或測試。
+- Reset 後 DB 快照確認 Users=5，且 Reset 後 Admin 已透過真實 Edge 登入並執行五筆核准。額外五角色檢查一開始因 AI Drawer 攔住登出按鈕，之後 Playwright 對 Ant Design 登入按鈕的兩次自動點擊未送出 `POST /api/v1/auth/login`；這兩次失敗沒有被算成登入 PASS，也沒有推定為帳號失效。改用**新的可見 Edge 瀏覽器設定檔**並在真實 Browser 的同一登入表單執行原生 `form.requestSubmit()`（明確揭露這是 Browser 自動化方式）後，Planner、Buyer、Manager、Warehouse、Admin 各自收到正式 Login HTTP 200，導向 `/dashboard` 且 Dashboard／登出 UI 實際可見，五筆均 PASS。證據 `playwright-postreset-five-logins.json` 及 `playwright-postreset-login-*.png`；沒有保存密碼、Token 或 Cookie。Reset 前五角色採購 Browser 操作仍有前述獨立證據。
+- `source-validation.json` 為 22 個實測問答案例的 22 筆文件來源做 UTF-16 原文截取核對，22/22 精確相等；五份 Reset 後核准 Source Hash 與 pgvector Index Hash 一致。`evidence-manifest.json` 另列出每份證據在 Git 暫存 Blob 中的檔名、大小與 SHA-256，供獨立核對且不受 Windows 換行轉換影響。截圖是真正 Edge 畫面；沒有生成或合成 UI 截圖。
+- 變更範圍僅為本驗收報告與非敏感 `docs/evidence/sp910/final-r4/`，沒有 Backend／Frontend 產品碼、Seed、Guard、角色、安全政策或環境密鑰變更。Git diff、Secret Scan 與遠端 CI 將於提交前後再次確認。`#117` 保持 OPEN；此分支不建立 PR、不 Merge。

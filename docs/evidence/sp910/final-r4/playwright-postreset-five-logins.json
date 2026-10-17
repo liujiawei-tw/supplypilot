@@ -1,0 +1,46 @@
+{
+  "environment": "r4 Demo after guarded reset",
+  "browser": "Microsoft Edge headed + Playwright",
+  "results": [
+    {
+      "username": "planner",
+      "httpStatus": 200,
+      "at": "2026-10-17T01:40:00.980Z",
+      "url": "http://127.0.0.1:5174/dashboard",
+      "dashboardVisible": true,
+      "logoutVisible": true
+    },
+    {
+      "username": "buyer",
+      "httpStatus": 200,
+      "at": "2026-10-17T01:40:03.421Z",
+      "url": "http://127.0.0.1:5174/dashboard",
+      "dashboardVisible": true,
+      "logoutVisible": true
+    },
+    {
+      "username": "manager",
+      "httpStatus": 200,
+      "at": "2026-10-17T01:40:05.765Z",
+      "url": "http://127.0.0.1:5174/dashboard",
+      "dashboardVisible": true,
+      "logoutVisible": true
+    },
+    {
+      "username": "warehouse",
+      "httpStatus": 200,
+      "at": "2026-10-17T01:40:08.013Z",
+      "url": "http://127.0.0.1:5174/dashboard",
+      "dashboardVisible": true,
+      "logoutVisible": true
+    },
+    {
+      "username": "admin",
+      "httpStatus": 200,
+      "at": "2026-10-17T01:40:10.232Z",
+      "url": "http://127.0.0.1:5174/dashboard",
+      "dashboardVisible": true,
+      "logoutVisible": true
+    }
+  ]
+}

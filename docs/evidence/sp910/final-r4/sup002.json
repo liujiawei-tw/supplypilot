@@ -1,0 +1,32 @@
+{
+  "caseId": "sup002",
+  "question": "SUP-002 的報價有效期限是多久？",
+  "startedAt": "2026-10-16T13:44:24.388Z",
+  "completedAt": "2026-10-16T13:44:32.372Z",
+  "elapsedMs": 7984,
+  "httpStatus": 200,
+  "status": "ANSWERED",
+  "answer": "查詢結果整理如下。\n本報價自開立日起 30 個曆日內有效。",
+  "answerSource": "MODEL_EXPLANATION",
+  "tools": [
+    "SEARCH_DOCUMENTS"
+  ],
+  "code": null,
+  "traceId": null,
+  "sources": [
+    {
+      "resourceType": "DOCUMENT",
+      "resourceId": "2",
+      "title": "SUP-002 虛構報價條件",
+      "version": "1.0",
+      "chunkIndex": 0,
+      "startOffset": 0,
+      "endOffset": 343,
+      "excerpt": "標題：SUP-002 虛構報價條件\n文件類型：QUOTATION\n版本：1.0\n虛構展示文件：本文內容、公司名稱與商業條件均為虛構，不代表真實公司或報價契約。\n\nEast Harbor Trading（SUP-002）於 SupplyPilot 虛構展示資料中供應 MAT-001 與 MAT-002，單價以展示資料庫中的設定為準。本報價自開立日起 30 個曆日內有效。MAT-001 訂購數量符合設定的包裝倍數時，標準交期為 3 個曆日。運費包含送至虛構展示倉庫。接受報價不會取代必要的採購單核准流程。\n\n問答：SUP-002 的報價自開立日起有效多久？\n預期依據：30 個曆日。\n\n問答：MAT-001 數量符合包裝倍數時，SUP-002 的標準交期為多久？\n預期依據：3 個曆日。",
+      "offsetLengthMatches": true
+    }
+  ],
+  "screenshot": "sup002.png",
+  "browser": "Microsoft Edge headed via CDP",
+  "backendGitSha": "6615e29ce69795ec0b922edfb85ac650dd0cb9de"
+}

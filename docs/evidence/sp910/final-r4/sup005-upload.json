@@ -1,0 +1,14 @@
+{
+  "at": "2026-10-16T13:55:52.970Z",
+  "httpStatus": 201,
+  "elapsedMs": 296,
+  "documentId": 6,
+  "initialStatus": "PROCESSING",
+  "version": "1.0",
+  "title": "SUP-005 Seasonal Delivery Addendum",
+  "documentType": "SUPPLIER_CONTRACT",
+  "supplierId": 5,
+  "file": "samples/documents/ui-upload-sup-005-v1.txt",
+  "browser": "Microsoft Edge headed via CDP",
+  "backendGitSha": "6615e29ce69795ec0b922edfb85ac650dd0cb9de"
+}

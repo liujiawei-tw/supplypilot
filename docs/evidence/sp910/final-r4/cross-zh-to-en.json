@@ -1,0 +1,29 @@
+{
+  "at": "2026-10-16T13:54:30.429Z",
+  "question": "SUP-001 的 MAT-001 標準交期是多久？",
+  "httpStatus": 200,
+  "elapsedMs": 8877,
+  "status": "ANSWERED",
+  "answer": "查詢結果整理如下。\nthe standard delivery lead time is 5 calendar days after the purchase order reaches ORDERED status",
+  "answerSource": "MODEL_EXPLANATION",
+  "tools": [
+    "SEARCH_DOCUMENTS"
+  ],
+  "code": null,
+  "sources": [
+    {
+      "resourceType": "DOCUMENT",
+      "resourceId": "6",
+      "title": "SUP-001 MAT-001 Delivery Terms for Fictional Cross-Language Test",
+      "version": "1.0",
+      "chunkIndex": 0,
+      "startOffset": 0,
+      "endOffset": 406,
+      "excerpt": "Title: SUP-001 MAT-001 Delivery Terms for Fictional Cross-Language Test\nDocument type: SUPPLIER_CONTRACT\nVersion: 1.0\nThis is a fictional test document. It does not describe a real supplier agreement.\nFor supplier SUP-001 and material MAT-001, the standard delivery lead time is 5 calendar days after the purchase order reaches ORDERED status.\nThe delivery term applies specifically to SUP-001 and MAT-001.",
+      "offsetLengthMatches": true
+    }
+  ],
+  "browser": "Microsoft Edge headed via CDP",
+  "environment": "isolated cross-language Demo 8185/5175",
+  "backendGitSha": "6615e29ce69795ec0b922edfb85ac650dd0cb9de"
+}

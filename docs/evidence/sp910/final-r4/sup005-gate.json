@@ -1,0 +1,58 @@
+{
+  "environment": "r4 Demo 8184/5174",
+  "steps": [
+    {
+      "step": "backfill",
+      "at": "2026-10-16T13:58:06.416Z",
+      "elapsedMs": 1886,
+      "httpStatus": 200,
+      "result": {
+        "processed": 6,
+        "ready": 6,
+        "failed": 0,
+        "skipped": 0,
+        "requiresReview": 0,
+        "lastId": 6,
+        "morePossible": false
+      }
+    },
+    {
+      "step": "readiness",
+      "at": "2026-10-16T13:58:08.418Z",
+      "elapsedMs": 1833,
+      "httpStatus": 200,
+      "result": {
+        "passed": true,
+        "generationKey": "gemini-embedding-001-768-v1",
+        "modelId": "gemini-embedding-001",
+        "dimensions": 768,
+        "ready": 6,
+        "skipped": 0,
+        "failed": 0,
+        "requiresReview": 0,
+        "pending": 0,
+        "findings": [],
+        "auditId": null
+      }
+    },
+    {
+      "step": "gate-audit",
+      "at": "2026-10-16T13:58:10.288Z",
+      "elapsedMs": 1650,
+      "httpStatus": 200,
+      "result": {
+        "passed": true,
+        "generationKey": "gemini-embedding-001-768-v1",
+        "modelId": "gemini-embedding-001",
+        "dimensions": 768,
+        "ready": 6,
+        "skipped": 0,
+        "failed": 0,
+        "requiresReview": 0,
+        "pending": 0,
+        "findings": [],
+        "auditId": 2
+      }
+    }
+  ]
+}

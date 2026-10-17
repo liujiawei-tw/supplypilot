@@ -1,0 +1,48 @@
+{
+  "at": "2026-10-16T13:55:34.483Z",
+  "httpStatus": 200,
+  "elapsedMs": 230,
+  "documents": [
+    {
+      "id": 5,
+      "title": "虛構展示原料品質要求",
+      "status": "READY",
+      "version": "1.0",
+      "documentType": "QUALITY_REQUIREMENT",
+      "supplierId": 3
+    },
+    {
+      "id": 4,
+      "title": "MAT-001 阿薩姆紅茶萃取物規格",
+      "status": "READY",
+      "version": "1.0",
+      "documentType": "PRODUCT_SPECIFICATION",
+      "supplierId": 1
+    },
+    {
+      "id": 3,
+      "title": "SupplyPilot 虛構展示採購作業程序",
+      "status": "READY",
+      "version": "1.0",
+      "documentType": "PROCUREMENT_SOP",
+      "supplierId": null
+    },
+    {
+      "id": 2,
+      "title": "SUP-002 虛構報價條件",
+      "status": "READY",
+      "version": "1.0",
+      "documentType": "QUOTATION",
+      "supplierId": 2
+    },
+    {
+      "id": 1,
+      "title": "SUP-001 交付與責任協議",
+      "status": "READY",
+      "version": "1.0",
+      "documentType": "SUPPLIER_CONTRACT",
+      "supplierId": 1
+    }
+  ],
+  "backendGitSha": "6615e29ce69795ec0b922edfb85ac650dd0cb9de"
+}

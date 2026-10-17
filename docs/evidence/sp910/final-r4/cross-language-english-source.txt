@@ -1,0 +1,7 @@
+Title: SUP-001 MAT-001 Delivery Terms for Fictional Cross-Language Test
+Document type: SUPPLIER_CONTRACT
+Version: 1.0
+This is a fictional test document. It does not describe a real supplier agreement.
+
+For supplier SUP-001 and material MAT-001, the standard delivery lead time is 5 calendar days after the purchase order reaches ORDERED status.
+The delivery term applies specifically to SUP-001 and MAT-001.

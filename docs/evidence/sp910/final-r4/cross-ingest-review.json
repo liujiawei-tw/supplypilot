@@ -1,0 +1,25 @@
+{
+  "environment": "isolated cross-language Demo 8185/5175",
+  "results": [
+    {
+      "step": "ingestion",
+      "at": "2026-10-16T13:53:02.607Z",
+      "elapsedMs": 255,
+      "httpStatus": 200,
+      "documentId": 6,
+      "status": "READY",
+      "version": "1.0"
+    },
+    {
+      "step": "outbound-review",
+      "at": "2026-10-16T13:53:02.983Z",
+      "elapsedMs": 152,
+      "httpStatus": 200,
+      "documentId": 6,
+      "status": "APPROVED",
+      "version": "1.0",
+      "sourceHash": "ced56740db99d3cd95bfc9bf9bcd054b6a1cbc60a3405ba8078be00c0e9d8ca5",
+      "approvedBy": 5
+    }
+  ]
+}

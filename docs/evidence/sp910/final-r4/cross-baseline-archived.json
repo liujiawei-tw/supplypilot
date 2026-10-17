@@ -1,0 +1,40 @@
+{
+  "environment": "isolated cross-language demo on 8185/5175",
+  "results": [
+    {
+      "documentId": 1,
+      "httpStatus": 200,
+      "status": "INACTIVE",
+      "elapsedMs": 265,
+      "at": "2026-10-16T13:50:50.601Z"
+    },
+    {
+      "documentId": 2,
+      "httpStatus": 200,
+      "status": "INACTIVE",
+      "elapsedMs": 153,
+      "at": "2026-10-16T13:50:51.132Z"
+    },
+    {
+      "documentId": 3,
+      "httpStatus": 200,
+      "status": "INACTIVE",
+      "elapsedMs": 176,
+      "at": "2026-10-16T13:50:51.491Z"
+    },
+    {
+      "documentId": 4,
+      "httpStatus": 200,
+      "status": "INACTIVE",
+      "elapsedMs": 155,
+      "at": "2026-10-16T13:50:52.028Z"
+    },
+    {
+      "documentId": 5,
+      "httpStatus": 200,
+      "status": "INACTIVE",
+      "elapsedMs": 154,
+      "at": "2026-10-16T13:50:52.385Z"
+    }
+  ]
+}

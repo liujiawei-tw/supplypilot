@@ -1,0 +1,11 @@
+{
+  "at": "2026-10-16T13:57:49.197Z",
+  "httpStatus": 200,
+  "elapsedMs": 330,
+  "documentId": 6,
+  "status": "APPROVED",
+  "version": "1.0",
+  "sourceHash": "6a97d6969262dd1301411396525d3354c08faae59cd87b8f59a14ebabc5754d1",
+  "approvedBy": 5,
+  "browser": "Microsoft Edge headed via CDP"
+}

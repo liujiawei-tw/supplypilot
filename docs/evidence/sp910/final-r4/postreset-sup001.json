@@ -1,0 +1,18 @@
+{
+  "caseId": "sup001",
+  "question": "SUP-001 的 MAT-001 標準交期是多久？",
+  "startedAt": "2026-10-17T00:53:30.005Z",
+  "completedAt": "2026-10-17T00:53:38.718Z",
+  "elapsedMs": 8713,
+  "httpStatus": 404,
+  "status": null,
+  "answer": null,
+  "answerSource": null,
+  "tools": null,
+  "code": "RECOMMENDATION_NOT_FOUND",
+  "traceId": "2cb03a0b-42ab-4bd2-8ac3-640e4c4a0018",
+  "sources": [],
+  "screenshot": "postreset-sup001.png",
+  "browser": "Microsoft Edge headed via CDP",
+  "backendGitSha": "6615e29ce69795ec0b922edfb85ac650dd0cb9de"
+}

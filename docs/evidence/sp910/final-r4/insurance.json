@@ -1,0 +1,21 @@
+{
+  "caseId": "insurance",
+  "question": "這些文件是否規定冷凍海運的保險費率？",
+  "startedAt": "2026-10-16T13:44:47.660Z",
+  "completedAt": "2026-10-16T13:45:00.139Z",
+  "elapsedMs": 12479,
+  "httpStatus": 200,
+  "status": "INSUFFICIENT_EVIDENCE",
+  "answer": null,
+  "answerSource": null,
+  "tools": [
+    "SEARCH_DOCUMENTS",
+    "SEARCH_DOCUMENTS"
+  ],
+  "code": null,
+  "traceId": null,
+  "sources": [],
+  "screenshot": "insurance.png",
+  "browser": "Microsoft Edge headed via CDP",
+  "backendGitSha": "6615e29ce69795ec0b922edfb85ac650dd0cb9de"
+}
