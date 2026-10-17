@@ -1,0 +1,19 @@
+{
+  "capturedAt": "2026-10-17T14:22:29.5555092+08:00",
+  "timezone": "Asia/Taipei",
+  "gitHead": "c802978d2967bd862b61c49a5dfd87c2db3fe3f8",
+  "environment": "isolated r4 demo",
+  "mysqlTarget": "supplypilot_sp910_r4_demo@127.0.0.1:13327",
+  "semanticTarget": "supplypilot_sp910_r4_semantic_demo@127.0.0.1:15450",
+  "backendPid": 22204,
+  "backendHealthy": true,
+  "semanticReadEnabledByRestart": true,
+  "mysqlRows": [
+    "recommendations=0",
+    "ready_documents=5",
+    "approved_documents=5"
+  ],
+  "semanticRows": [
+    "supplypilot_sp910_r4_semantic_demo,5,5,4:true"
+  ]
+}

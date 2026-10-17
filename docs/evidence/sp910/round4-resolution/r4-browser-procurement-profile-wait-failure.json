@@ -1,0 +1,19 @@
+{
+  "startedAt": "2026-10-16T01:16:05.355Z",
+  "browser": "Microsoft Edge headed via CDP / Playwright",
+  "purchaseOrderId": 11,
+  "roles": [],
+  "actions": [],
+  "screenshots": [
+    "r4-browser-procurement-lifecycle-failure.png"
+  ],
+  "status": "FAIL",
+  "error": {
+    "name": "TimeoutError",
+    "message": "locator.waitFor: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByText(/\\(manager\\)/) to be visible\u001b[22m\n",
+    "url": "http://127.0.0.1:5174/purchase-orders/11"
+  },
+  "domText": "SupplyPilot\n採購決策平台\n儀表板\n主\n需\n採\n採\n文\nSupplyPilot — AI 採購與供應鏈決策平台\nAI 助理\nDemo Procurement Manager（manager）\n採購經理\n登出\n← 採購單管理\nPO-20261016-000011\n核 准\n駁 回\n庫存異動\n採購單編號\t11\n狀態\t\n草稿\n\n供應商快照\tSUP-002 — East Harbor Trading (#2)\n預計交期\t2026-10-19\n建立資訊\tDemo Procurement Buyer (#2) · 2026年10月16日 上午9:13\n核准資訊\t—\n駁回資訊\t—\n下單資訊\t—\n收貨資訊\t—\n更新時間\t2026年10月16日 上午9:14\n品項\n物料\t數量\t單價\t小計\t採購建議依據\nMAT-001 — Assam Tea Extract (#1)\t750.0000 KG\t104.0000\t78000.00000000\t\n採購建議 #1 / 結果 #2",
+  "finishedAt": "2026-10-16T01:16:15.954Z",
+  "elapsedSeconds": 10.599
+}

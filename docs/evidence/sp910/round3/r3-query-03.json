@@ -1,0 +1,43 @@
+{
+  "caseId": "R3-QUERY-03",
+  "question": "SupplyPilot 採購 SOP 由哪個角色執行收貨？",
+  "httpStatus": 200,
+  "elapsedMs": 7956,
+  "response": {
+    "status": "ANSWERED",
+    "answer": "查詢結果整理如下。\n生產規劃人員登錄需求。 採購人員建立採購單草稿前 採購人員可將已核准的採購單標記為 ORDERED。 只有倉庫人員可收取狀態為 ORDERED 的採購單。 收貨會增加庫存、建立 PURCHASE_RECEIVE 庫存異動 任何角色都不得透過使用者介面跳過採購單狀態流程。 問答：由哪個角色收取狀態為 ORDERED 的採購單？ 預期依據：倉庫人員。\n\n倉庫人員應在收貨前記錄可見損傷。 採購人員須與供應商協調後續處置。 V1 不支援部分收貨 或暫緩收貨作業。",
+    "tools": [
+      "SEARCH_DOCUMENTS"
+    ],
+    "sources": [
+      {
+        "resourceType": "DOCUMENT",
+        "resourceId": "3",
+        "title": "SupplyPilot 虛構展示採購作業程序",
+        "version": "1.0",
+        "supplierId": null,
+        "chunkIndex": 0,
+        "startOffset": 0,
+        "endOffset": 383,
+        "excerpt": "標題：SupplyPilot 虛構展示採購作業程序\n文件類型：PROCUREMENT_SOP\n版本：1.0\n虛構展示文件：本文為流程示例，不代表真實公司的制度或授權。\n\n生產規劃人員登錄需求。採購人員建立採購單草稿前，須檢視庫存、狀態為 ORDERED 的進貨採購單，以及採購建議快照。採購經理只能核准或駁回 DRAFT 草稿。採購人員可將已核准的採購單標記為 ORDERED。只有倉庫人員可收取狀態為 ORDERED 的採購單。收貨會增加庫存、建立 PURCHASE_RECEIVE 庫存異動，並在同一交易中將採購單狀態更新為 RECEIVED。任何角色都不得透過使用者介面跳過採購單狀態流程。\n\n正式流程：DRAFT → APPROVED → ORDERED → RECEIVED。\n\n問答：由哪個角色收取狀態為 ORDERED 的採購單？\n預期依據：倉庫人員。",
+        "relevanceScore": 0.8238000869750977
+      },
+      {
+        "resourceType": "DOCUMENT",
+        "resourceId": "5",
+        "title": "虛構展示原料品質要求",
+        "version": "1.0",
+        "supplierId": 3,
+        "chunkIndex": 0,
+        "startOffset": 0,
+        "endOffset": 269,
+        "excerpt": "標題：虛構展示原料品質要求\n文件類型：QUALITY_REQUIREMENT\n版本：1.0\n虛構展示文件：本文內容與品質條件均為虛構，不代表真實公司的品質制度。\n\n每批交付原料須符合採購單上的物料代碼、申報數量與密封包裝數。倉庫人員應在收貨前記錄可見損傷。若批次缺少批次識別、封條破損、受到污染或物料不符，須將該批隔離，不得收進可用庫存。採購人員須與供應商協調後續處置。V1 不支援部分收貨，因此須接受整筆採購單，或暫緩收貨作業。\n\n問答：哪些狀況需要隔離交付批次，且不可視為可用庫存？\n預期依據：缺少批次識別、封條破損、污染或物料不符。",
+        "relevanceScore": 0.6704901656654529
+      }
+    ],
+    "answerSource": "MODEL_EXPLANATION"
+  },
+  "visibleText": "SupplyPilot\n採購決策平台\n儀表板\n主檔管理\n需求與庫存\n採購決策\n採購單與收貨\n文件與 AI\nSupplyPilot — AI 採購與供應鏈決策平台\nAI 助理\nDemo Administrator（admin）\n系統管理員\n登出\n工作總覽\nDemo Administrator · 系統管理員\n目前沒有待辦資料\n請從下方入口前往您有權限使用的業務功能。\n主檔管理\n物料管理\n供應商管理\n需求與庫存\n需求管理\n庫存管理\n庫存匯入\n採購決策\n採購建議\n採購單與收貨\n採購單管理\n收貨作業\n文件與 AI\n文件管理\nSupplyPilot AI 助理\nAI 功能與核心頁面隔離；關閉 Drawer 不會改變目前路由。\n查詢與來源\n採購草稿提案\n向 SupplyPilot 提問\n單輪同步查詢；不保留對話記憶，也不提供串流回應。\n29 / 2000\n送出問題\n回答\n查詢結果整理如下。\n生產規劃人員登錄需求。 採購人員建立採購單草稿前 採購人員可將已核准的採購單標記為 ORDERED。 只有倉庫人員可收取狀態為 ORDERED 的採購單。 收貨會增加庫存、建立 PURCHASE_RECEIVE 庫存異動 任何角色都不得透過使用者介面跳過採購單狀態流程。 問答：由哪個角色收取狀態為 ORDERED 的採購單？ 預期依據：倉庫人員。\n\n倉庫人員應在收貨前記錄可見損傷。 採購人員須與供應商協調後續處置。 V1 不支援部分收貨 或暫緩收貨作業。\nAnswer Source：MODEL_EXPLANATION\nSEARCH_DOCUMENTS\n資料來源\nDOCUMENT\nSupplyPilot 虛構展示採購作業程序\n來源 ID\n3\n\n\n文件版本\n1.0\n\n\nChunk 索引\n0\n\n\n原文 Offset\n0–383\n\n\n相關度分數\n0.8238000869750977\n引用內容\n標題：SupplyPilot 虛構展示採購作業程序\n文件類型：PROCUREMENT_SOP\n版本：1.0\n虛構展示文件：本文為流程示例，不代表真實公司的制度或授權。\n\n生產規劃人員登錄需求。採購人員建立採購單草稿前，須檢視庫存、狀態為 ORDERED 的進貨採購單，以及採購建議快照。採購經理只能核准或駁回 DRAFT 草稿。採購人員可將已核准的採購單標記為 ORDERED。只有倉庫人員可收取狀態為 ORDERED 的採購單。收貨會增加庫存、建立 PURCHASE_RECEIVE 庫存異動，並在同一交易中將採購單狀態更新為 RECEIVED。任何角色都不得透過使用者介面跳過採購單狀態流程。\n\n正式流程：DRAFT → APPROVED → ORDERED → RECEIVED。\n\n問答：由哪個角色收取狀態為 ORDERED 的採購單？\n預期依據：倉庫人員。\nDOCUMENT\n虛構展示原料品質要求\n來源 ID\n5\n\n\n文件版本\n1.0\n\n\n供應商 ID\n3\n\n\nChunk 索引\n0\n\n\n原文 Offset\n0–269\n\n\n相關度分數\n0.6704901656654529\n引用內容\n標題：虛構展示原料品質要求\n文件類型：QUALITY_REQUIREMENT\n版本：1.0\n虛構展示文件：本文內容與品質條件均為虛構，不代表真實公司的品質制度。\n\n每批交付原料須符合採購單上的物料代碼、申報數量與密封包裝數。倉庫人員應在收貨前記錄可見損傷。若批次缺少批次識別、封條破損、受到污染或物料不符，須將該批隔離，不得收進可用庫存。採購人員須與供應商協調後續處置。V1 不支援部分收貨，因此須接受整筆採購單，或暫緩收貨作業。\n\n問答：哪些狀況需要隔離交付批次，且不可視為可用庫存？\n預期依據：缺少批次識別、封條破損、污染或物料不符。",
+  "provider": "google-genai",
+  "chatModel": "gemini-3.6-flash"
+}

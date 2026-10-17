@@ -1,0 +1,34 @@
+{
+  "caseId": "sup001",
+  "question": "SUP-001 的 MAT-001 標準交期是多久？",
+  "startedAt": "2026-10-16T13:43:48.554Z",
+  "completedAt": "2026-10-16T13:44:03.065Z",
+  "elapsedMs": 14511,
+  "httpStatus": 200,
+  "status": "ANSWERED",
+  "answer": "MAT-001 標準交期為採購單狀態轉為 ORDERED 後 5 個曆日。",
+  "answerSource": "BACKEND_FACTS",
+  "tools": [
+    "SEARCH_DOCUMENTS",
+    "QUERY_RECOMMENDATION",
+    "QUERY_SUPPLIER_RANKING"
+  ],
+  "code": null,
+  "traceId": null,
+  "sources": [
+    {
+      "resourceType": "DOCUMENT",
+      "resourceId": "1",
+      "title": "SUP-001 交付與責任協議",
+      "version": "1.0",
+      "chunkIndex": 0,
+      "startOffset": 0,
+      "endOffset": 336,
+      "excerpt": "標題：SUP-001 交付與責任協議\n文件類型：SUPPLIER_CONTRACT\n版本：1.0\n虛構展示文件：本文內容、公司名稱與商業條件均為虛構，不代表真實公司或契約。\n\nFormosa Ingredients（SUP-001）為 SupplyPilot 虛構展示資料中的 MAT-001（阿薩姆紅茶萃取物）供應商。MAT-001 標準交期為採購單狀態轉為 ORDERED 後 5 個曆日。若預期交期可能延誤，供應商須事先通知採購人員。倉庫人員確認數量與包裝完整後，交付責任才算完成。遭拒收的批次仍由供應商負責，直到完成換貨或雙方以書面確認處置方式。\n\n問答：SUP-001 的 MAT-001 標準交期是多久？\n預期依據：採購單轉為 ORDERED 後 5 個曆日。",
+      "offsetLengthMatches": true
+    }
+  ],
+  "screenshot": "sup001.png",
+  "browser": "Microsoft Edge headed via CDP",
+  "backendGitSha": "6615e29ce69795ec0b922edfb85ac650dd0cb9de"
+}

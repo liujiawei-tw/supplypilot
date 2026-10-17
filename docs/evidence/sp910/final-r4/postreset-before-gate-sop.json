@@ -1,0 +1,23 @@
+{
+  "caseId": "sop",
+  "question": "依採購 SOP，應由哪個角色執行收貨？",
+  "startedAt": "2026-10-16T14:06:22.287Z",
+  "completedAt": "2026-10-16T14:06:32.356Z",
+  "elapsedMs": 10069,
+  "httpStatus": 200,
+  "status": "INSUFFICIENT_EVIDENCE",
+  "answer": null,
+  "answerSource": null,
+  "tools": [
+    "SEARCH_DOCUMENTS",
+    "SEARCH_DOCUMENTS",
+    "SEARCH_DOCUMENTS",
+    "SEARCH_DOCUMENTS"
+  ],
+  "code": null,
+  "traceId": null,
+  "sources": [],
+  "screenshot": "postreset-before-gate-sop.png",
+  "browser": "Microsoft Edge headed via CDP",
+  "backendGitSha": "6615e29ce69795ec0b922edfb85ac650dd0cb9de"
+}

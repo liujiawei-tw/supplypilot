@@ -1,0 +1,43 @@
+{
+  "caseId": "sop",
+  "question": "依採購 SOP，應由哪個角色執行收貨？",
+  "startedAt": "2026-10-17T00:53:54.178Z",
+  "completedAt": "2026-10-17T00:54:01.021Z",
+  "elapsedMs": 6843,
+  "httpStatus": 200,
+  "status": "ANSWERED",
+  "answer": "查詢結果整理如下。\n生產規劃人員登錄需求。 採購人員建立採購單草稿前 採購人員可將已核准的採購單標記為 ORDERED。 只有倉庫人員可收取狀態為 ORDERED 的採購單。 收貨會增加庫存、建立 PURCHASE_RECEIVE 庫存異動 任何角色都不得透過使用者介面跳過採購單狀態流程。\n\n倉庫人員應在收貨前記錄可見損傷。 採購人員須與供應商協調後續處置。 V1 不支援部分收貨 或暫緩收貨作業。",
+  "answerSource": "MODEL_EXPLANATION",
+  "tools": [
+    "SEARCH_DOCUMENTS"
+  ],
+  "code": null,
+  "traceId": null,
+  "sources": [
+    {
+      "resourceType": "DOCUMENT",
+      "resourceId": "9",
+      "title": "SupplyPilot 虛構展示採購作業程序",
+      "version": "1.0",
+      "chunkIndex": 0,
+      "startOffset": 0,
+      "endOffset": 383,
+      "excerpt": "標題：SupplyPilot 虛構展示採購作業程序\n文件類型：PROCUREMENT_SOP\n版本：1.0\n虛構展示文件：本文為流程示例，不代表真實公司的制度或授權。\n\n生產規劃人員登錄需求。採購人員建立採購單草稿前，須檢視庫存、狀態為 ORDERED 的進貨採購單，以及採購建議快照。採購經理只能核准或駁回 DRAFT 草稿。採購人員可將已核准的採購單標記為 ORDERED。只有倉庫人員可收取狀態為 ORDERED 的採購單。收貨會增加庫存、建立 PURCHASE_RECEIVE 庫存異動，並在同一交易中將採購單狀態更新為 RECEIVED。任何角色都不得透過使用者介面跳過採購單狀態流程。\n\n正式流程：DRAFT → APPROVED → ORDERED → RECEIVED。\n\n問答：由哪個角色收取狀態為 ORDERED 的採購單？\n預期依據：倉庫人員。",
+      "offsetLengthMatches": true
+    },
+    {
+      "resourceType": "DOCUMENT",
+      "resourceId": "11",
+      "title": "虛構展示原料品質要求",
+      "version": "1.0",
+      "chunkIndex": 0,
+      "startOffset": 0,
+      "endOffset": 269,
+      "excerpt": "標題：虛構展示原料品質要求\n文件類型：QUALITY_REQUIREMENT\n版本：1.0\n虛構展示文件：本文內容與品質條件均為虛構，不代表真實公司的品質制度。\n\n每批交付原料須符合採購單上的物料代碼、申報數量與密封包裝數。倉庫人員應在收貨前記錄可見損傷。若批次缺少批次識別、封條破損、受到污染或物料不符，須將該批隔離，不得收進可用庫存。採購人員須與供應商協調後續處置。V1 不支援部分收貨，因此須接受整筆採購單，或暫緩收貨作業。\n\n問答：哪些狀況需要隔離交付批次，且不可視為可用庫存？\n預期依據：缺少批次識別、封條破損、污染或物料不符。",
+      "offsetLengthMatches": true
+    }
+  ],
+  "screenshot": "postreset-sop.png",
+  "browser": "Microsoft Edge headed via CDP",
+  "backendGitSha": "6615e29ce69795ec0b922edfb85ac650dd0cb9de"
+}

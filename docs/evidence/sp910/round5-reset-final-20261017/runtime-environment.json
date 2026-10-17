@@ -1,0 +1,48 @@
+{
+  "capturedAt": "2026-10-17T14:27:21.4232961+08:00",
+  "timezone": "Asia/Taipei",
+  "repository": "liujiawei-tw/supplypilot",
+  "branch": "codex/sp-910-real-e9-acceptance",
+  "gitHeadBeforeEvidenceCommit": "c802978d2967bd862b61c49a5dfd87c2db3fe3f8",
+  "datasetVersion": "sp-905-zh-tw-v1",
+  "os": "Windows 10 Home 25H2 (build 26200.9711)",
+  "java": "Zulu OpenJDK 21.0.10",
+  "node": "v24.15.0",
+  "npm": "11.12.1",
+  "dockerEngine": "29.6.1",
+  "mysql": "8.4.11",
+  "postgresql": "17.11",
+  "edge": "155.0.4283.60",
+  "frontend": "Vite on 127.0.0.1:5174, headed Edge Playwright",
+  "backend": {
+    "pid": 22204,
+    "port": "127.0.0.1:8184",
+    "health": "UP",
+    "gitSourceSha": "c802978d2967bd862b61c49a5dfd87c2db3fe3f8",
+    "profile": "demo",
+    "semanticRead": "true, explicitly set before successful pwsh restart after Gate PASS"
+  },
+  "databases": {
+    "mysql": "supplypilot_sp910_r4_demo, localhost 13327",
+    "semantic": "supplypilot_sp910_r4_semantic_demo, localhost 15450",
+    "storage": "r4 dedicated Storage",
+    "recommendationSnapshots": 0
+  },
+  "providers": {
+    "chat": "google-genai; configured model gemini-3.6-flash; real Browser Gemini calls returned",
+    "embedding": "google-genai; gemini-embedding-001; dimensions=768; generation=gemini-embedding-001-768-v1; real 5-document backfill succeeded",
+    "secretValuesRecorded": false,
+    "fakeOrMockUsed": false
+  },
+  "gate": {
+    "auditId": 4,
+    "passed": true,
+    "ready": 5,
+    "failed": 0,
+    "pending": 0,
+    "skipped": 0,
+    "requiresReview": 0
+  },
+  "evidenceTimeRangeLocal": "2026-10-17 Asia/Taipei",
+  "testHarness": "Microsoft Edge headed via bundled Playwright 1.57, isolated profile"
+}

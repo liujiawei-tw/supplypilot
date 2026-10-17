@@ -1,0 +1,93 @@
+{
+  "round": 4,
+  "observedAt": "2026-10-16T00:20:04+08:00",
+  "repository": "liujiawei-tw/supplypilot",
+  "branch": "codex/sp-910-real-e9-acceptance",
+  "head": "cf068cf33c0d9b4f5e36e900fd097670720778a3",
+  "mergedMain": "08b9d079dad4aaf42f90a61891e2794fbc888eee",
+  "resources": {
+    "mysqlContainer": "supplypilot-sp910-r3-mysql",
+    "mysqlDatabase": "supplypilot_sp910_r3_demo",
+    "mysqlPort": 13317,
+    "postgresContainer": "supplypilot-sp910-r3-pgvector",
+    "postgresDatabase": "supplypilot_sp910_r3_semantic_demo",
+    "postgresPort": 15440,
+    "storage": "backend/data/sp910-r3-demo-documents"
+  },
+  "snapshot": {
+    "datasetMarker": "sp-905-zh-tw-v1 / COMPLETE; baseline date 2026-10-15",
+    "users": 5,
+    "materials": 12,
+    "suppliers": 6,
+    "supplierMaterials": 30,
+    "demands": 12,
+    "purchaseOrders": 10,
+    "poStates": {
+      "DRAFT": 2,
+      "APPROVED": 2,
+      "ORDERED": 3,
+      "RECEIVED": 2,
+      "REJECTED": 1
+    },
+    "mat001InventoryKg": 300,
+    "baselineDocuments": 5,
+    "storageFiles": 5,
+    "documentStatuses": ["READY x5", "version 1.0 x5", "outbound review APPROVED x5"],
+    "semanticGeneration": "gemini-embedding-001-768-v1",
+    "embeddingModel": "gemini-embedding-001",
+    "embeddingDimensions": 768,
+    "semanticIndexes": "READY x5",
+    "gateAudit": {
+      "id": 1,
+      "passed": true,
+      "ready": 5,
+      "skipped": 0,
+      "failed": 0,
+      "review": 0,
+      "pending": 0,
+      "checkedAtUtc": "2026-10-15T12:22:58.751150Z"
+    },
+    "formalSup005DocumentPresent": false
+  },
+  "services": {
+    "frontend": {"port": 5173, "process": "node", "http": 200, "binding": "127.0.0.1"},
+    "backend8080": {"process": "java", "healthHttp": 200},
+    "backend8081": {"process": "java", "healthHttp": 200},
+    "corsPreflight": {
+      "origin": "http://127.0.0.1:5173",
+      "backend8080": 200,
+      "backend8081": 200,
+      "allowOrigin": "http://127.0.0.1:5173"
+    }
+  },
+  "browser": {
+    "inAppBrowser": "login page loaded at http://127.0.0.1:5173/login; no login attempted",
+    "edgeScreenshot": "browser-login-page.png",
+    "edgeScreenshotMode": "Microsoft Edge headless rendering; screenshot only, no authenticated interaction",
+    "interactiveEdgeAutomation": "BLOCKED: Edge unavailable in CUA app inventory; no headed Edge automation attached"
+  },
+  "credentials": {
+    "safeSourceAvailable": false,
+    "findings": "Process/User/Machine environment scopes are unset. Repository .env exists and contains DB/JWT/demo credential variable names, but values were never read. Its non-secret settings select SPRING_PROFILES_ACTIVE=local and database supplypilot / supplypilot_semantic while demo allowlists select supplypilot_demo / supplypilot_semantic_demo, so it is not a verified r3 configuration and was not used. No SP-910 credential target found in Windows Credential Manager; LOCALAPPDATA\\SupplyPilot was empty. A legacy Temp .cred file had a broad ACL and predates the r3 resources; it was not opened or used.",
+    "valuesRecorded": false
+  },
+  "loginRecheck": {
+    "observedAt": "2026-10-16T00:46:21+08:00",
+    "environmentVariableScopes": "DEMO_ACCOUNT_PASSWORD, DB/JWT/Gemini/Semantic variables absent from current Process/User/Machine environment; secret values not read",
+    "repositoryEnvConfig": "variable names present but profile=local; DB URL database names do not match demo allowlists; configuration not used",
+    "listeners": "5173, 8080, 8081 not listening",
+    "http": "frontend and both backend health URLs unavailable from Windows host",
+    "browser": "in-app tab retained login form but no fresh page load or login POST was verified",
+    "result": "BLOCKED; no credential submitted"
+  },
+  "status": {
+    "realGeminiQueries": "BLOCKED",
+    "browserE9": "BLOCKED",
+    "crossLanguage": "NOT RUN",
+    "businessWorkflow": "NOT RUN",
+    "sup005Upload": "NOT RUN",
+    "guardedReset": "NOT RUN",
+    "backendVerify": "PASS: elevated Docker-enabled backend\\mvnw.cmd -B --no-transfer-progress -DargLine=-javaagent:<Mockito 5.23.0 jar> verify; 566 tests, 0 failures, 0 errors, 1 skipped; BUILD SUCCESS; 7m17s; Testcontainers used ephemeral test databases",
+    "demoLogin": "BLOCKED: current .env selects local profile and non-allowlisted database targets; services stopped; password setting does not alter an already seeded account hash"
+  }
+}

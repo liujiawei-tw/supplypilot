@@ -1,0 +1,64 @@
+{
+  "caseId": "R5-SUP001-NO-RECOMMENDATION",
+  "verifiedAt": "2026-10-17T14:24:00+08:00",
+  "evidenceEnvironment": {
+    "gitHead": "c802978d2967bd862b61c49a5dfd87c2db3fe3f8",
+    "browser": "Microsoft Edge headed / isolated Playwright profile",
+    "datasetVersion": "sp-905-zh-tw-v1",
+    "recommendationSnapshotCount": 0,
+    "semanticReadEnabledAfterRestart": true,
+    "semanticGateAuditId": 4,
+    "semanticGatePassed": true
+  },
+  "request": {
+    "method": "POST",
+    "path": "/api/v1/ai/query",
+    "httpStatus": 200,
+    "apiStatus": "ANSWERED",
+    "answer": "MAT-001 標準交期為採購單狀態轉為 ORDERED 後 5 個曆日。",
+    "answerSource": "BACKEND_FACTS",
+    "elapsedMs": 13561,
+    "traceId": null,
+    "tools": [
+      "QUERY_RECOMMENDATION",
+      "SEARCH_DOCUMENTS"
+    ]
+  },
+  "sourceValidation": {
+    "canonicalSample": "samples/documents/supplier-contract-sup-001-v1.txt",
+    "canonicalUtf16Length": 336,
+    "sourceCount": 1,
+    "sources": [
+      {
+        "resourceType": "DOCUMENT",
+        "resourceId": "12",
+        "version": "1.0",
+        "chunkIndex": 0,
+        "startOffset": 0,
+        "endOffset": 336,
+        "expectedDocumentId": "12",
+        "correctDocument": true,
+        "versionCorrect": true,
+        "utf16OffsetsValid": true,
+        "offsetsReconstructExactExcerpt": true,
+        "excerptSha256": "8d4af1eeb9459a2478bfe068eedd0f89eb6aac09332ad1ff16632727306cf1bb"
+      }
+    ],
+    "valid": true
+  },
+  "safeBackendDiagnostics": {
+    "boundedToolSelectionRetry": {
+      "modelCallCount": 1,
+      "attemptedToolCallCount": 0,
+      "executedToolCount": 0
+    },
+    "optionalRecommendationFailure": {
+      "detail": "OPTIONAL_RECOMMENDATION_NOT_FOUND_IGNORED",
+      "count": 1
+    },
+    "requestOutcome": "success"
+  },
+  "browserScreenshot": "SUP-001-leadtime.png",
+  "harnessNote": "Raw Browser result retained unchanged. Original assertion evaluated false because API resourceId is string \"12\" while expected ID was number 12; independent type-normalized ID and exact Java-compatible UTF-16 slice validation is recorded here.",
+  "passed": true
+}

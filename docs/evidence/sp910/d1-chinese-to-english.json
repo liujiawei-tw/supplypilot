@@ -1,0 +1,12 @@
+{
+  "question": "SUP-001 的 MAT-001 標準交期是多久？",
+  "httpStatus": 503,
+  "elapsedMs": 5607,
+  "response": {
+    "code": "AI_INVALID_RESPONSE",
+    "message": "AI provider returned an invalid response.",
+    "traceId": "f2cd764f-e9de-429a-9653-a37c5c0f0690",
+    "timestamp": "2026-10-15T07:36:46.735163900Z",
+    "path": "/api/v1/ai/query"
+  }
+}

@@ -1,0 +1,75 @@
+{
+  "question": "這些文件是否規定冷凍海運的保險費率？",
+  "httpStatus": 200,
+  "elapsedMs": 6425,
+  "response": {
+    "status": "ANSWERED",
+    "answer": "標題：SUP-002 虛構報價條件\n文件類型：QUOTATION\n版本：1.0\n虛構展示文件：本文內容、公司名稱與商業條件均為虛構，不代表真實公司或報價契約。\n\nEast Harbor Trading（SUP-002）於 SupplyPilot 虛構展示資料中供應 MAT-001 與 MAT-002，單價以展示資料庫中的設定為準。本報價自開立日起 30 個曆日內有效。MAT-001 訂購數量符合設定的包裝倍數時，標準交期為 3 個曆日。運費包含送至虛構展示倉庫。接受報價不會取代必要的採購單核准流程。\n\n問答：SUP-002 的報價自開立日起有效多久？\n預期依據：30 個曆日。\n\n問答：MAT-001 數量符合包裝倍數時，SUP-002 的標準交期為多久？\n預期依據：3 個曆日。\n\n標題：虛構展示原料品質要求\n文件類型：QUALITY_REQUIREMENT\n版本：1.0\n虛構展示文件：本文內容與品質條件均為虛構，不代表真實公司的品質制度。\n\n每批交付原料須符合採購單上的物料代碼、申報數量與密封包裝數。倉庫人員應在收貨前記錄可見損傷。若批次缺少批次識別、封條破損、受到污染或物料不符，須將該批隔離，不得收進可用庫存。採購人員須與供應商協調後續處置。V1 不支援部分收貨，因此須接受整筆採購單，或暫緩收貨作業。\n\n問答：哪些狀況需要隔離交付批次，且不可視為可用庫存？\n預期依據：缺少批次識別、封條破損、污染或物料不符。\n\n標題：SUP-001 交付與責任協議\n文件類型：SUPPLIER_CONTRACT\n版本：1.0\n虛構展示文件：本文內容、公司名稱與商業條件均為虛構，不代表真實公司或契約。\n\nFormosa Ingredients（SUP-001）為 SupplyPilot 虛構展示資料中的 MAT-001（阿薩姆紅茶萃取物）供應商。MAT-001 標準交期為採購單狀態轉為 ORDERED 後 5 個曆日。若預期交期可能延誤，供應商須事先通知採購人員。倉庫人員確認數量與包裝完整後，交付責任才算完成。遭拒收的批次仍由供應商負責，直到完成換貨或雙方以書面確認處置方式。\n\n問答：SUP-001 的 MAT-001 標準交期是多久？\n預期依據：採購單轉為 ORDERED 後 5 個曆日。\n\n標題：MAT-001 阿薩姆紅茶萃取物規格\n文件類型：PRODUCT_SPECIFICATION\n版本：1.0\n虛構展示文件：本文內容與物料規格均為虛構，不代表真實公司或商品規格。\n\nMAT-001 為阿薩姆紅茶萃取物，基本單位為 KG，供虛構飲品試製使用。產品為深琥珀色、水溶性茶濃縮液。包裝須密封、保持乾燥，並標示物料代碼與批次識別。請存放於陰涼乾燥處，避免陽光直射。展示收貨檢查會核對物料識別、包裝完整性與標示數量。\n\n問答：MAT-001 的基本單位與儲存條件為何？\n預期依據：基本單位為 KG；存放於陰涼乾燥處並避免陽光直射。\n\n標題：SupplyPilot 虛構展示採購作業程序\n文件類型：PROCUREMENT_SOP\n版本：1.0\n虛構展示文件：本文為流程示例，不代表真實公司的制度或授權。\n\n生產規劃人員登錄需求。採購人員建立採購單草稿前，須檢視庫存、狀態為 ORDERED 的進貨採購單，以及採購建議快照。採購經理只能核准或駁回 DRAFT 草稿。採購人員可將已核准的採購單標記為 ORDERED。只有倉庫人員可收取狀態為 ORDERED 的採購單。收貨會增加庫存、建立 PURCHASE_RECEIVE 庫存異動，並在同一交易中將採購單狀態更新為 RECEIVED。任何角色都不得透過使用者介面跳過採購單狀態流程。\n\n正式流程：DRAFT → APPROVED → ORDERED → RECEIVED。\n\n問答：由哪個角色收取狀態為 ORDERED 的採購單？\n預期依據：倉庫人員。",
+    "tools": [
+      "SEARCH_DOCUMENTS"
+    ],
+    "sources": [
+      {
+        "resourceType": "DOCUMENT",
+        "resourceId": "2",
+        "title": "SUP-002 虛構報價條件",
+        "version": "1.0",
+        "supplierId": 2,
+        "chunkIndex": 0,
+        "startOffset": 0,
+        "endOffset": 343,
+        "excerpt": "標題：SUP-002 虛構報價條件\n文件類型：QUOTATION\n版本：1.0\n虛構展示文件：本文內容、公司名稱與商業條件均為虛構，不代表真實公司或報價契約。\n\nEast Harbor Trading（SUP-002）於 SupplyPilot 虛構展示資料中供應 MAT-001 與 MAT-002，單價以展示資料庫中的設定為準。本報價自開立日起 30 個曆日內有效。MAT-001 訂購數量符合設定的包裝倍數時，標準交期為 3 個曆日。運費包含送至虛構展示倉庫。接受報價不會取代必要的採購單核准流程。\n\n問答：SUP-002 的報價自開立日起有效多久？\n預期依據：30 個曆日。\n\n問答：MAT-001 數量符合包裝倍數時，SUP-002 的標準交期為多久？\n預期依據：3 個曆日。",
+        "relevanceScore": 0.5390269916959702
+      },
+      {
+        "resourceType": "DOCUMENT",
+        "resourceId": "5",
+        "title": "虛構展示原料品質要求",
+        "version": "1.0",
+        "supplierId": 3,
+        "chunkIndex": 0,
+        "startOffset": 0,
+        "endOffset": 269,
+        "excerpt": "標題：虛構展示原料品質要求\n文件類型：QUALITY_REQUIREMENT\n版本：1.0\n虛構展示文件：本文內容與品質條件均為虛構，不代表真實公司的品質制度。\n\n每批交付原料須符合採購單上的物料代碼、申報數量與密封包裝數。倉庫人員應在收貨前記錄可見損傷。若批次缺少批次識別、封條破損、受到污染或物料不符，須將該批隔離，不得收進可用庫存。採購人員須與供應商協調後續處置。V1 不支援部分收貨，因此須接受整筆採購單，或暫緩收貨作業。\n\n問答：哪些狀況需要隔離交付批次，且不可視為可用庫存？\n預期依據：缺少批次識別、封條破損、污染或物料不符。",
+        "relevanceScore": 0.5389096462076691
+      },
+      {
+        "resourceType": "DOCUMENT",
+        "resourceId": "1",
+        "title": "SUP-001 交付與責任協議",
+        "version": "1.0",
+        "supplierId": 1,
+        "chunkIndex": 0,
+        "startOffset": 0,
+        "endOffset": 336,
+        "excerpt": "標題：SUP-001 交付與責任協議\n文件類型：SUPPLIER_CONTRACT\n版本：1.0\n虛構展示文件：本文內容、公司名稱與商業條件均為虛構，不代表真實公司或契約。\n\nFormosa Ingredients（SUP-001）為 SupplyPilot 虛構展示資料中的 MAT-001（阿薩姆紅茶萃取物）供應商。MAT-001 標準交期為採購單狀態轉為 ORDERED 後 5 個曆日。若預期交期可能延誤，供應商須事先通知採購人員。倉庫人員確認數量與包裝完整後，交付責任才算完成。遭拒收的批次仍由供應商負責，直到完成換貨或雙方以書面確認處置方式。\n\n問答：SUP-001 的 MAT-001 標準交期是多久？\n預期依據：採購單轉為 ORDERED 後 5 個曆日。",
+        "relevanceScore": 0.5167919551370133
+      },
+      {
+        "resourceType": "DOCUMENT",
+        "resourceId": "4",
+        "title": "MAT-001 阿薩姆紅茶萃取物規格",
+        "version": "1.0",
+        "supplierId": 1,
+        "chunkIndex": 0,
+        "startOffset": 0,
+        "endOffset": 268,
+        "excerpt": "標題：MAT-001 阿薩姆紅茶萃取物規格\n文件類型：PRODUCT_SPECIFICATION\n版本：1.0\n虛構展示文件：本文內容與物料規格均為虛構，不代表真實公司或商品規格。\n\nMAT-001 為阿薩姆紅茶萃取物，基本單位為 KG，供虛構飲品試製使用。產品為深琥珀色、水溶性茶濃縮液。包裝須密封、保持乾燥，並標示物料代碼與批次識別。請存放於陰涼乾燥處，避免陽光直射。展示收貨檢查會核對物料識別、包裝完整性與標示數量。\n\n問答：MAT-001 的基本單位與儲存條件為何？\n預期依據：基本單位為 KG；存放於陰涼乾燥處並避免陽光直射。",
+        "relevanceScore": 0.4977691023876998
+      },
+      {
+        "resourceType": "DOCUMENT",
+        "resourceId": "3",
+        "title": "SupplyPilot 虛構展示採購作業程序",
+        "version": "1.0",
+        "supplierId": null,
+        "chunkIndex": 0,
+        "startOffset": 0,
+        "endOffset": 383,
+        "excerpt": "標題：SupplyPilot 虛構展示採購作業程序\n文件類型：PROCUREMENT_SOP\n版本：1.0\n虛構展示文件：本文為流程示例，不代表真實公司的制度或授權。\n\n生產規劃人員登錄需求。採購人員建立採購單草稿前，須檢視庫存、狀態為 ORDERED 的進貨採購單，以及採購建議快照。採購經理只能核准或駁回 DRAFT 草稿。採購人員可將已核准的採購單標記為 ORDERED。只有倉庫人員可收取狀態為 ORDERED 的採購單。收貨會增加庫存、建立 PURCHASE_RECEIVE 庫存異動，並在同一交易中將採購單狀態更新為 RECEIVED。任何角色都不得透過使用者介面跳過採購單狀態流程。\n\n正式流程：DRAFT → APPROVED → ORDERED → RECEIVED。\n\n問答：由哪個角色收取狀態為 ORDERED 的採購單？\n預期依據：倉庫人員。",
+        "relevanceScore": 0.47290719964823746
+      }
+    ],
+    "answerSource": "BACKEND_FACTS"
+  }
+}

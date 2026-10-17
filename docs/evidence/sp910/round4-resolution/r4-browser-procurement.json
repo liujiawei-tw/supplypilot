@@ -1,0 +1,23 @@
+{
+  "startedAt": "2026-10-15T17:20:19.936Z",
+  "browser": "Microsoft Edge (headed, Playwright)",
+  "baseUrl": "http://127.0.0.1:5174",
+  "steps": [
+    {
+      "action": "login",
+      "user": "buyer",
+      "httpStatus": 200,
+      "url": "http://127.0.0.1:5174/dashboard",
+      "title": "SupplyPilot — AI Procurement & Supply Chain Decision Platform"
+    }
+  ],
+  "lastApi": {
+    "path": "/api/v1/materials",
+    "status": 200
+  },
+  "error": "TimeoutError: locator.click: Timeout 30000ms exceeded.",
+  "failureUrl": "http://127.0.0.1:5174/recommendations",
+  "result": "PARTIAL",
+  "finishedAt": "2026-10-15T17:21:26.499Z",
+  "elapsedSeconds": 67
+}

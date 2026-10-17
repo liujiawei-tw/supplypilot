@@ -1,0 +1,330 @@
+{
+  "phase": "query-followup",
+  "startedAt": "2026-10-17T06:24:02.896Z",
+  "timezone": "Asia/Taipei",
+  "browser": "Microsoft Edge headed via Playwright launchPersistentContext",
+  "baseUrl": "http://127.0.0.1:5174",
+  "profile": "isolated r4 E9 profile",
+  "requests": [
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/me",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/me",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/documents",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/documents",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/ai/query",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/ai/query",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/ai/query",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/ai/query",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/ai/query",
+      "status": 200
+    }
+  ],
+  "failedRequests": [],
+  "console": [
+    {
+      "type": "debug",
+      "text": "[vite] connecting..."
+    },
+    {
+      "type": "debug",
+      "text": "[vite] connected."
+    },
+    {
+      "type": "info",
+      "text": "%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold"
+    },
+    {
+      "type": "error",
+      "text": "Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead."
+    },
+    {
+      "type": "error",
+      "text": "Warning: [antd: Alert] `message` is deprecated. Please use `title` instead."
+    },
+    {
+      "type": "error",
+      "text": "Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead."
+    }
+  ],
+  "screenshots": [
+    "query-admin-dashboard.png",
+    "query-documents.png",
+    "SUP-002-validity.png",
+    "MAT-001-storage.png",
+    "SOP-receiving-role.png",
+    "quality-quarantine.png",
+    "insurance-insufficient.png"
+  ],
+  "actions": [],
+  "currentUrl": "http://127.0.0.1:5174/dashboard",
+  "dashboardVisible": true,
+  "adminIdentityVisible": true,
+  "documentList": {
+    "httpStatus": 200,
+    "total": 5,
+    "documents": [
+      {
+        "id": 16,
+        "title": "虛構展示原料品質要求",
+        "documentType": "QUALITY_REQUIREMENT",
+        "supplierId": 15,
+        "version": "1.0",
+        "status": "READY",
+        "storagePath": "c7f92988-57c9-4f2f-ae59-8c958e289fcc.txt"
+      },
+      {
+        "id": 15,
+        "title": "MAT-001 阿薩姆紅茶萃取物規格",
+        "documentType": "PRODUCT_SPECIFICATION",
+        "supplierId": 13,
+        "version": "1.0",
+        "status": "READY",
+        "storagePath": "302bb0b0-94f7-4dcc-9c39-6fb367b1c0f1.txt"
+      },
+      {
+        "id": 14,
+        "title": "SupplyPilot 虛構展示採購作業程序",
+        "documentType": "PROCUREMENT_SOP",
+        "supplierId": null,
+        "version": "1.0",
+        "status": "READY",
+        "storagePath": "28b0165e-2e40-4acc-aebc-c7cc4c3499b1.txt"
+      },
+      {
+        "id": 13,
+        "title": "SUP-002 虛構報價條件",
+        "documentType": "QUOTATION",
+        "supplierId": 14,
+        "version": "1.0",
+        "status": "READY",
+        "storagePath": "9ce8bd76-1379-4e3a-baa2-79af34b681b4.txt"
+      },
+      {
+        "id": 12,
+        "title": "SUP-001 交付與責任協議",
+        "documentType": "SUPPLIER_CONTRACT",
+        "supplierId": 13,
+        "version": "1.0",
+        "status": "READY",
+        "storagePath": "9fc6cda8-8a5a-46f2-8c90-b50f26f5b293.txt"
+      }
+    ]
+  },
+  "visibleDocumentCount": 5,
+  "queries": [
+    {
+      "caseId": "SUP-002-validity",
+      "question": "SUP-002 的報價有效期限為多久？",
+      "httpStatus": 200,
+      "status": "ANSWERED",
+      "answer": "查詢結果整理如下。\n本報價自開立日起 30 個曆日內有效。",
+      "answerSource": "MODEL_EXPLANATION",
+      "tools": [
+        "SEARCH_DOCUMENTS"
+      ],
+      "traceId": null,
+      "sources": [
+        {
+          "resourceType": "DOCUMENT",
+          "resourceId": "13",
+          "version": "1.0",
+          "chunkIndex": 0,
+          "startOffset": 0,
+          "endOffset": 343,
+          "excerpt": "標題：SUP-002 虛構報價條件\n文件類型：QUOTATION\n版本：1.0\n虛構展示文件：本文內容、公司名稱與商業條件均為虛構，不代表真實公司或報價契約。\n\nEast Harbor Trading（SUP-002）於 SupplyPilot 虛構展示資料中供應 MAT-001 與 MAT-002，單價以展示資料庫中的設定為準。本報價自開立日起 30 個曆日內有效。MAT-001 訂購數量符合設定的包裝倍數時，標準交期為 3 個曆日。運費包含送至虛構展示倉庫。接受報價不會取代必要的採購單核准流程。\n\n問答：SUP-002 的報價自開立日起有效多久？\n預期依據：30 個曆日。\n\n問答：MAT-001 數量符合包裝倍數時，SUP-002 的標準交期為多久？\n預期依據：3 個曆日。"
+        }
+      ],
+      "elapsedMs": 7281,
+      "sourceValidation": [
+        {
+          "resourceId": "13",
+          "version": "1.0",
+          "chunkIndex": 0,
+          "startOffset": 0,
+          "endOffset": 343,
+          "belongsToExpectedDocument": true,
+          "utf16ExcerptMatchesSample": true
+        }
+      ],
+      "expectedStatusPass": true
+    },
+    {
+      "caseId": "MAT-001-storage",
+      "question": "MAT-001 的基本單位及儲存條件為何？",
+      "httpStatus": 200,
+      "status": "ANSWERED",
+      "answer": "基本單位為 KG 請存放於陰涼乾燥處 存放於陰涼乾燥處並避免陽光直射。",
+      "answerSource": "BACKEND_FACTS",
+      "tools": [
+        "QUERY_INVENTORY",
+        "SEARCH_DOCUMENTS"
+      ],
+      "traceId": null,
+      "sources": [
+        {
+          "resourceType": "DOCUMENT",
+          "resourceId": "15",
+          "version": "1.0",
+          "chunkIndex": 0,
+          "startOffset": 0,
+          "endOffset": 268,
+          "excerpt": "標題：MAT-001 阿薩姆紅茶萃取物規格\n文件類型：PRODUCT_SPECIFICATION\n版本：1.0\n虛構展示文件：本文內容與物料規格均為虛構，不代表真實公司或商品規格。\n\nMAT-001 為阿薩姆紅茶萃取物，基本單位為 KG，供虛構飲品試製使用。產品為深琥珀色、水溶性茶濃縮液。包裝須密封、保持乾燥，並標示物料代碼與批次識別。請存放於陰涼乾燥處，避免陽光直射。展示收貨檢查會核對物料識別、包裝完整性與標示數量。\n\n問答：MAT-001 的基本單位與儲存條件為何？\n預期依據：基本單位為 KG；存放於陰涼乾燥處並避免陽光直射。"
+        }
+      ],
+      "elapsedMs": 8299,
+      "sourceValidation": [
+        {
+          "resourceId": "15",
+          "version": "1.0",
+          "chunkIndex": 0,
+          "startOffset": 0,
+          "endOffset": 268,
+          "belongsToExpectedDocument": true,
+          "utf16ExcerptMatchesSample": true
+        }
+      ],
+      "expectedStatusPass": true
+    },
+    {
+      "caseId": "SOP-receiving-role",
+      "question": "SupplyPilot 採購 SOP 由哪個角色執行收貨？",
+      "httpStatus": 200,
+      "status": "ANSWERED",
+      "answer": "查詢結果整理如下。\n生產規劃人員登錄需求。 採購人員建立採購單草稿前 採購人員可將已核准的採購單標記為 ORDERED。 只有倉庫人員可收取狀態為 ORDERED 的採購單。 收貨會增加庫存、建立 PURCHASE_RECEIVE 庫存異動 任何角色都不得透過使用者介面跳過採購單狀態流程。\n\n倉庫人員應在收貨前記錄可見損傷。 採購人員須與供應商協調後續處置。 V1 不支援部分收貨 或暫緩收貨作業。",
+      "answerSource": "MODEL_EXPLANATION",
+      "tools": [
+        "SEARCH_DOCUMENTS"
+      ],
+      "traceId": null,
+      "sources": [
+        {
+          "resourceType": "DOCUMENT",
+          "resourceId": "14",
+          "version": "1.0",
+          "chunkIndex": 0,
+          "startOffset": 0,
+          "endOffset": 383,
+          "excerpt": "標題：SupplyPilot 虛構展示採購作業程序\n文件類型：PROCUREMENT_SOP\n版本：1.0\n虛構展示文件：本文為流程示例，不代表真實公司的制度或授權。\n\n生產規劃人員登錄需求。採購人員建立採購單草稿前，須檢視庫存、狀態為 ORDERED 的進貨採購單，以及採購建議快照。採購經理只能核准或駁回 DRAFT 草稿。採購人員可將已核准的採購單標記為 ORDERED。只有倉庫人員可收取狀態為 ORDERED 的採購單。收貨會增加庫存、建立 PURCHASE_RECEIVE 庫存異動，並在同一交易中將採購單狀態更新為 RECEIVED。任何角色都不得透過使用者介面跳過採購單狀態流程。\n\n正式流程：DRAFT → APPROVED → ORDERED → RECEIVED。\n\n問答：由哪個角色收取狀態為 ORDERED 的採購單？\n預期依據：倉庫人員。"
+        },
+        {
+          "resourceType": "DOCUMENT",
+          "resourceId": "16",
+          "version": "1.0",
+          "chunkIndex": 0,
+          "startOffset": 0,
+          "endOffset": 269,
+          "excerpt": "標題：虛構展示原料品質要求\n文件類型：QUALITY_REQUIREMENT\n版本：1.0\n虛構展示文件：本文內容與品質條件均為虛構，不代表真實公司的品質制度。\n\n每批交付原料須符合採購單上的物料代碼、申報數量與密封包裝數。倉庫人員應在收貨前記錄可見損傷。若批次缺少批次識別、封條破損、受到污染或物料不符，須將該批隔離，不得收進可用庫存。採購人員須與供應商協調後續處置。V1 不支援部分收貨，因此須接受整筆採購單，或暫緩收貨作業。\n\n問答：哪些狀況需要隔離交付批次，且不可視為可用庫存？\n預期依據：缺少批次識別、封條破損、污染或物料不符。"
+        }
+      ],
+      "elapsedMs": 6698,
+      "sourceValidation": [
+        {
+          "resourceId": "14",
+          "version": "1.0",
+          "chunkIndex": 0,
+          "startOffset": 0,
+          "endOffset": 383,
+          "belongsToExpectedDocument": true,
+          "utf16ExcerptMatchesSample": true
+        },
+        {
+          "resourceId": "16",
+          "version": "1.0",
+          "chunkIndex": 0,
+          "startOffset": 0,
+          "endOffset": 269,
+          "belongsToExpectedDocument": false,
+          "utf16ExcerptMatchesSample": false
+        }
+      ],
+      "expectedStatusPass": false
+    },
+    {
+      "caseId": "quality-quarantine",
+      "question": "哪些情況需要隔離批次？",
+      "httpStatus": 200,
+      "status": "ANSWERED",
+      "answer": "查詢結果整理如下。\n若批次缺少批次識別、封條破損、受到污染或物料不符，須將該批隔離，不得收進可用庫存。",
+      "answerSource": "MODEL_EXPLANATION",
+      "tools": [
+        "SEARCH_DOCUMENTS"
+      ],
+      "traceId": null,
+      "sources": [
+        {
+          "resourceType": "DOCUMENT",
+          "resourceId": "16",
+          "version": "1.0",
+          "chunkIndex": 0,
+          "startOffset": 0,
+          "endOffset": 269,
+          "excerpt": "標題：虛構展示原料品質要求\n文件類型：QUALITY_REQUIREMENT\n版本：1.0\n虛構展示文件：本文內容與品質條件均為虛構，不代表真實公司的品質制度。\n\n每批交付原料須符合採購單上的物料代碼、申報數量與密封包裝數。倉庫人員應在收貨前記錄可見損傷。若批次缺少批次識別、封條破損、受到污染或物料不符，須將該批隔離，不得收進可用庫存。採購人員須與供應商協調後續處置。V1 不支援部分收貨，因此須接受整筆採購單，或暫緩收貨作業。\n\n問答：哪些狀況需要隔離交付批次，且不可視為可用庫存？\n預期依據：缺少批次識別、封條破損、污染或物料不符。"
+        }
+      ],
+      "elapsedMs": 7084,
+      "sourceValidation": [
+        {
+          "resourceId": "16",
+          "version": "1.0",
+          "chunkIndex": 0,
+          "startOffset": 0,
+          "endOffset": 269,
+          "belongsToExpectedDocument": true,
+          "utf16ExcerptMatchesSample": true
+        }
+      ],
+      "expectedStatusPass": true
+    },
+    {
+      "caseId": "insurance-insufficient",
+      "question": "這些文件是否規定冷凍海運的保險費率？",
+      "httpStatus": 200,
+      "status": "INSUFFICIENT_EVIDENCE",
+      "answer": "",
+      "answerSource": null,
+      "tools": [
+        "SEARCH_DOCUMENTS",
+        "SEARCH_DOCUMENTS"
+      ],
+      "traceId": null,
+      "sources": [],
+      "elapsedMs": 11596,
+      "sourceValidation": [],
+      "expectedStatusPass": true
+    }
+  ],
+  "completedAt": "2026-10-17T06:24:47.035Z"
+}

@@ -1,0 +1,33 @@
+{
+  "readiness": {
+    "passed": false,
+    "generationKey": "gemini-embedding-001-768-v1",
+    "modelId": "gemini-embedding-001",
+    "dimensions": 768,
+    "ready": 5,
+    "skipped": 0,
+    "failed": 0,
+    "requiresReview": 0,
+    "pending": 1,
+    "findings": [
+      {
+        "documentId": 6,
+        "version": "1.0",
+        "status": "PENDING",
+        "reason": "NOT_INDEXED"
+      }
+    ],
+    "auditId": null
+  },
+  "query": {
+    "httpStatus": 503,
+    "elapsedMs": 4588,
+    "body": {
+      "code": "AI_PROVIDER_UNAVAILABLE",
+      "message": "AI provider is unavailable.",
+      "traceId": "c7a31351-22f8-4fd9-bc4a-c2e0143fc745",
+      "timestamp": "2026-10-15T07:35:34.782260900Z",
+      "path": "/api/v1/ai/query"
+    }
+  }
+}

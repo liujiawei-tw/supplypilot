@@ -1,0 +1,18 @@
+{
+  "caseId": "sup005",
+  "question": "SUP-005 應何時回報季節性交期變更？",
+  "startedAt": "2026-10-16T13:57:24.859Z",
+  "completedAt": "2026-10-16T13:57:29.539Z",
+  "elapsedMs": 4680,
+  "httpStatus": 503,
+  "status": null,
+  "answer": null,
+  "answerSource": null,
+  "tools": null,
+  "code": "AI_PROVIDER_UNAVAILABLE",
+  "traceId": "22dd854b-3d4e-4e6a-a0f7-83fc50de78f7",
+  "sources": [],
+  "screenshot": "before-index-sup005.png",
+  "browser": "Microsoft Edge headed via CDP",
+  "backendGitSha": "6615e29ce69795ec0b922edfb85ac650dd0cb9de"
+}

@@ -1,0 +1,8 @@
+SP-910 r4 authorized guarded reset execution
+StartedAt=2026-10-17T13:45:44.643+08:00
+FinishedAt=2026-10-17T13:45:45.330+08:00
+ResetCommand=scripts/reset-demo.ps1 via existing current-user r4 wrapper
+Target=supplypilot_sp910_r4_demo / supplypilot_sp910_r4_semantic_demo / sp910-r4-demo-documents
+ExitCode=1
+Sensitive output omitted=true
+Reset runner completed; no approved fixed status marker was emitted.

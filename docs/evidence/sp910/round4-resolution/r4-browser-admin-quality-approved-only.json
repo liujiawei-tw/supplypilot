@@ -1,0 +1,64 @@
+{
+  "startedAt": "2026-10-16T01:20:14.840Z",
+  "browser": "Microsoft Edge headed via CDP / Playwright",
+  "username": "admin",
+  "documents": [
+    {
+      "id": 5,
+      "sourceFile": "quality-requirement-v1.txt",
+      "sourceSha256": "b8e9794a467f72d8a6419340ff940a7ee1d7decf53524c0fcc83c3814a0d63e8",
+      "detailFields": [
+        "文件 ID\t5",
+        "標題\t虛構展示原料品質要求",
+        "文件類型\t品質要求",
+        "供應商 ID\t3",
+        "版本\t1.0",
+        "狀態\t已就緒"
+      ],
+      "ready": true,
+      "versionOne": true,
+      "titleMatches": true,
+      "policyText": "確認核准文件出站\n文件內容可能送至外部 Embedding Provider\n後端 會依出站政策檢查內容；若需要人工審查，實際回應可能是 REQUIRES_REVIEW，不會被前端覆寫成已核准。只對你有權授權外送的文件繼續。\n取 消\n確認核准出站",
+      "review": {
+        "httpStatus": 200,
+        "documentId": 5,
+        "version": "1.0",
+        "sourceHash": "f986aa40f9fb3dba65d938ea98ecacba2581c00397b63903f36ee0ed6f4675b5",
+        "reviewer": 5,
+        "status": "APPROVED",
+        "reason": null,
+        "hashMatchesLocalSource": false
+      },
+      "reviewVisible": [
+        "文件 ID\t標題\t文件類型\t供應商 ID\t版本\t狀態\t上傳者\t上傳時間\t更新時間",
+        "版本",
+        "版本\t1.0",
+        "此處顯示 Documents API 的狀態。持久化出站審核狀態未包含在 DocumentResponse；請以每次審核 POST 回應為準，來源或版本變更後須重新審核。",
+        "本次審核回應：已核准",
+        "版本",
+        "來源雜湊",
+        "審核者（approvedBy）",
+        "後端 會依出站政策檢查內容；若需要人工審查，實際回應可能是 REQUIRES_REVIEW，不會被前端覆寫成已核准。只對你有權授權外送的文件繼續。"
+      ]
+    },
+    {
+      "id": 4,
+      "sourceFile": "product-specification-mat-001-v1.txt",
+      "sourceSha256": "d5e39437338a7374ba2c823907d091739b26e29ecf7bc12e35eff3ccdd929597"
+    }
+  ],
+  "screenshots": [
+    "r4-browser-admin-review-5-confirmation.png",
+    "r4-browser-admin-review-5-result.png",
+    "r4-browser-admin-approval-stop.png"
+  ],
+  "status": "PARTIAL",
+  "error": {
+    "name": "TimeoutError",
+    "message": "locator.click: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('button', { name: '#4', exact: true })\u001b[22m\n\u001b[2m    - locator resolved to <button type=\"button\" class=\"ant-btn css-dev-only-do-not-override-oc1rc0 css-var-_r_0_ ant-btn-link ant-btn-color-link ant-btn-variant-link\">…</button>\u001b[22m\n\u001b[2m  - attempting click action\u001b[22m\n\u001b[2m    2 × waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m      - element is visible, enabled and stable\u001b[22m\n\u001b[2m      - scrolling into view if needed\u001b[22m\n\u001b[2m      - done scrolling\u001b[22m\n\u001b[2m      - <div role=\"alert\" data-show=\"true\" class=\"ant-alert ant-alert-success ant-alert-outlined ant-alert-with-description css-var-_r_0_ css-dev-only-do-not-override-oc1rc0\">…</div> from <div>…</div> subtree intercepts pointer events\u001b[22m\n\u001b[2m    - retrying click action\u001b[22m\n\u001b[2m    - waiting 20ms\u001b[22m\n\u001b[2m    - waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m    - element is visible, enabled and stable\u001b[22m\n\u001b[2m    - scrolling into view if needed\u001b[22m\n\u001b[2m    - done scrolling\u001b[22m\n\u001b[2m    - <div class=\"ant-space css-dev-only-do-not-override-oc1rc0 ant-space-vertical ant-space-gap-row-large ant-space-gap-col-large css",
+    "url": "http://127.0.0.1:5174/documents?documentId=5"
+  },
+  "domText": "SupplyPilot\n採購決策平台\n儀表板\n主\n需\n採\n採\n文\nSupplyPilot — AI 採購與供應鏈決策平台\nAI 助理\nDemo Administrator（admin）\n系統管理員\n登出\n文件管理\n上傳與文件解析／索引是不同步驟；狀態以 後端 為準。\n上傳文件\nSemantic 索引管理\nDocument READY、Semantic Index READY、Gate PASS 與 Semantic Read 啟用是不同狀態。\n語意索引補建（Backfill）\n起始編號 afterId\n每批上限\n執行一批\n每次最多 100 份；不會自動連續執行。以 後端 回傳的 lastId 做下一批游標。\n就緒狀態檢查\n讀取目前就緒狀態\nGET 只計算目前索引完整性，不會保存稽核，也不會確認先前 Approval／Audit POST 是否成功。\nGate 稽核\nGate 稽核會保存正式稽核結果\n稽核通過不會啟用 Semantic Read。請依 semantic-rag-runbook.md 完成人工環境設定與重啟；新增或變更 READY 文件可能使 Gate 重新關閉。\n執行並保存 Gate 稽核\nSemantic Read 開關不由此介面控制\n只有正式 Gate 稽核通過後，才依 Runbook 明確設定 SEMANTIC_READ_ENABLED 並重新啟動 後端。此頁不會顯示或推定開關已啟用。\n文件類型\n狀態\n重新載入\n文件 ID\t標題\t文件類型\t供應商 ID\t版本\t狀態\t上傳者\t上傳時間\t更新時間\n\n文件 ID\n\t\n標題\n\t\n文件類型\n\t\n供應商 ID\n\t\n版本\n\t\n狀態\n\t\n上傳者\n\t\n上傳時間\n\t\n更新時間\n\n\n#5\n\t虛構展示原料品質要求\t品質要求\t3\t1.0\t已就緒\t5\t2026/10/16 上午1:03:50\t2026/10/16 上午1:03:50\n\n#4\n\tMAT-001 阿薩姆紅茶萃取物規格\t產品規格\t1\t1.0\t已就緒\t5\t2026/10/16 上午1:03:50\t2026/10/16 上午1:03:50\n\n#3\n\tSupplyPilot 虛構展示採購作業程序\t採購作業程序\t—\t1.0\t已就緒\t5\t2026/10/16 上午1:03:50\t2026/10/16 上午1:03:50\n\n#2\n\tSUP-002 虛構報價條件\t報價單\t2\t1.0\t已就緒\t5\t2026/10/16 上午1:03:50\t2026/10/16 上午1:03:50\n\n#1\n\tSUP-001 交付與責任協議\t供應商合約\t1\t1.0\t已就緒\t5\t2026/10/16 上午1:03:50\t2026/10/16 上午1:03:50\n1\n文件明細\n重新取得文件資訊\n文件 ID\t5\n標題\t虛構展示原料品質要求\n文件類型\t品質要求\n供應商 ID\t3\n版本\t1.0\n狀態\t已就緒\n上傳者\t5\n上傳時間\t2026/10/16 上午1:03:50\n更新時間\t2026/10/16 上午1:03:50\n文件狀態與 Semantic 狀態分開管理\n此處顯示 Documents API 的狀態。持久化出站審核狀態未包含在 DocumentResponse；請以每次審核 POST 回應為準，來源或版本變更後須重新審核。\n本次審核回應：已核准\n版本\n1.0\n\n\n來源雜湊\nf986aa40f9fb3dba65d938ea98ecacba2581c00397b63903f36ee0ed6f4675b5\n\n\n審核者（approvedBy）\n5\n\n\n原因\n—\n核准出站\n排除出站\n下一步：使用 AI Query 核對來源\n標題\n儲存標題\n封存文件\n開始文件解析與索引",
+  "finishedAt": "2026-10-16T01:20:25.685Z",
+  "elapsedSeconds": 10.845
+}

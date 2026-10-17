@@ -1,0 +1,126 @@
+{
+  "capturedAt": "2026-10-17T06:47:21.613Z",
+  "timezone": "Asia/Taipei",
+  "baseGitHead": "9c29e4bee329c102e89442ce7af0b8cd7ab160b8",
+  "status": "PASS",
+  "kind": "offline evidence revalidation; no Browser, Gemini, Backend, DB, or Reset executed",
+  "realResponseCasesValidated": [
+    {
+      "caseId": "SUP-001-leadtime",
+      "httpStatus": 200,
+      "status": "ANSWERED",
+      "sourceCount": 1,
+      "sources": [
+        {
+          "resourceType": "DOCUMENT",
+          "resourceId": "12",
+          "version": "1.0",
+          "chunkIndex": 0,
+          "startOffset": 0,
+          "endOffset": 336,
+          "valid": true
+        }
+      ],
+      "offlineAssertionPass": true
+    },
+    {
+      "caseId": "SUP-002-validity",
+      "httpStatus": 200,
+      "status": "ANSWERED",
+      "sourceCount": 1,
+      "sources": [
+        {
+          "resourceType": "DOCUMENT",
+          "resourceId": "13",
+          "version": "1.0",
+          "chunkIndex": 0,
+          "startOffset": 0,
+          "endOffset": 343,
+          "valid": true
+        }
+      ],
+      "offlineAssertionPass": true
+    },
+    {
+      "caseId": "MAT-001-storage",
+      "httpStatus": 200,
+      "status": "ANSWERED",
+      "sourceCount": 1,
+      "sources": [
+        {
+          "resourceType": "DOCUMENT",
+          "resourceId": "15",
+          "version": "1.0",
+          "chunkIndex": 0,
+          "startOffset": 0,
+          "endOffset": 268,
+          "valid": true
+        }
+      ],
+      "offlineAssertionPass": true
+    },
+    {
+      "caseId": "SOP-receiving-role",
+      "httpStatus": 200,
+      "status": "ANSWERED",
+      "sourceCount": 2,
+      "sources": [
+        {
+          "resourceType": "DOCUMENT",
+          "resourceId": "14",
+          "version": "1.0",
+          "chunkIndex": 0,
+          "startOffset": 0,
+          "endOffset": 383,
+          "valid": true
+        },
+        {
+          "resourceType": "DOCUMENT",
+          "resourceId": "16",
+          "version": "1.0",
+          "chunkIndex": 0,
+          "startOffset": 0,
+          "endOffset": 269,
+          "valid": true
+        }
+      ],
+      "offlineAssertionPass": true
+    },
+    {
+      "caseId": "quality-quarantine",
+      "httpStatus": 200,
+      "status": "ANSWERED",
+      "sourceCount": 1,
+      "sources": [
+        {
+          "resourceType": "DOCUMENT",
+          "resourceId": "16",
+          "version": "1.0",
+          "chunkIndex": 0,
+          "startOffset": 0,
+          "endOffset": 269,
+          "valid": true
+        }
+      ],
+      "offlineAssertionPass": true
+    },
+    {
+      "caseId": "insurance-insufficient",
+      "httpStatus": 200,
+      "status": "INSUFFICIENT_EVIDENCE",
+      "sourceCount": 0,
+      "sources": [],
+      "offlineAssertionPass": true
+    }
+  ],
+  "canonicalUtf16Lengths": {
+    "12": 336,
+    "13": 343,
+    "14": 383,
+    "15": 268,
+    "16": 269
+  },
+  "positiveCases": 6,
+  "negativeAssertions": 14,
+  "queryFollowupFailureExitCode": 2
+}

@@ -1,0 +1,11 @@
+{
+  "startedAt": "2026-10-16T14:01:21.9055740Z",
+  "completedAt": "2026-10-16T14:01:42.9184456Z",
+  "elapsedSeconds": 21.013,
+  "exitCode": 0,
+  "command": "scripts/reset-demo.ps1",
+  "mysqlTarget": "supplypilot_sp910_r4_demo",
+  "semanticTarget": "supplypilot_sp910_r4_semantic_demo",
+  "storageRootName": "sp910-r4-demo-documents",
+  "guardRejectExitCode": 1
+}

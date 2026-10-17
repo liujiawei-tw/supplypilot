@@ -1,0 +1,21 @@
+{
+  "caseId": "insurance",
+  "question": "這些文件是否規定冷凍海運的保險費率？",
+  "startedAt": "2026-10-17T01:02:19.686Z",
+  "completedAt": "2026-10-17T01:02:35.786Z",
+  "elapsedMs": 16100,
+  "httpStatus": 200,
+  "status": "INSUFFICIENT_EVIDENCE",
+  "answer": null,
+  "answerSource": null,
+  "tools": [
+    "SEARCH_DOCUMENTS",
+    "SEARCH_DOCUMENTS"
+  ],
+  "code": null,
+  "traceId": null,
+  "sources": [],
+  "browser": "Microsoft Edge headed + Playwright connectOverCDP",
+  "backendGitSha": "6615e29ce69795ec0b922edfb85ac650dd0cb9de",
+  "screenshot": "playwright-postreset-insurance.png"
+}

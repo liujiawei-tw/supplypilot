@@ -1,0 +1,356 @@
+{
+  "environment": "r4 Demo, latest merged #124 backend",
+  "verifiedAt": "2026-10-17T01:05:19.712Z",
+  "method": "JavaScript UTF-16 substring on actual sample file after CRLF-to-LF parser normalization; postreset approval hash compared with pgvector index",
+  "cases": [
+    {
+      "caseId": "sup001",
+      "httpStatus": 200,
+      "status": "ANSWERED",
+      "checks": [
+        {
+          "documentId": 1,
+          "version": "1.0",
+          "chunkIndex": 0,
+          "startOffset": 0,
+          "endOffset": 336,
+          "exactUtf16Substring": true,
+          "approvalIndexHashConsistent": null
+        }
+      ]
+    },
+    {
+      "caseId": "mat001",
+      "httpStatus": 200,
+      "status": "ANSWERED",
+      "checks": [
+        {
+          "documentId": 4,
+          "version": "1.0",
+          "chunkIndex": 0,
+          "startOffset": 0,
+          "endOffset": 268,
+          "exactUtf16Substring": true,
+          "approvalIndexHashConsistent": null
+        }
+      ]
+    },
+    {
+      "caseId": "sup002",
+      "httpStatus": 200,
+      "status": "ANSWERED",
+      "checks": [
+        {
+          "documentId": 2,
+          "version": "1.0",
+          "chunkIndex": 0,
+          "startOffset": 0,
+          "endOffset": 343,
+          "exactUtf16Substring": true,
+          "approvalIndexHashConsistent": null
+        }
+      ]
+    },
+    {
+      "caseId": "sop",
+      "httpStatus": 200,
+      "status": "ANSWERED",
+      "checks": [
+        {
+          "documentId": 3,
+          "version": "1.0",
+          "chunkIndex": 0,
+          "startOffset": 0,
+          "endOffset": 383,
+          "exactUtf16Substring": true,
+          "approvalIndexHashConsistent": null
+        },
+        {
+          "documentId": 5,
+          "version": "1.0",
+          "chunkIndex": 0,
+          "startOffset": 0,
+          "endOffset": 269,
+          "exactUtf16Substring": true,
+          "approvalIndexHashConsistent": null
+        }
+      ]
+    },
+    {
+      "caseId": "quality",
+      "httpStatus": 200,
+      "status": "ANSWERED",
+      "checks": [
+        {
+          "documentId": 5,
+          "version": "1.0",
+          "chunkIndex": 0,
+          "startOffset": 0,
+          "endOffset": 269,
+          "exactUtf16Substring": true,
+          "approvalIndexHashConsistent": null
+        }
+      ]
+    },
+    {
+      "caseId": "insurance",
+      "httpStatus": 200,
+      "status": "INSUFFICIENT_EVIDENCE",
+      "checks": []
+    },
+    {
+      "caseId": "en-to-zh",
+      "httpStatus": 200,
+      "status": "ANSWERED",
+      "checks": [
+        {
+          "documentId": 2,
+          "version": "1.0",
+          "chunkIndex": 0,
+          "startOffset": 0,
+          "endOffset": 343,
+          "exactUtf16Substring": true,
+          "approvalIndexHashConsistent": null
+        }
+      ]
+    },
+    {
+      "caseId": "sup005",
+      "httpStatus": 200,
+      "status": "ANSWERED",
+      "checks": [
+        {
+          "documentId": 6,
+          "version": "1.0",
+          "chunkIndex": 0,
+          "startOffset": 0,
+          "endOffset": 295,
+          "exactUtf16Substring": true,
+          "approvalIndexHashConsistent": null
+        }
+      ]
+    },
+    {
+      "caseId": "postreset-after-recommendation-sup001",
+      "httpStatus": 200,
+      "status": "ANSWERED",
+      "checks": [
+        {
+          "documentId": 7,
+          "version": "1.0",
+          "chunkIndex": 0,
+          "startOffset": 0,
+          "endOffset": 336,
+          "exactUtf16Substring": true,
+          "approvalIndexHashConsistent": true
+        }
+      ]
+    },
+    {
+      "caseId": "postreset-mat001",
+      "httpStatus": 200,
+      "status": "ANSWERED",
+      "checks": [
+        {
+          "documentId": 10,
+          "version": "1.0",
+          "chunkIndex": 0,
+          "startOffset": 0,
+          "endOffset": 268,
+          "exactUtf16Substring": true,
+          "approvalIndexHashConsistent": true
+        }
+      ]
+    },
+    {
+      "caseId": "postreset-sup002",
+      "httpStatus": 200,
+      "status": "ANSWERED",
+      "checks": [
+        {
+          "documentId": 8,
+          "version": "1.0",
+          "chunkIndex": 0,
+          "startOffset": 0,
+          "endOffset": 343,
+          "exactUtf16Substring": true,
+          "approvalIndexHashConsistent": true
+        }
+      ]
+    },
+    {
+      "caseId": "postreset-sop",
+      "httpStatus": 200,
+      "status": "ANSWERED",
+      "checks": [
+        {
+          "documentId": 9,
+          "version": "1.0",
+          "chunkIndex": 0,
+          "startOffset": 0,
+          "endOffset": 383,
+          "exactUtf16Substring": true,
+          "approvalIndexHashConsistent": true
+        },
+        {
+          "documentId": 11,
+          "version": "1.0",
+          "chunkIndex": 0,
+          "startOffset": 0,
+          "endOffset": 269,
+          "exactUtf16Substring": true,
+          "approvalIndexHashConsistent": true
+        }
+      ]
+    },
+    {
+      "caseId": "postreset-quality",
+      "httpStatus": 200,
+      "status": "ANSWERED",
+      "checks": [
+        {
+          "documentId": 11,
+          "version": "1.0",
+          "chunkIndex": 0,
+          "startOffset": 0,
+          "endOffset": 269,
+          "exactUtf16Substring": true,
+          "approvalIndexHashConsistent": true
+        }
+      ]
+    },
+    {
+      "caseId": "postreset-insurance",
+      "httpStatus": 200,
+      "status": "INSUFFICIENT_EVIDENCE",
+      "checks": []
+    },
+    {
+      "caseId": "postreset-en-to-zh",
+      "httpStatus": 200,
+      "status": "ANSWERED",
+      "checks": [
+        {
+          "documentId": 8,
+          "version": "1.0",
+          "chunkIndex": 0,
+          "startOffset": 0,
+          "endOffset": 343,
+          "exactUtf16Substring": true,
+          "approvalIndexHashConsistent": true
+        }
+      ]
+    },
+    {
+      "caseId": "postrestart-mat001",
+      "httpStatus": 200,
+      "status": "ANSWERED",
+      "checks": [
+        {
+          "documentId": 10,
+          "version": "1.0",
+          "chunkIndex": 0,
+          "startOffset": 0,
+          "endOffset": 268,
+          "exactUtf16Substring": true,
+          "approvalIndexHashConsistent": true
+        }
+      ]
+    },
+    {
+      "caseId": "playwright-postreset-sup001",
+      "httpStatus": 200,
+      "status": "ANSWERED",
+      "checks": [
+        {
+          "documentId": 7,
+          "version": "1.0",
+          "chunkIndex": 0,
+          "startOffset": 0,
+          "endOffset": 336,
+          "exactUtf16Substring": true,
+          "approvalIndexHashConsistent": true
+        }
+      ]
+    },
+    {
+      "caseId": "playwright-postreset-mat001",
+      "httpStatus": 200,
+      "status": "ANSWERED",
+      "checks": [
+        {
+          "documentId": 10,
+          "version": "1.0",
+          "chunkIndex": 0,
+          "startOffset": 0,
+          "endOffset": 268,
+          "exactUtf16Substring": true,
+          "approvalIndexHashConsistent": true
+        }
+      ]
+    },
+    {
+      "caseId": "playwright-postreset-sup002",
+      "httpStatus": 200,
+      "status": "ANSWERED",
+      "checks": [
+        {
+          "documentId": 8,
+          "version": "1.0",
+          "chunkIndex": 0,
+          "startOffset": 0,
+          "endOffset": 343,
+          "exactUtf16Substring": true,
+          "approvalIndexHashConsistent": true
+        }
+      ]
+    },
+    {
+      "caseId": "playwright-postreset-sop",
+      "httpStatus": 200,
+      "status": "ANSWERED",
+      "checks": [
+        {
+          "documentId": 9,
+          "version": "1.0",
+          "chunkIndex": 0,
+          "startOffset": 0,
+          "endOffset": 383,
+          "exactUtf16Substring": true,
+          "approvalIndexHashConsistent": true
+        },
+        {
+          "documentId": 11,
+          "version": "1.0",
+          "chunkIndex": 0,
+          "startOffset": 0,
+          "endOffset": 269,
+          "exactUtf16Substring": true,
+          "approvalIndexHashConsistent": true
+        }
+      ]
+    },
+    {
+      "caseId": "playwright-postreset-quality",
+      "httpStatus": 200,
+      "status": "ANSWERED",
+      "checks": [
+        {
+          "documentId": 11,
+          "version": "1.0",
+          "chunkIndex": 0,
+          "startOffset": 0,
+          "endOffset": 269,
+          "exactUtf16Substring": true,
+          "approvalIndexHashConsistent": true
+        }
+      ]
+    },
+    {
+      "caseId": "playwright-postreset-insurance",
+      "httpStatus": 200,
+      "status": "INSUFFICIENT_EVIDENCE",
+      "checks": []
+    }
+  ]
+}

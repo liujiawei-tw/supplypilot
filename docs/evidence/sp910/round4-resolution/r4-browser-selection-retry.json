@@ -1,0 +1,176 @@
+{
+  "startedAt": "2026-10-16T01:12:59.956Z",
+  "browser": "Microsoft Edge headed via CDP / Playwright",
+  "steps": [
+    {
+      "step": "material_search",
+      "httpStatus": null
+    },
+    {
+      "step": "material_selected_by_combobox_keyboard",
+      "visibleSelectedLabel": null,
+      "ariaExpanded": "false",
+      "comboValue": ""
+    },
+    {
+      "step": "dates_entered",
+      "start": "2026-10-16",
+      "end": "2026-11-15"
+    },
+    {
+      "step": "recommendation_created",
+      "httpStatus": 201,
+      "request": {
+        "materialId": 1,
+        "periodStart": "2026-10-16",
+        "periodEnd": "2026-11-15"
+      },
+      "response": {
+        "status": 201,
+        "id": 1,
+        "material": {
+          "id": 1,
+          "code": "MAT-001",
+          "name": "Assam Tea Extract",
+          "unit": "KG"
+        },
+        "period": {
+          "start": "2026-10-16",
+          "end": "2026-11-15"
+        },
+        "calculation": {
+          "expectedDemand": 1000,
+          "safetyStock": 200,
+          "currentInventory": 300,
+          "incomingInventory": 150,
+          "netRequirement": 750
+        },
+        "outcome": "SUPPLIER_RECOMMENDED",
+        "recommendation": {
+          "purchaseRequired": true,
+          "supplierId": 2,
+          "supplierName": "East Harbor Trading",
+          "quantity": 750,
+          "score": 96.1
+        }
+      }
+    },
+    {
+      "step": "draft_creation",
+      "status": "NOT AVAILABLE"
+    }
+  ],
+  "materialsApi": [],
+  "recommendationApi": [
+    {
+      "status": 201,
+      "id": 1,
+      "material": {
+        "id": 1,
+        "code": "MAT-001",
+        "name": "Assam Tea Extract",
+        "unit": "KG"
+      },
+      "period": {
+        "start": "2026-10-16",
+        "end": "2026-11-15"
+      },
+      "calculation": {
+        "expectedDemand": 1000,
+        "safetyStock": 200,
+        "currentInventory": 300,
+        "incomingInventory": 150,
+        "netRequirement": 750
+      },
+      "outcome": "SUPPLIER_RECOMMENDED",
+      "recommendation": {
+        "purchaseRequired": true,
+        "supplierId": 2,
+        "supplierName": "East Harbor Trading",
+        "quantity": 750,
+        "score": 96.1
+      }
+    }
+  ],
+  "rankingApi": [
+    {
+      "status": 200,
+      "count": 5,
+      "rows": [
+        {
+          "id": 4,
+          "supplierCode": "SUP-004",
+          "qualified": false,
+          "quantity": null,
+          "unitPrice": null,
+          "rank": null
+        },
+        {
+          "id": 2,
+          "supplierCode": "SUP-002",
+          "qualified": true,
+          "quantity": 750,
+          "unitPrice": 104,
+          "rank": 1
+        },
+        {
+          "id": 1,
+          "supplierCode": "SUP-001",
+          "qualified": true,
+          "quantity": 800,
+          "unitPrice": 100,
+          "rank": 2
+        },
+        {
+          "id": 5,
+          "supplierCode": "SUP-005",
+          "qualified": true,
+          "quantity": 800,
+          "unitPrice": 102,
+          "rank": 3
+        },
+        {
+          "id": 3,
+          "supplierCode": "SUP-003",
+          "qualified": true,
+          "quantity": 1000,
+          "unitPrice": 97,
+          "rank": 4
+        }
+      ]
+    }
+  ],
+  "draftApi": [],
+  "screenshots": [
+    "r4-browser-material-search-visible.png",
+    "r4-browser-material-selected.png",
+    "r4-browser-recommendation-result.png"
+  ],
+  "status": "PARTIAL",
+  "recommendationRequest": {
+    "materialId": 1,
+    "periodStart": "2026-10-16",
+    "periodEnd": "2026-11-15"
+  },
+  "resultVisibleText": [
+    "MAT-001 — Assam Tea Extract",
+    "已有推薦供應商",
+    "物料代碼\tMAT-001",
+    "1000.0000 KG",
+    "200.0000 KG",
+    "300.0000 KG",
+    "150.0000 KG",
+    "750.0000 KG",
+    "建議數量\t750.0000 KG",
+    "後端評分\t96.10000000000000",
+    "\t符合資格\t750.0000 KG\t104.0000 TWD\t78000.0000 TWD\t3 天\t—",
+    "\t符合資格\t1000.0000 KG\t97.0000 TWD\t97000.0000 TWD\t10 天\t—",
+    "建立關聯採購單草稿",
+    "合格供應商結果",
+    "物料\tMAT-001 — Assam Tea Extract (#1)",
+    "供應商建議數量\t750.0000 KG"
+  ],
+  "netRequirementCheck": "PASS",
+  "finishedAt": "2026-10-16T01:13:23.155Z",
+  "elapsedSeconds": 23.199
+}

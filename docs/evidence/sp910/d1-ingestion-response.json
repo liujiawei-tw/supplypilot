@@ -1,0 +1,10 @@
+{
+  "before": "正在載入文件…",
+  "response": {
+    "httpStatus": 200,
+    "elapsedMs": 1227,
+    "documentId": 6,
+    "status": "READY",
+    "version": "1.0"
+  }
+}

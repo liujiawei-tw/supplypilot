@@ -1,0 +1,21 @@
+{
+  "caseId": "R4-SEMANTIC-READINESS-01",
+  "browser": "Microsoft Edge headed via CDP/Playwright",
+  "httpStatus": 200,
+  "elapsedMs": 1331,
+  "checkedAt": "2026-10-16T01:52:32.634Z",
+  "report": {
+    "passed": true,
+    "generationKey": "gemini-embedding-001-768-v1",
+    "modelId": "gemini-embedding-001",
+    "dimensions": 768,
+    "ready": 5,
+    "skipped": 0,
+    "failed": 0,
+    "requiresReview": 0,
+    "pending": 0,
+    "findings": [],
+    "auditId": null
+  },
+  "screenshot": "r4-browser-readiness-after-backfill.png"
+}

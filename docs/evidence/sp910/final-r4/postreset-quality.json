@@ -1,0 +1,32 @@
+{
+  "caseId": "quality",
+  "question": "哪些品質異常情況需要隔離批次？",
+  "startedAt": "2026-10-17T00:54:01.022Z",
+  "completedAt": "2026-10-17T00:54:08.004Z",
+  "elapsedMs": 6982,
+  "httpStatus": 200,
+  "status": "ANSWERED",
+  "answer": "查詢結果整理如下。\n若批次缺少批次識別、封條破損、受到污染或物料不符，須將該批隔離，不得收進可用庫存。",
+  "answerSource": "MODEL_EXPLANATION",
+  "tools": [
+    "SEARCH_DOCUMENTS"
+  ],
+  "code": null,
+  "traceId": null,
+  "sources": [
+    {
+      "resourceType": "DOCUMENT",
+      "resourceId": "11",
+      "title": "虛構展示原料品質要求",
+      "version": "1.0",
+      "chunkIndex": 0,
+      "startOffset": 0,
+      "endOffset": 269,
+      "excerpt": "標題：虛構展示原料品質要求\n文件類型：QUALITY_REQUIREMENT\n版本：1.0\n虛構展示文件：本文內容與品質條件均為虛構，不代表真實公司的品質制度。\n\n每批交付原料須符合採購單上的物料代碼、申報數量與密封包裝數。倉庫人員應在收貨前記錄可見損傷。若批次缺少批次識別、封條破損、受到污染或物料不符，須將該批隔離，不得收進可用庫存。採購人員須與供應商協調後續處置。V1 不支援部分收貨，因此須接受整筆採購單，或暫緩收貨作業。\n\n問答：哪些狀況需要隔離交付批次，且不可視為可用庫存？\n預期依據：缺少批次識別、封條破損、污染或物料不符。",
+      "offsetLengthMatches": true
+    }
+  ],
+  "screenshot": "postreset-quality.png",
+  "browser": "Microsoft Edge headed via CDP",
+  "backendGitSha": "6615e29ce69795ec0b922edfb85ac650dd0cb9de"
+}

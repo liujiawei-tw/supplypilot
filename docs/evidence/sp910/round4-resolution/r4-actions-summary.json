@@ -1,0 +1,31 @@
+{
+  "checkedAt": "2026-10-16T01:22:00+08:00",
+  "repository": "liujiawei-tw/supplypilot",
+  "runs": [
+    {
+      "id": 38771906743,
+      "url": "https://github.com/liujiawei-tw/supplypilot/actions/runs/38771906743",
+      "detectCiScope": "success",
+      "backendCi": "success",
+      "backendVerifyStep": "completed",
+      "frontendCi": "skipped"
+    },
+    {
+      "id": 38771907250,
+      "url": "https://github.com/liujiawei-tw/supplypilot/actions/runs/38771907250",
+      "detectCiScope": "success",
+      "backendCi": "success",
+      "backendVerifyStep": "completed",
+      "frontendCi": "skipped"
+    },
+    {
+      "id": 38765349851,
+      "url": "https://github.com/liujiawei-tw/supplypilot/actions/runs/38765349851",
+      "frontendCi": "failure",
+      "frontendTestStep": "failure",
+      "backendCi": "success",
+      "failure": "frontend/tests/sp806.test.tsx: ignores a delayed archive response after switching documents; Testing Library could not find accessible button #21"
+    }
+  ],
+  "scopeNote": "The main frontend failure was not modified on the SP-910 branch."
+}

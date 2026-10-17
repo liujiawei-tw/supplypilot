@@ -1,0 +1,14 @@
+{
+  "caseId": "R3-BROWSER-READ-01",
+  "environment": "Windows Microsoft Edge headed Playwright",
+  "page": "http://127.0.0.1:5173/materials",
+  "materialsVisible": true,
+  "apiResponses": [
+    {
+      "path": "/api/v1/materials",
+      "status": 200
+    }
+  ],
+  "body": "SupplyPilot\n採購決策平台\n儀表板\n主檔管理\n需求與庫存\n採購決策\n採購單與收貨\n文件與 AI\nSupplyPilot — AI 採購與供應鏈決策平台\nAI 助理\nDemo Administrator（admin）\n系統管理員\n登出\n物料管理\n維護物料主檔與安全庫存\n新增物料\n狀態\n物料代碼\n\t\n名稱\n\t\n基本單位\n\t\n安全庫存\n\t\n狀態\n\t操作\nMAT-001\tAssam Tea Extract\tKG\t200\t啟用\t\n編 輯\n停 用\n\nMAT-002\tMango Concentrate\tKG\t100\t啟用\t\n編 輯\n停 用\n\nMAT-003\tFructose Syrup\tKG\t300\t啟用\t\n編 輯\n停 用\n\nMAT-004\tMilk Tea Base\tKG\t150\t啟用\t\n編 輯\n停 用\n\nMAT-005\tTapioca Flavor Powder\tKG\t50\t停用\t\n編 輯\n啟 用\n\nMAT-006\tJasmine Tea Extract\tKG\t180\t啟用\t\n編 輯\n停 用\n\nMAT-007\tPassion Fruit Puree\tKG\t90\t啟用\t\n編 輯\n停 用\n\nMAT-008\tBrown Sugar Syrup\tKG\t120\t啟用\t\n編 輯\n停 用\n\nMAT-009\tTaro Flavor Powder\tKG\t60\t啟用\t\n編 輯\n停 用\n\nMAT-010\tLemon Juice Concentrate\tKG\t80\t啟用\t\n編 輯\n停 用\n\nMAT-011\tOolong Tea Extract\tKG\t160\t啟用\t\n編 輯\n停 用\n\nMAT-012\tCoconut Cream Base\tKG\t110\t啟用\t\n編 輯\n停 用\n1\n20 條/頁",
+  "secretCaptured": false
+}

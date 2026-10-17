@@ -1,0 +1,13 @@
+{
+  "at": "2026-10-16T13:52:07.714Z",
+  "httpStatus": 201,
+  "elapsedMs": 230,
+  "documentId": 6,
+  "status": "PROCESSING",
+  "version": "1.0",
+  "title": "SUP-001 MAT-001 Delivery Terms for Fictional Cross-Language Test",
+  "documentType": "SUPPLIER_CONTRACT",
+  "supplierId": 1,
+  "file": "cross-language-english-source.txt",
+  "environment": "isolated cross-language Demo 8185/5175"
+}

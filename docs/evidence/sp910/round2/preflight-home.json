@@ -1,0 +1,15 @@
+{
+  "caseId": "R2-BROWSER-01",
+  "environment": "Windows host; Microsoft Edge headed via Playwright",
+  "startedAt": "2026-10-15T19:56:48+08:00",
+  "requestedUrl": "http://127.0.0.1:5173/",
+  "finalUrl": "http://127.0.0.1:5173/login",
+  "httpStatus": 200,
+  "pageTitle": "SupplyPilot — AI Procurement & Supply Chain Decision Platform",
+  "visiblePageText": "SupplyPilot; 登入採購與供應鏈決策平台; 帳號; 密碼; 登入; 示範帳號資訊請參閱部署環境提供的說明；此頁不公開密碼。",
+  "result": "PASS: actual Edge rendered the login page",
+  "loginPerformed": false,
+  "screenshot": "preflight-home.png",
+  "elapsedSeconds": 8.6,
+  "limitation": "Dashboard, login, authorization, and AI queries were not exercised in round 2."
+}

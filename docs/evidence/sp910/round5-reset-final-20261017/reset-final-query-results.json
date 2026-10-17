@@ -1,0 +1,163 @@
+{
+  "phase": "query",
+  "startedAt": "2026-10-17T06:22:41.094Z",
+  "timezone": "Asia/Taipei",
+  "browser": "Microsoft Edge headed via Playwright launchPersistentContext",
+  "baseUrl": "http://127.0.0.1:5174",
+  "profile": "isolated r4 E9 profile",
+  "requests": [
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/me",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/me",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/documents",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/documents",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/ai/query",
+      "status": 200
+    }
+  ],
+  "failedRequests": [],
+  "console": [
+    {
+      "type": "debug",
+      "text": "[vite] connecting..."
+    },
+    {
+      "type": "debug",
+      "text": "[vite] connected."
+    },
+    {
+      "type": "info",
+      "text": "%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold"
+    },
+    {
+      "type": "error",
+      "text": "Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead."
+    },
+    {
+      "type": "error",
+      "text": "Warning: [antd: Alert] `message` is deprecated. Please use `title` instead."
+    },
+    {
+      "type": "error",
+      "text": "Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead."
+    }
+  ],
+  "screenshots": [
+    "query-admin-dashboard.png",
+    "query-documents.png",
+    "SUP-001-leadtime.png"
+  ],
+  "actions": [],
+  "currentUrl": "http://127.0.0.1:5174/dashboard",
+  "dashboardVisible": true,
+  "adminIdentityVisible": true,
+  "documentList": {
+    "httpStatus": 200,
+    "total": 5,
+    "documents": [
+      {
+        "id": 16,
+        "title": "虛構展示原料品質要求",
+        "documentType": "QUALITY_REQUIREMENT",
+        "supplierId": 15,
+        "version": "1.0",
+        "status": "READY",
+        "storagePath": "c7f92988-57c9-4f2f-ae59-8c958e289fcc.txt"
+      },
+      {
+        "id": 15,
+        "title": "MAT-001 阿薩姆紅茶萃取物規格",
+        "documentType": "PRODUCT_SPECIFICATION",
+        "supplierId": 13,
+        "version": "1.0",
+        "status": "READY",
+        "storagePath": "302bb0b0-94f7-4dcc-9c39-6fb367b1c0f1.txt"
+      },
+      {
+        "id": 14,
+        "title": "SupplyPilot 虛構展示採購作業程序",
+        "documentType": "PROCUREMENT_SOP",
+        "supplierId": null,
+        "version": "1.0",
+        "status": "READY",
+        "storagePath": "28b0165e-2e40-4acc-aebc-c7cc4c3499b1.txt"
+      },
+      {
+        "id": 13,
+        "title": "SUP-002 虛構報價條件",
+        "documentType": "QUOTATION",
+        "supplierId": 14,
+        "version": "1.0",
+        "status": "READY",
+        "storagePath": "9ce8bd76-1379-4e3a-baa2-79af34b681b4.txt"
+      },
+      {
+        "id": 12,
+        "title": "SUP-001 交付與責任協議",
+        "documentType": "SUPPLIER_CONTRACT",
+        "supplierId": 13,
+        "version": "1.0",
+        "status": "READY",
+        "storagePath": "9fc6cda8-8a5a-46f2-8c90-b50f26f5b293.txt"
+      }
+    ]
+  },
+  "visibleDocumentCount": 5,
+  "queries": [
+    {
+      "caseId": "SUP-001-leadtime",
+      "question": "SUP-001 的 MAT-001 標準交期是多久？",
+      "httpStatus": 200,
+      "status": "ANSWERED",
+      "answer": "MAT-001 標準交期為採購單狀態轉為 ORDERED 後 5 個曆日。",
+      "answerSource": "BACKEND_FACTS",
+      "tools": [
+        "QUERY_RECOMMENDATION",
+        "SEARCH_DOCUMENTS"
+      ],
+      "traceId": null,
+      "sources": [
+        {
+          "resourceType": "DOCUMENT",
+          "resourceId": "12",
+          "version": "1.0",
+          "chunkIndex": 0,
+          "startOffset": 0,
+          "endOffset": 336,
+          "excerpt": "標題：SUP-001 交付與責任協議\n文件類型：SUPPLIER_CONTRACT\n版本：1.0\n虛構展示文件：本文內容、公司名稱與商業條件均為虛構，不代表真實公司或契約。\n\nFormosa Ingredients（SUP-001）為 SupplyPilot 虛構展示資料中的 MAT-001（阿薩姆紅茶萃取物）供應商。MAT-001 標準交期為採購單狀態轉為 ORDERED 後 5 個曆日。若預期交期可能延誤，供應商須事先通知採購人員。倉庫人員確認數量與包裝完整後，交付責任才算完成。遭拒收的批次仍由供應商負責，直到完成換貨或雙方以書面確認處置方式。\n\n問答：SUP-001 的 MAT-001 標準交期是多久？\n預期依據：採購單轉為 ORDERED 後 5 個曆日。"
+        }
+      ],
+      "elapsedMs": 13561,
+      "sourceValidation": [
+        {
+          "resourceId": "12",
+          "version": "1.0",
+          "chunkIndex": 0,
+          "startOffset": 0,
+          "endOffset": 336,
+          "belongsToExpectedDocument": false,
+          "utf16ExcerptMatchesSample": false
+        }
+      ],
+      "expectedStatusPass": false
+    }
+  ],
+  "completedAt": "2026-10-17T06:22:57.659Z"
+}

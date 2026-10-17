@@ -1,0 +1,33 @@
+{
+  "caseId": "mat001",
+  "question": "MAT-001 的基本單位及儲存條件為何？",
+  "startedAt": "2026-10-17T00:56:38.452Z",
+  "completedAt": "2026-10-17T00:56:48.513Z",
+  "elapsedMs": 10061,
+  "httpStatus": 200,
+  "status": "ANSWERED",
+  "answer": "基本單位為 KG 請存放於陰涼乾燥處 存放於陰涼乾燥處並避免陽光直射。",
+  "answerSource": "BACKEND_FACTS",
+  "tools": [
+    "QUERY_INVENTORY",
+    "SEARCH_DOCUMENTS"
+  ],
+  "code": null,
+  "traceId": null,
+  "sources": [
+    {
+      "resourceType": "DOCUMENT",
+      "resourceId": "10",
+      "title": "MAT-001 阿薩姆紅茶萃取物規格",
+      "version": "1.0",
+      "chunkIndex": 0,
+      "startOffset": 0,
+      "endOffset": 268,
+      "excerpt": "標題：MAT-001 阿薩姆紅茶萃取物規格\n文件類型：PRODUCT_SPECIFICATION\n版本：1.0\n虛構展示文件：本文內容與物料規格均為虛構，不代表真實公司或商品規格。\n\nMAT-001 為阿薩姆紅茶萃取物，基本單位為 KG，供虛構飲品試製使用。產品為深琥珀色、水溶性茶濃縮液。包裝須密封、保持乾燥，並標示物料代碼與批次識別。請存放於陰涼乾燥處，避免陽光直射。展示收貨檢查會核對物料識別、包裝完整性與標示數量。\n\n問答：MAT-001 的基本單位與儲存條件為何？\n預期依據：基本單位為 KG；存放於陰涼乾燥處並避免陽光直射。",
+      "offsetLengthMatches": true
+    }
+  ],
+  "screenshot": "postrestart-mat001.png",
+  "browser": "Microsoft Edge headed via CDP",
+  "backendGitSha": "6615e29ce69795ec0b922edfb85ac650dd0cb9de"
+}

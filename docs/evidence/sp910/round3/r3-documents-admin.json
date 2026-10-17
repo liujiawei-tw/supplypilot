@@ -1,0 +1,80 @@
+{
+  "url": "http://127.0.0.1:5173/documents",
+  "api": [
+    {
+      "path": "/api/v1/auth/login",
+      "status": 200
+    },
+    {
+      "path": "/api/v1/auth/me",
+      "status": 200
+    },
+    {
+      "path": "/api/v1/auth/me",
+      "status": 200
+    },
+    {
+      "path": "/api/v1/auth/me",
+      "status": 200
+    },
+    {
+      "path": "/api/v1/documents",
+      "status": 200
+    }
+  ],
+  "buttons": [
+    "AI 助理",
+    "登出",
+    "上傳文件",
+    "執行一批",
+    "讀取目前就緒狀態",
+    "執行並保存 Gate 稽核",
+    "重新載入",
+    "#5",
+    "#4",
+    "#3",
+    "#2",
+    "#1",
+    "",
+    ""
+  ],
+  "inputs": [
+    {
+      "placeholder": "",
+      "aria": "回填起始編號",
+      "value": "0",
+      "type": "text"
+    },
+    {
+      "placeholder": "",
+      "aria": "每批回填上限",
+      "value": "25",
+      "type": "text"
+    },
+    {
+      "placeholder": "",
+      "aria": "文件類型篩選",
+      "value": "",
+      "type": "text"
+    },
+    {
+      "placeholder": "供應商 ID",
+      "aria": "供應商 ID 篩選",
+      "value": "",
+      "type": "text"
+    },
+    {
+      "placeholder": "",
+      "aria": "文件狀態篩選",
+      "value": "",
+      "type": "text"
+    },
+    {
+      "placeholder": "",
+      "aria": "頁碼",
+      "value": "",
+      "type": "text"
+    }
+  ],
+  "body": "SupplyPilot\n採購決策平台\n儀表板\n主檔管理\n需求與庫存\n採購決策\n採購單與收貨\n文件與 AI\nSupplyPilot — AI 採購與供應鏈決策平台\nAI 助理\nDemo Administrator（admin）\n系統管理員\n登出\n文件管理\n上傳與文件解析／索引是不同步驟；狀態以 後端 為準。\n上傳文件\nSemantic 索引管理\nDocument READY、Semantic Index READY、Gate PASS 與 Semantic Read 啟用是不同狀態。\n語意索引補建（Backfill）\n起始編號 afterId\n每批上限\n執行一批\n每次最多 100 份；不會自動連續執行。以 後端 回傳的 lastId 做下一批游標。\n就緒狀態檢查\n讀取目前就緒狀態\nGET 只計算目前索引完整性，不會保存稽核，也不會確認先前 Approval／Audit POST 是否成功。\nGate 稽核\nGate 稽核會保存正式稽核結果\n稽核通過不會啟用 Semantic Read。請依 semantic-rag-runbook.md 完成人工環境設定與重啟；新增或變更 READY 文件可能使 Gate 重新關閉。\n執行並保存 Gate 稽核\nSemantic Read 開關不由此介面控制\n只有正式 Gate 稽核通過後，才依 Runbook 明確設定 SEMANTIC_READ_ENABLED 並重新啟動 後端。此頁不會顯示或推定開關已啟用。\n文件類型\n狀態\n重新載入\n文件 ID\t標題\t文件類型\t供應商 ID\t版本\t狀態\t上傳者\t上傳時間\t更新時間\n\n文件 ID\n\t\n標題\n\t\n文件類型\n\t\n供應商 ID\n\t\n版本\n\t\n狀態\n\t\n上傳者\n\t\n上傳時間\n\t\n更新時間\n\n\n#5\n\t虛構展示原料品質要求\t品質要求\t3\t1.0\t已就緒\t5\t2026/10/15 下午8:12:40\t2026/10/15 下午8:12:40\n\n#4\n\tMAT-001 阿薩姆紅茶萃取物規格\t產品規格\t1\t1.0\t已就緒\t5\t2026/10/15 下午8:12:40\t2026/10/15 下午8:12:40\n\n#3\n\tSupplyPilot 虛構展示採購作業程序\t採購作業程序\t—\t1.0\t已就緒\t5\t2026/10/15 下午8:12:40\t2026/10/15 下午8:12:40\n\n#2\n\tSUP-002 虛構報價條件\t報價單\t2\t1.0\t已就緒\t5\t2026/10/15 下午8:12:40\t2026/10/15 下午8:12:40\n\n#1\n\tSUP-001 交付與責任協議\t供應商合約\t1\t1.0\t已就緒\t5\t2026/10/15 下午8:12:40\t2026/10/15 下午8:12:40\n1\n20 條/頁"
+}

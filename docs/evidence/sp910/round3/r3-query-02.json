@@ -1,0 +1,31 @@
+{
+  "caseId": "R3-QUERY-02",
+  "question": "SUP-002 的報價有效期限為多久？",
+  "httpStatus": 200,
+  "elapsedMs": 7785,
+  "response": {
+    "status": "ANSWERED",
+    "answer": "查詢結果整理如下。\n本報價自開立日起 30 個曆日內有效。",
+    "tools": [
+      "SEARCH_DOCUMENTS"
+    ],
+    "sources": [
+      {
+        "resourceType": "DOCUMENT",
+        "resourceId": "2",
+        "title": "SUP-002 虛構報價條件",
+        "version": "1.0",
+        "supplierId": 2,
+        "chunkIndex": 0,
+        "startOffset": 0,
+        "endOffset": 343,
+        "excerpt": "標題：SUP-002 虛構報價條件\n文件類型：QUOTATION\n版本：1.0\n虛構展示文件：本文內容、公司名稱與商業條件均為虛構，不代表真實公司或報價契約。\n\nEast Harbor Trading（SUP-002）於 SupplyPilot 虛構展示資料中供應 MAT-001 與 MAT-002，單價以展示資料庫中的設定為準。本報價自開立日起 30 個曆日內有效。MAT-001 訂購數量符合設定的包裝倍數時，標準交期為 3 個曆日。運費包含送至虛構展示倉庫。接受報價不會取代必要的採購單核准流程。\n\n問答：SUP-002 的報價自開立日起有效多久？\n預期依據：30 個曆日。\n\n問答：MAT-001 數量符合包裝倍數時，SUP-002 的標準交期為多久？\n預期依據：3 個曆日。",
+        "relevanceScore": 0.8092865943908691
+      }
+    ],
+    "answerSource": "MODEL_EXPLANATION"
+  },
+  "visibleText": "SupplyPilot\n採購決策平台\n儀表板\n主檔管理\n需求與庫存\n採購決策\n採購單與收貨\n文件與 AI\nSupplyPilot — AI 採購與供應鏈決策平台\nAI 助理\nDemo Administrator（admin）\n系統管理員\n登出\n工作總覽\nDemo Administrator · 系統管理員\n目前沒有待辦資料\n請從下方入口前往您有權限使用的業務功能。\n主檔管理\n物料管理\n供應商管理\n需求與庫存\n需求管理\n庫存管理\n庫存匯入\n採購決策\n採購建議\n採購單與收貨\n採購單管理\n收貨作業\n文件與 AI\n文件管理\nSupplyPilot AI 助理\nAI 功能與核心頁面隔離；關閉 Drawer 不會改變目前路由。\n查詢與來源\n採購草稿提案\n向 SupplyPilot 提問\n單輪同步查詢；不保留對話記憶，也不提供串流回應。\n19 / 2000\n送出問題\n回答\n查詢結果整理如下。\n本報價自開立日起 30 個曆日內有效。\nAnswer Source：MODEL_EXPLANATION\nSEARCH_DOCUMENTS\n資料來源\nDOCUMENT\nSUP-002 虛構報價條件\n來源 ID\n2\n\n\n文件版本\n1.0\n\n\n供應商 ID\n2\n\n\nChunk 索引\n0\n\n\n原文 Offset\n0–343\n\n\n相關度分數\n0.8092865943908691\n引用內容\n標題：SUP-002 虛構報價條件\n文件類型：QUOTATION\n版本：1.0\n虛構展示文件：本文內容、公司名稱與商業條件均為虛構，不代表真實公司或報價契約。\n\nEast Harbor Trading（SUP-002）於 SupplyPilot 虛構展示資料中供應 MAT-001 與 MAT-002，單價以展示資料庫中的設定為準。本報價自開立日起 30 個曆日內有效。MAT-001 訂購數量符合設定的包裝倍數時，標準交期為 3 個曆日。運費包含送至虛構展示倉庫。接受報價不會取代必要的採購單核准流程。\n\n問答：SUP-002 的報價自開立日起有效多久？\n預期依據：30 個曆日。\n\n問答：MAT-001 數量符合包裝倍數時，SUP-002 的標準交期為多久？\n預期依據：3 個曆日。",
+  "provider": "google-genai",
+  "chatModel": "gemini-3.6-flash"
+}

@@ -1,0 +1,253 @@
+{
+  "phase": "postgate",
+  "at": "2026-10-17T00:55:44.2159256Z",
+  "timezone": "Asia/Taipei",
+  "gitSha": "6615e29ce69795ec0b922edfb85ac650dd0cb9de",
+  "environment": "r4 isolated Demo",
+  "mysqlTarget": "supplypilot_sp910_r4_demo@127.0.0.1:13327",
+  "semanticTarget": "supplypilot_sp910_r4_semantic_demo@127.0.0.1:15450",
+  "mysqlVolume": "supplypilot-sp910-r4-mysql-data",
+  "semanticVolume": "supplypilot-sp910-r4-pgvector-data",
+  "storageRootName": "sp910-r4-demo-documents",
+  "storageFiles": [
+    {
+      "sha256": "B8E9794A467F72D8A6419340FF940A7EE1D7DECF53524C0FCC83C3814A0D63E8",
+      "bytes": 751
+    },
+    {
+      "sha256": "D2C118D1A6190542F374D12EB7BD08AC503490DDE3ADD37457A002AF65897C60",
+      "bytes": 875
+    },
+    {
+      "sha256": "D5E39437338A7374BA2C823907D091739B26E29ECF7BC12E35EFF3CCDD929597",
+      "bytes": 690
+    },
+    {
+      "sha256": "86E30E30CA08BA4FE605B94A166B0972DAD04A646EF93133456CA5F2015FE006",
+      "bytes": 754
+    },
+    {
+      "sha256": "0677454B695BB2AB5F5FA31F97E9737BC04C6A321A3C6887BAB308A0D63B103D",
+      "bytes": 780
+    }
+  ],
+  "mysqlRows": [
+    [
+      "database",
+      "supplypilot_sp910_r4_demo"
+    ],
+    [
+      "marker",
+      "SP-901",
+      "sp-905-zh-tw-v1",
+      "2026-10-16",
+      "COMPLETE"
+    ],
+    [
+      "users",
+      "5"
+    ],
+    [
+      "materials",
+      "12"
+    ],
+    [
+      "suppliers",
+      "6"
+    ],
+    [
+      "supplier_materials",
+      "30"
+    ],
+    [
+      "demands",
+      "12"
+    ],
+    [
+      "purchase_orders",
+      "10"
+    ],
+    [
+      "po_status",
+      "APPROVED",
+      "2"
+    ],
+    [
+      "po_status",
+      "DRAFT",
+      "2"
+    ],
+    [
+      "po_status",
+      "ORDERED",
+      "3"
+    ],
+    [
+      "po_status",
+      "RECEIVED",
+      "2"
+    ],
+    [
+      "po_status",
+      "REJECTED",
+      "1"
+    ],
+    [
+      "mat001_inventory",
+      "300.0000"
+    ],
+    [
+      "document",
+      "7",
+      "1.0",
+      "READY",
+      "APPROVED",
+      "1.0"
+    ],
+    [
+      "document",
+      "8",
+      "1.0",
+      "READY",
+      "APPROVED",
+      "1.0"
+    ],
+    [
+      "document",
+      "9",
+      "1.0",
+      "READY",
+      "APPROVED",
+      "1.0"
+    ],
+    [
+      "document",
+      "10",
+      "1.0",
+      "READY",
+      "APPROVED",
+      "1.0"
+    ],
+    [
+      "document",
+      "11",
+      "1.0",
+      "READY",
+      "APPROVED",
+      "1.0"
+    ],
+    [
+      "document_chunks",
+      "7",
+      "1"
+    ],
+    [
+      "document_chunks",
+      "8",
+      "1"
+    ],
+    [
+      "document_chunks",
+      "9",
+      "1"
+    ],
+    [
+      "document_chunks",
+      "10",
+      "1"
+    ],
+    [
+      "document_chunks",
+      "11",
+      "1"
+    ]
+  ],
+  "semanticRows": [
+    [
+      "database",
+      "supplypilot_sp910_r4_semantic_demo"
+    ],
+    [
+      "generation",
+      "gemini-embedding-001-768-v1",
+      "gemini-embedding-001",
+      "768"
+    ],
+    [
+      "index",
+      "7",
+      "1.0",
+      "READY",
+      "d43706a4c4fe9c95456a3e8522f69691a3082a5621490380b2332f3e993b96af",
+      "1"
+    ],
+    [
+      "index",
+      "8",
+      "1.0",
+      "READY",
+      "d7aa2997bcf52076d64de371c6eb1cb93c8934bc91534867d2ad3f774b869ceb",
+      "1"
+    ],
+    [
+      "index",
+      "9",
+      "1.0",
+      "READY",
+      "c7d724003e8e1f1d92b1876ac1a34f5288fe2007a710acc488afb9b3ec22d37c",
+      "1"
+    ],
+    [
+      "index",
+      "10",
+      "1.0",
+      "READY",
+      "c45ce4b2a995389c92dead5e80ecdd5a50d78a12e768f691ee4c031b44e989e7",
+      "1"
+    ],
+    [
+      "index",
+      "11",
+      "1.0",
+      "READY",
+      "f986aa40f9fb3dba65d938ea98ecacba2581c00397b63903f36ee0ed6f4675b5",
+      "1"
+    ],
+    [
+      "chunks",
+      "7",
+      "1"
+    ],
+    [
+      "chunks",
+      "8",
+      "1"
+    ],
+    [
+      "chunks",
+      "9",
+      "1"
+    ],
+    [
+      "chunks",
+      "10",
+      "1"
+    ],
+    [
+      "chunks",
+      "11",
+      "1"
+    ],
+    [
+      "gate",
+      "3",
+      "t",
+      "5",
+      "0",
+      "0",
+      "0",
+      "0",
+      "2026-10-17 00:52:44.055733+00"
+    ]
+  ]
+}
