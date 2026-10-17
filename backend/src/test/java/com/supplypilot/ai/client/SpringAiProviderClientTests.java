@@ -26,6 +26,7 @@ import com.supplypilot.ai.tool.AiQueryPlanner;
 import com.supplypilot.ai.tool.AiToolResult;
 import com.supplypilot.ai.tool.SpringAiReadTools;
 import com.supplypilot.ai.usage.AiMonthlyUsageMonitor;
+import com.supplypilot.common.exception.BusinessException;
 import com.supplypilot.common.exception.ErrorCode;
 import com.supplypilot.material.service.MaterialService;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
@@ -464,6 +465,110 @@ class SpringAiProviderClientTests {
                 "SUP-001 的 MAT-001 標準交期是多久？"));
     }
 
+    @Test
+    void missingUnrequestedRecommendationDoesNotInterruptDocumentSearchWhenCalledFirst() {
+        assertDocumentQuerySurvivesMissingRecommendation(true);
+    }
+
+    @Test
+    void missingUnrequestedRecommendationDoesNotInterruptDocumentSearchWhenCalledAfterward() {
+        assertDocumentQuerySurvivesMissingRecommendation(false);
+    }
+
+    @Test
+    void missingExplicitlyRequestedRecommendationStillFailsClosed() {
+        AiToolRegistry registry = mock(AiToolRegistry.class);
+        when(registry.execute(any())).thenThrow(new BusinessException(ErrorCode.RECOMMENDATION_NOT_FOUND));
+        ChatModel model = fakeModel(prompt -> toolCall("QUERY_RECOMMENDATION",
+                "{\"materialCode\":\"MAT-001\"}"));
+
+        assertThatThrownBy(() -> provider(model, registry, Duration.ofSeconds(2))
+                .query(new AiProviderRequest("MAT-001 的採購建議為何？")))
+                .isInstanceOfSatisfying(BusinessException.class, failure ->
+                        assertThat(failure.getErrorCode()).isEqualTo(ErrorCode.RECOMMENDATION_NOT_FOUND));
+        verify(registry).execute(new AiQueryPlan(AiToolType.QUERY_RECOMMENDATION, null, "MAT-001", null));
+    }
+
+    @Test
+    void missingRecommendationStillFailsClosedWhenDocumentAndRecommendationAreBothRequested() {
+        AiToolRegistry registry = mock(AiToolRegistry.class);
+        when(registry.execute(any())).thenThrow(new BusinessException(ErrorCode.RECOMMENDATION_NOT_FOUND));
+        ChatModel model = fakeModel(prompt -> toolCall("QUERY_RECOMMENDATION",
+                "{\"materialCode\":\"MAT-001\"}"));
+
+        assertThatThrownBy(() -> provider(model, registry, Duration.ofSeconds(2))
+                .query(new AiProviderRequest("SUP-001 的 MAT-001 合約交期與採購建議為何？")))
+                .isInstanceOfSatisfying(BusinessException.class, failure ->
+                        assertThat(failure.getErrorCode()).isEqualTo(ErrorCode.RECOMMENDATION_NOT_FOUND));
+    }
+
+    @Test
+    void unrelatedRecommendationFailuresAreNeverIsolated() {
+        AiToolRegistry registry = mock(AiToolRegistry.class);
+        when(registry.execute(any())).thenThrow(new BusinessException(ErrorCode.ACCESS_DENIED));
+        ChatModel model = fakeModel(prompt -> toolCall("QUERY_RECOMMENDATION",
+                "{\"materialCode\":\"MAT-001\"}"));
+
+        assertThatThrownBy(() -> provider(model, registry, Duration.ofSeconds(2))
+                .query(new AiProviderRequest("SUP-001 的 MAT-001 標準交期是多久？")))
+                .isInstanceOfSatisfying(BusinessException.class, failure ->
+                        assertThat(failure.getErrorCode()).isEqualTo(ErrorCode.ACCESS_DENIED));
+    }
+
+    private void assertDocumentQuerySurvivesMissingRecommendation(boolean recommendationFirst) {
+        ListAppender<ILoggingEvent> appender = captureDiagnostics();
+        try {
+            AiToolRegistry registry = mock(AiToolRegistry.class);
+            when(registry.execute(any())).thenAnswer(call -> {
+                AiQueryPlan plan = call.getArgument(0);
+                if (plan.tool() == AiToolType.QUERY_RECOMMENDATION) {
+                    throw new BusinessException(ErrorCode.RECOMMENDATION_NOT_FOUND);
+                }
+                return documentResult(AiQueryStatus.ANSWERED,
+                        "SUP-001 的 MAT-001 標準交期為 ORDERED 後 8 個曆日。");
+            });
+            ChatModel model = fakeModel(prompt -> {
+                int responses = toolResponseCount(prompt);
+                if (responses == 0) {
+                    return recommendationFirst
+                            ? toolCall("QUERY_RECOMMENDATION", "{\"materialCode\":\"MAT-001\"}")
+                            : toolCall("SEARCH_DOCUMENTS", "{\"question\":\"SUP-001 的 MAT-001 標準交期是多久？\"}");
+                }
+                if (responses == 1) {
+                    return recommendationFirst
+                            ? toolCall("SEARCH_DOCUMENTS", "{\"question\":\"SUP-001 的 MAT-001 標準交期是多久？\"}")
+                            : toolCall("QUERY_RECOMMENDATION", "{\"materialCode\":\"MAT-001\"}");
+                }
+                return finalAnswer(1);
+            });
+
+            AiProviderResponse response = provider(model, registry, Duration.ofSeconds(2))
+                    .query(new AiProviderRequest("SUP-001 的 MAT-001 標準交期是多久？"));
+
+            assertThat(response.results()).extracting(AiToolResult::tool)
+                    .containsExactly(recommendationFirst ? AiToolType.QUERY_RECOMMENDATION : AiToolType.SEARCH_DOCUMENTS,
+                            recommendationFirst ? AiToolType.SEARCH_DOCUMENTS : AiToolType.QUERY_RECOMMENDATION);
+            assertThat(response.results()).filteredOn(result -> result.tool() == AiToolType.SEARCH_DOCUMENTS)
+                    .singleElement().satisfies(result -> {
+                        assertThat(result.status()).isEqualTo(AiQueryStatus.ANSWERED);
+                        assertThat(result.sources()).singleElement()
+                                .extracting(AiSourceResponse::resourceId).isEqualTo("1");
+                    });
+            assertThat(response.answer()).contains("8 個曆日").doesNotContain("5 個曆日");
+            verify(registry).execute(new AiQueryPlan(AiToolType.SEARCH_DOCUMENTS, null, null,
+                    "SUP-001 的 MAT-001 標準交期是多久？"));
+            assertThat(appender.list).anySatisfy(event -> assertThat(event.getFormattedMessage())
+                    .contains("detail=OPTIONAL_RECOMMENDATION_NOT_FOUND_IGNORED", "count=1")
+                    .doesNotContain("MAT-001", "recommendationId"));
+        } finally {
+            detachDiagnostics(appender);
+        }
+    }
+
+    private int toolResponseCount(Prompt prompt) {
+        return (int) prompt.getInstructions().stream().filter(ToolResponseMessage.class::isInstance).count();
+    }
+
     private void assertEmptyFinalDoesNotFallback(AiToolResult result) {
         AiToolRegistry registry = mock(AiToolRegistry.class);
         when(registry.execute(any())).thenReturn(result);
@@ -652,6 +757,10 @@ class SpringAiProviderClientTests {
 
     private AiToolResult documentResult(AiQueryStatus status) {
         String facts = status == AiQueryStatus.ANSWERED ? "MAT-001 標準交期為 ORDERED 後 5 個曆日。" : null;
+        return documentResult(status, facts);
+    }
+
+    private AiToolResult documentResult(AiQueryStatus status, String facts) {
         return new AiToolResult(AiToolType.SEARCH_DOCUMENTS, status, facts,
                 List.of(new AiSourceResponse("DOCUMENT", "1", "SUP-001 交付條款", "1.0",
                         1L, 0, 0, facts == null ? 0 : facts.length(),

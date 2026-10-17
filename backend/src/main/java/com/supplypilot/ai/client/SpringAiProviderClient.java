@@ -279,6 +279,11 @@ public class SpringAiProviderClient implements AiProviderClient {
         }
         String payload = response.getResult().getOutput().getText();
         var executions = tools.executions();
+        if (tools.ignoredOptionalRecommendationMisses() > 0) {
+            log.info("AI provider optional-tool diagnostic detail={} count={}",
+                    AiFailureDetail.OPTIONAL_RECOMMENDATION_NOT_FOUND_IGNORED.name(),
+                    tools.ignoredOptionalRecommendationMisses());
+        }
         var verified = responseGuard.compose(payload, executions);
         if (verified.diagnosticReason() != null) {
             recordDiagnostic(verified.diagnosticReason(), null, executions, false, diagnosticCounts);
