@@ -1,0 +1,17 @@
+SP-910 r4 authorized guarded reset execution - PowerShell 7
+StartedAt=
+2026-10-17T13:48:59.052+08:00
+FinishedAt=
+2026-10-17T13:49:28.994+08:00
+Command=scripts/reset-demo.ps1 via existing current-user r4 wrapper
+Target=supplypilot_sp910_r4_demo / supplypilot_sp910_r4_semantic_demo / sp910-r4-demo-documents
+AI_API_KEY source=process environment loaded from existing local .env; value omitted
+Sensitive output omitted=true
+ExitCode=
+0
+2026-10-17T13:49:18.783+08:00  INFO 21336 --- [supply-pilot-api] [           main] c.supplypilot.demo.DemoResetApplication  : Starting DemoResetApplication using Java 21.0.10 with PID 21336 (C:\Users\z0976\OneDrive\桌面\dev-side\supplypilot\backend\target\classes started by Liu in C:\Users\z0976\OneDrive\桌面\dev-side\supplypilot\backend)
+2026-10-17T13:49:27.154+08:00  WARN 21336 --- [supply-pilot-api] [           main] c.s.demo.DemoResetCommandRunner          : DEMO_RESET_COMMAND_START
+2026-10-17T13:49:28.814+08:00  WARN 21336 --- [supply-pilot-api] [           main] c.s.demo.DemoResetCommandRunner          : DEMO_RESET_COMMAND_COMPLETE
+2026-10-17T13:49:28.831+08:00  WARN 21336 --- [supply-pilot-api] [           main] c.supplypilot.demo.DemoResetApplication  : DEMO_RESET_APPLICATION_EXIT code=0
+[INFO] BUILD SUCCESS
+Demo reset/bootstrap completed successfully.

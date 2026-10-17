@@ -1,0 +1,147 @@
+{
+  "snapshotType": "SP-910 authorized r4 guarded reset pre-state; non-sensitive summary only",
+  "capturedAt": "2026-10-17T13:45:05.416+08:00",
+  "repository": "liujiawei-tw/supplypilot",
+  "branch": "codex/sp-910-real-e9-acceptance",
+  "gitHead": "c802978d2967bd862b61c49a5dfd87c2db3fe3f8",
+  "originMain": "5cbc8fec5ba187474fa0efa99165cf7a9acd6a5f",
+  "resetTarget": {
+    "springProfile": "demo",
+    "mysqlContainer": "supplypilot-sp910-r4-mysql",
+    "mysqlDatabase": "supplypilot_sp910_r4_demo",
+    "mysqlVolume": "supplypilot-sp910-r4-mysql-data",
+    "semanticContainer": "supplypilot-sp910-r4-pgvector",
+    "semanticDatabase": "supplypilot_sp910_r4_semantic_demo",
+    "semanticVolume": "supplypilot-sp910-r4-pgvector-data",
+    "documentStorageRoot": "C:\\Users\\z0976\\AppData\\Local\\SupplyPilot\\sp910-r4-demo-documents",
+    "resetCommand": "scripts/reset-demo.ps1"
+  },
+  "backendListener": {
+    "port": 8184,
+    "pid": 22644,
+    "startedAt": "2026-10-17T08:56:06+08:00",
+    "runtimeCommit": "not exposed by actuator; listener predates origin/main merge"
+  },
+  "mysql": {
+    "marker": {
+      "status": "COMPLETE",
+      "datasetKey": "SP-901",
+      "baselineDate": "2026-10-16",
+      "datasetVersion": "sp-905-zh-tw-v1"
+    },
+    "database": "supplypilot_sp910_r4_demo",
+    "documents": [
+      {
+        "id": 7,
+        "type": "SUPPLIER_CONTRACT",
+        "status": "READY",
+        "version": "1.0",
+        "outboundReviewStatus": "APPROVED"
+      },
+      {
+        "id": 8,
+        "type": "QUOTATION",
+        "status": "READY",
+        "version": "1.0",
+        "outboundReviewStatus": "APPROVED"
+      },
+      {
+        "id": 9,
+        "type": "PROCUREMENT_SOP",
+        "status": "READY",
+        "version": "1.0",
+        "outboundReviewStatus": "APPROVED"
+      },
+      {
+        "id": 10,
+        "type": "PRODUCT_SPECIFICATION",
+        "status": "READY",
+        "version": "1.0",
+        "outboundReviewStatus": "APPROVED"
+      },
+      {
+        "id": 11,
+        "type": "QUALITY_REQUIREMENT",
+        "status": "READY",
+        "version": "1.0",
+        "outboundReviewStatus": "APPROVED"
+      }
+    ],
+    "entityCounts": {
+      "users": 5,
+      "demands": 12,
+      "documents": 5,
+      "materials": 12,
+      "suppliers": 6,
+      "purchaseOrders": 10,
+      "supplierMaterials": 30
+    },
+    "mat001Inventory": {
+      "unit": "KG",
+      "quantity": 300.0
+    },
+    "purchaseOrderStatus": [
+      {
+        "count": 2,
+        "status": "APPROVED"
+      },
+      {
+        "count": 2,
+        "status": "DRAFT"
+      },
+      {
+        "count": 3,
+        "status": "ORDERED"
+      },
+      {
+        "count": 2,
+        "status": "RECEIVED"
+      },
+      {
+        "count": 1,
+        "status": "REJECTED"
+      }
+    ],
+    "recommendationSnapshotCount": 1
+  },
+  "semantic": {
+    "database": "supplypilot_sp910_r4_semantic_demo",
+    "indexStatus": [
+      {
+        "status": "READY",
+        "count": 5
+      }
+    ],
+    "indexRows": 5,
+    "chunkRows": 5,
+    "latestGateAudit": {
+      "id": 3,
+      "passed": true,
+      "readyCount": 5,
+      "failedCount": 0,
+      "pendingCount": 0,
+      "checkedAt": "2026-10-17T08:52:44.055733+08:00"
+    },
+    "generation": [
+      {
+        "generationKey": "gemini-embedding-001-768-v1",
+        "modelId": "gemini-embedding-001",
+        "dimensions": 768
+      }
+    ]
+  },
+  "storage": {
+    "rootExists": true,
+    "fileCount": 5,
+    "metadataPathCount": 5,
+    "metadataFilesMatchedByBasename": 5
+  },
+  "evidenceInventory": {
+    "path": "docs/evidence/sp910/final-r4",
+    "fileCount": 118,
+    "jsonCount": 53,
+    "imageCount": 64,
+    "historicalEvidencePreserved": true
+  },
+  "secretValuesIncluded": false
+}

@@ -554,3 +554,46 @@ Reset 完成至 Audit #3 完成的實際牆鐘時間 **651.02 分鐘**，至首�
 - Reset 後 DB 快照確認 Users=5，且 Reset 後 Admin 已透過真實 Edge 登入並執行五筆核准。額外五角色檢查一開始因 AI Drawer 攔住登出按鈕，之後 Playwright 對 Ant Design 登入按鈕的兩次自動點擊未送出 `POST /api/v1/auth/login`；這兩次失敗沒有被算成登入 PASS，也沒有推定為帳號失效。改用**新的可見 Edge 瀏覽器設定檔**並在真實 Browser 的同一登入表單執行原生 `form.requestSubmit()`（明確揭露這是 Browser 自動化方式）後，Planner、Buyer、Manager、Warehouse、Admin 各自收到正式 Login HTTP 200，導向 `/dashboard` 且 Dashboard／登出 UI 實際可見，五筆均 PASS。證據 `playwright-postreset-five-logins.json` 及 `playwright-postreset-login-*.png`；沒有保存密碼、Token 或 Cookie。Reset 前五角色採購 Browser 操作仍有前述獨立證據。
 - `source-validation.json` 為 22 個實測問答案例的 22 筆文件來源做 UTF-16 原文截取核對，22/22 精確相等；五份 Reset 後核准 Source Hash 與 pgvector Index Hash 一致。`evidence-manifest.json` 另列出每份證據在 Git 暫存 Blob 中的檔名、大小與 SHA-256，供獨立核對且不受 Windows 換行轉換影響。截圖是真正 Edge 畫面；沒有生成或合成 UI 截圖。
 - 變更範圍僅為本驗收報告與非敏感 `docs/evidence/sp910/final-r4/`，沒有 Backend／Frontend 產品碼、Seed、Guard、角色、安全政策或環境密鑰變更。Git diff、Secret Scan 與遠端 CI 將於提交前後再次確認。`#117` 保持 OPEN；此分支不建立 PR、不 Merge。
+
+## 2026-10-17 Reset 後最終 E9 驗收（r4 專用環境）
+
+本節新增於既有第四輪歷史之後，沒有覆寫先前 FAIL、BLOCKED 或部分證據。所有時間均為 Asia/Taipei；程式碼基準為驗收分支 `c802978d2967bd862b61c49a5dfd87c2db3fe3f8`（已含 main 上 PR #129）。本節只記錄此次正式 Reset 後的實際 Browser／Gemini 證據；SUP-005、跨語及採購流程的先前成功證據仍保留於前文，未冒充成這次重跑。
+
+### Reset 前後資料與隔離
+
+使用者於 2026-10-17 明確授權一次 r4 專用 Guarded Reset。正式 `scripts/reset-demo.ps1` 第一次執行記錄 Exit Code 1，原始輸出只指出沒有發出核准的固定狀態標記；保存的紀錄不足以證實更深層原因，因此不推定原因。第二次使用相同正式流程於 13:48:59.052 開始、13:49:28.994 完成，約 29.942 秒，Reset Command Exit Code 0、`DEMO_RESET_COMMAND_COMPLETE`，`DemoResetApplication` 以 0 結束。目標為專用 MySQL `supplypilot_sp910_r4_demo`、pgvector `supplypilot_sp910_r4_semantic_demo` 及 r4 Storage；沒有手動清表、刪 Marker、清 Volume 或操作 r3。Reset 前資料（含 1 筆 Recommendation、5 份已索引文件及先前 Gate）在前置快照中保留；Reset 後重新確認 Marker COMPLETE、Users 5、Materials 12、Suppliers 6、SupplierMaterial 30、Demands 12、PO 10、MAT-001 300 KG、Recommendation 0、5 份 READY 文件 ID 12–16、pgvector Index／Chunk／Gate 均為 0。PO 狀態分布與新版中文 Dataset 符合既定基線。
+
+Storage／Metadata／Chunk 唯讀比對確認五份文件 Version 1.0、狀態 READY、Storage 原檔存在且依 Backend Parser 正規化後符合 `samples/documents/`。五份原始 Storage SHA-256、Canonical UTF-16 長度及 Chunk `0–length` 均記於 `r4-postreset-baseline-verify-20261017.json`；五份 Chunk Offset 均能還原原文。Reset 後文件狀態沒有以 READY 冒充 Semantic Gate 通過。
+
+### 真實 Edge ADMIN、Gemini Embedding 與 Gate
+
+本次用 Microsoft Edge headed Playwright、專用隔離 Profile `edge-r5-reset-e9-profile`，存取 `http://127.0.0.1:5174`。真實 ADMIN 登入的 `POST /api/v1/auth/login` 與 `GET /api/v1/auth/me` 均 HTTP 200，頁面顯示「工作總覽」與「系統管理員」。前兩次驗收腳本停止原因已分開保存：一筆登入按鈕 Locator 未送出登入請求；另一筆實際登入成功但 Dashboard 文案斷言錯誤；另一次從登入頁非同步導向既有 Session 時等待表單逾時。這些是 Browser harness Locator／等待條件問題，不是登入失敗；修正腳本後，真實登入及後續 UI 操作成功，原始失敗紀錄未刪除。
+
+ADMIN UI 逐一檢視文件 ID 12–16 並執行 Outbound Approval；五筆 API 均 HTTP 200／APPROVED、Version 1.0、Reviewer ID 15，回傳 Source Hash 均已保存。接著在 UI 對 Backfill 設 `afterId=0`、`limit=25`，真實 Gemini Embedding 回 HTTP 200、processed 5、READY 5、FAILED 0、SKIPPED 0、REQUIRES_REVIEW 0、`lastId=16`、`morePossible=false`。Readiness HTTP 200／passed=true，READY 5、其餘計數 0、無 Findings。ADMIN UI 持久化 Gate Audit HTTP 200／passed=true、Audit ID 4；實際 Provider `google-genai`，Embedding Model `gemini-embedding-001`、768 維、Generation `gemini-embedding-001-768-v1`。
+
+Gate 通過後以 PowerShell Core `pwsh` 依 Runbook 明確設定 `SEMANTIC_READ_ENABLED=true` 重啟同一 r4 Backend。第一次以 Windows PowerShell 5.1 啟動 helper 因 Security 模組載入失敗而未啟動服務，改用原 DPAPI 流程相容的 `pwsh` 後於約 14:22:05 Health UP，Backend PID 22204、Port 8184、資料集協調器記錄 `DEMO_DATASET_ALREADY_COMPLETE`。啟動設定仍指向同一 r4 專用 DB／Storage 與已授權 Gemini 設定；沒有建立新環境或 Reset。Restart 後、查詢前的唯讀快照再次確認 Recommendation 0、READY／APPROVED 文件各 5、Semantic Index 5、Chunk 5、最新 Gate Audit `4:true`。
+
+### Reset 後真實 Gemini Browser 查詢
+
+六題都由已登入的真實 Edge AI Assistant UI 提交，Network 紀錄確認每題都有 `POST /api/v1/ai/query`。Chat Provider 為設定中的 `google-genai`／`gemini-3.6-flash`；沒有使用 Fake／Mock。每個來源都對照其自身 Document 原檔，以 Java 相容 Canonical 規則驗證 Version、Chunk 及 UTF-16 Offset；真實 UI 畫面與原始 JSON 分別保存。
+
+| Case | 實際結果 | 狀態 | Source／耗時／畫面 |
+|---|---|---|---|
+| SUP-001／MAT-001 合約標準交期（核心，查詢前 Recommendation=0） | HTTP 200／ANSWERED；「MAT-001 標準交期為採購單狀態轉為 ORDERED 後 5 個曆日。」`answerSource=BACKEND_FACTS`；Tools `QUERY_RECOMMENDATION`、`SEARCH_DOCUMENTS`。Backend 安全診斷 `OPTIONAL_RECOMMENDATION_NOT_FOUND_IGNORED count=1`，請求 outcome success；沒有 `RECOMMENDATION_NOT_FOUND`。 | PASS | Document 12／Version 1.0／Chunk 0／Offset 0–336；完整 Excerpt 與 SUP-001 Canonical 原文相同；13,561 ms；`SUP-001-leadtime.png`、`reset-final-query-results.json`、`sup001-source-validation.json` |
+| SUP-002 報價期限 | HTTP 200／ANSWERED；自開立日起 30 個曆日。 | PASS | Document 13／Version 1.0／Chunk 0／Offset 0–343；7,281 ms；`SUP-002-validity.png` |
+| MAT-001 單位／儲存 | HTTP 200／ANSWERED；KG、陰涼乾燥、避免陽光直射。 | PASS | Document 15／Version 1.0／Chunk 0／Offset 0–268；7,928 ms；`MAT-001-storage.png` |
+| SOP 收貨角色 | HTTP 200／ANSWERED；包含「只有倉庫人員可收取狀態為 ORDERED 的採購單」。 | PASS（附 P2 觀察） | 正確 SOP Source Document 14／Version 1.0／Chunk 0／Offset 0–383；另回傳一筆有效但非必要的品質文件 Document 16 引用。依本輪驗收規格記錄為 P2，不隱藏該引用；6,315 ms；`SOP-receiving-role.png` |
+| 品質隔離條件 | HTTP 200／ANSWERED；四項完整：缺少批次識別、封條破損、受到污染、物料不符。 | PASS | Document 16／Version 1.0／Chunk 0／Offset 0–269；7,084 ms；`quality-quarantine.png` |
+| 冷凍海運保險費率 | HTTP 200／INSUFFICIENT_EVIDENCE，沒有答案及 Source。 | PASS | 11,274 ms；`insurance-insufficient.png` |
+
+SUP-001 原始 Browser JSON 的 harness `expectedStatusPass=false` 是驗收腳本把 API 字串 `resourceId="12"` 與數字 `documentId=12` 做嚴格型別比較所致；原始回應未修改。獨立重建以 `String(id)` 核對，並依 Offset `0–336` 從 Canonical 原文還原完整 Excerpt，結果通過，詳細原因與 Source Excerpt SHA-256 保存在 `sup001-source-validation.json`。更新後 Playwright harness 以字串正規化並依每個 Source 的實際 Document ID 選擇原檔；沒有重送核心問題來掩蓋測試器錯誤。
+
+五項後續查詢均 HTTP 200，四項應答及證據不足拒答符合預期；來源 UTF-16 核對摘要 `query-evaluation.json` 為 5/5 PASS。查詢後唯讀快照再次確認 Recommendation 0、Baseline Marker COMPLETE、五份文件 READY／APPROVED、Semantic Index 5、Chunk 5、Gate Audit 4 PASS，證明此次文件查詢沒有建立 Recommendation 或改寫採購基線。正常 Backend 重啟亦保留 Marker 與全部資料；啟動日誌記錄 `DEMO_DATASET_ALREADY_COMPLETE`，沒有自動 Reset。
+
+MySQL 文件核准的五筆 Source Hash 與 pgvector READY Index 的 Source Hash 已逐筆唯讀比對，五筆全部一致，詳見 `source-hash-consistency.json`。AI Query API 的 Source 物件本身沒有回傳 `sourceHash` 欄位；因此此處以核准 Metadata、Semantic Index 與實際 Source Excerpt／UTF-16 Offset 核對，不宣稱 API Citation 直接包含 Hash。
+
+### 環境、CI 與限制
+
+Windows 11、Zulu Java 21.0.10、Node 24.15.0、npm 11.12.1、Docker Engine 29.6.1、MySQL 8.4.11、PostgreSQL 17.11、Microsoft Edge 155.0.4283.60、Playwright 1.57。r4 Backend／Vite 綁定 loopback；沒有把服務或資料庫公開至網路。Secret 使用既有環境／DPAPI 啟動方式，只記錄 Provider 狀態，不記錄 Key、密碼、JWT、Cookie 或 Token。安全證據清單與 SHA-256 位於 `docs/evidence/sp910/round5-reset-final-20261017/evidence-manifest.json`。
+
+此基準 SHA `c802978d2967bd862b61c49a5dfd87c2db3fe3f8` 的 GitHub Actions [Run 39007248503](https://github.com/liujiawei-tw/supplypilot/actions/runs/39007248503) 中 Backend CI 實際執行並 SUCCESS；Frontend CI 為 SKIPPED，因此不是全套 Backend／Frontend 回歸 PASS。本次僅更新 #117 驗收文件與非敏感實測證據，沒有修改產品碼，未重跑 Maven／Frontend 測試。首次 Reset 嘗試的更深層原因未能從原始紀錄證實。這次沒有重跑已不受影響的 SUP-005 Browser Upload、跨語測試或採購收貨流程；前次證據及其 SHA 適用性保留在前文。SOP 的非必要品質文件來源為唯一 P2 觀察，交由 GPT 獨立核對。

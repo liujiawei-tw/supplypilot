@@ -1,0 +1,14 @@
+{
+  "phase": "admin",
+  "startedAt": "2026-10-17T06:13:57.309Z",
+  "timezone": "Asia/Taipei",
+  "browser": "Microsoft Edge headed via Playwright launchPersistentContext",
+  "baseUrl": "http://127.0.0.1:5174",
+  "apiBase": "http://127.0.0.1:8184/api/v1",
+  "profile": "isolated r4 E9 profile",
+  "requests": [],
+  "screenshots": [],
+  "actions": [],
+  "completedAt": "2026-10-17T06:14:18.471Z",
+  "safeError": "locator.click: Timeout 20000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('button', { name: '登入', exact: true })\u001b[22m\n"
+}

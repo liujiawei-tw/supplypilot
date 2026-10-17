@@ -1,0 +1,71 @@
+{
+  "phase": "admin",
+  "startedAt": "2026-10-17T06:16:20.081Z",
+  "timezone": "Asia/Taipei",
+  "browser": "Microsoft Edge headed via Playwright launchPersistentContext",
+  "baseUrl": "http://127.0.0.1:5174",
+  "profile": "isolated r4 E9 profile",
+  "requests": [
+    {
+      "method": "POST",
+      "path": "/api/v1/auth/login",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/me",
+      "status": 200
+    }
+  ],
+  "failedRequests": [],
+  "console": [
+    {
+      "type": "debug",
+      "text": "[vite] connecting..."
+    },
+    {
+      "type": "debug",
+      "text": "[vite] connected."
+    },
+    {
+      "type": "info",
+      "text": "%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold"
+    },
+    {
+      "type": "error",
+      "text": "Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead."
+    },
+    {
+      "type": "error",
+      "text": "Warning: [antd: Alert] `message` is deprecated. Please use `title` instead."
+    },
+    {
+      "type": "error",
+      "text": "Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead."
+    }
+  ],
+  "screenshots": [
+    "login-page-before-submit.png",
+    "admin-failure.png"
+  ],
+  "actions": [],
+  "login": {
+    "httpStatus": 200,
+    "account": "admin",
+    "status": null,
+    "secretStored": false,
+    "locator": "form button[type=\"submit\"]"
+  },
+  "currentUrl": "http://127.0.0.1:5174/dashboard",
+  "dashboardVisible": false,
+  "adminIdentityVisible": false,
+  "completedAt": "2026-10-17T06:16:21.856Z",
+  "safeError": "Admin Dashboard or role identity not visible after authentication",
+  "failureContext": {
+    "url": "http://127.0.0.1:5174/dashboard",
+    "title": "SupplyPilot — AI Procurement & Supply Chain Decision Platform",
+    "bodyText": "",
+    "inputs": [],
+    "buttons": []
+  }
+}

@@ -1,0 +1,73 @@
+{
+  "phase": "admin",
+  "startedAt": "2026-10-17T06:16:53.337Z",
+  "timezone": "Asia/Taipei",
+  "browser": "Microsoft Edge headed via Playwright launchPersistentContext",
+  "baseUrl": "http://127.0.0.1:5174",
+  "profile": "isolated r4 E9 profile",
+  "requests": [
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/me",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/me",
+      "status": 200
+    }
+  ],
+  "failedRequests": [],
+  "console": [
+    {
+      "type": "debug",
+      "text": "[vite] connecting..."
+    },
+    {
+      "type": "debug",
+      "text": "[vite] connected."
+    },
+    {
+      "type": "info",
+      "text": "%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold"
+    },
+    {
+      "type": "error",
+      "text": "Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead."
+    },
+    {
+      "type": "error",
+      "text": "Warning: [antd: Alert] `message` is deprecated. Please use `title` instead."
+    },
+    {
+      "type": "error",
+      "text": "Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead."
+    }
+  ],
+  "screenshots": [
+    "admin-failure.png"
+  ],
+  "actions": [],
+  "completedAt": "2026-10-17T06:17:13.915Z",
+  "safeError": "locator.waitFor: Timeout 20000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('form') to be visible\u001b[22m\n",
+  "failureContext": {
+    "url": "http://127.0.0.1:5174/dashboard",
+    "title": "SupplyPilot — AI Procurement & Supply Chain Decision Platform",
+    "bodyText": "SupplyPilot\n採購決策平台\n儀表板\n主檔管理\n需求與庫存\n採購決策\n採購單與收貨\n文件與 AI\nSupplyPilot — AI 採購與供應鏈決策平台\nAI 助理\nDemo Administrator（admin）\n系統管理員\n登出\n工作總覽\nDemo Administrator · 系統管理員\n目前沒有待辦資料\n請從下方入口前往您有權限使用的業務功能。\n主檔管理\n物料管理\n供應商管理\n需求與庫存\n需求管理\n庫存管理\n庫存匯入\n採購決策\n採購建議\n採購單與收貨\n採購單管理\n收貨作業\n文件與 AI\n文件管理",
+    "inputs": [],
+    "buttons": [
+      {
+        "text": "AI 助理",
+        "ariaLabel": null,
+        "type": "button",
+        "disabled": false
+      },
+      {
+        "text": "登出",
+        "ariaLabel": null,
+        "type": "button",
+        "disabled": false
+      }
+    ]
+  }
+}

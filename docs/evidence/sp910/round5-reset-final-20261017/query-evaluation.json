@@ -1,0 +1,165 @@
+{
+  "capturedAt": "2026-10-17T14:26:00+08:00",
+  "timezone": "Asia/Taipei",
+  "environment": {
+    "gitHead": "c802978d2967bd862b61c49a5dfd87c2db3fe3f8",
+    "datasetVersion": "sp-905-zh-tw-v1",
+    "provider": "real google-genai (r4 configured)",
+    "embeddingModel": "gemini-embedding-001",
+    "dimensions": 768,
+    "generationKey": "gemini-embedding-001-768-v1",
+    "semanticReadEnabled": true,
+    "postResetRecommendationCount": 0
+  },
+  "sourceContract": "Document ID, Version 1.0, Chunk Index, Java-compatible UTF-16 offsets; each excerpt compared against the canonical normalized source file for its own Document ID.",
+  "cases": [
+    {
+      "caseId": "SUP-002-validity",
+      "question": "SUP-002 的報價有效期限為多久？",
+      "httpStatus": 200,
+      "status": "ANSWERED",
+      "answer": "查詢結果整理如下。\n本報價自開立日起 30 個曆日內有效。",
+      "answerSource": "MODEL_EXPLANATION",
+      "tools": [
+        "SEARCH_DOCUMENTS"
+      ],
+      "elapsedMs": 7281,
+      "pass": true,
+      "sources": [
+        {
+          "documentId": "13",
+          "resourceType": "DOCUMENT",
+          "version": "1.0",
+          "chunkIndex": 0,
+          "startOffset": 0,
+          "endOffset": 343,
+          "sample": "quotation-sup-002-v1.txt",
+          "sourceHashSha256": "dfce8e37b3de79da3ae1f36ac25e71bfdc659168bddd54a38177f0acaed6c89b",
+          "offsetValid": true,
+          "offsetReconstructsExcerpt": true
+        }
+      ],
+      "screenshot": "SUP-002-validity.png"
+    },
+    {
+      "caseId": "MAT-001-storage",
+      "question": "MAT-001 的基本單位及儲存條件為何？",
+      "httpStatus": 200,
+      "status": "ANSWERED",
+      "answer": "基本單位為 KG 請存放於陰涼乾燥處 存放於陰涼乾燥處並避免陽光直射。",
+      "answerSource": "BACKEND_FACTS",
+      "tools": [
+        "QUERY_INVENTORY",
+        "SEARCH_DOCUMENTS"
+      ],
+      "elapsedMs": 8299,
+      "pass": true,
+      "sources": [
+        {
+          "documentId": "15",
+          "resourceType": "DOCUMENT",
+          "version": "1.0",
+          "chunkIndex": 0,
+          "startOffset": 0,
+          "endOffset": 268,
+          "sample": "product-specification-mat-001-v1.txt",
+          "sourceHashSha256": "ef4bdb06a723703a808f7cd8f94fe58aa871fadb9c31c25600d35492ce68bb1b",
+          "offsetValid": true,
+          "offsetReconstructsExcerpt": true
+        }
+      ],
+      "screenshot": "MAT-001-storage.png"
+    },
+    {
+      "caseId": "SOP-receiving-role",
+      "question": "SupplyPilot 採購 SOP 由哪個角色執行收貨？",
+      "httpStatus": 200,
+      "status": "ANSWERED",
+      "answer": "查詢結果整理如下。\n生產規劃人員登錄需求。 採購人員建立採購單草稿前 採購人員可將已核准的採購單標記為 ORDERED。 只有倉庫人員可收取狀態為 ORDERED 的採購單。 收貨會增加庫存、建立 PURCHASE_RECEIVE 庫存異動 任何角色都不得透過使用者介面跳過採購單狀態流程。\n\n倉庫人員應在收貨前記錄可見損傷。 採購人員須與供應商協調後續處置。 V1 不支援部分收貨 或暫緩收貨作業。",
+      "answerSource": "MODEL_EXPLANATION",
+      "tools": [
+        "SEARCH_DOCUMENTS"
+      ],
+      "elapsedMs": 6698,
+      "pass": true,
+      "sources": [
+        {
+          "documentId": "14",
+          "resourceType": "DOCUMENT",
+          "version": "1.0",
+          "chunkIndex": 0,
+          "startOffset": 0,
+          "endOffset": 383,
+          "sample": "procurement-sop-v1.txt",
+          "sourceHashSha256": "1160abba851a98f6435acb27b5772b6c72b928a7c7c1a82cd971d202a40dff27",
+          "offsetValid": true,
+          "offsetReconstructsExcerpt": true
+        },
+        {
+          "documentId": "16",
+          "resourceType": "DOCUMENT",
+          "version": "1.0",
+          "chunkIndex": 0,
+          "startOffset": 0,
+          "endOffset": 269,
+          "sample": "quality-requirement-v1.txt",
+          "sourceHashSha256": "98d29e3c138fae21ef8776a60bb3a49f385aa69a91991b3c5486fdfdb1b262b0",
+          "offsetValid": true,
+          "offsetReconstructsExcerpt": true
+        }
+      ],
+      "observation": "P2: the correct SOP citation supports 倉庫人員; one additional valid but nonessential QUALITY_REQUIREMENT citation (Document 16) was returned and is retained for review.",
+      "screenshot": "SOP-receiving-role.png"
+    },
+    {
+      "caseId": "quality-quarantine",
+      "question": "哪些情況需要隔離批次？",
+      "httpStatus": 200,
+      "status": "ANSWERED",
+      "answer": "查詢結果整理如下。\n若批次缺少批次識別、封條破損、受到污染或物料不符，須將該批隔離，不得收進可用庫存。",
+      "answerSource": "MODEL_EXPLANATION",
+      "tools": [
+        "SEARCH_DOCUMENTS"
+      ],
+      "elapsedMs": 7084,
+      "pass": true,
+      "sources": [
+        {
+          "documentId": "16",
+          "resourceType": "DOCUMENT",
+          "version": "1.0",
+          "chunkIndex": 0,
+          "startOffset": 0,
+          "endOffset": 269,
+          "sample": "quality-requirement-v1.txt",
+          "sourceHashSha256": "98d29e3c138fae21ef8776a60bb3a49f385aa69a91991b3c5486fdfdb1b262b0",
+          "offsetValid": true,
+          "offsetReconstructsExcerpt": true
+        }
+      ],
+      "screenshot": "quality-quarantine.png"
+    },
+    {
+      "caseId": "insurance-insufficient",
+      "question": "這些文件是否規定冷凍海運的保險費率？",
+      "httpStatus": 200,
+      "status": "INSUFFICIENT_EVIDENCE",
+      "answer": "",
+      "answerSource": null,
+      "tools": [
+        "SEARCH_DOCUMENTS",
+        "SEARCH_DOCUMENTS"
+      ],
+      "elapsedMs": 11596,
+      "pass": true,
+      "sources": [],
+      "screenshot": "insurance-insufficient.png"
+    }
+  ],
+  "summary": {
+    "pass": 5,
+    "total": 5,
+    "allPassed": true,
+    "sopP2": "P2: the correct SOP citation supports 倉庫人員; one additional valid but nonessential QUALITY_REQUIREMENT citation (Document 16) was returned and is retained for review."
+  }
+}

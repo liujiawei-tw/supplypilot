@@ -1,0 +1,199 @@
+{
+  "createdAt": "2026-10-17T06:30:06.614Z",
+  "timezone": "Asia/Taipei",
+  "hashDomain": "exact staged Git blob bytes (post core.autocrlf normalization)",
+  "gitHeadBeforeEvidenceCommit": "c802978d2967bd862b61c49a5dfd87c2db3fe3f8",
+  "fileCount": 38,
+  "files": [
+    {
+      "path": "docs/evidence/sp910/r4-authorized-reset-20261017-attempt2.log",
+      "bytes": 1311,
+      "sha256": "295a1ecac1cfa288877a6e996d7cc6872b8587c280bba0650112b5fb599f2a1e"
+    },
+    {
+      "path": "docs/evidence/sp910/r4-authorized-reset-20261017.log",
+      "bytes": 405,
+      "sha256": "7ffef1f21b6d26f3192cf6079178b775b1c6a5a86e18ecd462bfe9d35be071e9"
+    },
+    {
+      "path": "docs/evidence/sp910/r4-authorized-reset-pre-20261017.json",
+      "bytes": 3741,
+      "sha256": "1ce9e68f5e39e7eb35d63566b3e8b786ba8dd17e91777b45e88f00fe9c6e12b4"
+    },
+    {
+      "path": "docs/evidence/sp910/r4-final-reset-20261017-browser.cjs",
+      "bytes": 17391,
+      "sha256": "e4ece9ccbf33e03778d84c0587a8d3e87372b92197948a33460e0cccec6267aa"
+    },
+    {
+      "path": "docs/evidence/sp910/r4-postreset-baseline-verify-20261017.json",
+      "bytes": 4345,
+      "sha256": "72e065825041ea6ad57b6a24c60f78fa6b5a94537e513b54dd94f54af3bd9909"
+    },
+    {
+      "path": "docs/evidence/sp910/round5-reset-final-20261017/admin-dashboard-assertion-failure.json",
+      "bytes": 1909,
+      "sha256": "8fa77a7c3e3edce6a249a039951e271fe4903dc3058cbd77452225c770a2ff77"
+    },
+    {
+      "path": "docs/evidence/sp910/round5-reset-final-20261017/admin-dashboard.png",
+      "bytes": 76352,
+      "sha256": "bee5562f1deb20493e30771fd6e486d6575479e3522312dbab5e2d5a9cfa1eca"
+    },
+    {
+      "path": "docs/evidence/sp910/round5-reset-final-20261017/admin-documents-before-approval.png",
+      "bytes": 201131,
+      "sha256": "2dea18488b68b041396319f7a7c25bc2086b7f1b44267d2c18ae7127bd6a7dc5"
+    },
+    {
+      "path": "docs/evidence/sp910/round5-reset-final-20261017/admin-failure.png",
+      "bytes": 75871,
+      "sha256": "c082811edb13343f7482f5a2b2dd3ff27790f6f5c57a830c688f451bee9fe674"
+    },
+    {
+      "path": "docs/evidence/sp910/round5-reset-final-20261017/admin-gate-results.json",
+      "bytes": 6911,
+      "sha256": "a5d0770175595c9d00e42d04590a8448a116f9b96aeec8a92ab005600b0403a1"
+    },
+    {
+      "path": "docs/evidence/sp910/round5-reset-final-20261017/admin-login-locator-failure.json",
+      "bytes": 555,
+      "sha256": "34d8b7afe71d3aadafecc911519f7c2e8f3876f3378612b91815f94372cfb6c3"
+    },
+    {
+      "path": "docs/evidence/sp910/round5-reset-final-20261017/admin-session-redirect-race-failure.json",
+      "bytes": 2496,
+      "sha256": "9a253bbb86c1fe1973a02f617a8d9bc0986e154b9f5c01c88757882b2bd17b75"
+    },
+    {
+      "path": "docs/evidence/sp910/round5-reset-final-20261017/gemini-backfill-complete.png",
+      "bytes": 208922,
+      "sha256": "849e7f6e5515ee76566ad703baa170948a1b3a786b429f31924a1637a268003e"
+    },
+    {
+      "path": "docs/evidence/sp910/round5-reset-final-20261017/insurance-insufficient.png",
+      "bytes": 231370,
+      "sha256": "1e5804505e77b5af63a664ef834c171dd5494cc763f2904074b667b38f5cd89f"
+    },
+    {
+      "path": "docs/evidence/sp910/round5-reset-final-20261017/login-page-before-submit.png",
+      "bytes": 28434,
+      "sha256": "2e3aff0324f799fb4361b2a8881c5aba18e329df3a6859df4117b7de55bc0e21"
+    },
+    {
+      "path": "docs/evidence/sp910/round5-reset-final-20261017/MAT-001-storage.png",
+      "bytes": 254778,
+      "sha256": "5b36e2d640347323ace797387dcc1f5ea768eed7bbeb4a9d710227138fa38e99"
+    },
+    {
+      "path": "docs/evidence/sp910/round5-reset-final-20261017/outbound-approved-12.png",
+      "bytes": 241243,
+      "sha256": "c68ded0a9a120cd2d9eaf78727dfd9dfd1edd0e3016002501405e5c460023124"
+    },
+    {
+      "path": "docs/evidence/sp910/round5-reset-final-20261017/outbound-approved-13.png",
+      "bytes": 242764,
+      "sha256": "9f7d46e4a506ac93c421903d1514fcac0528d120cba2c7cafc39644e4709e898"
+    },
+    {
+      "path": "docs/evidence/sp910/round5-reset-final-20261017/outbound-approved-14.png",
+      "bytes": 245007,
+      "sha256": "0622e57991faf4ce8335ae64654f0a81fea14c1f30579870dee22c9944de35a2"
+    },
+    {
+      "path": "docs/evidence/sp910/round5-reset-final-20261017/outbound-approved-15.png",
+      "bytes": 244612,
+      "sha256": "ade5f1ff30310ee638405eb3df63a2b9f27e454e58a04b4d915d40dcf583fd27"
+    },
+    {
+      "path": "docs/evidence/sp910/round5-reset-final-20261017/outbound-approved-16.png",
+      "bytes": 243460,
+      "sha256": "c7775bfeefe434a2b644884a01982cb873d71933c62ce083441d817a3661594d"
+    },
+    {
+      "path": "docs/evidence/sp910/round5-reset-final-20261017/postquery-state.json",
+      "bytes": 686,
+      "sha256": "140124d9d1d0a6352e185d922fed0ccbba9e2af11e445de8e59f13da29f08402"
+    },
+    {
+      "path": "docs/evidence/sp910/round5-reset-final-20261017/prequery-gate-restart.json",
+      "bytes": 580,
+      "sha256": "90b31225d4ede3587d296524eb5be23250584fd076d20d7f72d3c768ed0e2b7a"
+    },
+    {
+      "path": "docs/evidence/sp910/round5-reset-final-20261017/quality-quarantine.png",
+      "bytes": 255969,
+      "sha256": "a58b92b75ef680d2c380c4ae162c31e710d6ae540faa2e32084645f0d84b2409"
+    },
+    {
+      "path": "docs/evidence/sp910/round5-reset-final-20261017/query-admin-dashboard.png",
+      "bytes": 76352,
+      "sha256": "bee5562f1deb20493e30771fd6e486d6575479e3522312dbab5e2d5a9cfa1eca"
+    },
+    {
+      "path": "docs/evidence/sp910/round5-reset-final-20261017/query-documents.png",
+      "bytes": 199933,
+      "sha256": "493a435105f10bc91d0fbc2b52d4fe28e3f890734c996759116660488264ef92"
+    },
+    {
+      "path": "docs/evidence/sp910/round5-reset-final-20261017/query-evaluation.json",
+      "bytes": 6123,
+      "sha256": "5ac5268cbea803275b1f1d417fb4a89f049590e83df61501a91647c96caeea13"
+    },
+    {
+      "path": "docs/evidence/sp910/round5-reset-final-20261017/remaining-gemini-query-results.json",
+      "bytes": 13015,
+      "sha256": "29eb11bb663acdde117f0347d4dd2842079fb048c82f7ef8ae5baa5d4ab590ab"
+    },
+    {
+      "path": "docs/evidence/sp910/round5-reset-final-20261017/reset-final-query-results.json",
+      "bytes": 5039,
+      "sha256": "4f0a76ac9e658c6277809060347f4a4b10fd228344b665cd1db0b411ef389813"
+    },
+    {
+      "path": "docs/evidence/sp910/round5-reset-final-20261017/runtime-environment.json",
+      "bytes": 1694,
+      "sha256": "659434d522fda2f7eebc5f51a6116b43e4150c52d224188ca266b97c2a4ffbe0"
+    },
+    {
+      "path": "docs/evidence/sp910/round5-reset-final-20261017/runtime-environment.json",
+      "bytes": 1694,
+      "sha256": "659434d522fda2f7eebc5f51a6116b43e4150c52d224188ca266b97c2a4ffbe0"
+    },
+    {
+      "path": "docs/evidence/sp910/round5-reset-final-20261017/semantic-gate-audit-passed.png",
+      "bytes": 256214,
+      "sha256": "fc09aef644885d2e639a7f5602d2589e2b38b0d5d9e98a5e277b365e5e7dea13"
+    },
+    {
+      "path": "docs/evidence/sp910/round5-reset-final-20261017/semantic-readiness.png",
+      "bytes": 269528,
+      "sha256": "eac4972903b3124b68ff4989d71fa4a0577f573a9c584f4e3a855a55968020d7"
+    },
+    {
+      "path": "docs/evidence/sp910/round5-reset-final-20261017/SOP-receiving-role.png",
+      "bytes": 279241,
+      "sha256": "a755e29a6cd4d64f1893c1d8d80a33a5c3b330e235c83926024fa046225c5d18"
+    },
+    {
+      "path": "docs/evidence/sp910/round5-reset-final-20261017/source-hash-consistency.json",
+      "bytes": 2306,
+      "sha256": "5f28fd84c24630da7572315cfd0e6554fa5cbc0d25ab164a13127e2c61f24b0a"
+    },
+    {
+      "path": "docs/evidence/sp910/round5-reset-final-20261017/SUP-001-leadtime.png",
+      "bytes": 256179,
+      "sha256": "1f8d1c827d5559ca06e55a471e5823e5bf5e00cdc3ad8286770fd36575f79916"
+    },
+    {
+      "path": "docs/evidence/sp910/round5-reset-final-20261017/SUP-002-validity.png",
+      "bytes": 250116,
+      "sha256": "32af0590d155c5409c6129b100a19712f29100b012271ed504ef5d0d31d07f29"
+    },
+    {
+      "path": "docs/evidence/sp910/round5-reset-final-20261017/sup001-source-validation.json",
+      "bytes": 2126,
+      "sha256": "d724394637128a8685f08f6abb5779bf88a322f5d98bece1d171dc7c02f1b407"
+    }
+  ]
+}
