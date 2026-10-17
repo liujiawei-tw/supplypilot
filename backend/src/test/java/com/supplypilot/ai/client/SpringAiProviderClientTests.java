@@ -23,6 +23,7 @@ import com.supplypilot.ai.service.AiResponseGuard;
 import com.supplypilot.ai.tool.AiQueryPlan;
 import com.supplypilot.ai.tool.AiToolRegistry;
 import com.supplypilot.ai.tool.AiQueryPlanner;
+import com.supplypilot.ai.tool.AiQuestionIntent;
 import com.supplypilot.ai.tool.AiToolResult;
 import com.supplypilot.ai.tool.SpringAiReadTools;
 import com.supplypilot.ai.usage.AiMonthlyUsageMonitor;
@@ -490,6 +491,29 @@ class SpringAiProviderClientTests {
     }
 
     @Test
+    void suggestedPurchaseQuantityQuestionDoesNotIgnoreMissingRecommendation() {
+        assertExplicitRecommendationMissingFailsClosed("MAT-001 的建議採購數量是多少？");
+    }
+
+    @Test
+    void suggestedQuantityQuestionDoesNotIgnoreMissingRecommendation() {
+        assertExplicitRecommendationMissingFailsClosed("MAT-001 的建議數量是多少？");
+    }
+
+    @Test
+    void latestSuggestedPurchaseQuestionDoesNotIgnoreMissingRecommendation() {
+        assertExplicitRecommendationMissingFailsClosed("MAT-001 最新建議採購量？");
+    }
+
+    @Test
+    void genericContractSuggestionDoesNotBecomeRecommendationIntent() {
+        assertThat(AiQuestionIntent.requiresRecommendation("SUP-001 合約條款建議提前通知期限為何？"))
+                .isFalse();
+        assertThat(AiQuestionIntent.requiresRecommendation("What is the suggested purchase quantity for MAT-001?"))
+                .isTrue();
+    }
+
+    @Test
     void missingRecommendationStillFailsClosedWhenDocumentAndRecommendationAreBothRequested() {
         AiToolRegistry registry = mock(AiToolRegistry.class);
         when(registry.execute(any())).thenThrow(new BusinessException(ErrorCode.RECOMMENDATION_NOT_FOUND));
@@ -563,6 +587,20 @@ class SpringAiProviderClientTests {
         } finally {
             detachDiagnostics(appender);
         }
+    }
+
+    private void assertExplicitRecommendationMissingFailsClosed(String question) {
+        AiToolRegistry registry = mock(AiToolRegistry.class);
+        when(registry.execute(any())).thenThrow(new BusinessException(ErrorCode.RECOMMENDATION_NOT_FOUND));
+        ChatModel model = fakeModel(prompt -> hasToolResponse(prompt)
+                ? finalAnswer(1)
+                : toolCall("QUERY_RECOMMENDATION", "{\"materialCode\":\"MAT-001\"}"));
+
+        assertThatThrownBy(() -> provider(model, registry, Duration.ofSeconds(2))
+                .query(new AiProviderRequest(question)))
+                .isInstanceOfSatisfying(BusinessException.class, failure ->
+                        assertThat(failure.getErrorCode()).isEqualTo(ErrorCode.RECOMMENDATION_NOT_FOUND));
+        verify(registry).execute(new AiQueryPlan(AiToolType.QUERY_RECOMMENDATION, null, "MAT-001", null));
     }
 
     private int toolResponseCount(Prompt prompt) {

@@ -14,7 +14,8 @@ public final class AiQuestionIntent {
             + "contract|quotation\\s+validity|standard\\s+lead\\s+time|standard\\s+delivery|"
             + "storage\\s+conditions?|quarantine\\s+conditions?|insurance\\s+(?:rate|premium)|"
             + "(?:purchase|procurement)\\s+sop)");
-    private static final Pattern RECOMMENDATION_TERM = Pattern.compile("(?i)(?:採購建議|推薦|recommendation|recommended)");
+    private static final Pattern RECOMMENDATION_TERM = Pattern.compile("(?i)(?:採購建議|推薦|recommendation|recommended|"
+            + "建議採購(?:數量|量)?|建議數量|suggested\\s+(?:purchase\\s+)?(?:quantity|amount))");
     private static final Pattern RANKING_TERM = Pattern.compile("(?i)(?:供應商排名|供應商排序|supplier\\s+ranking|supplier\\s+rank)");
     private static final Pattern INVENTORY_TERM = Pattern.compile("(?i)(?:庫存|存量|inventory|stock\\s+(?:level|quantity))");
     private static final Pattern OPEN_PO_TERM = Pattern.compile("(?i)(?:未收貨(?:採購單)?|未完成採購單|在途(?:採購單)?|open\\s+(?:po|purchase\\s+orders?))");
