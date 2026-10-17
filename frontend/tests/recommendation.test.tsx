@@ -104,11 +104,18 @@ describe('SP-804 Recommendation rendering', () => {
     });
     await open('/recommendations/91');
     expect((await screen.findAllByText(label)).length).toBeGreaterThan(0);
-    expect(screen.getByText(netRequirement)).toBeTruthy();
-    expect(screen.getByText('MAT-007')).toBeTruthy();
-    expect(screen.getByText('Copper snapshot')).toBeTruthy();
+    expect(screen.getAllByText(netRequirement).length).toBeGreaterThan(0);
+    expect(document.querySelector('.recommendation-material .recommendation-wrap-value')?.textContent).toBe('MAT-007 · Copper snapshot');
     expect(screen.queryByRole('button', { name: '檢視採購單草稿' })).toBeNull();
-    if (outcome !== 'SUPPLIER_RECOMMENDED') expect(screen.getAllByText('—').length).toBeGreaterThan(0);
+    if (outcome === 'PURCHASE_NOT_REQUIRED') {
+      expect(screen.getByText('此結果不需要建立採購單草稿。')).toBeTruthy();
+      expect(screen.getAllByText('不適用').length).toBeGreaterThan(0);
+    }
+    if (outcome === 'NO_QUALIFIED_SUPPLIER') {
+      expect(screen.getByText('尚無合格供應商')).toBeTruthy();
+      expect(screen.getByText('尚無建議數量')).toBeTruthy();
+      expect(screen.getByRole('table', { name: '供應商排名' })).toBeTruthy();
+    }
   });
 
   it('preserves backend ranking order, renders disqualification enum and score breakdown without a draft POST', async () => {
@@ -121,18 +128,51 @@ describe('SP-804 Recommendation rendering', () => {
       throw new Error(`Unexpected request ${config.url}`);
     });
     await open('/recommendations/91');
+    await userEvent.setup().click(await screen.findByText('供應商排名與排除原因'));
     const table = await screen.findByRole('table', { name: '供應商排名' });
     const rows = within(table).getAllByRole('row');
     expect(rows[1].textContent).toContain('SUP-012');
     expect(rows[2].textContent).toContain('SUP-013');
-    expect(screen.getByText('交期無法滿足需求日期')).toBeTruthy();
-    expect(screen.getByText('交期無法滿足需求日期')).toBeTruthy();
+    expect(screen.getAllByText('交期無法滿足需求日期').length).toBeGreaterThan(0);
     const expandButtons = within(table).getAllByRole('button', { name: /展開|Expand row/ });
     await userEvent.setup().click(expandButtons[0]);
     expect(await screen.findByText('價格評分')).toBeTruthy();
     expect(screen.getAllByText('88.5000').length).toBeGreaterThan(0);
     expect(screen.getByRole('button', { name: '檢視採購單草稿' })).toBeTruthy();
     expect(requests.filter(({ url }) => url === '/purchase-orders')).toHaveLength(0);
+  }, 30_000);
+
+  it('keeps long material names and exact signed decimal strings without rounding or treating null as zero', async () => {
+    const longName = '高精度物料名稱'.repeat(24);
+    const largeValue = '123456789012345678901234567890.00000000000000000017';
+    const tinyNegative = '-0.00000000000000000003';
+    const snapshot = {
+      ...recommendation('NO_QUALIFIED_SUPPLIER'),
+      material: { id: 7, code: 'MAT-007', name: longName, unit: 'PCS' },
+      calculation: {
+        expectedDemand: largeValue,
+        safetyStock: tinyNegative,
+        currentInventory: '0.00000000000000000001',
+        incomingInventory: null as unknown as string,
+        netRequirement: largeValue,
+      },
+    };
+    axiosClient.defaults.adapter = vi.fn(async (config) => {
+      if (config.url === '/auth/me') return response(config, identities.PROCUREMENT_MANAGER);
+      if (config.url === '/recommendations/91') return response(config, snapshot);
+      if (config.url === '/recommendations/91/suppliers') return response(config, [disqualified]);
+      throw new Error(`Unexpected request ${config.url}`);
+    });
+
+    await open('/recommendations/91');
+    await screen.findByText('採購建議 #91');
+    expect(document.querySelector('.recommendation-net-need h3')?.textContent).toBe(`${largeValue} PCS`);
+    expect(document.querySelector('.recommendation-material .recommendation-wrap-value')?.textContent).toBe(`MAT-007 · ${longName}`);
+    expect(document.querySelector('.recommendation-calculation')?.textContent).toContain(largeValue);
+    expect(screen.getByText(`${tinyNegative} PCS`)).toBeTruthy();
+    expect(screen.getAllByText('—').length).toBeGreaterThan(0);
+    expect(screen.getByText('尚無合格供應商')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: '檢視草稿選項' })).toBeNull();
   }, 30_000);
 
   it('keeps valid detail visible when ranking fails and retries only ranking', async () => {
@@ -151,6 +191,7 @@ describe('SP-804 Recommendation rendering', () => {
     expect(await screen.findByText('採購建議 #91')).toBeTruthy();
     expect(await screen.findByText('供應商排名查詢失敗')).toBeTruthy();
     await userEvent.setup().click(screen.getByRole('button', { name: '重新查詢供應商排名' }));
+    await userEvent.setup().click(await screen.findByText('供應商排名與排除原因'));
     expect(await screen.findByText('SUP-012')).toBeTruthy();
     expect(rankingCalls).toBe(2);
   }, 30_000);
@@ -285,6 +326,7 @@ describe('SP-804 Recommendation to linked PO Draft', () => {
     });
     await open('/recommendations/91');
     expect(await screen.findByText('採購建議 #91')).toBeTruthy();
+    await userEvent.setup().click(await screen.findByText('供應商排名與排除原因'));
     await screen.findByText('SUP-012');
     expect(screen.queryByRole('button', { name: '檢視採購單草稿' })).toBeNull();
     expect(requests.filter(({ url }) => url === '/purchase-orders')).toHaveLength(0);

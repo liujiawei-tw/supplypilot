@@ -209,9 +209,9 @@ export default function RecommendationDraftForm({
           { key: 'material', label: '物料', children: `${recommendation.material.code} — ${recommendation.material.name}` },
           { key: 'quantity', label: '數量', children: `${pending.quantity} ${recommendation.material.unit}` },
           { key: 'price', label: '單價', children: `${pending.unitPrice} TWD` },
-          { key: 'delivery', label: 'Expected Delivery Date', children: pending.request.expectedDeliveryDate ?? 'Not set (allowed for DRAFT)' },
-          { key: 'supplierReason', label: 'Supplier Override Reason', children: pending.supplierOverrideReason ?? 'N/A' },
-          { key: 'quantityReason', label: 'Quantity Override Reason', children: pending.quantityOverrideReason ?? 'N/A' },
+          { key: 'delivery', label: '預計交期', children: pending.request.expectedDeliveryDate ?? '未設定（草稿可留空）' },
+          { key: 'supplierReason', label: '供應商覆寫原因', children: pending.supplierOverrideReason ?? '不適用' },
+          { key: 'quantityReason', label: '數量覆寫原因', children: pending.quantityOverrideReason ?? '不適用' },
         ]} />
       </Space>}
     </Modal>

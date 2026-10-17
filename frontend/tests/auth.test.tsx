@@ -39,6 +39,9 @@ function mockServer(role: UserRole, loginStatus = 200) {
       return response(config, { accessToken: 'valid-token', tokenType: 'Bearer', user: identities[role] });
     }
     if (config.url === '/auth/me') return response(config, identities[role]);
+    if (config.url === '/purchase-orders') return response(config, { content: [], page: 0, size: 5, totalElements: 0, totalPages: 0 });
+    if (config.url === '/receiving/purchase-orders') return response(config, { content: [], page: 0, size: 5, totalElements: 0, totalPages: 0 });
+    if (config.url === '/demands') return response(config, { content: [], page: 0, size: 5, totalElements: 0, totalPages: 0 });
     if (config.url === '/inventory') return response(config, { content: [], page: 0, size: 20, totalElements: 0, totalPages: 0 });
     if (config.url === '/purchase-orders/42') return response(config, purchaseOrder);
     if (config.url === '/stock-transactions') return response(config, { content: [], page: 0, size: 20, totalElements: 0, totalPages: 0 });
@@ -90,7 +93,7 @@ describe('authentication and routing', () => {
     localStorage.setItem(TOKEN_STORAGE_KEY, 'valid-token');
     await open('/dashboard');
     expect(await screen.findByText('工作總覽')).toBeTruthy();
-    expect(requests).toEqual(['/auth/me']);
+    expect(requests.filter((url) => url === '/auth/me')).toEqual(['/auth/me']);
     fireEvent.click(screen.getByRole('button', { name: /登出/ }));
     await waitFor(() => expect(router.state.location.pathname).toBe('/login'));
     expect(localStorage.getItem(TOKEN_STORAGE_KEY)).toBeNull();
@@ -129,7 +132,7 @@ describe('authentication and routing', () => {
     expect(router.state.location.pathname).toBe('/dashboard');
     fireEvent.click(screen.getByRole('button', { name: '重試驗證' }));
     expect(await screen.findByText('工作總覽')).toBeTruthy();
-    expect(requests).toEqual(['/auth/me', '/auth/me']);
+    expect(requests.filter((url) => url === '/auth/me')).toEqual(['/auth/me', '/auth/me']);
   });
 
   it('keeps a just-issued token when post-login /auth/me fails, then returns to the requested route after retry', async () => {
@@ -203,14 +206,14 @@ describe('authentication and routing', () => {
     expect(sidebar.textContent).toContain('需求與庫存');
     fireEvent.click([...sidebar.querySelectorAll('.ant-menu-submenu-title')].find((item) => item.textContent === '需求與庫存')!);
     await waitFor(() => expect([...sidebar.querySelectorAll('.ant-menu-item')].some((item) => item.textContent === '庫存管理')).toBe(true));
-    const workLinks = [...document.querySelectorAll('.ant-card a')].map((link) => link.textContent);
-    expect(workLinks.includes('收貨作業')).toBe(role === 'WAREHOUSE_STAFF' || role === 'ADMIN');
-    expect(workLinks.includes('採購單管理')).toBe(role === 'PROCUREMENT_STAFF' || role === 'PROCUREMENT_MANAGER' || role === 'ADMIN');
+    const workLinks = [...document.querySelectorAll('.dashboard-workspace a')].map((link) => link.textContent);
+    expect(workLinks.includes('開啟收貨作業')).toBe(role === 'WAREHOUSE_STAFF' || role === 'ADMIN');
+    expect(workLinks.includes('查看採購單') || workLinks.includes('審核採購單') || workLinks.includes('管理採購單')).toBe(role === 'PROCUREMENT_STAFF' || role === 'PROCUREMENT_MANAGER' || role === 'ADMIN');
     expect(screen.queryByRole('button', { name: /AI 助理/ }) !== null).toBe(role === 'PROCUREMENT_STAFF' || role === 'PROCUREMENT_MANAGER' || role === 'ADMIN');
     await router.navigate('/purchase-orders/42');
     if (role === 'WAREHOUSE_STAFF' || role === 'PRODUCTION_PLANNER') expect(await screen.findByText('403')).toBeTruthy();
     else expect(await screen.findByText('PO-000042')).toBeTruthy();
-    expect(requests).toEqual(role === 'WAREHOUSE_STAFF' || role === 'PRODUCTION_PLANNER' ? ['/auth/me'] : ['/auth/me', '/purchase-orders/42']);
+    expect(requests.filter((url) => url === '/purchase-orders/42')).toHaveLength(role === 'WAREHOUSE_STAFF' || role === 'PRODUCTION_PLANNER' ? 0 : 1);
   });
 
   it('allows manager into inventory without making an inventory GET request, and shows 404 for unknown routes', async () => {
