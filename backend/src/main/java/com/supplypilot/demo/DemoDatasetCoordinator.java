@@ -456,9 +456,13 @@ public class DemoDatasetCoordinator implements DemoDataCoordinator {
 
     private void requirePassword() {
         String password = properties.getAccountPassword();
-        if (password == null || password.isBlank() || password.length() < 12) {
-            throw new IllegalStateException("DEMO_ACCOUNT_PASSWORD must contain at least 12 characters");
+        if (!isValidDemoPassword(password)) {
+            throw new IllegalStateException("DEMO_ACCOUNT_PASSWORD must contain at least 6 characters");
         }
+    }
+
+    static boolean isValidDemoPassword(String password) {
+        return password != null && !password.isBlank() && password.length() >= 6;
     }
 
     private LocalDate baselineDate() {

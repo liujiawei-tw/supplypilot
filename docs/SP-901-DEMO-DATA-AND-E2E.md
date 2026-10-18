@@ -20,7 +20,7 @@
 | Purchase Orders | DRAFT 2、APPROVED 2、ORDERED 3、RECEIVED 2、REJECTED 1 |
 | Documents | 五種 DocumentType 各一份；原檔 Upload、Storage、Ingestion 後為 READY |
 
-Demo 帳號密碼只接受執行環境的 `DEMO_ACCOUNT_PASSWORD`，至少 12 字元；Repository 不提供預設明文密碼。五個角色共用此密碼是本機受控 Demo 的便利設計，AWS 對外帳號交付仍依 SP-903 的單一經理帳號策略處理。
+Demo 帳號密碼只接受執行環境的 `DEMO_ACCOUNT_PASSWORD`，至少 6 字元；Repository 不提供預設明文密碼。五個角色共用此密碼是本機受控 Demo 的便利設計，AWS 對外帳號交付仍依 SP-903 的單一經理帳號策略處理。
 
 ## Standard Scenario B
 

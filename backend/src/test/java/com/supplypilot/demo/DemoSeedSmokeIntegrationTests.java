@@ -12,6 +12,7 @@ import java.time.LocalDate;
 import java.math.BigDecimal;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.UUID;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -41,13 +42,14 @@ import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
 @SpringBootTest(properties = {
-        "supplypilot.demo.account-password=Demo-Password-For-Tests-901!",
         "supplypilot.demo.allowed-database=supplypilot_demo_test",
         "supplypilot.demo.dataset-version=sp-905-zh-tw-v1",
         "supplypilot.demo.samples-path=../samples/documents",
@@ -59,7 +61,12 @@ import org.springframework.transaction.annotation.Transactional;
 @Import({TestcontainersConfiguration.class, FixedClockConfiguration.class})
 @AutoConfigureMockMvc
 class DemoSeedSmokeIntegrationTests {
-    private static final String PASSWORD = "Demo-Password-For-Tests-901!";
+    private static final String PASSWORD = "t" + UUID.randomUUID().toString().replace("-", "").substring(0, 5);
+
+    @DynamicPropertySource
+    static void demoAccountPassword(DynamicPropertyRegistry registry) {
+        registry.add("supplypilot.demo.account-password", () -> PASSWORD);
+    }
 
     @Autowired private UserRepository users;
     @Autowired private MaterialRepository materials;
@@ -130,6 +137,24 @@ class DemoSeedSmokeIntegrationTests {
         var admin = users.findByUsername("admin").orElseThrow();
         assertThat(admin.getRole()).isEqualTo(UserRole.ADMIN);
         assertThat(passwordEncoder.matches(PASSWORD, admin.getPasswordHash())).isTrue();
+        Map<String, UserRole> demoRoles = Map.of(
+                "planner", UserRole.PRODUCTION_PLANNER,
+                "buyer", UserRole.PROCUREMENT_STAFF,
+                "manager", UserRole.PROCUREMENT_MANAGER,
+                "warehouse", UserRole.WAREHOUSE_STAFF,
+                "admin", UserRole.ADMIN);
+        demoRoles.forEach((username, role) -> {
+            var seededUser = users.findByUsername(username).orElseThrow();
+            assertThat(seededUser.getRole()).isEqualTo(role);
+            assertThat(passwordEncoder.matches(PASSWORD, seededUser.getPasswordHash())).isTrue();
+        });
+        demoRoles.keySet().forEach(username -> {
+            try {
+                assertThat(login(username)).isNotBlank();
+            } catch (Exception exception) {
+                throw new AssertionError("Demo user login should succeed for " + username, exception);
+            }
+        });
         assertThat(jdbc.queryForObject(
                 "SELECT status FROM demo_dataset_state WHERE dataset_key = 'SP-901'", String.class))
                 .isEqualTo("COMPLETE");

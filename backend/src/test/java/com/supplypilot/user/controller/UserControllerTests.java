@@ -98,6 +98,41 @@ class UserControllerTests {
     }
 
     @Test
+    @DisplayName("POST /api/v1/users - password length boundary: rejects 5, accepts 6 and 12")
+    void shouldEnforceSixCharacterMinimumPassword() throws Exception {
+        UserResponse response = new UserResponse(
+                2L, "boundary_user", "Boundary User", UserRole.ADMIN, UserStatus.ACTIVE, NOW, NOW);
+        when(userService.createUser(any(CreateUserRequest.class))).thenReturn(response);
+
+        mockMvc.perform(post("/api/v1/users")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(createUserJson("abcde")))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"));
+
+        mockMvc.perform(post("/api/v1/users")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(createUserJson("abcdef")))
+                .andExpect(status().isCreated());
+
+        mockMvc.perform(post("/api/v1/users")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(createUserJson("abcdefghijkl")))
+                .andExpect(status().isCreated());
+    }
+
+    private String createUserJson(String password) {
+        return """
+                {
+                  "username": "boundary_user",
+                  "password": "%s",
+                  "displayName": "Boundary User",
+                  "role": "ADMIN"
+                }
+                """.formatted(password);
+    }
+
+    @Test
     @DisplayName("POST /api/v1/users - 400 Bad Request on blank username or password")
     void shouldReturnBadRequestWhenValidationFails() throws Exception {
         mockMvc.perform(post("/api/v1/users")

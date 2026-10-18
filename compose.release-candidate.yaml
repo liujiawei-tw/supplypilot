@@ -1,0 +1,125 @@
+name: supplypilot-sp903-local-demo
+
+services:
+  mysql:
+    image: mysql:8.4.11
+    restart: on-failure:5
+    environment:
+      MYSQL_DATABASE: supplypilot_demo
+      MYSQL_USER: ${DB_USERNAME:?Set DB_USERNAME in repository .env}
+      MYSQL_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in repository .env}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Set MYSQL_ROOT_PASSWORD in repository .env}
+    volumes:
+      - sp903-mysql-data:/var/lib/mysql
+    networks: [data]
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping --host=127.0.0.1 --user=root --password=$$MYSQL_ROOT_PASSWORD --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 24
+      start_period: 30s
+    mem_limit: 1g
+
+  pgvector:
+    image: pgvector/pgvector:pg17
+    restart: on-failure:5
+    environment:
+      POSTGRES_DB: supplypilot_semantic_demo
+      POSTGRES_USER: ${SEMANTIC_DB_USERNAME:?Set SEMANTIC_DB_USERNAME in repository .env}
+      POSTGRES_PASSWORD: ${SEMANTIC_DB_PASSWORD:?Set SEMANTIC_DB_PASSWORD in repository .env}
+    volumes:
+      - sp903-pgvector-data:/var/lib/postgresql/data
+    networks: [data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 24
+      start_period: 15s
+    mem_limit: 1g
+
+  backend:
+    image: supplypilot-backend:sp903-rc
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    restart: on-failure:5
+    environment:
+      SPRING_PROFILES_ACTIVE: demo
+      DB_URL: jdbc:mysql://mysql:3306/supplypilot_demo?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      DB_USERNAME: ${DB_USERNAME:?Set DB_USERNAME in repository .env}
+      DB_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in repository .env}
+      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in repository .env}
+      JWT_EXPIRATION_SECONDS: ${JWT_EXPIRATION_SECONDS:-3600}
+      FRONTEND_ORIGIN: http://localhost:8081
+      AI_CHAT_PROVIDER: ${AI_CHAT_PROVIDER:-none}
+      AI_EMBEDDING_PROVIDER: ${AI_EMBEDDING_PROVIDER:-none}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-${AI_API_KEY:-}}
+      GEMINI_MODEL: ${GEMINI_MODEL:-${AI_MODEL:-gemini-3.6-flash}}
+      GEMINI_EMBEDDING_MODEL: ${GEMINI_EMBEDDING_MODEL:-gemini-embedding-001}
+      SEMANTIC_DB_URL: jdbc:postgresql://pgvector:5432/supplypilot_semantic_demo
+      SEMANTIC_DB_USERNAME: ${SEMANTIC_DB_USERNAME:?Set SEMANTIC_DB_USERNAME in repository .env}
+      SEMANTIC_DB_PASSWORD: ${SEMANTIC_DB_PASSWORD:?Set SEMANTIC_DB_PASSWORD in repository .env}
+      SEMANTIC_DIMENSIONS: ${SEMANTIC_DIMENSIONS:-768}
+      SEMANTIC_GENERATION_KEY: ${SEMANTIC_GENERATION_KEY:-gemini-embedding-001-768-v1}
+      SEMANTIC_READ_ENABLED: ${SEMANTIC_READ_ENABLED:-false}
+      DOCUMENT_STORAGE_TYPE: local
+      DOCUMENT_STORAGE_PATH: /app/data/demo-documents
+      DEMO_ACCOUNT_PASSWORD: ${DEMO_ACCOUNT_PASSWORD:?Set DEMO_ACCOUNT_PASSWORD in repository .env}
+      DEMO_DATASET_VERSION: sp-905-zh-tw-v1
+      DEMO_SAMPLES_PATH: /app/samples/documents
+      DEMO_ALLOWED_DATABASE: supplypilot_demo
+      DEMO_ALLOWED_SEMANTIC_DATABASE: supplypilot_semantic_demo
+      AI_PROVIDER_TIMEOUT: ${AI_PROVIDER_TIMEOUT:-15s}
+      AI_MONTHLY_TOKEN_WARNING_ENABLED: "false"
+    volumes:
+      - sp903-document-storage:/app/data/demo-documents
+      - ./samples/documents:/app/samples/documents:ro
+    networks: [data, web]
+    depends_on:
+      mysql:
+        condition: service_healthy
+      pgvector:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:8080/actuator/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 90s
+    mem_limit: 1g
+
+  frontend:
+    image: supplypilot-frontend:sp903-rc
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+      args:
+        VITE_API_BASE_URL: /api/v1
+    restart: on-failure:5
+    ports:
+      - "127.0.0.1:8081:8080"
+    networks: [web]
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 6
+      start_period: 5s
+    mem_limit: 256m
+
+networks:
+  data:
+    internal: true
+  web:
+
+volumes:
+  sp903-mysql-data:
+    name: supplypilot-sp903-local-demo-mysql
+  sp903-pgvector-data:
+    name: supplypilot-sp903-local-demo-pgvector
+  sp903-document-storage:
+    name: supplypilot-sp903-local-demo-documents
