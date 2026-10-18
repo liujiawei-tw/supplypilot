@@ -8,6 +8,8 @@ Production 預設使用 `prod` Profile、固定的 `supplypilot_prod` / `supplyp
 
 Demo 只用 `compose.demo.yaml` 覆蓋必要差異：Compose Project、Profile、資料庫名稱、Demo 文件 Storage、基線密碼來源及 Frontend Port。Demo 專案名稱和三個 named volume 保留舊 SP-903 名稱，讓原 Demo 資料繼續使用；資料庫憑證若與舊 Volume 不符，受控啟動器會在啟動 Backend 前拒絕繼續。不得為了解決憑證錯誤移除 Volume 或 Reset 資料。
 
+Demo 的 `DOCUMENT_STORAGE_PATH` 是 `/app/data/demo-documents`，由既有 logical key `sp903-document-storage` 和 Docker volume `supplypilot-sp903-local-demo-documents` 掛載。這是既有 release candidate 使用的容器內位置；修正只恢復 mount target，不改 volume 名稱或檔案。Sample source 則是 Host `./samples/documents`，唯讀掛載至 Container `/app/samples/demo-documents`。Host 樣本路徑保留原名，因 SP-901 Semantic Gate 的手動 UI 上傳也使用該路徑。
+
 開發資料庫使用 `compose.dev.yaml` 的 `supplypilot-dev-v2` 專案與新 Volume，避免接管先前 `compose.yaml` 建立的開發 Volume。舊開發資料仍留在 Docker，不會由這份配置修改。
 
 ## 環境檔與 Secret
@@ -22,7 +24,7 @@ Demo 只用 `compose.demo.yaml` 覆蓋必要差異：Compose Project、Profile�
   docker compose up -d --build
   ```
 
-- Demo 啟動請使用受控啟動器；它會明確使用 `.env.demo` 和兩份 Compose 檔，並維持動態密碼同步：
+- Demo 啟動請使用受控啟動器；它會明確使用 `.env.demo` 和兩份 Compose 檔：
 
   ```powershell
   pwsh -NoProfile -File .\scripts\start-sp903-demo.ps1
@@ -30,9 +32,9 @@ Demo 只用 `compose.demo.yaml` 覆蓋必要差異：Compose Project、Profile�
 
 Compose 的 Process Environment 優先於 `--env-file`。執行標準命令前，確認目前 PowerShell 工作階段沒有同名的 DB、JWT、Demo 或 Compose Project 環境變數；受控 Demo 啟動器會清除並在結束時還原插值用的 Process Environment。Compose Project 名稱、資料庫名稱和 Demo volume 名稱由 Compose 檔案定義，避免憑證外的 shell 變數改變資料位置。
 
-受控 Demo 啟動器讀取 `.env.demo`，只把 `DEMO_ACCOUNT_PASSWORD` 寫入 `.sp903-demo-credential/password`，再以唯讀目錄掛載給 Backend。主機同步器每 100 ms 檢查來源並以同目錄暫存檔加原子替換更新密碼檔；缺檔、格式錯誤或重複 Key 時會移除舊密碼檔，令基線登入失敗。Backend 不會掛載 `.env.demo`，也不會重啟或重新 Seed；只有後續的新登入使用新密碼，既有 JWT 到期規則不變。Production Compose 不掛載 Demo 憑證。
+目前基線登入仍使用 Host 同步器複製到 `.sp903-demo-credential/password` 的密碼檔。它會週期檢查來源，但沒有與登入建立同步屏障；因此**不保證 `.env.demo` 儲存完成後的第一個登入立即採用新值**。SP-903 第三輪的嚴格即時一致性尚未實作，狀態為 **BLOCKED**；不得把 100 ms 輪詢描述為符合要求。Backend 不掛載整份 `.env.demo`，Production Compose 不使用 Demo 憑證。
 
-要啟用檔案變更即時同步，Demo 必須透過以下受控啟動器啟動；直接執行 Compose 不會啟動主機同步器。啟動器需有 Python 3、PowerShell 7 與 Docker CLI。Windows Docker Desktop 與 Linux Docker Engine 的目錄掛載行為由 `DemoCredentialFileMountTests` 以實際 Container 驗證；執行結果依本次測試記錄，見本文末的測試狀態。
+在 Host 驗證通道完成並通過 Windows Docker Desktop 與 Linux Docker Engine 的真實容器測試前，請勿依賴密碼輪替的「下一次登入立即生效」語意。現有同步器的檔案複製測試只能驗證複製與掛載，不是第一個 HTTP Login Request 一致性證據。
 
 資料庫密碼若錯誤，資料庫應用程式登入驗證會失敗，Backend 不會啟動 Flyway 或 Seeder。MySQL `mysqladmin ping` 及 PostgreSQL `pg_isready` 只代表伺服器可回應，不足以證明應用程式憑證正確。標準 Compose 會依資料庫 Health Check 控制 Backend 啟動；Windows 受控啟動器另外在 Backend 前實際驗證兩個應用程式帳號。
 
@@ -96,8 +98,10 @@ docker compose --env-file $env:TEMP\supplypilot-demo-test.env -f compose.yaml -f
 
 | 驗收項目 | 狀態 |
 |---|---|
-| Production / Demo Compose 結構驗證 | 隔離假憑證 `docker compose config --format json` 解析測試通過；合併設定僅發布各自 loopback Frontend port、資料庫不發布、文件 mount 不重複 |
-| Production Admin 真實 Container 登入及改密碼 | Testcontainers 整合測試新增：首次初始化、受限 token、改密碼、重啟不重設、標記防止空 users 重建、無 ACTIVE ADMIN fail-closed、交易回滾與並行初始化。本機 Docker Engine 無法連線，該整合測試未執行 |
-| Demo 五角色登入及變更檔案後即時生效 | Testcontainers Demo HTTP 整合測試覆蓋五角色、旋轉後舊密碼拒絕、新密碼成功、停用帳號拒絕及一般帳號仍走 DB 密碼；本機 Docker Engine 無法連線，該測試未執行。PowerShell 與 Python 同步器回歸測試可獨立執行 |
+| Production / Demo Compose 結構驗證 | 隔離假憑證 `docker compose config --format json` 測試通過；檢查合併後 Demo `DOCUMENT_STORAGE_PATH`、samples mount、唯讀標記、既有 logical key 與 volume name，並檢查各自 loopback Frontend port 及資料庫不發布 |
+| Demo Seeder／五角色 HTTP 登入／文件 Ingestion | Maven `verify` 使用 Windows Docker Desktop 上的 Testcontainers 完成，包含 Demo Seed Smoke HTTP 測試；不等同完整合併 Compose stack 啟動驗收 |
+| 合併 Demo Compose 實際啟動、文件讀取／重啟持久性 | **NOT RUN**：Docker CLI 對目前 Docker Desktop Linux Engine named pipe 回覆 permission denied；未檢視或操作任何既有 Volume |
+| Production Admin 真實 Container 登入及改密碼 | Maven `verify` 使用 Windows Docker Desktop 上的 Testcontainers 完成：首次初始化、受限 token、改密碼、重啟不重設、空 users 保護、無 ACTIVE ADMIN fail-closed、交易回滾與並行初始化 |
+| `.env.demo` 儲存後第一個 HTTP Login Request 使用新密碼 | **BLOCKED**：現行 100 ms Host 輪詢複製沒有登入同步屏障；沒有第一個登入立即一致性的證據。Windows Docker Desktop 與 Linux Docker Engine 均未實測此一致性 |
 | Fresh Start、重啟與舊 Volume 判定 | PowerShell 自動測試覆蓋全無 Volume、舊版相容 labels、部分 Volume、錯誤 project/key；本機 Docker Engine 無法連線，未檢查或操作真實 Volume，也未執行實際啟動 |
 | AWS、HTTPS、Gemini、Semantic Gate、午夜 Reset | 不屬於此本機 Compose 實作證據，依 Issue #45 / #117 後續 Gate 驗收 |

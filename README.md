@@ -33,7 +33,9 @@ SupplyPilot 是採購與供應鏈決策平台。Backend 以 Java 21、Spring Boo
    Windows 使用受控啟動器時，執行 `pwsh -NoProfile -File .\scripts\start-sp903-demo.ps1`。它會在啟動 Backend 前檢查專用資源歸屬與資料庫帳密。
 3. 開啟 `http://127.0.0.1:8081`。
 
-Demo 的五個基線帳號 `admin`、`manager`、`buyer`、`warehouse`、`planner` 使用 `.env.demo` 的 `DEMO_ACCOUNT_PASSWORD`。每次新登入都重新讀取 Demo 憑證檔；儲存新值後，下一次登入使用新密碼，舊密碼即失效，不需重新啟動 Backend 或執行 Seeder。既有 JWT 仍按原有效期運作。Demo 憑證檔以唯讀方式掛載給 Backend；它包含整份 `.env.demo`，其中的 DB root 密碼因此也可由 Backend 容器讀取。僅在受信任的 Docker 主機使用此配置，勿掛載到 Production。
+Demo 的五個基線帳號 `admin`、`manager`、`buyer`、`warehouse`、`planner` 設定為使用 `.env.demo` 的 `DEMO_ACCOUNT_PASSWORD`。目前的 Host 輪詢同步器沒有登入同步屏障，**不保證環境檔儲存完成後的第一個登入立即採用新密碼**；SP-903 第三輪此項為 **BLOCKED**。不要將 100 ms 輪詢視為即時一致性保證。Production 不使用此 Demo 認證路徑。詳細限制見 `docs/SP-903-DOCKER-RELEASE-CANDIDATE.md`。
+
+Demo 文件來源使用 Host `./samples/documents`，唯讀映射至 Container `/app/samples/demo-documents`。已上傳文件則寫入 Container `/app/data/demo-documents`，由既有 named volume `supplypilot-sp903-local-demo-documents` 持久化。兩個路徑分開使用；樣本 Host 路徑保留原名以支援非 Demo Semantic Gate 手動上傳流程。
 
 ### 開發環境
 

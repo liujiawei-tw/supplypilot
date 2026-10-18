@@ -19,17 +19,17 @@ services:
       DB_URL: jdbc:mysql://mysql:3306/supplypilot_demo?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
       SEMANTIC_DB_URL: jdbc:postgresql://pgvector:5432/supplypilot_semantic_demo
       FRONTEND_ORIGIN: ${FRONTEND_ORIGIN:-http://127.0.0.1:${DEMO_FRONTEND_PORT:-8081}}
-      DOCUMENT_STORAGE_PATH: /app/data/documents
+      DOCUMENT_STORAGE_PATH: /app/data/demo-documents
       DEMO_ACCOUNT_PASSWORD: ${DEMO_ACCOUNT_PASSWORD:?Set DEMO_ACCOUNT_PASSWORD in .env.demo}
       DEMO_DATASET_VERSION: ${DEMO_DATASET_VERSION:-sp-905-zh-tw-v1}
-      DEMO_SAMPLES_PATH: /app/samples/documents
+      DEMO_SAMPLES_PATH: /app/samples/demo-documents
       DEMO_ALLOWED_DATABASE: supplypilot_demo
       DEMO_ALLOWED_SEMANTIC_DATABASE: supplypilot_semantic_demo
       DEMO_PASSWORD_FILE: /run/supplypilot-demo-credentials/password
     volumes:
-      - sp903-document-storage:/app/data/documents
+      - sp903-document-storage:/app/data/demo-documents
       - ./.sp903-demo-credential:/run/supplypilot-demo-credentials:ro
-      - ./samples/documents:/app/samples/documents:ro
+      - ./samples/documents:/app/samples/demo-documents:ro
 
   frontend:
     ports: !override

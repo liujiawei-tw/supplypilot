@@ -63,12 +63,22 @@ class ComposeConfigurationTests(unittest.TestCase):
         prod_document_mounts = [volume for volume in prod["services"]["backend"]["volumes"]
                                 if volume["target"] == "/app/data/documents"]
         demo_document_mounts = [volume for volume in demo["services"]["backend"]["volumes"]
-                                if volume["target"] == "/app/data/documents"]
+                                if volume["target"] == "/app/data/demo-documents"]
         self.assertEqual(1, len(prod_document_mounts))
         self.assertEqual(1, len(demo_document_mounts))
         self.assertNotEqual(prod_document_mounts[0]["source"], demo_document_mounts[0]["source"])
-        self.assertFalse(any(volume["target"] == "/app/data/demo-documents"
-                             for volume in demo["services"]["backend"]["volumes"]))
+        self.assertEqual("/app/data/demo-documents",
+                         demo["services"]["backend"]["environment"]["DOCUMENT_STORAGE_PATH"])
+        self.assertEqual("/app/samples/demo-documents",
+                         demo["services"]["backend"]["environment"]["DEMO_SAMPLES_PATH"])
+        self.assertEqual("sp903-document-storage", demo_document_mounts[0]["source"])
+        self.assertEqual("supplypilot-sp903-local-demo-documents",
+                         demo["volumes"]["sp903-document-storage"]["name"])
+        demo_sample_mounts = [volume for volume in demo["services"]["backend"]["volumes"]
+                              if volume["target"] == "/app/samples/demo-documents"]
+        self.assertEqual(1, len(demo_sample_mounts))
+        self.assertTrue(demo_sample_mounts[0]["read_only"])
+        self.assertEqual(str(ROOT / "samples" / "documents"), demo_sample_mounts[0]["source"])
         self.assertNotIn("secrets", demo["services"]["backend"])
         credential_mounts = [volume for volume in demo["services"]["backend"]["volumes"]
                              if volume["target"] == "/run/supplypilot-demo-credentials"]

@@ -89,7 +89,7 @@ Seeder 使用既有 `DocumentService.upload` 與 `DocumentIngestionService.inges
 
 ## 第六份 UI 文件流程
 
-第六份 `samples/documents/ui-upload-sup-005-v1.txt` 不會被 Seeder 建立。完整演示：
+第六份 `samples/documents/ui-upload-sup-005-v1.txt` 不會被 Seeder 建立。Demo container 的五份 Seed source 掛載至 `/app/samples/demo-documents`；Host 上的 `samples/documents` 路徑保留給此手動 UI Upload 流程使用。完整演示：
 
 1. 以有上傳權限的 `buyer` 或 `admin` 登入本機 UI。
 2. Documents 選擇 `SUPPLIER_CONTRACT`、SUP-005、Title `SUP-005 Seasonal Delivery Addendum`、Version `1.0`，上傳該檔案。
