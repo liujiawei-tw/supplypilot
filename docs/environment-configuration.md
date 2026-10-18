@@ -152,7 +152,7 @@ DEMO_SAMPLES_PATH
 `DEMO_RESET_CONFIRMATION`、`DEMO_ALLOWED_DATABASE`、`DEMO_ALLOWED_SEMANTIC_DATABASE`，並使用明確含
 `demo` 的 `DOCUMENT_STORAGE_PATH`。完整步驟見 `SP-901-DEMO-RESET-RUNBOOK.md`。
 
-Docker Demo 中 `DOCUMENT_STORAGE_PATH=/app/data/demo-documents` 是上傳後文件的持久化根目錄，掛載到既有 named volume `supplypilot-sp903-local-demo-documents`。`DEMO_SAMPLES_PATH=/app/samples/demo-documents` 則是五份虛構基線文件的唯讀來源；Compose 將 Host `./samples/documents` 映射到此 Container 路徑。Host source 保留 `samples/documents`，因為 SP-901 Semantic Gate 的人工 UI Upload 同樣引用該目錄。兩者不可共用同一目錄。Demo 基線密碼的來源設定為 Host `.env.demo`，但現行 100 ms 同步器沒有登入同步屏障；「儲存完成後第一個登入立即採用新值」尚未達成，狀態為 **BLOCKED**。詳見 `SP-903-DOCKER-RELEASE-CANDIDATE.md`。
+Docker Demo 中 `DOCUMENT_STORAGE_PATH=/app/data/demo-documents` 是上傳後文件的持久化根目錄，掛載到既有 named volume `supplypilot-sp903-local-demo-documents`。`DEMO_SAMPLES_PATH=/app/samples/demo-documents` 則是五份虛構基線文件的唯讀來源；Compose 將 Host `./samples/documents` 映射到此 Container 路徑。Host source 保留 `samples/documents`，因為 SP-901 Semantic Gate 的人工 UI Upload 同樣引用該目錄。兩者不可共用同一目錄。Demo 基線密碼的來源設定為 Host `.env.demo`，但現行 100 ms 同步器沒有登入同步屏障；「儲存完成後第一個登入立即採用新值」尚未達成，第四輪後狀態仍為 **BLOCKED**。詳見 `SP-903-DOCKER-RELEASE-CANDIDATE.md`。
 
 ---
 
@@ -526,7 +526,7 @@ Compose 插值遵守 Shell Environment 優先於 `--env-file`。Production 標�
 
 `demo` Profile 對 `admin`、`manager`、`buyer`、`warehouse`、`planner` 的每次新登入會重新讀取唯讀目錄掛載中的 password-only 檔案。受控 Demo 啟動器讀取 `.env.demo`，只同步 `DEMO_ACCOUNT_PASSWORD`；來源缺檔、I/O 錯誤、格式錯誤、重複 Key、空值、少於 6 或超過 100 字元時會移除舊密碼檔，基線登入因此失敗。這五個帳號只依檔案密碼驗證，不保留資料庫雜湊的舊密碼備援；仍須通過帳號存在和 ACTIVE 狀態檢查。其他 Demo 使用者沿用資料庫 BCrypt 驗證。Production 不建立此元件，也不掛載 Demo 環境檔。
 
-現行同步器每 100 ms 檢查 `.env.demo`，以暫存檔和原子替換更新 Host-mounted password 檔。輪詢間隔內仍可能保留前一版密碼；因此**無法保證環境檔儲存完成後的第一個登入一定使用新密碼**。SP-903 第三輪要求的同步 Host 驗證通道尚未實作，狀態為 **BLOCKED**；不要把週期同步稱為即時一致性。Backend 不重啟、不重新 Seed，也不寫業務資料；已簽發 JWT 依原有效期到期。Production 不使用這個 Demo 認證機制。
+現行同步器每 100 ms 檢查 `.env.demo`，以暫存檔和原子替換更新 Host-mounted password 檔。輪詢間隔內仍可能保留前一版密碼；因此**無法保證環境檔儲存完成後的第一個登入一定使用新密碼**。SP-903 第四輪要求的同步 Host 驗證通道尚未實作，狀態為 **BLOCKED**；不要把週期同步稱為即時一致性。Backend 不重啟、不重新 Seed，也不寫業務資料；已簽發 JWT 依原有效期到期。Production 不使用這個 Demo 認證機制。
 
 ### 初始 Production 管理員
 

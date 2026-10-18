@@ -8,7 +8,7 @@ Production 預設使用 `prod` Profile、固定的 `supplypilot_prod` / `supplyp
 
 Demo 只用 `compose.demo.yaml` 覆蓋必要差異：Compose Project、Profile、資料庫名稱、Demo 文件 Storage、基線密碼來源及 Frontend Port。Demo 專案名稱和三個 named volume 保留舊 SP-903 名稱，讓原 Demo 資料繼續使用；資料庫憑證若與舊 Volume 不符，受控啟動器會在啟動 Backend 前拒絕繼續。不得為了解決憑證錯誤移除 Volume 或 Reset 資料。
 
-Demo 的 `DOCUMENT_STORAGE_PATH` 是 `/app/data/demo-documents`，由既有 logical key `sp903-document-storage` 和 Docker volume `supplypilot-sp903-local-demo-documents` 掛載。這是既有 release candidate 使用的容器內位置；修正只恢復 mount target，不改 volume 名稱或檔案。Sample source 則是 Host `./samples/documents`，唯讀掛載至 Container `/app/samples/demo-documents`。Host 樣本路徑保留原名，因 SP-901 Semantic Gate 的手動 UI 上傳也使用該路徑。
+Demo Backend 使用 `!override` 取代基底的整組 volume mounts，因此合併後只會掛載三項：文件 volume `sp903-document-storage:/app/data/demo-documents`、唯讀憑證目錄 `./.sp903-demo-credential:/run/supplypilot-demo-credentials:ro`，以及唯讀樣本 `./samples/documents:/app/samples/demo-documents:ro`。不會留下基底的 `/app/data/documents` 或 Production 文件 volume。既有文件 volume 名稱與 Container target 均保留。Host 樣本路徑保留原名，因 SP-901 Semantic Gate 的手動 UI 上傳也使用該路徑。
 
 開發資料庫使用 `compose.dev.yaml` 的 `supplypilot-dev-v2` 專案與新 Volume，避免接管先前 `compose.yaml` 建立的開發 Volume。舊開發資料仍留在 Docker，不會由這份配置修改。
 
@@ -32,7 +32,7 @@ Demo 的 `DOCUMENT_STORAGE_PATH` 是 `/app/data/demo-documents`，由既有 logi
 
 Compose 的 Process Environment 優先於 `--env-file`。執行標準命令前，確認目前 PowerShell 工作階段沒有同名的 DB、JWT、Demo 或 Compose Project 環境變數；受控 Demo 啟動器會清除並在結束時還原插值用的 Process Environment。Compose Project 名稱、資料庫名稱和 Demo volume 名稱由 Compose 檔案定義，避免憑證外的 shell 變數改變資料位置。
 
-目前基線登入仍使用 Host 同步器複製到 `.sp903-demo-credential/password` 的密碼檔。它會週期檢查來源，但沒有與登入建立同步屏障；因此**不保證 `.env.demo` 儲存完成後的第一個登入立即採用新值**。SP-903 第三輪的嚴格即時一致性尚未實作，狀態為 **BLOCKED**；不得把 100 ms 輪詢描述為符合要求。Backend 不掛載整份 `.env.demo`，Production Compose 不使用 Demo 憑證。
+目前基線登入仍使用 Host 同步器複製到 `.sp903-demo-credential/password` 的密碼檔。它會週期檢查來源，但沒有與登入建立同步屏障；因此**不保證 `.env.demo` 儲存完成後的第一個登入立即採用新值**。SP-903 第四輪的嚴格即時一致性尚未實作，狀態為 **BLOCKED**；不得把 100 ms 輪詢描述為符合要求。Backend 不掛載整份 `.env.demo`，Production Compose 不使用 Demo 憑證。
 
 在 Host 驗證通道完成並通過 Windows Docker Desktop 與 Linux Docker Engine 的真實容器測試前，請勿依賴密碼輪替的「下一次登入立即生效」語意。現有同步器的檔案複製測試只能驗證複製與掛載，不是第一個 HTTP Login Request 一致性證據。
 
@@ -74,6 +74,8 @@ pwsh -NoProfile -File .\scripts\start-sp903-demo.ps1
 
 啟動器會先檢查 `.env.demo` 必要鍵、重複鍵、JWT 格式、忽略規則、Docker Engine、Compose Volume/Container 歸屬和 Compose 結構；接著只啟動兩個資料庫、以實際應用程式帳密執行 `SELECT 1`，成功後才啟動 Backend 和 Frontend。啟動器沒有 Reset 或刪除資源的路徑。四個服務健康後，重複執行相同命令可用來恢復或重啟 Stack。
 
+升級前若 Backend Container 同時掛載 `/app/data/documents` 上的 Compose volume key `document-storage` 與 Demo 文件 volume，啟動器只對同時符合 Demo project/service labels、舊 volume key 及舊 target 的這一種已知配置暫時放行。DB 帳密檢查成功後，啟動器會只對 Backend 執行 `up --force-recreate backend`，接著以嚴格模式核對全部 mounts；舊額外 volume 只會脫離 Container，保留在 Docker 中，不刪除、不搬移、不覆寫。labels 或 target 不符的額外 volume 仍拒絕啟動。此升級流程尚未在本機 Docker Engine 實際執行。
+
 安全停止與恢復：
 
 ```powershell
@@ -81,7 +83,7 @@ docker compose --env-file .env.demo -f compose.yaml -f compose.demo.yaml stop
 pwsh -NoProfile -File .\scripts\start-sp903-demo.ps1
 ```
 
-受控啟動器也可重複執行。Docker Desktop 或 Windows 重啟後請執行啟動器，Compose 的 `unless-stopped` 會恢復容器並重新啟動密碼同步器。直接執行 Compose `up` 會恢復容器，但不會啟動同步器。資料庫、文件和 pgvector 的資料使用 named volume 持久化。禁止使用 `down -v`、`docker volume rm`、`docker volume prune`，也不要自行執行 Demo Reset。
+受控啟動器也可重複執行。Docker Desktop 或 Windows 重啟後請執行啟動器；Compose 的 `unless-stopped` 會恢復容器。直接執行 Compose `up` 會恢復容器，但不會啟動 Host 密碼同步器。資料庫、文件和 pgvector 的資料使用 named volume 持久化。禁止使用 `down -v`、`docker volume rm`、`docker volume prune`，也不要自行執行 Demo Reset。
 
 若舊 Volume 的 Compose 標籤或帳密不符，啟動器會拒絕接管；人工檢查 Docker Volume/Container metadata 並驗證原應用程式帳密後，再依據確認後的相容路徑處理。不要靜默建立新空資料庫並聲稱舊資料已恢復。SP-910 r4 的專案和 Volume 不在本 Compose 的資源清單中。
 
@@ -98,10 +100,10 @@ docker compose --env-file $env:TEMP\supplypilot-demo-test.env -f compose.yaml -f
 
 | 驗收項目 | 狀態 |
 |---|---|
-| Production / Demo Compose 結構驗證 | 隔離假憑證 `docker compose config --format json` 測試通過；檢查合併後 Demo `DOCUMENT_STORAGE_PATH`、samples mount、唯讀標記、既有 logical key 與 volume name，並檢查各自 loopback Frontend port 及資料庫不發布 |
+| Production / Demo Compose 結構驗證 | 隔離假憑證 `docker compose config --format json` 測試通過；合併後完整 Demo Backend mount 集合恰有文件 volume、唯讀 samples 與唯讀憑證目錄，沒有 `/app/data/documents` 或第二份文件 volume；也檢查各自 loopback Frontend port 及資料庫不發布 |
 | Demo Seeder／五角色 HTTP 登入／文件 Ingestion | Maven `verify` 使用 Windows Docker Desktop 上的 Testcontainers 完成，包含 Demo Seed Smoke HTTP 測試；不等同完整合併 Compose stack 啟動驗收 |
 | 合併 Demo Compose 實際啟動、文件讀取／重啟持久性 | **NOT RUN**：Docker CLI 對目前 Docker Desktop Linux Engine named pipe 回覆 permission denied；未檢視或操作任何既有 Volume |
 | Production Admin 真實 Container 登入及改密碼 | Maven `verify` 使用 Windows Docker Desktop 上的 Testcontainers 完成：首次初始化、受限 token、改密碼、重啟不重設、空 users 保護、無 ACTIVE ADMIN fail-closed、交易回滾與並行初始化 |
 | `.env.demo` 儲存後第一個 HTTP Login Request 使用新密碼 | **BLOCKED**：現行 100 ms Host 輪詢複製沒有登入同步屏障；沒有第一個登入立即一致性的證據。Windows Docker Desktop 與 Linux Docker Engine 均未實測此一致性 |
-| Fresh Start、重啟與舊 Volume 判定 | PowerShell 自動測試覆蓋全無 Volume、舊版相容 labels、部分 Volume、錯誤 project/key；本機 Docker Engine 無法連線，未檢查或操作真實 Volume，也未執行實際啟動 |
+| Fresh Start、重啟與舊 Volume 判定 | PowerShell 自動測試覆蓋全無 Volume、舊版相容 labels、部分 Volume、錯誤 project/key；已知雙文件 mount 的安全升級分支依 Compose project/key/target labels 限縮，並在 Compose 更新後要求嚴格 mount 核對。此分支未在真實 Docker Container 執行；本機 Docker Engine 無法連線，未檢查或操作真實 Volume，也未執行實際啟動 |
 | AWS、HTTPS、Gemini、Semantic Gate、午夜 Reset | 不屬於此本機 Compose 實作證據，依 Issue #45 / #117 後續 Gate 驗收 |

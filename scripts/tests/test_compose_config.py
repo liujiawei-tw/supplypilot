@@ -16,7 +16,7 @@ def compose_config(env_file: Path, demo: bool) -> dict:
     else:
         command += ["-f", str(ROOT / "compose.yaml")]
     command += ["config", "--format", "json"]
-    result = subprocess.run(command, cwd=ROOT, check=True, capture_output=True, text=True)
+    result = subprocess.run(command, cwd=ROOT, check=True, capture_output=True, text=True, encoding="utf-8")
     return json.loads(result.stdout)
 
 
@@ -62,10 +62,17 @@ class ComposeConfigurationTests(unittest.TestCase):
 
         prod_document_mounts = [volume for volume in prod["services"]["backend"]["volumes"]
                                 if volume["target"] == "/app/data/documents"]
-        demo_document_mounts = [volume for volume in demo["services"]["backend"]["volumes"]
+        all_demo_mounts = demo["services"]["backend"]["volumes"]
+        demo_document_mounts = [volume for volume in all_demo_mounts
                                 if volume["target"] == "/app/data/demo-documents"]
         self.assertEqual(1, len(prod_document_mounts))
         self.assertEqual(1, len(demo_document_mounts))
+        self.assertNotIn("/app/data/documents", {volume["target"] for volume in all_demo_mounts})
+        self.assertEqual(1, sum(volume["type"] == "volume" and volume["target"] == "/app/data/demo-documents"
+                                for volume in all_demo_mounts))
+        self.assertEqual({"/app/data/demo-documents"}, {
+            volume["target"] for volume in all_demo_mounts if volume["type"] == "volume"
+        })
         self.assertNotEqual(prod_document_mounts[0]["source"], demo_document_mounts[0]["source"])
         self.assertEqual("/app/data/demo-documents",
                          demo["services"]["backend"]["environment"]["DOCUMENT_STORAGE_PATH"])
@@ -79,10 +86,15 @@ class ComposeConfigurationTests(unittest.TestCase):
         self.assertEqual(1, len(demo_sample_mounts))
         self.assertTrue(demo_sample_mounts[0]["read_only"])
         self.assertEqual(str(ROOT / "samples" / "documents"), demo_sample_mounts[0]["source"])
+        self.assertEqual("bind", demo_sample_mounts[0]["type"])
         self.assertNotIn("secrets", demo["services"]["backend"])
         credential_mounts = [volume for volume in demo["services"]["backend"]["volumes"]
                              if volume["target"] == "/run/supplypilot-demo-credentials"]
         self.assertEqual(1, len(credential_mounts))
+        self.assertTrue(credential_mounts[0]["read_only"])
+        self.assertEqual({"/app/data/demo-documents", "/app/samples/demo-documents",
+                          "/run/supplypilot-demo-credentials"},
+                         {volume["target"] for volume in all_demo_mounts})
         self.assertNotEqual(".", credential_mounts[0]["source"])
         self.assertFalse(any(".env.demo" in str(volume) for volume in demo["services"]["backend"]["volumes"]))
         self.assertNotEqual(prod["volumes"]["mysql-data"]["name"], demo["volumes"]["sp903-mysql-data"]["name"])

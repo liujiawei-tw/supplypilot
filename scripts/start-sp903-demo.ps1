@@ -75,7 +75,8 @@ function Get-DemoVolumeMetadata {
 }
 
 function Assert-ContainerMountOwnership {
-    param([string]$ContainerId, [string]$ExpectedService, [string[]]$ExpectedVolumeNames)
+    param([string]$ContainerId, [string]$ExpectedService, [string[]]$ExpectedVolumeNames,
+        [switch]$AllowKnownLegacyDocumentMount)
     $json = & docker inspect $ContainerId
     if ($LASTEXITCODE -ne 0) { throw 'Could not inspect a container using a Demo volume.' }
     $container = @($json | ConvertFrom-Json)[0]
@@ -84,13 +85,32 @@ function Assert-ContainerMountOwnership {
         throw 'A Demo volume is attached to a container with unknown ownership; refusing to continue.'
     }
     $actual = @($container.Mounts | Where-Object { $_.Type -eq 'volume' } | ForEach-Object { $_.Name })
-    if (@($actual | Where-Object { $_ -notin $ExpectedVolumeNames }).Count -gt 0 -or
-            @($ExpectedVolumeNames | Where-Object { $_ -notin $actual }).Count -gt 0) {
+    $unexpected = @($actual | Where-Object { $_ -notin $ExpectedVolumeNames })
+    $missing = @($ExpectedVolumeNames | Where-Object { $_ -notin $actual })
+    if ($AllowKnownLegacyDocumentMount -and $ExpectedService -eq 'backend' -and
+            $unexpected.Count -eq 1 -and $missing.Count -eq 0) {
+        $legacyMount = @($container.Mounts | Where-Object { $_.Type -eq 'volume' -and $_.Name -eq $unexpected[0] })
+        if ($legacyMount.Count -eq 1 -and $legacyMount[0].Destination -eq '/app/data/documents') {
+            $legacyJson = & docker volume inspect $unexpected[0]
+            if ($LASTEXITCODE -eq 0) {
+                $legacyVolume = @($legacyJson | ConvertFrom-Json)[0]
+                $labels = $legacyVolume.Labels
+                if ($labels.'com.docker.compose.project' -eq $project -and
+                        $labels.'com.docker.compose.volume' -eq 'document-storage') {
+                    $script:LegacyDocumentMountFound = $true
+                    Write-Warning 'Known legacy Demo document mount found. Compose will recreate only the Backend; the detached legacy volume will be preserved.'
+                    return
+                }
+            }
+        }
+    }
+    if ($unexpected.Count -gt 0 -or $missing.Count -gt 0) {
         throw "Demo service '$ExpectedService' has unexpected volume mounts; refusing to continue."
     }
 }
 
 function Assert-DemoVolumeConsumers {
+    param([switch]$AllowKnownLegacyDocumentMount)
     $expectedConsumers = @{
         'supplypilot-sp903-local-demo-mysql' = 'mysql'
         'supplypilot-sp903-local-demo-pgvector' = 'pgvector'
@@ -101,12 +121,14 @@ function Assert-DemoVolumeConsumers {
         if ($LASTEXITCODE -ne 0) { throw 'Could not inspect containers attached to Demo volumes.' }
         foreach ($id in $ids) {
             if ([string]::IsNullOrWhiteSpace([string]$id)) { continue }
-            Assert-ContainerMountOwnership -ContainerId $id -ExpectedService $entry.Value -ExpectedVolumeNames @($entry.Key)
+            Assert-ContainerMountOwnership -ContainerId $id -ExpectedService $entry.Value `
+                -ExpectedVolumeNames @($entry.Key) -AllowKnownLegacyDocumentMount:$AllowKnownLegacyDocumentMount
         }
     }
 }
 
 function Assert-ProjectContainers {
+    param([switch]$AllowKnownLegacyDocumentMount)
     $ids = @(& docker ps -aq --filter "label=com.docker.compose.project=$project")
     if ($LASTEXITCODE -ne 0) { throw 'Could not inspect containers for the Demo Compose project.' }
     foreach ($id in $ids) {
@@ -124,7 +146,8 @@ function Assert-ProjectContainers {
             'backend' { @('supplypilot-sp903-local-demo-documents') }
             'frontend' { @() }
         }
-        Assert-ContainerMountOwnership -ContainerId $id -ExpectedService $service -ExpectedVolumeNames $expectedVolumes
+        Assert-ContainerMountOwnership -ContainerId $id -ExpectedService $service `
+            -ExpectedVolumeNames $expectedVolumes -AllowKnownLegacyDocumentMount:$AllowKnownLegacyDocumentMount
     }
 }
 
@@ -156,9 +179,9 @@ if (-not $pythonCommand) { $pythonCommand = Get-Command python3 -ErrorAction Sil
 if (-not $pythonCommand) { throw 'Python 3 is required for Demo credential synchronization.' }
 $volumeState = Get-DemoVolumeMetadata
 if ($volumeState.State -eq 'Existing') {
-    Assert-DemoVolumeConsumers
+    Assert-DemoVolumeConsumers -AllowKnownLegacyDocumentMount
 }
-Assert-ProjectContainers
+Assert-ProjectContainers -AllowKnownLegacyDocumentMount
 
 $composeArgs = @('compose', '--project-name', $project, '--env-file', $envFile, '-f', $composeBase, '-f', $composeDemo)
 $interpolationNames = Get-ComposeEnvironmentVariableNames -ComposeFiles @($composeBase, $composeDemo)
@@ -193,7 +216,12 @@ Invoke-WithProcessEnvironmentCleared -Names $interpolationNames -Action {
         --credential-directory $credentialSyncDirectory
     if ($LASTEXITCODE -ne 0) { throw 'Could not synchronize Demo baseline credentials; Backend was not started.' }
 
+    if ($script:LegacyDocumentMountFound) {
+        Invoke-Compose -Arguments @('up', '--detach', '--build', '--force-recreate', '--wait',
+            '--wait-timeout', '300', 'backend')
+    }
     Invoke-Compose -Arguments @('up', '--detach', '--build', '--wait', '--wait-timeout', '300', 'backend', 'frontend')
+    Assert-ProjectContainers
     $serviceStatus = & docker @composeArgs ps --format json
     if ($LASTEXITCODE -ne 0) { throw 'Could not verify SP-903 service health.' }
     $statuses = @($serviceStatus | ForEach-Object { $_ | ConvertFrom-Json })

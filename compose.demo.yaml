@@ -26,7 +26,7 @@ services:
       DEMO_ALLOWED_DATABASE: supplypilot_demo
       DEMO_ALLOWED_SEMANTIC_DATABASE: supplypilot_semantic_demo
       DEMO_PASSWORD_FILE: /run/supplypilot-demo-credentials/password
-    volumes:
+    volumes: !override
       - sp903-document-storage:/app/data/demo-documents
       - ./.sp903-demo-credential:/run/supplypilot-demo-credentials:ro
       - ./samples/documents:/app/samples/demo-documents:ro
