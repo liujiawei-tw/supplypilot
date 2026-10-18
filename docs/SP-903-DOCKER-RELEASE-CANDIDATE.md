@@ -113,5 +113,5 @@ docker compose --env-file $env:TEMP\supplypilot-demo-test.env -f compose.yaml -f
 | Production Admin 真實 Container 登入及改密碼 | Maven `verify` 的隔離 Testcontainers 覆蓋首次初始化、受限 token、改密碼、重啟不重設、空 users 保護、無 ACTIVE ADMIN fail-closed、交易回滾與並行初始化；不是完整 Production Compose 啟動驗收 |
 | Mount ownership 與舊 Container 升級控制流程 | `pwsh -NoProfile -File scripts/tests/test-sp903-demo-startup.ps1` PASS；fixture 覆蓋 Linux 大小寫、Windows path 正規化、mount ownership、舊雙文件 mount、Backend-only `--no-deps` recreate、DB Container ID 未變／變更與失敗分支。**真實舊 Container upgrade NOT RUN**：未接觸固定名稱的現有 Demo 資源 |
 | Linux Docker Engine | **NOT RUN**：本次工作環境為 Windows Docker Desktop，未連接 Linux Host；Linux firewall、setfacl、host-gateway 與實際容器 mount 尚未實測 |
-| GitHub Actions | 待將本輪 Commit Push 後，以新 Head SHA 查詢 combined status；Commit 前不把 CI 標示為通過 |
+| GitHub Actions | 程式 Commit `7f5c0ffdad93ab1067e67a38ca0457555e59d6af` 的 push Run [#140](https://github.com/liujiawei-tw/supplypilot/actions/runs/39146743930) 曾啟動；查核發現 workflow 還引用已移除的輪詢同步測試，因此已在後續修正 CI 接線。請以包含該 workflow 修正的最新 Commit SHA 查核新 Run；未完成前不標示 CI PASS |
 | AWS、HTTPS、Gemini、Semantic Gate、午夜 Reset | 不屬於此本機 Compose 實作證據，依 Issue #45 / #117 後續 Gate 驗收 |

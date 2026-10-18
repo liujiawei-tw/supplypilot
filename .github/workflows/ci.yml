@@ -172,13 +172,13 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v5
 
-      - name: Set up Python for Compose and Demo credential tests
+      - name: Set up Python for Compose and Host verifier tests
         uses: actions/setup-python@v6
         with:
           python-version: "3.12"
 
-      - name: Test Compose merge and password-only synchronization
-        run: python -m unittest scripts.tests.test_compose_config scripts.tests.test_sync_sp903_demo_credential -v
+      - name: Test Compose merge and Host verifier
+        run: python -m unittest scripts.tests.test_compose_config scripts.tests.test_sp903_demo_host_verifier -v
 
       - name: Validate Production and Demo Compose configurations
         shell: bash
