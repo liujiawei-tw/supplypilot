@@ -78,6 +78,7 @@ export default function PurchaseOrdersPage() {
     {error && <ErrorState title="採購單清單載入失敗" error={error} onRetry={() => void load()} />}
     <Table rowKey="id" columns={columns} dataSource={data?.content ?? []} loading={loading}
       locale={{ emptyText: <EmptyState simple description="沒有符合條件的 Purchase Order" /> }}
+      scroll={{ x: true }}
       pagination={{ current: (data?.page ?? 0) + 1, pageSize: data?.size ?? query.size, total: data?.totalElements ?? 0, showSizeChanger: true }}
       onChange={(pagination, _filters, sorter) => {
         const selected = Array.isArray(sorter) ? sorter[0] : sorter;

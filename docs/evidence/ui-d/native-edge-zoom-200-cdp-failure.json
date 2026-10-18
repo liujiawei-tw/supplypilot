@@ -1,0 +1,112 @@
+{
+  "issue": 114,
+  "repository": "liujiawei-tw/supplypilot",
+  "branch": "codex/sp908-ui-d-frontend-quality",
+  "testedGitSha": "5a636094d728edd8c0fe5ef0e127bde4ccb97bd3",
+  "status": "FAIL",
+  "observedAt": "2026-10-17T15:42:02.855Z",
+  "edgeVersion": "155.0.4283.62",
+  "playwrightVersion": "1.64.1",
+  "url": "http://127.0.0.1:5181/purchase-orders",
+  "cdpEndpoint": "http://127.0.0.1:9223",
+  "browserProcessId": 31232,
+  "hwnd": "Unknown",
+  "profileIsolated": true,
+  "fixtureRoutingActive": true,
+  "fixtureAuthMeStatus": 200,
+  "role": "PROCUREMENT_STAFF",
+  "beforeZoom": {
+    "measuredAt": "2026-10-17T15:41:44.072Z",
+    "url": "http://127.0.0.1:5181/purchase-orders",
+    "innerWidth": 1028,
+    "innerHeight": 706,
+    "devicePixelRatio": 1.25,
+    "visualViewport": {
+      "width": 1028,
+      "height": 705.5999755859375,
+      "scale": 1,
+      "offsetLeft": 0,
+      "offsetTop": 0
+    },
+    "screen": {
+      "width": 1536,
+      "height": 864,
+      "availWidth": 1536,
+      "availHeight": 816
+    },
+    "document": {
+      "clientWidth": 1028,
+      "scrollWidth": 1028,
+      "clientHeight": 706,
+      "scrollHeight": 706
+    },
+    "activeElement": "SupplyPilot採購決策平台儀表板主檔管理需求與庫存採購決策採購單與收貨文件與 AISupplyPilot — AI 採購與供應鏈決策平台AI 助理UI-D Fixture Buyer（ui-d"
+  },
+  "afterZoom": {
+    "measuredAt": "2026-10-17T15:42:02.792Z",
+    "url": "http://127.0.0.1:5181/purchase-orders",
+    "innerWidth": 764,
+    "innerHeight": 366,
+    "devicePixelRatio": 2.5,
+    "visualViewport": {
+      "width": 756.4000244140625,
+      "height": 366,
+      "scale": 1,
+      "offsetLeft": 0,
+      "offsetTop": 0
+    },
+    "screen": {
+      "width": 1536,
+      "height": 864,
+      "availWidth": 1536,
+      "availHeight": 816
+    },
+    "document": {
+      "clientWidth": 756,
+      "scrollWidth": 756,
+      "clientHeight": 366,
+      "scrollHeight": 715
+    },
+    "activeElement": "SupplyPilot採購決策平台儀表板主需採採文SupplyPilot — AI 採購與供應鏈決策平台AI 助理UI-D Fixture Buyer（ui-d-buyer）採購人員登出採購單管理查詢"
+  },
+  "nativeZoomLabel": "縮放: 200%",
+  "nativeScreenshot": "screenshots/edge-window-zoom-200-cdp-final.png",
+  "failure": "Header AI 助理按鈕未落在 200% Zoom 下可操作 viewport 內，Playwright assertion failed before the next interaction case.",
+  "interactionResults": {
+    "aiAndDocumentDrawers": "NOT RUN",
+    "confirmationModalAndEscapeFocusReturn": "NOT RUN",
+    "horizontalAndVerticalScrolling": "NOT RUN",
+    "purchaseOrderFormEntry": "NOT RUN",
+    "multiItem": "NOT RUN",
+    "sidebarOpenAndNavigate": "NOT RUN",
+    "supplier120AndMaterial101": "NOT RUN",
+    "appHeader": "FAIL"
+  },
+  "playwrightFailure": "Error: App Header AI button is not operable in viewport at 200%\n    at assert (file:///C:/Users/z0976/OneDrive/%E6%A1%8C%E9%9D%A2/dev-side/supplypilot/docs/evidence/ui-d/run-native-edge-zoom-200.mjs:163:64)\n    at file:///C:/Users/z0976/OneDrive/%E6%A1%8C%E9%9D%A2/dev-side/supplypilot/docs/evidence/ui-d/run-native-edge-zoom-200.mjs:213:3",
+  "apiRequests": [
+    {
+      "method": "GET",
+      "path": "/auth/me",
+      "query": {},
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/auth/me",
+      "query": {},
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/purchase-orders",
+      "query": {
+        "page": "0",
+        "size": "20",
+        "sort": "createdAt,desc"
+      },
+      "status": 200
+    }
+  ],
+  "backendIntegration": false,
+  "physicalDeviceTest": false
+}

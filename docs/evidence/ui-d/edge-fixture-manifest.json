@@ -1,0 +1,731 @@
+{
+  "generatedAt": "2026-10-17T12:17:36.912Z",
+  "gitSha": "working-tree",
+  "browser": "Microsoft Edge via Playwright channel=msedge, headed",
+  "playwrightVersion": "1.64.1",
+  "fixtureMode": true,
+  "backendIntegration": false,
+  "physicalDeviceTest": false,
+  "requests": [
+    {
+      "method": "GET",
+      "path": "/auth/me",
+      "query": {},
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/auth/me",
+      "query": {},
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/purchase-orders",
+      "query": {
+        "page": "0",
+        "size": "20",
+        "sort": "createdAt,desc"
+      },
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/suppliers",
+      "query": {
+        "page": "0",
+        "size": "20",
+        "sort": "code,asc",
+        "status": "ACTIVE"
+      },
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/materials",
+      "query": {
+        "page": "0",
+        "size": "20",
+        "sort": "code,asc",
+        "status": "ACTIVE"
+      },
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/suppliers",
+      "query": {
+        "page": "0",
+        "size": "20",
+        "sort": "code,asc",
+        "status": "ACTIVE"
+      },
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/materials",
+      "query": {
+        "page": "0",
+        "size": "20",
+        "sort": "code,asc",
+        "status": "ACTIVE"
+      },
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/suppliers",
+      "query": {
+        "page": "0",
+        "size": "20",
+        "sort": "code,asc",
+        "code": "SUP-120",
+        "status": "ACTIVE"
+      },
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/materials",
+      "query": {
+        "page": "0",
+        "size": "20",
+        "sort": "code,asc",
+        "code": "MAT-101",
+        "status": "ACTIVE"
+      },
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/purchase-orders",
+      "query": {},
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/purchase-orders",
+      "query": {
+        "page": "0",
+        "size": "20",
+        "sort": "createdAt,desc"
+      },
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/auth/me",
+      "query": {},
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/auth/me",
+      "query": {},
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/purchase-orders",
+      "query": {
+        "page": "0",
+        "size": "20",
+        "sort": "createdAt,desc"
+      },
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/suppliers",
+      "query": {
+        "page": "0",
+        "size": "20",
+        "sort": "code,asc",
+        "status": "ACTIVE"
+      },
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/materials",
+      "query": {
+        "page": "0",
+        "size": "20",
+        "sort": "code,asc",
+        "status": "ACTIVE"
+      },
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/suppliers",
+      "query": {
+        "page": "0",
+        "size": "20",
+        "sort": "code,asc",
+        "status": "ACTIVE"
+      },
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/materials",
+      "query": {
+        "page": "0",
+        "size": "20",
+        "sort": "code,asc",
+        "status": "ACTIVE"
+      },
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/suppliers",
+      "query": {
+        "page": "0",
+        "size": "20",
+        "sort": "code,asc",
+        "code": "SUP-120",
+        "status": "ACTIVE"
+      },
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/materials",
+      "query": {
+        "page": "0",
+        "size": "20",
+        "sort": "code,asc",
+        "code": "MAT-101",
+        "status": "ACTIVE"
+      },
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/purchase-orders",
+      "query": {},
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/purchase-orders",
+      "query": {
+        "page": "0",
+        "size": "20",
+        "sort": "createdAt,desc"
+      },
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/auth/me",
+      "query": {},
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/auth/me",
+      "query": {},
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/purchase-orders",
+      "query": {
+        "page": "0",
+        "size": "20",
+        "sort": "createdAt,desc"
+      },
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/suppliers",
+      "query": {
+        "page": "0",
+        "size": "20",
+        "sort": "code,asc",
+        "status": "ACTIVE"
+      },
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/materials",
+      "query": {
+        "page": "0",
+        "size": "20",
+        "sort": "code,asc",
+        "status": "ACTIVE"
+      },
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/suppliers",
+      "query": {
+        "page": "0",
+        "size": "20",
+        "sort": "code,asc",
+        "status": "ACTIVE"
+      },
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/materials",
+      "query": {
+        "page": "0",
+        "size": "20",
+        "sort": "code,asc",
+        "status": "ACTIVE"
+      },
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/suppliers",
+      "query": {
+        "page": "0",
+        "size": "20",
+        "sort": "code,asc",
+        "code": "SUP-120",
+        "status": "ACTIVE"
+      },
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/materials",
+      "query": {
+        "page": "0",
+        "size": "20",
+        "sort": "code,asc",
+        "code": "MAT-101",
+        "status": "ACTIVE"
+      },
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/purchase-orders",
+      "query": {},
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/purchase-orders",
+      "query": {
+        "page": "0",
+        "size": "20",
+        "sort": "createdAt,desc"
+      },
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/auth/me",
+      "query": {},
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/auth/me",
+      "query": {},
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/purchase-orders",
+      "query": {
+        "page": "0",
+        "size": "20",
+        "sort": "createdAt,desc"
+      },
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/auth/me",
+      "query": {},
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/auth/me",
+      "query": {},
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/documents",
+      "query": {
+        "page": "0",
+        "size": "20",
+        "sort": "uploadedAt,desc"
+      },
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/documents/501",
+      "query": {},
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/auth/me",
+      "query": {},
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/auth/me",
+      "query": {},
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/purchase-orders",
+      "query": {
+        "page": "0",
+        "size": "20",
+        "sort": "createdAt,desc"
+      },
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/auth/me",
+      "query": {},
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/auth/me",
+      "query": {},
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/purchase-orders",
+      "query": {
+        "status": "DRAFT",
+        "page": "0",
+        "size": "5",
+        "sort": "id,desc"
+      },
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/purchase-orders",
+      "query": {
+        "status": "APPROVED",
+        "page": "0",
+        "size": "5",
+        "sort": "id,desc"
+      },
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/purchase-orders",
+      "query": {
+        "status": "ORDERED",
+        "page": "0",
+        "size": "5",
+        "sort": "id,desc"
+      },
+      "status": 200
+    }
+  ],
+  "cases": [
+    {
+      "id": "po-create-375",
+      "viewport": {
+        "width": 375,
+        "height": 812
+      },
+      "status": "PASS",
+      "checks": {
+        "modalFits": true,
+        "modalGeometry": {
+          "left": 45.44279861450195,
+          "right": 329.7572212219238,
+          "width": 284.3144226074219,
+          "viewportWidth": 375,
+          "scrollWidth": 359
+        },
+        "activeInsideDialog": true,
+        "focusReturned": true,
+        "idCorrect": true,
+        "source": "Edge + controlled API Fixture"
+      },
+      "screenshot": "screenshots/po-modal-375.png"
+    },
+    {
+      "id": "po-create-768",
+      "viewport": {
+        "width": 768,
+        "height": 1024
+      },
+      "status": "PASS",
+      "checks": {
+        "modalFits": true,
+        "modalGeometry": {
+          "left": 71.46489715576172,
+          "right": 696.5351486206055,
+          "width": 625.0702514648438,
+          "viewportWidth": 768,
+          "scrollWidth": 736
+        },
+        "activeInsideDialog": true,
+        "focusReturned": true,
+        "idCorrect": true,
+        "source": "Edge + controlled API Fixture"
+      },
+      "screenshot": "screenshots/po-modal-768.png"
+    },
+    {
+      "id": "po-create-1440",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "status": "PASS",
+      "checks": {
+        "modalFits": true,
+        "modalGeometry": {
+          "left": 404.6064147949219,
+          "right": 1035.3935241699219,
+          "width": 630.787109375,
+          "viewportWidth": 1440,
+          "scrollWidth": 900
+        },
+        "activeInsideDialog": true,
+        "focusReturned": true,
+        "idCorrect": true,
+        "source": "Edge + controlled API Fixture"
+      },
+      "screenshot": "screenshots/po-modal-1440.png"
+    },
+    {
+      "id": "po-list-horizontal-scroll-375",
+      "viewport": {
+        "width": 375,
+        "height": 812
+      },
+      "status": "PASS",
+      "checks": {
+        "left": 40,
+        "right": 320,
+        "width": 280,
+        "clientWidth": 280,
+        "scrollWidth": 434,
+        "overflowX": "auto",
+        "pageScrollWidth": 360,
+        "viewportWidth": 375,
+        "poTableCanScrollHorizontally": true
+      },
+      "screenshot": "screenshots/po-list-375.png"
+    },
+    {
+      "id": "sidebar-toggle-375",
+      "viewport": {
+        "width": 375,
+        "height": 812
+      },
+      "status": "PASS",
+      "checks": {
+        "siderTriggerVisible": true,
+        "sidebarOpens": true
+      },
+      "screenshot": "screenshots/sidebar-375.png"
+    },
+    {
+      "id": "document-drawer-375",
+      "viewport": {
+        "width": 375,
+        "height": 812
+      },
+      "status": "PASS",
+      "checks": {
+        "documentDrawerFits": true,
+        "documentDrawerGeometry": {
+          "left": 0,
+          "right": 375.20001220703125,
+          "width": 375.20001220703125,
+          "viewportWidth": 375,
+          "scrollWidth": 375
+        },
+        "longTitleVisible": true
+      },
+      "screenshot": "screenshots/document-drawer-375.png"
+    },
+    {
+      "id": "ai-drawer-375",
+      "viewport": {
+        "width": 375,
+        "height": 812
+      },
+      "status": "PASS",
+      "checks": {
+        "aiGeometry": {
+          "left": 0,
+          "right": 375.20001220703125,
+          "width": 375.20001220703125,
+          "viewportWidth": 375
+        },
+        "aiDrawerFits": true
+      },
+      "screenshot": "screenshots/ai-drawer-375.png"
+    },
+    {
+      "id": "app-header-375",
+      "viewport": {
+        "width": 375,
+        "height": 812
+      },
+      "status": "PASS",
+      "headerFits": true,
+      "headerGeometry": {
+        "left": 0,
+        "right": 360,
+        "width": 360,
+        "scrollWidth": 360,
+        "viewportWidth": 375
+      },
+      "aiButtonGeometry": {
+        "left": 24,
+        "right": 122.20000457763672,
+        "top": 33.13750076293945,
+        "bottom": 65.13750076293945
+      },
+      "aiButtonVisible": true
+    },
+    {
+      "id": "app-header-768",
+      "viewport": {
+        "width": 768,
+        "height": 1024
+      },
+      "status": "PASS",
+      "headerFits": true,
+      "headerGeometry": {
+        "left": 0,
+        "right": 753,
+        "width": 753,
+        "scrollWidth": 753,
+        "viewportWidth": 768
+      },
+      "aiButtonGeometry": {
+        "left": 292.6875,
+        "right": 390.8875045776367,
+        "top": -20.399999618530273,
+        "bottom": 11.600000381469727
+      },
+      "aiButtonVisible": true
+    },
+    {
+      "id": "app-header-1440",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "status": "PASS",
+      "headerFits": true,
+      "headerGeometry": {
+        "left": 200,
+        "right": 1440,
+        "width": 1240,
+        "scrollWidth": 1240,
+        "viewportWidth": 1440
+      },
+      "aiButtonGeometry": {
+        "left": 949.4750366210938,
+        "right": 1047.6750411987305,
+        "top": 15.600000381469727,
+        "bottom": 47.60000038146973
+      },
+      "aiButtonVisible": true
+    },
+    {
+      "id": "browser-zoom-200",
+      "viewport": {
+        "width": 1440,
+        "height": 1000,
+        "method": "headed Edge Ctrl+Plus repeated; fallback Ctrl+Shift+Equal"
+      },
+      "status": "BLOCKED",
+      "checks": {
+        "browserZoomAtLeast200": false,
+        "zoomResult": {
+          "cssViewport": {
+            "width": 1440,
+            "height": 1000
+          },
+          "devicePixelRatio": 1.0000000149011612,
+          "visualViewportScale": 1
+        },
+        "zoomAttempts": [
+          {
+            "width": 1440,
+            "dpr": 1.0000000149011612
+          },
+          {
+            "width": 1440,
+            "dpr": 1.0000000149011612
+          },
+          {
+            "width": 1440,
+            "dpr": 1.0000000149011612
+          },
+          {
+            "width": 1440,
+            "dpr": 1.0000000149011612
+          },
+          {
+            "width": 1440,
+            "dpr": 1.0000000149011612
+          },
+          {
+            "width": 1440,
+            "dpr": 1.0000000149011612
+          },
+          {
+            "width": 1440,
+            "dpr": 1.0000000149011612
+          },
+          {
+            "width": 1440,
+            "dpr": 1.0000000149011612
+          }
+        ],
+        "effectiveCssViewport": {
+          "width": 1440,
+          "height": 1000
+        },
+        "reason": "Playwright page keyboard did not control Edge browser chrome; innerWidth and devicePixelRatio remained unchanged. CUA stopped after it could not verify the active browser URL."
+      },
+      "screenshot": "screenshots/browser-zoom-200.png"
+    }
+  ],
+  "pageErrors": [],
+  "edgeVersion": "155.0.4283.62",
+  "poDraftPayload": {
+    "supplierId": 120,
+    "items": [
+      {
+        "materialId": 101,
+        "quantity": "12",
+        "unitPrice": "4.2500"
+      }
+    ]
+  },
+  "completedAt": "2026-10-17T12:18:50.340Z",
+  "screenshotDirectory": "screenshots/"
+}

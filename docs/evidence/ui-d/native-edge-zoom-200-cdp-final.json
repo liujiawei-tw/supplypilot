@@ -1,0 +1,811 @@
+{
+  "issue": 114,
+  "repository": "liujiawei-tw/supplypilot",
+  "testedGitSha": "5a636094d728edd8c0fe5ef0e127bde4ccb97bd3",
+  "branch": "codex/sp908-ui-d-frontend-quality",
+  "status": "PASS",
+  "observedAt": "2026-10-17T16:11:15.1442123Z",
+  "session": {
+    "readyAt": "2026-10-17T16:08:47.811Z",
+    "nodePid": 30620,
+    "profilePath": "[redacted]\\AppData\\Local\\Temp\\<unique-task-profile>\\edge-profile",
+    "url": "http://127.0.0.1:5181/purchase-orders",
+    "edgeVersion": "155.0.4283.62",
+    "playwrightVersion": "1.64.1",
+    "cdpEndpoint": "http://127.0.0.1:9223",
+    "fixtureAuthMeStatus": 200,
+    "fixtureRoutingActive": true,
+    "viewportOption": null,
+    "initialPage": {
+      "measuredAt": "2026-10-17T16:08:47.81Z",
+      "url": "http://127.0.0.1:5181/purchase-orders",
+      "innerWidth": 1528,
+      "innerHeight": 732,
+      "devicePixelRatio": 1.25,
+      "visualViewport": {
+        "width": 1528,
+        "height": 732,
+        "scale": 1,
+        "offsetLeft": 0,
+        "offsetTop": 0
+      },
+      "screen": {
+        "width": 1536,
+        "height": 864,
+        "availWidth": 1536,
+        "availHeight": 816
+      },
+      "document": {
+        "clientWidth": 1528,
+        "scrollWidth": 1528,
+        "clientHeight": 732,
+        "scrollHeight": 732
+      },
+      "activeElement": "SupplyPilot採購決策平台儀表板主檔管理需求與庫存採購決策採購單與收貨文件與 AISupplyPilot — AI 採購與供應鏈決策平台AI 助理UI-D Fixture Buyer（ui-d"
+    }
+  },
+  "nativeBrowser": {
+    "cdpEndpoint": "http://127.0.0.1:9223",
+    "hwnd": null,
+    "processId": 32328,
+    "profileIsolated": true
+  },
+  "nativeZoom": {
+    "actualPercent": 200,
+    "verification": "User set the isolated Edge native Settings and more > Zoom control to 200%; read-only Windows UI Automation confirmed its 200% label and same-session CDP page metrics were cross-checked against the pre-zoom baseline.",
+    "evidenceSource": "manual native Edge Zoom control plus read-only UI Automation and Windows virtual-screen screenshot; no CSS zoom, transform, deviceScaleFactor, or CDP Page Scale",
+    "userConfirmedAt": "2026-10-17T16:11:01.128883Z",
+    "screenshotReviewedAt": "2026-10-17T16:11:01.5441201Z",
+    "nativeScreenshot": "screenshots/edge-window-zoom-200-cdp-verified.png",
+    "beforeNativeZoom": {
+      "measuredAt": "2026-10-17T16:08:47.81Z",
+      "url": "http://127.0.0.1:5181/purchase-orders",
+      "innerWidth": 1528,
+      "innerHeight": 732,
+      "devicePixelRatio": 1.25,
+      "visualViewport": {
+        "width": 1528,
+        "height": 732,
+        "scale": 1,
+        "offsetLeft": 0,
+        "offsetTop": 0
+      },
+      "screen": {
+        "width": 1536,
+        "height": 864,
+        "availWidth": 1536,
+        "availHeight": 816
+      },
+      "document": {
+        "clientWidth": 1528,
+        "scrollWidth": 1528,
+        "clientHeight": 732,
+        "scrollHeight": 732
+      },
+      "activeElement": "SupplyPilot採購決策平台儀表板主檔管理需求與庫存採購決策採購單與收貨文件與 AISupplyPilot — AI 採購與供應鏈決策平台AI 助理UI-D Fixture Buyer（ui-d"
+    },
+    "afterNativeZoom": {
+      "measuredAt": "2026-10-17T16:11:01.538Z",
+      "url": "http://127.0.0.1:5181/purchase-orders",
+      "innerWidth": 764,
+      "innerHeight": 366,
+      "devicePixelRatio": 2.5,
+      "visualViewport": {
+        "width": 756.4000244140625,
+        "height": 366,
+        "scale": 1,
+        "offsetLeft": 0,
+        "offsetTop": 0
+      },
+      "screen": {
+        "width": 1536,
+        "height": 864,
+        "availWidth": 1536,
+        "availHeight": 816
+      },
+      "document": {
+        "clientWidth": 756,
+        "scrollWidth": 756,
+        "clientHeight": 366,
+        "scrollHeight": 717
+      },
+      "activeElement": "SupplyPilot採購決策平台儀表板主需採採文SupplyPilot — AI 採購與供應鏈決策平台AI 助理UI-D Fixture Buyer（ui-d-buyer）採購人員登出採購單管理查詢"
+    },
+    "viewportWidthRatio": 2.0,
+    "viewportHeightRatio": 2.0,
+    "devicePixelRatioRatio": 2.0
+  },
+  "osDisplay": {
+    "systemDpi": 120,
+    "systemDpiScale": 1.25,
+    "top": 0,
+    "width": 3840,
+    "height": 1080,
+    "left": -1920
+  },
+  "page": {
+    "createdAt": "2026-10-17T16:08:46.617Z",
+    "fixtureMode": true,
+    "backendIntegration": false,
+    "physicalDeviceTest": false,
+    "role": "PROCUREMENT_STAFF",
+    "url": "http://127.0.0.1:5181/purchase-orders",
+    "playwrightVersion": "1.64.1",
+    "pageErrors": [],
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/auth/me",
+        "query": {},
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/auth/me",
+        "query": {},
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/purchase-orders",
+        "query": {
+          "page": "0",
+          "size": "20",
+          "sort": "createdAt,desc"
+        },
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/purchase-orders",
+        "query": {
+          "status": "DRAFT",
+          "page": "0",
+          "size": "5",
+          "sort": "id,desc"
+        },
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/purchase-orders",
+        "query": {
+          "status": "APPROVED",
+          "page": "0",
+          "size": "5",
+          "sort": "id,desc"
+        },
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/purchase-orders",
+        "query": {
+          "status": "ORDERED",
+          "page": "0",
+          "size": "5",
+          "sort": "id,desc"
+        },
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/auth/me",
+        "query": {},
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/auth/me",
+        "query": {},
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/purchase-orders",
+        "query": {
+          "page": "0",
+          "size": "20",
+          "sort": "createdAt,desc"
+        },
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/suppliers",
+        "query": {
+          "page": "0",
+          "size": "20",
+          "sort": "code,asc",
+          "status": "ACTIVE"
+        },
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/materials",
+        "query": {
+          "page": "0",
+          "size": "20",
+          "sort": "code,asc",
+          "status": "ACTIVE"
+        },
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/suppliers",
+        "query": {
+          "page": "0",
+          "size": "20",
+          "sort": "code,asc",
+          "status": "ACTIVE"
+        },
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/materials",
+        "query": {
+          "page": "0",
+          "size": "20",
+          "sort": "code,asc",
+          "status": "ACTIVE"
+        },
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/suppliers",
+        "query": {
+          "page": "0",
+          "size": "20",
+          "sort": "code,asc",
+          "code": "SUP-120",
+          "status": "ACTIVE"
+        },
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/materials",
+        "query": {
+          "page": "0",
+          "size": "20",
+          "sort": "code,asc",
+          "code": "MAT-101",
+          "status": "ACTIVE"
+        },
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/materials",
+        "query": {
+          "page": "0",
+          "size": "20",
+          "sort": "code,asc",
+          "status": "ACTIVE"
+        },
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/materials",
+        "query": {
+          "page": "0",
+          "size": "20",
+          "sort": "code,asc",
+          "code": "MAT-102",
+          "status": "ACTIVE"
+        },
+        "status": 200
+      },
+      {
+        "method": "POST",
+        "path": "/purchase-orders",
+        "query": {},
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/purchase-orders",
+        "query": {
+          "page": "0",
+          "size": "20",
+          "sort": "createdAt,desc"
+        },
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/auth/me",
+        "query": {},
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/auth/me",
+        "query": {},
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/documents",
+        "query": {
+          "page": "0",
+          "size": "20",
+          "sort": "uploadedAt,desc"
+        },
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/documents/501",
+        "query": {},
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/auth/me",
+        "query": {},
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/auth/me",
+        "query": {},
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/purchase-orders",
+        "query": {
+          "status": "DRAFT",
+          "page": "0",
+          "size": "5",
+          "sort": "id,desc"
+        },
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/purchase-orders",
+        "query": {
+          "status": "APPROVED",
+          "page": "0",
+          "size": "5",
+          "sort": "id,desc"
+        },
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/purchase-orders",
+        "query": {
+          "status": "ORDERED",
+          "page": "0",
+          "size": "5",
+          "sort": "id,desc"
+        },
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/auth/me",
+        "query": {},
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/auth/me",
+        "query": {},
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/purchase-orders",
+        "query": {
+          "page": "0",
+          "size": "20",
+          "sort": "createdAt,desc"
+        },
+        "status": 200
+      }
+    ],
+    "cases": [
+      {
+        "id": "app-header-200",
+        "status": "PASS",
+        "checks": {
+          "header": {
+            "left": 0,
+            "right": 756.4000244140625,
+            "top": 0,
+            "bottom": 65.9375,
+            "width": 756.4000244140625,
+            "scrollWidth": 756,
+            "viewportWidth": 764,
+            "viewportHeight": 366
+          },
+          "aiButton": {
+            "left": 24,
+            "right": 122.1937484741211,
+            "top": 33.13750076293945,
+            "bottom": 65.13750076293945,
+            "inViewport": true,
+            "visible": true
+          },
+          "screenshot": "screenshots/app-header-200-playwright-verified-200.png"
+        }
+      },
+      {
+        "id": "sidebar-open-200",
+        "status": "PASS",
+        "checks": {
+          "sidebarOpens": true,
+          "screenshot": "screenshots/sidebar-open-200-playwright-verified-200.png"
+        }
+      },
+      {
+        "id": "sidebar-navigation-200",
+        "status": "PASS",
+        "checks": {
+          "destination": "http://127.0.0.1:5181/dashboard",
+          "screenshot": "screenshots/sidebar-navigation-200-playwright-verified-200.png"
+        }
+      },
+      {
+        "id": "po-modal-open-escape-focus-200",
+        "status": "PASS",
+        "checks": {
+          "dialog": {
+            "left": 177.06980895996094,
+            "right": 579.3301544189453,
+            "top": 219.1636199951172,
+            "bottom": 477.83644104003906,
+            "width": 402.2603454589844,
+            "height": 258.6728210449219,
+            "viewportWidth": 764,
+            "viewportHeight": 366,
+            "withinHorizontalViewport": true
+          },
+          "focusInsideOnOpen": true,
+          "focusReturned": true
+        }
+      },
+      {
+        "id": "po-create-select-scroll-confirm-200",
+        "status": "PASS",
+        "checks": {
+          "supplierId": 120,
+          "materialIds": [
+            101,
+            102
+          ],
+          "supplierLabel": "SUP-120 — 長名稱供應商 120 企業採購測試企業採購測試企業採購測試企業採購測試企業採購測試企業採購測試企業採購測試企業採購測試企業採購測試企業採購測試企業採購測試企業採購測試",
+          "materialLabel": "MAT-101 — Copper Wire",
+          "itemCount": 2,
+          "bodyScroll": {
+            "scrollTop": 0,
+            "scrollHeight": 602,
+            "clientHeight": 602,
+            "reachedBottom": true
+          },
+          "confirmGeometry": {
+            "left": 118.20000457763672,
+            "right": 638.2000045776367,
+            "top": 108,
+            "bottom": 488.8000183105469,
+            "width": 520,
+            "height": 380.8000183105469,
+            "viewportWidth": 764,
+            "viewportHeight": 366,
+            "withinHorizontalViewport": true
+          },
+          "confirmVisible": true,
+          "confirmationFocusReturned": true,
+          "confirmScreenshot": "screenshots/po-confirmation-200-playwright-verified-200.png",
+          "payload": {
+            "supplierId": 120,
+            "items": [
+              {
+                "materialId": 101,
+                "quantity": "12",
+                "unitPrice": "4.2500"
+              },
+              {
+                "materialId": 102,
+                "quantity": "5",
+                "unitPrice": "1.2500"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "id": "document-drawer-200",
+        "status": "PASS",
+        "checks": {
+          "geometry": {
+            "left": 244,
+            "right": 764,
+            "width": 520,
+            "viewportWidth": 764,
+            "withinViewport": true
+          },
+          "longTitleVisible": true,
+          "screenshot": "screenshots/document-drawer-200-playwright-verified-200.png"
+        }
+      },
+      {
+        "id": "ai-drawer-200",
+        "status": "PASS",
+        "checks": {
+          "geometry": {
+            "left": 244,
+            "right": 764,
+            "width": 520,
+            "viewportWidth": 764,
+            "withinViewport": true
+          },
+          "screenshot": "screenshots/ai-drawer-200-playwright-verified-200.png",
+          "closedWithEscape": true,
+          "focusReturned": true
+        }
+      },
+      {
+        "id": "po-list-scroll-200",
+        "status": "PASS",
+        "checks": {
+          "before": {
+            "clientWidth": 676,
+            "scrollWidth": 676,
+            "scrollHeight": 308,
+            "clientHeight": 308,
+            "overflowX": "auto"
+          },
+          "after": {
+            "scrollLeft": 0,
+            "reachedHorizontalEnd": true
+          },
+          "screenshot": "screenshots/po-list-200-playwright-verified-200.png",
+          "pageVerticalScroll": {
+            "clientHeight": 366,
+            "scrollHeight": 717,
+            "canScrollVertically": true
+          }
+        }
+      }
+    ],
+    "edgeVersion": "155.0.4283.62",
+    "browserContext": "connectOverCDP(http://127.0.0.1:9223), unique external userDataDir, viewport=null",
+    "initialPage": {
+      "measuredAt": "2026-10-17T16:08:47.81Z",
+      "url": "http://127.0.0.1:5181/purchase-orders",
+      "innerWidth": 1528,
+      "innerHeight": 732,
+      "devicePixelRatio": 1.25,
+      "visualViewport": {
+        "width": 1528,
+        "height": 732,
+        "scale": 1,
+        "offsetLeft": 0,
+        "offsetTop": 0
+      },
+      "screen": {
+        "width": 1536,
+        "height": 864,
+        "availWidth": 1536,
+        "availHeight": 816
+      },
+      "document": {
+        "clientWidth": 1528,
+        "scrollWidth": 1528,
+        "clientHeight": 732,
+        "scrollHeight": 732
+      },
+      "activeElement": "SupplyPilot採購決策平台儀表板主檔管理需求與庫存採購決策採購單與收貨文件與 AISupplyPilot — AI 採購與供應鏈決策平台AI 助理UI-D Fixture Buyer（ui-d"
+    },
+    "zoom": {
+      "actualPercent": 200,
+      "verification": "User set the isolated Edge native Settings and more > Zoom control to 200%; read-only Windows UI Automation confirmed its 200% label and same-session CDP page metrics were cross-checked against the pre-zoom baseline.",
+      "evidenceSource": "manual native Edge Zoom control plus read-only UI Automation and Windows virtual-screen screenshot; no CSS zoom, transform, deviceScaleFactor, or CDP Page Scale",
+      "userConfirmedAt": "2026-10-17T16:11:01.128883Z",
+      "screenshotReviewedAt": "2026-10-17T16:11:01.5441201Z",
+      "nativeScreenshot": "screenshots/edge-window-zoom-200-cdp-verified.png"
+    },
+    "nativeWindow": {
+      "hwnd": null,
+      "hwndStatus": "Unknown; CDP/profile identity is unique, HWND foreground automation is not used.",
+      "processId": 32328
+    },
+    "osDisplay": {
+      "systemDpi": 120,
+      "systemDpiScale": 1.25,
+      "top": 0,
+      "width": 3840,
+      "height": 1080,
+      "left": -1920
+    },
+    "zoomScreenshot": "screenshots/edge-window-zoom-200-cdp-verified.png",
+    "beforeZoom": {
+      "measuredAt": "2026-10-17T15:43:55.416Z",
+      "url": "http://127.0.0.1:5181/purchase-orders",
+      "innerWidth": 1028,
+      "innerHeight": 706,
+      "devicePixelRatio": 1.25,
+      "visualViewport": {
+        "width": 1028,
+        "height": 705.5999755859375,
+        "scale": 1,
+        "offsetLeft": 0,
+        "offsetTop": 0
+      },
+      "screen": {
+        "width": 1536,
+        "height": 864,
+        "availWidth": 1536,
+        "availHeight": 816
+      },
+      "document": {
+        "clientWidth": 1028,
+        "scrollWidth": 1028,
+        "clientHeight": 706,
+        "scrollHeight": 706
+      },
+      "activeElement": "SupplyPilot採購決策平台儀表板主檔管理需求與庫存採購決策採購單與收貨文件與 AISupplyPilot — AI 採購與供應鏈決策平台AI 助理UI-D Fixture Buyer（ui-d"
+    },
+    "profilePageAtSessionStart": {
+      "measuredAt": "2026-10-17T16:08:47.81Z",
+      "url": "http://127.0.0.1:5181/purchase-orders",
+      "innerWidth": 1528,
+      "innerHeight": 732,
+      "devicePixelRatio": 1.25,
+      "visualViewport": {
+        "width": 1528,
+        "height": 732,
+        "scale": 1,
+        "offsetLeft": 0,
+        "offsetTop": 0
+      },
+      "screen": {
+        "width": 1536,
+        "height": 864,
+        "availWidth": 1536,
+        "availHeight": 816
+      },
+      "document": {
+        "clientWidth": 1528,
+        "scrollWidth": 1528,
+        "clientHeight": 732,
+        "scrollHeight": 732
+      },
+      "activeElement": "SupplyPilot採購決策平台儀表板主檔管理需求與庫存採購決策採購單與收貨文件與 AISupplyPilot — AI 採購與供應鏈決策平台AI 助理UI-D Fixture Buyer（ui-d"
+    },
+    "pageStateBeforeInteraction": {
+      "measuredAt": "2026-10-17T16:11:01.538Z",
+      "url": "http://127.0.0.1:5181/purchase-orders",
+      "innerWidth": 764,
+      "innerHeight": 366,
+      "devicePixelRatio": 2.5,
+      "visualViewport": {
+        "width": 756.4000244140625,
+        "height": 366,
+        "scale": 1,
+        "offsetLeft": 0,
+        "offsetTop": 0
+      },
+      "screen": {
+        "width": 1536,
+        "height": 864,
+        "availWidth": 1536,
+        "availHeight": 816
+      },
+      "document": {
+        "clientWidth": 756,
+        "scrollWidth": 756,
+        "clientHeight": 366,
+        "scrollHeight": 717
+      },
+      "activeElement": "SupplyPilot採購決策平台儀表板主需採採文SupplyPilot — AI 採購與供應鏈決策平台AI 助理UI-D Fixture Buyer（ui-d-buyer）採購人員登出採購單管理查詢"
+    },
+    "afterZoomMenuClosed": {
+      "measuredAt": "2026-10-17T16:11:01.807Z",
+      "url": "http://127.0.0.1:5181/purchase-orders",
+      "innerWidth": 764,
+      "innerHeight": 366,
+      "devicePixelRatio": 2.5,
+      "visualViewport": {
+        "width": 756.4000244140625,
+        "height": 366,
+        "scale": 1,
+        "offsetLeft": 0,
+        "offsetTop": 0
+      },
+      "screen": {
+        "width": 1536,
+        "height": 864,
+        "availWidth": 1536,
+        "availHeight": 816
+      },
+      "document": {
+        "clientWidth": 756,
+        "scrollWidth": 756,
+        "clientHeight": 366,
+        "scrollHeight": 717
+      },
+      "activeElement": "SupplyPilot採購決策平台儀表板主需採採文SupplyPilot — AI 採購與供應鏈決策平台AI 助理UI-D Fixture Buyer（ui-d-buyer）採購人員登出採購單管理查詢"
+    },
+    "poDraftPayload": {
+      "supplierId": 120,
+      "items": [
+        {
+          "materialId": 101,
+          "quantity": "12",
+          "unitPrice": "4.2500"
+        },
+        {
+          "materialId": 102,
+          "quantity": "5",
+          "unitPrice": "1.2500"
+        }
+      ]
+    },
+    "finalPage": {
+      "measuredAt": "2026-10-17T16:11:14.962Z",
+      "url": "http://127.0.0.1:5181/purchase-orders",
+      "innerWidth": 764,
+      "innerHeight": 366,
+      "devicePixelRatio": 2.5,
+      "visualViewport": {
+        "width": 756.4000244140625,
+        "height": 366,
+        "scale": 1,
+        "offsetLeft": 0,
+        "offsetTop": 0
+      },
+      "screen": {
+        "width": 1536,
+        "height": 864,
+        "availWidth": 1536,
+        "availHeight": 816
+      },
+      "document": {
+        "clientWidth": 756,
+        "scrollWidth": 756,
+        "clientHeight": 366,
+        "scrollHeight": 717
+      },
+      "activeElement": "SupplyPilot採購決策平台儀表板主需採採文SupplyPilot — AI 採購與供應鏈決策平台AI 助理UI-D Fixture Buyer（ui-d-buyer）採購人員登出採購單管理查詢"
+    },
+    "requestsSummary": {
+      "GET /auth/me": 10,
+      "GET /purchase-orders": 10,
+      "GET /suppliers": 3,
+      "GET /materials": 5,
+      "POST /purchase-orders": 1,
+      "GET /documents": 1,
+      "GET /documents/501": 1
+    },
+    "status": "PASS",
+    "completedAt": "2026-10-17T16:11:14.959Z"
+  },
+  "nativeScreenshot": "screenshots/edge-window-zoom-200-cdp-verified.png",
+  "playwrightScreenshots": [
+    "screenshots/app-header-200-playwright-verified-200.png",
+    "screenshots/sidebar-open-200-playwright-verified-200.png",
+    "screenshots/sidebar-navigation-200-playwright-verified-200.png",
+    "screenshots/po-confirmation-200-playwright-verified-200.png",
+    "screenshots/document-drawer-200-playwright-verified-200.png",
+    "screenshots/ai-drawer-200-playwright-verified-200.png",
+    "screenshots/po-list-200-playwright-verified-200.png",
+    "screenshots/po-form-200-playwright-verified-200.png"
+  ],
+  "fixture": {
+    "backendIntegration": false,
+    "authMeStatus": 200,
+    "mode": "Playwright API route",
+    "role": "PROCUREMENT_STAFF"
+  }
+}

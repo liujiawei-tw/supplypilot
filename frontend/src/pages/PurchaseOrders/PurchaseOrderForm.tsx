@@ -1,11 +1,8 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Alert, Button, Checkbox, Form, Input, Select, Space } from 'antd';
+import { useMemo } from 'react';
+import { Alert, Button, Checkbox, Form, Input, Space } from 'antd';
 import { MinusCircleOutlined, PlusOutlined } from '@ant-design/icons';
-import { listMaterials, type MaterialResponse } from '../../api/material';
-import { listSuppliers, type SupplierResponse } from '../../api/supplier';
 import type { CreatePurchaseOrderRequest, PurchaseOrderResponse, UpdatePurchaseOrderRequest } from '../../api/purchaseOrder';
-import { toApiError } from '../../api/apiError';
-import ErrorState from '../../components/ErrorState';
+import RelatedEntitySelect from '../../components/RelatedEntitySelect';
 import { isNonNegativeDecimal, isPositiveDecimal } from './purchaseOrderUi';
 
 interface ItemValues { materialId?: number; quantity?: string; unitPrice?: string; recommendationId?: number; supplierRecommendationResultId?: number; supplierOverrideReason?: string; quantityOverrideReason?: string; }
@@ -17,10 +14,6 @@ export default function PurchaseOrderForm({ purchaseOrder, onReview, disabled }:
   disabled?: boolean;
 }) {
   const [form] = Form.useForm<Values>();
-  const [suppliers, setSuppliers] = useState<SupplierResponse[]>([]);
-  const [materials, setMaterials] = useState<MaterialResponse[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState<ReturnType<typeof toApiError> | null>(null);
   const editing = !!purchaseOrder;
   const hasRecommendationEvidence = !!purchaseOrder?.items.some((item) => item.recommendationId !== null);
   const initialValues = useMemo<Values>(() => purchaseOrder ? {
@@ -35,19 +28,6 @@ export default function PurchaseOrderForm({ purchaseOrder, onReview, disabled }:
       quantityOverrideReason: item.quantityOverrideReason ?? undefined,
     })),
   } : { items: [{}] }, [purchaseOrder]);
-
-  const loadOptions = async () => {
-    setLoading(true); setLoadError(null);
-    try {
-      const [supplierPage, materialPage] = await Promise.all([
-        listSuppliers({ status: 'ACTIVE', page: 0, size: 100, sort: 'code,asc' }),
-        listMaterials({ status: 'ACTIVE', page: 0, size: 100, sort: 'code,asc' }),
-      ]);
-      setSuppliers(supplierPage.content); setMaterials(materialPage.content);
-    } catch (error) { setLoadError(toApiError(error)); }
-    finally { setLoading(false); }
-  };
-  useEffect(() => { const timer = window.setTimeout(() => void loadOptions(), 0); return () => window.clearTimeout(timer); }, []);
 
   const review = async () => {
     let values: Values;
@@ -74,10 +54,9 @@ export default function PurchaseOrderForm({ purchaseOrder, onReview, disabled }:
     onReview(request);
   };
 
-  if (loadError) return <ErrorState title="主檔資料載入失敗" error={loadError} onRetry={() => void loadOptions()} />;
-  return <Form form={form} layout="vertical" initialValues={initialValues} disabled={disabled || loading}>
+  return <Form form={form} layout="vertical" initialValues={initialValues} disabled={disabled}>
     <Form.Item name="supplierId" label="供應商" rules={[{ required: true, message: '請選擇供應商' }]}>
-      <Select showSearch optionFilterProp="label" aria-label="採購單供應商" disabled={hasRecommendationEvidence} options={suppliers.map((supplier) => ({ value: supplier.id, label: `${supplier.code} — ${supplier.name}` }))} />
+      <RelatedEntitySelect entity="supplier" disabled={hasRecommendationEvidence} />
     </Form.Item>
     <Space align="start" style={{ width: '100%' }}>
       <Form.Item name="expectedDeliveryDate" label="預計交期（草稿可留空）"><Input type="date" aria-label="採購單預計交期" /></Form.Item>
@@ -85,18 +64,21 @@ export default function PurchaseOrderForm({ purchaseOrder, onReview, disabled }:
     </Space>
     <Form.List name="items" rules={[{ validator: async (_, rows) => { if (!rows?.length) throw new Error('至少需要一筆 Item'); } }]}>
       {(fields, { add, remove }, { errors }) => <Space orientation="vertical" style={{ width: '100%' }}>
-        {fields.map((field, index) => <Space key={field.key} align="start" wrap>
-          <Form.Item {...field} name={[field.name, 'materialId']} label={`品項 ${index + 1} 物料`} rules={[{ required: true, message: '請選擇物料' }]}>
-            <Select style={{ width: 240 }} showSearch optionFilterProp="label" aria-label={`採購單品項 ${index + 1} 物料`} options={materials.map((material) => ({ value: material.id, label: `${material.code} — ${material.name} (${material.baseUnit})` }))} />
+        {fields.map((field, index) => {
+          const { key, ...fieldProps } = field;
+          return <Space key={key} align="start" wrap>
+          <Form.Item {...fieldProps} name={[field.name, 'materialId']} label={`品項 ${index + 1} 物料`} rules={[{ required: true, message: '請選擇物料' }]}>
+            <RelatedEntitySelect entity="material" showMaterialUnit />
           </Form.Item>
-          <Form.Item {...field} name={[field.name, 'quantity']} label="數量" rules={[{ validator: async (_, value) => { if (!isPositiveDecimal(value)) throw new Error('請輸入大於 0 的數字'); } }]}><Input inputMode="decimal" aria-label={`採購單品項 ${index + 1} 數量`} /></Form.Item>
-          <Form.Item {...field} name={[field.name, 'unitPrice']} label="單價" rules={[{ validator: async (_, value) => { if (!isNonNegativeDecimal(value)) throw new Error('請輸入大於或等於 0 的數字'); } }]}><Input inputMode="decimal" aria-label={`採購單品項 ${index + 1} 單價`} /></Form.Item>
+          <Form.Item {...fieldProps} name={[field.name, 'quantity']} label="數量" rules={[{ validator: async (_, value) => { if (!isPositiveDecimal(value)) throw new Error('請輸入大於 0 的數字'); } }]}><Input inputMode="decimal" aria-label={`採購單品項 ${index + 1} 數量`} /></Form.Item>
+          <Form.Item {...fieldProps} name={[field.name, 'unitPrice']} label="單價" rules={[{ validator: async (_, value) => { if (!isNonNegativeDecimal(value)) throw new Error('請輸入大於或等於 0 的數字'); } }]}><Input inputMode="decimal" aria-label={`採購單品項 ${index + 1} 單價`} /></Form.Item>
           {fields.length > 1 && <Button aria-label={`移除採購單品項 ${index + 1}`} icon={<MinusCircleOutlined />} onClick={() => remove(field.name)} />}
-          <Form.Item {...field} name={[field.name, 'recommendationId']} hidden><Input /></Form.Item>
-          <Form.Item {...field} name={[field.name, 'supplierRecommendationResultId']} hidden><Input /></Form.Item>
-          <Form.Item {...field} name={[field.name, 'supplierOverrideReason']} hidden><Input /></Form.Item>
-          <Form.Item {...field} name={[field.name, 'quantityOverrideReason']} hidden><Input /></Form.Item>
-        </Space>)}
+          <Form.Item {...fieldProps} name={[field.name, 'recommendationId']} hidden><Input /></Form.Item>
+          <Form.Item {...fieldProps} name={[field.name, 'supplierRecommendationResultId']} hidden><Input /></Form.Item>
+          <Form.Item {...fieldProps} name={[field.name, 'supplierOverrideReason']} hidden><Input /></Form.Item>
+          <Form.Item {...fieldProps} name={[field.name, 'quantityOverrideReason']} hidden><Input /></Form.Item>
+        </Space>;
+        })}
         <Form.ErrorList errors={errors} />
         <Button icon={<PlusOutlined />} onClick={() => add()}>新增品項</Button>
       </Space>}

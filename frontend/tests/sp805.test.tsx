@@ -57,14 +57,89 @@ describe('SP-805 PO lifecycle UI', () => {
     });
     await open('/purchase-orders'); const user = userEvent.setup();
     await user.click(await screen.findByRole('button', { name: '建立手動草稿' }));
-    await user.click(await screen.findByLabelText('採購單供應商')); await user.click(await screen.findByText('SUP-007 — Supplier'));
-    await user.click(screen.getByLabelText('採購單品項 1 物料')); await user.click(await screen.findByText('MAT-008 — Steel (KG)'));
+    await user.click(await screen.findByRole('combobox', { name: '選取供應商' })); await user.click(await screen.findByText('SUP-007 — Supplier'));
+    await user.click(screen.getByRole('combobox', { name: '選取物料' })); await user.click(await screen.findByText('MAT-008 — Steel (KG)'));
     await user.type(screen.getByLabelText('採購單品項 1 數量'), '100');
     await user.type(screen.getByLabelText('採購單品項 1 單價'), '123.4500');
     await user.click(screen.getByRole('button', { name: '檢視新草稿' }));
     await user.click(await screen.findByRole('button', { name: '確認建立草稿' }));
     await waitFor(() => expect(requests.filter(({ url, method }) => url === '/purchase-orders' && method === 'post')).toHaveLength(1));
     expect(JSON.parse(requests.find(({ url, method }) => url === '/purchase-orders' && method === 'post')!.data as string)).toEqual({ supplierId: 7, items: [{ materialId: 8, quantity: '100', unitPrice: '123.4500' }] });
+  }, 30_000);
+
+  it('creates a DRAFT with the exact IDs of page-6 master records and does not confuse duplicate names', async () => {
+    const requests: InternalAxiosRequestConfig[] = [];
+    const materials = Array.from({ length: 120 }, (_, index) => ({ ...material, id: index + 1, code: `MAT-${String(index + 1).padStart(3, '0')}`, name: index === 100 || index === 101 ? 'Copper Wire' : `Material ${index + 1}`, baseUnit: index === 100 ? 'KG' : 'PCS' }));
+    const suppliers = Array.from({ length: 120 }, (_, index) => ({ ...supplier, id: index + 1, code: `SUP-${String(index + 1).padStart(3, '0')}`, name: `Supplier ${index + 1}` }));
+    axiosClient.defaults.adapter = vi.fn(async (config) => {
+      requests.push(config);
+      if (config.url === '/auth/me') return response(config, staff);
+      if (config.url === '/purchase-orders' && config.method === 'get') return response(config, emptyPage);
+      if (config.url === '/suppliers' || config.url === '/materials') {
+        const records = config.url === '/suppliers' ? suppliers : materials;
+        const filtered = config.params?.code ? records.filter((item) => item.code.includes(String(config.params?.code))) : records;
+        const pageIndex = Number(config.params?.page ?? 0); const size = Number(config.params?.size ?? 20);
+        const content = filtered.slice(pageIndex * size, (pageIndex + 1) * size);
+        return response(config, { content, page: pageIndex, size, totalElements: filtered.length, totalPages: Math.ceil(filtered.length / size) });
+      }
+      if (config.url === '/purchase-orders' && config.method === 'post') return response(config, { ...po, supplierId: 120, items: [{ ...po.items[0], materialId: 101, recommendationId: null, supplierRecommendationResultId: null }] });
+      throw new Error(`Unexpected ${config.method} ${config.url}`);
+    });
+    await open('/purchase-orders'); const user = userEvent.setup();
+    await user.click(await screen.findByRole('button', { name: '建立手動草稿' }));
+    const supplierInput = await screen.findByRole('combobox', { name: '選取供應商' });
+    await user.click(supplierInput); await user.type(supplierInput, 'SUP-120');
+    await user.click(await screen.findByText('SUP-120 — Supplier 120'));
+    const materialInput = screen.getByRole('combobox', { name: '選取物料' });
+    await user.click(materialInput); await user.type(materialInput, 'MAT-101');
+    await user.click(await screen.findByText('MAT-101 — Copper Wire (KG)'));
+    await user.type(screen.getByLabelText('採購單品項 1 數量'), '12');
+    await user.type(screen.getByLabelText('採購單品項 1 單價'), '4.2500');
+    await user.click(screen.getByRole('button', { name: '檢視新草稿' }));
+    expect(await screen.findByText('供應商編號')).toBeTruthy();
+    await user.click(await screen.findByRole('button', { name: '確認建立草稿' }));
+    await waitFor(() => expect(requests.some(({ url, method }) => url === '/purchase-orders' && method === 'post')).toBe(true));
+    const created = JSON.parse(requests.find(({ url, method }) => url === '/purchase-orders' && method === 'post')!.data as string);
+    expect(created).toEqual({ supplierId: 120, items: [{ materialId: 101, quantity: '12', unitPrice: '4.2500' }] });
+    expect(requests.some(({ url, params }) => url === '/suppliers' && params?.code === 'SUP-120')).toBe(true);
+    expect(requests.some(({ url, params }) => url === '/materials' && params?.code === 'MAT-101')).toBe(true);
+  }, 30_000);
+
+  it('restores off-page master labels in edit and preserves recommendation evidence and price snapshot', async () => {
+    const requests: InternalAxiosRequestConfig[] = [];
+    const selectedSupplier = { ...supplier, id: 120, code: 'SUP-120', name: 'Original long supplier name'.repeat(5) };
+    const selectedMaterial = { ...material, id: 101, code: 'MAT-101', name: 'Original long material name'.repeat(5), baseUnit: 'KG' };
+    const existing = { ...po, supplierId: 120, supplierCode: selectedSupplier.code, supplierName: selectedSupplier.name, items: [{ ...po.items[0], materialId: 101, materialCode: selectedMaterial.code, materialName: selectedMaterial.name, unit: 'KG' }] };
+    axiosClient.defaults.adapter = vi.fn(async (config) => {
+      requests.push(config);
+      if (config.url === '/auth/me') return response(config, admin);
+      if (config.url === '/purchase-orders/42' && config.method === 'get') return response(config, existing);
+      if (config.url === '/suppliers/120') return response(config, selectedSupplier);
+      if (config.url === '/materials/101') return response(config, selectedMaterial);
+      if (config.url === '/suppliers' || config.url === '/materials') return response(config, optionPage([]));
+      if (config.url === '/purchase-orders/42' && config.method === 'patch') return response(config, existing);
+      throw new Error(`Unexpected ${config.method} ${config.url}`);
+    });
+    await open('/purchase-orders/42'); const user = userEvent.setup();
+    await user.click(await screen.findByRole('button', { name: '編輯草稿' }));
+    expect(await screen.findByText(`SUP-120 — ${selectedSupplier.name}`)).toBeTruthy();
+    expect(screen.getByText(`MAT-101 — ${selectedMaterial.name} (KG)`)).toBeTruthy();
+    expect(screen.getByRole('combobox', { name: '選取供應商' }).hasAttribute('disabled')).toBe(true);
+    await user.click(screen.getByRole('button', { name: '檢視草稿修改' }));
+    await user.click(await screen.findByRole('button', { name: '確認更新草稿' }));
+    const patchRequest = requests.find(({ url, method }) => url === '/purchase-orders/42' && method === 'patch');
+    expect(patchRequest).toBeTruthy();
+    expect(JSON.parse(patchRequest!.data as string)).toEqual({ items: [{
+      materialId: 101,
+      quantity: '999999999999999.1234000',
+      unitPrice: '0.0000001234500',
+      recommendationId: 91,
+      supplierRecommendationResultId: 101,
+      supplierOverrideReason: 'Capacity',
+      quantityOverrideReason: 'Demand changed',
+    }] });
+    expect(requests.some(({ url }) => url === '/suppliers/120')).toBe(true);
+    expect(requests.some(({ url }) => url === '/materials/101')).toBe(true);
   }, 30_000);
 
   it('keeps linked recommendation evidence while filling delivery date, approving, and marking ordered', async () => {
