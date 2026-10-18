@@ -25,17 +25,17 @@ class DemoBaselineCredentialAuthenticatorTests {
     @BeforeEach
     void setUp() {
         users = mock(UserRepository.class);
-        envFile = tempDir.resolve(".env.demo");
+        envFile = tempDir.resolve("password");
         authenticator = new DemoBaselineCredentialAuthenticator(users, envFile.toString());
     }
 
     @Test
     void rereadsPasswordForEveryBaselineLogin() throws Exception {
         when(users.findByUsername("admin")).thenReturn(java.util.Optional.of(activeUser()));
-        Files.writeString(envFile, "DB_USERNAME=demo\nDEMO_ACCOUNT_PASSWORD=Demo123456\n");
+        Files.writeString(envFile, "Demo123456");
         assertNotNull(authenticator.authenticate("admin", "Demo123456"));
 
-        Files.writeString(envFile, "DB_USERNAME=demo\nDEMO_ACCOUNT_PASSWORD=Demo654321\n");
+        Files.writeString(envFile, "Demo654321");
         assertThrows(BadCredentialsException.class, () -> authenticator.authenticate("admin", "Demo123456"));
         Authentication updated = authenticator.authenticate("admin", "Demo654321");
         assertInstanceOf(SecurityUser.class, updated.getPrincipal());
@@ -47,17 +47,15 @@ class DemoBaselineCredentialAuthenticatorTests {
         when(users.findByUsername("buyer")).thenReturn(java.util.Optional.of(activeUser()));
         assertThrows(BadCredentialsException.class, () -> authenticator.authenticate("buyer", "Demo123456"));
 
-        Files.writeString(envFile, "DEMO_ACCOUNT_PASSWORD=Demo123456\nDEMO_ACCOUNT_PASSWORD=Demo654321\n");
+        Files.writeString(envFile, "Demo123456\nDemo654321");
         assertThrows(BadCredentialsException.class, () -> authenticator.authenticate("buyer", "Demo123456"));
-        Files.writeString(envFile, "DEMO_ACCOUNT_PASSWORD=short\n");
+        Files.writeString(envFile, "short");
         assertThrows(BadCredentialsException.class, () -> authenticator.authenticate("buyer", "short"));
-        Files.writeString(envFile, "this-is-not-an-assignment\n");
-        assertThrows(BadCredentialsException.class, () -> authenticator.authenticate("buyer", "Demo123456"));
     }
 
     @Test
     void inactiveOrUnknownUsersCannotUseTheDynamicCredential() throws Exception {
-        Files.writeString(envFile, "DEMO_ACCOUNT_PASSWORD=Demo123456\n");
+        Files.writeString(envFile, "Demo123456");
         User inactive = User.create("manager", "hash", "Manager", UserRole.ADMIN, Instant.now());
         inactive.inactivate(Instant.now());
         when(users.findByUsername("manager")).thenReturn(java.util.Optional.of(inactive));

@@ -2,6 +2,9 @@
 .env.*
 !.env.example
 !.env.demo.example
+.sp903-demo-credential/
+__pycache__/
+*.py[cod]
 *.zip
 
 # Local runtime data

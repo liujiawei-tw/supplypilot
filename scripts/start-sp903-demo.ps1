@@ -6,7 +6,11 @@ $repositoryRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 $envFile = Join-Path $repositoryRoot '.env.demo'
 $composeBase = Join-Path $repositoryRoot 'compose.yaml'
 $composeDemo = Join-Path $repositoryRoot 'compose.demo.yaml'
+$credentialSyncDirectory = Join-Path $repositoryRoot '.sp903-demo-credential'
+$credentialSyncScript = Join-Path $PSScriptRoot 'sync-sp903-demo-credential.py'
+$startupModule = Join-Path $PSScriptRoot 'Sp903DemoStartup.psm1'
 $project = 'supplypilot-sp903-local-demo'
+Import-Module -Name $startupModule -Force
 
 function Read-DemoEnvFile {
     param([Parameter(Mandatory = $true)][string]$Path)
@@ -25,6 +29,8 @@ function Read-DemoEnvFile {
             $value = $value.Substring(1, $value.Length - 2)
         } elseif ($value.EndsWith('"') -or $value.EndsWith("'")) {
             throw 'Malformed quoted value in .env.demo; no value was displayed.'
+        } else {
+            $value = [regex]::Split($value, '\s+#', 2)[0].TrimEnd()
         }
         $values[$name] = $value
     }
@@ -44,16 +50,59 @@ function Invoke-Compose {
     if ($LASTEXITCODE -ne 0) { throw "Docker Compose failed during: $($Arguments[0])" }
 }
 
-function Assert-VolumeOwnership {
-    param([string]$VolumeName, [string[]]$AllowedVolumeKeys)
-    $json = & docker volume inspect $VolumeName 2>$null
-    if ($LASTEXITCODE -ne 0) { return } # A missing volume is created by Compose after these checks.
-    $volume = @($json | ConvertFrom-Json)[0]
-    $labels = $volume.Labels
-    $owner = $labels.'com.docker.compose.project'
-    $volumeKey = $labels.'com.docker.compose.volume'
-    if ($owner -ne $project -or $volumeKey -notin $AllowedVolumeKeys) {
-        throw "Existing volume '$VolumeName' has unknown ownership; refusing to attach it. No data was changed."
+function Get-DemoVolumeMetadata {
+    $expected = @{
+        'supplypilot-sp903-local-demo-mysql' = @('sp903-mysql-data')
+        'supplypilot-sp903-local-demo-pgvector' = @('sp903-pgvector-data')
+        'supplypilot-sp903-local-demo-documents' = @('sp903-document-storage')
+    }
+    $listed = @(& docker volume ls -q)
+    if ($LASTEXITCODE -ne 0) { throw 'Could not list Docker volumes; refusing to start.' }
+    $labelsByName = @{}
+    foreach ($name in $expected.Keys) {
+        if ($name -notin $listed) { continue }
+        $json = & docker volume inspect $name
+        if ($LASTEXITCODE -ne 0) { throw "Could not inspect expected Demo volume '$name'." }
+        $labels = @($json | ConvertFrom-Json)[0].Labels
+        $labelsByName[$name] = @{
+            Project = $labels.'com.docker.compose.project'
+            VolumeKey = $labels.'com.docker.compose.volume'
+        }
+    }
+    $state = Get-DemoVolumeSetStatus -ExistingVolumeNames $listed -VolumeLabelsByName $labelsByName `
+        -ExpectedProject $project -ExpectedVolumes $expected
+    return @{ State = $state; Names = $expected.Keys }
+}
+
+function Assert-ContainerMountOwnership {
+    param([string]$ContainerId, [string]$ExpectedService, [string[]]$ExpectedVolumeNames)
+    $json = & docker inspect $ContainerId
+    if ($LASTEXITCODE -ne 0) { throw 'Could not inspect a container using a Demo volume.' }
+    $container = @($json | ConvertFrom-Json)[0]
+    if ($container.Config.Labels.'com.docker.compose.project' -ne $project -or
+            $container.Config.Labels.'com.docker.compose.service' -ne $ExpectedService) {
+        throw 'A Demo volume is attached to a container with unknown ownership; refusing to continue.'
+    }
+    $actual = @($container.Mounts | Where-Object { $_.Type -eq 'volume' } | ForEach-Object { $_.Name })
+    if (@($actual | Where-Object { $_ -notin $ExpectedVolumeNames }).Count -gt 0 -or
+            @($ExpectedVolumeNames | Where-Object { $_ -notin $actual }).Count -gt 0) {
+        throw "Demo service '$ExpectedService' has unexpected volume mounts; refusing to continue."
+    }
+}
+
+function Assert-DemoVolumeConsumers {
+    $expectedConsumers = @{
+        'supplypilot-sp903-local-demo-mysql' = 'mysql'
+        'supplypilot-sp903-local-demo-pgvector' = 'pgvector'
+        'supplypilot-sp903-local-demo-documents' = 'backend'
+    }
+    foreach ($entry in $expectedConsumers.GetEnumerator()) {
+        $ids = @(& docker ps -aq --filter "volume=$($entry.Key)")
+        if ($LASTEXITCODE -ne 0) { throw 'Could not inspect containers attached to Demo volumes.' }
+        foreach ($id in $ids) {
+            if ([string]::IsNullOrWhiteSpace([string]$id)) { continue }
+            Assert-ContainerMountOwnership -ContainerId $id -ExpectedService $entry.Value -ExpectedVolumeNames @($entry.Key)
+        }
     }
 }
 
@@ -65,9 +114,17 @@ function Assert-ProjectContainers {
         $json = & docker inspect $id
         if ($LASTEXITCODE -ne 0) { throw 'Could not inspect a container assigned to the Demo Compose project.' }
         $container = @($json | ConvertFrom-Json)[0]
-        if ($container.Config.Labels.'com.docker.compose.service' -notin @('mysql', 'pgvector', 'backend', 'frontend')) {
+        $service = $container.Config.Labels.'com.docker.compose.service'
+        if ($service -notin @('mysql', 'pgvector', 'backend', 'frontend')) {
             throw 'An unknown container is assigned to the Demo Compose project; refusing to continue.'
         }
+        $expectedVolumes = switch ($service) {
+            'mysql' { @('supplypilot-sp903-local-demo-mysql') }
+            'pgvector' { @('supplypilot-sp903-local-demo-pgvector') }
+            'backend' { @('supplypilot-sp903-local-demo-documents') }
+            'frontend' { @() }
+        }
+        Assert-ContainerMountOwnership -ContainerId $id -ExpectedService $service -ExpectedVolumeNames $expectedVolumes
     }
 }
 
@@ -94,24 +151,22 @@ if (-not (Get-Command docker -ErrorAction SilentlyContinue)) { throw 'Docker CLI
 & docker info --format '{{.ServerVersion}}' *> $null
 if ($LASTEXITCODE -ne 0) { throw 'Docker Engine is unavailable; no SP-903 resources were changed.' }
 
-Assert-VolumeOwnership -VolumeName 'supplypilot-sp903-local-demo-mysql' -AllowedVolumeKeys @('sp903-mysql-data', 'demo-mysql-data')
-Assert-VolumeOwnership -VolumeName 'supplypilot-sp903-local-demo-pgvector' -AllowedVolumeKeys @('sp903-pgvector-data', 'demo-pgvector-data')
-Assert-VolumeOwnership -VolumeName 'supplypilot-sp903-local-demo-documents' -AllowedVolumeKeys @('sp903-document-storage', 'demo-document-storage')
+$pythonCommand = Get-Command python -ErrorAction SilentlyContinue
+if (-not $pythonCommand) { $pythonCommand = Get-Command python3 -ErrorAction SilentlyContinue }
+if (-not $pythonCommand) { throw 'Python 3 is required for Demo credential synchronization.' }
+$volumeState = Get-DemoVolumeMetadata
+if ($volumeState.State -eq 'Existing') {
+    Assert-DemoVolumeConsumers
+}
 Assert-ProjectContainers
 
 $composeArgs = @('compose', '--project-name', $project, '--env-file', $envFile, '-f', $composeBase, '-f', $composeDemo)
-$interpolationNames = @('DB_USERNAME', 'DB_PASSWORD', 'MYSQL_ROOT_PASSWORD', 'SEMANTIC_DB_USERNAME',
-    'SEMANTIC_DB_PASSWORD', 'JWT_SECRET', 'DEMO_ACCOUNT_PASSWORD', 'DEMO_FRONTEND_PORT',
-    'GEMINI_API_KEY', 'AI_API_KEY', 'AI_CHAT_PROVIDER', 'AI_EMBEDDING_PROVIDER', 'AI_MODEL',
-    'GEMINI_MODEL', 'GEMINI_EMBEDDING_MODEL', 'SEMANTIC_DIMENSIONS', 'SEMANTIC_GENERATION_KEY',
-    'SEMANTIC_READ_ENABLED', 'JWT_EXPIRATION_SECONDS', 'AI_PROVIDER_TIMEOUT', 'DEMO_DATASET_VERSION')
-$originalEnvironment = @{}
-foreach ($name in $interpolationNames) { $originalEnvironment[$name] = [Environment]::GetEnvironmentVariable($name, 'Process') }
+$interpolationNames = Get-ComposeEnvironmentVariableNames -ComposeFiles @($composeBase, $composeDemo)
 
-Push-Location $repositoryRoot
-try {
-    # Compose gives process variables priority over --env-file. Clear collisions so this script uses .env.demo.
-    foreach ($name in $interpolationNames) { Remove-Item -LiteralPath ("Env:" + $name) -ErrorAction SilentlyContinue }
+Invoke-WithProcessEnvironmentCleared -Names $interpolationNames -Action {
+    Push-Location $repositoryRoot
+    try {
+        New-Item -ItemType Directory -Path $credentialSyncDirectory -Force | Out-Null
     Invoke-Compose -Arguments @('config', '--quiet')
 
     # Start only the databases. Application credentials are checked before a Backend can run Flyway or seed data.
@@ -134,6 +189,10 @@ try {
         Remove-Item Env:MYSQL_PWD, Env:PGPASSWORD -ErrorAction SilentlyContinue
     }
 
+    $syncResult = & $pythonCommand.Source $credentialSyncScript --environment-file $envFile `
+        --credential-directory $credentialSyncDirectory
+    if ($LASTEXITCODE -ne 0) { throw 'Could not synchronize Demo baseline credentials; Backend was not started.' }
+
     Invoke-Compose -Arguments @('up', '--detach', '--build', '--wait', '--wait-timeout', '300', 'backend', 'frontend')
     $serviceStatus = & docker @composeArgs ps --format json
     if ($LASTEXITCODE -ne 0) { throw 'Could not verify SP-903 service health.' }
@@ -144,12 +203,24 @@ try {
             throw "SP-903 service health verification failed for service '$service'. No cleanup was attempted."
         }
     }
+
+    $backendContainer = (& docker @composeArgs ps -q backend).Trim()
+    if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($backendContainer)) {
+        throw 'Could not identify the Demo Backend container for credential synchronization.'
+    }
+    $startInfo = [Diagnostics.ProcessStartInfo]::new($pythonCommand.Source)
+    foreach ($argument in @($credentialSyncScript, '--environment-file', $envFile,
+            '--credential-directory', $credentialSyncDirectory, '--watch', '--backend-container', $backendContainer)) {
+        [void]$startInfo.ArgumentList.Add($argument)
+    }
+    $startInfo.UseShellExecute = $false
+    $startInfo.CreateNoWindow = $true
+    $watcher = [Diagnostics.Process]::Start($startInfo)
+    Start-Sleep -Milliseconds 500
+    if ($watcher.HasExited) { throw 'Demo credential synchronization stopped unexpectedly.' }
     Write-Output 'SP-903 Demo is running; all four services are healthy.'
     Write-Output 'Frontend: http://127.0.0.1:8081'
-} finally {
-    foreach ($name in $interpolationNames) {
-        if ($null -eq $originalEnvironment[$name]) { Remove-Item -LiteralPath ("Env:" + $name) -ErrorAction SilentlyContinue }
-        else { [Environment]::SetEnvironmentVariable($name, $originalEnvironment[$name], 'Process') }
+    } finally {
+        Pop-Location
     }
-    Pop-Location
 }

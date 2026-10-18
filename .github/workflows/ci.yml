@@ -80,6 +80,17 @@ jobs:
           echo "frontend=$frontend" >> "$GITHUB_OUTPUT"
           echo "Push scope: backend=$backend, frontend=$frontend"
 
+  demo-startup-powershell:
+    name: Demo startup PowerShell regression
+    runs-on: windows-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Test startup guards and volume compatibility
+        shell: pwsh
+        run: ./scripts/tests/test-sp903-demo-startup.ps1
+
   backend:
     name: Backend CI
     needs: changes
@@ -160,6 +171,14 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v5
+
+      - name: Set up Python for Compose and Demo credential tests
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Test Compose merge and password-only synchronization
+        run: python -m unittest scripts.tests.test_compose_config scripts.tests.test_sync_sp903_demo_credential -v
 
       - name: Validate Production and Demo Compose configurations
         shell: bash

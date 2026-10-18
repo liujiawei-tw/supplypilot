@@ -29,19 +29,19 @@ class ProductionAdminBootstrapTests {
         encoder = new BCryptPasswordEncoder();
         bootstrap = new ProductionAdminBootstrap(jdbc, users, encoder, Clock.systemUTC(),
                 mock(PlatformTransactionManager.class));
-        when(jdbc.queryForObject(eq("SELECT GET_LOCK(?, 30)"), eq(Integer.class), anyString())).thenReturn(1);
-        when(jdbc.queryForObject(eq("SELECT RELEASE_LOCK(?)"), eq(Integer.class), anyString())).thenReturn(1);
     }
 
     @Test
-    void emptyUserTableCreatesOneRestrictedAdminWithEncodedInitialPassword() {
+    void firstRunOnEmptyDatabaseCreatesRestrictedAdminAndPersistentMarker() {
+        when(jdbc.update(anyString(), any(Object[].class))).thenReturn(1);
         when(users.count()).thenReturn(0L);
+        when(users.existsByRoleAndStatus(UserRole.ADMIN, UserStatus.ACTIVE)).thenReturn(false);
         when(users.saveAndFlush(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         bootstrap.run(null);
 
         ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
-        verify(users, times(1)).saveAndFlush(captor.capture());
+        verify(users).saveAndFlush(captor.capture());
         User created = captor.getValue();
         assertEquals("admin", created.getUsername());
         assertTrue(encoder.matches("admin", created.getPasswordHash()));
@@ -49,25 +49,49 @@ class ProductionAdminBootstrapTests {
         assertEquals(UserRole.ADMIN, created.getRole());
         assertEquals(UserStatus.ACTIVE, created.getStatus());
         assertTrue(created.isMustChangePassword());
+        verify(jdbc).update(contains("INSERT IGNORE INTO system_initialization"), eq("production-admin-bootstrap-v1"));
     }
 
     @Test
-    void populatedUserTableIsNeverModified() {
+    void populatedDatabaseWithActiveAdminIsNeverModified() {
+        when(jdbc.update(anyString(), any(Object[].class))).thenReturn(1);
         when(users.count()).thenReturn(4L);
+        when(users.existsByRoleAndStatus(UserRole.ADMIN, UserStatus.ACTIVE)).thenReturn(true);
 
-        bootstrap.run(null);
+        assertDoesNotThrow(() -> bootstrap.run(null));
 
         verify(users, never()).saveAndFlush(any(User.class));
-        verify(jdbc).queryForObject(eq("SELECT RELEASE_LOCK(?)"), eq(Integer.class), anyString());
     }
 
     @Test
-    void failedConcurrentLockDoesNotCreateAnAdmin() {
-        when(jdbc.queryForObject(eq("SELECT GET_LOCK(?, 30)"), eq(Integer.class), anyString())).thenReturn(0);
+    void existingBootstrapMarkerAndEmptyUserTableCannotRecreateInitialCredentials() {
+        when(jdbc.update(anyString(), any(Object[].class))).thenReturn(0);
+        when(users.count()).thenReturn(0L);
+        when(users.existsByRoleAndStatus(UserRole.ADMIN, UserStatus.ACTIVE)).thenReturn(false);
 
         assertThrows(IllegalStateException.class, () -> bootstrap.run(null));
 
-        verify(users, never()).count();
+        verify(users, never()).saveAndFlush(any(User.class));
+    }
+
+    @Test
+    void populatedDatabaseWithoutActiveAdminFailsStartupAndDoesNotCreateOne() {
+        when(jdbc.update(anyString(), any(Object[].class))).thenReturn(1);
+        when(users.count()).thenReturn(2L);
+        when(users.existsByRoleAndStatus(UserRole.ADMIN, UserStatus.ACTIVE)).thenReturn(false);
+
+        IllegalStateException failure = assertThrows(IllegalStateException.class, () -> bootstrap.run(null));
+        assertTrue(failure.getMessage().contains("no active ADMIN"));
+        verify(users, never()).saveAndFlush(any(User.class));
+    }
+
+    @Test
+    void existingMarkerWithNoActiveAdminFailsStartup() {
+        when(jdbc.update(anyString(), any(Object[].class))).thenReturn(0);
+        when(users.count()).thenReturn(3L);
+        when(users.existsByRoleAndStatus(UserRole.ADMIN, UserStatus.ACTIVE)).thenReturn(false);
+
+        assertThrows(IllegalStateException.class, () -> bootstrap.run(null));
         verify(users, never()).saveAndFlush(any(User.class));
     }
 }

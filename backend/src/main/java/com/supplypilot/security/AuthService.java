@@ -37,7 +37,6 @@ public class AuthService {
     private final UserRepository userRepository;
     private final DemoBaselineCredentialAuthenticator demoAuthenticator;
 
-    @Autowired
     public AuthService(
             AuthenticationManager authenticationManager,
             JwtTokenService jwtTokenService,
@@ -46,6 +45,7 @@ public class AuthService {
         this(authenticationManager, jwtTokenService, userRepository, (DemoBaselineCredentialAuthenticator) null);
     }
 
+    @Autowired
     public AuthService(
             AuthenticationManager authenticationManager,
             JwtTokenService jwtTokenService,

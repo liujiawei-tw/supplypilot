@@ -9,7 +9,6 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.MessageDigest;
-import java.util.HashMap;
 import java.util.Locale;
 import java.util.Set;
 import org.springframework.beans.factory.annotation.Value;
@@ -19,21 +18,21 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Component;
 
-/** Reads the mounted Demo environment file for every baseline-account login. */
+/** Reads the synchronized Demo password file for every baseline-account login. */
 @Component
 @Profile("demo & !prod")
 public class DemoBaselineCredentialAuthenticator {
     private static final Set<String> BASELINE_USERS = Set.of("admin", "manager", "buyer", "warehouse", "planner");
 
     private final UserRepository users;
-    private final Path environmentFile;
+    private final Path passwordFile;
 
     public DemoBaselineCredentialAuthenticator(
             UserRepository users,
-            @Value("${supplypilot.demo.password-file:/run/secrets/supplypilot-demo-env}") String environmentFile
+            @Value("${supplypilot.demo.password-file:/run/supplypilot-demo-credentials/password}") String passwordFile
     ) {
         this.users = users;
-        this.environmentFile = Path.of(environmentFile);
+        this.passwordFile = Path.of(passwordFile);
     }
 
     public boolean handles(String username) {
@@ -57,35 +56,11 @@ public class DemoBaselineCredentialAuthenticator {
 
     private String readPassword() {
         try {
-            if (!Files.isRegularFile(environmentFile)) throw new IllegalArgumentException();
-            String contents = Files.readString(environmentFile, StandardCharsets.UTF_8);
-            var values = new HashMap<String, String>();
-            for (String line : contents.split("\\R", -1)) {
-                String trimmed = line.trim();
-                if (trimmed.isEmpty() || trimmed.startsWith("#")) continue;
-                int separator = trimmed.indexOf('=');
-                if (separator <= 0 || !trimmed.substring(0, separator).matches("[A-Za-z_][A-Za-z0-9_]*")) {
-                    throw new IllegalArgumentException();
-                }
-                String key = trimmed.substring(0, separator);
-                String value = trimmed.substring(separator + 1).trim();
-                if (value.startsWith("\"") || value.startsWith("'")) {
-                    char quote = value.charAt(0);
-                    if (value.length() < 2 || value.charAt(value.length() - 1) != quote) {
-                        throw new IllegalArgumentException();
-                    }
-                } else if (value.endsWith("\"") || value.endsWith("'")) {
-                    throw new IllegalArgumentException();
-                }
-                if (values.putIfAbsent(key, value) != null) throw new IllegalArgumentException();
+            if (!Files.isRegularFile(passwordFile, java.nio.file.LinkOption.NOFOLLOW_LINKS)) {
+                throw new IllegalArgumentException();
             }
-            String password = values.get("DEMO_ACCOUNT_PASSWORD");
-            if (password != null && password.length() >= 2
-                    && ((password.startsWith("\"") && password.endsWith("\""))
-                    || (password.startsWith("'") && password.endsWith("'")))) {
-                password = password.substring(1, password.length() - 1);
-            }
-            if (password == null || password.isBlank() || password.length() < 6 || password.length() > 100
+            String password = Files.readString(passwordFile, StandardCharsets.UTF_8);
+            if (password.isBlank() || password.length() < 6 || password.length() > 100
                     || password.contains("\n") || password.contains("\r")) {
                 throw new IllegalArgumentException();
             }

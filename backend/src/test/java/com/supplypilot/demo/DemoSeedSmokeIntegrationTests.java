@@ -32,9 +32,12 @@ import com.supplypilot.procurement.repository.PurchaseOrderRepository;
 import com.supplypilot.supplier.repository.SupplierMaterialRepository;
 import com.supplypilot.supplier.repository.SupplierRepository;
 import com.supplypilot.testsupport.FixedClockConfiguration;
+import com.supplypilot.user.domain.User;
 import com.supplypilot.user.domain.UserRole;
 import com.supplypilot.user.repository.UserRepository;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.AfterAll;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
@@ -62,11 +65,25 @@ import org.springframework.transaction.annotation.Transactional;
 @AutoConfigureMockMvc
 class DemoSeedSmokeIntegrationTests {
     private static final String PASSWORD = "t" + UUID.randomUUID().toString().replace("-", "").substring(0, 5);
+    private static final String ROTATED_PASSWORD = "u" + UUID.randomUUID().toString().replace("-", "").substring(0, 5);
+    private static final Path DYNAMIC_PASSWORD_FILE = Path.of(System.getProperty("java.io.tmpdir"),
+            "supplypilot-demo-auth-" + UUID.randomUUID() + ".password");
+
+    static {
+        writeDynamicPassword(PASSWORD);
+    }
 
     @DynamicPropertySource
     static void demoAccountPassword(DynamicPropertyRegistry registry) {
         registry.add("supplypilot.demo.account-password", () -> PASSWORD);
+        registry.add("supplypilot.demo.password-file", () -> DYNAMIC_PASSWORD_FILE.toString());
     }
+
+    @BeforeEach
+    void resetDynamicPasswordFile() { writeDynamicPassword(PASSWORD); }
+
+    @AfterAll
+    static void removeDynamicPasswordFile() throws Exception { Files.deleteIfExists(DYNAMIC_PASSWORD_FILE); }
 
     @Autowired private UserRepository users;
     @Autowired private MaterialRepository materials;
@@ -83,6 +100,47 @@ class DemoSeedSmokeIntegrationTests {
     @Autowired private JdbcTemplate jdbc;
     @Autowired private MockMvc mockMvc;
     @Autowired private ObjectMapper objectMapper;
+
+    @Test
+    void allFiveBaselineAccountsUseTheCurrentFilePasswordWithoutRestartAndRejectTheOldPassword() throws Exception {
+        Map<String, String> expectedRoles = Map.of(
+                "admin", "ADMIN", "manager", "PROCUREMENT_MANAGER", "buyer", "PROCUREMENT_STAFF",
+                "warehouse", "WAREHOUSE_STAFF", "planner", "PRODUCTION_PLANNER");
+        for (var entry : expectedRoles.entrySet()) {
+            assertLogin(entry.getKey(), PASSWORD, 200, entry.getValue());
+        }
+
+        writeDynamicPassword(ROTATED_PASSWORD);
+        for (var entry : expectedRoles.entrySet()) {
+            assertLogin(entry.getKey(), PASSWORD, 401, null);
+            assertLogin(entry.getKey(), ROTATED_PASSWORD, 200, entry.getValue());
+        }
+    }
+
+    @Test
+    void inactiveBaselineAccountIsRejectedByHttpLogin() throws Exception {
+        var admin = users.findByUsername("admin").orElseThrow();
+        admin.inactivate(java.time.Instant.now());
+        users.saveAndFlush(admin);
+        assertLogin("admin", PASSWORD, 401, null);
+        admin.activate(java.time.Instant.now());
+        users.saveAndFlush(admin);
+    }
+
+    @Test
+    void nonBaselineAccountStillUsesDatabasePassword() throws Exception {
+        String username = "demo_custom_" + UUID.randomUUID().toString().replace("-", "").substring(0, 8);
+        User user = User.create(username, passwordEncoder.encode("Database123"), "Custom Demo User",
+                UserRole.PROCUREMENT_STAFF, java.time.Instant.now());
+        users.saveAndFlush(user);
+        try {
+            writeDynamicPassword(ROTATED_PASSWORD);
+            assertLogin(username, "Database123", 200, "PROCUREMENT_STAFF");
+            assertLogin(username, ROTATED_PASSWORD, 401, null);
+        } finally {
+            users.deleteById(user.getId());
+        }
+    }
 
     @Test
     void seedsCompleteDeterministicBaselineAndCanRunAgainWithoutDuplicates() {
@@ -317,6 +375,24 @@ class DemoSeedSmokeIntegrationTests {
     }
 
     private String bearer(String token) { return "Bearer " + token; }
+
+    private void assertLogin(String username, String password, int expectedStatus, String expectedRole)
+            throws Exception {
+        var result = mockMvc.perform(post("/api/v1/auth/login").contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of("username", username, "password", password))))
+                .andExpect(status().is(expectedStatus));
+        if (expectedRole != null) {
+            result.andExpect(jsonPath("$.user.role").value(expectedRole));
+        }
+    }
+
+    private static void writeDynamicPassword(String password) {
+        try {
+            Files.writeString(DYNAMIC_PASSWORD_FILE, password, java.nio.charset.StandardCharsets.UTF_8);
+        } catch (java.io.IOException exception) {
+            throw new IllegalStateException("Could not prepare isolated Demo credential test file", exception);
+        }
+    }
 
     private String login(String username) throws Exception {
         String response = mockMvc.perform(post("/api/v1/auth/login")

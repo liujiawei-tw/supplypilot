@@ -2,6 +2,7 @@ package com.supplypilot.config;
 
 import com.supplypilot.user.domain.User;
 import com.supplypilot.user.domain.UserRole;
+import com.supplypilot.user.domain.UserStatus;
 import com.supplypilot.user.repository.UserRepository;
 import java.time.Clock;
 import org.springframework.boot.ApplicationArguments;
@@ -13,11 +14,11 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 
-/** Creates the explicitly required first Production administrator without modifying populated databases. */
+/** Performs the one-time Production Admin decision in a durable database transaction. */
 @Component
 @Profile("prod")
 public class ProductionAdminBootstrap implements ApplicationRunner {
-    private static final String LOCK_NAME = "supplypilot-prod-admin-bootstrap";
+    private static final String BOOTSTRAP_KEY = "production-admin-bootstrap-v1";
     private final JdbcTemplate jdbc;
     private final UserRepository users;
     private final PasswordEncoder passwordEncoder;
@@ -35,21 +36,39 @@ public class ProductionAdminBootstrap implements ApplicationRunner {
 
     @Override
     public void run(ApplicationArguments args) {
-        transactions.executeWithoutResult(status -> {
-            Integer acquired = jdbc.queryForObject("SELECT GET_LOCK(?, 30)", Integer.class, LOCK_NAME);
-            if (!Integer.valueOf(1).equals(acquired)) {
-                throw new IllegalStateException("Could not acquire Production Admin bootstrap lock");
+        BootstrapOutcome outcome = transactions.execute(status -> bootstrapInTransaction());
+        if (outcome == BootstrapOutcome.ADMIN_RECOVERY_REQUIRED) {
+            throw new IllegalStateException(
+                    "Production database has no active ADMIN account. Restore an approved administrator using the runbook.");
+        }
+    }
+
+    private BootstrapOutcome bootstrapInTransaction() {
+        int inserted = jdbc.update("""
+                INSERT IGNORE INTO system_initialization (initialization_key, initialized_at)
+                VALUES (?, CURRENT_TIMESTAMP(6))
+                """, BOOTSTRAP_KEY);
+
+        boolean activeAdminExists = users.existsByRoleAndStatus(UserRole.ADMIN, UserStatus.ACTIVE);
+        if (inserted == 1) {
+            if (users.count() == 0) {
+                User admin = User.create("admin", passwordEncoder.encode("admin"), "系統管理員",
+                        UserRole.ADMIN, clock.instant());
+                admin.requirePasswordChange();
+                users.saveAndFlush(admin);
+                return BootstrapOutcome.INITIALIZED;
             }
-            try {
-                if (users.count() == 0) {
-                    User admin = User.create("admin", passwordEncoder.encode("admin"), "系統管理員",
-                            UserRole.ADMIN, clock.instant());
-                    admin.requirePasswordChange();
-                    users.saveAndFlush(admin);
-                }
-            } finally {
-                jdbc.queryForObject("SELECT RELEASE_LOCK(?)", Integer.class, LOCK_NAME);
-            }
-        });
+            return activeAdminExists ? BootstrapOutcome.ALREADY_INITIALIZED
+                    : BootstrapOutcome.ADMIN_RECOVERY_REQUIRED;
+        }
+
+        return activeAdminExists ? BootstrapOutcome.ALREADY_INITIALIZED
+                : BootstrapOutcome.ADMIN_RECOVERY_REQUIRED;
+    }
+
+    private enum BootstrapOutcome {
+        INITIALIZED,
+        ALREADY_INITIALIZED,
+        ADMIN_RECOVERY_REQUIRED
     }
 }

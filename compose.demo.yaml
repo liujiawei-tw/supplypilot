@@ -5,13 +5,13 @@ services:
     environment:
       MYSQL_DATABASE: supplypilot_demo
     volumes:
-      - demo-mysql-data:/var/lib/mysql
+      - sp903-mysql-data:/var/lib/mysql
 
   pgvector:
     environment:
       POSTGRES_DB: supplypilot_semantic_demo
     volumes:
-      - demo-pgvector-data:/var/lib/postgresql/data
+      - sp903-pgvector-data:/var/lib/postgresql/data
 
   backend:
     environment:
@@ -19,32 +19,26 @@ services:
       DB_URL: jdbc:mysql://mysql:3306/supplypilot_demo?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
       SEMANTIC_DB_URL: jdbc:postgresql://pgvector:5432/supplypilot_semantic_demo
       FRONTEND_ORIGIN: ${FRONTEND_ORIGIN:-http://127.0.0.1:${DEMO_FRONTEND_PORT:-8081}}
-      DOCUMENT_STORAGE_PATH: /app/data/demo-documents
+      DOCUMENT_STORAGE_PATH: /app/data/documents
       DEMO_ACCOUNT_PASSWORD: ${DEMO_ACCOUNT_PASSWORD:?Set DEMO_ACCOUNT_PASSWORD in .env.demo}
       DEMO_DATASET_VERSION: ${DEMO_DATASET_VERSION:-sp-905-zh-tw-v1}
       DEMO_SAMPLES_PATH: /app/samples/documents
       DEMO_ALLOWED_DATABASE: supplypilot_demo
       DEMO_ALLOWED_SEMANTIC_DATABASE: supplypilot_semantic_demo
-      DEMO_PASSWORD_FILE: /run/secrets/supplypilot-demo-env
+      DEMO_PASSWORD_FILE: /run/supplypilot-demo-credentials/password
     volumes:
-      - demo-document-storage:/app/data/demo-documents
+      - sp903-document-storage:/app/data/documents
+      - ./.sp903-demo-credential:/run/supplypilot-demo-credentials:ro
       - ./samples/documents:/app/samples/documents:ro
-    secrets:
-      - source: demo-environment
-        target: supplypilot-demo-env
 
   frontend:
-    ports:
+    ports: !override
       - "127.0.0.1:${DEMO_FRONTEND_PORT:-8081}:8080"
 
-secrets:
-  demo-environment:
-    file: ${DEMO_ENV_SOURCE:-./.env.demo}
-
 volumes:
-  demo-mysql-data:
+  sp903-mysql-data:
     name: supplypilot-sp903-local-demo-mysql
-  demo-pgvector-data:
+  sp903-pgvector-data:
     name: supplypilot-sp903-local-demo-pgvector
-  demo-document-storage:
+  sp903-document-storage:
     name: supplypilot-sp903-local-demo-documents
