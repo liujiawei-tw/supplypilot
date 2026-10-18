@@ -20,16 +20,20 @@ services:
       SEMANTIC_DB_URL: jdbc:postgresql://pgvector:5432/supplypilot_semantic_demo
       FRONTEND_ORIGIN: ${FRONTEND_ORIGIN:-http://127.0.0.1:${DEMO_FRONTEND_PORT:-8081}}
       DOCUMENT_STORAGE_PATH: /app/data/demo-documents
-      DEMO_ACCOUNT_PASSWORD: ${DEMO_ACCOUNT_PASSWORD:?Set DEMO_ACCOUNT_PASSWORD in .env.demo}
       DEMO_DATASET_VERSION: ${DEMO_DATASET_VERSION:-sp-905-zh-tw-v1}
       DEMO_SAMPLES_PATH: /app/samples/demo-documents
       DEMO_ALLOWED_DATABASE: supplypilot_demo
       DEMO_ALLOWED_SEMANTIC_DATABASE: supplypilot_semantic_demo
-      DEMO_PASSWORD_FILE: /run/supplypilot-demo-credentials/password
+      DEMO_VERIFIER_URL: https://host.docker.internal:18443/v1/verify
+      DEMO_VERIFIER_CLIENT_CERT: /run/supplypilot-demo-verifier/client.crt
+      DEMO_VERIFIER_CLIENT_KEY: /run/supplypilot-demo-verifier/client.key
+      DEMO_VERIFIER_CA: /run/supplypilot-demo-verifier/ca.crt
     volumes: !override
       - sp903-document-storage:/app/data/demo-documents
-      - ./.sp903-demo-credential:/run/supplypilot-demo-credentials:ro
+      - ./.sp903-demo-verifier-client:/run/supplypilot-demo-verifier:ro
       - ./samples/documents:/app/samples/demo-documents:ro
+    extra_hosts:
+      - host.docker.internal:host-gateway
 
   frontend:
     ports: !override

@@ -9,8 +9,10 @@ spring:
 supplypilot:
   demo-data-enabled: true
   demo:
-    account-password: ${DEMO_ACCOUNT_PASSWORD:}
-    password-file: ${DEMO_PASSWORD_FILE:/run/supplypilot-demo-credentials/password}
+    verifier-url: ${DEMO_VERIFIER_URL:https://host.docker.internal:18443/v1/verify}
+    verifier-client-cert: ${DEMO_VERIFIER_CLIENT_CERT:/run/supplypilot-demo-verifier/client.crt}
+    verifier-client-key: ${DEMO_VERIFIER_CLIENT_KEY:/run/supplypilot-demo-verifier/client.key}
+    verifier-ca: ${DEMO_VERIFIER_CA:/run/supplypilot-demo-verifier/ca.crt}
     baseline-date: ${DEMO_BASELINE_DATE:}
     dataset-version: ${DEMO_DATASET_VERSION:sp-905-zh-tw-v1}
     samples-path: ${DEMO_SAMPLES_PATH:../samples/documents}

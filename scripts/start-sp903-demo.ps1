@@ -6,8 +6,9 @@ $repositoryRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 $envFile = Join-Path $repositoryRoot '.env.demo'
 $composeBase = Join-Path $repositoryRoot 'compose.yaml'
 $composeDemo = Join-Path $repositoryRoot 'compose.demo.yaml'
-$credentialSyncDirectory = Join-Path $repositoryRoot '.sp903-demo-credential'
-$credentialSyncScript = Join-Path $PSScriptRoot 'sync-sp903-demo-credential.py'
+$verifierServerDirectory = Join-Path $repositoryRoot '.sp903-demo-verifier-server'
+$verifierClientDirectory = Join-Path $repositoryRoot '.sp903-demo-verifier-client'
+$verifierScript = Join-Path $PSScriptRoot 'sp903-demo-host-verifier.py'
 $startupModule = Join-Path $PSScriptRoot 'Sp903DemoStartup.psm1'
 $project = 'supplypilot-sp903-local-demo'
 Import-Module -Name $startupModule -Force
@@ -60,10 +61,14 @@ function Get-DemoVolumeMetadata {
     if ($LASTEXITCODE -ne 0) { throw 'Could not list Docker volumes; refusing to start.' }
     $labelsByName = @{}
     foreach ($name in $expected.Keys) {
-        if ($name -notin $listed) { continue }
+        if (-not (@($listed | Where-Object { [string]::Equals([string]$_, [string]$name, [StringComparison]::Ordinal) }).Count)) { continue }
         $json = & docker volume inspect $name
         if ($LASTEXITCODE -ne 0) { throw "Could not inspect expected Demo volume '$name'." }
-        $labels = @($json | ConvertFrom-Json)[0].Labels
+        $volume = @($json | ConvertFrom-Json)[0]
+        if (-not [string]::Equals([string]$volume.Name, [string]$name, [StringComparison]::Ordinal)) {
+            throw 'Docker returned a case-mismatched volume identity; refusing to continue.'
+        }
+        $labels = $volume.Labels
         $labelsByName[$name] = @{
             Project = $labels.'com.docker.compose.project'
             VolumeKey = $labels.'com.docker.compose.volume'
@@ -163,7 +168,7 @@ if ($LASTEXITCODE -ne 0) { throw 'Docker Engine is unavailable; no SP-903 resour
 
 $pythonCommand = Get-Command python -ErrorAction SilentlyContinue
 if (-not $pythonCommand) { $pythonCommand = Get-Command python3 -ErrorAction SilentlyContinue }
-if (-not $pythonCommand) { throw 'Python 3 is required for Demo credential synchronization.' }
+if (-not $pythonCommand) { throw 'Python 3 is required for the Demo Host Verifier.' }
 $volumeState = Get-DemoVolumeMetadata
 $script:LegacyDocumentMountFound = $false
 if ($volumeState.State -eq 'Existing') {
@@ -177,7 +182,86 @@ $interpolationNames = Get-ComposeEnvironmentVariableNames -ComposeFiles @($compo
 Invoke-WithProcessEnvironmentCleared -Names $interpolationNames -Action {
     Push-Location $repositoryRoot
     try {
-        New-Item -ItemType Directory -Path $credentialSyncDirectory -Force | Out-Null
+    $opensslCommand = Get-Command openssl -ErrorAction SilentlyContinue
+    if (-not $opensslCommand) { throw 'OpenSSL is required to provision mutual TLS for the Demo Host Verifier.' }
+    New-Item -ItemType Directory -Path $verifierServerDirectory -Force | Out-Null
+    New-Item -ItemType Directory -Path $verifierClientDirectory -Force | Out-Null
+    $caKey = Join-Path $verifierServerDirectory 'ca.key'
+    $caCert = Join-Path $verifierServerDirectory 'ca.crt'
+    $serverKey = Join-Path $verifierServerDirectory 'server.key'
+    $serverCsr = Join-Path $verifierServerDirectory 'server.csr'
+    $serverCert = Join-Path $verifierServerDirectory 'server.crt'
+    $clientKey = Join-Path $verifierClientDirectory 'client.key'
+    $clientCsr = Join-Path $verifierClientDirectory 'client.csr'
+    $clientCert = Join-Path $verifierClientDirectory 'client.crt'
+    $serverExt = Join-Path $verifierServerDirectory 'server.ext'
+    $clientExt = Join-Path $verifierServerDirectory 'client.ext'
+    $opensslConfigCandidates = @(
+        (Join-Path (Split-Path (Split-Path $opensslCommand.Source -Parent) -Parent) 'ssl/openssl.cnf'),
+        '/etc/ssl/openssl.cnf', '/etc/pki/tls/openssl.cnf')
+    $opensslConfig = $opensslConfigCandidates | Where-Object { Test-Path -LiteralPath $_ } | Select-Object -First 1
+    $opensslConfigArgs = if ($opensslConfig) { @('-config', $opensslConfig) } else { @() }
+    if (-not (Test-Path -LiteralPath $caCert)) {
+        & $opensslCommand.Source req @opensslConfigArgs -x509 -newkey rsa:3072 -nodes -keyout $caKey -out $caCert -days 1825 -subj '/CN=SP903 Demo Host Verifier CA' -addext 'basicConstraints=critical,CA:TRUE' -addext 'keyUsage=critical,keyCertSign,cRLSign' 2>$null
+        if ($LASTEXITCODE -ne 0) { throw 'Could not create local verifier CA.' }
+    }
+    if (-not (Test-Path -LiteralPath $serverCert)) {
+        & $opensslCommand.Source req @opensslConfigArgs -new -newkey rsa:3072 -nodes -keyout $serverKey -out $serverCsr -subj '/CN=host.docker.internal' 2>$null
+        if ($LASTEXITCODE -ne 0) { throw 'Could not create verifier server key.' }
+        @('subjectAltName=DNS:host.docker.internal', 'extendedKeyUsage=serverAuth') | Set-Content -LiteralPath $serverExt -Encoding ascii
+        & $opensslCommand.Source x509 -req -in $serverCsr -CA $caCert -CAkey $caKey -CAcreateserial -out $serverCert -days 825 -sha256 -extfile $serverExt 2>$null
+        if ($LASTEXITCODE -ne 0) { throw 'Could not sign verifier server certificate.' }
+    }
+    if (-not (Test-Path -LiteralPath $clientCert)) {
+        & $opensslCommand.Source req @opensslConfigArgs -new -newkey rsa:3072 -nodes -keyout $clientKey -out $clientCsr -subj '/CN=SP903 Demo Backend' 2>$null
+        if ($LASTEXITCODE -ne 0) { throw 'Could not create verifier client key.' }
+        @('extendedKeyUsage=clientAuth') | Set-Content -LiteralPath $clientExt -Encoding ascii
+        & $opensslCommand.Source x509 -req -in $clientCsr -CA $caCert -CAkey $caKey -CAcreateserial -out $clientCert -days 825 -sha256 -extfile $clientExt 2>$null
+        if ($LASTEXITCODE -ne 0) { throw 'Could not sign verifier client certificate.' }
+    }
+    Copy-Item -LiteralPath $caCert -Destination (Join-Path $verifierClientDirectory 'ca.crt') -Force
+    if (-not $IsWindows) {
+        $setfacl = Get-Command setfacl -ErrorAction SilentlyContinue
+        if (-not $setfacl) { throw 'Linux Docker Engine requires setfacl (from the acl package) so only the Host user and Backend UID 10001 can read the Client key.' }
+        & chmod 700 $verifierServerDirectory
+        if ($LASTEXITCODE -ne 0) { throw 'Could not restrict Host Verifier private-key directory permissions.' }
+        & chmod 700 $verifierClientDirectory
+        if ($LASTEXITCODE -ne 0) { throw 'Could not restrict Backend Client key directory permissions.' }
+        & $setfacl.Source -m 'u:10001:rx' $verifierClientDirectory
+        if ($LASTEXITCODE -ne 0) { throw 'Could not grant Backend UID 10001 access to the Client certificate directory.' }
+        foreach ($path in @((Join-Path $verifierClientDirectory 'client.crt'),
+                (Join-Path $verifierClientDirectory 'client.key'), (Join-Path $verifierClientDirectory 'ca.crt'))) {
+            & chmod 600 $path
+            if ($LASTEXITCODE -ne 0) { throw 'Could not restrict Backend Client certificate permissions.' }
+            & $setfacl.Source -m 'u:10001:r' $path
+            if ($LASTEXITCODE -ne 0) { throw 'Could not grant Backend UID 10001 access to the Client certificate file.' }
+        }
+        foreach ($path in @($caKey, $serverKey)) {
+            & chmod 600 $path
+            if ($LASTEXITCODE -ne 0) { throw 'Could not restrict Host Verifier private key permissions.' }
+        }
+    }
+    $serverListening = $false
+    $probe = [Net.Sockets.TcpClient]::new()
+    try { $probe.Connect('127.0.0.1', 18443); $serverListening = $true } catch { } finally { $probe.Dispose() }
+    if (-not $serverListening) {
+        $arguments = @($verifierScript, '--environment-file', $envFile, '--server-cert', $serverCert,
+            '--server-key', $serverKey, '--client-ca', $caCert, '--host', '0.0.0.0', '--port', '18443')
+        $startInfo = [Diagnostics.ProcessStartInfo]::new($pythonCommand.Source)
+        foreach ($argument in $arguments) { [void]$startInfo.ArgumentList.Add($argument) }
+        $startInfo.UseShellExecute = $false
+        $startInfo.CreateNoWindow = $true
+        $null = [Diagnostics.Process]::Start($startInfo)
+        $ready = $false
+        for ($attempt = 0; $attempt -lt 40; $attempt++) {
+            try { $probe = [Net.Sockets.TcpClient]::new(); $probe.Connect('127.0.0.1', 18443); $probe.Dispose(); $ready = $true; break }
+            catch { Start-Sleep -Milliseconds 100 }
+        }
+        if (-not $ready) { throw 'Demo Host Verifier did not start listening.' }
+    }
+    & $pythonCommand.Source $verifierScript --probe --client-cert $clientCert --client-key $clientKey `
+        --server-ca $caCert --port 18443
+    if ($LASTEXITCODE -ne 0) { throw 'Port 18443 is occupied by a service that failed mutual-TLS Host Verifier identity validation.' }
     Invoke-Compose -Arguments @('config', '--quiet')
 
     # Start only the databases. Application credentials are checked before a Backend can run Flyway or seed data.
@@ -200,45 +284,33 @@ Invoke-WithProcessEnvironmentCleared -Names $interpolationNames -Action {
         Remove-Item Env:MYSQL_PWD, Env:PGPASSWORD -ErrorAction SilentlyContinue
     }
 
-    $syncResult = & $pythonCommand.Source $credentialSyncScript --environment-file $envFile `
-        --credential-directory $credentialSyncDirectory
-    if ($LASTEXITCODE -ne 0) { throw 'Could not synchronize Demo baseline credentials; Backend was not started.' }
-
     if ($script:LegacyDocumentMountFound) {
-        Invoke-DemoBackendMountUpgrade -RecreateBackend {
-            Invoke-Compose -Arguments @('up', '--detach', '--build', '--force-recreate', '--wait',
+        Invoke-DemoBackendMountUpgrade -GetDatabaseContainerIds {
+            $mysqlId = (& docker @composeArgs ps -q mysql).Trim()
+            if ($LASTEXITCODE -ne 0) { throw 'Could not read MySQL container identity.' }
+            $pgvectorId = (& docker @composeArgs ps -q pgvector).Trim()
+            if ($LASTEXITCODE -ne 0) { throw 'Could not read pgvector container identity.' }
+            @($mysqlId, $pgvectorId)
+        } -RecreateBackend {
+            Invoke-Compose -Arguments @('up', '--detach', '--build', '--force-recreate', '--no-deps', '--wait',
                 '--wait-timeout', '300', 'backend')
         } -AssertStrictMounts {
             Assert-ProjectContainers
         }
     }
-    Invoke-Compose -Arguments @('up', '--detach', '--build', '--wait', '--wait-timeout', '300', 'backend', 'frontend')
+    Invoke-Compose -Arguments @('up', '--detach', '--build', '--no-deps', '--wait', '--wait-timeout', '300', 'backend', 'frontend')
     Assert-ProjectContainers
     $serviceStatus = & docker @composeArgs ps --format json
     if ($LASTEXITCODE -ne 0) { throw 'Could not verify SP-903 service health.' }
     $statuses = @($serviceStatus | ForEach-Object { $_ | ConvertFrom-Json })
     foreach ($service in @('mysql', 'pgvector', 'backend', 'frontend')) {
-        $item = $statuses | Where-Object { $_.Service -eq $service } | Select-Object -First 1
+        $item = $statuses | Where-Object { [string]::Equals([string]$_.Service, [string]$service, [StringComparison]::Ordinal) } | Select-Object -First 1
         if (-not $item -or $item.State -ne 'running' -or $item.Health -ne 'healthy') {
             throw "SP-903 service health verification failed for service '$service'. No cleanup was attempted."
         }
     }
 
-    $backendContainer = (& docker @composeArgs ps -q backend).Trim()
-    if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($backendContainer)) {
-        throw 'Could not identify the Demo Backend container for credential synchronization.'
-    }
-    $startInfo = [Diagnostics.ProcessStartInfo]::new($pythonCommand.Source)
-    foreach ($argument in @($credentialSyncScript, '--environment-file', $envFile,
-            '--credential-directory', $credentialSyncDirectory, '--watch', '--backend-container', $backendContainer)) {
-        [void]$startInfo.ArgumentList.Add($argument)
-    }
-    $startInfo.UseShellExecute = $false
-    $startInfo.CreateNoWindow = $true
-    $watcher = [Diagnostics.Process]::Start($startInfo)
-    Start-Sleep -Milliseconds 500
-    if ($watcher.HasExited) { throw 'Demo credential synchronization stopped unexpectedly.' }
-    Write-Output 'SP-903 Demo is running; all four services are healthy.'
+    Write-Output 'SP-903 Demo is running; the mTLS Host Verifier and application services are ready.'
     Write-Output 'Frontend: http://127.0.0.1:8081'
     } finally {
         Pop-Location

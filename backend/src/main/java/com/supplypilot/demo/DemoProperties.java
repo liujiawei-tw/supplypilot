@@ -4,7 +4,6 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 
 @ConfigurationProperties(prefix = "supplypilot.demo")
 public class DemoProperties {
-    private String accountPassword;
     private String baselineDate;
     private String datasetVersion = "sp-905-zh-tw-v1";
     private String samplesPath = "../samples/documents";
@@ -12,8 +11,6 @@ public class DemoProperties {
     private String allowedDatabase = "supplypilot_demo";
     private String allowedSemanticDatabase = "supplypilot_semantic_demo";
 
-    public String getAccountPassword() { return accountPassword; }
-    public void setAccountPassword(String accountPassword) { this.accountPassword = accountPassword; }
     public String getBaselineDate() { return baselineDate; }
     public void setBaselineDate(String baselineDate) { this.baselineDate = baselineDate; }
     public String getDatasetVersion() { return datasetVersion; }

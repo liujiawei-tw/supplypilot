@@ -10,7 +10,7 @@ $composeNames = Get-ComposeEnvironmentVariableNames -ComposeFiles @(
     (Join-Path $PSScriptRoot '..\..\compose.yaml'),
     (Join-Path $PSScriptRoot '..\..\compose.demo.yaml'))
 foreach ($required in @('FRONTEND_ORIGIN', 'DEMO_ENV_SOURCE', 'MYSQL_PWD', 'PGPASSWORD',
-        'DB_USERNAME', 'DB_PASSWORD', 'DEMO_ACCOUNT_PASSWORD', 'DEMO_FRONTEND_PORT')) {
+        'DB_USERNAME', 'DB_PASSWORD', 'DEMO_FRONTEND_PORT')) {
     Assert-True ($required -in $composeNames) "Process environment protection omitted $required"
 }
 
@@ -63,7 +63,9 @@ Assert-True ($existing -eq 'Existing') 'Compatible legacy volumes should be reus
 foreach ($scenario in @(
     @{ Name = 'partial'; Names = @($allNames[0], $allNames[1]); Labels = $labels },
     @{ Name = 'wrong project'; Names = $allNames; Labels = (@{ $allNames[0] = @{ Project = 'other-project'; VolumeKey = 'sp903-mysql-data' }; $allNames[1] = $labels[$allNames[1]]; $allNames[2] = $labels[$allNames[2]] }) },
-    @{ Name = 'unknown volume key'; Names = $allNames; Labels = (@{ $allNames[0] = @{ Project = 'supplypilot-sp903-local-demo'; VolumeKey = 'unknown-key' }; $allNames[1] = $labels[$allNames[1]]; $allNames[2] = $labels[$allNames[2]] }) }
+    @{ Name = 'unknown volume key'; Names = $allNames; Labels = (@{ $allNames[0] = @{ Project = 'supplypilot-sp903-local-demo'; VolumeKey = 'unknown-key' }; $allNames[1] = $labels[$allNames[1]]; $allNames[2] = $labels[$allNames[2]] }) },
+    @{ Name = 'wrong-case project label'; Names = $allNames; Labels = (@{ $allNames[0] = @{ Project = 'SUPPLYPILOT-SP903-LOCAL-DEMO'; VolumeKey = 'sp903-mysql-data' }; $allNames[1] = $labels[$allNames[1]]; $allNames[2] = $labels[$allNames[2]] }) },
+    @{ Name = 'wrong-case volume key'; Names = $allNames; Labels = (@{ $allNames[0] = @{ Project = 'supplypilot-sp903-local-demo'; VolumeKey = 'SP903-MYSQL-DATA' }; $allNames[1] = $labels[$allNames[1]]; $allNames[2] = $labels[$allNames[2]] }) }
 )) {
     $thrown = $false
     try {
@@ -95,14 +97,14 @@ $repositoryRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..'))
 $documentsVolume = 'supplypilot-sp903-local-demo-documents'
 $documentsMountpoint = '/docker/volumes/supplypilot-sp903-local-demo-documents/_data'
 $sampleSource = Join-Path $repositoryRoot 'samples\documents'
-$credentialSource = Join-Path $repositoryRoot '.sp903-demo-credential'
+$credentialSource = Join-Path $repositoryRoot '.sp903-demo-verifier-client'
 $volumeMetadata = @{
     $documentsVolume = @{ Project = 'supplypilot-sp903-local-demo'; VolumeKey = 'sp903-document-storage'; Mountpoint = $documentsMountpoint }
 }
 $validBackendMounts = @(
     (New-TestVolumeMount $documentsVolume $documentsMountpoint '/app/data/demo-documents'),
     (New-TestBindMount $sampleSource '/app/samples/demo-documents'),
-    (New-TestBindMount $credentialSource '/run/supplypilot-demo-credentials')
+    (New-TestBindMount $credentialSource '/run/supplypilot-demo-verifier')
 )
 $validBackend = New-TestContainer 'backend' $validBackendMounts
 $validContract = Test-DemoContainerMountContract -Container $validBackend `
@@ -168,11 +170,15 @@ foreach ($scenario in @(
     @{ Name = 'wrong sample source'; Mounts = @((New-TestVolumeMount $documentsVolume $documentsMountpoint '/app/data/demo-documents'), (New-TestBindMount (Join-Path $repositoryRoot 'other') '/app/samples/demo-documents'), $validBackendMounts[2]) },
     @{ Name = 'wrong credential destination'; Mounts = @($validBackendMounts[0], $validBackendMounts[1], (New-TestBindMount $credentialSource '/tmp/credentials')) },
     @{ Name = 'sample writable'; Mounts = @($validBackendMounts[0], (New-TestBindMount $sampleSource '/app/samples/demo-documents' $true), $validBackendMounts[2]) },
-    @{ Name = 'credentials writable'; Mounts = @($validBackendMounts[0], $validBackendMounts[1], (New-TestBindMount $credentialSource '/run/supplypilot-demo-credentials' $true)) },
+    @{ Name = 'credentials writable'; Mounts = @($validBackendMounts[0], $validBackendMounts[1], (New-TestBindMount $credentialSource '/run/supplypilot-demo-verifier' $true)) },
     @{ Name = 'wrong document volume'; Mounts = @((New-TestVolumeMount 'lookalike-volume' $documentsMountpoint '/app/data/demo-documents'), $validBackendMounts[1], $validBackendMounts[2]) },
     @{ Name = 'document volume read only'; Mounts = @((New-TestVolumeMount $documentsVolume $documentsMountpoint '/app/data/demo-documents' $false), $validBackendMounts[1], $validBackendMounts[2]) },
     @{ Name = 'extra named volume'; Mounts = (@($validBackendMounts) + @((New-TestVolumeMount 'extra' '/volume/extra' '/extra'))) },
-    @{ Name = 'missing credential mount'; Mounts = @($validBackendMounts[0], $validBackendMounts[1]) }
+    @{ Name = 'missing verifier mount'; Mounts = @($validBackendMounts[0], $validBackendMounts[1]) },
+    @{ Name = 'wrong-case document target'; Mounts = @((New-TestVolumeMount $documentsVolume $documentsMountpoint '/App/data/demo-documents'), $validBackendMounts[1], $validBackendMounts[2]) },
+    @{ Name = 'wrong-case document volume name'; Mounts = @((New-TestVolumeMount 'Supplypilot-sp903-local-demo-documents' $documentsMountpoint '/app/data/demo-documents'), $validBackendMounts[1], $validBackendMounts[2]) },
+    @{ Name = 'wrong-case sample target'; Mounts = @($validBackendMounts[0], (New-TestBindMount $sampleSource '/App/samples/demo-documents'), $validBackendMounts[2]) },
+    @{ Name = 'wrong-case verifier target'; Mounts = @($validBackendMounts[0], $validBackendMounts[1], (New-TestBindMount $credentialSource '/Run/supplypilot-demo-verifier')) }
 )) {
     $container = New-TestContainer 'backend' $scenario.Mounts
     $result = Test-DemoContainerMountContract -Container $container `
@@ -198,6 +204,8 @@ $wrongPhysicalContract = Test-DemoContainerMountContract -Container $wrongPhysic
     -ExpectedProject 'supplypilot-sp903-local-demo' -ExpectedService backend `
     -RepositoryRoot $repositoryRoot -VolumeMetadataByName $volumeMetadata
 Assert-True (-not $wrongPhysicalContract.Valid) 'Named volume source must match its inspected Docker volume mountpoint'
+Assert-True (-not (Test-DemoHostPathMatch -Expected '/srv/supplypilot/samples/documents' `
+    -Actual '/srv/SupplyPilot/samples/documents')) 'Linux bind source comparison must be case sensitive'
 
 foreach ($databaseVolume in @(
     @{ Service = 'mysql'; Name = 'supplypilot-sp903-local-demo-mysql'; Key = 'sp903-mysql-data'; Target = '/var/lib/mysql' },
@@ -235,8 +243,13 @@ function docker {
 }
 $script:dockerFixtureFailure = $false
 $script:strictVerificationCalled = $false
+$script:databaseIdentityChanged = $false
+$fixtureDatabaseIds = {
+    if ($script:databaseIdentityChanged) { @('mysql-changed', 'pgvector-1') }
+    else { @('mysql-1', 'pgvector-1') }
+}
 $fixtureRecreate = {
-    docker compose up --detach --force-recreate backend
+    docker compose up --detach --build --force-recreate --no-deps --wait backend
     if ($LASTEXITCODE -ne 0) { throw 'fixture recreate failure' }
     $script:legacyBackend = New-TestContainer 'backend' $validBackendMounts
 }
@@ -247,25 +260,45 @@ $fixtureStrictCheck = {
         -RepositoryRoot $repositoryRoot -VolumeMetadataByName $volumeMetadata
     if (-not $result.Valid) { throw 'post-recreate mounts invalid' }
 }
-Invoke-DemoBackendMountUpgrade -RecreateBackend $fixtureRecreate -AssertStrictMounts $fixtureStrictCheck
+Invoke-DemoBackendMountUpgrade -GetDatabaseContainerIds $fixtureDatabaseIds `
+    -RecreateBackend $fixtureRecreate -AssertStrictMounts $fixtureStrictCheck
 Assert-True $script:strictVerificationCalled 'Successful recreate must be followed by strict mount verification'
-Assert-True (($dockerFixtureCalls -join "`n") -match 'compose up --detach --force-recreate backend') 'Legacy upgrade must recreate Backend through the Docker CLI fixture'
+Assert-True (($dockerFixtureCalls -join "`n") -match 'compose up --detach --build --force-recreate --no-deps --wait backend') 'Legacy upgrade must recreate only Backend through the Docker CLI fixture'
 Assert-True (-not ($dockerFixtureCalls -join "`n" | Select-String 'volume rm|volume prune|down -v')) 'Legacy upgrade fixture must not delete or mutate volumes'
 
 $script:strictVerificationCalled = $false
 $script:dockerFixtureFailure = $true
 $failedRecreate = $false
 try {
-    Invoke-DemoBackendMountUpgrade -RecreateBackend $fixtureRecreate -AssertStrictMounts $fixtureStrictCheck
+    Invoke-DemoBackendMountUpgrade -GetDatabaseContainerIds $fixtureDatabaseIds `
+        -RecreateBackend $fixtureRecreate -AssertStrictMounts $fixtureStrictCheck
 } catch { $failedRecreate = $true }
 Assert-True $failedRecreate 'Recreate failure must be returned to the caller'
 Assert-True (-not $script:strictVerificationCalled) 'Strict post-check must not run after failed recreation'
 $script:dockerFixtureFailure = $false
 
+$script:strictVerificationCalled = $false
+$script:databaseIdentityChanged = $false
+$changedDatabaseIdentity = $false
+try {
+    Invoke-DemoBackendMountUpgrade -GetDatabaseContainerIds {
+        if ($script:databaseIdentityChanged) { @('mysql-changed', 'pgvector-1') }
+        else { @('mysql-1', 'pgvector-1') }
+    } -RecreateBackend {
+        docker compose up --detach --build --force-recreate --no-deps --wait backend
+        $script:databaseIdentityChanged = $true
+        $global:LASTEXITCODE = 0
+    } -AssertStrictMounts { $script:strictVerificationCalled = $true }
+} catch { $changedDatabaseIdentity = $true }
+Assert-True $changedDatabaseIdentity 'Legacy upgrade must fail if either database container ID changes'
+Assert-True (-not $script:strictVerificationCalled) 'Strict Backend mount check must not proceed after a database identity change'
+$script:databaseIdentityChanged = $false
+
 $script:legacyBackend = $legacyBackendFixture
 $staleMountRejected = $false
 try {
-    Invoke-DemoBackendMountUpgrade -RecreateBackend { docker compose up --detach --force-recreate backend; $global:LASTEXITCODE = 0 } `
+    Invoke-DemoBackendMountUpgrade -GetDatabaseContainerIds $fixtureDatabaseIds `
+        -RecreateBackend { docker compose up --detach --build --force-recreate --no-deps --wait backend; $global:LASTEXITCODE = 0 } `
         -AssertStrictMounts {
             $result = Test-DemoContainerMountContract -Container $script:legacyBackend `
                 -ExpectedProject 'supplypilot-sp903-local-demo' -ExpectedService backend `

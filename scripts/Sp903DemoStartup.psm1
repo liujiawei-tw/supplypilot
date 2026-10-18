@@ -47,15 +47,29 @@ function Get-DemoVolumeSetStatus {
         [Parameter(Mandatory = $true)][hashtable]$ExpectedVolumes
     )
     $expectedNames = @($ExpectedVolumes.Keys)
-    $existing = @($expectedNames | Where-Object { $_ -in $ExistingVolumeNames })
+    foreach ($actualName in $ExistingVolumeNames) {
+        foreach ($expectedName in $expectedNames) {
+            if ([string]::Equals([string]$actualName, [string]$expectedName, [StringComparison]::OrdinalIgnoreCase) -and
+                    -not [string]::Equals([string]$actualName, [string]$expectedName, [StringComparison]::Ordinal)) {
+                throw 'A case-mismatched Demo volume name exists; refusing to treat it as a fresh install.'
+            }
+        }
+    }
+    $existing = @($expectedNames | Where-Object {
+            $expectedName = $_
+            @($ExistingVolumeNames | Where-Object { [string]::Equals([string]$_, [string]$expectedName, [StringComparison]::Ordinal) }).Count -gt 0
+        })
     if ($existing.Count -eq 0) { return 'FreshStart' }
     if ($existing.Count -ne $expectedNames.Count) {
         throw 'Only part of the SP-903 Demo volume set exists; refusing to start.'
     }
     foreach ($name in $expectedNames) {
         $labels = $VolumeLabelsByName[$name]
-        if (-not $labels -or $labels.Project -ne $ExpectedProject -or
-                $labels.VolumeKey -notin @($ExpectedVolumes[$name])) {
+        $validKey = $false
+        foreach ($key in @($ExpectedVolumes[$name])) {
+            if ($labels -and [string]::Equals([string]$labels.VolumeKey, [string]$key, [StringComparison]::Ordinal)) { $validKey = $true }
+        }
+        if (-not $labels -or -not [string]::Equals([string]$labels.Project, $ExpectedProject, [StringComparison]::Ordinal) -or -not $validKey) {
             throw "Existing Demo volume '$name' has unknown Compose ownership; refusing to start."
         }
     }
@@ -83,17 +97,12 @@ function Normalize-DemoHostPath {
         if ($normalized.Length -eq 1) { return $normalized }
         return $normalized.TrimEnd('/')
     }
-    try {
-        $normalized = [IO.Path]::GetFullPath($Path)
-        if ($normalized.StartsWith('\\?\', [StringComparison]::Ordinal)) {
-            $normalized = $normalized.Substring(4)
-        }
-        $root = [IO.Path]::GetPathRoot($normalized)
-        if ($normalized -eq $root) { return $normalized }
-        return $normalized.TrimEnd([IO.Path]::DirectorySeparatorChar, [IO.Path]::AltDirectorySeparatorChar)
-    } catch {
-        return $null
-    }
+    # Docker Inspect host paths must be absolute and recognizable; relative paths are never promoted to cwd.
+    return $null
+}
+
+function Test-OrdinalEqual([string]$Left, [string]$Right) {
+    return [string]::Equals($Left, $Right, [StringComparison]::Ordinal)
 }
 
 function Test-DemoHostPathMatch {
@@ -113,7 +122,7 @@ function Test-DemoHostPathMatch {
     }
     $actualPath = Normalize-DemoHostPath $Actual
     if (-not $actualPath) { return $false }
-    if ($expectedPath.StartsWith('\\')) {
+    if ($expectedPath.StartsWith('\\', [StringComparison]::Ordinal)) {
         return [string]::Equals($expectedPath, $actualPath, [StringComparison]::OrdinalIgnoreCase)
     }
     return [string]::Equals($expectedPath, $actualPath, [StringComparison]::Ordinal)
@@ -130,9 +139,14 @@ function Test-DemoContainerMountContract {
     )
 
     $labels = $Container.Config.Labels
-    if ($labels.'com.docker.compose.project' -ne $ExpectedProject -or
-            $labels.'com.docker.compose.service' -ne $ExpectedService) {
+    if (-not (Test-OrdinalEqual ([string]$labels.'com.docker.compose.project') $ExpectedProject) -or
+            -not (Test-OrdinalEqual ([string]$labels.'com.docker.compose.service') $ExpectedService)) {
         return [pscustomobject]@{ Valid = $false; Legacy = $false; Error = 'Container project or service label mismatch.' }
+    }
+
+    $allowedServices = @('mysql', 'pgvector', 'backend', 'frontend')
+    if (-not ($allowedServices | Where-Object { [string]::Equals($_, $ExpectedService, [StringComparison]::Ordinal) })) {
+        return [pscustomobject]@{ Valid = $false; Legacy = $false; Error = 'Unknown Compose service.' }
     }
 
     $expected = [System.Collections.Generic.List[hashtable]]::new()
@@ -143,7 +157,7 @@ function Test-DemoContainerMountContract {
             $expected.AddRange([hashtable[]]@(
                 @{ Type = 'volume'; Name = 'supplypilot-sp903-local-demo-documents'; Target = '/app/data/demo-documents'; ReadOnly = $false; Source = $null; VolumeKey = 'sp903-document-storage' },
                 @{ Type = 'bind'; Name = $null; Target = '/app/samples/demo-documents'; ReadOnly = $true; Source = (Join-Path $RepositoryRoot 'samples/documents'); VolumeKey = $null },
-                @{ Type = 'bind'; Name = $null; Target = '/run/supplypilot-demo-credentials'; ReadOnly = $true; Source = (Join-Path $RepositoryRoot '.sp903-demo-credential'); VolumeKey = $null }
+                @{ Type = 'bind'; Name = $null; Target = '/run/supplypilot-demo-verifier'; ReadOnly = $true; Source = (Join-Path $RepositoryRoot '.sp903-demo-verifier-client'); VolumeKey = $null }
             ))
         }
         'frontend' { }
@@ -153,14 +167,14 @@ function Test-DemoContainerMountContract {
     $actual = @($Container.Mounts)
     $legacyMount = $null
     if ($AllowKnownLegacyDocumentMount -and $ExpectedService -eq 'backend' -and $actual.Count -eq ($expected.Count + 1)) {
-        $legacyCandidates = @($actual | Where-Object { $_.Destination -eq '/app/data/documents' })
+        $legacyCandidates = @($actual | Where-Object { Test-OrdinalEqual ([string]$_.Destination) '/app/data/documents' })
         if ($legacyCandidates.Count -eq 1) {
             $legacyMount = $legacyCandidates[0]
             $metadata = $VolumeMetadataByName[[string]$legacyMount.Name]
-            if ($legacyMount.Type -ne 'volume' -or -not $metadata -or
-                    $metadata.Project -ne $ExpectedProject -or $metadata.VolumeKey -ne 'document-storage' -or
-                    -not $legacyMount.RW -or (Normalize-DemoHostPath ([string]$metadata.Mountpoint)) -ne
-                    (Normalize-DemoHostPath ([string]$legacyMount.Source))) {
+            if (-not (Test-OrdinalEqual ([string]$legacyMount.Type) 'volume') -or -not $metadata -or
+                    -not (Test-OrdinalEqual ([string]$metadata.Project) $ExpectedProject) -or
+                    -not (Test-OrdinalEqual ([string]$metadata.VolumeKey) 'document-storage') -or
+                    -not $legacyMount.RW -or -not (Test-DemoHostPathMatch -Expected ([string]$metadata.Mountpoint) -Actual ([string]$legacyMount.Source))) {
                 return [pscustomobject]@{ Valid = $false; Legacy = $false; Error = 'Legacy document volume identity or mount metadata mismatch.' }
             }
         }
@@ -172,8 +186,9 @@ function Test-DemoContainerMountContract {
 
     foreach ($contract in $expected) {
         $matches = @($actual | Where-Object {
-                $_.Type -eq $contract.Type -and $_.Destination -eq $contract.Target -and
-                ($contract.Type -eq 'bind' -or $_.Name -eq $contract.Name)
+                (Test-OrdinalEqual ([string]$_.Type) ([string]$contract.Type)) -and
+                (Test-OrdinalEqual ([string]$_.Destination) ([string]$contract.Target)) -and
+                ($contract.Type -eq 'bind' -or (Test-OrdinalEqual ([string]$_.Name) ([string]$contract.Name)))
             })
         if ($matches.Count -ne 1) {
             return [pscustomobject]@{ Valid = $false; Legacy = $false; Error = "Missing or duplicate mount at $($contract.Target)." }
@@ -188,10 +203,9 @@ function Test-DemoContainerMountContract {
             }
         } else {
             $metadata = $VolumeMetadataByName[[string]$mount.Name]
-            if (-not $metadata -or $metadata.Project -ne $ExpectedProject -or
-                    $metadata.VolumeKey -ne $contract.VolumeKey -or
-                    (Normalize-DemoHostPath ([string]$metadata.Mountpoint)) -ne
-                    (Normalize-DemoHostPath ([string]$mount.Source))) {
+            if (-not $metadata -or -not (Test-OrdinalEqual ([string]$metadata.Project) $ExpectedProject) -or
+                    -not (Test-OrdinalEqual ([string]$metadata.VolumeKey) ([string]$contract.VolumeKey)) -or
+                    -not (Test-DemoHostPathMatch -Expected ([string]$metadata.Mountpoint) -Actual ([string]$mount.Source))) {
                 return [pscustomobject]@{ Valid = $false; Legacy = $false; Error = "Unexpected named volume metadata at $($contract.Target)." }
             }
         }
@@ -202,10 +216,20 @@ function Test-DemoContainerMountContract {
 
 function Invoke-DemoBackendMountUpgrade {
     param(
+        [Parameter(Mandatory = $true)][scriptblock]$GetDatabaseContainerIds,
         [Parameter(Mandatory = $true)][scriptblock]$RecreateBackend,
         [Parameter(Mandatory = $true)][scriptblock]$AssertStrictMounts
     )
+    $before = @(& $GetDatabaseContainerIds)
+    if ($before.Count -ne 2 -or @($before | Where-Object { [string]::IsNullOrWhiteSpace([string]$_) }).Count -ne 0) {
+        throw 'Could not capture both database container IDs before the Backend upgrade.'
+    }
     & $RecreateBackend
+    $after = @(& $GetDatabaseContainerIds)
+    if ($after.Count -ne 2 -or -not [string]::Equals([string]$before[0], [string]$after[0], [StringComparison]::Ordinal) -or
+            -not [string]::Equals([string]$before[1], [string]$after[1], [StringComparison]::Ordinal)) {
+        throw 'Database container IDs changed during the Backend-only legacy upgrade.'
+    }
     & $AssertStrictMounts
 }
 

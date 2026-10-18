@@ -14,7 +14,8 @@ backend/src/test
 .env
 .env.*
 !.env.example
-.sp903-demo-credential
+.sp903-demo-verifier-server
+.sp903-demo-verifier-client
 *.pem
 *.key
 *.p12

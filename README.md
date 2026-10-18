@@ -27,13 +27,13 @@ SupplyPilot 是採購與供應鏈決策平台。Backend 以 Java 21、Spring Boo
 2. 啟動：
 
    ```powershell
-   docker compose --env-file .env.demo -f compose.yaml -f compose.demo.yaml up -d --build
+   pwsh -NoProfile -File .\scripts\start-sp903-demo.ps1
    ```
 
-   Windows 使用受控啟動器時，執行 `pwsh -NoProfile -File .\scripts\start-sp903-demo.ps1`。它會在啟動 Backend 前檢查專用資源歸屬與資料庫帳密。
+   啟動器會驗證專用資源歸屬與資料庫帳密，並先啟動 Host mTLS Verifier。若直接執行 Compose，必須先以相同假設與 Host 憑證設定啟動 Verifier；否則基線帳號登入會 Fail Closed。
 3. 開啟 `http://127.0.0.1:8081`。
 
-Demo 的五個基線帳號 `admin`、`manager`、`buyer`、`warehouse`、`planner` 設定為使用 `.env.demo` 的 `DEMO_ACCOUNT_PASSWORD`。目前的 Host 輪詢同步器沒有登入同步屏障，**不保證環境檔儲存完成後的第一個登入立即採用新密碼**；SP-903 第四輪此項仍為 **BLOCKED**。不要將 100 ms 輪詢視為即時一致性保證。Production 不使用此 Demo 認證路徑。詳細限制見 `docs/SP-903-DOCKER-RELEASE-CANDIDATE.md`。
+Demo 的五個基線帳號 `admin`、`manager`、`buyer`、`warehouse`、`planner` 每次登入都會透過 mTLS 向 Host Verifier 同步驗證 `.env.demo` 的 `DEMO_ACCOUNT_PASSWORD`。Host Verifier 每個請求重新讀取來源；來源錯誤或通道不可用時登入失敗。啟動器會在 Host 產生隔離憑證並啟動 Verifier，Backend 只掛載專用的 Client 憑證。Production 不建立或呼叫此 Demo 認證路徑。部署限制與驗收狀態見 `docs/SP-903-DOCKER-RELEASE-CANDIDATE.md`。
 
 Demo 文件來源使用 Host `./samples/documents`，唯讀映射至 Container `/app/samples/demo-documents`。已上傳文件則寫入 Container `/app/data/demo-documents`，由既有 named volume `supplypilot-sp903-local-demo-documents` 持久化。兩個路徑分開使用；樣本 Host 路徑保留原名以支援非 Demo Semantic Gate 手動上傳流程。
 

@@ -8,7 +8,7 @@ Production 預設使用 `prod` Profile、固定的 `supplypilot_prod` / `supplyp
 
 Demo 只用 `compose.demo.yaml` 覆蓋必要差異：Compose Project、Profile、資料庫名稱、Demo 文件 Storage、基線密碼來源及 Frontend Port。Demo 專案名稱和三個 named volume 保留舊 SP-903 名稱，讓原 Demo 資料繼續使用；資料庫憑證若與舊 Volume 不符，受控啟動器會在啟動 Backend 前拒絕繼續。不得為了解決憑證錯誤移除 Volume 或 Reset 資料。
 
-Demo Backend 使用 `!override` 取代基底的整組 volume mounts，因此合併後只會掛載三項：文件 volume `sp903-document-storage:/app/data/demo-documents`、唯讀憑證目錄 `./.sp903-demo-credential:/run/supplypilot-demo-credentials:ro`，以及唯讀樣本 `./samples/documents:/app/samples/demo-documents:ro`。不會留下基底的 `/app/data/documents` 或 Production 文件 volume。既有文件 volume 名稱與 Container target 均保留。Host 樣本路徑保留原名，因 SP-901 Semantic Gate 的手動 UI 上傳也使用該路徑。
+Demo Backend 使用 `!override` 取代基底的整組 volume mounts，因此合併後只會掛載三項：文件 volume `sp903-document-storage:/app/data/demo-documents`、唯讀 Client 憑證目錄 `./.sp903-demo-verifier-client:/run/supplypilot-demo-verifier:ro`，以及唯讀樣本 `./samples/documents:/app/samples/demo-documents:ro`。不會留下基底的 `/app/data/documents` 或 Production 文件 volume。Host 樣本路徑保留原名，因 SP-901 Semantic Gate 的手動 UI 上傳也使用該路徑。
 
 開發資料庫使用 `compose.dev.yaml` 的 `supplypilot-dev-v2` 專案與新 Volume，避免接管先前 `compose.yaml` 建立的開發 Volume。舊開發資料仍留在 Docker，不會由這份配置修改。
 
@@ -32,9 +32,9 @@ Demo Backend 使用 `!override` 取代基底的整組 volume mounts，因此合�
 
 Compose 的 Process Environment 優先於 `--env-file`。執行標準命令前，確認目前 PowerShell 工作階段沒有同名的 DB、JWT、Demo 或 Compose Project 環境變數；受控 Demo 啟動器會清除並在結束時還原插值用的 Process Environment。Compose Project 名稱、資料庫名稱和 Demo volume 名稱由 Compose 檔案定義，避免憑證外的 shell 變數改變資料位置。
 
-目前基線登入仍使用 Host 同步器複製到 `.sp903-demo-credential/password` 的密碼檔。它會週期檢查來源，但沒有與登入建立同步屏障；因此**不保證 `.env.demo` 儲存完成後的第一個登入立即採用新值**。SP-903 第四輪的嚴格即時一致性尚未實作，狀態為 **BLOCKED**；不得把 100 ms 輪詢描述為符合要求。Backend 不掛載整份 `.env.demo`，Production Compose 不使用 Demo 憑證。
+五個基線帳號使用 Host Authority + Per-Request Synchronous Verification。啟動器在 Host 產生專用 CA、Verifier Server 憑證與 Backend Client 憑證；只有 Client 憑證與 CA 公開憑證唯讀掛入 Backend，Server 私鑰及 CA 私鑰留在 Host。Host Verifier 只接受 mTLS，Backend 每次 Login 建立獨立的 128-bit Request ID 與 256-bit nonce；Response 必須回顯兩者，且回應在驗證過的 TLS 通道內傳回。Host 端拒絕重放 Request ID、限制來源檔 64 KiB、並行 32 個請求，且不記錄請求內容。每次請求重新讀取 `.env.demo`，不保留舊密碼或成功結果作為備援；來源錯誤、驗證失敗、Verifier 停止或通訊逾時均 Fail Closed。五個基線帳號的 DB BCrypt 值是隨機不可用值，Baseline Authenticator 不會回退 DB Hash；其他 Demo 使用者仍使用 BCrypt。Production Profile 不建立此元件。
 
-在 Host 驗證通道完成並通過 Windows Docker Desktop 與 Linux Docker Engine 的真實容器測試前，請勿依賴密碼輪替的「下一次登入立即生效」語意。現有同步器的檔案複製測試只能驗證複製與掛載，不是第一個 HTTP Login Request 一致性證據。
+Host Verifier 使用 `0.0.0.0:18443` 接收 Docker Desktop `host.docker.internal` 與 Linux `host-gateway` 流量；服務需要 Python 3、OpenSSL 及允許 Docker Bridge 到 Host TCP/18443 的主機防火牆規則。Linux Docker Engine Host 另需 `acl` / `setfacl`；啟動器將 Server/CA 私鑰限為 Host 使用者可讀，Client 憑證目錄只授予 Host 使用者及 Backend UID 10001 搜尋／讀取。Windows 檔案使用 Host 目錄繼承的 NTFS ACL，啟動器不擴大 ACL。mTLS 阻止沒有專用 Client Key 的匿名或 LAN 呼叫。啟動器重複執行時會用隔離 Client 憑證對現有 Listener 做 mTLS 健康檢查，錯誤服務會令啟動失敗。Verifier process 獨立於 Backend/Engine 生命週期，Backend 或 Engine 重啟後可繼續連線；Verifier 停止期間登入拒絕，恢復後下一次登入重新向 Host 讀取來源。已簽發 JWT 按原期限有效。
 
 資料庫密碼若錯誤，資料庫應用程式登入驗證會失敗，Backend 不會啟動 Flyway 或 Seeder。MySQL `mysqladmin ping` 及 PostgreSQL `pg_isready` 只代表伺服器可回應，不足以證明應用程式憑證正確。標準 Compose 會依資料庫 Health Check 控制 Backend 啟動；Windows 受控啟動器另外在 Backend 前實際驗證兩個應用程式帳號。
 
@@ -72,11 +72,11 @@ Windows 上的受控啟動順序：
 pwsh -NoProfile -File .\scripts\start-sp903-demo.ps1
 ```
 
-啟動器會先檢查 `.env.demo` 必要鍵、重複鍵、JWT 格式、忽略規則、Docker Engine、Compose Volume/Container 歸屬和 Compose 結構；接著只啟動兩個資料庫、以實際應用程式帳密執行 `SELECT 1`，成功後才啟動 Backend 和 Frontend。啟動器沒有 Reset 或刪除資源的路徑。四個服務健康後，重複執行相同命令可用來恢復或重啟 Stack。
+啟動器會先檢查 `.env.demo` 必要鍵、重複鍵、JWT 格式、忽略規則、Docker Engine、Compose Volume/Container 歸屬和 Compose 結構；接著產生或核對本機 mTLS 憑證，啟動 Host Verifier，再只啟動兩個資料庫並以實際應用程式帳密執行 `SELECT 1`，成功後才啟動 Backend 和 Frontend。啟動器沒有 Reset 或刪除資源的路徑。四個服務健康後，重複執行相同命令可用來恢復或重啟 Stack。
 
 每個既有 Container 的完整 Docker Inspect Mount 集合都須符合 service 契約。Backend 的 bind source 會正規化 Windows 路徑、Docker Desktop VM 對應路徑或 Linux 路徑後做完整相等比對；樣本與憑證 bind 必須唯讀。MySQL、pgvector 和文件 volume 需符合明確名稱、Compose project/key labels、mountpoint、target 與寫入權限。Frontend 不允許任何額外 mount。無法確認的 metadata 一律拒絕。
 
-升級前若 Backend Container 同時掛載 `/app/data/documents` 上的 Compose volume key `document-storage` 與 Demo 文件 volume，啟動器只對同時符合 Demo project/service labels、舊 volume key 及舊 target 的這一種已知配置暫時放行。DB 帳密檢查成功後，啟動器會只對 Backend 執行 `up --force-recreate backend`，接著以嚴格模式核對全部 mounts；舊額外 volume 只會脫離 Container，保留在 Docker 中，不刪除、不搬移、不覆寫。labels 或 target 不符的額外 volume 仍拒絕啟動。此升級流程尚未在本機 Docker Engine 實際執行。
+升級前若 Backend Container 同時掛載 `/app/data/documents` 上的 Compose volume key `document-storage` 與 Demo 文件 volume，啟動器只對同時符合 Demo project/service labels、舊 volume key 及舊 target 的這一種已知配置暫時放行。DB 帳密檢查成功後記錄 MySQL 與 pgvector Container ID，再以 `up --force-recreate --no-deps backend` 只重建 Backend；重建後核對 DB Container ID 不變並嚴格檢查全部 mounts。之後一般應用程式啟動也帶 `--no-deps`，避免 Compose 再建立資料庫。舊額外 volume 只會脫離 Container，保留在 Docker 中，不刪除、不搬移、不覆寫。未知額外 Mount 仍拒絕啟動。
 
 安全停止與恢復：
 
@@ -85,7 +85,7 @@ docker compose --env-file .env.demo -f compose.yaml -f compose.demo.yaml stop
 pwsh -NoProfile -File .\scripts\start-sp903-demo.ps1
 ```
 
-受控啟動器也可重複執行。Docker Desktop 或 Windows 重啟後請執行啟動器；Compose 的 `unless-stopped` 會恢復容器。直接執行 Compose `up` 會恢復容器，但不會啟動 Host 密碼同步器。資料庫、文件和 pgvector 的資料使用 named volume 持久化。禁止使用 `down -v`、`docker volume rm`、`docker volume prune`，也不要自行執行 Demo Reset。
+受控啟動器也可重複執行。Docker Desktop 或 Windows 重啟後請執行啟動器；Compose 的 `unless-stopped` 會恢復容器。直接執行 Compose `up` 不會啟動 Host Verifier，五個基線帳號因此無法登入。資料庫、文件和 pgvector 的資料使用 named volume 持久化。禁止使用 `down -v`、`docker volume rm`、`docker volume prune`，也不要自行執行 Demo Reset。
 
 若舊 Volume 的 Compose 標籤或帳密不符，啟動器會拒絕接管；人工檢查 Docker Volume/Container metadata 並驗證原應用程式帳密後，再依據確認後的相容路徑處理。不要靜默建立新空資料庫並聲稱舊資料已恢復。SP-910 r4 的專案和 Volume 不在本 Compose 的資源清單中。
 
@@ -102,11 +102,16 @@ docker compose --env-file $env:TEMP\supplypilot-demo-test.env -f compose.yaml -f
 
 | 驗收項目 | 狀態 |
 |---|---|
-| Production / Demo Compose 結構驗證 | 隔離假憑證 `docker compose config --format json` 測試通過；合併後完整 Demo Backend mount 集合恰有文件 volume、唯讀 samples 與唯讀憑證目錄，沒有 `/app/data/documents` 或第二份文件 volume；也檢查各自 loopback Frontend port 及資料庫不發布 |
-| Demo Seeder／五角色 HTTP 登入／文件 Ingestion | Maven `verify` 使用 Windows Docker Desktop 上的 Testcontainers 完成，包含 Demo Seed Smoke HTTP 測試；不等同完整合併 Compose stack 啟動驗收 |
-| 合併 Demo Compose 實際啟動、文件讀取／重啟持久性 | **NOT RUN**：Docker CLI 對目前 Docker Desktop Linux Engine named pipe 回覆 permission denied；未檢視或操作任何既有 Volume |
-| Production Admin 真實 Container 登入及改密碼 | Maven `verify` 使用 Windows Docker Desktop 上的 Testcontainers 完成：首次初始化、受限 token、改密碼、重啟不重設、空 users 保護、無 ACTIVE ADMIN fail-closed、交易回滾與並行初始化 |
-| `.env.demo` 儲存後第一個 HTTP Login Request 使用新密碼 | **BLOCKED**：現行 100 ms Host 輪詢複製沒有登入同步屏障；沒有第一個登入立即一致性的證據。Windows Docker Desktop 與 Linux Docker Engine 均未實測此一致性 |
-| Mount ownership 與舊 Container 升級控制流程 | PowerShell Docker CLI fixture 覆蓋完整合法 mounts、Windows/Linux Host path 正規化、未知/錯誤/缺失 mount、Volume labels、舊雙文件 mount、recreate 失敗及重建後仍有錯誤 mount；fixture 不等同真實 Container。此分支未在真實 Docker Container 執行；本機 Docker Engine 無法連線，未檢查或操作真實 Volume |
-| Fresh Start、重啟與舊 Volume 判定 | PowerShell 自動測試覆蓋全無 Volume、舊版相容 labels、部分 Volume、錯誤 project/key；本機 Docker Engine 無法連線，未檢查或操作真實 Volume，也未執行實際啟動 |
+| Production / Demo Compose 結構驗證 | `python -m unittest scripts.tests.test_compose_config scripts.tests.test_sp903_demo_host_verifier -v`：6 tests PASS。隔離設定驗證 Demo mount 集合、唯讀權限、port 與 Production/Demo 隔離；未啟動既有 Compose 專案 |
+| Backend Maven 完整回歸 | `cd backend; .\mvnw.cmd -B --no-transfer-progress verify`：PASS，629 tests、0 failures、0 errors、1 skipped；Testcontainers 使用 Windows Docker Desktop 建立臨時 MySQL/pgvector。Demo Seed Smoke 測試包含 11 項 API 整合案例 |
+| Demo Host Verifier 與跨程序 RPC | Python Host verifier tests：6/6 PASS，覆蓋 mTLS、真實子程序、五帳號、source rotation/error、nonce/request binding、replay rejection 與 concurrency |
+| 五個基線帳號 HTTP Login 與來源即時輪替 | `DemoSeedSmokeIntegrationTests`：11/11 PASS，經 Spring Login endpoint + mTLS Host verifier 測試五帳號、原子替換、直接覆寫及快速輪替、並行登入、錯密碼、來源錯誤、Verifier 停止／恢復及非基線 DB BCrypt 路徑。測試只使用隔離假 `.env.demo` |
+| Docker Image Build | Docker Desktop `desktop-linux`：Backend `supplypilot-sp903-backend:verification` 與 Frontend `supplypilot-sp903-frontend:verification` 均建置成功；未啟動服務或掛載 volume |
+| Frontend Lint / Test / Build | `npm run lint` PASS（有既存 `UsersPage.tsx:32` lint warning）；`npm run build` PASS（有既存 chunk size warning）。完整 Vitest：23 files／198 tests，193 PASS、5 FAIL（皆為 timeout：`masterData.test.tsx` 1 項、`sp806.test.tsx` 4 項）；定向 `demandInventory.test.tsx` + `recommendation.test.tsx` 為 38/38 PASS。Frontend 程式本輪未修改 |
+| Windows Docker Desktop Docker CLI | 一般工作階段 `docker info` 對 `default` 與 `desktop-linux` context 回覆 named pipe `permission denied`。Maven/Testcontainers 與升權後的 image build 可連線，但不代表 Compose 專案 runtime 驗收完成 |
+| 合併 Demo Compose 實際啟動、Fresh/Repeated/Stop→Start、文件讀取與重啟持久性 | **NOT RUN**：既有 compose 使用固定 volume 名稱，為避免接觸使用者資料未啟動 stack。未檢視、掛載、重建、重設或刪除任何既有 volume |
+| Production Admin 真實 Container 登入及改密碼 | Maven `verify` 的隔離 Testcontainers 覆蓋首次初始化、受限 token、改密碼、重啟不重設、空 users 保護、無 ACTIVE ADMIN fail-closed、交易回滾與並行初始化；不是完整 Production Compose 啟動驗收 |
+| Mount ownership 與舊 Container 升級控制流程 | `pwsh -NoProfile -File scripts/tests/test-sp903-demo-startup.ps1` PASS；fixture 覆蓋 Linux 大小寫、Windows path 正規化、mount ownership、舊雙文件 mount、Backend-only `--no-deps` recreate、DB Container ID 未變／變更與失敗分支。**真實舊 Container upgrade NOT RUN**：未接觸固定名稱的現有 Demo 資源 |
+| Linux Docker Engine | **NOT RUN**：本次工作環境為 Windows Docker Desktop，未連接 Linux Host；Linux firewall、setfacl、host-gateway 與實際容器 mount 尚未實測 |
+| GitHub Actions | 待將本輪 Commit Push 後，以新 Head SHA 查詢 combined status；Commit 前不把 CI 標示為通過 |
 | AWS、HTTPS、Gemini、Semantic Gate、午夜 Reset | 不屬於此本機 Compose 實作證據，依 Issue #45 / #117 後續 Gate 驗收 |
