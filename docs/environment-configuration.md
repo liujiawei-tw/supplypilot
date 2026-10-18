@@ -500,3 +500,34 @@ SP-722 實作設定、PostgreSQL migration、Backfill 與切換操作步驟見 [
 
 ### Scope
 不遷移核心 MySQL 業務資料、不增加跨庫 FK、不改寫 SP-720 Tool Allowlist、不改動 SP-721 Confirmation、無 OCR／Multi-Agent／完整新前端。部署／資料出站可能涉及法務／公司授權時，沒有授權不得傳送真實文件。
+
+---
+
+## SP-903 Docker 環境檔與資料隔離
+
+`compose.yaml` 是 Production 的標準四服務設定；根目錄 `.env` 由使用者人工建立及維護，範本為 `.env.example`。`compose.demo.yaml` 只覆蓋 Demo 必要差異；Demo 必須明確指定 `.env.demo`，範本是 `.env.demo.example`：
+
+```powershell
+docker compose up -d --build
+docker compose --env-file .env.demo -f compose.yaml -f compose.demo.yaml up -d --build
+```
+
+Production 使用 `prod` Profile，資料庫為 `supplypilot_prod` 和 `supplypilot_semantic_prod`。Demo 使用 `demo` Profile，資料庫為 `supplypilot_demo` 和 `supplypilot_semantic_demo`。兩環境分開使用 Compose Project、資料庫帳密、JWT Secret、MySQL/pgvector 資料 Volume、文件 Storage Volume 和 Frontend Host Port。資料庫不發布主機連接埠；Production 預設前端只監聽 `127.0.0.1:8080`，Demo 只監聽 `127.0.0.1:8081`。
+
+原本開發用 MySQL 設定移至 `compose.dev.yaml`，使用 `supplypilot-dev-v2` 專案和新 Volume；先前 `compose.yaml` 建立的舊開發 Volume 不會自動接管或刪除。既有 SP-903 Demo 保留 `supplypilot-sp903-local-demo` 專案與原 MySQL、pgvector、文件 Volume 名稱。切換前須確認新 `.env.demo` DB 帳密與舊資料庫初始化時一致，使用受控啟動器驗證歸屬和登入。
+
+**絕不在 Repository 工作中讀取、建立、覆寫、刪除或搬移真實 `.env`、`.env.demo`，也不輸出其中的值。** Git 和 Docker Build Context 排除真實環境檔；只追蹤 `.env.example`、`.env.demo.example` 範本。Production 與 Demo 範本不得放入真實憑證。
+
+Compose 插值遵守 Shell Environment 優先於 `--env-file`。Production 標準命令會自動讀取 `.env`，Windows Shell 中已存在的同名變數仍可覆蓋它。固定的 Profile、資料庫名稱、資料 Volume 及 loopback 綁定避免部分環境變數誤設造成服務跨環境連線；DB 驗證或 Flyway 失敗時 Backend Health Check 應維持失敗。受控 Demo 啟動器會清除其程序內的插值變數、檢查 Volume/Container Compose labels，先用 DB 應用程式帳號實際執行 `SELECT 1`，成功後才啟動 Backend。
+
+### Demo 基線帳號密碼即時讀取
+
+`demo` Profile 對 `admin`、`manager`、`buyer`、`warehouse`、`planner` 的每次新登入，會重新讀取 `DEMO_PASSWORD_FILE` 指定的唯讀 Compose Secret。解析器拒絕缺檔、I/O 錯誤、格式錯誤、重複 Key、空值、少於 6 或超過 100 字元密碼。這五個帳號只依檔案密碼驗證，不保留資料庫雜湊的舊密碼備援；仍須通過帳號存在和 ACTIVE 狀態檢查。其他 Demo 使用者沿用資料庫 BCrypt 驗證。Production 不建立此元件，也不掛載 Demo 環境檔。
+
+Compose 在 Container 建立時掛載主機檔案。直接覆寫保存會就地更新；原子替換可能因 Windows Docker Desktop 檔案分享與 bind mount 行為而指向舊 inode，需以實際 Docker Desktop 測試確認。測試未執行或未通過時，不能宣稱原子替換支援即時更新。Backend 不重啟，不重新 Seed，也不寫業務資料。文件檔包含 `.env.demo` 全部設定，包含 MySQL root 密碼；將它掛載給 Backend 是額外 Secret 暴露，僅能用於信任的本機 Demo 主機，絕不能用在 Production。
+
+### 初始 Production 管理員
+
+只有 `prod` Profile 啟用管理員 Bootstrap。每個全新空 `users` 表透過 MySQL advisory lock 保護，只建立一個使用 BCrypt 雜湊的 `admin/admin`、`ADMIN`、`ACTIVE` 使用者，並標記強制改密碼。正常重啟不會重設密碼。首次權杖只可呼叫 `/api/v1/auth/me` 和 `/api/v1/auth/change-password`；新密碼維持一般 6 至 100 字元，成功後必須重新登入以取得一般權限權杖。
+
+若資料庫已有其他使用者但缺少 Admin，Bootstrap 會略過。請依 `docs/SP-903-DOCKER-RELEASE-CANDIDATE.md` 的受控 DBA 手動恢復程序處理，不增加匿名管理員 Endpoint。Production 對外開放前，必須已修改初始密碼、用新密碼重新登入，並確認初始 JWT 仍不能呼叫一般管理 API。

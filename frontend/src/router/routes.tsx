@@ -18,6 +18,8 @@ import PurchaseOrderDetailPage from '../pages/PurchaseOrders/PurchaseOrderDetail
 import ReceivingPage from '../pages/Receiving/ReceivingPage';
 import ReceivingDetailPage from '../pages/Receiving/ReceivingDetailPage';
 import DocumentsPage from '../pages/Documents/DocumentsPage';
+import UsersPage from '../pages/Users/UsersPage';
+import ChangePasswordPage from '../pages/ChangePassword/ChangePasswordPage';
 import { routeCatalog } from './routeCatalog';
 
 export const router = createBrowserRouter([
@@ -31,6 +33,7 @@ export const router = createBrowserRouter([
         children: [
           { index: true, element: <Navigate to="/dashboard" replace /> },
           { path: 'dashboard', element: <DashboardPage /> },
+      { path: 'change-password', element: <ChangePasswordPage /> },
           ...routeCatalog.map(({ path, label, permission }) => ({
             element: <RoleGuard permission={permission} />,
             children: [{
@@ -59,6 +62,8 @@ export const router = createBrowserRouter([
                             ? <ReceivingDetailPage />
                             : path === 'documents'
                               ? <DocumentsPage />
+                              : path === 'users'
+                                ? <UsersPage />
                     : <PlaceholderPage title={label} />,
             }],
           })),

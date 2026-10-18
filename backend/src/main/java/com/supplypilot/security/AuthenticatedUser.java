@@ -21,11 +21,17 @@ public final class AuthenticatedUser implements UserDetails {
     private final Long id;
     private final String username;
     private final UserRole role;
+    private final boolean mustChangePassword;
 
     public AuthenticatedUser(Long id, String username, UserRole role) {
+        this(id, username, role, false);
+    }
+
+    public AuthenticatedUser(Long id, String username, UserRole role, boolean mustChangePassword) {
         this.id = id;
         this.username = username;
         this.role = role;
+        this.mustChangePassword = mustChangePassword;
     }
 
     public Long getId() {
@@ -36,12 +42,19 @@ public final class AuthenticatedUser implements UserDetails {
         return role;
     }
 
+    public boolean isMustChangePassword() {
+        return mustChangePassword;
+    }
+
     /**
      * Returns a single authority derived from the user's role.
      * Spring Security convention uses {@code ROLE_} prefix.
      */
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
+        if (mustChangePassword) {
+            return List.of(new SimpleGrantedAuthority("ROLE_PASSWORD_CHANGE_REQUIRED"));
+        }
         return List.of(new SimpleGrantedAuthority("ROLE_" + role.name()));
     }
 

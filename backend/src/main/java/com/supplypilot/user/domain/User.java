@@ -40,6 +40,9 @@ public class User {
     @Column(name = "status", nullable = false, length = 20)
     private UserStatus status;
 
+    @Column(name = "must_change_password", nullable = false)
+    private boolean mustChangePassword;
+
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
@@ -131,6 +134,21 @@ public class User {
         }
     }
 
+    public void changePassword(String passwordHash, Instant now) {
+        Objects.requireNonNull(passwordHash, "Password hash must not be null");
+        Objects.requireNonNull(now, "Timestamp must not be null");
+        if (passwordHash.isBlank()) {
+            throw new BusinessException(ErrorCode.VALIDATION_FAILED);
+        }
+        this.passwordHash = passwordHash;
+        this.mustChangePassword = false;
+        this.updatedAt = now;
+    }
+
+    public void requirePasswordChange() {
+        this.mustChangePassword = true;
+    }
+
     public Long getId() {
         return id;
     }
@@ -153,6 +171,10 @@ public class User {
 
     public UserStatus getStatus() {
         return status;
+    }
+
+    public boolean isMustChangePassword() {
+        return mustChangePassword;
     }
 
     public Instant getCreatedAt() {

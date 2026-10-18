@@ -22,6 +22,7 @@ export const routeCatalog: RouteEntry[] = [
   { path: 'receiving/purchase-orders', label: '收貨作業', group: '採購單與收貨', permission: 'receiving', navigation: true },
   { path: 'receiving/purchase-orders/:id', label: '收貨明細', group: '採購單與收貨', permission: 'receiving' },
   { path: 'documents', label: '文件管理', group: '文件與 AI', permission: 'documentRead', navigation: true },
+  { path: 'users', label: '人員管理', group: '系統管理', permission: 'userManagement', navigation: true },
 ];
 
 export function isAllowedDestination(pathname: string, role: UserRole): boolean {

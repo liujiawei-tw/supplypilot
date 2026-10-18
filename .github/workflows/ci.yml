@@ -161,16 +161,28 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v5
 
-      - name: Validate release Compose configuration
-        env:
-          DB_USERNAME: ci-user
-          DB_PASSWORD: ci-password-placeholder
-          MYSQL_ROOT_PASSWORD: ci-root-placeholder
-          JWT_SECRET: ci-jwt-placeholder
-          SEMANTIC_DB_USERNAME: ci-semantic-user
-          SEMANTIC_DB_PASSWORD: ci-semantic-placeholder
-          DEMO_ACCOUNT_PASSWORD: ci-demo-placeholder
-        run: docker compose -f compose.release-candidate.yaml config --quiet
+      - name: Validate Production and Demo Compose configurations
+        shell: bash
+        run: |
+          set -euo pipefail
+          prod_env="$RUNNER_TEMP/supplypilot-prod-compose.env"
+          demo_env="$RUNNER_TEMP/supplypilot-demo-compose.env"
+          demo_source="$RUNNER_TEMP/supplypilot-demo-source.env"
+          trap 'rm -f "$prod_env" "$demo_env" "$demo_source"' EXIT
+          printf '%s\n' \
+            'DB_USERNAME=ci-user' \
+            'DB_PASSWORD=ci-db-placeholder' \
+            'MYSQL_ROOT_PASSWORD=ci-root-placeholder' \
+            'SEMANTIC_DB_USERNAME=ci-semantic-user' \
+            'SEMANTIC_DB_PASSWORD=ci-semantic-placeholder' \
+            'JWT_SECRET=ci-jwt-placeholder' \
+            > "$prod_env"
+          cp "$prod_env" "$demo_env"
+          printf '%s\n' 'DEMO_ACCOUNT_PASSWORD=ci-demo-placeholder' >> "$demo_env"
+          printf '%s\n' "DEMO_ENV_SOURCE=$demo_source" >> "$demo_env"
+          printf '%s\n' 'ci-only-placeholder' > "$demo_source"
+          docker compose --env-file "$prod_env" config --quiet
+          docker compose --env-file "$demo_env" -f compose.yaml -f compose.demo.yaml config --quiet
 
       - name: Build backend production image
         run: docker build --file backend/Dockerfile --tag supplypilot-backend:ci .

@@ -32,6 +32,7 @@ export const permissions = {
   semanticManagement: ['ADMIN'],
   aiQuery: ['PROCUREMENT_STAFF', 'PROCUREMENT_MANAGER', 'ADMIN'],
   aiProposal: ['PROCUREMENT_STAFF', 'ADMIN'],
+  userManagement: ['ADMIN'],
 } as const satisfies Record<string, readonly UserRole[]>;
 
 export type Permission = keyof typeof permissions | 'inventory' | 'documents';

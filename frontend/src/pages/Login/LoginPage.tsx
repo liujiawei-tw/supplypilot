@@ -17,7 +17,7 @@ export default function LoginPage() {
 
   if (isLoading) return <LoadingState />;
   if (verificationError) return <SessionVerificationError />;
-  if (user) return <Navigate to={from?.pathname && isAllowedDestination(from.pathname, user.role) ? `${from.pathname}${from.search ?? ''}` : '/dashboard'} replace />;
+  if (user) return <Navigate to={user.mustChangePassword ? '/change-password' : from?.pathname && isAllowedDestination(from.pathname, user.role) ? `${from.pathname}${from.search ?? ''}` : '/dashboard'} replace />;
 
   const submit = async (values: { username: string; password: string }) => {
     if (pending.current) return;
@@ -26,6 +26,10 @@ export default function LoginPage() {
     setError('');
     try {
       const authenticatedUser = await login(values.username.trim(), values.password);
+      if (authenticatedUser.mustChangePassword) {
+        navigate('/change-password', { replace: true });
+        return;
+      }
       const destination = from?.pathname && isAllowedDestination(from.pathname, authenticatedUser.role)
         ? `${from.pathname}${from.search ?? ''}`
         : '/dashboard';

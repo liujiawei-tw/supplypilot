@@ -1,38 +1,101 @@
-# SP-903 本機 Docker Release Candidate
+# SP-903 Production / Demo Docker 部署
 
-## 環境區分
+## Compose 架構
 
-`compose.release-candidate.yaml` 是隔離的本機 `demo` 部署：專案名、MySQL database、pgvector database、三個 named volume 和文件根目錄都明確標記為 `sp903-local-demo`。MySQL 與 PostgreSQL 僅接在內部網路，不發布主機連接埠；前端只在 `127.0.0.1` 發布，並透過 Nginx `/api/v1` 代理到 Backend。此 demo stack 不代表企業 Production 架構。
+`compose.yaml` 是唯一服務基底，定義 MySQL、PostgreSQL/pgvector、Spring Boot Backend、React/Nginx Frontend。兩個 Web Container 使用相同 Dockerfile 建置方式、Health Check、資源限制與網路設定。
 
-後端 image 以 Java 21/Maven Wrapper 多階段建置，Runtime 僅含 JRE 與 executable Spring Boot JAR，UID/GID 10001 執行。建置會確認 JAR 含 `BOOT-INF/`。前端以 Node 24 建置，使用非 root Nginx Runtime、SPA fallback、hashed assets immutable cache、`index.html` no-cache、21 MB request limit、API forwarded headers，以及 120 秒 upstream timeout。API URL 是相對路徑 `/api/v1`；不把服務端 `localhost` 傳給瀏覽器，也不在 Vite bundle 注入 Secret。
+Production 預設使用 `prod` Profile、固定的 `supplypilot_prod` / `supplypilot_semantic_prod` 資料庫、專屬專案 Volume、`127.0.0.1:8080` 前端入口及內部資料網路。資料庫埠不發布到主機。Production 不掛載 Demo 環境檔，不啟用 Demo Seeder。
 
-Production image 與部署 profile 是兩件事。Production 必須以 `SPRING_PROFILES_ACTIVE=prod` 啟動；prod configuration 會驗證 JWT、Exact CORS Origin 和 Document Storage 必填欄位，使用 non-root DB 帳號、Flyway 和 Hibernate validate，且停用 Demo Seeder。Demo Compose 使用 `demo` profile 和 `sp-905-zh-tw-v1`，只在其專用空資料庫進行受控初始化。
+Demo 只用 `compose.demo.yaml` 覆蓋必要差異：Compose Project、Profile、資料庫名稱、Demo 文件 Storage、基線密碼來源及 Frontend Port。Demo 專案名稱和三個 named volume 保留舊 SP-903 名稱，讓原 Demo 資料繼續使用；資料庫憑證若與舊 Volume 不符，受控啟動器會在啟動 Backend 前拒絕繼續。不得為了解決憑證錯誤移除 Volume 或 Reset 資料。
 
-## 本機建置與設定驗證
+開發資料庫使用 `compose.dev.yaml` 的 `supplypilot-dev-v2` 專案與新 Volume，避免接管先前 `compose.yaml` 建立的開發 Volume。舊開發資料仍留在 Docker，不會由這份配置修改。
 
-本機唯一 Secret 來源是 Repository 根目錄既有 `.env`。啟動器不建立、讀取或清除 DPAPI store，也不使用 Windows User／Machine ENV 保存 Secret。腳本只檢查必要變數是否存在／非空、JWT 是否為至少 32-byte Base64、Demo 密碼是否至少 6 字元；錯誤訊息不包含 Secret 值。Gemini key 可使用既有 `GEMINI_API_KEY`，或專案支援的 `AI_API_KEY` 別名。
+## 環境檔與 Secret
 
-在 Repository 根目錄執行唯一啟動命令：
+- `.env.example` 是 Production 範本；使用者人工複製並維護 `.env`。
+- `.env.demo.example` 是 Demo 範本；使用者人工複製並維護 `.env.demo`。
+- Production 與 Demo 的 MySQL、PostgreSQL、JWT、Demo 密碼必須分開設定。
+- `.env`、`.env.demo` 及其他 `.env.*` 都由 `.gitignore` 和 `.dockerignore` 排除。只允許範本 `.env.example` 進 Git；建置 Context 不會包含環境檔。
+- 標準 Production 啟動使用 Compose 自動讀取根目錄 `.env`：
+
+  ```powershell
+  docker compose up -d --build
+  ```
+
+- 標準 Demo 啟動明確指定 `.env.demo` 和 Override：
+
+  ```powershell
+  docker compose --env-file .env.demo -f compose.yaml -f compose.demo.yaml up -d --build
+  ```
+
+Compose 的 Process Environment 優先於 `--env-file`。執行標準命令前，確認目前 PowerShell 工作階段沒有同名的 DB、JWT、Demo 或 Compose Project 環境變數；受控 Demo 啟動器會清除並在結束時還原插值用的 Process Environment。Compose Project 名稱、資料庫名稱和 Demo volume 名稱由 Compose 檔案定義，避免憑證外的 shell 變數改變資料位置。
+
+Demo Backend 以唯讀 Compose Secret 掛載 `.env.demo`，每次基線帳號登入時重新解析 `DEMO_ACCOUNT_PASSWORD`。這滿足檔案儲存後下一個登入請求讀取新密碼的行為，沒有重新 Seed，也不把密碼寫入業務資料作為登入同步條件。此本機 Secret source 是整份 `.env.demo`，因此 Backend 容器可讀取檔案中的資料庫 root 憑證及其他 Demo Secret。僅在可信任 Docker 主機執行；Production Compose 沒有此掛載。容器檔案以唯讀模式提供，Backend 不會將其內容記錄或回傳。Windows Docker Desktop 對直接編輯及原子替換的實測結果須以本次驗收記錄為準，見本文末的測試狀態。
+
+資料庫密碼若錯誤，資料庫應用程式登入驗證會失敗，Backend 不會啟動 Flyway 或 Seeder。MySQL `mysqladmin ping` 及 PostgreSQL `pg_isready` 只代表伺服器可回應，不足以證明應用程式憑證正確。標準 Compose 會依資料庫 Health Check 控制 Backend 啟動；Windows 受控啟動器另外在 Backend 前實際驗證兩個應用程式帳號。
+
+Docker daemon 管理者可檢視 Container 設定和掛載的 Secret。請勿在終端輸出未遮蔽的 `docker compose config`、`docker inspect` 或環境檔內容。
+
+## Production 初始管理員
+
+資料庫 migration 新增 `users.must_change_password`。Production 啟動後以 MySQL named lock 序列化 Bootstrap：只有 `users` 表完全空白時，建立一個 `admin` 帳號，使用現有 BCrypt `PasswordEncoder` 雜湊 `admin`，角色 `ADMIN`、狀態 `ACTIVE` 並設定必須改密碼。第二次啟動不重設帳號密碼；資料庫已有任何使用者時不建立或覆寫 Admin。
+
+初始登入取得的 JWT 帶有必須改密碼狀態及受限權限。只有 `GET /api/v1/auth/me` 和 `POST /api/v1/auth/change-password` 可使用該權杖。新密碼遵守 6 至 100 字元；成功後原權杖仍維持受限狀態，使用者需重新登入。Backend 只儲存新密碼 BCrypt 雜湊；錯誤訊息及日誌不包含密碼。
+
+若資料庫有既有使用者但沒有 Admin，Bootstrap 會略過。受控恢復需先限制 Production 網路入口、確認資料庫與目標使用者、取得可還原的備份，由授權 DBA 透過受控管理連線使用 BCrypt `PasswordEncoder` 產生雜湊，再為已核准帳號設定 `ADMIN` 角色；完成後核對該帳號登入及權限並記錄操作者。不得建立匿名管理員 Endpoint，也不得在已有人員的 DB 自動插入高權限帳號。
+
+`admin/admin` 是首次本機初始化用的指定憑證，不適合長期或公開使用。公開部署前必須登入修改密碼、以新密碼重新登入，確認初始權杖不能呼叫人員管理 API，並確認新權杖只能由真正 ADMIN 使用。
+
+## 人員管理
+
+`ADMIN` 可透過 Frontend「人員管理」查看清單、新增帳號、設定顯示名稱／初始密碼／既有角色、修改顯示名稱和角色，以及啟用或停用帳號。既有 `POST/GET/PATCH /api/v1/users` 契約與 Backend `@PreAuthorize("hasRole('ADMIN')")` 維持權威；Frontend 依登入角色顯示管理頁。一般帳號的密碼最低長度維持 6 字元。
+
+## 首次 Demo 啟動、重啟與舊資料
+
+既有 SP-903 Demo 使用 `compose.release-candidate.yaml` 和 `.env`，其三個 volume 名稱為：
+
+```text
+supplypilot-sp903-local-demo-mysql
+supplypilot-sp903-local-demo-pgvector
+supplypilot-sp903-local-demo-documents
+```
+
+新的 `compose.demo.yaml` 保留這些 volume 名稱與原 project 名稱，能沿用 Compose 標籤確認歸屬的舊資源。首次切換前，人工把舊 Demo 專用的 DB/JWT/Demo 設定移至 `.env.demo`，並確認 DB 帳密與既有 Volume 初始化時一致。不要把 Production 的 `.env` 直接用作 Demo 設定。舊開發 Volume 名稱不會被 `compose.dev.yaml` 引用。
+
+Windows 上的受控啟動順序：
 
 ```powershell
 pwsh -NoProfile -File .\scripts\start-sp903-demo.ps1
 ```
 
-啟動器從自身路徑定位 Repository 與 `.env`，以 Compose 原生 `--env-file` 載入設定，並暫時清除本腳本程序中同名 Process ENV，避免 Compose 的 shell 環境優先權蓋過 `.env`；結束時會恢復原值。Compose 將 `.env` 的 DB／JWT／Demo／Gemini Secret 明確傳給 Backend，DB 密碼也只傳給相應資料庫容器；Frontend 不會收到 Backend Secret。Root `.env` 受 `.gitignore` 與 `.dockerignore` 保護，亦不複製到 Image、不放入 Build Args。請勿輸出未遮蔽的 `docker compose config` 或 Container Environment。Docker 管理員仍可透過本機 Docker daemon 檢視 Runtime Container 環境變數，需將該主機視為受信任的本機管理環境。
+啟動器會先檢查 `.env.demo` 必要鍵、重複鍵、JWT 格式、忽略規則、Docker Engine、Compose Volume/Container 歸屬和 Compose 結構；接著只啟動兩個資料庫、以實際應用程式帳密執行 `SELECT 1`，成功後才啟動 Backend 和 Frontend。啟動器沒有 Reset 或刪除資源的路徑。四個服務健康後，重複執行相同命令可用來恢復或重啟 Stack。
 
-Compose 固定使用獨立的 `supplypilot_demo`／`supplypilot_semantic_demo` 資料庫、`supplypilot-sp903-local-demo` Project、專用 MySQL／PostgreSQL／文件 Volume、Compose 服務名稱作為 Backend DB Host，以及 `demo` Profile。`.env` 中一般開發用的 `DB_URL`、`SEMANTIC_DB_URL`、DB 名稱、Profile、Storage 路徑及 Frontend Origin 不會被拿來設定此 Stack。若專用 SP-903 Volume 已存在，啟動器先停止並要求確認既有 DB 憑證一致性；不會重置 Volume。SP-910 r4 資源不會被此 Compose Project 操作。
+安全停止與恢復：
 
-CI 只使用非真實 placeholder 執行 Compose 結構檢查與 Image Build，不呼叫 Gemini。本機前端網址為 `http://localhost:8081`。Backend `GET /actuator/health` 表示 Application／DB readiness，不代表 Gemini、Semantic Backfill 或 Gate 已就緒；首次啟動仍需核對 Profile、Flyway、Hibernate Validate、Demo marker、文件與 Browser 登入。
+```powershell
+docker compose --env-file .env.demo -f compose.yaml -f compose.demo.yaml stop
+docker compose --env-file .env.demo -f compose.yaml -f compose.demo.yaml up -d
+```
 
-## 資料與 Reset 安全
+也可重複執行受控啟動器。Docker Desktop 或 Windows 重啟後執行 `up -d`／啟動器，Compose 的 `unless-stopped` 會恢復容器。資料庫、文件和 pgvector 的資料使用 named volume 持久化。禁止使用 `down -v`、`docker volume rm`、`docker volume prune`，也不要自行執行 Demo Reset。
 
-Compose volumes 僅屬於 `supplypilot-sp903-local-demo` 命名；不得將此檔改指向 SP-910 r4、production 或共用資料庫。首次啟動會在此新隔離 volume 建立 Demo baseline，並把五份 Seed 文件寫入專用文件 volume。一般 Restart 不執行 Reset。
+若舊 Volume 的 Compose 標籤或帳密不符，啟動器會拒絕接管；人工檢查 Docker Volume/Container metadata 並驗證原應用程式帳密後，再依據確認後的相容路徑處理。不要靜默建立新空資料庫並聲稱舊資料已恢復。SP-910 r4 的專案和 Volume 不在本 Compose 的資源清單中。
 
-Reset 會清除指定專用 MySQL、pgvector 與文件資料。執行前依 `docs/SP-901-DEMO-RESET-RUNBOOK.md` 核實目標容器、database、volume、文件根目錄、備份及授權；沿用既有 `DemoResetApplication` Guard。Reset 成功後須用真實 ADMIN UI 重新審核、Gemini Embedding Backfill、Readiness、Gate Audit 與 Semantic Query。Baseline 文件 `READY` 不代表 Semantic Gate PASS。
+## 驗證命令與範圍
 
-## 驗收證據界線與未決部署資訊
+請使用臨時測試環境檔驗證 Compose，勿讀取或輸出實際 `.env`：
 
-- `prod` 的設定正負向單元測試：`ProductionConfigurationTests`、`SecurityCorsTests`；Demo Seeder profile 邊界：`DemoDataInitializerActivationTests`。它們驗證設定契約，不能替代實際 prod Container 啟動及 Profile Log 證據。
-- 目前可部署的本機／EC2文件儲存為持久化 local volume。雖設定合約接受 `s3` 型別，Repository 目前未提供 S3 `DocumentStorageService`；AWS 若需 S3 backend 必須另列 implementation gap，不能只設環境變數便聲稱可用。
-- 本機 Docker Compose Build／Fresh Start／Migration／Browser E2E／持久化／Reset、真實 Gemini Chat／Embedding 與 Semantic Gate，需在隔離 SP-903 stack 完成並另存於 `docs/evidence/sp903/`；不能引用 SP-910 非容器化或先前 r4 的結果當作容器 PASS。
-- AWS Gate 尚未進入：需確認 Account／Region／EC2 規格與存取方式、可信 HTTPS／DNS／憑證續期、日誌告警、備份／還原及每日 `Asia/Taipei` 00:00 Reset 的人工 ADMIN 審核恢復與失敗告警程序。此文件不宣稱建立了 AWS 資源或決定其入口。
+```powershell
+docker compose --env-file $env:TEMP\supplypilot-prod-test.env config --quiet
+docker compose --env-file $env:TEMP\supplypilot-demo-test.env -f compose.yaml -f compose.demo.yaml config --quiet
+```
+
+測試檔應只含隔離的假憑證，Demo 測試檔另設 `DEMO_ENV_SOURCE` 指向隔離的測試 Secret 檔。`docker compose config` 成功不代表 Runtime 啟動、密碼或 Volume 相容性通過。不要用這些驗證檔啟動真實服務。
+
+| 驗收項目 | 狀態 |
+|---|---|
+| Production / Demo Compose 結構驗證 | 隔離假憑證 `docker compose config --quiet` 均成功；Production 四服務容器建置成功 |
+| Production Admin 真實 Container 登入及改密碼 | 隔離 Production Stack 通過：初始登入 200、受限 token 呼叫人員 API 為 403、改密碼 204、舊密碼登入 401、新密碼登入 200、人員清單 200、新增 201、更新 200 |
+| Demo 五角色登入及變更檔案後即時生效 | 未執行 Demo Stack 的五角色 API 驗證。Java 認證測試 4/4 通過；Windows Docker Desktop 假 Secret 檔直接覆寫及原子替換可由 Container 讀到新內容 |
+| Fresh Start、重啟及三種資料持久化 | 隔離 Production Stack 停止並重新啟動後，管理員登入與 MySQL 人員資料保留，pgvector 測試資料保留；文件 Volume 內測試標記通過 Backend Container 停止／啟動後仍存在。未驗證既有 Demo Volume 的真實資料相容性 |
+| AWS、HTTPS、Gemini、Semantic Gate、午夜 Reset | 不屬於此本機 Compose 實作證據，依 Issue #45 / #117 後續 Gate 驗收 |
