@@ -39,6 +39,8 @@ Demo 文件來源使用 Host `./samples/documents`，唯讀映射至 Container `
 
 Demo Compose 會以 `!override` 取代 Backend 基底 mounts，避免額外掛載 Production 預設的 `/app/data/documents` volume。若仍有舊版 Backend 使用已知的額外 Compose volume，受控啟動器只會在 labels 與舊 target 完全吻合時讓 Compose 重建 Backend；額外 volume 會保留，不會自動刪除或搬移。未知掛載仍會拒絕啟動。
 
+受控啟動器會依 Docker Inspect 核對四個服務的完整 mount 集合，包括 Bind Source、Container target、唯讀狀態、Named Volume 實際名稱與 Compose labels；Backend、資料庫和 Frontend 各自套用明確 mount 契約。Windows Docker Desktop 路徑與 Linux Host 路徑使用不同的正規化規則。
+
 ### 開發環境
 
 舊開發 Volume 不會由新設定接管。新開發 MySQL/pgvector 使用獨立的 `supplypilot-dev-v2` 專案及 Volume：

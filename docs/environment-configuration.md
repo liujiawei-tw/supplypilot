@@ -520,7 +520,7 @@ Production 使用 `prod` Profile，資料庫為 `supplypilot_prod` 和 `supplypi
 
 **絕不在 Repository 工作中讀取、建立、覆寫、刪除或搬移真實 `.env`、`.env.demo`，也不輸出其中的值。** Git 和 Docker Build Context 排除真實環境檔；只追蹤 `.env.example`、`.env.demo.example` 範本。Production 與 Demo 範本不得放入真實憑證。
 
-Compose 插值遵守 Shell Environment 優先於 `--env-file`。Production 標準命令會自動讀取 `.env`，Windows Shell 中已存在的同名變數仍可覆蓋它。固定的 Profile、資料庫名稱、資料 Volume 及 loopback 綁定避免部分環境變數誤設造成服務跨環境連線；DB 驗證或 Flyway 失敗時 Backend Health Check 應維持失敗。受控 Demo 啟動器會清除其程序內的插值變數、檢查 Volume/Container Compose labels，先用 DB 應用程式帳號實際執行 `SELECT 1`，成功後才啟動 Backend。
+Compose 插值遵守 Shell Environment 優先於 `--env-file`。Production 標準命令會自動讀取 `.env`，Windows Shell 中已存在的同名變數仍可覆蓋它。固定的 Profile、資料庫名稱、資料 Volume 及 loopback 綁定避免部分環境變數誤設造成服務跨環境連線；DB 驗證或 Flyway 失敗時 Backend Health Check 應維持失敗。受控 Demo 啟動器會清除其程序內的插值變數，並以 Docker Inspect 核對每個服務的完整 Mount Type、Source、Destination、RW、Volume name 和 Compose labels；先用 DB 應用程式帳號實際執行 `SELECT 1`，成功後才啟動 Backend。
 
 ### Demo 基線帳號密碼（目前限制）
 

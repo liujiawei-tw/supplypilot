@@ -75,37 +75,30 @@ function Get-DemoVolumeMetadata {
 }
 
 function Assert-ContainerMountOwnership {
-    param([string]$ContainerId, [string]$ExpectedService, [string[]]$ExpectedVolumeNames,
-        [switch]$AllowKnownLegacyDocumentMount)
+    param([string]$ContainerId, [string]$ExpectedService, [switch]$AllowKnownLegacyDocumentMount)
     $json = & docker inspect $ContainerId
     if ($LASTEXITCODE -ne 0) { throw 'Could not inspect a container using a Demo volume.' }
     $container = @($json | ConvertFrom-Json)[0]
-    if ($container.Config.Labels.'com.docker.compose.project' -ne $project -or
-            $container.Config.Labels.'com.docker.compose.service' -ne $ExpectedService) {
-        throw 'A Demo volume is attached to a container with unknown ownership; refusing to continue.'
-    }
-    $actual = @($container.Mounts | Where-Object { $_.Type -eq 'volume' } | ForEach-Object { $_.Name })
-    $unexpected = @($actual | Where-Object { $_ -notin $ExpectedVolumeNames })
-    $missing = @($ExpectedVolumeNames | Where-Object { $_ -notin $actual })
-    if ($AllowKnownLegacyDocumentMount -and $ExpectedService -eq 'backend' -and
-            $unexpected.Count -eq 1 -and $missing.Count -eq 0) {
-        $legacyMount = @($container.Mounts | Where-Object { $_.Type -eq 'volume' -and $_.Name -eq $unexpected[0] })
-        if ($legacyMount.Count -eq 1 -and $legacyMount[0].Destination -eq '/app/data/documents') {
-            $legacyJson = & docker volume inspect $unexpected[0]
-            if ($LASTEXITCODE -eq 0) {
-                $legacyVolume = @($legacyJson | ConvertFrom-Json)[0]
-                $labels = $legacyVolume.Labels
-                if ($labels.'com.docker.compose.project' -eq $project -and
-                        $labels.'com.docker.compose.volume' -eq 'document-storage') {
-                    $script:LegacyDocumentMountFound = $true
-                    Write-Warning 'Known legacy Demo document mount found. Compose will recreate only the Backend; the detached legacy volume will be preserved.'
-                    return
-                }
-            }
+    $volumeMetadata = @{}
+    foreach ($mount in @($container.Mounts | Where-Object { $_.Type -eq 'volume' })) {
+        $volumeJson = & docker volume inspect $mount.Name
+        if ($LASTEXITCODE -ne 0) { throw 'Could not verify a mounted named volume; refusing to continue.' }
+        $volume = @($volumeJson | ConvertFrom-Json)[0]
+        $volumeMetadata[[string]$mount.Name] = @{
+            Project = $volume.Labels.'com.docker.compose.project'
+            VolumeKey = $volume.Labels.'com.docker.compose.volume'
+            Mountpoint = $volume.Mountpoint
         }
     }
-    if ($unexpected.Count -gt 0 -or $missing.Count -gt 0) {
-        throw "Demo service '$ExpectedService' has unexpected volume mounts; refusing to continue."
+    $contract = Test-DemoContainerMountContract -Container $container -ExpectedProject $project `
+        -ExpectedService $ExpectedService -RepositoryRoot $repositoryRoot `
+        -VolumeMetadataByName $volumeMetadata -AllowKnownLegacyDocumentMount:$AllowKnownLegacyDocumentMount
+    if (-not $contract.Valid) {
+        throw "Demo service '$ExpectedService' failed mount ownership verification: $($contract.Error)"
+    }
+    if ($contract.Legacy) {
+        $script:LegacyDocumentMountFound = $true
+        Write-Warning 'Known legacy Demo document mount found. The controlled migration will recreate only the Backend and preserve the detached volume.'
     }
 }
 
@@ -122,7 +115,7 @@ function Assert-DemoVolumeConsumers {
         foreach ($id in $ids) {
             if ([string]::IsNullOrWhiteSpace([string]$id)) { continue }
             Assert-ContainerMountOwnership -ContainerId $id -ExpectedService $entry.Value `
-                -ExpectedVolumeNames @($entry.Key) -AllowKnownLegacyDocumentMount:$AllowKnownLegacyDocumentMount
+                -AllowKnownLegacyDocumentMount:$AllowKnownLegacyDocumentMount
         }
     }
 }
@@ -140,14 +133,8 @@ function Assert-ProjectContainers {
         if ($service -notin @('mysql', 'pgvector', 'backend', 'frontend')) {
             throw 'An unknown container is assigned to the Demo Compose project; refusing to continue.'
         }
-        $expectedVolumes = switch ($service) {
-            'mysql' { @('supplypilot-sp903-local-demo-mysql') }
-            'pgvector' { @('supplypilot-sp903-local-demo-pgvector') }
-            'backend' { @('supplypilot-sp903-local-demo-documents') }
-            'frontend' { @() }
-        }
         Assert-ContainerMountOwnership -ContainerId $id -ExpectedService $service `
-            -ExpectedVolumeNames $expectedVolumes -AllowKnownLegacyDocumentMount:$AllowKnownLegacyDocumentMount
+            -AllowKnownLegacyDocumentMount:$AllowKnownLegacyDocumentMount
     }
 }
 
@@ -178,6 +165,7 @@ $pythonCommand = Get-Command python -ErrorAction SilentlyContinue
 if (-not $pythonCommand) { $pythonCommand = Get-Command python3 -ErrorAction SilentlyContinue }
 if (-not $pythonCommand) { throw 'Python 3 is required for Demo credential synchronization.' }
 $volumeState = Get-DemoVolumeMetadata
+$script:LegacyDocumentMountFound = $false
 if ($volumeState.State -eq 'Existing') {
     Assert-DemoVolumeConsumers -AllowKnownLegacyDocumentMount
 }
@@ -217,8 +205,12 @@ Invoke-WithProcessEnvironmentCleared -Names $interpolationNames -Action {
     if ($LASTEXITCODE -ne 0) { throw 'Could not synchronize Demo baseline credentials; Backend was not started.' }
 
     if ($script:LegacyDocumentMountFound) {
-        Invoke-Compose -Arguments @('up', '--detach', '--build', '--force-recreate', '--wait',
-            '--wait-timeout', '300', 'backend')
+        Invoke-DemoBackendMountUpgrade -RecreateBackend {
+            Invoke-Compose -Arguments @('up', '--detach', '--build', '--force-recreate', '--wait',
+                '--wait-timeout', '300', 'backend')
+        } -AssertStrictMounts {
+            Assert-ProjectContainers
+        }
     }
     Invoke-Compose -Arguments @('up', '--detach', '--build', '--wait', '--wait-timeout', '300', 'backend', 'frontend')
     Assert-ProjectContainers

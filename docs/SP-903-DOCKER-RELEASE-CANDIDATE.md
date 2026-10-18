@@ -74,6 +74,8 @@ pwsh -NoProfile -File .\scripts\start-sp903-demo.ps1
 
 啟動器會先檢查 `.env.demo` 必要鍵、重複鍵、JWT 格式、忽略規則、Docker Engine、Compose Volume/Container 歸屬和 Compose 結構；接著只啟動兩個資料庫、以實際應用程式帳密執行 `SELECT 1`，成功後才啟動 Backend 和 Frontend。啟動器沒有 Reset 或刪除資源的路徑。四個服務健康後，重複執行相同命令可用來恢復或重啟 Stack。
 
+每個既有 Container 的完整 Docker Inspect Mount 集合都須符合 service 契約。Backend 的 bind source 會正規化 Windows 路徑、Docker Desktop VM 對應路徑或 Linux 路徑後做完整相等比對；樣本與憑證 bind 必須唯讀。MySQL、pgvector 和文件 volume 需符合明確名稱、Compose project/key labels、mountpoint、target 與寫入權限。Frontend 不允許任何額外 mount。無法確認的 metadata 一律拒絕。
+
 升級前若 Backend Container 同時掛載 `/app/data/documents` 上的 Compose volume key `document-storage` 與 Demo 文件 volume，啟動器只對同時符合 Demo project/service labels、舊 volume key 及舊 target 的這一種已知配置暫時放行。DB 帳密檢查成功後，啟動器會只對 Backend 執行 `up --force-recreate backend`，接著以嚴格模式核對全部 mounts；舊額外 volume 只會脫離 Container，保留在 Docker 中，不刪除、不搬移、不覆寫。labels 或 target 不符的額外 volume 仍拒絕啟動。此升級流程尚未在本機 Docker Engine 實際執行。
 
 安全停止與恢復：
@@ -105,5 +107,6 @@ docker compose --env-file $env:TEMP\supplypilot-demo-test.env -f compose.yaml -f
 | 合併 Demo Compose 實際啟動、文件讀取／重啟持久性 | **NOT RUN**：Docker CLI 對目前 Docker Desktop Linux Engine named pipe 回覆 permission denied；未檢視或操作任何既有 Volume |
 | Production Admin 真實 Container 登入及改密碼 | Maven `verify` 使用 Windows Docker Desktop 上的 Testcontainers 完成：首次初始化、受限 token、改密碼、重啟不重設、空 users 保護、無 ACTIVE ADMIN fail-closed、交易回滾與並行初始化 |
 | `.env.demo` 儲存後第一個 HTTP Login Request 使用新密碼 | **BLOCKED**：現行 100 ms Host 輪詢複製沒有登入同步屏障；沒有第一個登入立即一致性的證據。Windows Docker Desktop 與 Linux Docker Engine 均未實測此一致性 |
-| Fresh Start、重啟與舊 Volume 判定 | PowerShell 自動測試覆蓋全無 Volume、舊版相容 labels、部分 Volume、錯誤 project/key；已知雙文件 mount 的安全升級分支依 Compose project/key/target labels 限縮，並在 Compose 更新後要求嚴格 mount 核對。此分支未在真實 Docker Container 執行；本機 Docker Engine 無法連線，未檢查或操作真實 Volume，也未執行實際啟動 |
+| Mount ownership 與舊 Container 升級控制流程 | PowerShell Docker CLI fixture 覆蓋完整合法 mounts、Windows/Linux Host path 正規化、未知/錯誤/缺失 mount、Volume labels、舊雙文件 mount、recreate 失敗及重建後仍有錯誤 mount；fixture 不等同真實 Container。此分支未在真實 Docker Container 執行；本機 Docker Engine 無法連線，未檢查或操作真實 Volume |
+| Fresh Start、重啟與舊 Volume 判定 | PowerShell 自動測試覆蓋全無 Volume、舊版相容 labels、部分 Volume、錯誤 project/key；本機 Docker Engine 無法連線，未檢查或操作真實 Volume，也未執行實際啟動 |
 | AWS、HTTPS、Gemini、Semantic Gate、午夜 Reset | 不屬於此本機 Compose 實作證據，依 Issue #45 / #117 後續 Gate 驗收 |
