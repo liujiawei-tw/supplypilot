@@ -4,6 +4,7 @@
 !.env.demo.example
 .sp903-demo-verifier-server/
 .sp903-demo-verifier-client/
+.sp903-demo-credential/
 __pycache__/
 *.py[cod]
 *.zip

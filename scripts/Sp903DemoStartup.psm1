@@ -7,8 +7,10 @@ function Get-ComposeEnvironmentVariableNames {
             [void]$names.Add($match.Groups['name'].Value)
         }
     }
-    foreach ($name in @('FRONTEND_ORIGIN', 'DEMO_ENV_SOURCE', 'DEMO_FRONTEND_PORT',
-            'MYSQL_PWD', 'PGPASSWORD', 'COMPOSE_FILE', 'COMPOSE_PROJECT_NAME', 'COMPOSE_PROFILES')) {
+    foreach ($name in @('DB_USERNAME', 'DB_PASSWORD', 'MYSQL_ROOT_PASSWORD', 'SEMANTIC_DB_USERNAME',
+            'SEMANTIC_DB_PASSWORD', 'JWT_SECRET', 'DEMO_ACCOUNT_PASSWORD', 'FRONTEND_ORIGIN',
+            'DEMO_FRONTEND_PORT', 'MYSQL_PWD', 'PGPASSWORD', 'COMPOSE_FILE', 'COMPOSE_PROJECT_NAME',
+            'COMPOSE_PROFILES')) {
         [void]$names.Add($name)
     }
     return @($names | Sort-Object)
@@ -20,13 +22,9 @@ function Invoke-WithProcessEnvironmentCleared {
         [Parameter(Mandatory = $true)][scriptblock]$Action
     )
     $original = @{}
-    foreach ($name in $Names) {
-        $original[$name] = [Environment]::GetEnvironmentVariable($name, 'Process')
-    }
+    foreach ($name in $Names) { $original[$name] = [Environment]::GetEnvironmentVariable($name, 'Process') }
     try {
-        foreach ($name in $Names) {
-            Remove-Item -LiteralPath ("Env:" + $name) -ErrorAction SilentlyContinue
-        }
+        foreach ($name in $Names) { Remove-Item -LiteralPath ("Env:" + $name) -ErrorAction SilentlyContinue }
         & $Action
     } finally {
         foreach ($name in $Names) {
@@ -60,9 +58,7 @@ function Get-DemoVolumeSetStatus {
             @($ExistingVolumeNames | Where-Object { [string]::Equals([string]$_, [string]$expectedName, [StringComparison]::Ordinal) }).Count -gt 0
         })
     if ($existing.Count -eq 0) { return 'FreshStart' }
-    if ($existing.Count -ne $expectedNames.Count) {
-        throw 'Only part of the SP-903 Demo volume set exists; refusing to start.'
-    }
+    if ($existing.Count -ne $expectedNames.Count) { throw 'Only part of the SP-903 Demo volume set exists; refusing to start.' }
     foreach ($name in $expectedNames) {
         $labels = $VolumeLabelsByName[$name]
         $validKey = $false
@@ -78,26 +74,19 @@ function Get-DemoVolumeSetStatus {
 
 function Normalize-DemoHostPath {
     param([Parameter(Mandatory = $true)][string]$Path)
-    if ($Path.StartsWith('\\?\UNC\', [StringComparison]::OrdinalIgnoreCase)) {
-        return ('\\' + $Path.Substring(8)).Replace('/', '\').TrimEnd('\')
-    }
-    if ($Path.StartsWith('\\?\', [StringComparison]::OrdinalIgnoreCase)) {
-        $Path = $Path.Substring(4)
-    }
+    if ($Path.StartsWith('\\?\UNC\', [StringComparison]::OrdinalIgnoreCase)) { return ('\\' + $Path.Substring(8)).Replace('/', '\').TrimEnd('\') }
+    if ($Path.StartsWith('\\?\', [StringComparison]::OrdinalIgnoreCase)) { $Path = $Path.Substring(4) }
     if ($Path -match '^[A-Za-z]:[\\/]') {
         $normalized = $Path.Replace('/', '\')
         if ($normalized.Length -eq 3) { return $normalized }
         return $normalized.TrimEnd('\')
     }
-    if ($Path.StartsWith('\\')) {
-        return $Path.Replace('/', '\').TrimEnd('\')
-    }
+    if ($Path.StartsWith('\\')) { return $Path.Replace('/', '\').TrimEnd('\') }
     if ($Path.StartsWith('/')) {
         $normalized = [regex]::Replace($Path, '/+', '/')
         if ($normalized.Length -eq 1) { return $normalized }
         return $normalized.TrimEnd('/')
     }
-    # Docker Inspect host paths must be absolute and recognizable; relative paths are never promoted to cwd.
     return $null
 }
 
@@ -109,7 +98,6 @@ function Test-DemoHostPathMatch {
     param([Parameter(Mandatory = $true)][string]$Expected, [Parameter(Mandatory = $true)][string]$Actual)
     $expectedPath = Normalize-DemoHostPath $Expected
     if (-not $expectedPath) { return $false }
-
     if ($expectedPath -match '^([A-Za-z]):\\(?<tail>.*)$') {
         $desktopPath = $null
         if ($Actual -match '^/run/desktop/mnt/host/(?<drive>[A-Za-z])/(?<tail>.*)$' -or
@@ -117,15 +105,14 @@ function Test-DemoHostPathMatch {
             $desktopPath = "$($Matches.drive):\$($Matches.tail.Replace('/', '\'))"
         }
         $actualPath = if ($desktopPath) { $desktopPath } else { Normalize-DemoHostPath $Actual }
-        if (-not $actualPath) { return $false }
-        return [string]::Equals($expectedPath, $actualPath, [StringComparison]::OrdinalIgnoreCase)
+        return $actualPath -and [string]::Equals($expectedPath, $actualPath, [StringComparison]::OrdinalIgnoreCase)
     }
     $actualPath = Normalize-DemoHostPath $Actual
     if (-not $actualPath) { return $false }
-    if ($expectedPath.StartsWith('\\', [StringComparison]::Ordinal)) {
-        return [string]::Equals($expectedPath, $actualPath, [StringComparison]::OrdinalIgnoreCase)
-    }
-    return [string]::Equals($expectedPath, $actualPath, [StringComparison]::Ordinal)
+    $comparison = if ($expectedPath.StartsWith('\\', [StringComparison]::Ordinal)) {
+        [StringComparison]::OrdinalIgnoreCase
+    } else { [StringComparison]::Ordinal }
+    return [string]::Equals($expectedPath, $actualPath, $comparison)
 }
 
 function Test-DemoContainerMountContract {
@@ -136,18 +123,16 @@ function Test-DemoContainerMountContract {
         [Parameter(Mandatory = $true)][string]$RepositoryRoot,
         [Parameter(Mandatory = $true)][hashtable]$VolumeMetadataByName,
         [switch]$AllowKnownLegacyDocumentMount,
-        [switch]$AllowKnownLegacyCredentialMount
+        [switch]$AllowKnownLegacyCredentialMount,
+        [switch]$AllowKnownLegacyVerifierMount
     )
-
     $labels = $Container.Config.Labels
     if (-not (Test-OrdinalEqual ([string]$labels.'com.docker.compose.project') $ExpectedProject) -or
             -not (Test-OrdinalEqual ([string]$labels.'com.docker.compose.service') $ExpectedService)) {
-        return [pscustomobject]@{ Valid = $false; Legacy = $false; Error = 'Container project or service label mismatch.' }
+        return [pscustomobject]@{ Valid = $false; Legacy = $false; LegacyCredential = $false; LegacyVerifier = $false; Error = 'Container project or service label mismatch.' }
     }
-
-    $allowedServices = @('mysql', 'pgvector', 'backend', 'frontend')
-    if (-not ($allowedServices | Where-Object { [string]::Equals($_, $ExpectedService, [StringComparison]::Ordinal) })) {
-        return [pscustomobject]@{ Valid = $false; Legacy = $false; Error = 'Unknown Compose service.' }
+    if ($ExpectedService -notin @('mysql', 'pgvector', 'backend', 'frontend')) {
+        return [pscustomobject]@{ Valid = $false; Legacy = $false; LegacyCredential = $false; LegacyVerifier = $false; Error = 'Unknown Compose service.' }
     }
 
     $expected = [System.Collections.Generic.List[hashtable]]::new()
@@ -157,85 +142,82 @@ function Test-DemoContainerMountContract {
         'backend' {
             $expected.AddRange([hashtable[]]@(
                 @{ Type = 'volume'; Name = 'supplypilot-sp903-local-demo-documents'; Target = '/app/data/demo-documents'; ReadOnly = $false; Source = $null; VolumeKey = 'sp903-document-storage' },
-                @{ Type = 'bind'; Name = $null; Target = '/app/samples/demo-documents'; ReadOnly = $true; Source = (Join-Path $RepositoryRoot 'samples/documents'); VolumeKey = $null },
-                @{ Type = 'bind'; Name = $null; Target = '/run/supplypilot-demo-verifier'; ReadOnly = $true; Source = (Join-Path $RepositoryRoot '.sp903-demo-verifier-client'); VolumeKey = $null }
+                @{ Type = 'bind'; Name = $null; Target = '/app/samples/demo-documents'; ReadOnly = $true; Source = (Join-Path $RepositoryRoot 'samples/documents'); VolumeKey = $null }
             ))
         }
-        'frontend' { }
-        default { return [pscustomobject]@{ Valid = $false; Legacy = $false; Error = 'Unknown Compose service.' } }
     }
 
     $actual = @($Container.Mounts)
-    $legacyMount = $null
-    $legacyCredentialMount = $null
-    if ($AllowKnownLegacyDocumentMount -and $ExpectedService -eq 'backend') {
-        $legacyCandidates = @($actual | Where-Object { Test-OrdinalEqual ([string]$_.Destination) '/app/data/documents' })
-        if ($legacyCandidates.Count -eq 1) {
-            $legacyMount = $legacyCandidates[0]
-            $metadata = $VolumeMetadataByName[[string]$legacyMount.Name]
-            if (-not (Test-OrdinalEqual ([string]$legacyMount.Type) 'volume') -or -not $metadata -or
-                    -not (Test-OrdinalEqual ([string]$metadata.Project) $ExpectedProject) -or
-                    -not (Test-OrdinalEqual ([string]$metadata.VolumeKey) 'document-storage') -or
-                    -not $legacyMount.RW -or -not (Test-DemoHostPathMatch -Expected ([string]$metadata.Mountpoint) -Actual ([string]$legacyMount.Source))) {
-                return [pscustomobject]@{ Valid = $false; Legacy = $false; Error = 'Legacy document volume identity or mount metadata mismatch.' }
+    $legacyDocument = $null
+    $legacyCredential = $null
+    $legacyVerifier = $null
+    if ($ExpectedService -eq 'backend') {
+        $legacySpecs = @(
+            @{ Enabled = [bool]$AllowKnownLegacyDocumentMount; Destination = '/app/data/documents'; Type = 'volume'; Source = $null; Key = 'document-storage'; Property = 'document' },
+            @{ Enabled = [bool]$AllowKnownLegacyCredentialMount; Destination = '/run/supplypilot-demo-credentials'; Type = 'bind'; Source = (Join-Path $RepositoryRoot '.sp903-demo-credential'); Key = $null; Property = 'credential' },
+            @{ Enabled = [bool]$AllowKnownLegacyVerifierMount; Destination = '/run/supplypilot-demo-verifier'; Type = 'bind'; Source = (Join-Path $RepositoryRoot '.sp903-demo-verifier-client'); Key = $null; Property = 'verifier' }
+        )
+        foreach ($spec in $legacySpecs) {
+            $matches = @($actual | Where-Object { Test-OrdinalEqual ([string]$_.Destination) $spec.Destination })
+            if ($matches.Count -gt 1 -or ($matches.Count -eq 1 -and -not $spec.Enabled)) {
+                return [pscustomobject]@{ Valid = $false; Legacy = $false; LegacyCredential = $false; LegacyVerifier = $false; Error = "Unexpected or duplicate legacy mount at $($spec.Destination)." }
+            }
+            if ($matches.Count -eq 0) { continue }
+            $mount = $matches[0]
+            if (-not (Test-OrdinalEqual ([string]$mount.Type) $spec.Type) -or [bool]$mount.RW -ne ($spec.Type -eq 'volume')) {
+                return [pscustomobject]@{ Valid = $false; Legacy = $false; LegacyCredential = $false; LegacyVerifier = $false; Error = "Legacy mount type or access mode mismatch at $($spec.Destination)." }
+            }
+            if ($spec.Type -eq 'bind') {
+                if (-not (Test-DemoHostPathMatch -Expected $spec.Source -Actual ([string]$mount.Source))) {
+                    return [pscustomobject]@{ Valid = $false; Legacy = $false; LegacyCredential = $false; LegacyVerifier = $false; Error = "Legacy bind source mismatch at $($spec.Destination)." }
+                }
+            } else {
+                $metadata = $VolumeMetadataByName[[string]$mount.Name]
+                if (-not $metadata -or -not (Test-OrdinalEqual ([string]$metadata.Project) $ExpectedProject) -or
+                        -not (Test-OrdinalEqual ([string]$metadata.VolumeKey) $spec.Key) -or
+                        -not (Test-DemoHostPathMatch -Expected ([string]$metadata.Mountpoint) -Actual ([string]$mount.Source))) {
+                    return [pscustomobject]@{ Valid = $false; Legacy = $false; LegacyCredential = $false; LegacyVerifier = $false; Error = 'Legacy document volume identity or mount metadata mismatch.' }
+                }
+            }
+            switch ($spec.Property) {
+                'document' { $legacyDocument = $mount }
+                'credential' { $legacyCredential = $mount }
+                'verifier' { $legacyVerifier = $mount }
             }
         }
     }
 
-    if ($AllowKnownLegacyCredentialMount -and $ExpectedService -eq 'backend') {
-        $legacyCredentialCandidates = @($actual | Where-Object {
-                Test-OrdinalEqual ([string]$_.Destination) '/run/supplypilot-demo-credentials'
-            })
-        if ($legacyCredentialCandidates.Count -eq 1) {
-            $legacyCredentialMount = $legacyCredentialCandidates[0]
-            $legacyCredentialSource = Join-Path $RepositoryRoot '.sp903-demo-credential'
-            if (-not (Test-OrdinalEqual ([string]$legacyCredentialMount.Type) 'bind') -or
-                    [bool]$legacyCredentialMount.RW -or
-                    -not (Test-DemoHostPathMatch -Expected $legacyCredentialSource -Actual ([string]$legacyCredentialMount.Source))) {
-                return [pscustomobject]@{ Valid = $false; Legacy = $false; LegacyCredential = $false; Error = 'Legacy credential bind source, target, type, or read-only mode mismatch.' }
-            }
-        } elseif ($legacyCredentialCandidates.Count -gt 1) {
-            return [pscustomobject]@{ Valid = $false; Legacy = $false; LegacyCredential = $false; Error = 'Duplicate legacy credential bind mount.' }
-        }
+    $legacyCount = [int]($null -ne $legacyDocument) + [int]($null -ne $legacyCredential) + [int]($null -ne $legacyVerifier)
+    if ($actual.Count -ne $expected.Count + $legacyCount) {
+        return [pscustomobject]@{ Valid = $false; Legacy = $false; LegacyCredential = $false; LegacyVerifier = $false; Error = "Unexpected or missing container mounts (actual=$($actual.Count), expected=$($expected.Count))." }
     }
-
-    # The known legacy credential bind replaces the new bind at that slot; only the
-    # retired document volume adds an extra mount.
-    $legacyMountCount = [int]($null -ne $legacyMount)
-    if ($actual.Count -ne $expected.Count + $legacyMountCount) {
-        return [pscustomobject]@{ Valid = $false; Legacy = $false; LegacyCredential = $false; Error = "Unexpected or missing container mounts (actual=$($actual.Count), expected=$($expected.Count))." }
-    }
-
     foreach ($contract in $expected) {
-        if ($null -ne $legacyCredentialMount -and $contract.Type -eq 'bind' -and
-                (Test-OrdinalEqual ([string]$contract.Target) '/run/supplypilot-demo-verifier')) { continue }
         $matches = @($actual | Where-Object {
                 (Test-OrdinalEqual ([string]$_.Type) ([string]$contract.Type)) -and
                 (Test-OrdinalEqual ([string]$_.Destination) ([string]$contract.Target)) -and
                 ($contract.Type -eq 'bind' -or (Test-OrdinalEqual ([string]$_.Name) ([string]$contract.Name)))
             })
         if ($matches.Count -ne 1) {
-            return [pscustomobject]@{ Valid = $false; Legacy = $false; Error = "Missing or duplicate mount at $($contract.Target)." }
+            return [pscustomobject]@{ Valid = $false; Legacy = $false; LegacyCredential = $false; LegacyVerifier = $false; Error = "Missing or duplicate mount at $($contract.Target)." }
         }
         $mount = $matches[0]
         if ([bool]$mount.RW -eq [bool]$contract.ReadOnly) {
-            return [pscustomobject]@{ Valid = $false; Legacy = $false; Error = "Incorrect write access at $($contract.Target)." }
+            return [pscustomobject]@{ Valid = $false; Legacy = $false; LegacyCredential = $false; LegacyVerifier = $false; Error = "Incorrect write access at $($contract.Target)." }
         }
         if ($contract.Type -eq 'bind') {
-            if (-not (Test-DemoHostPathMatch -Expected ([string]$contract.Source) -Actual ([string]$mount.Source))) {
-                return [pscustomobject]@{ Valid = $false; Legacy = $false; Error = "Unexpected bind source at $($contract.Target)." }
+            if (-not (Test-DemoHostPathMatch -Expected $contract.Source -Actual ([string]$mount.Source))) {
+                return [pscustomobject]@{ Valid = $false; Legacy = $false; LegacyCredential = $false; LegacyVerifier = $false; Error = "Unexpected bind source at $($contract.Target)." }
             }
         } else {
             $metadata = $VolumeMetadataByName[[string]$mount.Name]
             if (-not $metadata -or -not (Test-OrdinalEqual ([string]$metadata.Project) $ExpectedProject) -or
                     -not (Test-OrdinalEqual ([string]$metadata.VolumeKey) ([string]$contract.VolumeKey)) -or
                     -not (Test-DemoHostPathMatch -Expected ([string]$metadata.Mountpoint) -Actual ([string]$mount.Source))) {
-                return [pscustomobject]@{ Valid = $false; Legacy = $false; Error = "Unexpected named volume metadata at $($contract.Target)." }
+                return [pscustomobject]@{ Valid = $false; Legacy = $false; LegacyCredential = $false; LegacyVerifier = $false; Error = "Unexpected named volume metadata at $($contract.Target)." }
             }
         }
     }
-
-    return [pscustomobject]@{ Valid = $true; Legacy = ($null -ne $legacyMount); LegacyCredential = ($null -ne $legacyCredentialMount); Error = $null }
+    return [pscustomobject]@{ Valid = $true; Legacy = ($null -ne $legacyDocument); LegacyCredential = ($null -ne $legacyCredential); LegacyVerifier = ($null -ne $legacyVerifier); Error = $null }
 }
 
 function Invoke-DemoBackendMountUpgrade {

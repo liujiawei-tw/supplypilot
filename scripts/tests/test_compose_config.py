@@ -87,25 +87,15 @@ class ComposeConfigurationTests(unittest.TestCase):
         self.assertTrue(demo_sample_mounts[0]["read_only"])
         self.assertEqual(str(ROOT / "samples" / "documents"), demo_sample_mounts[0]["source"])
         self.assertEqual("bind", demo_sample_mounts[0]["type"])
-        self.assertNotIn("secrets", demo["services"]["backend"])
-        credential_mounts = [volume for volume in demo["services"]["backend"]["volumes"]
-                             if volume["target"] == "/run/supplypilot-demo-verifier"]
-        self.assertEqual(1, len(credential_mounts))
-        self.assertTrue(credential_mounts[0]["read_only"])
-        self.assertEqual({"/app/data/demo-documents", "/app/samples/demo-documents",
-                          "/run/supplypilot-demo-verifier"},
+        self.assertEqual({"/app/data/demo-documents", "/app/samples/demo-documents"},
                          {volume["target"] for volume in all_demo_mounts})
-        self.assertNotEqual(".", credential_mounts[0]["source"])
+        self.assertEqual("Fixture123", demo["services"]["backend"]["environment"]["DEMO_ACCOUNT_PASSWORD"])
         self.assertFalse(any(".env.demo" in str(volume) for volume in demo["services"]["backend"]["volumes"]))
-        self.assertNotIn("DEMO_ACCOUNT_PASSWORD", demo["services"]["backend"]["environment"])
-        self.assertEqual("https://host.docker.internal:18443/v1/verify",
-                         demo["services"]["backend"]["environment"]["DEMO_VERIFIER_URL"])
-        self.assertEqual(["host.docker.internal=host-gateway"], demo["services"]["backend"]["extra_hosts"])
-        self.assertIn("verifier", demo["services"]["backend"]["networks"])
-        self.assertNotIn("verifier", demo["services"]["frontend"]["networks"])
-        self.assertNotIn("verifier", demo["services"]["mysql"]["networks"])
-        self.assertNotIn("verifier", demo["services"]["pgvector"]["networks"])
-        self.assertIn("verifier", demo["networks"])
+        self.assertEqual({"data", "web"}, set(demo["services"]["backend"]["networks"]))
+        self.assertNotIn("extra_hosts", demo["services"]["backend"])
+        self.assertNotIn("verifier", demo["networks"])
+        for key in ("DEMO_VERIFIER_URL", "DEMO_VERIFIER_CLIENT_CERT", "DEMO_VERIFIER_CLIENT_KEY", "DEMO_VERIFIER_CA"):
+            self.assertNotIn(key, demo["services"]["backend"]["environment"])
         self.assertNotEqual(prod["volumes"]["mysql-data"]["name"], demo["volumes"]["sp903-mysql-data"]["name"])
         self.assertNotEqual(prod["volumes"]["pgvector-data"]["name"], demo["volumes"]["sp903-pgvector-data"]["name"])
         self.assertNotEqual(prod["volumes"]["document-storage"]["name"], demo["volumes"]["sp903-document-storage"]["name"])

@@ -180,8 +180,8 @@ public class DemoDatasetCoordinator implements DemoDataCoordinator {
     }
 
     private Map<String, User> seedUsers(Instant now) {
-        // Baseline accounts authenticate only through the Demo Host Verifier. Keep a random,
-        // unusable BCrypt value so the database never stores the host-managed password.
+        // Baseline accounts use the Demo profile's configured password, not the database hash.
+        // Keep a random, unusable BCrypt value so BCrypt authentication cannot become a fallback.
         String hash = passwordEncoder.encode(java.util.UUID.randomUUID().toString());
         Map<String, User> result = new LinkedHashMap<>();
         result.put("planner", User.create("planner", hash, "Demo Production Planner",

@@ -30,10 +30,14 @@ SupplyPilot 是採購與供應鏈決策平台。Backend 以 Java 21、Spring Boo
    pwsh -NoProfile -File .\scripts\start-sp903-demo.ps1
    ```
 
-   啟動器會驗證專用資源歸屬與資料庫帳密，並先啟動 Host mTLS Verifier。若直接執行 Compose，必須先以相同假設與 Host 憑證設定啟動 Verifier；否則基線帳號登入會 Fail Closed。
+   啟動器會驗證專用資源歸屬與資料庫帳密，再啟動四個服務。也可直接使用 Compose：
+
+   ```powershell
+   docker compose --env-file .env.demo -f compose.yaml -f compose.demo.yaml up -d --build
+   ```
 3. 開啟 `http://127.0.0.1:8081`。
 
-Demo 的五個基線帳號 `admin`、`manager`、`buyer`、`warehouse`、`planner` 每次登入都會透過 mTLS 向 Host Verifier 同步驗證 `.env.demo` 的 `DEMO_ACCOUNT_PASSWORD`。Host Verifier 每個請求重新讀取來源；來源錯誤或通道不可用時登入失敗。啟動器會在 Host 產生隔離憑證並啟動 Verifier，Backend 只掛載專用的 Client 憑證。Production 不建立或呼叫此 Demo 認證路徑。部署限制與驗收狀態見 `docs/SP-903-DOCKER-RELEASE-CANDIDATE.md`。
+Demo 的五個基線帳號 `admin`、`manager`、`buyer`、`warehouse`、`planner` 共用 `.env.demo` 的 `DEMO_ACCOUNT_PASSWORD`。Backend 在 Demo Profile 啟動時讀取密碼；修改 `.env.demo` 後，執行受控啟動器以只重建 Backend 並套用新值。新密碼生效、舊密碼失效，不需重建資料庫／pgvector／Frontend，也不需 Reset 或重新 Seed；已核發 JWT 保留原有效期。此行為取代 Issue #45 原先「儲存後下次登入立即更新且不重啟 Backend」的驗收條件，屬明確需求變更，尚未取得該 Issue 的更新核准前不得宣稱原條件 PASS。Production 不啟用此 Demo 認證元件。Docker 管理者可以檢視 Container Environment，因此 Demo 密碼不可與正式企業密碼共用。部署限制與驗收狀態見 `docs/SP-903-DOCKER-RELEASE-CANDIDATE.md`。
 
 Demo 文件來源使用 Host `./samples/documents`，唯讀映射至 Container `/app/samples/demo-documents`。已上傳文件則寫入 Container `/app/data/demo-documents`，由既有 named volume `supplypilot-sp903-local-demo-documents` 持久化。兩個路徑分開使用；樣本 Host 路徑保留原名以支援非 Demo Semantic Gate 手動上傳流程。
 

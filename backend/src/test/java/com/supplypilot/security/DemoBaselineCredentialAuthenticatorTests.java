@@ -2,71 +2,88 @@ package com.supplypilot.security;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import com.supplypilot.user.domain.SecurityUser;
 import com.supplypilot.user.domain.User;
 import com.supplypilot.user.domain.UserRole;
 import com.supplypilot.user.repository.UserRepository;
 import java.time.Instant;
+import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.Authentication;
 
 class DemoBaselineCredentialAuthenticatorTests {
+    private static final String PASSWORD = "Demo123456";
     private UserRepository users;
-    private DemoHostCredentialVerifier verifier;
     private DemoBaselineCredentialAuthenticator authenticator;
 
     @BeforeEach
     void setUp() {
         users = mock(UserRepository.class);
-        verifier = mock(DemoHostCredentialVerifier.class);
-        authenticator = new DemoBaselineCredentialAuthenticator(users, verifier);
+        authenticator = new DemoBaselineCredentialAuthenticator(users, PASSWORD);
     }
 
     @Test
-    void synchronouslyVerifiesOnlyActiveBaselineAccountsThroughHostAuthority() {
-        when(users.findByUsername("admin")).thenReturn(java.util.Optional.of(activeUser()));
-        when(verifier.verify("admin", "Demo123456")).thenReturn(true);
-        Authentication result = authenticator.authenticate("admin", "Demo123456");
+    void acceptsConfiguredPasswordForActiveBaselineUserAndUsesDatabaseRole() {
+        when(users.findByUsername("manager")).thenReturn(Optional.of(activeUser("manager", UserRole.PROCUREMENT_MANAGER)));
+
+        Authentication result = authenticator.authenticate("manager", PASSWORD);
+
         assertInstanceOf(SecurityUser.class, result.getPrincipal());
-        verify(verifier).verify("admin", "Demo123456");
+        assertEquals(UserRole.PROCUREMENT_MANAGER, ((SecurityUser) result.getPrincipal()).getRole());
+        verify(users).findByUsername("manager");
     }
 
     @Test
-    void hostDenialOrFailureNeverFallsBackToDatabaseHash() {
-        when(users.findByUsername("buyer")).thenReturn(java.util.Optional.of(activeUser("buyer")));
-        when(verifier.verify("buyer", "Demo123456")).thenReturn(false);
-        assertThrows(BadCredentialsException.class, () -> authenticator.authenticate("buyer", "Demo123456"));
-        when(verifier.verify("buyer", "Demo123456")).thenThrow(new BadCredentialsException("Host unavailable"));
-        assertThrows(BadCredentialsException.class, () -> authenticator.authenticate("buyer", "Demo123456"));
-        verify(verifier, times(2)).verify("buyer", "Demo123456");
+    void rejectsWrongOrNullPassword() {
+        when(users.findByUsername("admin")).thenReturn(Optional.of(activeUser("admin", UserRole.ADMIN)));
+
+        assertThrows(BadCredentialsException.class, () -> authenticator.authenticate("admin", "Wrong123456"));
+        assertThrows(BadCredentialsException.class, () -> authenticator.authenticate("admin", null));
     }
 
     @Test
-    void inactiveOrUnknownUsersNeverReachHostVerifier() {
-        User inactive = User.create("manager", "unused-hash", "Manager", UserRole.ADMIN, Instant.now());
+    void rejectsInactiveOrUnknownBaselineUsers() {
+        User inactive = activeUser("manager", UserRole.ADMIN);
         inactive.inactivate(Instant.now());
-        when(users.findByUsername("manager")).thenReturn(java.util.Optional.of(inactive));
-        when(users.findByUsername("planner")).thenReturn(java.util.Optional.empty());
-        assertThrows(BadCredentialsException.class, () -> authenticator.authenticate("manager", "Demo123456"));
-        assertThrows(BadCredentialsException.class, () -> authenticator.authenticate("planner", "Demo123456"));
-        verifyNoInteractions(verifier);
+        when(users.findByUsername("manager")).thenReturn(Optional.of(inactive));
+        when(users.findByUsername("planner")).thenReturn(Optional.empty());
+
+        assertThrows(BadCredentialsException.class, () -> authenticator.authenticate("manager", PASSWORD));
+        assertThrows(BadCredentialsException.class, () -> authenticator.authenticate("planner", PASSWORD));
     }
 
     @Test
-    void onlyNamedBaselineAccountsUseHostVerifier() {
+    void onlyFiveNamedAccountsUseDemoPasswordAuthentication() {
         for (String username : new String[]{"admin", "manager", "buyer", "warehouse", "planner"}) {
             assertTrue(authenticator.handles(username));
             assertTrue(authenticator.handles(username.toUpperCase(java.util.Locale.ROOT)));
         }
         assertFalse(authenticator.handles("custom-user"));
+        assertFalse(authenticator.handles(null));
     }
 
-    private User activeUser() { return activeUser("admin"); }
+    @Test
+    void invalidConfiguredPasswordFailsDuringBeanConstruction() {
+        assertThrows(IllegalStateException.class, () -> new DemoBaselineCredentialAuthenticator(users, "short"));
+        assertThrows(IllegalStateException.class,
+                () -> new DemoBaselineCredentialAuthenticator(users, "x".repeat(101)));
+        assertThrows(IllegalStateException.class, () -> new DemoBaselineCredentialAuthenticator(users, null));
+    }
 
-    private User activeUser(String username) {
-        return User.create(username, "unused-hash", username, UserRole.ADMIN, Instant.now());
+    @Test
+    void recreatingAuthenticatorWithNewConfigurationAcceptsNewAndRejectsOldPassword() {
+        when(users.findByUsername("admin")).thenReturn(Optional.of(activeUser("admin", UserRole.ADMIN)));
+        DemoBaselineCredentialAuthenticator recreated = new DemoBaselineCredentialAuthenticator(users, "NewDemo123");
+
+        assertThrows(BadCredentialsException.class, () -> recreated.authenticate("admin", PASSWORD));
+        assertDoesNotThrow(() -> recreated.authenticate("admin", "NewDemo123"));
+    }
+
+    private User activeUser(String username, UserRole role) {
+        return User.create(username, "unused-random-hash", username, role, Instant.now());
     }
 }

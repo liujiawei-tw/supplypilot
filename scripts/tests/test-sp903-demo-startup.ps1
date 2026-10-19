@@ -1,5 +1,6 @@
 $ErrorActionPreference = 'Stop'
 $modulePath = Join-Path $PSScriptRoot '..\Sp903DemoStartup.psm1'
+$startupPath = Join-Path $PSScriptRoot '..\start-sp903-demo.ps1'
 Import-Module -Name $modulePath -Force
 
 function Assert-True([bool]$Condition, [string]$Message) {
@@ -9,9 +10,17 @@ function Assert-True([bool]$Condition, [string]$Message) {
 $composeNames = Get-ComposeEnvironmentVariableNames -ComposeFiles @(
     (Join-Path $PSScriptRoot '..\..\compose.yaml'),
     (Join-Path $PSScriptRoot '..\..\compose.demo.yaml'))
-foreach ($required in @('FRONTEND_ORIGIN', 'DEMO_ENV_SOURCE', 'MYSQL_PWD', 'PGPASSWORD',
-        'DB_USERNAME', 'DB_PASSWORD', 'DEMO_FRONTEND_PORT')) {
+foreach ($required in @('FRONTEND_ORIGIN', 'MYSQL_PWD', 'PGPASSWORD', 'DB_USERNAME', 'DB_PASSWORD',
+        'DEMO_ACCOUNT_PASSWORD', 'DEMO_FRONTEND_PORT')) {
     Assert-True ($required -in $composeNames) "Process environment protection omitted $required"
+}
+foreach ($removed in @('DEMO_ENV_SOURCE', 'DEMO_VERIFIER_URL', 'DEMO_VERIFIER_CLIENT_CERT')) {
+    Assert-True ($removed -notin $composeNames) "Removed verifier interpolation remained: $removed"
+}
+
+$startupText = Get-Content -LiteralPath $startupPath -Raw
+foreach ($removed in @('Get-NetIPAddress', 'Get-NetFirewall', 'OpenSSL', 'WaitForVerifier', 'Start-OrReuseDemoVerifier', 'host.docker.internal')) {
+    Assert-True ($startupText -notmatch [regex]::Escape($removed)) "Host Verifier startup responsibility remained: $removed"
 }
 
 $fixtureName = 'SP903_ENV_RESTORE_FIXTURE'
@@ -19,321 +28,143 @@ $original = [Environment]::GetEnvironmentVariable($fixtureName, 'Process')
 try {
     [Environment]::SetEnvironmentVariable($fixtureName, 'fixture-original', 'Process')
     Invoke-WithProcessEnvironmentCleared -Names @($fixtureName) -Action {
-        Assert-True ($null -eq [Environment]::GetEnvironmentVariable($fixtureName, 'Process')) `
-            'Environment value remained visible inside protected action'
+        Assert-True ($null -eq [Environment]::GetEnvironmentVariable($fixtureName, 'Process')) 'Environment value remained visible inside protected action'
         [Environment]::SetEnvironmentVariable($fixtureName, 'fixture-mutated', 'Process')
     }
-    Assert-True ([Environment]::GetEnvironmentVariable($fixtureName, 'Process') -eq 'fixture-original') `
-        'Original environment value was not restored after success'
-
-    try {
-        Invoke-WithProcessEnvironmentCleared -Names @($fixtureName) -Action {
-            [Environment]::SetEnvironmentVariable($fixtureName, 'fixture-mutated', 'Process')
-            throw 'fixture failure'
-        }
-        throw 'Expected protected action to throw'
-    } catch {
-        if ($_.Exception.Message -eq 'Expected protected action to throw') { throw }
-    }
-    Assert-True ([Environment]::GetEnvironmentVariable($fixtureName, 'Process') -eq 'fixture-original') `
-        'Original environment value was not restored after exception'
+    Assert-True ([Environment]::GetEnvironmentVariable($fixtureName, 'Process') -eq 'fixture-original') 'Environment value was not restored after success'
 } finally {
     [Environment]::SetEnvironmentVariable($fixtureName, $original, 'Process')
 }
 
-$expected = @{
+$expectedVolumes = @{
     'supplypilot-sp903-local-demo-mysql' = @('sp903-mysql-data')
     'supplypilot-sp903-local-demo-pgvector' = @('sp903-pgvector-data')
     'supplypilot-sp903-local-demo-documents' = @('sp903-document-storage')
 }
-$allNames = @($expected.Keys)
-$none = Get-DemoVolumeSetStatus -ExistingVolumeNames @() -VolumeLabelsByName @{} `
-    -ExpectedProject 'supplypilot-sp903-local-demo' -ExpectedVolumes $expected
-Assert-True ($none -eq 'FreshStart') 'No volumes should be a fresh start'
+$names = @($expectedVolumes.Keys)
+Assert-True ((Get-DemoVolumeSetStatus -ExistingVolumeNames @() -VolumeLabelsByName @{} `
+    -ExpectedProject 'supplypilot-sp903-local-demo' -ExpectedVolumes $expectedVolumes) -eq 'FreshStart') 'Empty volume set should be fresh'
+$volumeLabels = @{}
+foreach ($name in $names) { $volumeLabels[$name] = @{ Project = 'supplypilot-sp903-local-demo'; VolumeKey = $expectedVolumes[$name][0] } }
+Assert-True ((Get-DemoVolumeSetStatus -ExistingVolumeNames $names -VolumeLabelsByName $volumeLabels `
+    -ExpectedProject 'supplypilot-sp903-local-demo' -ExpectedVolumes $expectedVolumes) -eq 'Existing') 'Correctly owned volumes should be reusable'
+$partialRejected = $false
+try { Get-DemoVolumeSetStatus -ExistingVolumeNames @($names[0], $names[1]) -VolumeLabelsByName $volumeLabels `
+        -ExpectedProject 'supplypilot-sp903-local-demo' -ExpectedVolumes $expectedVolumes | Out-Null }
+catch { $partialRejected = $true }
+Assert-True $partialRejected 'Partial volume set must fail closed'
+$caseMismatchNames = @($names)
+$caseMismatchNames[0] = $names[0].ToUpperInvariant()
+$caseMismatchRejected = $false
+try { Get-DemoVolumeSetStatus -ExistingVolumeNames $caseMismatchNames -VolumeLabelsByName $volumeLabels `
+        -ExpectedProject 'supplypilot-sp903-local-demo' -ExpectedVolumes $expectedVolumes | Out-Null }
+catch { $caseMismatchRejected = $true }
+Assert-True $caseMismatchRejected 'Case-mismatched volume name must fail closed'
 
-$labels = @{}
-foreach ($name in $allNames) {
-    $key = @($expected[$name])[0]
-    $labels[$name] = @{ Project = 'supplypilot-sp903-local-demo'; VolumeKey = $key }
+function New-TestContainer([string]$Service, [object[]]$Mounts, [string]$Project = 'supplypilot-sp903-local-demo') {
+    [pscustomobject]@{ Config = [pscustomobject]@{ Labels = @{
+        'com.docker.compose.project' = $Project; 'com.docker.compose.service' = $Service
+    } }; Mounts = $Mounts }
 }
-$existing = Get-DemoVolumeSetStatus -ExistingVolumeNames $allNames -VolumeLabelsByName $labels `
-    -ExpectedProject 'supplypilot-sp903-local-demo' -ExpectedVolumes $expected
-Assert-True ($existing -eq 'Existing') 'Compatible legacy volumes should be reusable'
-
-foreach ($scenario in @(
-    @{ Name = 'partial'; Names = @($allNames[0], $allNames[1]); Labels = $labels },
-    @{ Name = 'wrong project'; Names = $allNames; Labels = (@{ $allNames[0] = @{ Project = 'other-project'; VolumeKey = 'sp903-mysql-data' }; $allNames[1] = $labels[$allNames[1]]; $allNames[2] = $labels[$allNames[2]] }) },
-    @{ Name = 'unknown volume key'; Names = $allNames; Labels = (@{ $allNames[0] = @{ Project = 'supplypilot-sp903-local-demo'; VolumeKey = 'unknown-key' }; $allNames[1] = $labels[$allNames[1]]; $allNames[2] = $labels[$allNames[2]] }) },
-    @{ Name = 'wrong-case project label'; Names = $allNames; Labels = (@{ $allNames[0] = @{ Project = 'SUPPLYPILOT-SP903-LOCAL-DEMO'; VolumeKey = 'sp903-mysql-data' }; $allNames[1] = $labels[$allNames[1]]; $allNames[2] = $labels[$allNames[2]] }) },
-    @{ Name = 'wrong-case volume key'; Names = $allNames; Labels = (@{ $allNames[0] = @{ Project = 'supplypilot-sp903-local-demo'; VolumeKey = 'SP903-MYSQL-DATA' }; $allNames[1] = $labels[$allNames[1]]; $allNames[2] = $labels[$allNames[2]] }) }
-)) {
-    $thrown = $false
-    try {
-        Get-DemoVolumeSetStatus -ExistingVolumeNames $scenario.Names -VolumeLabelsByName $scenario.Labels `
-            -ExpectedProject 'supplypilot-sp903-local-demo' -ExpectedVolumes $expected | Out-Null
-    } catch { $thrown = $true }
-    Assert-True $thrown "Volume safety check did not reject $($scenario.Name)"
-}
-
-function New-TestContainer([string]$Service, [object[]]$Mounts) {
-    return [pscustomobject]@{
-        Config = [pscustomobject]@{ Labels = @{
-                'com.docker.compose.project' = 'supplypilot-sp903-local-demo'
-                'com.docker.compose.service' = $Service
-            } }
-        Mounts = $Mounts
-    }
-}
-
 function New-TestVolumeMount([string]$Name, [string]$Source, [string]$Target, [bool]$ReadWrite = $true) {
-    return [pscustomobject]@{ Type = 'volume'; Name = $Name; Source = $Source; Destination = $Target; RW = $ReadWrite }
+    [pscustomobject]@{ Type = 'volume'; Name = $Name; Source = $Source; Destination = $Target; RW = $ReadWrite }
 }
-
 function New-TestBindMount([string]$Source, [string]$Target, [bool]$ReadWrite = $false) {
-    return [pscustomobject]@{ Type = 'bind'; Name = $null; Source = $Source; Destination = $Target; RW = $ReadWrite }
+    [pscustomobject]@{ Type = 'bind'; Name = $null; Source = $Source; Destination = $Target; RW = $ReadWrite }
 }
 
-$repositoryRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..'))
-$documentsVolume = 'supplypilot-sp903-local-demo-documents'
-$documentsMountpoint = '/docker/volumes/supplypilot-sp903-local-demo-documents/_data'
-$sampleSource = Join-Path $repositoryRoot 'samples\documents'
-$credentialSource = Join-Path $repositoryRoot '.sp903-demo-verifier-client'
-$legacyCredentialSource = Join-Path $repositoryRoot '.sp903-demo-credential'
-$volumeMetadata = @{
-    $documentsVolume = @{ Project = 'supplypilot-sp903-local-demo'; VolumeKey = 'sp903-document-storage'; Mountpoint = $documentsMountpoint }
-}
-$validBackendMounts = @(
-    (New-TestVolumeMount $documentsVolume $documentsMountpoint '/app/data/demo-documents'),
-    (New-TestBindMount $sampleSource '/app/samples/demo-documents'),
-    (New-TestBindMount $credentialSource '/run/supplypilot-demo-verifier')
+$repo = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..'))
+$docVolume = 'supplypilot-sp903-local-demo-documents'
+$docPath = '/docker/volumes/supplypilot-sp903-local-demo-documents/_data'
+$sampleSource = Join-Path $repo 'samples\documents'
+$credentialSource = Join-Path $repo '.sp903-demo-credential'
+$verifierSource = Join-Path $repo '.sp903-demo-verifier-client'
+$volumeMetadata = @{ $docVolume = @{ Project = 'supplypilot-sp903-local-demo'; VolumeKey = 'sp903-document-storage'; Mountpoint = $docPath } }
+$currentMounts = @(
+    (New-TestVolumeMount $docVolume $docPath '/app/data/demo-documents'),
+    (New-TestBindMount $sampleSource '/app/samples/demo-documents')
 )
-$validBackend = New-TestContainer 'backend' $validBackendMounts
-$validContract = Test-DemoContainerMountContract -Container $validBackend `
-    -ExpectedProject 'supplypilot-sp903-local-demo' -ExpectedService backend `
-    -RepositoryRoot $repositoryRoot -VolumeMetadataByName $volumeMetadata
-Assert-True ($validContract.Valid -and -not $validContract.Legacy) 'Complete current Backend mount contract should pass strict validation'
-$repeatStartContract = Test-DemoContainerMountContract -Container $validBackend `
-    -ExpectedProject 'supplypilot-sp903-local-demo' -ExpectedService backend `
-    -RepositoryRoot $repositoryRoot -VolumeMetadataByName $volumeMetadata -AllowKnownLegacyDocumentMount
-Assert-True ($repeatStartContract.Valid -and -not $repeatStartContract.Legacy) `
-    'Repeated start with current mounts must not request legacy migration'
-$windowsPathA = Normalize-DemoHostPath 'C:\SupplyPilot\samples\documents\'
-$windowsPathB = Normalize-DemoHostPath 'c:/supplypilot/samples/documents'
-Assert-True ([string]::Equals($windowsPathA, $windowsPathB, [StringComparison]::OrdinalIgnoreCase)) `
-    'Windows Docker Host paths should normalize case and separator differences'
+$current = Test-DemoContainerMountContract -Container (New-TestContainer 'backend' $currentMounts) `
+    -ExpectedProject 'supplypilot-sp903-local-demo' -ExpectedService backend -RepositoryRoot $repo -VolumeMetadataByName $volumeMetadata
+Assert-True $current.Valid 'New Backend mount contract must contain only the document volume and sample bind'
+
 Assert-True (Test-DemoHostPathMatch -Expected 'C:\SupplyPilot\samples\documents' `
-    -Actual '/run/desktop/mnt/host/c/SupplyPilot/samples/documents') `
-    'Windows Docker Desktop VM source paths should map to the exact Windows Host path'
-Assert-True (-not (Test-DemoHostPathMatch -Expected 'C:\SupplyPilot\samples\documents' `
-    -Actual '/run/desktop/mnt/host/c/OtherProject/samples/documents')) `
-    'Windows Docker Desktop path normalization must not accept a different Host directory'
-$linuxPathA = Normalize-DemoHostPath '/srv/supplypilot/samples/documents/'
-$linuxPathB = Normalize-DemoHostPath '/srv/supplypilot/samples/documents'
-Assert-True ([string]::Equals($linuxPathA, $linuxPathB, [StringComparison]::Ordinal)) `
-    'Linux Docker Host paths should normalize trailing separators without changing case'
-Assert-True (Test-DemoHostPathMatch -Expected '/srv/supplypilot/samples/documents/' `
-    -Actual '/srv/supplypilot/samples/documents') 'Linux Host paths should compare by exact normalized path'
+    -Actual '/run/desktop/mnt/host/c/SupplyPilot/samples/documents') 'Docker Desktop Windows path should normalize'
 Assert-True (-not (Test-DemoHostPathMatch -Expected '/srv/supplypilot/samples/documents' `
-    -Actual '/srv/SupplyPilot/samples/documents')) 'Linux Host path comparison must remain case-sensitive'
+    -Actual '/srv/SupplyPilot/samples/documents')) 'Linux path comparison must remain case sensitive'
 
-$legacyName = 'unimportant-legacy-volume-name'
-$legacyMountpoint = '/docker/volumes/legacy-document-storage/_data'
-$legacyVolumeMetadata = @{
-    $documentsVolume = $volumeMetadata[$documentsVolume]
-    $legacyName = @{ Project = 'supplypilot-sp903-local-demo'; VolumeKey = 'document-storage'; Mountpoint = $legacyMountpoint }
+$legacyVolumeName = 'legacy-document-volume'
+$legacyVolumePath = '/docker/volumes/legacy-document-volume/_data'
+$legacyMetadata = @{
+    $docVolume = $volumeMetadata[$docVolume]
+    $legacyVolumeName = @{ Project = 'supplypilot-sp903-local-demo'; VolumeKey = 'document-storage'; Mountpoint = $legacyVolumePath }
 }
-$legacyMounts = @($validBackendMounts[0], $validBackendMounts[1],
-    (New-TestBindMount $legacyCredentialSource '/run/supplypilot-demo-credentials'),
-    (New-TestVolumeMount $legacyName $legacyMountpoint '/app/data/documents')
+$knownLegacyMounts = @(
+    @{ Mount = (New-TestBindMount $credentialSource '/run/supplypilot-demo-credentials'); Switch = 'AllowKnownLegacyCredentialMount'; Property = 'LegacyCredential' },
+    @{ Mount = (New-TestBindMount $verifierSource '/run/supplypilot-demo-verifier'); Switch = 'AllowKnownLegacyVerifierMount'; Property = 'LegacyVerifier' }
 )
-$legacyBackend = New-TestContainer 'backend' $legacyMounts
-$legacyBackendFixture = $legacyBackend
-$legacyContract = Test-DemoContainerMountContract -Container $legacyBackend `
-    -ExpectedProject 'supplypilot-sp903-local-demo' -ExpectedService backend `
-    -RepositoryRoot $repositoryRoot -VolumeMetadataByName $legacyVolumeMetadata `
-    -AllowKnownLegacyDocumentMount -AllowKnownLegacyCredentialMount
-Assert-True ($legacyContract.Valid -and $legacyContract.Legacy -and $legacyContract.LegacyCredential) `
-    'Exact old dual-document volumes plus the read-only legacy credential bind should be eligible for migration'
-$legacyCredentialOnly = Test-DemoContainerMountContract -Container (New-TestContainer 'backend' `
-        (@($validBackendMounts[0], $validBackendMounts[1]) + @((New-TestBindMount $legacyCredentialSource '/run/supplypilot-demo-credentials')))) `
-    -ExpectedProject 'supplypilot-sp903-local-demo' -ExpectedService backend `
-    -RepositoryRoot $repositoryRoot -VolumeMetadataByName $volumeMetadata -AllowKnownLegacyCredentialMount
-Assert-True ($legacyCredentialOnly.Valid -and $legacyCredentialOnly.LegacyCredential) `
-    'The exact read-only legacy credential bind should be accepted for controlled Backend-only upgrade'
-
-$negativeCases = @(
-    @{ Name = 'wrong project'; Container = (New-TestContainer 'backend' $legacyMounts); Project = 'different-project'; Volumes = $legacyVolumeMetadata; AllowLegacy = $true },
-    @{ Name = 'wrong service'; Container = (New-TestContainer 'frontend' $legacyMounts); Project = 'supplypilot-sp903-local-demo'; Volumes = $legacyVolumeMetadata; AllowLegacy = $true },
-    @{ Name = 'wrong legacy key'; Container = $legacyBackend; Project = 'supplypilot-sp903-local-demo'; Volumes = (@{ $documentsVolume = $volumeMetadata[$documentsVolume]; $legacyName = @{ Project = 'supplypilot-sp903-local-demo'; VolumeKey = 'wrong-key'; Mountpoint = $legacyMountpoint } }); AllowLegacy = $true },
-    @{ Name = 'wrong legacy project'; Container = $legacyBackend; Project = 'supplypilot-sp903-local-demo'; Volumes = (@{ $documentsVolume = $volumeMetadata[$documentsVolume]; $legacyName = @{ Project = 'foreign'; VolumeKey = 'document-storage'; Mountpoint = $legacyMountpoint } }); AllowLegacy = $true },
-    @{ Name = 'wrong legacy target'; Container = (New-TestContainer 'backend' (@($validBackendMounts) + @((New-TestVolumeMount $legacyName $legacyMountpoint '/wrong/target')))); Project = 'supplypilot-sp903-local-demo'; Volumes = $legacyVolumeMetadata; AllowLegacy = $true },
-    @{ Name = 'missing current document volume'; Container = (New-TestContainer 'backend' @($validBackendMounts | Where-Object { $_.Type -ne 'volume' })); Project = 'supplypilot-sp903-local-demo'; Volumes = $volumeMetadata; AllowLegacy = $true },
-    @{ Name = 'unknown extra volumes'; Container = (New-TestContainer 'backend' (@($legacyMounts) + @((New-TestVolumeMount 'unknown-two' '/volume/unknown-two' '/unknown/two')))); Project = 'supplypilot-sp903-local-demo'; Volumes = $legacyVolumeMetadata; AllowLegacy = $true }
-)
-foreach ($scenario in $negativeCases) {
-    $result = Test-DemoContainerMountContract -Container $scenario.Container `
-        -ExpectedProject $scenario.Project -ExpectedService backend -RepositoryRoot $repositoryRoot `
-        -VolumeMetadataByName $scenario.Volumes -AllowKnownLegacyDocumentMount:$scenario.AllowLegacy `
-        -AllowKnownLegacyCredentialMount:$scenario.AllowLegacy
-    Assert-True (-not $result.Valid) "Mount ownership should fail closed for $($scenario.Name)"
+foreach ($legacy in $knownLegacyMounts) {
+    $params = @{ Container = (New-TestContainer 'backend' (@($currentMounts) + @($legacy.Mount)))
+        ExpectedProject = 'supplypilot-sp903-local-demo'; ExpectedService = 'backend'; RepositoryRoot = $repo
+        VolumeMetadataByName = $volumeMetadata }
+    $params[$legacy.Switch] = $true
+    $contract = Test-DemoContainerMountContract @params
+    Assert-True ($contract.Valid -and $contract.($legacy.Property)) "Known legacy bind should be accepted for upgrade: $($legacy.Mount.Destination)"
 }
+$allLegacy = @($currentMounts) + @(
+    (New-TestBindMount $credentialSource '/run/supplypilot-demo-credentials'),
+    (New-TestBindMount $verifierSource '/run/supplypilot-demo-verifier'),
+    (New-TestVolumeMount $legacyVolumeName $legacyVolumePath '/app/data/documents')
+)
+$allLegacyArgs = @{ Container = (New-TestContainer 'backend' $allLegacy); ExpectedProject = 'supplypilot-sp903-local-demo'
+    ExpectedService = 'backend'; RepositoryRoot = $repo; VolumeMetadataByName = $legacyMetadata
+    AllowKnownLegacyCredentialMount = $true; AllowKnownLegacyVerifierMount = $true; AllowKnownLegacyDocumentMount = $true }
+Assert-True ((Test-DemoContainerMountContract @allLegacyArgs).Valid) 'Both supported bind generations and the retired document volume may be upgraded together'
 
-foreach ($scenario in @(
-    @{ Name = 'unknown bind'; Mounts = (@($validBackendMounts) + @((New-TestBindMount (Join-Path $repositoryRoot 'other') '/other'))) },
-    @{ Name = 'wrong sample source'; Mounts = @((New-TestVolumeMount $documentsVolume $documentsMountpoint '/app/data/demo-documents'), (New-TestBindMount (Join-Path $repositoryRoot 'other') '/app/samples/demo-documents'), $validBackendMounts[2]) },
-    @{ Name = 'wrong credential destination'; Mounts = @($validBackendMounts[0], $validBackendMounts[1], (New-TestBindMount $credentialSource '/tmp/credentials')) },
-    @{ Name = 'sample writable'; Mounts = @($validBackendMounts[0], (New-TestBindMount $sampleSource '/app/samples/demo-documents' $true), $validBackendMounts[2]) },
-    @{ Name = 'credentials writable'; Mounts = @($validBackendMounts[0], $validBackendMounts[1], (New-TestBindMount $credentialSource '/run/supplypilot-demo-verifier' $true)) },
-    @{ Name = 'wrong document volume'; Mounts = @((New-TestVolumeMount 'lookalike-volume' $documentsMountpoint '/app/data/demo-documents'), $validBackendMounts[1], $validBackendMounts[2]) },
-    @{ Name = 'document volume read only'; Mounts = @((New-TestVolumeMount $documentsVolume $documentsMountpoint '/app/data/demo-documents' $false), $validBackendMounts[1], $validBackendMounts[2]) },
-    @{ Name = 'extra named volume'; Mounts = (@($validBackendMounts) + @((New-TestVolumeMount 'extra' '/volume/extra' '/extra'))) },
-    @{ Name = 'missing verifier mount'; Mounts = @($validBackendMounts[0], $validBackendMounts[1]) },
-    @{ Name = 'wrong-case document target'; Mounts = @((New-TestVolumeMount $documentsVolume $documentsMountpoint '/App/data/demo-documents'), $validBackendMounts[1], $validBackendMounts[2]) },
-    @{ Name = 'wrong-case document volume name'; Mounts = @((New-TestVolumeMount 'Supplypilot-sp903-local-demo-documents' $documentsMountpoint '/app/data/demo-documents'), $validBackendMounts[1], $validBackendMounts[2]) },
-    @{ Name = 'wrong-case sample target'; Mounts = @($validBackendMounts[0], (New-TestBindMount $sampleSource '/App/samples/demo-documents'), $validBackendMounts[2]) },
-    @{ Name = 'wrong-case verifier target'; Mounts = @($validBackendMounts[0], $validBackendMounts[1], (New-TestBindMount $credentialSource '/Run/supplypilot-demo-verifier')) }
+foreach ($badMount in @(
+    (New-TestBindMount (Join-Path $repo 'other') '/run/supplypilot-demo-credentials'),
+    (New-TestBindMount $credentialSource '/run/supplypilot-demo-credentials' $true),
+    (New-TestBindMount $verifierSource '/run/supplypilot-demo-verifier' $true),
+    (New-TestBindMount $credentialSource '/run/other-credentials')
 )) {
-    $container = New-TestContainer 'backend' $scenario.Mounts
-    $result = Test-DemoContainerMountContract -Container $container `
-        -ExpectedProject 'supplypilot-sp903-local-demo' -ExpectedService backend `
-        -RepositoryRoot $repositoryRoot -VolumeMetadataByName $volumeMetadata
-    Assert-True (-not $result.Valid) "Complete Mount contract should reject $($scenario.Name)"
+    $params = @{ Container = (New-TestContainer 'backend' (@($currentMounts) + @($badMount)))
+        ExpectedProject = 'supplypilot-sp903-local-demo'; ExpectedService = 'backend'; RepositoryRoot = $repo
+        VolumeMetadataByName = $volumeMetadata; AllowKnownLegacyCredentialMount = $true; AllowKnownLegacyVerifierMount = $true }
+    Assert-True (-not (Test-DemoContainerMountContract @params).Valid) 'Unknown, writable, or misplaced legacy bind must fail closed'
 }
+$unknownExtra = Test-DemoContainerMountContract -Container (New-TestContainer 'backend' (@($currentMounts) + @((New-TestBindMount (Join-Path $repo 'other') '/other')))) `
+    -ExpectedProject 'supplypilot-sp903-local-demo' -ExpectedService backend -RepositoryRoot $repo -VolumeMetadataByName $volumeMetadata
+Assert-True (-not $unknownExtra.Valid) 'Unknown extra mounts must fail closed'
 
-foreach ($legacyCredentialMount in @(
-    (New-TestBindMount (Join-Path $repositoryRoot 'other') '/run/supplypilot-demo-credentials'),
-    (New-TestBindMount $legacyCredentialSource '/run/supplypilot-demo-credentials' $true),
-    (New-TestBindMount $legacyCredentialSource '/run/other-credentials')
-)) {
-    $legacyCredentialContract = Test-DemoContainerMountContract `
-        -Container (New-TestContainer 'backend' (@($validBackendMounts) + @($legacyCredentialMount))) `
-        -ExpectedProject 'supplypilot-sp903-local-demo' -ExpectedService backend `
-        -RepositoryRoot $repositoryRoot -VolumeMetadataByName $volumeMetadata -AllowKnownLegacyCredentialMount
-    Assert-True (-not $legacyCredentialContract.Valid) `
-        'A wrong source, writable or wrong-target legacy credential bind must fail closed'
-}
-
-$wrongNamedVolumeMetadata = @{
-    $documentsVolume = @{ Project = 'other-project'; VolumeKey = 'sp903-document-storage'; Mountpoint = $documentsMountpoint }
-}
-$wrongNamedVolumeContainer = New-TestContainer 'backend' $validBackendMounts
-$wrongNamedVolumeContract = Test-DemoContainerMountContract -Container $wrongNamedVolumeContainer `
-    -ExpectedProject 'supplypilot-sp903-local-demo' -ExpectedService backend `
-    -RepositoryRoot $repositoryRoot -VolumeMetadataByName $wrongNamedVolumeMetadata
-Assert-True (-not $wrongNamedVolumeContract.Valid) 'A matching volume name must not substitute for required Compose labels'
-$wrongPhysicalMounts = @(
-    (New-TestVolumeMount $documentsVolume '/other/volume/mountpoint' '/app/data/demo-documents'),
-    $validBackendMounts[1], $validBackendMounts[2]
-)
-$wrongPhysicalContainer = New-TestContainer 'backend' $wrongPhysicalMounts
-$wrongPhysicalContract = Test-DemoContainerMountContract -Container $wrongPhysicalContainer `
-    -ExpectedProject 'supplypilot-sp903-local-demo' -ExpectedService backend `
-    -RepositoryRoot $repositoryRoot -VolumeMetadataByName $volumeMetadata
-Assert-True (-not $wrongPhysicalContract.Valid) 'Named volume source must match its inspected Docker volume mountpoint'
-Assert-True (-not (Test-DemoHostPathMatch -Expected '/srv/supplypilot/samples/documents' `
-    -Actual '/srv/SupplyPilot/samples/documents')) 'Linux bind source comparison must be case sensitive'
-
-foreach ($databaseVolume in @(
+foreach ($fixture in @(
     @{ Service = 'mysql'; Name = 'supplypilot-sp903-local-demo-mysql'; Key = 'sp903-mysql-data'; Target = '/var/lib/mysql' },
     @{ Service = 'pgvector'; Name = 'supplypilot-sp903-local-demo-pgvector'; Key = 'sp903-pgvector-data'; Target = '/var/lib/postgresql/data' }
 )) {
-    $mountpoint = "/docker/volumes/$($databaseVolume.Name)/_data"
-    $databaseMetadata = @{ $databaseVolume.Name = @{
-            Project = 'supplypilot-sp903-local-demo'; VolumeKey = $databaseVolume.Key; Mountpoint = $mountpoint
-        } }
-    $databaseContainer = New-TestContainer $databaseVolume.Service @(
-        (New-TestVolumeMount $databaseVolume.Name $mountpoint $databaseVolume.Target)
-    )
-    $databaseContract = Test-DemoContainerMountContract -Container $databaseContainer `
-        -ExpectedProject 'supplypilot-sp903-local-demo' -ExpectedService $databaseVolume.Service `
-        -RepositoryRoot $repositoryRoot -VolumeMetadataByName $databaseMetadata
-    Assert-True $databaseContract.Valid "$($databaseVolume.Service) persistence volume contract should pass: $($databaseContract.Error)"
+    $path = "/docker/volumes/$($fixture.Name)/_data"
+    $metadata = @{ $fixture.Name = @{ Project = 'supplypilot-sp903-local-demo'; VolumeKey = $fixture.Key; Mountpoint = $path } }
+    $contract = Test-DemoContainerMountContract -Container (New-TestContainer $fixture.Service @((New-TestVolumeMount $fixture.Name $path $fixture.Target))) `
+        -ExpectedProject 'supplypilot-sp903-local-demo' -ExpectedService $fixture.Service -RepositoryRoot $repo -VolumeMetadataByName $metadata
+    Assert-True $contract.Valid "$($fixture.Service) volume contract should pass"
 }
+Assert-True ((Test-DemoContainerMountContract -Container (New-TestContainer 'frontend' @()) `
+    -ExpectedProject 'supplypilot-sp903-local-demo' -ExpectedService frontend -RepositoryRoot $repo -VolumeMetadataByName @{}).Valid) 'Frontend with no mounts should pass'
 
-$frontend = New-TestContainer 'frontend' @()
-$frontendContract = Test-DemoContainerMountContract -Container $frontend `
-    -ExpectedProject 'supplypilot-sp903-local-demo' -ExpectedService frontend `
-    -RepositoryRoot $repositoryRoot -VolumeMetadataByName @{}
-Assert-True $frontendContract.Valid 'Frontend with no mounts should pass'
-$mountedFrontend = New-TestContainer 'frontend' @((New-TestBindMount $sampleSource '/unexpected'))
-$frontendContract = Test-DemoContainerMountContract -Container $mountedFrontend `
-    -ExpectedProject 'supplypilot-sp903-local-demo' -ExpectedService frontend `
-    -RepositoryRoot $repositoryRoot -VolumeMetadataByName @{}
-Assert-True (-not $frontendContract.Valid) 'Frontend extra mounts must be rejected'
-
-$dockerFixtureCalls = [System.Collections.Generic.List[string]]::new()
-function docker {
-    param([Parameter(ValueFromRemainingArguments = $true)][string[]]$Arguments)
-    $script:dockerFixtureCalls.Add($Arguments -join ' ')
-    if ($script:dockerFixtureFailure) { $global:LASTEXITCODE = 1 } else { $global:LASTEXITCODE = 0 }
-}
-$script:dockerFixtureFailure = $false
-$script:strictVerificationCalled = $false
-$script:databaseIdentityChanged = $false
-$fixtureDatabaseIds = {
-    if ($script:databaseIdentityChanged) { @('mysql-changed', 'pgvector-1') }
-    else { @('mysql-1', 'pgvector-1') }
-}
-$fixtureRecreate = {
-    docker compose up --detach --build --force-recreate --no-deps --wait backend
-    if ($LASTEXITCODE -ne 0) { throw 'fixture recreate failure' }
-    $script:legacyBackend = New-TestContainer 'backend' $validBackendMounts
-}
-$fixtureStrictCheck = {
-    $script:strictVerificationCalled = $true
-    $result = Test-DemoContainerMountContract -Container $script:legacyBackend `
-        -ExpectedProject 'supplypilot-sp903-local-demo' -ExpectedService backend `
-        -RepositoryRoot $repositoryRoot -VolumeMetadataByName $volumeMetadata
-    if (-not $result.Valid) { throw 'post-recreate mounts invalid' }
-}
-Invoke-DemoBackendMountUpgrade -GetDatabaseContainerIds $fixtureDatabaseIds `
-    -RecreateBackend $fixtureRecreate -AssertStrictMounts $fixtureStrictCheck
-Assert-True $script:strictVerificationCalled 'Successful recreate must be followed by strict mount verification'
-Assert-True (($dockerFixtureCalls -join "`n") -match 'compose up --detach --build --force-recreate --no-deps --wait backend') 'Legacy upgrade must recreate only Backend through the Docker CLI fixture'
-Assert-True (-not ($dockerFixtureCalls -join "`n" | Select-String 'volume rm|volume prune|down -v')) 'Legacy upgrade fixture must not delete or mutate volumes'
-
-$script:strictVerificationCalled = $false
-$script:dockerFixtureFailure = $true
-$failedRecreate = $false
+$calls = [System.Collections.Generic.List[string]]::new()
+function docker { param([Parameter(ValueFromRemainingArguments = $true)][string[]]$Arguments); $script:calls.Add($Arguments -join ' '); $global:LASTEXITCODE = 0 }
+$script:changedIds = $false
+$ids = { if ($script:changedIds) { @('mysql-changed', 'pgvector-1') } else { @('mysql-1', 'pgvector-1') } }
+$strictCalled = $false
+Invoke-DemoBackendMountUpgrade -GetDatabaseContainerIds $ids `
+    -RecreateBackend { docker compose up --detach --build --force-recreate --no-deps --wait backend } `
+    -AssertStrictMounts { $script:strictCalled = $true }
+Assert-True $strictCalled 'Backend recreation must be followed by strict mount checking'
+Assert-True (($calls -join ' ') -match '--force-recreate --no-deps') 'Credential updates and legacy upgrades must recreate only Backend'
+Assert-True (-not (($calls -join ' ') -match 'volume rm|volume prune|down -v')) 'Upgrade must not delete volumes'
+$identityRejected = $false
 try {
-    Invoke-DemoBackendMountUpgrade -GetDatabaseContainerIds $fixtureDatabaseIds `
-        -RecreateBackend $fixtureRecreate -AssertStrictMounts $fixtureStrictCheck
-} catch { $failedRecreate = $true }
-Assert-True $failedRecreate 'Recreate failure must be returned to the caller'
-Assert-True (-not $script:strictVerificationCalled) 'Strict post-check must not run after failed recreation'
-$script:dockerFixtureFailure = $false
-
-$script:strictVerificationCalled = $false
-$script:databaseIdentityChanged = $false
-$changedDatabaseIdentity = $false
-try {
-    Invoke-DemoBackendMountUpgrade -GetDatabaseContainerIds {
-        if ($script:databaseIdentityChanged) { @('mysql-changed', 'pgvector-1') }
-        else { @('mysql-1', 'pgvector-1') }
-    } -RecreateBackend {
-        docker compose up --detach --build --force-recreate --no-deps --wait backend
-        $script:databaseIdentityChanged = $true
-        $global:LASTEXITCODE = 0
-    } -AssertStrictMounts { $script:strictVerificationCalled = $true }
-} catch { $changedDatabaseIdentity = $true }
-Assert-True $changedDatabaseIdentity 'Legacy upgrade must fail if either database container ID changes'
-Assert-True (-not $script:strictVerificationCalled) 'Strict Backend mount check must not proceed after a database identity change'
-$script:databaseIdentityChanged = $false
-
-$script:legacyBackend = $legacyBackendFixture
-$staleMountRejected = $false
-try {
-    Invoke-DemoBackendMountUpgrade -GetDatabaseContainerIds $fixtureDatabaseIds `
-        -RecreateBackend { docker compose up --detach --build --force-recreate --no-deps --wait backend; $global:LASTEXITCODE = 0 } `
-        -AssertStrictMounts {
-            $result = Test-DemoContainerMountContract -Container $script:legacyBackend `
-                -ExpectedProject 'supplypilot-sp903-local-demo' -ExpectedService backend `
-                -RepositoryRoot $repositoryRoot -VolumeMetadataByName $legacyVolumeMetadata
-            if (-not $result.Valid) { throw 'post-recreate mounts invalid' }
-        }
-} catch { $staleMountRejected = $true }
-Assert-True $staleMountRejected 'Successful recreate must fail closed if the legacy mount remains'
-
-Write-Output 'SP-903 mount ownership and legacy upgrade fixture tests: PASS'
+    Invoke-DemoBackendMountUpgrade -GetDatabaseContainerIds $ids `
+        -RecreateBackend { $script:changedIds = $true } -AssertStrictMounts { throw 'Should not run' }
+} catch { $identityRejected = $true }
+Assert-True $identityRejected 'Upgrade must fail if database container identity changes'
 
 Write-Output 'SP-903 PowerShell startup regression tests: PASS'

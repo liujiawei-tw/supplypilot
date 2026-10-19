@@ -12,8 +12,6 @@ import java.time.LocalDate;
 import java.math.BigDecimal;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.net.ServerSocket;
-import java.util.concurrent.TimeUnit;
 import java.util.UUID;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -38,8 +36,6 @@ import com.supplypilot.user.domain.User;
 import com.supplypilot.user.domain.UserRole;
 import com.supplypilot.user.repository.UserRepository;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.AfterAll;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
@@ -67,46 +63,12 @@ import org.springframework.transaction.annotation.Transactional;
 @Import({TestcontainersConfiguration.class, FixedClockConfiguration.class})
 @AutoConfigureMockMvc
 class DemoSeedSmokeIntegrationTests {
-    private static final String PASSWORD = "t" + UUID.randomUUID().toString().replace("-", "").substring(0, 5);
-    private static final String ROTATED_PASSWORD = "u" + UUID.randomUUID().toString().replace("-", "").substring(0, 5);
-    private static final Path VERIFIER_DIRECTORY = Path.of(System.getProperty("java.io.tmpdir"),
-            "supplypilot-demo-verifier-test-" + UUID.randomUUID());
-    private static final Path DYNAMIC_ENVIRONMENT_FILE = VERIFIER_DIRECTORY.resolve("fake.env.demo");
-    private static final Path CA_CERT = VERIFIER_DIRECTORY.resolve("ca.crt");
-    private static final Path CA_KEY = VERIFIER_DIRECTORY.resolve("ca.key");
-    private static final Path SERVER_CERT = VERIFIER_DIRECTORY.resolve("server.crt");
-    private static final Path SERVER_KEY = VERIFIER_DIRECTORY.resolve("server.key");
-    private static final Path CLIENT_CERT = VERIFIER_DIRECTORY.resolve("client.crt");
-    private static final Path CLIENT_KEY = VERIFIER_DIRECTORY.resolve("client.key");
-    private static final int VERIFIER_PORT = availablePort();
-    private static Process verifierProcess;
-
-    static {
-        startVerifier();
-    }
+    private static final String PASSWORD = "Demo" + UUID.randomUUID().toString().replace("-", "").substring(0, 12);
+    private static final String ROTATED_PASSWORD = "New" + UUID.randomUUID().toString().replace("-", "").substring(0, 12);
 
     @DynamicPropertySource
     static void demoAccountPassword(DynamicPropertyRegistry registry) {
-        registry.add("supplypilot.demo.verifier-url", () -> "https://localhost:" + VERIFIER_PORT + "/v1/verify");
-        registry.add("supplypilot.demo.verifier-client-cert", () -> CLIENT_CERT.toString());
-        registry.add("supplypilot.demo.verifier-client-key", () -> CLIENT_KEY.toString());
-        registry.add("supplypilot.demo.verifier-ca", () -> CA_CERT.toString());
-    }
-
-    @BeforeEach
-    void resetDemoSource() { writeDynamicPassword(PASSWORD); }
-
-    @AfterAll
-    static void stopVerifier() throws Exception {
-        if (verifierProcess != null) {
-            verifierProcess.destroy();
-            if (!verifierProcess.waitFor(5, TimeUnit.SECONDS)) verifierProcess.destroyForcibly();
-        }
-        try (var paths = Files.walk(VERIFIER_DIRECTORY)) {
-            paths.sorted(java.util.Comparator.reverseOrder()).forEach(path -> {
-                try { Files.deleteIfExists(path); } catch (java.io.IOException ignored) { }
-            });
-        }
+        registry.add("supplypilot.demo.account-password", () -> PASSWORD);
     }
 
     @Autowired private UserRepository users;
@@ -119,6 +81,7 @@ class DemoSeedSmokeIntegrationTests {
     @Autowired private DocumentChunkRepository documentChunks;
     @Autowired private DocumentTextExtractor documentTextExtractor;
     @Autowired private DemoDataCoordinator coordinator;
+    @Autowired private com.supplypilot.security.DemoBaselineCredentialAuthenticator demoAuthenticator;
     @Autowired private DemoProperties demoProperties;
     @Autowired private PasswordEncoder passwordEncoder;
     @Autowired private JdbcTemplate jdbc;
@@ -126,82 +89,35 @@ class DemoSeedSmokeIntegrationTests {
     @Autowired private ObjectMapper objectMapper;
 
     @Test
-    void allFiveBaselineAccountsUseTheCurrentFilePasswordWithoutRestartAndRejectTheOldPassword() throws Exception {
+    void allFiveBaselineAccountsUseConfiguredPasswordAndDatabaseRoles() throws Exception {
         Map<String, String> expectedRoles = Map.of(
                 "admin", "ADMIN", "manager", "PROCUREMENT_MANAGER", "buyer", "PROCUREMENT_STAFF",
                 "warehouse", "WAREHOUSE_STAFF", "planner", "PRODUCTION_PLANNER");
         for (var entry : expectedRoles.entrySet()) {
             assertLogin(entry.getKey(), PASSWORD, 200, entry.getValue());
-        }
-
-        writeDynamicPassword(ROTATED_PASSWORD);
-        for (var entry : expectedRoles.entrySet()) {
-            assertLogin(entry.getKey(), PASSWORD, 401, null);
-            assertLogin(entry.getKey(), ROTATED_PASSWORD, 200, entry.getValue());
+            assertLogin(entry.getKey(), ROTATED_PASSWORD, 401, null);
         }
     }
 
     @Test
-    void firstHttpLoginAfterAtomicOrDirectSourceSaveUsesTheNewPasswordImmediately() throws Exception {
-        assertLogin("admin", PASSWORD, 200, "ADMIN");
-        Path replacement = VERIFIER_DIRECTORY.resolve("replacement.env.demo");
-        Files.writeString(replacement, demoEnvironment("AtomicNext123"), java.nio.charset.StandardCharsets.UTF_8);
-        Files.move(replacement, DYNAMIC_ENVIRONMENT_FILE, java.nio.file.StandardCopyOption.ATOMIC_MOVE,
-                java.nio.file.StandardCopyOption.REPLACE_EXISTING);
-        assertLogin("admin", "AtomicNext123", 200, "ADMIN");
-        assertLogin("admin", PASSWORD, 401, null);
+    void backendRecreationAppliesNewPasswordWithoutReseedingOrChangingDemoData() throws Exception {
+        long usersBefore = users.count();
+        long materialsBefore = materials.count();
+        long documentsBefore = documents.count();
+        long chunksBefore = documentChunks.count();
+        long ordersBefore = purchaseOrders.count();
 
-        for (String next : List.of("DirectNext123", "RapidNext123", "LastNext123")) {
-            Files.writeString(DYNAMIC_ENVIRONMENT_FILE, demoEnvironment(next), java.nio.charset.StandardCharsets.UTF_8);
-            assertLogin("admin", next, 200, "ADMIN");
-            assertLogin("admin", "AtomicNext123", 401, null);
-        }
-    }
-
-    @Test
-    void malformedMissingOrUnavailableHostSourceFailsClosedThroughHttpLogin() throws Exception {
-        assertLogin("admin", PASSWORD, 200, "ADMIN");
-        for (String invalid : List.of(
-                "DB_USERNAME=demo\n",
-                demoEnvironment("short"),
-                demoEnvironment(PASSWORD) + "DEMO_ACCOUNT_PASSWORD=OtherPass123\n",
-                demoEnvironment(PASSWORD) + "malformed-line\n",
-                demoEnvironment("x".repeat(101)))) {
-            Files.writeString(DYNAMIC_ENVIRONMENT_FILE, invalid, java.nio.charset.StandardCharsets.UTF_8);
-            assertLogin("admin", PASSWORD, 401, null);
-        }
-        Files.delete(DYNAMIC_ENVIRONMENT_FILE);
-        assertLogin("admin", PASSWORD, 401, null);
-        writeDynamicPassword(PASSWORD);
+        var recreatedAuthenticator = new com.supplypilot.security.DemoBaselineCredentialAuthenticator(users, ROTATED_PASSWORD);
+        assertThatThrownBy(() -> recreatedAuthenticator.authenticate("admin", PASSWORD))
+                .isInstanceOf(org.springframework.security.authentication.BadCredentialsException.class);
+        assertThat(recreatedAuthenticator.authenticate("admin", ROTATED_PASSWORD)).isNotNull();
         assertLogin("admin", PASSWORD, 200, "ADMIN");
 
-        verifierProcess.destroy();
-        assertThat(verifierProcess.waitFor(5, TimeUnit.SECONDS)).isTrue();
-        assertLogin("admin", PASSWORD, 401, null);
-        verifierProcess = launchVerifierProcess();
-        awaitVerifier();
-        assertLogin("admin", PASSWORD, 200, "ADMIN");
-    }
-
-    @Test
-    void concurrentHttpLoginsKeepTheirOwnVerifierResponses() throws Exception {
-        var pool = java.util.concurrent.Executors.newFixedThreadPool(12);
-        try {
-            var tasks = new java.util.ArrayList<java.util.concurrent.Callable<Integer>>();
-            for (int index = 0; index < 48; index++) {
-                final boolean correct = index % 2 == 0;
-                tasks.add(() -> mockMvc.perform(post("/api/v1/auth/login").contentType(MediaType.APPLICATION_JSON)
-                                .content(objectMapper.writeValueAsString(Map.of("username", "admin",
-                                        "password", correct ? PASSWORD : "WrongPassword123"))))
-                        .andReturn().getResponse().getStatus());
-            }
-            var results = pool.invokeAll(tasks);
-            for (int index = 0; index < results.size(); index++) {
-                assertThat(results.get(index).get()).isEqualTo(index % 2 == 0 ? 200 : 401);
-            }
-        } finally {
-            pool.shutdownNow();
-        }
+        assertThat(users.count()).isEqualTo(usersBefore);
+        assertThat(materials.count()).isEqualTo(materialsBefore);
+        assertThat(documents.count()).isEqualTo(documentsBefore);
+        assertThat(documentChunks.count()).isEqualTo(chunksBefore);
+        assertThat(purchaseOrders.count()).isEqualTo(ordersBefore);
     }
 
     @Test
@@ -221,7 +137,6 @@ class DemoSeedSmokeIntegrationTests {
                 UserRole.PROCUREMENT_STAFF, java.time.Instant.now());
         users.saveAndFlush(user);
         try {
-            writeDynamicPassword(ROTATED_PASSWORD);
             assertLogin(username, "Database123", 200, "PROCUREMENT_STAFF");
             assertLogin(username, ROTATED_PASSWORD, 401, null);
         } finally {
@@ -471,117 +386,6 @@ class DemoSeedSmokeIntegrationTests {
         if (expectedRole != null) {
             result.andExpect(jsonPath("$.user.role").value(expectedRole));
         }
-    }
-
-    private static void writeDynamicPassword(String password) {
-        try {
-            Files.writeString(DYNAMIC_ENVIRONMENT_FILE, demoEnvironment(password), java.nio.charset.StandardCharsets.UTF_8);
-        } catch (java.io.IOException exception) {
-            throw new IllegalStateException("Could not prepare isolated Demo credential test file", exception);
-        }
-    }
-
-    private static String demoEnvironment(String password) {
-        return "DB_USERNAME=demo\nDB_PASSWORD=fake-db-password\nMYSQL_ROOT_PASSWORD=fake-root-password\n"
-                + "SEMANTIC_DB_USERNAME=demo\nSEMANTIC_DB_PASSWORD=fake-pg-password\n"
-                + "JWT_SECRET=ZmFrZS1zZWNyZXQtZmFrZS1zZWNyZXQtZmFrZS1zZWNyZXQ=\n"
-                + "DEMO_ACCOUNT_PASSWORD=" + password + "\n";
-    }
-
-    private static int availablePort() {
-        try (ServerSocket socket = new ServerSocket(0)) { return socket.getLocalPort(); }
-        catch (java.io.IOException exception) { throw new IllegalStateException("Could not allocate test port", exception); }
-    }
-
-    private static void startVerifier() {
-        try {
-            Files.createDirectories(VERIFIER_DIRECTORY);
-            writeDynamicPassword(PASSWORD);
-            String openssl = executableOnPath("openssl", "openssl.exe");
-            Path opensslConfig = opensslConfig(openssl);
-            runTool(openssl, opensslConfig, "req", "-x509", "-newkey", "rsa:2048", "-nodes", "-keyout",
-                    CA_KEY.toString(), "-out", CA_CERT.toString(), "-days", "2", "-subj", "/CN=SP903-test-CA",
-                    "-addext", "basicConstraints=critical,CA:TRUE", "-addext", "keyUsage=critical,keyCertSign,cRLSign");
-            Path serverCsr = VERIFIER_DIRECTORY.resolve("server.csr");
-            Path clientCsr = VERIFIER_DIRECTORY.resolve("client.csr");
-            Path serverExt = VERIFIER_DIRECTORY.resolve("server.ext");
-            Path clientExt = VERIFIER_DIRECTORY.resolve("client.ext");
-            Files.writeString(serverExt, "subjectAltName=DNS:localhost\nextendedKeyUsage=serverAuth\n");
-            Files.writeString(clientExt, "extendedKeyUsage=clientAuth\n");
-            runTool(openssl, opensslConfig, "req", "-new", "-newkey", "rsa:2048", "-nodes", "-keyout",
-                    SERVER_KEY.toString(), "-out", serverCsr.toString(), "-subj", "/CN=localhost");
-            runTool(openssl, opensslConfig, "x509", "-req", "-in", serverCsr.toString(), "-CA", CA_CERT.toString(),
-                    "-CAkey", CA_KEY.toString(), "-CAcreateserial", "-out", SERVER_CERT.toString(), "-days", "2",
-                    "-sha256", "-extfile", serverExt.toString());
-            runTool(openssl, opensslConfig, "req", "-new", "-newkey", "rsa:2048", "-nodes", "-keyout",
-                    CLIENT_KEY.toString(), "-out", clientCsr.toString(), "-subj", "/CN=SP903 Demo Backend");
-            runTool(openssl, opensslConfig, "x509", "-req", "-in", clientCsr.toString(), "-CA", CA_CERT.toString(),
-                    "-CAkey", CA_KEY.toString(), "-CAcreateserial", "-out", CLIENT_CERT.toString(), "-days", "2",
-                    "-sha256", "-extfile", clientExt.toString());
-            verifierProcess = launchVerifierProcess();
-            awaitVerifier();
-        } catch (Exception exception) {
-            throw new IllegalStateException("Could not start isolated mTLS Host Verifier test fixture", exception);
-        }
-    }
-
-    private static Process launchVerifierProcess() throws Exception {
-        String python = System.getenv().getOrDefault("PYTHON",
-                System.getProperty("os.name").startsWith("Windows") ? "python" : "python3");
-        Path script = Path.of(System.getProperty("user.dir"), "..", "scripts", "sp903-demo-host-verifier.py")
-                .toAbsolutePath().normalize();
-        return new ProcessBuilder(python, script.toString(), "--environment-file", DYNAMIC_ENVIRONMENT_FILE.toString(),
-                "--server-cert", SERVER_CERT.toString(), "--server-key", SERVER_KEY.toString(), "--client-ca",
-                CA_CERT.toString(), "--host", "127.0.0.1", "--port", Integer.toString(VERIFIER_PORT))
-                .redirectOutput(ProcessBuilder.Redirect.DISCARD).redirectError(ProcessBuilder.Redirect.DISCARD).start();
-    }
-
-    private static void awaitVerifier() throws Exception {
-        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(10);
-        while (System.nanoTime() < deadline) {
-            if (!verifierProcess.isAlive()) throw new IllegalStateException("Isolated Host Verifier exited at startup");
-            try (java.net.Socket socket = new java.net.Socket("127.0.0.1", VERIFIER_PORT)) { return; }
-            catch (java.io.IOException ignored) { Thread.sleep(50); }
-        }
-        throw new IllegalStateException("Isolated Host Verifier did not start");
-    }
-
-    private static String executableOnPath(String... names) {
-        for (String directory : System.getenv().getOrDefault("PATH", "").split(java.io.File.pathSeparator)) {
-            for (String name : names) {
-                Path candidate = Path.of(directory, name);
-                if (Files.isExecutable(candidate)) return candidate.toString();
-            }
-        }
-        throw new IllegalStateException("Required test executable was not found on PATH");
-    }
-
-    private static Path opensslConfig(String openssl) {
-        Path binary = Path.of(openssl).toAbsolutePath();
-        for (Path candidate : java.util.List.of(binary.getParent().getParent().resolve("ssl/openssl.cnf"),
-                Path.of("/etc/ssl/openssl.cnf"), Path.of("/etc/pki/tls/openssl.cnf"))) {
-            if (Files.isRegularFile(candidate)) return candidate;
-        }
-        return null;
-    }
-
-    private static void runTool(String executable, Path config, String... arguments) throws Exception {
-        var command = new java.util.ArrayList<String>();
-        command.add(executable);
-        if (arguments.length > 0) {
-            command.add(arguments[0]);
-        }
-        if (config != null && arguments.length > 0 && arguments[0].equals("req")) {
-            command.add("-config");
-            command.add(config.toString());
-        }
-        if (arguments.length > 1) {
-            command.addAll(java.util.List.of(arguments).subList(1, arguments.length));
-        }
-        Process process = new ProcessBuilder(command).redirectOutput(ProcessBuilder.Redirect.DISCARD)
-                .redirectError(ProcessBuilder.Redirect.DISCARD).start();
-        if (!process.waitFor(30, TimeUnit.SECONDS)) { process.destroyForcibly(); throw new IllegalStateException("Certificate fixture command timed out"); }
-        if (process.exitValue() != 0) throw new IllegalStateException("Certificate fixture command failed");
     }
 
     private String login(String username) throws Exception {

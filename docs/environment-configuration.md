@@ -138,7 +138,7 @@ resettable environment
 
 不要使用真實公司資料。
 
-Demo Host Verifier 使用以下設定；Backend 不會讀取或收到 `DEMO_ACCOUNT_PASSWORD`：
+Demo Profile 使用以下設定：
 
 ```text
 DEMO_ACCOUNT_PASSWORD
@@ -147,12 +147,12 @@ DEMO_DATASET_VERSION
 DEMO_SAMPLES_PATH
 ```
 
-`DEMO_ACCOUNT_PASSWORD` 僅由 Host Verifier 從 `.env.demo` 讀取，不設 Repository 預設值。基線帳號的 DB 密碼雜湊為隨機不可用值。`DEMO_BASELINE_DATE` 留空時由 Spring `Clock`
+`DEMO_ACCOUNT_PASSWORD` 由 `.env.demo` 經 Compose 注入 Backend；Demo 啟動時必須設定 6 至 100 字元，缺少或不合規時 Backend 啟動失敗。五個基線帳號使用 Demo 專屬驗證器，比對啟動時載入的密碼；DB 仍保存隨機不可用的 BCrypt 值。修改 `.env.demo` 後，使用受控啟動器只重建 Backend 以套用新密碼；不需重建資料庫、pgvector、Frontend，不需 Reset 或重新 Seed。新密碼登入成功、舊密碼失敗，已核發 JWT 依原有效期運作。這取代 Issue #45 原先「儲存後下次登入立即生效且不重啟 Backend」的舊驗收條件，是明確需求變更；Issue #45 仍須由其負責者更新／核准，否則不可把舊條件標為 PASS。Docker 管理者能檢視 Container Environment，Demo 密碼不可與正式企業密碼共用。`DEMO_BASELINE_DATE` 留空時由 Spring `Clock`
 取得並記錄在 dataset marker；重啟不會改寫。破壞性 Reset 預設停用，啟用時還必須提供
 `DEMO_RESET_CONFIRMATION`、`DEMO_ALLOWED_DATABASE`、`DEMO_ALLOWED_SEMANTIC_DATABASE`，並使用明確含
 `demo` 的 `DOCUMENT_STORAGE_PATH`。完整步驟見 `SP-901-DEMO-RESET-RUNBOOK.md`。
 
-Docker Demo 中 `DOCUMENT_STORAGE_PATH=/app/data/demo-documents` 是上傳後文件的持久化根目錄，掛載到既有 named volume `supplypilot-sp903-local-demo-documents`。`DEMO_SAMPLES_PATH=/app/samples/demo-documents` 則是五份虛構基線文件的唯讀來源；Compose 將 Host `./samples/documents` 映射到此 Container 路徑。Host source 保留 `samples/documents`，因為 SP-901 Semantic Gate 的人工 UI Upload 同樣引用該目錄。兩者不可共用同一目錄。Demo 基線密碼由 Host mTLS Verifier 在每次登入時同步讀取 `.env.demo`，不掛入 Backend。詳見 `SP-903-DOCKER-RELEASE-CANDIDATE.md`。
+Docker Demo 中 `DOCUMENT_STORAGE_PATH=/app/data/demo-documents` 是上傳後文件的持久化根目錄，掛載到既有 named volume `supplypilot-sp903-local-demo-documents`。`DEMO_SAMPLES_PATH=/app/samples/demo-documents` 則是五份虛構基線文件的唯讀來源；Compose 將 Host `./samples/documents` 映射到此 Container 路徑。Host source 保留 `samples/documents`，因為 SP-901 Semantic Gate 的人工 UI Upload 同樣引用該目錄。兩者不可共用同一目錄。詳見 `SP-903-DOCKER-RELEASE-CANDIDATE.md`。
 
 ---
 
@@ -524,9 +524,9 @@ Compose 插值遵守 Shell Environment 優先於 `--env-file`。Production 標�
 
 ### Demo 基線帳號密碼
 
-`demo` Profile 對 `admin`、`manager`、`buyer`、`warehouse`、`planner` 的每次新登入都會同步呼叫 Host Verifier。Verifier 以 mTLS 驗證 Backend Client，並在該請求內重新讀取 Host `.env.demo`；只回覆綁定該次隨機 Request ID 和 nonce 的允許／拒絕結果，不傳回密碼。來源缺失、I/O 錯誤、格式錯誤、重複 Key、密碼長度錯誤、連線失敗、逾時或非法回應全部拒絕登入，不會使用快取或資料庫雜湊備援。五個帳號仍須存在且為 ACTIVE，角色以 Backend DB 為準。其他 Demo 使用者沿用資料庫 BCrypt 驗證。Production 不建立此元件，也不掛載 Demo Verifier 憑證。
+`demo` Profile 對 `admin`、`manager`、`buyer`、`warehouse`、`planner` 使用 Backend 啟動時從 `DEMO_ACCOUNT_PASSWORD` 載入的單一密碼。密碼缺少或長度不在 6 至 100 字元時 Demo Authenticator Bean 建立失敗，Demo Profile 不會啟動。使用 `MessageDigest.isEqual` 比較 UTF-8 密碼值；登入前仍查詢資料庫，拒絕不存在或非 ACTIVE 的帳號，並以資料庫中的角色建立授權。基線帳號隨機 BCrypt Hash 不會作為密碼備援；其他 Demo 帳號照常使用 BCrypt。元件只在 `demo & !prod` Profile 建立，Production 不讀取 `DEMO_ACCOUNT_PASSWORD`。
 
-Demo 啟動器使用 Python 3 和 OpenSSL，在 Host 的 `.sp903-demo-verifier-server`、`.sp903-demo-verifier-client` 建立分開的 TLS 憑證；Server/CA 私鑰只留在 Host，Backend 只讀取 Client Key、Client Certificate 和 CA Certificate。Linux Docker Engine Host 需要 `setfacl`，只授予 Host 使用者及 Backend UID 10001 讀取 Client 憑證的權限；Windows 則沿用 Host 目錄的 NTFS ACL。TCP/18443 需允許 Docker Desktop/Linux Docker Bridge 存取，Verifier 強制 mTLS，拒絕無 Client Certificate 的呼叫。Host Verifier 與 Backend、Docker Engine 獨立運作；Verifier 停止期間登入 Fail Closed，服務恢復後新登入立即再讀來源。原子替換後第一個 Login 使用新值；直接寫入與讀取重疊時會拒絕變動中的檔案，而不採用舊結果。已簽發 JWT 依原有效期運作。
+Compose 容器環境值在容器建立時固定。修改 `.env.demo` 不會熱更新運行中的 Backend；執行 `pwsh -NoProfile -File .\scripts\start-sp903-demo.ps1` 會先驗證 DB 應用帳密，再以 `--force-recreate --no-deps backend` 套用新值，並確認 MySQL、pgvector Container ID 不變。資料庫、文件、索引與 Seed marker 不會因密碼修改而重設或重新建立；新密碼可登入，舊密碼遭拒，既有 JWT 依原有效期運作。Docker 管理者可以檢視 Container Environment，請勿使用正式企業密碼。這是 Issue #45 原即時同步條件的明確需求變更，仍需由 Issue 負責者更新驗收規格。
 
 ### 初始 Production 管理員
 
