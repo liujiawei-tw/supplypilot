@@ -138,7 +138,7 @@ resettable environment
 
 不要使用真實公司資料。
 
-SP-901 的 `DemoDataInitializer` 另使用：
+Demo Profile 使用以下設定：
 
 ```text
 DEMO_ACCOUNT_PASSWORD
@@ -147,10 +147,12 @@ DEMO_DATASET_VERSION
 DEMO_SAMPLES_PATH
 ```
 
-帳號密碼只由執行環境注入，沒有 Repository 預設值。`DEMO_BASELINE_DATE` 留空時由 Spring `Clock`
+`DEMO_ACCOUNT_PASSWORD` 由 `.env.demo` 經 Compose 注入 Backend；Demo 啟動時必須設定 6 至 100 字元，缺少或不合規時 Backend 啟動失敗。五個基線帳號使用 Demo 專屬驗證器，比對 Backend 啟動時載入的密碼；DB 仍保存隨機不可用的 BCrypt 值。修改 `.env.demo` 後，使用標準 Compose `down` 再 `up -d --build` 讓 Backend 載入新密碼；Named Volume 保留，不需 Reset 或重新 Seed。新密碼登入成功、舊密碼失敗，已核發 JWT 依原有效期運作。Docker 管理者能檢視 Container Environment，Demo 密碼不可與正式企業密碼共用。`DEMO_BASELINE_DATE` 留空時由 Spring `Clock`
 取得並記錄在 dataset marker；重啟不會改寫。破壞性 Reset 預設停用，啟用時還必須提供
 `DEMO_RESET_CONFIRMATION`、`DEMO_ALLOWED_DATABASE`、`DEMO_ALLOWED_SEMANTIC_DATABASE`，並使用明確含
 `demo` 的 `DOCUMENT_STORAGE_PATH`。完整步驟見 `SP-901-DEMO-RESET-RUNBOOK.md`。
+
+Docker Demo 中 `DOCUMENT_STORAGE_PATH=/app/data/demo-documents` 是上傳後文件的持久化根目錄，掛載到既有 named volume `supplypilot-sp903-local-demo-documents`。`DEMO_SAMPLES_PATH=/app/samples/demo-documents` 則是五份虛構基線文件的唯讀來源；Compose 將 Host `./samples/documents` 映射到此 Container 路徑。Host source 保留 `samples/documents`，因為 SP-901 Semantic Gate 的人工 UI Upload 同樣引用該目錄。兩者不可共用同一目錄。詳見 `SP-903-DOCKER-RELEASE-CANDIDATE.md`。
 
 ---
 
@@ -500,3 +502,36 @@ SP-722 實作設定、PostgreSQL migration、Backfill 與切換操作步驟見 [
 
 ### Scope
 不遷移核心 MySQL 業務資料、不增加跨庫 FK、不改寫 SP-720 Tool Allowlist、不改動 SP-721 Confirmation、無 OCR／Multi-Agent／完整新前端。部署／資料出站可能涉及法務／公司授權時，沒有授權不得傳送真實文件。
+
+---
+
+## SP-903 Docker 環境檔與資料隔離
+
+`compose.yaml` 是 Production 的標準四服務設定；根目錄 `.env` 由使用者人工建立及維護，範本為 `.env.example`。`compose.demo.yaml` 只覆蓋 Demo 必要差異；Demo 必須明確指定 `.env.demo`，範本是 `.env.demo.example`：
+
+```powershell
+docker compose up -d --build
+docker compose --env-file .env.demo -f compose.yaml -f compose.demo.yaml up -d --build
+```
+
+Production 使用 `prod` Profile，資料庫為 `supplypilot_prod` 和 `supplypilot_semantic_prod`。Demo 使用 `demo` Profile，資料庫為 `supplypilot_demo` 和 `supplypilot_semantic_demo`。兩環境分開使用 Compose Project、資料庫帳密、JWT Secret、MySQL/pgvector 資料 Volume、文件 Storage Volume 和 Frontend Host Port。資料庫不發布主機連接埠；Production 預設前端只監聽 `127.0.0.1:8080`，Demo 只監聽 `127.0.0.1:8081`。
+
+原本開發用 MySQL 設定移至 `compose.dev.yaml`，使用 `supplypilot-dev-v2` 專案和新 Volume；先前 `compose.yaml` 建立的舊開發 Volume不會自動接管或刪除。既有 SP-903 Demo 保留 `supplypilot-sp903-local-demo` 專案與原 MySQL、pgvector、文件 Volume 名稱。切換或重建 Container 前，人工確認 `.env.demo` DB 帳密與原資料庫初始化時一致。
+
+**絕不在 Repository 工作中讀取、建立、覆寫、刪除或搬移真實 `.env`、`.env.demo`，也不輸出其中的值。** Git 和 Docker Build Context 排除真實環境檔；只追蹤 `.env.example`、`.env.demo.example` 範本。Production 與 Demo 範本不得放入真實憑證。
+
+Compose 插值的來源優先順序為 Shell Environment、`--env-file`，再到未指定 `--env-file` 時的專案 `.env`。因此 Production `docker compose up` 使用 `.env`，Demo 命令指定 `--env-file .env.demo` 使用 Demo 檔，但同名 Shell Environment 仍會覆蓋兩者。可用 `Test-Path Env:DEMO_ACCOUNT_PASSWORD` 檢查 PowerShell 是否有此變數，結果不會顯示值；用 `Remove-Item Env:DEMO_ACCOUNT_PASSWORD -ErrorAction SilentlyContinue` 清除目前 Shell 的覆蓋。若 `.env.demo` 密碼含 `$`，請將整個值以單引號包住；Compose 對單引號值不做插值。DB 驗證或 Flyway 失敗時，Backend Health Check 應維持失敗。
+
+### Demo 基線帳號密碼
+
+`demo` Profile 對 `admin`、`manager`、`buyer`、`warehouse`、`planner` 使用 Backend 啟動時從 `DEMO_ACCOUNT_PASSWORD` 載入的單一密碼。密碼缺少或長度不在 6 至 100 字元時 Demo Authenticator Bean 建立失敗，Demo Profile 不會啟動。使用 `MessageDigest.isEqual` 比較 UTF-8 密碼值；登入前仍查詢資料庫，拒絕不存在或非 ACTIVE 的帳號，並以資料庫中的角色建立授權。基線帳號隨機 BCrypt Hash 不會作為密碼備援；其他 Demo 帳號照常使用 BCrypt。元件只在 `demo & !prod` Profile 建立，Production 不讀取 `DEMO_ACCOUNT_PASSWORD`。
+
+Compose 容器環境值在容器建立時固定。修改 `.env.demo` 不會熱更新運行中的 Backend；Docker Desktop Restart、`docker restart` 或 `docker compose restart` 也不會重新讀取檔案。使用 `docker compose --env-file .env.demo -f compose.yaml -f compose.demo.yaml down` 後再執行同一組 `up -d --build` 命令，Compose 會以新環境變數重建服務並保留 Named Volume。`up -d --build` 亦可直接依設定變更重建必要服務。新密碼可登入、舊密碼遭拒，DB、文件、索引與 Seed marker 不因正常重建被清除或重新 Seed；既有 JWT 依原有效期運作。Production 與 Demo 分別維護 `.env`、`.env.demo`，不要共用正式企業密碼。
+
+資料庫 Image／配置更新與資料庫使用者密碼輪替屬人工維護。維護者須先確認 Environment、Project、Named Volume、配置變更與停機影響，建立並驗證可還原備份並取得授權；完成後核對 Schema、代表性資料及 Backend 重新連線。修改 MySQL／PostgreSQL 初始化 Environment 不會變更既有資料目錄內的使用者密碼。Restart 是重啟原 Container，不會讀取新 Environment；Recreate 會替換 Container；Flyway Migration 是版本化 Schema 更新；Database Reset 是破壞性資料操作；Named Volume 保存跨 Container 的資料。正常 `docker compose down` 保留 Named Volume，禁止對一般停止命令加 `-v`。
+
+### 初始 Production 管理員
+
+只有 `prod` Profile 啟用管理員 Bootstrap。每個全新空 `users` 表在 InnoDB transaction 中建立一次性初始化標記和使用 BCrypt 雜湊的 `admin/admin`、`ADMIN`、`ACTIVE` 使用者，並標記強制改密碼；唯一鍵可序列化並行啟動，兩項寫入同時提交或回滾。正常重啟不會重設密碼。首次權杖只可呼叫 `/api/v1/auth/me` 和 `/api/v1/auth/change-password`；新密碼維持一般 6 至 100 字元，成功後必須重新登入以取得一般權限權杖。
+
+若初始化標記存在但 `users` 為空，或資料庫已有使用者但沒有 ACTIVE ADMIN，Backend 會拒絕啟動且不會建立預設帳號；依 `docs/SP-903-DOCKER-RELEASE-CANDIDATE.md` 的 DBA 復原程序處理。標記加入前已初始化且後來清空 users 的舊資料庫無法從目前狀態辨別，升級前須核對備份和歷史。Production 對外開放前，必須已修改初始密碼、用新密碼重新登入，並確認初始 JWT 仍不能呼叫一般管理 API。

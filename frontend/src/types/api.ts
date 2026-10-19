@@ -37,6 +37,19 @@ export interface AuthenticatedUser {
   username: string;
   displayName: string;
   role: UserRole;
+  mustChangePassword?: boolean;
+}
+
+export type UserStatus = 'ACTIVE' | 'INACTIVE';
+
+export interface UserRecord {
+  id: number;
+  username: string;
+  displayName: string;
+  role: UserRole;
+  status: UserStatus;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface LoginResponse {

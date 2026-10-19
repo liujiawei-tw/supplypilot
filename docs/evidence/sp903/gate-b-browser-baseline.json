@@ -1,0 +1,61 @@
+{
+  "stage": "Gate B browser baseline",
+  "browser": "Microsoft Edge via Playwright",
+  "url": "http://localhost:8081",
+  "checks": {
+    "adminUiLogin": true,
+    "dashboard": true,
+    "anonymousDocuments401": true,
+    "baselineCounts": true,
+    "mat001Inventory": true,
+    "plannerSemanticBackfill403": true
+  },
+  "baseline": {
+    "materials": 12,
+    "suppliers": 6,
+    "demands": 12,
+    "purchaseOrdersByStatus": {
+      "DRAFT": 2,
+      "APPROVED": 2,
+      "ORDERED": 3,
+      "RECEIVED": 2,
+      "REJECTED": 1
+    },
+    "documents": 5,
+    "documentsReady": 5,
+    "documentVersions": [
+      "1.0"
+    ],
+    "mat001Inventory": {
+      "quantity": 300,
+      "unit": "KG"
+    }
+  },
+  "roles": [
+    {
+      "user": "planner",
+      "login": true,
+      "roleGuard": true
+    },
+    {
+      "user": "buyer",
+      "login": true,
+      "roleGuard": true
+    },
+    {
+      "user": "manager",
+      "login": true,
+      "roleGuard": true
+    },
+    {
+      "user": "warehouse",
+      "login": true,
+      "roleGuard": true
+    },
+    {
+      "user": "admin",
+      "login": true,
+      "roleGuard": null
+    }
+  ]
+}

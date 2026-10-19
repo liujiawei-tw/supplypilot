@@ -1,0 +1,158 @@
+{
+  "issue": "#45 / SP-903",
+  "recordedAt": "2026-10-18T10:54:16.1918446+08:00",
+  "repository": "liujiawei-tw/sp-project",
+  "branch": "codex/sp903-docker-release-candidate",
+  "headSha": "dd5484d6cb3288d81b90e0d6f6c83d2f2d5912e8",
+  "secretSource": {
+    "path": "<repository-root>/.env",
+    "loaded": true,
+    "modifiedByThisRun": false,
+    "gitIgnored": true,
+    "dockerIgnored": true,
+    "geminiAlias": "AI_API_KEY",
+    "secretValuesInEvidence": false
+  },
+  "images": {
+    "backend": "sha256:2413b6b152b538d239cf4a50cc6f78a49672bf56b6a618fd0e84c339796ae163",
+    "frontend": "sha256:d439cc142043bc3e5b9393b925d92552c7b958477c2e6b48cd2423e443e48939"
+  },
+  "startup": {
+    "command": "pwsh -NoProfile -File .\\scripts\\start-sp903-demo.ps1",
+    "composeProject": "sp-project-sp903-local-demo",
+    "servicesHealthy": [
+      "mysql",
+      "pgvector",
+      "backend",
+      "frontend"
+    ],
+    "backendActuator": "UP",
+    "frontendHealth": 200
+  },
+  "browserBaseline": {
+    "browser": "Microsoft Edge / Playwright",
+    "roles": [
+      "planner",
+      "buyer",
+      "manager",
+      "warehouse",
+      "admin"
+    ],
+    "loginAndRoleGuards": "PASS",
+    "baselineDocuments": 5,
+    "baselineReady": 5,
+    "anonymousDocumentRead": 401,
+    "plannerSemanticBackfill": 403
+  },
+  "coreBusiness": {
+    "recommendation": "201 SUPPLIER_RECOMMENDED",
+    "purchaseOrderDraft": "201 DRAFT #11",
+    "managerApproval": "200 APPROVED",
+    "buyerOrdering": "200 ORDERED",
+    "warehouseReceivingRead": "200 ORDERED",
+    "receivingViewContainsUnitPrice": false,
+    "receive": "200 RECEIVED"
+  },
+  "semanticBaseline": {
+    "model": "gemini-embedding-001",
+    "dimensions": 768,
+    "backfillReady": 5,
+    "backfillFailed": 0,
+    "readinessPassed": true,
+    "auditId": 1,
+    "auditPassed": true
+  },
+  "geminiChat": {
+    "groundedQueryHttp": 200,
+    "status": "ANSWERED",
+    "tools": [
+      "SEARCH_DOCUMENTS"
+    ],
+    "source": {
+      "documentId": "1",
+      "title": "SUP-001 交付與責任協議",
+      "version": "1.0",
+      "chunkIndex": 0,
+      "startOffset": 0,
+      "endOffset": 336
+    },
+    "unsupportedQuestion": {
+      "http": 200,
+      "status": "INSUFFICIENT_EVIDENCE",
+      "sources": 0
+    }
+  },
+  "sixthDocument": {
+    "uploadMethod": "ADMIN Browser UI",
+    "file": "samples/documents/ui-upload-sup-005-v1.txt",
+    "id": 6,
+    "version": "1.0",
+    "ingestion": "READY",
+    "outboundApproval": "APPROVED",
+    "backfill": {
+      "http": 200,
+      "processed": 1,
+      "ready": 1,
+      "failed": 0,
+      "morePossible": false
+    },
+    "readinessPassed": true,
+    "auditId": 2,
+    "auditPassed": true,
+    "totalReady": 6,
+    "query": {
+      "http": 200,
+      "status": "ANSWERED",
+      "sourceDocumentId": "6",
+      "version": "1.0",
+      "chunkIndex": 0,
+      "startOffset": 0,
+      "endOffset": 295,
+      "excerptPresent": true
+    }
+  },
+  "restartPersistence": {
+    "containers": "4/4 healthy",
+    "documentCount": 6,
+    "document6": "READY",
+    "purchaseOrder11": "RECEIVED",
+    "recommendation1": "SUPPLIER_RECOMMENDED",
+    "semanticReadEnabled": true,
+    "gatePassed": true,
+    "semanticReady": 6,
+    "failed": 0,
+    "pending": 0
+  },
+  "r4Isolation": {
+    "containersTouched": 0,
+    "containersPresent": 0,
+    "volumes": [
+      "sp-project-sp910-r4-mysql-data",
+      "sp-project-sp910-r4-pgvector-data"
+    ],
+    "volumeOperations": 0
+  },
+  "regression": {
+    "productionConfigurationTests": "16 tests, 0 failures, 0 errors, 0 skipped",
+    "powerShellAst": "PASS",
+    "composeConfig": "PASS",
+    "gitDiffCheck": "PASS",
+    "dpapiLauncherExists": false,
+    "dpapiRuntimeReferences": "NONE"
+  },
+  "loggingAudit": {
+    "credentialAssignmentPatternMatches": 0,
+    "literalSubstringHits": 4,
+    "explanation": "Substring overlap with public application/database identifiers; no credential assignment log entries were found.",
+    "secretValuesOutput": false
+  },
+  "evidence": [
+    "docs/evidence/sp903/gate-b-browser-baseline.json",
+    "docs/evidence/sp903/gate-b-admin-dashboard.png",
+    "docs/evidence/sp903/gate-b-semantic-six-docs.png"
+  ],
+  "notRun": {
+    "guardedReset": "Awaiting explicit user authorization; destructive to SP-903 demo data and semantic state.",
+    "awsGateC": "Not started; depends on Gate B and cloud deployment decisions."
+  }
+}

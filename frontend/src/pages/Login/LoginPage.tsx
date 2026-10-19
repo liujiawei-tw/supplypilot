@@ -5,6 +5,21 @@ import { useAuth } from '../../auth/useAuth';
 import { isAllowedDestination } from '../../router/routeCatalog';
 import LoadingState from '../../components/LoadingState/LoadingState';
 import SessionVerificationError from '../../auth/SessionVerificationError';
+import { isAxiosError } from 'axios';
+import { PostLoginVerificationError } from '../../auth/authErrors';
+
+function loginErrorMessage(error: unknown): string {
+  if (error instanceof PostLoginVerificationError) {
+    return '登入成功，但暫時無法驗證登入狀態，請重新登入或稍後再試。';
+  }
+  if (isAxiosError(error)) {
+    const status = error.response?.status;
+    if (status === 401) return '帳號或密碼錯誤。';
+    if (status === 429) return '登入請求過於頻繁，請稍後再試。';
+    if (!error.response || (status !== undefined && status >= 500)) return '無法連線或登入服務暫時異常，請稍後再試。';
+  }
+  return '登入服務暫時無法處理請求，請稍後再試。';
+}
 
 export default function LoginPage() {
   const { login, user, isLoading, verificationError } = useAuth();
@@ -17,7 +32,7 @@ export default function LoginPage() {
 
   if (isLoading) return <LoadingState />;
   if (verificationError) return <SessionVerificationError />;
-  if (user) return <Navigate to={from?.pathname && isAllowedDestination(from.pathname, user.role) ? `${from.pathname}${from.search ?? ''}` : '/dashboard'} replace />;
+  if (user) return <Navigate to={user.mustChangePassword ? '/change-password' : from?.pathname && isAllowedDestination(from.pathname, user.role) ? `${from.pathname}${from.search ?? ''}` : '/dashboard'} replace />;
 
   const submit = async (values: { username: string; password: string }) => {
     if (pending.current) return;
@@ -26,12 +41,16 @@ export default function LoginPage() {
     setError('');
     try {
       const authenticatedUser = await login(values.username.trim(), values.password);
+      if (authenticatedUser.mustChangePassword) {
+        navigate('/change-password', { replace: true });
+        return;
+      }
       const destination = from?.pathname && isAllowedDestination(from.pathname, authenticatedUser.role)
         ? `${from.pathname}${from.search ?? ''}`
         : '/dashboard';
       navigate(destination, { replace: true });
-    } catch {
-      setError('登入失敗。請確認帳號與密碼，或稍後再試。');
+    } catch (error) {
+      setError(loginErrorMessage(error));
     } finally {
       pending.current = false;
       setSubmitting(false);

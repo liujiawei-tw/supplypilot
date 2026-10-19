@@ -16,6 +16,8 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.authentication.LockedException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -33,15 +35,33 @@ public class AuthService {
     private final AuthenticationManager authenticationManager;
     private final JwtTokenService jwtTokenService;
     private final UserRepository userRepository;
+    private final DemoBaselineCredentialAuthenticator demoAuthenticator;
 
     public AuthService(
             AuthenticationManager authenticationManager,
             JwtTokenService jwtTokenService,
             UserRepository userRepository
     ) {
+        this(authenticationManager, jwtTokenService, userRepository, (DemoBaselineCredentialAuthenticator) null);
+    }
+
+    @Autowired
+    public AuthService(
+            AuthenticationManager authenticationManager,
+            JwtTokenService jwtTokenService,
+            UserRepository userRepository,
+            ObjectProvider<DemoBaselineCredentialAuthenticator> demoAuthenticator
+    ) {
+        this(authenticationManager, jwtTokenService, userRepository,
+                demoAuthenticator == null ? null : demoAuthenticator.getIfAvailable());
+    }
+
+    private AuthService(AuthenticationManager authenticationManager, JwtTokenService jwtTokenService,
+                        UserRepository userRepository, DemoBaselineCredentialAuthenticator demoAuthenticator) {
         this.authenticationManager = authenticationManager;
         this.jwtTokenService = jwtTokenService;
         this.userRepository = userRepository;
+        this.demoAuthenticator = demoAuthenticator;
     }
 
     /**
@@ -57,14 +77,14 @@ public class AuthService {
 
         Authentication authResult;
         try {
-            authResult = authenticationManager.authenticate(
-                    new UsernamePasswordAuthenticationToken(username, request.password())
-            );
+            authResult = demoAuthenticator != null && demoAuthenticator.handles(username)
+                    ? demoAuthenticator.authenticate(username, request.password())
+                    : authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(username, request.password()));
         } catch (BadCredentialsException | UsernameNotFoundException | DisabledException | LockedException e) {
             log.warn("Authentication failed for user '{}': {}", username, e.getClass().getSimpleName());
             throw new BusinessException(ErrorCode.UNAUTHENTICATED);
         } catch (AuthenticationException e) {
-            log.warn("Authentication rejected for user '{}': {}", username, e.getMessage());
+            log.warn("Authentication rejected for user '{}': {}", username, e.getClass().getSimpleName());
             throw new BusinessException(ErrorCode.UNAUTHENTICATED);
         }
 
@@ -72,7 +92,8 @@ public class AuthService {
         AuthenticatedUser authenticatedUser = new AuthenticatedUser(
                 securityUser.getId(),
                 securityUser.getUsername(),
-                securityUser.getRole()
+                securityUser.getRole(),
+                userRepository.findById(securityUser.getId()).map(User::isMustChangePassword).orElse(false)
         );
 
         String token = jwtTokenService.generateToken(authenticatedUser);
@@ -85,7 +106,8 @@ public class AuthService {
                 user.getId(),
                 user.getUsername(),
                 user.getDisplayName(),
-                user.getRole()
+                user.getRole(),
+                user.isMustChangePassword()
         );
 
         log.info("User '{}' authenticated successfully", username);
@@ -111,7 +133,22 @@ public class AuthService {
                 user.getId(),
                 user.getUsername(),
                 user.getDisplayName(),
-                user.getRole()
+                user.getRole(),
+                user.isMustChangePassword()
         );
+    }
+
+    @Transactional
+    public void changePassword(AuthenticatedUser principal, ChangePasswordRequest request,
+                               org.springframework.security.crypto.password.PasswordEncoder encoder,
+                               java.time.Clock clock) {
+        if (principal == null) throw new BusinessException(ErrorCode.UNAUTHENTICATED);
+        User user = userRepository.findById(principal.getId())
+                .orElseThrow(() -> new BusinessException(ErrorCode.UNAUTHENTICATED));
+        if (!encoder.matches(request.currentPassword(), user.getPasswordHash())) {
+            throw new BusinessException(ErrorCode.UNAUTHENTICATED);
+        }
+        user.changePassword(encoder.encode(request.newPassword()), clock.instant());
+        userRepository.save(user);
     }
 }

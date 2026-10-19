@@ -9,7 +9,7 @@ spring:
 supplypilot:
   demo-data-enabled: true
   demo:
-    account-password: ${DEMO_ACCOUNT_PASSWORD:}
+    account-password: ${DEMO_ACCOUNT_PASSWORD}
     baseline-date: ${DEMO_BASELINE_DATE:}
     dataset-version: ${DEMO_DATASET_VERSION:sp-905-zh-tw-v1}
     samples-path: ${DEMO_SAMPLES_PATH:../samples/documents}

@@ -144,8 +144,6 @@ public class DemoDatasetCoordinator implements DemoDataCoordinator {
             throw new IllegalStateException("Demo dataset is partial or has a different version; run the guarded reset");
         }
         requireEmptyDatabase();
-        requirePassword();
-
         LocalDate baselineDate = baselineDate();
         Instant now = clock.instant();
         jdbc.update("""
@@ -182,7 +180,9 @@ public class DemoDatasetCoordinator implements DemoDataCoordinator {
     }
 
     private Map<String, User> seedUsers(Instant now) {
-        String hash = passwordEncoder.encode(properties.getAccountPassword());
+        // Baseline accounts use the Demo profile's configured password, not the database hash.
+        // Keep a random, unusable BCrypt value so BCrypt authentication cannot become a fallback.
+        String hash = passwordEncoder.encode(java.util.UUID.randomUUID().toString());
         Map<String, User> result = new LinkedHashMap<>();
         result.put("planner", User.create("planner", hash, "Demo Production Planner",
                 UserRole.PRODUCTION_PLANNER, now));
@@ -451,13 +451,6 @@ public class DemoDatasetCoordinator implements DemoDataCoordinator {
                 || supplierMaterials.count() != 0 || demands.count() != 0 || purchaseOrders.count() != 0
                 || documents.count() != 0) {
             throw new IllegalStateException("Refusing to seed a non-empty database without a demo dataset marker");
-        }
-    }
-
-    private void requirePassword() {
-        String password = properties.getAccountPassword();
-        if (password == null || password.isBlank() || password.length() < 12) {
-            throw new IllegalStateException("DEMO_ACCOUNT_PASSWORD must contain at least 12 characters");
         }
     }
 

@@ -56,6 +56,19 @@ class JwtTokenServiceTests {
     }
 
     @Test
+    @DisplayName("Keeps first-login password change restriction inside the signed token")
+    void passwordChangeRequiredTokenCannotCarryAdminAuthority() {
+        String token = jwtTokenService.generateToken(
+                new AuthenticatedUser(10L, "admin", UserRole.ADMIN, true));
+
+        AuthenticatedUser parsedUser = jwtTokenService.parseAndValidateToken(token);
+
+        assertThat(parsedUser.isMustChangePassword()).isTrue();
+        assertThat(parsedUser.getAuthorities()).extracting("authority")
+                .containsExactly("ROLE_PASSWORD_CHANGE_REQUIRED");
+    }
+
+    @Test
     @DisplayName("Rejects null or blank token")
     void testRejectNullOrBlankToken() {
         assertThatThrownBy(() -> jwtTokenService.parseAndValidateToken(null))

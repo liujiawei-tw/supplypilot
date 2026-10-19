@@ -20,7 +20,7 @@
 | Purchase Orders | DRAFT 2、APPROVED 2、ORDERED 3、RECEIVED 2、REJECTED 1 |
 | Documents | 五種 DocumentType 各一份；原檔 Upload、Storage、Ingestion 後為 READY |
 
-Demo 帳號密碼只接受執行環境的 `DEMO_ACCOUNT_PASSWORD`，至少 12 字元；Repository 不提供預設明文密碼。五個角色共用此密碼是本機受控 Demo 的便利設計，AWS 對外帳號交付仍依 SP-903 的單一經理帳號策略處理。
+Demo 帳號密碼只接受執行環境的 `DEMO_ACCOUNT_PASSWORD`，至少 6 字元；Repository 不提供預設明文密碼。五個角色共用此密碼是本機受控 Demo 的便利設計，AWS 對外帳號交付仍依 SP-903 的單一經理帳號策略處理。
 
 ## Standard Scenario B
 
@@ -89,7 +89,7 @@ Seeder 使用既有 `DocumentService.upload` 與 `DocumentIngestionService.inges
 
 ## 第六份 UI 文件流程
 
-第六份 `samples/documents/ui-upload-sup-005-v1.txt` 不會被 Seeder 建立。完整演示：
+第六份 `samples/documents/ui-upload-sup-005-v1.txt` 不會被 Seeder 建立。Demo container 的五份 Seed source 掛載至 `/app/samples/demo-documents`；Host 上的 `samples/documents` 路徑保留給此手動 UI Upload 流程使用。完整演示：
 
 1. 以有上傳權限的 `buyer` 或 `admin` 登入本機 UI。
 2. Documents 選擇 `SUPPLIER_CONTRACT`、SUP-005、Title `SUP-005 Seasonal Delivery Addendum`、Version `1.0`，上傳該檔案。

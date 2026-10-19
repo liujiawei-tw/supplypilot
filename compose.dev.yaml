@@ -1,0 +1,42 @@
+name: supplypilot-dev-v2
+
+services:
+  pgvector:
+    image: pgvector/pgvector:pg17
+    profiles: [semantic]
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${SEMANTIC_DB_NAME:-supplypilot_semantic}
+      POSTGRES_USER: ${SEMANTIC_DB_USERNAME:-supplypilot}
+      POSTGRES_PASSWORD: ${SEMANTIC_DB_PASSWORD:-local-semantic-only}
+    ports:
+      - "${SEMANTIC_DB_PORT:-5432}:5432"
+    volumes:
+      - supplypilot-dev-v2-pgvector:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${SEMANTIC_DB_USERNAME:-supplypilot} -d ${SEMANTIC_DB_NAME:-supplypilot_semantic}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+  mysql:
+    image: mysql:8.4.11
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ${DB_NAME:-supplypilot}
+      MYSQL_USER: ${DB_USERNAME:-supplypilot}
+      MYSQL_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in .env}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Set MYSQL_ROOT_PASSWORD in .env}
+    ports:
+      - "${DB_PORT:-3306}:3306"
+    volumes:
+      - supplypilot-dev-v2-mysql:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "--password=${MYSQL_ROOT_PASSWORD}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 20s
+
+volumes:
+  supplypilot-dev-v2-mysql:
+  supplypilot-dev-v2-pgvector:

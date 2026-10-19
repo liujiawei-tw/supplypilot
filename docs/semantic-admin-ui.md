@@ -32,7 +32,7 @@
 
 在隔離的本機 Demo 環境，以 ADMIN 完成下列操作並記錄實際時間、HEAD SHA、文件 ID、Version、Gate JSON、Provider／模型與來源資料；不得使用正式／共用資料庫，也不得以 Fake Provider 或 API／CLI 代替 Browser E2E：
 
-1. 確認 `samples/documents/ui-upload-sup-005-v1.txt` 尚未建立為第六份文件；以授權上傳角色經 Documents UI 上傳並執行既有 Ingestion。
+1. 確認 `samples/documents/ui-upload-sup-005-v1.txt` 尚未建立為第六份文件；此 Host 路徑維持不變，不同於 Demo container 的 `/app/samples/demo-documents` mount；以授權上傳角色經 Documents UI 上傳並執行既有 Ingestion。
 2. 確認 Backend 文件狀態 READY，再以 ADMIN 在文件明細核准出站；記錄 sourceHash 與實際 Review 回應。
 3. Backfill 使用 UI 顯示的 `lastId` 逐批進行，直到 Backend 回 `morePossible=false`；以 Readiness Findings 核對所有狀態與原因。
 4. 執行正式 Gate Audit，記錄 auditId、passed、generation、model、dimension 與 Findings。依 Runbook 在外部操作 Semantic Read Switch，勿將 Audit PASS 當成已切換。

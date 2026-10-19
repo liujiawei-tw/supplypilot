@@ -7,6 +7,10 @@ import com.supplypilot.user.dto.response.LoginResponse;
 import jakarta.validation.Valid;
 
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.ResponseStatus;
+import java.time.Clock;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -25,9 +29,13 @@ import org.springframework.web.bind.annotation.RestController;
 public class AuthController {
 
     private final AuthService authService;
+    private final PasswordEncoder passwordEncoder;
+    private final Clock clock;
 
-    public AuthController(AuthService authService) {
+    public AuthController(AuthService authService, PasswordEncoder passwordEncoder, Clock clock) {
         this.authService = authService;
+        this.passwordEncoder = passwordEncoder;
+        this.clock = clock;
     }
 
     @PostMapping("/login")
@@ -38,5 +46,12 @@ public class AuthController {
     @GetMapping("/me")
     public AuthenticatedUserResponse getCurrentUser(@AuthenticationPrincipal AuthenticatedUser principal) {
         return authService.getCurrentUser(principal);
+    }
+
+    @PostMapping("/change-password")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void changePassword(@AuthenticationPrincipal AuthenticatedUser principal,
+                               @Valid @RequestBody ChangePasswordRequest request) {
+        authService.changePassword(principal, request, passwordEncoder, clock);
     }
 }

@@ -150,3 +150,47 @@ jobs:
         env:
           VITE_API_BASE_URL: http://localhost:8080/api/v1
         run: npm run build
+
+  container-images:
+    name: Container image and Compose validation
+    needs: changes
+    if: needs.changes.outputs.backend == 'true' || needs.changes.outputs.frontend == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Set up Python for Compose tests
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Test Compose merge and Demo settings
+        run: python -m unittest scripts.tests.test_compose_config -v
+
+      - name: Validate Production and Demo Compose configurations
+        shell: bash
+        run: |
+          set -euo pipefail
+          prod_env="$RUNNER_TEMP/supplypilot-prod-compose.env"
+          demo_env="$RUNNER_TEMP/supplypilot-demo-compose.env"
+          trap 'rm -f "$prod_env" "$demo_env"' EXIT
+          printf '%s\n' \
+            'DB_USERNAME=ci-user' \
+            'DB_PASSWORD=ci-db-placeholder' \
+            'MYSQL_ROOT_PASSWORD=ci-root-placeholder' \
+            'SEMANTIC_DB_USERNAME=ci-semantic-user' \
+            'SEMANTIC_DB_PASSWORD=ci-semantic-placeholder' \
+            'JWT_SECRET=ci-jwt-placeholder' \
+            > "$prod_env"
+          cp "$prod_env" "$demo_env"
+          printf '%s\n' 'DEMO_ACCOUNT_PASSWORD=ci-demo-placeholder' >> "$demo_env"
+          docker compose --env-file "$prod_env" config --quiet
+          docker compose --env-file "$demo_env" -f compose.yaml -f compose.demo.yaml config --quiet
+
+      - name: Build backend production image
+        run: docker build --file backend/Dockerfile --tag supplypilot-backend:ci .
+
+      - name: Build frontend production image
+        run: docker build --file frontend/Dockerfile --build-arg VITE_API_BASE_URL=/api/v1 --tag supplypilot-frontend:ci .

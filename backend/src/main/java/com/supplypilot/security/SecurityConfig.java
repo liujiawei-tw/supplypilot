@@ -101,8 +101,10 @@ public class SecurityConfig {
                         .requestMatchers("/actuator/health", "/actuator/info").permitAll()
                         // Protected /me endpoint
                         .requestMatchers(HttpMethod.GET, "/api/v1/auth/me").authenticated()
-                        // All other /api/v1 endpoints require authentication
-                        .requestMatchers("/api/v1/**").authenticated()
+                        .requestMatchers(HttpMethod.POST, "/api/v1/auth/change-password").authenticated()
+                        // Initial Production Admin tokens carry only the dedicated password-change authority.
+                        .requestMatchers("/api/v1/**").hasAnyRole("ADMIN", "PROCUREMENT_STAFF",
+                                "PROCUREMENT_MANAGER", "PRODUCTION_PLANNER", "WAREHOUSE_STAFF")
                         // Any remaining requests require authentication
                         .anyRequest().authenticated()
                 )

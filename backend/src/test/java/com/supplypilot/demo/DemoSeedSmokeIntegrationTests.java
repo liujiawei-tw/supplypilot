@@ -12,6 +12,7 @@ import java.time.LocalDate;
 import java.math.BigDecimal;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.UUID;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -31,6 +32,7 @@ import com.supplypilot.procurement.repository.PurchaseOrderRepository;
 import com.supplypilot.supplier.repository.SupplierMaterialRepository;
 import com.supplypilot.supplier.repository.SupplierRepository;
 import com.supplypilot.testsupport.FixedClockConfiguration;
+import com.supplypilot.user.domain.User;
 import com.supplypilot.user.domain.UserRole;
 import com.supplypilot.user.repository.UserRepository;
 import org.junit.jupiter.api.Test;
@@ -41,13 +43,15 @@ import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
 @SpringBootTest(properties = {
-        "supplypilot.demo.account-password=Demo-Password-For-Tests-901!",
+        "spring.config.import=",
         "supplypilot.demo.allowed-database=supplypilot_demo_test",
         "supplypilot.demo.dataset-version=sp-905-zh-tw-v1",
         "supplypilot.demo.samples-path=../samples/documents",
@@ -59,7 +63,13 @@ import org.springframework.transaction.annotation.Transactional;
 @Import({TestcontainersConfiguration.class, FixedClockConfiguration.class})
 @AutoConfigureMockMvc
 class DemoSeedSmokeIntegrationTests {
-    private static final String PASSWORD = "Demo-Password-For-Tests-901!";
+    private static final String PASSWORD = "Demo" + UUID.randomUUID().toString().replace("-", "").substring(0, 12);
+    private static final String ROTATED_PASSWORD = "New" + UUID.randomUUID().toString().replace("-", "").substring(0, 12);
+
+    @DynamicPropertySource
+    static void demoAccountPassword(DynamicPropertyRegistry registry) {
+        registry.add("supplypilot.demo.account-password", () -> PASSWORD);
+    }
 
     @Autowired private UserRepository users;
     @Autowired private MaterialRepository materials;
@@ -71,11 +81,68 @@ class DemoSeedSmokeIntegrationTests {
     @Autowired private DocumentChunkRepository documentChunks;
     @Autowired private DocumentTextExtractor documentTextExtractor;
     @Autowired private DemoDataCoordinator coordinator;
+    @Autowired private com.supplypilot.security.DemoBaselineCredentialAuthenticator demoAuthenticator;
     @Autowired private DemoProperties demoProperties;
     @Autowired private PasswordEncoder passwordEncoder;
     @Autowired private JdbcTemplate jdbc;
     @Autowired private MockMvc mockMvc;
     @Autowired private ObjectMapper objectMapper;
+
+    @Test
+    void allFiveBaselineAccountsUseConfiguredPasswordAndDatabaseRoles() throws Exception {
+        Map<String, String> expectedRoles = Map.of(
+                "admin", "ADMIN", "manager", "PROCUREMENT_MANAGER", "buyer", "PROCUREMENT_STAFF",
+                "warehouse", "WAREHOUSE_STAFF", "planner", "PRODUCTION_PLANNER");
+        for (var entry : expectedRoles.entrySet()) {
+            assertLogin(entry.getKey(), PASSWORD, 200, entry.getValue());
+            assertLogin(entry.getKey(), ROTATED_PASSWORD, 401, null);
+        }
+    }
+
+    @Test
+    void backendRecreationAppliesNewPasswordWithoutReseedingOrChangingDemoData() throws Exception {
+        long usersBefore = users.count();
+        long materialsBefore = materials.count();
+        long documentsBefore = documents.count();
+        long chunksBefore = documentChunks.count();
+        long ordersBefore = purchaseOrders.count();
+
+        var recreatedAuthenticator = new com.supplypilot.security.DemoBaselineCredentialAuthenticator(users, ROTATED_PASSWORD);
+        assertThatThrownBy(() -> recreatedAuthenticator.authenticate("admin", PASSWORD))
+                .isInstanceOf(org.springframework.security.authentication.BadCredentialsException.class);
+        assertThat(recreatedAuthenticator.authenticate("admin", ROTATED_PASSWORD)).isNotNull();
+        assertLogin("admin", PASSWORD, 200, "ADMIN");
+
+        assertThat(users.count()).isEqualTo(usersBefore);
+        assertThat(materials.count()).isEqualTo(materialsBefore);
+        assertThat(documents.count()).isEqualTo(documentsBefore);
+        assertThat(documentChunks.count()).isEqualTo(chunksBefore);
+        assertThat(purchaseOrders.count()).isEqualTo(ordersBefore);
+    }
+
+    @Test
+    void inactiveBaselineAccountIsRejectedByHttpLogin() throws Exception {
+        var admin = users.findByUsername("admin").orElseThrow();
+        admin.inactivate(java.time.Instant.now());
+        users.saveAndFlush(admin);
+        assertLogin("admin", PASSWORD, 401, null);
+        admin.activate(java.time.Instant.now());
+        users.saveAndFlush(admin);
+    }
+
+    @Test
+    void nonBaselineAccountStillUsesDatabasePassword() throws Exception {
+        String username = "demo_custom_" + UUID.randomUUID().toString().replace("-", "").substring(0, 8);
+        User user = User.create(username, passwordEncoder.encode("Database123"), "Custom Demo User",
+                UserRole.PROCUREMENT_STAFF, java.time.Instant.now());
+        users.saveAndFlush(user);
+        try {
+            assertLogin(username, "Database123", 200, "PROCUREMENT_STAFF");
+            assertLogin(username, ROTATED_PASSWORD, 401, null);
+        } finally {
+            users.deleteById(user.getId());
+        }
+    }
 
     @Test
     void seedsCompleteDeterministicBaselineAndCanRunAgainWithoutDuplicates() {
@@ -129,7 +196,25 @@ class DemoSeedSmokeIntegrationTests {
 
         var admin = users.findByUsername("admin").orElseThrow();
         assertThat(admin.getRole()).isEqualTo(UserRole.ADMIN);
-        assertThat(passwordEncoder.matches(PASSWORD, admin.getPasswordHash())).isTrue();
+        assertThat(passwordEncoder.matches(PASSWORD, admin.getPasswordHash())).isFalse();
+        Map<String, UserRole> demoRoles = Map.of(
+                "planner", UserRole.PRODUCTION_PLANNER,
+                "buyer", UserRole.PROCUREMENT_STAFF,
+                "manager", UserRole.PROCUREMENT_MANAGER,
+                "warehouse", UserRole.WAREHOUSE_STAFF,
+                "admin", UserRole.ADMIN);
+        demoRoles.forEach((username, role) -> {
+            var seededUser = users.findByUsername(username).orElseThrow();
+            assertThat(seededUser.getRole()).isEqualTo(role);
+            assertThat(passwordEncoder.matches(PASSWORD, seededUser.getPasswordHash())).isFalse();
+        });
+        demoRoles.keySet().forEach(username -> {
+            try {
+                assertThat(login(username)).isNotBlank();
+            } catch (Exception exception) {
+                throw new AssertionError("Demo user login should succeed for " + username, exception);
+            }
+        });
         assertThat(jdbc.queryForObject(
                 "SELECT status FROM demo_dataset_state WHERE dataset_key = 'SP-901'", String.class))
                 .isEqualTo("COMPLETE");
@@ -292,6 +377,16 @@ class DemoSeedSmokeIntegrationTests {
     }
 
     private String bearer(String token) { return "Bearer " + token; }
+
+    private void assertLogin(String username, String password, int expectedStatus, String expectedRole)
+            throws Exception {
+        var result = mockMvc.perform(post("/api/v1/auth/login").contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of("username", username, "password", password))))
+                .andExpect(status().is(expectedStatus));
+        if (expectedRole != null) {
+            result.andExpect(jsonPath("$.user.role").value(expectedRole));
+        }
+    }
 
     private String login(String username) throws Exception {
         String response = mockMvc.perform(post("/api/v1/auth/login")

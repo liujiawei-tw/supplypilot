@@ -96,6 +96,7 @@ public class JwtTokenService {
                 .subject(user.getUsername())
                 .claim("userId", user.getId())
                 .claim("role", user.getRole().name())
+                .claim("mustChangePassword", user.isMustChangePassword())
                 .issuedAt(Date.from(now))
                 .expiration(Date.from(expiration))
                 .signWith(signingKey, Jwts.SIG.HS256)
@@ -171,7 +172,8 @@ public class JwtTokenService {
             // Validate role
             UserRole role = parseAndValidateRole(claims.get("role"));
 
-            return new AuthenticatedUser(userId, subject, role);
+            Boolean mustChangePassword = claims.get("mustChangePassword", Boolean.class);
+            return new AuthenticatedUser(userId, subject, role, Boolean.TRUE.equals(mustChangePassword));
 
         } catch (ExpiredJwtException e) {
             log.debug("JWT token has expired");

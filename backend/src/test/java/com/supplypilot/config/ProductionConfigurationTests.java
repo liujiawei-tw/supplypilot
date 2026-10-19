@@ -32,4 +32,25 @@ class ProductionConfigurationTests {
                 )
                 .run(context -> assertThat(context).hasNotFailed());
     }
+
+    @Test
+    void rejectsUnsupportedProductionDocumentStorageType() {
+        contextRunner
+                .withPropertyValues(
+                        "supplypilot.jwt.secret=test-only-high-entropy-secret",
+                        "supplypilot.jwt.expiration-seconds=3600",
+                        "supplypilot.frontend-origin=https://app.example.com",
+                        "supplypilot.document-storage.type=remote-fs",
+                        "supplypilot.document-storage.path=supplypilot-documents"
+                )
+                .run(context -> {
+                    assertThat(context).hasFailed();
+                    Throwable rootCause = context.getStartupFailure();
+                    while (rootCause.getCause() != null) {
+                        rootCause = rootCause.getCause();
+                    }
+                    assertThat(rootCause.getMessage())
+                            .contains("Document storage type must be local or s3");
+                });
+    }
 }

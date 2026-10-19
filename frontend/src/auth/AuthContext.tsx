@@ -4,6 +4,7 @@ import { currentUserRequest, loginRequest } from '../api/auth';
 import { clearAccessToken, onUnauthorized, saveAccessToken, TOKEN_STORAGE_KEY } from '../api/axiosClient';
 import type { AuthenticatedUser } from '../types/api';
 import { AuthContext } from './authContextValue';
+import { PostLoginVerificationError } from './authErrors';
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthenticatedUser | null>(null);
@@ -81,7 +82,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     saveAccessToken(response.accessToken);
     setIsLoading(true);
-    const authenticatedUser = await verifySession(current);
+    let authenticatedUser: AuthenticatedUser | undefined;
+    try {
+      authenticatedUser = await verifySession(current);
+    } catch (error) {
+      throw new PostLoginVerificationError(error);
+    }
     if (!authenticatedUser) throw new Error('Login cancelled');
     return authenticatedUser;
   };
