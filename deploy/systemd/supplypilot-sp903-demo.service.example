@@ -1,0 +1,19 @@
+[Unit]
+Description=SupplyPilot SP-903 Demo and Host Verifier
+After=docker.service
+Requires=docker.service
+StartLimitIntervalSec=900
+StartLimitBurst=5
+
+[Service]
+Type=simple
+User=REPLACE_WITH_DEMO_OWNER
+WorkingDirectory=/opt/supplypilot
+ExecStart=/usr/bin/pwsh -NoProfile -File /opt/supplypilot/scripts/start-sp903-demo.ps1 -WaitForVerifier
+Restart=on-failure
+RestartSec=15
+TimeoutStopSec=45
+KillMode=mixed
+
+[Install]
+WantedBy=multi-user.target

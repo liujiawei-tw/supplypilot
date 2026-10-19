@@ -101,6 +101,11 @@ class ComposeConfigurationTests(unittest.TestCase):
         self.assertEqual("https://host.docker.internal:18443/v1/verify",
                          demo["services"]["backend"]["environment"]["DEMO_VERIFIER_URL"])
         self.assertEqual(["host.docker.internal=host-gateway"], demo["services"]["backend"]["extra_hosts"])
+        self.assertIn("verifier", demo["services"]["backend"]["networks"])
+        self.assertNotIn("verifier", demo["services"]["frontend"]["networks"])
+        self.assertNotIn("verifier", demo["services"]["mysql"]["networks"])
+        self.assertNotIn("verifier", demo["services"]["pgvector"]["networks"])
+        self.assertIn("verifier", demo["networks"])
         self.assertNotEqual(prod["volumes"]["mysql-data"]["name"], demo["volumes"]["sp903-mysql-data"]["name"])
         self.assertNotEqual(prod["volumes"]["pgvector-data"]["name"], demo["volumes"]["sp903-pgvector-data"]["name"])
         self.assertNotEqual(prod["volumes"]["document-storage"]["name"], demo["volumes"]["sp903-document-storage"]["name"])

@@ -98,6 +98,7 @@ $documentsVolume = 'supplypilot-sp903-local-demo-documents'
 $documentsMountpoint = '/docker/volumes/supplypilot-sp903-local-demo-documents/_data'
 $sampleSource = Join-Path $repositoryRoot 'samples\documents'
 $credentialSource = Join-Path $repositoryRoot '.sp903-demo-verifier-client'
+$legacyCredentialSource = Join-Path $repositoryRoot '.sp903-demo-credential'
 $volumeMetadata = @{
     $documentsVolume = @{ Project = 'supplypilot-sp903-local-demo'; VolumeKey = 'sp903-document-storage'; Mountpoint = $documentsMountpoint }
 }
@@ -141,13 +142,24 @@ $legacyVolumeMetadata = @{
     $documentsVolume = $volumeMetadata[$documentsVolume]
     $legacyName = @{ Project = 'supplypilot-sp903-local-demo'; VolumeKey = 'document-storage'; Mountpoint = $legacyMountpoint }
 }
-$legacyMounts = @($validBackendMounts) + @((New-TestVolumeMount $legacyName $legacyMountpoint '/app/data/documents'))
+$legacyMounts = @($validBackendMounts[0], $validBackendMounts[1],
+    (New-TestBindMount $legacyCredentialSource '/run/supplypilot-demo-credentials'),
+    (New-TestVolumeMount $legacyName $legacyMountpoint '/app/data/documents')
+)
 $legacyBackend = New-TestContainer 'backend' $legacyMounts
 $legacyBackendFixture = $legacyBackend
 $legacyContract = Test-DemoContainerMountContract -Container $legacyBackend `
     -ExpectedProject 'supplypilot-sp903-local-demo' -ExpectedService backend `
-    -RepositoryRoot $repositoryRoot -VolumeMetadataByName $legacyVolumeMetadata -AllowKnownLegacyDocumentMount
-Assert-True ($legacyContract.Valid -and $legacyContract.Legacy) 'Only the exact labelled old dual-volume Backend should be eligible for migration'
+    -RepositoryRoot $repositoryRoot -VolumeMetadataByName $legacyVolumeMetadata `
+    -AllowKnownLegacyDocumentMount -AllowKnownLegacyCredentialMount
+Assert-True ($legacyContract.Valid -and $legacyContract.Legacy -and $legacyContract.LegacyCredential) `
+    'Exact old dual-document volumes plus the read-only legacy credential bind should be eligible for migration'
+$legacyCredentialOnly = Test-DemoContainerMountContract -Container (New-TestContainer 'backend' `
+        (@($validBackendMounts[0], $validBackendMounts[1]) + @((New-TestBindMount $legacyCredentialSource '/run/supplypilot-demo-credentials')))) `
+    -ExpectedProject 'supplypilot-sp903-local-demo' -ExpectedService backend `
+    -RepositoryRoot $repositoryRoot -VolumeMetadataByName $volumeMetadata -AllowKnownLegacyCredentialMount
+Assert-True ($legacyCredentialOnly.Valid -and $legacyCredentialOnly.LegacyCredential) `
+    'The exact read-only legacy credential bind should be accepted for controlled Backend-only upgrade'
 
 $negativeCases = @(
     @{ Name = 'wrong project'; Container = (New-TestContainer 'backend' $legacyMounts); Project = 'different-project'; Volumes = $legacyVolumeMetadata; AllowLegacy = $true },
@@ -161,7 +173,8 @@ $negativeCases = @(
 foreach ($scenario in $negativeCases) {
     $result = Test-DemoContainerMountContract -Container $scenario.Container `
         -ExpectedProject $scenario.Project -ExpectedService backend -RepositoryRoot $repositoryRoot `
-        -VolumeMetadataByName $scenario.Volumes -AllowKnownLegacyDocumentMount:$scenario.AllowLegacy
+        -VolumeMetadataByName $scenario.Volumes -AllowKnownLegacyDocumentMount:$scenario.AllowLegacy `
+        -AllowKnownLegacyCredentialMount:$scenario.AllowLegacy
     Assert-True (-not $result.Valid) "Mount ownership should fail closed for $($scenario.Name)"
 }
 
@@ -185,6 +198,19 @@ foreach ($scenario in @(
         -ExpectedProject 'supplypilot-sp903-local-demo' -ExpectedService backend `
         -RepositoryRoot $repositoryRoot -VolumeMetadataByName $volumeMetadata
     Assert-True (-not $result.Valid) "Complete Mount contract should reject $($scenario.Name)"
+}
+
+foreach ($legacyCredentialMount in @(
+    (New-TestBindMount (Join-Path $repositoryRoot 'other') '/run/supplypilot-demo-credentials'),
+    (New-TestBindMount $legacyCredentialSource '/run/supplypilot-demo-credentials' $true),
+    (New-TestBindMount $legacyCredentialSource '/run/other-credentials')
+)) {
+    $legacyCredentialContract = Test-DemoContainerMountContract `
+        -Container (New-TestContainer 'backend' (@($validBackendMounts) + @($legacyCredentialMount))) `
+        -ExpectedProject 'supplypilot-sp903-local-demo' -ExpectedService backend `
+        -RepositoryRoot $repositoryRoot -VolumeMetadataByName $volumeMetadata -AllowKnownLegacyCredentialMount
+    Assert-True (-not $legacyCredentialContract.Valid) `
+        'A wrong source, writable or wrong-target legacy credential bind must fail closed'
 }
 
 $wrongNamedVolumeMetadata = @{

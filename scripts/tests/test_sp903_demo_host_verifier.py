@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import concurrent.futures
+import http.client
 import importlib.util
 import json
 import os
+import ipaddress
 import shutil
 import ssl
 import subprocess
@@ -11,8 +13,6 @@ import socket
 import tempfile
 import time
 import unittest
-import urllib.error
-import urllib.request
 import sys
 from pathlib import Path
 
@@ -97,11 +97,48 @@ class HostVerifierTests(unittest.TestCase):
             results = list(pool.map(check, range(96)))
         self.assertEqual([index % 2 == 0 for index in range(96)], results)
 
+    def test_listener_policy_rejects_wildcard_and_unscoped_remote_bindings(self):
+        with self.assertRaises(ValueError):
+            verifier.parse_listener_policy("0.0.0.0", ["172.20.0.0/24"])
+        with self.assertRaises(ValueError):
+            verifier.parse_listener_policy("192.0.2.10", [])
+        with self.assertRaises(ValueError):
+            verifier.parse_listener_policy("192.0.2.10", ["2001:db8::/64"])
+        address, networks = verifier.parse_listener_policy("192.0.2.1", ["192.0.2.0/24"])
+        self.assertEqual(ipaddress.ip_address("192.0.2.1"), address)
+        self.assertIn(address, networks[0])
+
+    def test_listener_source_filter_allows_backend_network_and_rejects_lan_source(self):
+        server = verifier.BoundedHTTPServer(("127.0.0.1", 0), verifier.Handler, self.state,
+                                            [ipaddress.ip_network("127.0.0.1/32")])
+        try:
+            self.assertTrue(server.verify_request(None, ("127.0.0.1", 40000)))
+            self.assertFalse(server.verify_request(None, ("192.168.1.50", 40000)))
+        finally:
+            server.server_close()
+
+    def test_plain_http_is_not_served_by_the_mtls_listener(self):
+        server = verifier.BoundedHTTPServer(("127.0.0.1", 0), verifier.Handler, self.state,
+                                            [ipaddress.ip_network("127.0.0.1/32")])
+        try:
+            with socket.create_connection(server.server_address, timeout=2) as client:
+                client.sendall(b"GET /v1/health HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n")
+                client.settimeout(2)
+                try:
+                    response = client.recv(128)
+                except (ConnectionResetError, TimeoutError, OSError):
+                    response = b""
+            self.assertFalse(response.startswith(b"HTTP/1.1 200"))
+        finally:
+            server.server_close()
+
     @unittest.skipUnless(shutil.which("openssl"), "OpenSSL required for mTLS RPC integration fixture")
     def test_mutual_tls_http_rpc_and_nonce_bound_response(self):
         ca_key, ca_cert = self.root / "ca.key", self.root / "ca.crt"
         server_key, server_csr, server_cert = self.root / "server.key", self.root / "server.csr", self.root / "server.crt"
         client_key, client_csr, client_cert = self.root / "client.key", self.root / "client.csr", self.root / "client.crt"
+        other_client_key, other_client_csr, other_client_cert = (
+            self.root / "other-client.key", self.root / "other-client.csr", self.root / "other-client.crt")
         server_ext, client_ext = self.root / "server.ext", self.root / "client.ext"
         def run(*args):
             binary = Path(shutil.which("openssl"))
@@ -119,49 +156,71 @@ class HostVerifierTests(unittest.TestCase):
         run("x509", "-req", "-in", server_csr, "-CA", ca_cert, "-CAkey", ca_key, "-CAcreateserial",
             "-out", server_cert, "-days", "1", "-sha256", "-extfile", server_ext)
         run("req", "-new", "-newkey", "rsa:2048", "-nodes", "-keyout", client_key, "-out", client_csr,
-            "-subj", "/CN=client")
+            "-subj", "/CN=SP903 Demo Backend")
         client_ext.write_text("extendedKeyUsage=clientAuth\n")
         run("x509", "-req", "-in", client_csr, "-CA", ca_cert, "-CAkey", ca_key, "-CAcreateserial",
             "-out", client_cert, "-days", "1", "-sha256", "-extfile", client_ext)
+        run("req", "-new", "-newkey", "rsa:2048", "-nodes", "-keyout", other_client_key, "-out", other_client_csr,
+            "-subj", "/CN=Other Client")
+        run("x509", "-req", "-in", other_client_csr, "-CA", ca_cert, "-CAkey", ca_key, "-CAcreateserial",
+            "-out", other_client_cert, "-days", "1", "-sha256", "-extfile", client_ext)
         with socket.socket() as listener:
             listener.bind(("127.0.0.1", 0))
             port = listener.getsockname()[1]
         server = subprocess.Popen([sys.executable, str(SCRIPT), "--environment-file", str(self.source),
             "--server-cert", str(server_cert), "--server-key", str(server_key), "--client-ca", str(ca_cert),
-            "--host", "127.0.0.1", "--port", str(port)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            "--host", "127.0.0.1", "--port", str(port)], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         try:
             deadline = time.monotonic() + 5
             while time.monotonic() < deadline:
                 if server.poll() is not None:
-                    self.fail("Host Verifier child process exited during startup")
+                    self.fail("Host Verifier child process exited during startup: " +
+                              server.stderr.read().decode("utf-8", errors="replace"))
                 try:
                     with socket.create_connection(("127.0.0.1", port), timeout=0.2):
                         break
                 except OSError:
                     time.sleep(0.05)
             else:
-                self.fail("Host Verifier child process did not bind the test port")
+                server.terminate()
+                server.wait(timeout=5)
+                self.fail("Host Verifier child process did not bind the test port: " +
+                          server.stderr.read().decode("utf-8", errors="replace"))
             client_tls = ssl.create_default_context(cafile=str(ca_cert))
             client_tls.load_cert_chain(client_cert, client_key)
             payload = {"requestId": "0123456789abcdef0123456789abcdef", "nonce": "a" * 64,
                        "username": "admin", "password": "Alpha123"}
-            request = urllib.request.Request(f"https://127.0.0.1:{port}/v1/verify",
-                data=json.dumps(payload).encode(), headers={"Content-Type": "application/json"}, method="POST")
-            # Fixture cert includes production DNS SAN; pin the HTTP connection hostname while connecting locally.
-            opener = urllib.request.build_opener(urllib.request.HTTPSHandler(context=client_tls))
-            # The unit RPC uses a local context with hostname checks disabled only because this ephemeral fixture
-            # resolves to loopback; production client keeps normal hostname verification enabled.
-            client_tls.check_hostname = False
-            with opener.open(request, timeout=3) as response:
+            with verifier._VerifierProbeConnection("host.docker.internal", port, "127.0.0.1", client_tls) as client:
+                client.request("POST", "/v1/verify", body=json.dumps(payload).encode(),
+                               headers={"Content-Type": "application/json"})
+                response = client.getresponse()
                 result = json.loads(response.read())
             self.assertEqual({"requestId": payload["requestId"], "nonce": payload["nonce"], "allowed": True}, result)
-            with self.assertRaises(urllib.error.HTTPError):
-                opener.open(request, timeout=3)
+            with verifier._VerifierProbeConnection("host.docker.internal", port, "127.0.0.1", client_tls) as client:
+                client.request("POST", "/v1/verify", body=json.dumps(payload).encode(),
+                               headers={"Content-Type": "application/json"})
+                self.assertEqual(401, client.getresponse().status)
+            with self.assertRaises(ssl.SSLError):
+                verifier._VerifierProbeConnection("wrong.internal", port, "127.0.0.1", client_tls).request(
+                    "GET", "/v1/health")
             anonymous_tls = ssl.create_default_context(cafile=str(ca_cert))
-            anonymous_tls.check_hostname = False
-            anonymous = urllib.request.build_opener(urllib.request.HTTPSHandler(context=anonymous_tls))
-            with self.assertRaises((urllib.error.URLError, ssl.SSLError)):
-                anonymous.open(request, timeout=3)
+            with verifier._VerifierProbeConnection("host.docker.internal", port, "127.0.0.1", anonymous_tls) as client:
+                with self.assertRaises((ssl.SSLError, http.client.RemoteDisconnected, ConnectionResetError)):
+                    client.request("GET", "/v1/health")
+                    client.getresponse()
+            wrong_identity_tls = ssl.create_default_context(cafile=str(ca_cert))
+            wrong_identity_tls.load_cert_chain(other_client_cert, other_client_key)
+            with verifier._VerifierProbeConnection("host.docker.internal", port, "127.0.0.1", wrong_identity_tls) as client:
+                client.request("GET", "/v1/health")
+                self.assertEqual(403, client.getresponse().status)
+            wrong_ca_key, wrong_ca_cert = self.root / "wrong-ca.key", self.root / "wrong-ca.crt"
+            run("req", "-x509", "-newkey", "rsa:2048", "-nodes", "-keyout", wrong_ca_key, "-out", wrong_ca_cert,
+                "-days", "1", "-subj", "/CN=wrong-ca")
+            wrong_ca_tls = ssl.create_default_context(cafile=str(wrong_ca_cert))
+            wrong_ca_tls.load_cert_chain(client_cert, client_key)
+            with self.assertRaises(ssl.SSLError):
+                verifier._VerifierProbeConnection("host.docker.internal", port, "127.0.0.1", wrong_ca_tls).request(
+                    "GET", "/v1/health")
         finally:
             server.terminate()
             try:
@@ -169,6 +228,8 @@ class HostVerifierTests(unittest.TestCase):
             except subprocess.TimeoutExpired:
                 server.kill()
                 server.wait(timeout=5)
+            server.stdout.close()
+            server.stderr.close()
 
 
 if __name__ == "__main__":

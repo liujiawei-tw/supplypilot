@@ -43,9 +43,24 @@ public class DemoHostCredentialVerifier {
             @Value("${supplypilot.demo.verifier-ca:/run/supplypilot-demo-verifier/ca.crt}") String serverCa
     ) {
         this.verifierUri = URI.create(verifierUrl);
+        validateVerifierUri(this.verifierUri);
         this.clientCertificate = Path.of(clientCertificate);
         this.clientKey = Path.of(clientKey);
         this.serverCa = Path.of(serverCa);
+    }
+
+    static void validateVerifierUri(URI uri) {
+        if (!"https".equalsIgnoreCase(uri.getScheme()) || uri.getRawUserInfo() != null
+                || uri.getRawQuery() != null || uri.getRawFragment() != null
+                || !"/v1/verify".equals(uri.getRawPath())) {
+            throw new IllegalArgumentException("Demo Host Verifier URI must be an HTTPS /v1/verify endpoint");
+        }
+        String host = uri.getHost();
+        boolean dockerHost = "host.docker.internal".equalsIgnoreCase(host) && uri.getPort() == 18443;
+        boolean localTestHost = "localhost".equalsIgnoreCase(host) && uri.getPort() > 0 && uri.getPort() <= 65535;
+        if (!dockerHost && !localTestHost) {
+            throw new IllegalArgumentException("Demo Host Verifier URI host or port is not allowed");
+        }
     }
 
     public boolean verify(String username, String suppliedPassword) {

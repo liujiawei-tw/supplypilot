@@ -14,6 +14,8 @@ services:
       - sp903-pgvector-data:/var/lib/postgresql/data
 
   backend:
+    networks:
+      - verifier
     environment:
       SPRING_PROFILES_ACTIVE: demo
       DB_URL: jdbc:mysql://mysql:3306/supplypilot_demo?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
@@ -46,3 +48,6 @@ volumes:
     name: supplypilot-sp903-local-demo-pgvector
   sp903-document-storage:
     name: supplypilot-sp903-local-demo-documents
+
+networks:
+  verifier: {}

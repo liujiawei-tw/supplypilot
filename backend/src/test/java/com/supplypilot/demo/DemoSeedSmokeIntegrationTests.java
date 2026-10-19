@@ -514,7 +514,7 @@ class DemoSeedSmokeIntegrationTests {
                     "-CAkey", CA_KEY.toString(), "-CAcreateserial", "-out", SERVER_CERT.toString(), "-days", "2",
                     "-sha256", "-extfile", serverExt.toString());
             runTool(openssl, opensslConfig, "req", "-new", "-newkey", "rsa:2048", "-nodes", "-keyout",
-                    CLIENT_KEY.toString(), "-out", clientCsr.toString(), "-subj", "/CN=SP903-test-client");
+                    CLIENT_KEY.toString(), "-out", clientCsr.toString(), "-subj", "/CN=SP903 Demo Backend");
             runTool(openssl, opensslConfig, "x509", "-req", "-in", clientCsr.toString(), "-CA", CA_CERT.toString(),
                     "-CAkey", CA_KEY.toString(), "-CAcreateserial", "-out", CLIENT_CERT.toString(), "-days", "2",
                     "-sha256", "-extfile", clientExt.toString());

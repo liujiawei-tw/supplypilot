@@ -135,7 +135,8 @@ function Test-DemoContainerMountContract {
         [Parameter(Mandatory = $true)][string]$ExpectedService,
         [Parameter(Mandatory = $true)][string]$RepositoryRoot,
         [Parameter(Mandatory = $true)][hashtable]$VolumeMetadataByName,
-        [switch]$AllowKnownLegacyDocumentMount
+        [switch]$AllowKnownLegacyDocumentMount,
+        [switch]$AllowKnownLegacyCredentialMount
     )
 
     $labels = $Container.Config.Labels
@@ -166,7 +167,8 @@ function Test-DemoContainerMountContract {
 
     $actual = @($Container.Mounts)
     $legacyMount = $null
-    if ($AllowKnownLegacyDocumentMount -and $ExpectedService -eq 'backend' -and $actual.Count -eq ($expected.Count + 1)) {
+    $legacyCredentialMount = $null
+    if ($AllowKnownLegacyDocumentMount -and $ExpectedService -eq 'backend') {
         $legacyCandidates = @($actual | Where-Object { Test-OrdinalEqual ([string]$_.Destination) '/app/data/documents' })
         if ($legacyCandidates.Count -eq 1) {
             $legacyMount = $legacyCandidates[0]
@@ -180,11 +182,33 @@ function Test-DemoContainerMountContract {
         }
     }
 
-    if ($actual.Count -ne $expected.Count + [int]($null -ne $legacyMount)) {
-        return [pscustomobject]@{ Valid = $false; Legacy = $false; Error = "Unexpected or missing container mounts (actual=$($actual.Count), expected=$($expected.Count))." }
+    if ($AllowKnownLegacyCredentialMount -and $ExpectedService -eq 'backend') {
+        $legacyCredentialCandidates = @($actual | Where-Object {
+                Test-OrdinalEqual ([string]$_.Destination) '/run/supplypilot-demo-credentials'
+            })
+        if ($legacyCredentialCandidates.Count -eq 1) {
+            $legacyCredentialMount = $legacyCredentialCandidates[0]
+            $legacyCredentialSource = Join-Path $RepositoryRoot '.sp903-demo-credential'
+            if (-not (Test-OrdinalEqual ([string]$legacyCredentialMount.Type) 'bind') -or
+                    [bool]$legacyCredentialMount.RW -or
+                    -not (Test-DemoHostPathMatch -Expected $legacyCredentialSource -Actual ([string]$legacyCredentialMount.Source))) {
+                return [pscustomobject]@{ Valid = $false; Legacy = $false; LegacyCredential = $false; Error = 'Legacy credential bind source, target, type, or read-only mode mismatch.' }
+            }
+        } elseif ($legacyCredentialCandidates.Count -gt 1) {
+            return [pscustomobject]@{ Valid = $false; Legacy = $false; LegacyCredential = $false; Error = 'Duplicate legacy credential bind mount.' }
+        }
+    }
+
+    # The known legacy credential bind replaces the new bind at that slot; only the
+    # retired document volume adds an extra mount.
+    $legacyMountCount = [int]($null -ne $legacyMount)
+    if ($actual.Count -ne $expected.Count + $legacyMountCount) {
+        return [pscustomobject]@{ Valid = $false; Legacy = $false; LegacyCredential = $false; Error = "Unexpected or missing container mounts (actual=$($actual.Count), expected=$($expected.Count))." }
     }
 
     foreach ($contract in $expected) {
+        if ($null -ne $legacyCredentialMount -and $contract.Type -eq 'bind' -and
+                (Test-OrdinalEqual ([string]$contract.Target) '/run/supplypilot-demo-verifier')) { continue }
         $matches = @($actual | Where-Object {
                 (Test-OrdinalEqual ([string]$_.Type) ([string]$contract.Type)) -and
                 (Test-OrdinalEqual ([string]$_.Destination) ([string]$contract.Target)) -and
@@ -211,7 +235,7 @@ function Test-DemoContainerMountContract {
         }
     }
 
-    return [pscustomobject]@{ Valid = $true; Legacy = ($null -ne $legacyMount); Error = $null }
+    return [pscustomobject]@{ Valid = $true; Legacy = ($null -ne $legacyMount); LegacyCredential = ($null -ne $legacyCredentialMount); Error = $null }
 }
 
 function Invoke-DemoBackendMountUpgrade {
