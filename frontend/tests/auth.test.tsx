@@ -82,10 +82,81 @@ describe('authentication and routing', () => {
     await user.type(screen.getByLabelText('帳號'), 'buyer');
     await user.type(screen.getByLabelText('密碼'), 'wrong');
     await user.click(screen.getByRole('button', { name: '登 入' }));
-    expect(await screen.findByText(/登入失敗。/)).toBeTruthy();
+    expect(await screen.findByText('帳號或密碼錯誤。')).toBeTruthy();
     expect(screen.queryByText('Sensitive server detail')).toBeNull();
     expect(screen.getByRole('button', { name: '登 入' }).hasAttribute('disabled')).toBe(false);
     expect(localStorage.getItem(TOKEN_STORAGE_KEY)).toBeNull();
+  });
+
+  it.each([
+    { status: 429, message: '登入請求過於頻繁，請稍後再試。' },
+    { status: 503, message: '無法連線或登入服務暫時異常，請稍後再試。' },
+  ])('shows a safe message for login HTTP $status', async ({ status, message }) => {
+    mockServer('ADMIN', status);
+    await open('/login');
+    const user = userEvent.setup();
+    await user.type(screen.getByLabelText('帳號'), 'admin');
+    await user.type(screen.getByLabelText('密碼'), 'password');
+    await user.click(screen.getByRole('button', { name: '登 入' }));
+    expect(await screen.findByText(message)).toBeTruthy();
+    expect(screen.queryByText('Sensitive server detail')).toBeNull();
+    expect(localStorage.getItem(TOKEN_STORAGE_KEY)).toBeNull();
+  });
+
+  it('shows a connection message for a login network error', async () => {
+    axiosClient.defaults.adapter = vi.fn(async (config) => {
+      throw new AxiosError('Network Error', 'ERR_NETWORK', config);
+    });
+    await open('/login');
+    const user = userEvent.setup();
+    await user.type(screen.getByLabelText('帳號'), 'admin');
+    await user.type(screen.getByLabelText('密碼'), 'password');
+    await user.click(screen.getByRole('button', { name: '登 入' }));
+    expect(await screen.findByText('無法連線或登入服務暫時異常，請稍後再試。')).toBeTruthy();
+    expect(localStorage.getItem(TOKEN_STORAGE_KEY)).toBeNull();
+  });
+
+  it('routes a first-login account to the password form after login and /auth/me succeed', async () => {
+    const requests: string[] = [];
+    axiosClient.defaults.adapter = vi.fn(async (config) => {
+      requests.push(config.url ?? '');
+      if (config.url === '/auth/login') return response(config, { accessToken: 'restricted-token', tokenType: 'Bearer', user: identities.ADMIN });
+      if (config.url === '/auth/me') return response(config, { ...identities.ADMIN, mustChangePassword: true });
+      throw new Error(`Unexpected API request: ${config.url}`);
+    });
+    await open('/login');
+    const user = userEvent.setup();
+    await user.type(screen.getByLabelText('帳號'), 'admin');
+    await user.type(screen.getByLabelText('密碼'), 'password');
+    await user.click(screen.getByRole('button', { name: '登 入' }));
+    expect(await screen.findByText('設定新密碼')).toBeTruthy();
+    expect(router.state.location.pathname).toBe('/change-password');
+    expect(screen.getByLabelText('目前密碼')).toBeTruthy();
+    expect(screen.queryByText(/登入失敗/)).toBeNull();
+    expect(requests).toEqual(['/auth/login', '/auth/me']);
+  });
+
+  it('does not send duplicate login requests while the first request is pending', async () => {
+    const requests: string[] = [];
+    let finishLogin!: () => void;
+    axiosClient.defaults.adapter = vi.fn((config) => {
+      requests.push(config.url ?? '');
+      if (config.url === '/auth/login') return new Promise((resolve) => {
+        finishLogin = () => resolve(response(config, { accessToken: 'valid-token', tokenType: 'Bearer', user: identities.ADMIN }));
+      });
+      return Promise.resolve(response(config, identities.ADMIN));
+    });
+    await open('/login');
+    const user = userEvent.setup();
+    await user.type(screen.getByLabelText('帳號'), 'admin');
+    await user.type(screen.getByLabelText('密碼'), 'password');
+    const button = screen.getByRole('button', { name: '登 入' });
+    fireEvent.click(button);
+    fireEvent.click(button);
+    await waitFor(() => expect(finishLogin).toBeTypeOf('function'));
+    expect(requests.filter((url) => url === '/auth/login')).toHaveLength(1);
+    await act(async () => finishLogin());
+    expect(await screen.findByText('工作總覽')).toBeTruthy();
   });
 
   it('restores a session after reload and clears it on logout', async () => {
@@ -191,7 +262,7 @@ describe('authentication and routing', () => {
     await user.type(screen.getByLabelText('帳號'), 'admin');
     await user.type(screen.getByLabelText('密碼'), 'password');
     await user.click(screen.getByRole('button', { name: '登 入' }));
-    expect(await screen.findByText(/登入失敗。/)).toBeTruthy();
+    expect(await screen.findByText('登入成功，但暫時無法驗證登入狀態，請重新登入或稍後再試。')).toBeTruthy();
     expect(screen.queryByText('工作總覽')).toBeNull();
     expect(localStorage.getItem(TOKEN_STORAGE_KEY)).toBeNull();
   });
