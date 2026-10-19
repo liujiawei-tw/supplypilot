@@ -27,27 +27,20 @@ SupplyPilot 是採購與供應鏈決策平台。Backend 以 Java 21、Spring Boo
 2. 啟動：
 
    ```powershell
-   pwsh -NoProfile -File .\scripts\start-sp903-demo.ps1
-   ```
-
-   啟動器會驗證專用資源歸屬與資料庫帳密，再啟動四個服務。也可直接使用 Compose：
-
-   ```powershell
    docker compose --env-file .env.demo -f compose.yaml -f compose.demo.yaml up -d --build
    ```
 3. 開啟 `http://127.0.0.1:8081`。
 
-Demo 的五個基線帳號 `admin`、`manager`、`buyer`、`warehouse`、`planner` 共用 `.env.demo` 的 `DEMO_ACCOUNT_PASSWORD`。Backend 在 Demo Profile 啟動時讀取密碼；修改 `.env.demo` 後，執行受控啟動器以只重建 Backend 並套用新值。新密碼生效、舊密碼失效，不需重建資料庫／pgvector／Frontend，也不需 Reset 或重新 Seed；已核發 JWT 保留原有效期。Issue #45 已於 2026-10-19 更新驗收條件：取消不重建即時更新，改由受控 Backend Recreate 驗收。Production 不啟用此 Demo 認證元件。Docker 管理者可以檢視 Container Environment，因此 Demo 密碼不可與正式企業密碼共用。部署限制與驗收狀態見 `docs/SP-903-DOCKER-RELEASE-CANDIDATE.md`。
+五個 Demo 基線帳號 `admin`、`manager`、`buyer`、`warehouse`、`planner` 共用 `.env.demo` 的 `DEMO_ACCOUNT_PASSWORD`。密碼在 Backend 建立時載入；修改 `.env.demo` 後使用下方標準 Compose `down` 再 `up -d --build`，不要用 `docker compose restart` 更新環境變數。`down` 預設保留 Named Volume，禁止加 `-v`。新密碼生效、舊密碼失效；不會重新 Seed，文件與索引由 Named Volume 保留。已核發 JWT 依原有效期運作。Issue #45 已取消即時密碼熱更新，改為以 Compose 重建 Backend 驗收。Production 不啟用 Demo 認證元件；Docker 管理者可以檢視 Container Environment，因此 Demo 密碼不可與正式企業密碼共用。部署限制與驗收狀態見 `docs/SP-903-DOCKER-RELEASE-CANDIDATE.md`。
 
-重啟 Docker Desktop、`docker restart` 或 `docker compose restart` **不會**重新讀取 `.env.demo`。修改密碼後請執行 `pwsh -NoProfile -File .\scripts\start-sp903-demo.ps1`，由腳本受控 Recreate Backend。若密碼內含 `$`，請在 `.env.demo` 以單引號包住整個密碼，避免 Compose 插值；啟動器會在操作容器前比對檔案值與 Compose 解析值，重建後再核對 Backend 環境值（不輸出密碼）。
+若密碼含 `$`，在 `.env.demo` 將整個值用單引號括起來，例如 `DEMO_ACCOUNT_PASSWORD='example$literal'`；Compose 對 `.env` 單引號值不做插值。Compose 插值來源的 Shell Environment 優先於 `--env-file`。在 PowerShell 可只檢查變數是否存在而不顯示值，並清除目前工作階段的覆蓋值：
 
-Demo 啟動器會先核對既有資料庫 Container 的 Compose 設定雜湊，再用 `--no-recreate` 啟動 MySQL／pgvector；停止中的既有 Container 可啟動，缺少的 Container 可在 Volume Ownership 驗證後建立。若設定已漂移，啟動器會明確停止，需經備份及授權的資料庫維護程序處理。一般啟動期間既有資料庫 Container ID 必須維持不變；這是啟動器保護條件，不是資料持久性的唯一證據。
+```powershell
+Test-Path Env:DEMO_ACCOUNT_PASSWORD
+Remove-Item Env:DEMO_ACCOUNT_PASSWORD -ErrorAction SilentlyContinue
+```
 
-Demo 文件來源使用 Host `./samples/documents`，唯讀映射至 Container `/app/samples/demo-documents`。已上傳文件則寫入 Container `/app/data/demo-documents`，由既有 named volume `supplypilot-sp903-local-demo-documents` 持久化。兩個路徑分開使用；樣本 Host 路徑保留原名以支援非 Demo Semantic Gate 手動上傳流程。
-
-Demo Compose 會以 `!override` 取代 Backend 基底 mounts，避免額外掛載 Production 預設的 `/app/data/documents` volume。若仍有舊版 Backend 使用已知的額外 Compose volume，受控啟動器只會在 labels 與舊 target 完全吻合時讓 Compose 重建 Backend；額外 volume 會保留，不會自動刪除或搬移。未知掛載仍會拒絕啟動。
-
-受控啟動器會依 Docker Inspect 核對四個服務的完整 mount 集合，包括 Bind Source、Container target、唯讀狀態、Named Volume 實際名稱與 Compose labels；Backend、資料庫和 Frontend 各自套用明確 mount 契約。Windows Docker Desktop 路徑與 Linux Host 路徑使用不同的正規化規則。
+若 `Test-Path` 回傳 `True`，先確認目前 PowerShell 工作階段設定了同名變數；`Remove-Item` 只移除該 Shell 工作階段的變數，不會修改 `.env.demo`。Compose 的 `--env-file .env.demo` 明確選用 Demo 插值檔，但同名 Shell 變數仍優先。不要使用 `docker compose config` 或 `docker inspect` 將含秘密的完整輸出貼到 Log 或證據中。文件來源使用唯讀 `./samples/documents` bind mount；上傳文件寫入 `supplypilot-sp903-local-demo-documents` Named Volume。
 
 ### 開發環境
 
@@ -73,7 +66,14 @@ docker compose stop
 docker compose up -d
 ```
 
-Demo 使用對應的 `--env-file` 與兩個 `-f` 參數執行 `stop` 或受控啟動器；也可重複執行 Windows 啟動器。一般啟動沿用資料庫 Container，不會因 Compose 設定差異而靜默重建。不要加 `-v`，不要移除或清理 Volume。停止 Container、Docker Desktop 重啟或 Windows 重開機都不會刪除 named volume。
+停止並重新建立 Demo Container／Network（保留 Volume）：
+
+```powershell
+docker compose --env-file .env.demo -f compose.yaml -f compose.demo.yaml down
+docker compose --env-file .env.demo -f compose.yaml -f compose.demo.yaml up -d --build
+```
+
+Demo 密碼變更後也使用上述 `down → up`。Production 使用 `docker compose down` 與 `docker compose up -d --build`。`docker compose restart` 只重啟既有 Container，不會重新讀取環境變數；`docker compose up` 會依服務設定及 Image 變更重建必要 Container。不要加 `-v`，也不要移除或清理 Volume；Named Volume 才保存資料。
 
 文件原檔存於文件 Storage Volume；PostgreSQL/pgvector 索引存於獨立 pgvector Volume。Demo 使用既有 SP-903 的明確 Volume 名稱以延續資料。開發環境切換至 v2 Volume，舊開發 Volume 保留在 Docker 中，不會自動遷移。
 

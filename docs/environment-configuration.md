@@ -147,7 +147,7 @@ DEMO_DATASET_VERSION
 DEMO_SAMPLES_PATH
 ```
 
-`DEMO_ACCOUNT_PASSWORD` 由 `.env.demo` 經 Compose 注入 Backend；Demo 啟動時必須設定 6 至 100 字元，缺少或不合規時 Backend 啟動失敗。五個基線帳號使用 Demo 專屬驗證器，比對啟動時載入的密碼；DB 仍保存隨機不可用的 BCrypt 值。修改 `.env.demo` 後，使用受控啟動器只重建 Backend 以套用新密碼；不需重建資料庫、pgvector、Frontend，不需 Reset 或重新 Seed。新密碼登入成功、舊密碼失敗，已核發 JWT 依原有效期運作。Issue #45 已於 2026-10-19 更新驗收條件，取消不重建 Backend 即時更新的要求，改採受控 Recreate。Docker 管理者能檢視 Container Environment，Demo 密碼不可與正式企業密碼共用。`DEMO_BASELINE_DATE` 留空時由 Spring `Clock`
+`DEMO_ACCOUNT_PASSWORD` 由 `.env.demo` 經 Compose 注入 Backend；Demo 啟動時必須設定 6 至 100 字元，缺少或不合規時 Backend 啟動失敗。五個基線帳號使用 Demo 專屬驗證器，比對 Backend 啟動時載入的密碼；DB 仍保存隨機不可用的 BCrypt 值。修改 `.env.demo` 後，使用標準 Compose `down` 再 `up -d --build` 讓 Backend 載入新密碼；Named Volume 保留，不需 Reset 或重新 Seed。新密碼登入成功、舊密碼失敗，已核發 JWT 依原有效期運作。Docker 管理者能檢視 Container Environment，Demo 密碼不可與正式企業密碼共用。`DEMO_BASELINE_DATE` 留空時由 Spring `Clock`
 取得並記錄在 dataset marker；重啟不會改寫。破壞性 Reset 預設停用，啟用時還必須提供
 `DEMO_RESET_CONFIRMATION`、`DEMO_ALLOWED_DATABASE`、`DEMO_ALLOWED_SEMANTIC_DATABASE`，並使用明確含
 `demo` 的 `DOCUMENT_STORAGE_PATH`。完整步驟見 `SP-901-DEMO-RESET-RUNBOOK.md`。
@@ -516,19 +516,19 @@ docker compose --env-file .env.demo -f compose.yaml -f compose.demo.yaml up -d -
 
 Production 使用 `prod` Profile，資料庫為 `supplypilot_prod` 和 `supplypilot_semantic_prod`。Demo 使用 `demo` Profile，資料庫為 `supplypilot_demo` 和 `supplypilot_semantic_demo`。兩環境分開使用 Compose Project、資料庫帳密、JWT Secret、MySQL/pgvector 資料 Volume、文件 Storage Volume 和 Frontend Host Port。資料庫不發布主機連接埠；Production 預設前端只監聽 `127.0.0.1:8080`，Demo 只監聽 `127.0.0.1:8081`。
 
-原本開發用 MySQL 設定移至 `compose.dev.yaml`，使用 `supplypilot-dev-v2` 專案和新 Volume；先前 `compose.yaml` 建立的舊開發 Volume 不會自動接管或刪除。既有 SP-903 Demo 保留 `supplypilot-sp903-local-demo` 專案與原 MySQL、pgvector、文件 Volume 名稱。切換前須確認新 `.env.demo` DB 帳密與舊資料庫初始化時一致，使用受控啟動器驗證歸屬和登入。
+原本開發用 MySQL 設定移至 `compose.dev.yaml`，使用 `supplypilot-dev-v2` 專案和新 Volume；先前 `compose.yaml` 建立的舊開發 Volume不會自動接管或刪除。既有 SP-903 Demo 保留 `supplypilot-sp903-local-demo` 專案與原 MySQL、pgvector、文件 Volume 名稱。切換或重建 Container 前，人工確認 `.env.demo` DB 帳密與原資料庫初始化時一致。
 
 **絕不在 Repository 工作中讀取、建立、覆寫、刪除或搬移真實 `.env`、`.env.demo`，也不輸出其中的值。** Git 和 Docker Build Context 排除真實環境檔；只追蹤 `.env.example`、`.env.demo.example` 範本。Production 與 Demo 範本不得放入真實憑證。
 
-Compose 插值遵守 Shell Environment 優先於 `--env-file`。Production 標準命令會自動讀取 `.env`，Windows Shell 中已存在的同名變數仍可覆蓋它。固定的 Profile、資料庫名稱、資料 Volume 及 loopback 綁定避免部分環境變數誤設造成服務跨環境連線；DB 驗證或 Flyway 失敗時 Backend Health Check 應維持失敗。受控 Demo 啟動器會清除其程序內的插值變數，並以 Docker Inspect 核對每個服務的完整 Mount Type、Source、Destination、RW、Volume name 和 Compose labels；先用 DB 應用程式帳號實際執行 `SELECT 1`，成功後才啟動 Backend。
+Compose 插值的來源優先順序為 Shell Environment、`--env-file`，再到未指定 `--env-file` 時的專案 `.env`。因此 Production `docker compose up` 使用 `.env`，Demo 命令指定 `--env-file .env.demo` 使用 Demo 檔，但同名 Shell Environment 仍會覆蓋兩者。可用 `Test-Path Env:DEMO_ACCOUNT_PASSWORD` 檢查 PowerShell 是否有此變數，結果不會顯示值；用 `Remove-Item Env:DEMO_ACCOUNT_PASSWORD -ErrorAction SilentlyContinue` 清除目前 Shell 的覆蓋。若 `.env.demo` 密碼含 `$`，請將整個值以單引號包住；Compose 對單引號值不做插值。DB 驗證或 Flyway 失敗時，Backend Health Check 應維持失敗。
 
 ### Demo 基線帳號密碼
 
 `demo` Profile 對 `admin`、`manager`、`buyer`、`warehouse`、`planner` 使用 Backend 啟動時從 `DEMO_ACCOUNT_PASSWORD` 載入的單一密碼。密碼缺少或長度不在 6 至 100 字元時 Demo Authenticator Bean 建立失敗，Demo Profile 不會啟動。使用 `MessageDigest.isEqual` 比較 UTF-8 密碼值；登入前仍查詢資料庫，拒絕不存在或非 ACTIVE 的帳號，並以資料庫中的角色建立授權。基線帳號隨機 BCrypt Hash 不會作為密碼備援；其他 Demo 帳號照常使用 BCrypt。元件只在 `demo & !prod` Profile 建立，Production 不讀取 `DEMO_ACCOUNT_PASSWORD`。
 
-Compose 容器環境值在容器建立時固定。修改 `.env.demo` 不會熱更新運行中的 Backend；執行 `pwsh -NoProfile -File .\scripts\start-sp903-demo.ps1` 會先確認既有 MySQL／pgvector 的 Compose 設定雜湊符合目前檔案，再以 `up --no-recreate` 啟動資料庫，使用應用帳密驗證連線，最後只以 `--force-recreate --no-deps backend` 套用新 Demo 密碼。若 DB 設定雜湊不符，啟動器會停止並提示受控維護，不會靜默替換 DB Container；已有 Container 的啟動前後 ID 也會核對。Fresh Start 新建 Container 不需和不存在的舊 ID 比較。資料庫、文件、索引與 Seed marker 不會因密碼修改而重設或重新建立；新密碼可登入，舊密碼遭拒，既有 JWT 依原有效期運作。Docker 管理者可以檢視 Container Environment，請勿使用正式企業密碼。Issue #45 已於 2026-10-19 同步 Backend Recreate 的新驗收條件。
+Compose 容器環境值在容器建立時固定。修改 `.env.demo` 不會熱更新運行中的 Backend；Docker Desktop Restart、`docker restart` 或 `docker compose restart` 也不會重新讀取檔案。使用 `docker compose --env-file .env.demo -f compose.yaml -f compose.demo.yaml down` 後再執行同一組 `up -d --build` 命令，Compose 會以新環境變數重建服務並保留 Named Volume。`up -d --build` 亦可直接依設定變更重建必要服務。新密碼可登入、舊密碼遭拒，DB、文件、索引與 Seed marker 不因正常重建被清除或重新 Seed；既有 JWT 依原有效期運作。Production 與 Demo 分別維護 `.env`、`.env.demo`，不要共用正式企業密碼。
 
-一般啟動器不負責資料庫維護。需要更新資料庫 Image／配置時，維護者須先確認 Environment、Project、Container、Volume Ownership、變更與停機影響，建立並驗證可還原備份並取得明確授權；之後才能執行必要的 DB Container Recreate。維護後以 Volume Ownership、Schema、代表性資料及 Backend 重新連線驗證。資料庫 Container ID 改變可出現在此受控維護流程中，不能單獨作為資料遺失判斷。Restart 是重用原 Container，Recreate 是替換 Container，Flyway Migration 是版本化 Schema 更新，Database Reset 是破壞性資料操作；這四種操作不能互相等同。named volume 才是資料保存位置，一般啟動及 Demo 密碼修改不得移除或重置它。
+資料庫 Image／配置更新與資料庫使用者密碼輪替屬人工維護。維護者須先確認 Environment、Project、Named Volume、配置變更與停機影響，建立並驗證可還原備份並取得授權；完成後核對 Schema、代表性資料及 Backend 重新連線。修改 MySQL／PostgreSQL 初始化 Environment 不會變更既有資料目錄內的使用者密碼。Restart 是重啟原 Container，不會讀取新 Environment；Recreate 會替換 Container；Flyway Migration 是版本化 Schema 更新；Database Reset 是破壞性資料操作；Named Volume 保存跨 Container 的資料。正常 `docker compose down` 保留 Named Volume，禁止對一般停止命令加 `-v`。
 
 ### 初始 Production 管理員
 

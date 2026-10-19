@@ -80,17 +80,6 @@ jobs:
           echo "frontend=$frontend" >> "$GITHUB_OUTPUT"
           echo "Push scope: backend=$backend, frontend=$frontend"
 
-  demo-startup-powershell:
-    name: Demo startup PowerShell regression
-    runs-on: windows-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v5
-
-      - name: Test startup guards and volume compatibility
-        shell: pwsh
-        run: ./scripts/tests/test-sp903-demo-startup.ps1
-
   backend:
     name: Backend CI
     needs: changes

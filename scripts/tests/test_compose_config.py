@@ -9,20 +9,59 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 
 
-def compose_config(env_file: Path, demo: bool) -> dict:
+COMPOSE_VARIABLES = {
+    "AI_API_KEY", "AI_CHAT_PROVIDER", "AI_EMBEDDING_PROVIDER", "AI_MODEL",
+    "AI_MONTHLY_TOKEN_WARNING_ENABLED", "AI_PROVIDER_TIMEOUT", "DB_NAME", "DB_PASSWORD",
+    "DB_PORT", "DB_USERNAME", "DEMO_ACCOUNT_PASSWORD", "DEMO_DATASET_VERSION",
+    "DEMO_FRONTEND_PORT", "FRONTEND_ORIGIN", "GEMINI_API_KEY", "GEMINI_EMBEDDING_MODEL",
+    "GEMINI_MODEL", "JWT_EXPIRATION_SECONDS", "JWT_SECRET", "MYSQL_ROOT_PASSWORD",
+    "SEMANTIC_DB_NAME", "SEMANTIC_DB_PASSWORD", "SEMANTIC_DB_PORT", "SEMANTIC_DB_USERNAME",
+    "SEMANTIC_DIMENSIONS", "SEMANTIC_GENERATION_KEY", "SEMANTIC_READ_ENABLED",
+    "COMPOSE_PROJECT_NAME",
+}
+
+
+def compose_config(env_file: Path, demo: bool, environment: dict | None = None) -> dict:
     command = ["docker", "compose", "--env-file", str(env_file)]
     if demo:
         command += ["-f", str(ROOT / "compose.yaml"), "-f", str(ROOT / "compose.demo.yaml")]
     else:
         command += ["-f", str(ROOT / "compose.yaml")]
     command += ["config", "--format", "json"]
-    result = subprocess.run(command, cwd=ROOT, check=True, capture_output=True, text=True, encoding="utf-8")
+    child_environment = os.environ.copy()
+    for key in tuple(child_environment):
+        if key.upper() in COMPOSE_VARIABLES:
+            child_environment.pop(key)
+    if environment:
+        child_environment.update(environment)
+    result = subprocess.run(
+        command, cwd=ROOT, check=True, capture_output=True, text=True, encoding="utf-8", env=child_environment
+    )
     return json.loads(result.stdout)
+
+
+def compose_interpolation_environment(env_file: Path, demo: bool, environment: dict | None = None) -> dict[str, str]:
+    command = ["docker", "compose", "--env-file", str(env_file)]
+    if demo:
+        command += ["-f", str(ROOT / "compose.yaml"), "-f", str(ROOT / "compose.demo.yaml")]
+    else:
+        command += ["-f", str(ROOT / "compose.yaml")]
+    command += ["config", "--environment"]
+    child_environment = os.environ.copy()
+    for key in tuple(child_environment):
+        if key.upper() in COMPOSE_VARIABLES:
+            child_environment.pop(key)
+    if environment:
+        child_environment.update(environment)
+    result = subprocess.run(
+        command, cwd=ROOT, check=True, capture_output=True, text=True, encoding="utf-8", env=child_environment
+    )
+    return dict(line.split("=", 1) for line in result.stdout.splitlines() if "=" in line)
 
 
 class ComposeConfigurationTests(unittest.TestCase):
     def setUp(self):
-        self.temp = tempfile.TemporaryDirectory()
+        self.temp = tempfile.TemporaryDirectory(dir=ROOT)
         self.root = Path(self.temp.name)
         self.prod_env = self.root / "prod.env"
         self.demo_env = self.root / "demo.env"
@@ -93,12 +132,40 @@ class ComposeConfigurationTests(unittest.TestCase):
         self.assertFalse(any(".env.demo" in str(volume) for volume in demo["services"]["backend"]["volumes"]))
         self.assertEqual({"data", "web"}, set(demo["services"]["backend"]["networks"]))
         self.assertNotIn("extra_hosts", demo["services"]["backend"])
-        self.assertNotIn("verifier", demo["networks"])
-        for key in ("DEMO_VERIFIER_URL", "DEMO_VERIFIER_CLIENT_CERT", "DEMO_VERIFIER_CLIENT_KEY", "DEMO_VERIFIER_CA"):
-            self.assertNotIn(key, demo["services"]["backend"]["environment"])
         self.assertNotEqual(prod["volumes"]["mysql-data"]["name"], demo["volumes"]["sp903-mysql-data"]["name"])
         self.assertNotEqual(prod["volumes"]["pgvector-data"]["name"], demo["volumes"]["sp903-pgvector-data"]["name"])
         self.assertNotEqual(prod["volumes"]["document-storage"]["name"], demo["volumes"]["sp903-document-storage"]["name"])
+
+    def test_demo_password_comes_from_explicit_env_file_and_literal_dollar_is_preserved(self):
+        self.demo_env.write_text(
+            "DB_USERNAME=demo-user\nDB_PASSWORD=demo-db-secret\nMYSQL_ROOT_PASSWORD=demo-root-secret\n"
+            "SEMANTIC_DB_USERNAME=demo-semantic-user\nSEMANTIC_DB_PASSWORD=demo-pg-secret\n"
+            "JWT_SECRET=demo-jwt-secret\nDEMO_FRONTEND_PORT=8181\n"
+            "DEMO_ACCOUNT_PASSWORD='Literal$Dollar123'\n",
+            encoding="utf-8",
+        )
+        environment = compose_interpolation_environment(self.demo_env, demo=True)
+        self.assertEqual("Literal$Dollar123", environment["DEMO_ACCOUNT_PASSWORD"])
+
+    def test_shell_environment_overrides_demo_env_file_and_production_has_no_demo_password(self):
+        demo = compose_config(
+            self.demo_env, demo=True, environment={"DEMO_ACCOUNT_PASSWORD": "ShellOverride123"}
+        )
+        prod = compose_config(self.prod_env, demo=False)
+        self.assertEqual(
+            "ShellOverride123", demo["services"]["backend"]["environment"]["DEMO_ACCOUNT_PASSWORD"]
+        )
+        self.assertNotIn("DEMO_ACCOUNT_PASSWORD", prod["services"]["backend"]["environment"])
+
+    def test_compose_projects_and_healthchecks_are_environment_specific(self):
+        prod = compose_config(self.prod_env, demo=False)
+        demo = compose_config(self.demo_env, demo=True)
+        self.assertEqual("supplypilot-prod", prod["name"])
+        self.assertEqual("supplypilot-sp903-local-demo", demo["name"])
+        for config in (prod, demo):
+            self.assertEqual({"mysql", "pgvector", "backend", "frontend"}, set(config["services"]))
+            for service in config["services"].values():
+                self.assertIn("healthcheck", service)
 
 
 if __name__ == "__main__":
