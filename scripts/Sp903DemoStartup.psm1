@@ -272,4 +272,15 @@ function Invoke-DemoBackendMountUpgrade {
     & $AssertStrictMounts
 }
 
-Export-ModuleMember -Function Get-ComposeEnvironmentVariableNames, Invoke-WithProcessEnvironmentCleared, Get-DemoVolumeSetStatus, Assert-DemoDatabaseConfigHash, ConvertFrom-DemoComposeHashOutput, Assert-DemoDatabaseStartIdentity, Normalize-DemoHostPath, Test-DemoHostPathMatch, Test-DemoContainerMountContract, Invoke-DemoBackendMountUpgrade
+function Assert-DemoPasswordValueMatch {
+    param(
+        [Parameter(Mandatory = $true)][string]$Expected,
+        [AllowEmptyString()][string]$Actual,
+        [Parameter(Mandatory = $true)][string]$Source
+    )
+    if (-not [string]::Equals($Expected, $Actual, [StringComparison]::Ordinal)) {
+        throw "DEMO_ACCOUNT_PASSWORD mismatch at $Source. Check .env.demo formatting and Compose interpolation (single-quote literal dollar signs), then recreate Backend. Secret values were not displayed."
+    }
+}
+
+Export-ModuleMember -Function Get-ComposeEnvironmentVariableNames, Invoke-WithProcessEnvironmentCleared, Get-DemoVolumeSetStatus, Assert-DemoDatabaseConfigHash, ConvertFrom-DemoComposeHashOutput, Assert-DemoDatabaseStartIdentity, Normalize-DemoHostPath, Test-DemoHostPathMatch, Test-DemoContainerMountContract, Invoke-DemoBackendMountUpgrade, Assert-DemoPasswordValueMatch

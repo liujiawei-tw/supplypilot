@@ -34,9 +34,9 @@ Compose 的 Process Environment 優先於 `--env-file`。執行標準命令前�
 
 五個 Demo 基線帳號共用 Compose 注入 Backend 的 `DEMO_ACCOUNT_PASSWORD`。Spring Boot Demo Profile 啟動時載入並驗證其 6–100 字元長度，登入時只對五個基線帳號使用 Demo 密碼；帳號仍須存在且 ACTIVE，角色依資料庫，非基線帳號繼續使用 BCrypt。基線資料庫密碼 Hash 維持隨機不可用值，避免產生第二條認證路徑。Production Profile 不建立 Demo Authenticator。
 
-Compose Environment 在 Container 建立時固定。修改 `.env.demo` 不會熱更新運行中的 Backend；執行受控啟動器會驗證兩個 DB 應用帳號，再只重建 Backend 以套用新密碼，並確認一般啟動期間既有 MySQL、pgvector Container ID 不變。五個基線帳號的新登入改用新密碼、舊密碼失效；不需重建 DB、pgvector 或 Frontend，不需 Reset 或重新 Seed。已核發 JWT 依原有效期運作。Docker 管理者可查看 Container Environment，因此 Demo 密碼不能重用正式企業密碼。
+Compose Environment 在 Container 建立時固定；Docker Desktop Restart、`docker restart` 及 `docker compose restart` 都不會重新讀取 `.env.demo`。若密碼包含 `$`，請以單引號格式設定，避免 Compose 插值。啟動器會在操作任何 Container 前核對檔案解析值與 Compose 生效值，重建後核對 Backend Environment；只輸出一致／不一致結果，不顯示密碼。修改 `.env.demo` 不會熱更新運行中的 Backend；執行受控啟動器會驗證兩個 DB 應用帳號，再只重建 Backend 以套用新密碼，並確認一般啟動期間既有 MySQL、pgvector Container ID 不變。五個基線帳號的新登入改用新密碼、舊密碼失效；不需重建 DB、pgvector 或 Frontend，不需 Reset 或重新 Seed。已核發 JWT 依原有效期運作。Docker 管理者可查看 Container Environment，因此 Demo 密碼不能重用正式企業密碼。
 
-此密碼更新方式是明確需求變更，取代 Issue #45 原先「寫入 `.env.demo` 後，下次登入立即採用新密碼且不重啟 Backend」的驗收條件。尚未更新／核准 Issue #45 前，不可聲稱原即時更新條件 PASS，也不修改或關閉該 Issue。
+此密碼更新方式是明確需求變更，取代 Issue #45 原先「寫入 `.env.demo` 後，下次登入立即採用新密碼且不重啟 Backend」的驗收條件。Issue #45 已於 2026-10-19 同步新條件；不再要求未重建 Backend 的密碼熱更新，Issue 仍保持 Open，PR／Merge／Closed 依既定流程。
 
 ### 未來 AWS 公開網站 HTTPS（架構預留，未部署）
 

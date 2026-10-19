@@ -64,6 +64,19 @@ try { Get-DemoVolumeSetStatus -ExistingVolumeNames $caseMismatchNames -VolumeLab
 catch { $caseMismatchRejected = $true }
 Assert-True $caseMismatchRejected 'Case-mismatched volume name must fail closed'
 
+Assert-DemoPasswordValueMatch -Expected 'Safe$Dollar123' -Actual 'Safe$Dollar123' -Source 'fixture'
+$passwordMismatchRejected = $false
+try { Assert-DemoPasswordValueMatch -Expected 'Safe$Dollar123' -Actual 'Safe123' -Source 'fixture' }
+catch {
+    $passwordMismatchRejected = $_.Exception.Message -match 'DEMO_ACCOUNT_PASSWORD mismatch' -and
+        $_.Exception.Message -notmatch 'Safe'
+}
+Assert-True $passwordMismatchRejected 'Effective Compose password mismatch should fail without leaking a value'
+
+$startupText = Get-Content -LiteralPath $startupPath -Raw
+Assert-True ($startupText -match 'config --format json') 'Startup must verify resolved Compose password'
+Assert-True ($startupText -match 'docker inspect \$backendIds\[0\]') 'Startup must inspect recreated Backend password'
+
 Assert-DemoDatabaseConfigHash -Service mysql -ExpectedHash 'expected-hash' -ActualHash 'expected-hash'
 $composeHash = 'a' * 64
 Assert-True ((ConvertFrom-DemoComposeHashOutput -Service mysql -Output "mysql $composeHash") -eq $composeHash) 'Compose service hash output should be parsed without the service prefix'

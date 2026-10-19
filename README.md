@@ -37,7 +37,9 @@ SupplyPilot 是採購與供應鏈決策平台。Backend 以 Java 21、Spring Boo
    ```
 3. 開啟 `http://127.0.0.1:8081`。
 
-Demo 的五個基線帳號 `admin`、`manager`、`buyer`、`warehouse`、`planner` 共用 `.env.demo` 的 `DEMO_ACCOUNT_PASSWORD`。Backend 在 Demo Profile 啟動時讀取密碼；修改 `.env.demo` 後，執行受控啟動器以只重建 Backend 並套用新值。新密碼生效、舊密碼失效，不需重建資料庫／pgvector／Frontend，也不需 Reset 或重新 Seed；已核發 JWT 保留原有效期。此行為取代 Issue #45 原先「儲存後下次登入立即更新且不重啟 Backend」的驗收條件，屬明確需求變更，尚未取得該 Issue 的更新核准前不得宣稱原條件 PASS。Production 不啟用此 Demo 認證元件。Docker 管理者可以檢視 Container Environment，因此 Demo 密碼不可與正式企業密碼共用。部署限制與驗收狀態見 `docs/SP-903-DOCKER-RELEASE-CANDIDATE.md`。
+Demo 的五個基線帳號 `admin`、`manager`、`buyer`、`warehouse`、`planner` 共用 `.env.demo` 的 `DEMO_ACCOUNT_PASSWORD`。Backend 在 Demo Profile 啟動時讀取密碼；修改 `.env.demo` 後，執行受控啟動器以只重建 Backend 並套用新值。新密碼生效、舊密碼失效，不需重建資料庫／pgvector／Frontend，也不需 Reset 或重新 Seed；已核發 JWT 保留原有效期。Issue #45 已於 2026-10-19 更新驗收條件：取消不重建即時更新，改由受控 Backend Recreate 驗收。Production 不啟用此 Demo 認證元件。Docker 管理者可以檢視 Container Environment，因此 Demo 密碼不可與正式企業密碼共用。部署限制與驗收狀態見 `docs/SP-903-DOCKER-RELEASE-CANDIDATE.md`。
+
+重啟 Docker Desktop、`docker restart` 或 `docker compose restart` **不會**重新讀取 `.env.demo`。修改密碼後請執行 `pwsh -NoProfile -File .\scripts\start-sp903-demo.ps1`，由腳本受控 Recreate Backend。若密碼內含 `$`，請在 `.env.demo` 以單引號包住整個密碼，避免 Compose 插值；啟動器會在操作容器前比對檔案值與 Compose 解析值，重建後再核對 Backend 環境值（不輸出密碼）。
 
 Demo 啟動器會先核對既有資料庫 Container 的 Compose 設定雜湊，再用 `--no-recreate` 啟動 MySQL／pgvector；停止中的既有 Container 可啟動，缺少的 Container 可在 Volume Ownership 驗證後建立。若設定已漂移，啟動器會明確停止，需經備份及授權的資料庫維護程序處理。一般啟動期間既有資料庫 Container ID 必須維持不變；這是啟動器保護條件，不是資料持久性的唯一證據。
 

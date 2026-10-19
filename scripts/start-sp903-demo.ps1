@@ -211,6 +211,14 @@ Invoke-WithProcessEnvironmentCleared -Names $interpolationNames -Action {
     Push-Location $repositoryRoot
     try {
         Invoke-Compose -Arguments @('config', '--quiet')
+        # Compose expands unquoted $NAME values in .env.demo. Fail before touching containers
+        # if the resolved password differs from the operator's literal file value.
+        $resolvedConfigJson = & docker @composeArgs config --format json
+        if ($LASTEXITCODE -ne 0) { throw 'Cannot inspect resolved Demo Compose configuration; no secret values were displayed.' }
+        try { $resolvedConfig = (($resolvedConfigJson -join "`n") | ConvertFrom-Json -ErrorAction Stop) }
+        catch { throw 'Could not parse resolved Demo Compose configuration; no secret values were displayed.' }
+        Assert-DemoPasswordValueMatch -Expected ([string]$values.DEMO_ACCOUNT_PASSWORD) `
+            -Actual ([string]$resolvedConfig.services.backend.environment.DEMO_ACCOUNT_PASSWORD) -Source 'Compose interpolation'
         foreach ($service in @('mysql', 'pgvector')) { Assert-DemoDatabaseConfiguration -Service $service }
         $databaseIdsBeforeStart = Get-DemoDatabaseContainerIds
         Invoke-Compose -Arguments @('up', '--detach', '--no-recreate', '--wait', '--wait-timeout', '180', 'mysql', 'pgvector')
@@ -241,6 +249,21 @@ Invoke-WithProcessEnvironmentCleared -Names $interpolationNames -Action {
         Invoke-DemoBackendMountUpgrade -GetDatabaseContainerIds $databaseIds -RecreateBackend {
             Invoke-Compose -Arguments @('up', '--detach', '--build', '--force-recreate', '--no-deps', '--wait', '--wait-timeout', '300', 'backend')
         } -AssertStrictMounts $strictMounts
+        # Inspect only in memory; never print the password or complete Docker inspect output.
+        $backendIds = @(& docker @composeArgs ps -q backend)
+        if ($LASTEXITCODE -ne 0 -or $backendIds.Count -ne 1 -or [string]::IsNullOrWhiteSpace([string]$backendIds[0])) {
+            throw 'Cannot identify the recreated Demo Backend container.'
+        }
+        $backendInspectJson = & docker inspect $backendIds[0]
+        if ($LASTEXITCODE -ne 0) { throw 'Cannot inspect recreated Demo Backend environment.' }
+        try { $backendContainer = @($backendInspectJson | ConvertFrom-Json -ErrorAction Stop)[0] }
+        catch { throw 'Cannot parse recreated Demo Backend metadata; no secret values were displayed.' }
+        $backendPasswords = @($backendContainer.Config.Env | Where-Object {
+                [string]$_ -clike 'DEMO_ACCOUNT_PASSWORD=*'
+            })
+        if ($backendPasswords.Count -ne 1) { throw 'Recreated Demo Backend has a missing or duplicate password setting.' }
+        Assert-DemoPasswordValueMatch -Expected ([string]$values.DEMO_ACCOUNT_PASSWORD) `
+            -Actual ([string]$backendPasswords[0].Substring('DEMO_ACCOUNT_PASSWORD='.Length)) -Source 'recreated Backend environment'
         Invoke-Compose -Arguments @('up', '--detach', '--build', '--no-deps', '--wait', '--wait-timeout', '300', 'frontend')
         Assert-ProjectContainers
 
