@@ -526,7 +526,9 @@ Compose 插值遵守 Shell Environment 優先於 `--env-file`。Production 標�
 
 `demo` Profile 對 `admin`、`manager`、`buyer`、`warehouse`、`planner` 使用 Backend 啟動時從 `DEMO_ACCOUNT_PASSWORD` 載入的單一密碼。密碼缺少或長度不在 6 至 100 字元時 Demo Authenticator Bean 建立失敗，Demo Profile 不會啟動。使用 `MessageDigest.isEqual` 比較 UTF-8 密碼值；登入前仍查詢資料庫，拒絕不存在或非 ACTIVE 的帳號，並以資料庫中的角色建立授權。基線帳號隨機 BCrypt Hash 不會作為密碼備援；其他 Demo 帳號照常使用 BCrypt。元件只在 `demo & !prod` Profile 建立，Production 不讀取 `DEMO_ACCOUNT_PASSWORD`。
 
-Compose 容器環境值在容器建立時固定。修改 `.env.demo` 不會熱更新運行中的 Backend；執行 `pwsh -NoProfile -File .\scripts\start-sp903-demo.ps1` 會先驗證 DB 應用帳密，再以 `--force-recreate --no-deps backend` 套用新值，並確認 MySQL、pgvector Container ID 不變。資料庫、文件、索引與 Seed marker 不會因密碼修改而重設或重新建立；新密碼可登入，舊密碼遭拒，既有 JWT 依原有效期運作。Docker 管理者可以檢視 Container Environment，請勿使用正式企業密碼。這是 Issue #45 原即時同步條件的明確需求變更，仍需由 Issue 負責者更新驗收規格。
+Compose 容器環境值在容器建立時固定。修改 `.env.demo` 不會熱更新運行中的 Backend；執行 `pwsh -NoProfile -File .\scripts\start-sp903-demo.ps1` 會先確認既有 MySQL／pgvector 的 Compose 設定雜湊符合目前檔案，再以 `up --no-recreate` 啟動資料庫，使用應用帳密驗證連線，最後只以 `--force-recreate --no-deps backend` 套用新 Demo 密碼。若 DB 設定雜湊不符，啟動器會停止並提示受控維護，不會靜默替換 DB Container；已有 Container 的啟動前後 ID 也會核對。Fresh Start 新建 Container 不需和不存在的舊 ID 比較。資料庫、文件、索引與 Seed marker 不會因密碼修改而重設或重新建立；新密碼可登入，舊密碼遭拒，既有 JWT 依原有效期運作。Docker 管理者可以檢視 Container Environment，請勿使用正式企業密碼。這是 Issue #45 原即時同步條件的明確需求變更，仍需由 Issue 負責者更新驗收規格。
+
+一般啟動器不負責資料庫維護。需要更新資料庫 Image／配置時，維護者須先確認 Environment、Project、Container、Volume Ownership、變更與停機影響，建立並驗證可還原備份並取得明確授權；之後才能執行必要的 DB Container Recreate。維護後以 Volume Ownership、Schema、代表性資料及 Backend 重新連線驗證。資料庫 Container ID 改變可出現在此受控維護流程中，不能單獨作為資料遺失判斷。Restart 是重用原 Container，Recreate 是替換 Container，Flyway Migration 是版本化 Schema 更新，Database Reset 是破壞性資料操作；這四種操作不能互相等同。named volume 才是資料保存位置，一般啟動及 Demo 密碼修改不得移除或重置它。
 
 ### 初始 Production 管理員
 

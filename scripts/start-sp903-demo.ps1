@@ -146,6 +146,41 @@ function Assert-ProjectContainers {
     }
 }
 
+function Get-DemoDatabaseContainer {
+    param([Parameter(Mandatory = $true)][string]$Service)
+    $ids = @(& docker ps -aq --filter "label=com.docker.compose.project=$project" --filter "label=com.docker.compose.service=$Service")
+    if ($LASTEXITCODE -ne 0) { throw "Could not inspect the existing '$Service' container." }
+    $ids = @($ids | Where-Object { -not [string]::IsNullOrWhiteSpace([string]$_) })
+    if ($ids.Count -gt 1) { throw "Multiple '$Service' containers belong to the Demo project; refusing to start." }
+    if ($ids.Count -eq 0) { return $null }
+    $json = & docker inspect $ids[0]
+    if ($LASTEXITCODE -ne 0) { throw "Could not inspect the existing '$Service' container." }
+    return @($json | ConvertFrom-Json)[0]
+}
+
+function Assert-DemoDatabaseConfiguration {
+    param([Parameter(Mandatory = $true)][string]$Service)
+    $container = Get-DemoDatabaseContainer -Service $Service
+    if ($null -eq $container) { return }
+    $hashOutput = & docker @composeArgs config --hash $Service
+    if ($LASTEXITCODE -ne 0) {
+        throw "Could not calculate the expected '$Service' Compose configuration hash."
+    }
+    $expectedHash = ConvertFrom-DemoComposeHashOutput -Service $Service -Output ($hashOutput -join "`n")
+    $actualHash = [string]$container.Config.Labels.'com.docker.compose.config-hash'
+    if ([string]::IsNullOrWhiteSpace($actualHash)) { throw "The existing '$Service' container has no Compose configuration hash; refusing ordinary startup." }
+    Assert-DemoDatabaseConfigHash -Service $Service -ExpectedHash $expectedHash -ActualHash $actualHash
+}
+
+function Get-DemoDatabaseContainerIds {
+    $ids = @{}
+    foreach ($service in @('mysql', 'pgvector')) {
+        $container = Get-DemoDatabaseContainer -Service $service
+        $ids[$service] = if ($null -eq $container) { $null } else { [string]$container.Id }
+    }
+    return $ids
+}
+
 $values = Read-DemoEnvFile -Path $envFile
 foreach ($name in @('DB_USERNAME', 'DB_PASSWORD', 'MYSQL_ROOT_PASSWORD', 'SEMANTIC_DB_USERNAME',
         'SEMANTIC_DB_PASSWORD', 'JWT_SECRET', 'DEMO_ACCOUNT_PASSWORD')) { Assert-Required -Values $values -Name $name }
@@ -176,7 +211,11 @@ Invoke-WithProcessEnvironmentCleared -Names $interpolationNames -Action {
     Push-Location $repositoryRoot
     try {
         Invoke-Compose -Arguments @('config', '--quiet')
-        Invoke-Compose -Arguments @('up', '--detach', '--wait', '--wait-timeout', '180', 'mysql', 'pgvector')
+        foreach ($service in @('mysql', 'pgvector')) { Assert-DemoDatabaseConfiguration -Service $service }
+        $databaseIdsBeforeStart = Get-DemoDatabaseContainerIds
+        Invoke-Compose -Arguments @('up', '--detach', '--no-recreate', '--wait', '--wait-timeout', '180', 'mysql', 'pgvector')
+        $databaseIdsAfterStart = Get-DemoDatabaseContainerIds
+        Assert-DemoDatabaseStartIdentity -Before $databaseIdsBeforeStart -After $databaseIdsAfterStart
         try {
             $env:MYSQL_PWD = [string]$values.DB_PASSWORD
             $mysqlResult = & docker @composeArgs exec -T -e MYSQL_PWD mysql mysql --host=127.0.0.1 `

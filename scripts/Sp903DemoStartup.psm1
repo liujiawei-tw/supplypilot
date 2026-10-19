@@ -72,6 +72,39 @@ function Get-DemoVolumeSetStatus {
     return 'Existing'
 }
 
+function Assert-DemoDatabaseConfigHash {
+    param(
+        [Parameter(Mandatory = $true)][string]$Service,
+        [Parameter(Mandatory = $true)][string]$ExpectedHash,
+        [Parameter(Mandatory = $true)][string]$ActualHash
+    )
+    if (-not [string]::Equals($ExpectedHash, $ActualHash, [StringComparison]::Ordinal)) {
+        throw "The existing '$Service' container configuration differs from Compose. Ordinary Demo startup will not recreate it; use the documented, authorized database maintenance process."
+    }
+}
+
+function ConvertFrom-DemoComposeHashOutput {
+    param([Parameter(Mandatory = $true)][string]$Service, [Parameter(Mandatory = $true)][string]$Output)
+    $line = $Output.Trim()
+    if ($line -notmatch ('^' + [regex]::Escape($Service) + '\s+(?<hash>[0-9a-f]{64})$')) {
+        throw "Could not parse the expected '$Service' Compose configuration hash."
+    }
+    return $Matches.hash
+}
+
+function Assert-DemoDatabaseStartIdentity {
+    param([Parameter(Mandatory = $true)][hashtable]$Before, [Parameter(Mandatory = $true)][hashtable]$After)
+    foreach ($service in @('mysql', 'pgvector')) {
+        if ([string]::IsNullOrWhiteSpace([string]$After[$service])) {
+            throw "The '$service' container was not created or started."
+        }
+        if (-not [string]::IsNullOrWhiteSpace([string]$Before[$service]) -and
+                -not [string]::Equals([string]$Before[$service], [string]$After[$service], [StringComparison]::Ordinal)) {
+            throw "The existing '$service' container identity changed during ordinary Demo startup; refusing to continue."
+        }
+    }
+}
+
 function Normalize-DemoHostPath {
     param([Parameter(Mandatory = $true)][string]$Path)
     if ($Path.StartsWith('\\?\UNC\', [StringComparison]::OrdinalIgnoreCase)) { return ('\\' + $Path.Substring(8)).Replace('/', '\').TrimEnd('\') }
@@ -239,4 +272,4 @@ function Invoke-DemoBackendMountUpgrade {
     & $AssertStrictMounts
 }
 
-Export-ModuleMember -Function Get-ComposeEnvironmentVariableNames, Invoke-WithProcessEnvironmentCleared, Get-DemoVolumeSetStatus, Normalize-DemoHostPath, Test-DemoHostPathMatch, Test-DemoContainerMountContract, Invoke-DemoBackendMountUpgrade
+Export-ModuleMember -Function Get-ComposeEnvironmentVariableNames, Invoke-WithProcessEnvironmentCleared, Get-DemoVolumeSetStatus, Assert-DemoDatabaseConfigHash, ConvertFrom-DemoComposeHashOutput, Assert-DemoDatabaseStartIdentity, Normalize-DemoHostPath, Test-DemoHostPathMatch, Test-DemoContainerMountContract, Invoke-DemoBackendMountUpgrade

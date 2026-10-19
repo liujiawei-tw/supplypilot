@@ -22,6 +22,9 @@ $startupText = Get-Content -LiteralPath $startupPath -Raw
 foreach ($removed in @('Get-NetIPAddress', 'Get-NetFirewall', 'OpenSSL', 'WaitForVerifier', 'Start-OrReuseDemoVerifier', 'host.docker.internal')) {
     Assert-True ($startupText -notmatch [regex]::Escape($removed)) "Host Verifier startup responsibility remained: $removed"
 }
+Assert-True ($startupText -match "'up', '--detach', '--no-recreate'.*'mysql', 'pgvector'") 'Ordinary database startup must explicitly use Compose --no-recreate'
+Assert-True ($startupText -match 'config --hash') 'Existing database configuration drift must be checked before startup'
+Assert-True ($startupText -match 'Assert-DemoDatabaseStartIdentity') 'Existing database identities must be checked after ordinary startup'
 
 $fixtureName = 'SP903_ENV_RESTORE_FIXTURE'
 $original = [Environment]::GetEnvironmentVariable($fixtureName, 'Process')
@@ -60,6 +63,28 @@ try { Get-DemoVolumeSetStatus -ExistingVolumeNames $caseMismatchNames -VolumeLab
         -ExpectedProject 'supplypilot-sp903-local-demo' -ExpectedVolumes $expectedVolumes | Out-Null }
 catch { $caseMismatchRejected = $true }
 Assert-True $caseMismatchRejected 'Case-mismatched volume name must fail closed'
+
+Assert-DemoDatabaseConfigHash -Service mysql -ExpectedHash 'expected-hash' -ActualHash 'expected-hash'
+$composeHash = 'a' * 64
+Assert-True ((ConvertFrom-DemoComposeHashOutput -Service mysql -Output "mysql $composeHash") -eq $composeHash) 'Compose service hash output should be parsed without the service prefix'
+$badHashOutputRejected = $false
+try { ConvertFrom-DemoComposeHashOutput -Service mysql -Output "pgvector $composeHash" | Out-Null }
+catch { $badHashOutputRejected = $true }
+Assert-True $badHashOutputRejected 'A different service hash output must be rejected'
+$configDriftRejected = $false
+try { Assert-DemoDatabaseConfigHash -Service mysql -ExpectedHash 'expected-hash' -ActualHash 'changed-hash' }
+catch { $configDriftRejected = $_.Exception.Message -match 'will not recreate' }
+Assert-True $configDriftRejected 'Database config drift must fail closed with an explicit maintenance message'
+
+Assert-DemoDatabaseStartIdentity -Before @{ mysql = $null; pgvector = $null } -After @{ mysql = 'mysql-fresh'; pgvector = 'pgvector-fresh' }
+Assert-DemoDatabaseStartIdentity -Before @{ mysql = 'mysql-existing'; pgvector = 'pgvector-existing' } `
+    -After @{ mysql = 'mysql-existing'; pgvector = 'pgvector-existing' }
+$ordinaryRecreateRejected = $false
+try {
+    Assert-DemoDatabaseStartIdentity -Before @{ mysql = 'mysql-existing'; pgvector = 'pgvector-existing' } `
+        -After @{ mysql = 'mysql-changed'; pgvector = 'pgvector-existing' }
+} catch { $ordinaryRecreateRejected = $true }
+Assert-True $ordinaryRecreateRejected 'Ordinary start must reject a changed existing database container ID'
 
 function New-TestContainer([string]$Service, [object[]]$Mounts, [string]$Project = 'supplypilot-sp903-local-demo') {
     [pscustomobject]@{ Config = [pscustomobject]@{ Labels = @{
