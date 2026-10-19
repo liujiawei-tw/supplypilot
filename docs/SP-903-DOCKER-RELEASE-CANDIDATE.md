@@ -75,7 +75,7 @@ Docker daemon 管理者可檢視 Container 設定和掛載的 Secret。請勿在
 
 ## 首次 Demo 啟動、重啟與舊資料
 
-既有 SP-903 Demo 使用 `compose.release-candidate.yaml` 和 `.env`，其三個 volume 名稱為：
+歷史版本的 SP-903 Demo 曾使用 `compose.release-candidate.yaml` 和 `.env`；該舊 Compose 檔已自目前分支移除（需要核對時可由 Git History 取回），不再作為啟動入口。既有 Demo 的三個 volume 名稱為：
 
 ```text
 supplypilot-sp903-local-demo-mysql
