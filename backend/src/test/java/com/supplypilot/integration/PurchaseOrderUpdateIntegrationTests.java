@@ -11,6 +11,9 @@ import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 import com.jayway.jsonpath.JsonPath;
 import com.supplypilot.material.domain.BaseUnit;
@@ -192,47 +195,104 @@ class PurchaseOrderUpdateIntegrationTests extends AbstractIntegrationTest {
     }
 
     @Test
-    void validatesRecommendationEvidenceAndOverrideReasonsFromPersistedData() throws Exception {
+    void preservesHistoricalRecommendationEvidenceWhenEditingCommercialDraftFields() throws Exception {
         Supplier supplier = supplier();
         Supplier otherSupplier = supplier();
         Material material = material();
-        Material otherMaterial = material();
         supplies(supplier, material);
-        supplies(supplier, otherMaterial);
         supplies(otherSupplier, material);
         User staff = user(UserRole.PROCUREMENT_STAFF);
         RecommendationFixture fixture = recommendation(material, supplier, otherSupplier, staff);
-        RecommendationFixture otherFixture = recommendation(otherMaterial, supplier, null, staff);
-        long id = createdId(create(staff, supplier, manualItem(material, "10", "5")).andReturn());
+        SupplierRecommendationResult alternateResult = fixture.alternateResult();
+        assertThat(alternateResult).isNotNull();
+        String supplierOverrideReason = "原供應商議價後改採替代供應商";
+        String quantityOverrideReason = "需求確認後調整採購量";
+        long id = createdId(create(staff, otherSupplier, recommendedItem(
+                material, "12", fixture, alternateResult, supplierOverrideReason, quantityOverrideReason)).andReturn());
 
-        update(staff, id, "{\"items\":[" + recommendedItem(material, "12", fixture, null) + "]}")
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("QUANTITY_OVERRIDE_REASON_REQUIRED"));
-        update(staff, id, "{\"items\":[" + recommendedItem(material, "10", otherFixture, null) + "]}")
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("INVALID_RECOMMENDATION_REFERENCE"));
-        update(staff, id, "{\"items\":[{\"materialId\":" + material.getId()
-                + ",\"quantity\":10,\"unitPrice\":5,\"recommendationId\":" + fixture.recommendation().getId()
-                + ",\"supplierRecommendationResultId\":" + fixture.alternateResult().getId() + "}]}")
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("INVALID_SUPPLIER_RECOMMENDATION_REFERENCE"));
-
-        update(staff, id, "{\"items\":[" + recommendedItem(material, "12", fixture, "Demand increased") + "]}")
+        update(staff, id, "{\"items\":[" + manualItem(material, "12", "7") + "]}")
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.items[0].quantityOverride").value(true))
-                .andExpect(jsonPath("$.items[0].quantityOverrideReason").value("Demand increased"));
+                .andExpect(jsonPath("$.items[0].quantity").value(12))
+                .andExpect(jsonPath("$.items[0].unitPrice").value(7))
+                .andExpect(jsonPath("$.items[0].recommendationId").value(fixture.recommendation().getId()))
+                .andExpect(jsonPath("$.items[0].supplierRecommendationResultId").value(alternateResult.getId()))
+                .andExpect(jsonPath("$.items[0].supplierOverrideReason").value(supplierOverrideReason))
+                .andExpect(jsonPath("$.items[0].quantityOverrideReason").value(quantityOverrideReason));
+        assertThat(jdbcTemplate.queryForObject(
+                "SELECT recommendation_id FROM purchase_order_items WHERE purchase_order_id = ?",
+                Long.class, id)).isEqualTo(fixture.recommendation().getId());
+        assertThat(jdbcTemplate.queryForObject(
+                "SELECT supplier_recommendation_result_id FROM purchase_order_items WHERE purchase_order_id = ?",
+                Long.class, id)).isEqualTo(alternateResult.getId());
         assertThat(jdbcTemplate.queryForObject(
                 "SELECT recommended_supplier_id_snapshot FROM purchase_order_items WHERE purchase_order_id = ?",
                 Long.class, id)).isEqualTo(supplier.getId());
         assertThat(jdbcTemplate.queryForObject(
                 "SELECT recommended_quantity_snapshot FROM purchase_order_items WHERE purchase_order_id = ?",
                 BigDecimal.class, id)).isEqualByComparingTo("10");
+        assertThat(jdbcTemplate.queryForObject(
+                "SELECT supplier_override_reason FROM purchase_order_items WHERE purchase_order_id = ?",
+                String.class, id)).isEqualTo(supplierOverrideReason);
+        assertThat(jdbcTemplate.queryForObject(
+                "SELECT quantity_override_reason FROM purchase_order_items WHERE purchase_order_id = ?",
+                String.class, id)).isEqualTo(quantityOverrideReason);
 
-        update(staff, id, "{\"supplierId\":" + otherSupplier.getId() + "}")
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("INVALID_SUPPLIER_RECOMMENDATION_REFERENCE"));
+        update(staff, id, "{\"supplierId\":" + supplier.getId() + "}")
+                .andExpect(status().isOk()).andExpect(jsonPath("$.supplierId").value(supplier.getId()));
         assertThat(jdbcTemplate.queryForObject(
                 "SELECT supplier_id FROM purchase_orders WHERE id = ?", Long.class, id)).isEqualTo(supplier.getId());
+    }
+
+    @Test
+    void concurrentDraftEditAndApprovalAreSerializedWithoutOverwritingApprovedState() throws Exception {
+        Supplier supplier = supplier();
+        Material material = material();
+        supplies(supplier, material);
+        User staff = user(UserRole.PROCUREMENT_STAFF);
+        User manager = user(UserRole.PROCUREMENT_MANAGER);
+        long id = createdId(create(staff, supplier, manualItem(material, "2", "10")).andReturn());
+        update(staff, id, "{\"expectedDeliveryDate\":\"2026-10-30\"}")
+                .andExpect(status().isOk());
+
+        CountDownLatch ready = new CountDownLatch(2);
+        CountDownLatch start = new CountDownLatch(1);
+        try (var executor = Executors.newFixedThreadPool(2)) {
+            var edit = executor.submit(() -> {
+                ready.countDown();
+                start.await();
+                return update(staff, id, "{\"items\":[" + manualItem(material, "7", "12") + "]}")
+                        .andReturn();
+            });
+            var approve = executor.submit(() -> {
+                ready.countDown();
+                start.await();
+                return mockMvc.perform(post("/api/v1/purchase-orders/{id}/approve", id)
+                        .header("Authorization", bearer(manager))).andReturn();
+            });
+
+            assertThat(ready.await(10, TimeUnit.SECONDS)).isTrue();
+            start.countDown();
+            MvcResult editResult = edit.get(30, TimeUnit.SECONDS);
+            MvcResult approveResult = approve.get(30, TimeUnit.SECONDS);
+            assertThat(approveResult.getResponse().getStatus()).isEqualTo(200);
+            assertThat(editResult.getResponse().getStatus()).isIn(200, 400, 409);
+            if (editResult.getResponse().getStatus() == 400) {
+                assertThat(editResult.getResponse().getContentAsString()).contains("PO_NOT_EDITABLE");
+            }
+            if (editResult.getResponse().getStatus() == 409) {
+                assertThat(editResult.getResponse().getContentAsString())
+                        .containsAnyOf("PO_NOT_EDITABLE", "CONCURRENT_MODIFICATION");
+            }
+
+            String latest = mockMvc.perform(get("/api/v1/purchase-orders/{id}", id)
+                            .header("Authorization", bearer(staff)))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.status").value("APPROVED"))
+                    .andReturn().getResponse().getContentAsString();
+            BigDecimal finalQuantity = new BigDecimal(JsonPath.read(latest, "$.items[0].quantity").toString());
+            assertThat(finalQuantity).isEqualByComparingTo(
+                    editResult.getResponse().getStatus() == 200 ? "7" : "2");
+        }
     }
 
     @Test
@@ -318,11 +378,18 @@ class PurchaseOrderUpdateIntegrationTests extends AbstractIntegrationTest {
                 + ",\"unitPrice\":" + price + "}";
     }
 
-    private String recommendedItem(Material material, String quantity, RecommendationFixture fixture, String reason) {
+    private String recommendedItem(
+            Material material,
+            String quantity,
+            RecommendationFixture fixture,
+            SupplierRecommendationResult result,
+            String supplierReason,
+            String quantityReason) {
         return "{\"materialId\":" + material.getId() + ",\"quantity\":" + quantity + ",\"unitPrice\":5"
                 + ",\"recommendationId\":" + fixture.recommendation().getId()
-                + ",\"supplierRecommendationResultId\":" + fixture.result().getId()
-                + (reason == null ? "" : ",\"quantityOverrideReason\":\"" + reason + "\"") + "}";
+                + ",\"supplierRecommendationResultId\":" + result.getId()
+                + ",\"supplierOverrideReason\":\"" + supplierReason + "\""
+                + ",\"quantityOverrideReason\":\"" + quantityReason + "\"}";
     }
 
     private RecommendationFixture recommendation(

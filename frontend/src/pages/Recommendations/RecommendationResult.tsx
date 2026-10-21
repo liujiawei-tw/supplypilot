@@ -1,4 +1,4 @@
-import { Collapse, Typography } from 'antd';
+import { Alert, Collapse, Typography } from 'antd';
 import type { ApiErrorResponse } from '../../types/api';
 import type { RecommendationResponse, SupplierRecommendationResultResponse } from '../../api/recommendation';
 import ErrorState from '../../components/ErrorState';
@@ -15,10 +15,16 @@ interface RecommendationResultProps {
   rankingError: ApiErrorResponse | null;
   retryRanking: () => void;
   showDeepLink?: boolean;
+  historyOnly?: boolean;
 }
 
-export default function RecommendationResult({ recommendation, ranking, rankingLoading, rankingError, retryRanking, showDeepLink }: RecommendationResultProps) {
+export default function RecommendationResult({ recommendation, ranking, rankingLoading, rankingError, retryRanking, showDeepLink, historyOnly = false }: RecommendationResultProps) {
   const rankingState = rankingError ? 'error' : rankingLoading ? 'loading' : 'ready';
+  if (historyOnly) return <div className="recommendation-result">
+    <RecommendationSummary recommendation={recommendation} rankingState="ready" historicalOnly />
+    <Alert type="info" showIcon title="歷史資料唯讀" description="此舊版決策快照僅供追溯。V2 不提供供應商排名或依推薦建立草稿的操作。" />
+  </div>;
+
   return <div className="recommendation-result">
     <RecommendationSummary recommendation={recommendation} showDeepLink={showDeepLink} rankingState={rankingState} />
 

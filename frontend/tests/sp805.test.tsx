@@ -124,20 +124,22 @@ describe('SP-805 PO lifecycle UI', () => {
     await user.click(await screen.findByRole('button', { name: '編輯草稿' }));
     expect(await screen.findByText(`SUP-120 — ${selectedSupplier.name}`)).toBeTruthy();
     expect(screen.getByText(`MAT-101 — ${selectedMaterial.name} (KG)`)).toBeTruthy();
-    expect(screen.getByRole('combobox', { name: '選取供應商' }).hasAttribute('disabled')).toBe(true);
+    expect(screen.getByRole('combobox', { name: '選取供應商' }).hasAttribute('disabled')).toBe(false);
     await user.click(screen.getByRole('button', { name: '檢視草稿修改' }));
     await user.click(await screen.findByRole('button', { name: '確認更新草稿' }));
     const patchRequest = requests.find(({ url, method }) => url === '/purchase-orders/42' && method === 'patch');
     expect(patchRequest).toBeTruthy();
-    expect(JSON.parse(patchRequest!.data as string)).toEqual({ items: [{
+    const updatedRequest = JSON.parse(patchRequest!.data as string);
+    expect(updatedRequest).toEqual({ items: [{
       materialId: 101,
       quantity: '999999999999999.1234000',
       unitPrice: '0.0000001234500',
-      recommendationId: 91,
-      supplierRecommendationResultId: 101,
-      supplierOverrideReason: 'Capacity',
-      quantityOverrideReason: 'Demand changed',
     }] });
+    expect(updatedRequest.items[0]).not.toHaveProperty('recommendationId');
+    expect(updatedRequest.items[0]).not.toHaveProperty('supplierRecommendationResultId');
+    expect(await screen.findByText('歷史建議 #91 / 結果 #101')).toBeTruthy();
+    expect(screen.getByText('原供應商覆寫：Capacity')).toBeTruthy();
+    expect(screen.getByText('原數量覆寫：Demand changed')).toBeTruthy();
     expect(requests.some(({ url }) => url === '/suppliers/120')).toBe(true);
     expect(requests.some(({ url }) => url === '/materials/101')).toBe(true);
   }, 30_000);
@@ -162,7 +164,13 @@ describe('SP-805 PO lifecycle UI', () => {
     await user.click(await screen.findByRole('button', { name: '確認更新草稿' }));
     await waitFor(() => expect(screen.getByRole('button', { name: /核\s*准/ }).hasAttribute('disabled')).toBe(false));
     const patchRequest = requests.find(({ url, method }) => url === '/purchase-orders/42' && method === 'patch')!;
-    expect(JSON.parse(patchRequest.data as string)).toMatchObject({ expectedDeliveryDate: '2026-10-10', items: [{ recommendationId: 91, supplierRecommendationResultId: 101, supplierOverrideReason: 'Capacity', quantityOverrideReason: 'Demand changed' }] });
+    const updatedRequest = JSON.parse(patchRequest.data as string);
+    expect(updatedRequest).toMatchObject({ expectedDeliveryDate: '2026-10-10', items: [{ materialId: 8, quantity: '999999999999999.1234000', unitPrice: '0.0000001234500' }] });
+    expect(updatedRequest.items[0]).not.toHaveProperty('recommendationId');
+    expect(updatedRequest.items[0]).not.toHaveProperty('supplierRecommendationResultId');
+    expect(await screen.findByText('歷史建議 #91 / 結果 #101')).toBeTruthy();
+    expect(screen.getByText('原供應商覆寫：Capacity')).toBeTruthy();
+    expect(screen.getByText('原數量覆寫：Demand changed')).toBeTruthy();
     await user.click(screen.getByRole('button', { name: /核\s*准/ })); await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: '確認核准' }));
     await user.click(await screen.findByRole('button', { name: '標記為已下單' })); await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: '確認下單' }));
     expect(await screen.findByText('已下單')).toBeTruthy();

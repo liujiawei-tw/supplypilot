@@ -13,6 +13,7 @@ public class UpdatePurchaseOrderItemRequest {
     @NotNull private Long materialId;
     @NotNull @Positive private BigDecimal quantity;
     @NotNull @PositiveOrZero private BigDecimal unitPrice;
+    // Accepted for older clients, but the server keeps these audit snapshots immutable.
     private Long recommendationId;
     private Long supplierRecommendationResultId;
     @Size(max = 2000) private String supplierOverrideReason;
@@ -32,12 +33,4 @@ public class UpdatePurchaseOrderItemRequest {
     public Long materialId() { return materialId; }
     public BigDecimal quantity() { return quantity; }
     public BigDecimal unitPrice() { return unitPrice; }
-    public Long recommendationId() { return recommendationId; }
-    public Long supplierRecommendationResultId() { return supplierRecommendationResultId; }
-    public String supplierOverrideReason() { return supplierOverrideReason; }
-    public String quantityOverrideReason() { return quantityOverrideReason; }
-    public boolean hasRecommendationInput() {
-        return recommendationId != null || supplierRecommendationResultId != null
-                || supplierOverrideReason != null || quantityOverrideReason != null;
-    }
 }

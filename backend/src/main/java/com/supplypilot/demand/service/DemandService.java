@@ -51,7 +51,7 @@ public class DemandService {
     }
 
     @Transactional
-    @PreAuthorize("hasAnyRole('PRODUCTION_PLANNER', 'ADMIN')")
+    @PreAuthorize("hasRole('PRODUCTION_PLANNER')")
     public DemandResponse createDemand(CreateDemandRequest request) {
         LocalDate today = LocalDate.now(clock);
         if (request.requiredDate().isBefore(today)) throw new BusinessException(ErrorCode.INVALID_DATE_RANGE);
@@ -95,7 +95,7 @@ public class DemandService {
     }
 
     @Transactional
-    @PreAuthorize("hasAnyRole('PRODUCTION_PLANNER', 'ADMIN')")
+    @PreAuthorize("hasRole('PRODUCTION_PLANNER')")
     public DemandResponse updateDemand(Long id, UpdateDemandRequest request) {
         Demand demand = findDemand(id);
         demand.update(request.quantity(), request.requiredDate(), request.note(), request.noteProvided(), LocalDate.now(clock), clock.instant());
@@ -103,7 +103,7 @@ public class DemandService {
     }
 
     @Transactional
-    @PreAuthorize("hasAnyRole('PRODUCTION_PLANNER', 'ADMIN')")
+    @PreAuthorize("hasRole('PRODUCTION_PLANNER')")
     public DemandResponse cancelDemand(Long id) {
         Demand demand = findDemand(id);
         demand.cancel(clock.instant());

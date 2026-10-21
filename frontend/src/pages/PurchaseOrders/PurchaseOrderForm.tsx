@@ -5,7 +5,7 @@ import type { CreatePurchaseOrderRequest, PurchaseOrderResponse, UpdatePurchaseO
 import RelatedEntitySelect from '../../components/RelatedEntitySelect';
 import { isNonNegativeDecimal, isPositiveDecimal } from './purchaseOrderUi';
 
-interface ItemValues { materialId?: number; quantity?: string; unitPrice?: string; recommendationId?: number; supplierRecommendationResultId?: number; supplierOverrideReason?: string; quantityOverrideReason?: string; }
+interface ItemValues { materialId?: number; quantity?: string; unitPrice?: string; }
 interface Values { supplierId?: number; expectedDeliveryDate?: string; clearExpectedDeliveryDate?: boolean; items?: ItemValues[]; }
 
 export default function PurchaseOrderForm({ purchaseOrder, onReview, disabled }: {
@@ -15,17 +15,12 @@ export default function PurchaseOrderForm({ purchaseOrder, onReview, disabled }:
 }) {
   const [form] = Form.useForm<Values>();
   const editing = !!purchaseOrder;
-  const hasRecommendationEvidence = !!purchaseOrder?.items.some((item) => item.recommendationId !== null);
   const initialValues = useMemo<Values>(() => purchaseOrder ? {
     supplierId: purchaseOrder.supplierId,
     expectedDeliveryDate: purchaseOrder.expectedDeliveryDate ?? undefined,
     clearExpectedDeliveryDate: false,
     items: purchaseOrder.items.map((item) => ({
       materialId: item.materialId, quantity: String(item.quantity), unitPrice: String(item.unitPrice),
-      recommendationId: item.recommendationId ?? undefined,
-      supplierRecommendationResultId: item.supplierRecommendationResultId ?? undefined,
-      supplierOverrideReason: item.supplierOverrideReason ?? undefined,
-      quantityOverrideReason: item.quantityOverrideReason ?? undefined,
     })),
   } : { items: [{}] }, [purchaseOrder]);
 
@@ -38,10 +33,6 @@ export default function PurchaseOrderForm({ purchaseOrder, onReview, disabled }:
     }
     const items = rows.map((row) => ({
       materialId: row.materialId!, quantity: row.quantity!.trim(), unitPrice: row.unitPrice!.trim(),
-      ...(row.recommendationId ? { recommendationId: row.recommendationId } : {}),
-      ...(row.supplierRecommendationResultId ? { supplierRecommendationResultId: row.supplierRecommendationResultId } : {}),
-      ...(row.supplierOverrideReason ? { supplierOverrideReason: row.supplierOverrideReason.trim() } : {}),
-      ...(row.quantityOverrideReason ? { quantityOverrideReason: row.quantityOverrideReason.trim() } : {}),
     }));
     if (!editing) {
       onReview({ supplierId: values.supplierId!, ...(values.expectedDeliveryDate ? { expectedDeliveryDate: values.expectedDeliveryDate } : {}), items });
@@ -56,7 +47,7 @@ export default function PurchaseOrderForm({ purchaseOrder, onReview, disabled }:
 
   return <Form form={form} layout="vertical" initialValues={initialValues} disabled={disabled}>
     <Form.Item name="supplierId" label="供應商" rules={[{ required: true, message: '請選擇供應商' }]}>
-      <RelatedEntitySelect entity="supplier" disabled={hasRecommendationEvidence} />
+      <RelatedEntitySelect entity="supplier" />
     </Form.Item>
     <Space align="start" style={{ width: '100%' }}>
       <Form.Item name="expectedDeliveryDate" label="預計交期（草稿可留空）"><Input type="date" aria-label="採購單預計交期" /></Form.Item>
@@ -73,17 +64,13 @@ export default function PurchaseOrderForm({ purchaseOrder, onReview, disabled }:
           <Form.Item {...fieldProps} name={[field.name, 'quantity']} label="數量" rules={[{ validator: async (_, value) => { if (!isPositiveDecimal(value)) throw new Error('請輸入大於 0 的數字'); } }]}><Input inputMode="decimal" aria-label={`採購單品項 ${index + 1} 數量`} /></Form.Item>
           <Form.Item {...fieldProps} name={[field.name, 'unitPrice']} label="單價" rules={[{ validator: async (_, value) => { if (!isNonNegativeDecimal(value)) throw new Error('請輸入大於或等於 0 的數字'); } }]}><Input inputMode="decimal" aria-label={`採購單品項 ${index + 1} 單價`} /></Form.Item>
           {fields.length > 1 && <Button aria-label={`移除採購單品項 ${index + 1}`} icon={<MinusCircleOutlined />} onClick={() => remove(field.name)} />}
-          <Form.Item {...fieldProps} name={[field.name, 'recommendationId']} hidden><Input /></Form.Item>
-          <Form.Item {...fieldProps} name={[field.name, 'supplierRecommendationResultId']} hidden><Input /></Form.Item>
-          <Form.Item {...fieldProps} name={[field.name, 'supplierOverrideReason']} hidden><Input /></Form.Item>
-          <Form.Item {...fieldProps} name={[field.name, 'quantityOverrideReason']} hidden><Input /></Form.Item>
         </Space>;
         })}
         <Form.ErrorList errors={errors} />
         <Button icon={<PlusOutlined />} onClick={() => add()}>新增品項</Button>
       </Space>}
     </Form.List>
-    {editing && <Alert style={{ marginTop: 16 }} type="info" showIcon title={hasRecommendationEvidence ? '此草稿含採購建議依據，因此供應商已鎖定；儲存完整品項清單時會原樣保留所有參照與覆寫原因。' : '儲存時會送出完整品項清單。'} />}
+    {editing && <Alert style={{ marginTop: 16 }} type="info" showIcon title="儲存時會送出完整品項清單；既有採購決策來源紀錄由後端保留。" />}
     <Button style={{ marginTop: 16 }} type="primary" onClick={() => void review()}>{editing ? '檢視草稿修改' : '檢視新草稿'}</Button>
   </Form>;
 }

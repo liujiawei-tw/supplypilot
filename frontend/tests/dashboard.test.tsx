@@ -75,8 +75,6 @@ function receivingOrder(overdue = true) {
   };
 }
 
-const demand = { id: 71, materialId: 8, quantity: 250, requiredDate: '2026-10-25', status: 'ACTIVE', note: null, createdBy: 1, createdAt: '2026-10-01T00:00:00Z', updatedAt: '2026-10-01T00:00:00Z' };
-
 function params(config: InternalAxiosRequestConfig) {
   return config.params as Record<string, unknown>;
 }
@@ -121,7 +119,7 @@ describe('SP-907 role-adaptive dashboard API access', () => {
     expect(poRequests.every((request) => params(request).page === 0 && params(request).size === 5 && params(request).sort === 'id,desc')).toBe(true);
     expect(requests.some((request) => request.url === '/inventory')).toBe(false);
     expect(requests.some((request) => request.url?.startsWith('/receiving/'))).toBe(false);
-    expect(await screen.findByRole('link', { name: '建立採購建議' })).toBeTruthy();
+    expect(screen.queryByRole('link', { name: /採購建議/ })).toBeNull();
   });
 
   it('shows only DRAFT approval work for managers and distinguishes a successful empty result', async () => {
@@ -179,25 +177,25 @@ describe('SP-907 role-adaptive dashboard API access', () => {
     expect(await screen.findByText('待處理採購單')).toBeTruthy();
     expect(await screen.findByText('已核准待下單')).toBeTruthy();
     expect(await screen.findByText('待收貨採購單')).toBeTruthy();
+    expect(screen.queryByText('進行中的需求')).toBeNull();
+    expect(screen.queryByRole('link', { name: /採購建議|需求管理/ })).toBeNull();
     expect(requests.filter((request) => request.url === '/purchase-orders').map((request) => params(request).status).sort()).toEqual(['APPROVED', 'DRAFT']);
     expect(requests.filter((request) => request.url === '/receiving/purchase-orders')).toHaveLength(1);
     expect(requests.some((request) => request.url === '/inventory')).toBe(false);
   });
 
-  it('shows active planner demands without loading inventory or recommendation history', async () => {
+  it('does not load Demand or recommendation work queues in the V2 dashboard', async () => {
     const requests: InternalAxiosRequestConfig[] = [];
     axiosClient.defaults.adapter = vi.fn(async (config) => {
       requests.push(config);
       if (config.url === '/auth/me') return response(config, identities.PRODUCTION_PLANNER);
-      if (config.url === '/demands') return response(config, page([demand]));
+      if (config.url === '/demands') throw new Error('V2 dashboard must not query Demand');
       throw new Error(`Unexpected request ${config.method} ${config.url}`);
     });
 
     await openDashboard('PRODUCTION_PLANNER');
-    expect(await screen.findByText('需求 #71')).toBeTruthy();
-    expect(screen.getByText('物料 ID 8')).toBeTruthy();
-    expect(requests.filter((request) => request.url === '/demands')).toHaveLength(1);
-    expect(params(requests.find((request) => request.url === '/demands')!)).toMatchObject({ status: 'ACTIVE', page: 0, size: 5, sort: 'requiredDate,asc' });
+    await screen.findByText('查看庫存');
+    expect(requests.some((request) => request.url === '/demands')).toBe(false);
     expect(requests.some((request) => request.url === '/inventory')).toBe(false);
     expect(requests.some((request) => request.url === '/recommendations')).toBe(false);
   });

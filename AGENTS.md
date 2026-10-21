@@ -26,6 +26,15 @@
 - 前端 Vitest 有已知單測 timeout 時，先單獨執行該測試檔並保留測例名稱、耗時及完整錯誤輸出，再比較完整套件紀錄；不得提高 timeout、skip／刪除測試或放寬斷言來掩蓋問題。精準重跑用於定位，交付 SHA 的 CI 才是完整回歸證據。
 - 不得因此縮減 CI Gate、測試覆蓋、安全／授權／交易／併發驗證，或忽略任何失敗；程式變更後須重跑受影響驗證，並記錄結果對應的 SHA／工作樹版本。
 
+### GitHub CI 免費額度／帳務阻擋時的暫行本機驗收
+
+- **使用者已決定：** GitHub Actions 因免費額度或 Billing 限制無法執行時，Issue #138 及後續 Issues 暫用本機完整 CI 等價驗證作為交付 Gate，直到 GitHub CI 恢復有效執行。每次須保存 GitHub Run 的阻擋證據及本機驗收結果；本機驗收不得描述成 GitHub CI PASS。
+- 本機完整驗收必須涵蓋 `.github/workflows/ci.yml` 對應工作：在 `backend` 目錄執行 `.\mvnw.cmd -B --no-transfer-progress verify`；在 `frontend` 目錄依序執行 `npm ci`、`npm run lint`、`npm test`、設定 `VITE_API_BASE_URL=http://localhost:8080/api/v1` 後執行 `npm run build`；Container／Compose 執行 Docker Engine 檢查、`python -m unittest scripts.tests.test_compose_config -v`、Production/Demo/Development Compose `config --quiet` 及 Backend/Frontend Docker Image 實際建置。工具版本應符合 Workflow（Java 21、Node.js 24、Python 3.12）；未能符合時須清楚記錄版本與限制。
+- 完整測試不得跳過、刪除、放寬或以降低標準的方式重試。遇到失敗時記錄完整失敗證據，修正原因後重跑受影響驗證。
+- GPT 須獨立審查程式碼及本機完整驗收證據，才可給出 `FINAL PASS — LOCAL VERIFIED / GITHUB CI PENDING`。此狀態只表示暫行本機 Gate 通過，不等於 GitHub Actions PASS。
+- **不得停用或放寬 GitHub Actions，也不得修改成假成功。** GitHub 免費額度恢復並能有效執行 Workflow 後，恢復以 GitHub CI Gate 作為交付驗收。
+- 若 GitHub Branch Protection 要求 GitHub Status Checks，不得繞過或代替；若暫行本機 Gate 通過但 Branch Protection 因缺少 CI Checks 阻擋 Merge，須明確回報並由使用者處理。
+
 ## GitHub Pull Request 語言規範（強制）
 
 - **所有 SupplyPilot Pull Request（預設由 GPT 建立），標題與描述一律使用繁體中文（台灣，zh-TW）。**

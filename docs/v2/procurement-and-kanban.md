@@ -76,3 +76,7 @@
 4. 付款確認與撤銷不改變實際庫存或 PO RECEIVED。
 5. 交期兩欄可獨立顯示與保存，逾期計算不受承諾日更新影響。
 6. 看板非法跳關、並發收貨/取消、權限不足與 101 筆以上 PO 搜尋/分頁都須有負向驗證。
+
+## V2-201 實作狀態
+
+Issue #138 的程式與驗證狀態以 [`docs/evidence/issue-138-validation.md`](../evidence/issue-138-validation.md) 為準。本 Issue 保留原有 PO Draft、可空期望日、核准日期檢查、PO 編號、`@Version` 與收貨交易能力；Draft Edit 和核准對同一 PO 使用列鎖序列化；不建立 Kanban Stage 欄位或移除歷史資料。V2 新業務流程直接建立 PO，Demand/Recommendation 寫入不向 V2 ADMIN 開放，舊資料讀取及歷史參照保留。

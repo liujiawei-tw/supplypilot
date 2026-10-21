@@ -94,7 +94,7 @@ public class PurchaseRecommendationService {
     }
 
     @Transactional
-    @PreAuthorize("hasAnyRole('PROCUREMENT_STAFF', 'PROCUREMENT_MANAGER', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('PROCUREMENT_STAFF', 'PROCUREMENT_MANAGER')")
     public RecommendationResponse createRecommendation(CreateRecommendationRequest request) {
         validatePeriod(request.periodStart(), request.periodEnd());
         Material material = materialRepository.findById(request.materialId())

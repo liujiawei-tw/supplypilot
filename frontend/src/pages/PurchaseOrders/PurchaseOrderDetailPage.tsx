@@ -132,7 +132,7 @@ export default function PurchaseOrderDetailPage() {
       { title: '物料', render: (_, row) => `${row.materialCode} — ${row.materialName} (#${row.materialId})` },
       { title: '數量', render: (_, row) => `${String(row.quantity)} ${row.unit}` },
       { title: '單價', render: (_, row) => String(row.unitPrice) }, { title: '小計', render: (_, row) => String(row.total) },
-      { title: '採購建議依據', render: (_, row) => row.recommendationId ? <Space orientation="vertical" size={0}><span>採購建議 #{row.recommendationId} / 結果 #{row.supplierRecommendationResultId}</span>{row.supplierOverride && <span>供應商覆寫：{row.supplierOverrideReason}</span>}{row.quantityOverride && <span>數量覆寫：{row.quantityOverrideReason}</span>}</Space> : '手動品項' },
+      { title: '歷史採購決策依據', render: (_, row) => row.recommendationId ? <Space orientation="vertical" size={0}><span>歷史建議 #{row.recommendationId} / 結果 #{row.supplierRecommendationResultId}</span>{row.supplierOverride && <span>原供應商覆寫：{row.supplierOverrideReason}</span>}{row.quantityOverride && <span>原數量覆寫：{row.quantityOverrideReason}</span>}</Space> : '手動採購品項' },
     ]} />
 
     <Modal width={900} title="編輯採購單草稿" open={active === 'edit'} footer={null} destroyOnHidden onCancel={() => { if (!submitting) setActive(null); }}>

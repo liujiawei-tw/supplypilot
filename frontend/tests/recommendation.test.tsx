@@ -62,7 +62,7 @@ async function open(path: string) {
 beforeEach(() => { localStorage.clear(); });
 
 describe('SP-804 role-aware routes', () => {
-  it.each(['PROCUREMENT_STAFF', 'PROCUREMENT_MANAGER', 'ADMIN'] as const)('allows %s to open the create workstation', async (role) => {
+  it.each(['PROCUREMENT_STAFF', 'PROCUREMENT_MANAGER'] as const)('allows %s to open the create workstation', async (role) => {
     axiosClient.defaults.adapter = vi.fn(async (config) => {
       if (config.url === '/auth/me') return response(config, identities[role]);
       if (config.url === '/materials') return response(config, { content: [], page: 0, size: 20, totalElements: 0, totalPages: 0 });
@@ -70,6 +70,30 @@ describe('SP-804 role-aware routes', () => {
     });
     await open('/recommendations');
     expect(await screen.findByText('採購建議工作區')).toBeTruthy();
+  });
+
+  it('allows V2 ADMIN to read a historical recommendation without exposing ranking or draft actions', async () => {
+    const requests: string[] = [];
+    axiosClient.defaults.adapter = vi.fn(async (config) => {
+      requests.push(config.url ?? '');
+      if (config.url === '/auth/me') return response(config, identities.ADMIN);
+      if (config.url === '/recommendations/91') return response(config, recommendation('SUPPLIER_RECOMMENDED'));
+      throw new Error(`Unexpected request ${config.url}`);
+    });
+
+    await open('/recommendations/91');
+
+    expect(await screen.findByText('採購建議 #91')).toBeTruthy();
+    expect(screen.getByText('歷史資料唯讀')).toBeTruthy();
+    expect(screen.getByText(/V2 不提供供應商排名或依推薦建立草稿的操作/)).toBeTruthy();
+    expect(screen.queryByText('供應商排名與排除原因')).toBeNull();
+    expect(screen.queryByRole('button', { name: /檢視.*草稿/ })).toBeNull();
+    expect(screen.getByRole('link', { name: '返回採購單管理' }).getAttribute('href')).toBe('/purchase-orders');
+    expect(requests).toEqual(['/auth/me', '/recommendations/91']);
+
+    await router.navigate('/recommendations');
+    expect(await screen.findByText('403')).toBeTruthy();
+    expect(requests).toEqual(['/auth/me', '/recommendations/91']);
   });
 
   it.each(['PRODUCTION_PLANNER', 'WAREHOUSE_STAFF'] as const)('blocks %s from create but allows known-ID detail without a create API call', async (role) => {
@@ -178,7 +202,7 @@ describe('SP-804 Recommendation rendering', () => {
   it('keeps valid detail visible when ranking fails and retries only ranking', async () => {
     let rankingCalls = 0;
     axiosClient.defaults.adapter = vi.fn(async (config) => {
-      if (config.url === '/auth/me') return response(config, identities.ADMIN);
+      if (config.url === '/auth/me') return response(config, identities.PROCUREMENT_STAFF);
       if (config.url === '/recommendations/91') return response(config, recommendation('SUPPLIER_RECOMMENDED'));
       if (config.url === '/recommendations/91/suppliers') {
         rankingCalls += 1;
@@ -216,7 +240,7 @@ describe('SP-804 Recommendation create', () => {
     const requests: InternalAxiosRequestConfig[] = [];
     axiosClient.defaults.adapter = vi.fn(async (config) => {
       requests.push(config);
-      if (config.url === '/auth/me') return response(config, identities.ADMIN);
+      if (config.url === '/auth/me') return response(config, identities.PROCUREMENT_STAFF);
       if (config.url === '/materials') return response(config, { content: [material], page: 0, size: 20, totalElements: 1, totalPages: 1 });
       throw new Error(`Unexpected request ${config.url}`);
     });
@@ -262,7 +286,7 @@ describe('SP-804 Recommendation create', () => {
 
   it('keeps create form values and does not render fake success after a POST error', async () => {
     axiosClient.defaults.adapter = vi.fn(async (config) => {
-      if (config.url === '/auth/me') return response(config, identities.ADMIN);
+      if (config.url === '/auth/me') return response(config, identities.PROCUREMENT_STAFF);
       if (config.url === '/materials') return response(config, { content: [material], page: 0, size: 20, totalElements: 1, totalPages: 1 });
       if (config.url === '/recommendations') throw new AxiosError('Validation failed', 'ERR_BAD_REQUEST', config, undefined, response(config, { code: 'VALIDATION_FAILED', message: 'Invalid period', traceId: 'create-trace', timestamp: '', path: config.url, fieldErrors: [{ field: 'periodEnd', message: 'Invalid end', rejectedValue: '2026-10-31' }] }, 400));
       throw new Error(`Unexpected request ${config.url}`);
@@ -283,11 +307,11 @@ describe('SP-804 Recommendation create', () => {
 });
 
 describe('SP-804 Recommendation to linked PO Draft', () => {
-  it.each(['PROCUREMENT_STAFF', 'ADMIN'] as const)('allows %s to confirm a linked DRAFT with real references', async (role) => {
+  it('allows PROCUREMENT_STAFF to confirm a linked DRAFT with real references', async () => {
     const requests: InternalAxiosRequestConfig[] = [];
     axiosClient.defaults.adapter = vi.fn(async (config) => {
       requests.push(config);
-      if (config.url === '/auth/me') return response(config, identities[role]);
+      if (config.url === '/auth/me') return response(config, identities.PROCUREMENT_STAFF);
       if (config.url === '/recommendations/91') return response(config, recommendation('SUPPLIER_RECOMMENDED'));
       if (config.url === '/recommendations/91/suppliers') return response(config, [qualified, disqualified]);
       if (config.url === '/purchase-orders') return response(config, { id: 501, poNumber: 'PO-20261012-000501', status: 'DRAFT' }, 201);
@@ -379,7 +403,7 @@ describe('SP-804 Recommendation to linked PO Draft', () => {
     const requests: InternalAxiosRequestConfig[] = [];
     axiosClient.defaults.adapter = vi.fn(async (config) => {
       requests.push(config);
-      if (config.url === '/auth/me') return response(config, identities.ADMIN);
+      if (config.url === '/auth/me') return response(config, identities.PROCUREMENT_STAFF);
       if (config.url === '/recommendations/91') return response(config, recommendation('SUPPLIER_RECOMMENDED'));
       if (config.url === '/recommendations/91/suppliers') return response(config, [disqualified, { ...qualified, id: undefined }]);
       throw new Error(`Unexpected request ${config.url}`);
@@ -418,7 +442,7 @@ describe('SP-804 Recommendation to linked PO Draft', () => {
     const requests: InternalAxiosRequestConfig[] = [];
     axiosClient.defaults.adapter = vi.fn(async (config) => {
       requests.push(config);
-      if (config.url === '/auth/me') return response(config, identities.ADMIN);
+      if (config.url === '/auth/me') return response(config, identities.PROCUREMENT_STAFF);
       if (config.url === '/recommendations/91') return response(config, recommendation('SUPPLIER_RECOMMENDED'));
       if (config.url === '/recommendations/91/suppliers') return response(config, [qualified]);
       if (config.url === '/purchase-orders') throw failure;
@@ -443,7 +467,7 @@ describe('SP-804 Recommendation to linked PO Draft', () => {
     const requests: InternalAxiosRequestConfig[] = [];
     axiosClient.defaults.adapter = vi.fn(async (config) => {
       requests.push(config);
-      if (config.url === '/auth/me') return response(config, identities.ADMIN);
+      if (config.url === '/auth/me') return response(config, identities.PROCUREMENT_STAFF);
       if (config.url === '/recommendations/91') return response(config, recommendation('SUPPLIER_RECOMMENDED'));
       if (config.url === '/recommendations/91/suppliers') return response(config, [qualified]);
       if (config.url === '/purchase-orders') {

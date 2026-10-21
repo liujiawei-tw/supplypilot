@@ -1309,3 +1309,7 @@ The JWT filter validates the signed token, then reloads the account by `userId` 
 ## V2-102 帳號永久刪除
 
 人員刪除 Service 同時要求 `USER_MANAGEMENT`，並在同一 Transaction 先鎖定啟用管理者集合，再鎖定待刪帳號；只有仍至少保留一位 `ACTIVE + canManageUsers=true` 帳號時才執行。資料庫使用 `ON DELETE SET NULL` 保留交易列，PO 事件由不可變快照供查詢，帳號 JWT 因 #136 的每請求 DB 驗證而失效。PO 指派與刪除共用使用者列鎖；認領／改派另鎖採購單，錯誤或約束衝突不會級聯刪除交易資料。
+
+## V2-201 Demand/Recommendation 寫入退場
+
+Demand 的 create/update/cancel Service 僅允許舊 V1 `PRODUCTION_PLANNER` 相容角色；自 V23 遷移後 V2 業務帳號為 `ADMIN`，不能再呼叫這些舊寫入操作。Recommendation 建立 Service 同樣排除 V2 `ADMIN`。需求與 Recommendation 的讀取權限保留，供既有歷史資料、PO 歷史參照與相容查詢使用；沒有移除資料表、FK 或資料列。PO 建立/編輯仍受 Service `@PreAuthorize`、Domain 狀態與 optimistic locking 保護。
