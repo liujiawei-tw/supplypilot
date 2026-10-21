@@ -1,6 +1,7 @@
 const labels: Record<string, string> = {
   ACTIVE: '啟用', INACTIVE: '停用', CANCELLED: '已取消',
   DRAFT: '草稿', APPROVED: '已核准', REJECTED: '已駁回', ORDERED: '已下單', RECEIVED: '已收貨',
+  FOLLOW_UP: '下單跟催中', RECEIVING_INSPECTION: '到貨驗收中', LEGACY_UNKNOWN: '舊資料階段待確認',
   PROCESSING: '處理中', READY: '已就緒', FAILED: '處理失敗',
   REQUIRES_REVIEW: '需要人工審核', SKIPPED: '已略過', PENDING: '待處理',
   VALIDATED: '驗證通過', VALIDATION_FAILED: '驗證失敗', IMPORTED: '已匯入',

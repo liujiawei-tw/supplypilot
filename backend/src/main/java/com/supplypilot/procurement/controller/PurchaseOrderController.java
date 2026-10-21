@@ -10,6 +10,7 @@ import com.supplypilot.procurement.domain.PurchaseOrderStatus;
 import com.supplypilot.procurement.dto.request.CreatePurchaseOrderRequest;
 import com.supplypilot.procurement.dto.request.AssignPurchaseOrderRequest;
 import com.supplypilot.procurement.dto.request.RejectPurchaseOrderRequest;
+import com.supplypilot.procurement.dto.request.CancelPurchaseOrderRequest;
 import com.supplypilot.procurement.dto.request.UpdatePurchaseOrderRequest;
 import com.supplypilot.procurement.dto.response.PurchaseOrderResponse;
 import com.supplypilot.procurement.dto.response.ReceivingPurchaseOrderResponse;
@@ -91,9 +92,19 @@ public class PurchaseOrderController {
         return purchaseOrderService.reject(id, request);
     }
 
+    @PostMapping("/{id}/cancel")
+    public PurchaseOrderResponse cancel(@PathVariable Long id, @Valid @RequestBody CancelPurchaseOrderRequest request) {
+        return purchaseOrderService.cancel(id, request.reason());
+    }
+
     @PostMapping("/{id}/order")
     public PurchaseOrderResponse order(@PathVariable Long id) {
         return purchaseOrderService.markOrdered(id);
+    }
+
+    @PostMapping("/{id}/begin-receiving-inspection")
+    public PurchaseOrderResponse beginReceivingInspection(@PathVariable Long id) {
+        return purchaseOrderService.beginReceivingInspection(id);
     }
 
     @PostMapping("/{id}/claim")

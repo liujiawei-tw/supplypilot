@@ -2562,3 +2562,7 @@ README
 
 ### Scope
 不遷移核心 MySQL 業務資料、不增加跨庫 FK、不改寫 SP-720 Tool Allowlist、不改動 SP-721 Confirmation、無 OCR／Multi-Agent／完整新前端。部署／資料出站可能涉及法務／公司授權時，沒有授權不得傳送真實文件。
+
+## V2-202 驗收紀錄
+
+Issue #139 的測試指令、環境、測試數、Migration 與 CI 狀態以 [`docs/evidence/issue-139-validation.md`](evidence/issue-139-validation.md) 為準。須區分本機結果與 GitHub Actions；收貨/取消、雙取消、核准/駁回、下單/取消競態使用 Testcontainers MySQL 實際查核 PO、Inventory 版本/數量及 StockTransaction。沒有第 6 欄持久化資料時不得以 Mock 情境宣稱階段保護 PASS。

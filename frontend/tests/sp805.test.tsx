@@ -31,6 +31,96 @@ async function open(path: string) { localStorage.setItem(TOKEN_STORAGE_KEY, 'val
 beforeEach(() => { localStorage.clear(); });
 
 describe('SP-805 PO lifecycle UI', () => {
+  it('cancels an eligible PO only after a required reason and explicit warning confirmation', async () => {
+    const requests: InternalAxiosRequestConfig[] = [];
+    const approved = { ...po, status: 'APPROVED', expectedDeliveryDate: '2026-10-30', orderedProgress: null,
+      cancelReason: null, cancelledBy: null, cancelledByDisplayName: null, cancelledByUsername: null, cancelledAt: null };
+    const cancelled = { ...approved, status: 'CANCELLED', cancelReason: 'supplier withdrew', cancelledBy: 1,
+      cancelledByDisplayName: 'Admin', cancelledByUsername: 'admin', cancelledAt: '2026-10-02T00:00:00Z' };
+    axiosClient.defaults.adapter = vi.fn(async (config) => {
+      requests.push(config);
+      if (config.url === '/auth/me') return response(config, admin);
+      if (config.url === '/users/assignable') return response(config, [{ id: 1, username: 'admin', displayName: 'Admin' }]);
+      if (config.url === '/purchase-orders/42' && config.method === 'get') return response(config, approved);
+      if (config.url === '/purchase-orders/42/cancel') return response(config, cancelled);
+      throw new Error(`Unexpected ${config.method} ${config.url}`);
+    });
+
+    await open('/purchase-orders/42'); const user = userEvent.setup();
+    await user.click(await screen.findByRole('button', { name: '取消採購單' }));
+    const dialog = within(await screen.findByRole('dialog'));
+    expect(dialog.getByText('系統內取消不代表供應商同意。此採購單取消後不可恢復。')).toBeTruthy();
+    const confirm = dialog.getByRole('button', { name: '確認取消' });
+    expect(confirm.hasAttribute('disabled')).toBe(true);
+    await user.type(dialog.getByLabelText('採購單取消原因'), '  supplier withdrew  ');
+    expect(confirm.hasAttribute('disabled')).toBe(false);
+    await user.click(confirm);
+
+    expect(await screen.findByText('supplier withdrew')).toBeTruthy();
+    expect(screen.getByText('已取消')).toBeTruthy();
+    expect(screen.getByText(/Admin \(#1\).*supplier withdrew/)).toBeTruthy();
+    const cancelRequest = requests.find(({ url, method }) => url === '/purchase-orders/42/cancel' && method === 'post');
+    expect(cancelRequest).toBeTruthy();
+    expect(JSON.parse(cancelRequest!.data as string)).toEqual({ reason: 'supplier withdrew' });
+    expect(requests.filter(({ url, method }) => url === '/purchase-orders/42/cancel' && method === 'post')).toHaveLength(1);
+  }, 30_000);
+
+  it('does not retry after a conflict and requires querying the actual PO state', async () => {
+    const requests: InternalAxiosRequestConfig[] = [];
+    const approved = { ...po, status: 'APPROVED', expectedDeliveryDate: '2026-10-30', orderedProgress: null,
+      cancelReason: null, cancelledBy: null, cancelledByDisplayName: null, cancelledByUsername: null, cancelledAt: null };
+    const cancelled = { ...approved, status: 'CANCELLED', cancelReason: 'already committed', cancelledBy: 1,
+      cancelledByDisplayName: 'Admin', cancelledByUsername: 'admin', cancelledAt: '2026-10-02T00:00:00Z' };
+    axiosClient.defaults.adapter = vi.fn(async (config) => {
+      requests.push(config);
+      if (config.url === '/auth/me') return response(config, admin);
+      if (config.url === '/users/assignable') return response(config, []);
+      if (config.url === '/purchase-orders/42' && config.method === 'get') {
+        return response(config, requests.filter((request) => request.url === '/purchase-orders/42' && request.method === 'get').length === 1 ? approved : cancelled);
+      }
+      if (config.url === '/purchase-orders/42/cancel') {
+        const error = new AxiosError('Conflict', 'ERR_BAD_REQUEST', config, undefined,
+          response(config, { code: 'INVALID_PO_STATUS_TRANSITION', message: 'conflict', traceId: 'trace', timestamp: '', path: config.url }, 409));
+        throw error;
+      }
+      throw new Error(`Unexpected ${config.method} ${config.url}`);
+    });
+
+    await open('/purchase-orders/42'); const user = userEvent.setup();
+    await user.click(await screen.findByRole('button', { name: '取消採購單' }));
+    await user.type(await screen.findByLabelText('採購單取消原因'), 'confirm once');
+    await user.click(await screen.findByRole('button', { name: '確認取消' }));
+    expect(await screen.findByRole('button', { name: '重新查詢採購單' })).toBeTruthy();
+    expect(requests.filter(({ url, method }) => url === '/purchase-orders/42/cancel' && method === 'post')).toHaveLength(1);
+    await user.click(screen.getByRole('button', { name: '重新查詢採購單' }));
+    expect(await screen.findByText('已取消')).toBeTruthy();
+    expect(requests.filter(({ url, method }) => url === '/purchase-orders/42/cancel' && method === 'post')).toHaveLength(1);
+  }, 30_000);
+
+  it('moves an ordered PO into receiving inspection and removes its cancellation action', async () => {
+    const requests: InternalAxiosRequestConfig[] = [];
+    const followUp = { ...po, status: 'ORDERED', orderedProgress: 'FOLLOW_UP', expectedDeliveryDate: '2026-10-30',
+      cancelReason: null, cancelledBy: null, cancelledByDisplayName: null, cancelledByUsername: null, cancelledAt: null };
+    const inspection = { ...followUp, orderedProgress: 'RECEIVING_INSPECTION' };
+    axiosClient.defaults.adapter = vi.fn(async (config) => {
+      requests.push(config);
+      if (config.url === '/auth/me') return response(config, admin);
+      if (config.url === '/users/assignable') return response(config, []);
+      if (config.url === '/purchase-orders/42' && config.method === 'get') return response(config, followUp);
+      if (config.url === '/purchase-orders/42/begin-receiving-inspection') return response(config, inspection);
+      throw new Error(`Unexpected ${config.method} ${config.url}`);
+    });
+
+    await open('/purchase-orders/42'); const user = userEvent.setup();
+    expect(await screen.findByRole('button', { name: '取消採購單' })).toBeTruthy();
+    await user.click(screen.getByRole('button', { name: '開始到貨驗收' }));
+    await user.click(await screen.findByRole('button', { name: /確\s*定/ }));
+    expect(await screen.findByText('到貨驗收中')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: '取消採購單' })).toBeNull();
+    expect(requests.filter(({ url, method }) => url === '/purchase-orders/42/begin-receiving-inspection' && method === 'post'))
+      .toHaveLength(1);
+  }, 30_000);
+
   it('preserves integer, decimal, and scientific BigDecimal tokens from an API response through UI rendering', async () => {
     const rawPo = JSON.stringify({ ...po, items: [] }).replace('"items":[]', '"items":[{"id":1,"materialId":8,"materialCode":"MAT-008","materialName":"Steel","quantity":999999999999999999999,"unit":"KG","unitPrice":123.4500,"total":1.23E+8,"recommendationId":null,"supplierRecommendationResultId":null,"supplierOverride":false,"quantityOverride":false,"supplierOverrideReason":null,"quantityOverrideReason":null}]');
     axiosClient.defaults.adapter = vi.fn(async (config) => {

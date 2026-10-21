@@ -20,5 +20,5 @@ export function formatTimestamp(value: string | null | undefined): string {
 }
 
 export const statusColors: Record<PurchaseOrderStatus, string> = {
-  DRAFT: 'default', APPROVED: 'blue', ORDERED: 'gold', RECEIVED: 'green', REJECTED: 'red',
+  DRAFT: 'default', APPROVED: 'blue', ORDERED: 'gold', RECEIVED: 'green', REJECTED: 'red', CANCELLED: 'default',
 };

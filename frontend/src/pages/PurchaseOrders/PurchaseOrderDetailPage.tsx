@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Alert, Button, Descriptions, Form, Input, Modal, Select, Space, Table, Tag, Typography, message } from 'antd';
 import { Link, useParams } from 'react-router-dom';
-import { approvePurchaseOrder, assignPurchaseOrder, claimPurchaseOrder, getPurchaseOrder, markPurchaseOrderOrdered, rejectPurchaseOrder, updatePurchaseOrderDraft, type CreatePurchaseOrderRequest, type PurchaseOrderItemResponse, type PurchaseOrderResponse, type UpdatePurchaseOrderRequest } from '../../api/purchaseOrder';
+import { approvePurchaseOrder, assignPurchaseOrder, beginReceivingInspection, cancelPurchaseOrder, claimPurchaseOrder, getPurchaseOrder, markPurchaseOrderOrdered, rejectPurchaseOrder, updatePurchaseOrderDraft, type CreatePurchaseOrderRequest, type PurchaseOrderItemResponse, type PurchaseOrderResponse, type UpdatePurchaseOrderRequest } from '../../api/purchaseOrder';
 import { listAssignableUsers, type AssignableUser } from '../../api/users';
 import { requiresMutationVerification, toApiError } from '../../api/apiError';
 import { can } from '../../auth/permissions';
@@ -14,7 +14,7 @@ import PurchaseOrderForm from './PurchaseOrderForm';
 import { formatTimestamp, statusColors } from './purchaseOrderUi';
 import { displayLabel } from '../../utils/displayLabels';
 
-type ActionName = 'edit' | 'approve' | 'reject' | 'order';
+type ActionName = 'edit' | 'approve' | 'reject' | 'order' | 'cancel' | 'receiving';
 type VerificationState = 'required' | 'checking' | 'failed' | 'verified';
 
 export default function PurchaseOrderDetailPage() {
@@ -30,6 +30,7 @@ export default function PurchaseOrderDetailPage() {
   const [submitting, setSubmitting] = useState(false);
   const [pendingEdit, setPendingEdit] = useState<UpdatePurchaseOrderRequest | null>(null);
   const [rejectReason, setRejectReason] = useState('');
+  const [cancelReason, setCancelReason] = useState('');
   const [verificationRequired, setVerificationRequired] = useState(false);
   const [verificationState, setVerificationState] = useState<VerificationState | null>(null);
   const [verificationMessage, setVerificationMessage] = useState('');
@@ -80,7 +81,7 @@ export default function PurchaseOrderDetailPage() {
     if (submittingRef.current || verificationRequired) return;
     submittingRef.current = true; setSubmitting(true); setActive(name); setActionError(null); setVerificationState(null); setVerificationError(null);
     try {
-      const result = await operation(); setPo(result); setPendingEdit(null); setRejectReason(''); setVerificationRequired(false); apiMessage.success('Purchase Order 已更新');
+      const result = await operation(); setPo(result); setPendingEdit(null); setRejectReason(''); setCancelReason(''); setVerificationRequired(false); apiMessage.success('採購單已更新');
     } catch (requestError) {
       setActionError(toApiError(requestError));
       const mustVerify = requiresMutationVerification(requestError);
@@ -88,7 +89,7 @@ export default function PurchaseOrderDetailPage() {
         setVerificationRequired(true); setVerificationState('required');
         setVerificationMessage('操作遇到 409、伺服器錯誤或連線結果不明。系統不會自動重送；請先查詢 後端 真實狀態。');
       }
-      setPendingEdit(null); setRejectReason('');
+      setPendingEdit(null); setRejectReason(''); setCancelReason('');
     } finally { submittingRef.current = false; setSubmitting(false); setActive(null); }
   };
 
@@ -97,6 +98,10 @@ export default function PurchaseOrderDetailPage() {
   const canEdit = !!user && can(user.role, 'purchaseOrderEdit') && po.status === 'DRAFT';
   const canDecide = !!user && can(user.role, 'purchaseOrderApproveReject') && po.status === 'DRAFT';
   const canOrder = !!user && can(user.role, 'purchaseOrderOrder') && po.status === 'APPROVED';
+  const canCancel = user?.role === 'ADMIN' && (po.status === 'APPROVED'
+    || (po.status === 'ORDERED' && po.orderedProgress === 'FOLLOW_UP'));
+  const canBeginReceiving = user?.role === 'ADMIN' && po.status === 'ORDERED'
+    && (po.orderedProgress === 'FOLLOW_UP' || po.orderedProgress === 'LEGACY_UNKNOWN');
   const canViewTransactions = !!user && can(user.role, 'stockTransactions');
 
   const items = po.items.map((item) => ({ key: item.id, ...item }));
@@ -104,7 +109,7 @@ export default function PurchaseOrderDetailPage() {
     {contextHolder}
     <Space style={{ width: '100%', justifyContent: 'space-between' }} wrap>
       <div><Link to="/purchase-orders">← 採購單管理</Link><Typography.Title level={2} style={{ margin: '8px 0 0' }}>{po.poNumber}</Typography.Title></div>
-      <Space wrap>{!po.assignedTo && <Button aria-label={`Claim ${po.poNumber}`} loading={submitting} disabled={verificationRequired} onClick={() => Modal.confirm({ title: '認領此採購單？', content: '確認將目前登入的帳號設為負責人。', onOk: () => updateOwner('claim') })}>認領</Button>}<Select aria-label="指派採購單負責人" size="small" placeholder="指派負責人" style={{ width: 170 }} value={po.assignedTo ?? undefined} disabled={submitting || verificationRequired} options={assignableUsers.map((candidate) => ({ value: candidate.id, label: candidate.displayName }))} onChange={(value: number) => Modal.confirm({ title: '變更採購單負責人？', content: `將負責人指派給 ${assignableUsers.find((candidate) => candidate.id === value)?.displayName ?? '所選帳號'}。`, onOk: () => updateOwner(value) })} />{canEdit && <Button disabled={verificationRequired} onClick={() => { if (!verificationRequired) { setActive('edit'); setActionError(null); } }}>編輯草稿</Button>}{canDecide && <><Button type="primary" disabled={!po.expectedDeliveryDate || verificationRequired} title={!po.expectedDeliveryDate ? '請先編輯草稿並補齊交期' : undefined} onClick={() => setActive('approve')}>核准</Button><Button danger disabled={verificationRequired} onClick={() => setActive('reject')}>駁回</Button></>}{canOrder && <Button type="primary" disabled={!po.expectedDeliveryDate || verificationRequired} onClick={() => setActive('order')}>標記為已下單</Button>}{canViewTransactions && <Link to={`/inventory?tab=stock-transactions&purchaseOrderId=${po.id}`}>庫存異動</Link>}</Space>
+      <Space wrap>{!po.assignedTo && <Button aria-label={`Claim ${po.poNumber}`} loading={submitting} disabled={verificationRequired} onClick={() => Modal.confirm({ title: '認領此採購單？', content: '確認將目前登入的帳號設為負責人。', onOk: () => updateOwner('claim') })}>認領</Button>}<Select aria-label="指派採購單負責人" size="small" placeholder="指派負責人" style={{ width: 170 }} value={po.assignedTo ?? undefined} disabled={submitting || verificationRequired} options={assignableUsers.map((candidate) => ({ value: candidate.id, label: candidate.displayName }))} onChange={(value: number) => Modal.confirm({ title: '變更採購單負責人？', content: `將負責人指派給 ${assignableUsers.find((candidate) => candidate.id === value)?.displayName ?? '所選帳號'}。`, onOk: () => updateOwner(value) })} />{canEdit && <Button disabled={verificationRequired} onClick={() => { if (!verificationRequired) { setActive('edit'); setActionError(null); } }}>編輯草稿</Button>}{canDecide && <><Button type="primary" disabled={!po.expectedDeliveryDate || verificationRequired} title={!po.expectedDeliveryDate ? '請先編輯草稿並補齊交期' : undefined} onClick={() => setActive('approve')}>核准</Button><Button danger disabled={verificationRequired} onClick={() => setActive('reject')}>駁回</Button></>}{canOrder && <Button type="primary" disabled={!po.expectedDeliveryDate || verificationRequired} onClick={() => setActive('order')}>標記為已下單</Button>}{canBeginReceiving && <Button disabled={submitting || verificationRequired} onClick={() => Modal.confirm({ title: '移入到貨驗收階段？', content: '進入到貨驗收後，採購單不可再取消。', onOk: () => void perform('receiving', () => beginReceivingInspection(po.id)) })}>開始到貨驗收</Button>}{canCancel && <Button danger disabled={submitting || verificationRequired} onClick={() => { setCancelReason(''); setActive('cancel'); }}>取消採購單</Button>}{canViewTransactions && <Link to={`/inventory?tab=stock-transactions&purchaseOrderId=${po.id}`}>庫存異動</Link>}</Space>
     </Space>
     {!po.expectedDeliveryDate && canDecide && <Alert type="warning" showIcon title="此草稿尚未設定交期，無法核准。請先編輯草稿補齊。" />}
     {verificationState && <VerificationRequiredAlert
@@ -123,6 +128,8 @@ export default function PurchaseOrderDetailPage() {
       { key: 'assigned', label: '目前負責人', children: po.assignedToDisplayName ?? '未指派' },
       { key: 'approved', label: '核准資訊', children: po.approvedBy ? `${po.approvedByDisplayName} (#${po.approvedBy}) · ${formatTimestamp(po.approvedAt)}` : '—' },
       { key: 'rejected', label: '駁回資訊', children: po.rejectedBy ? `${po.rejectedByDisplayName} (#${po.rejectedBy}) · ${formatTimestamp(po.rejectedAt)} · ${po.rejectReason}` : '—' },
+      { key: 'cancelled', label: '取消資訊', children: po.cancelledBy ? `${po.cancelledByDisplayName} (#${po.cancelledBy}) · ${formatTimestamp(po.cancelledAt)} · ${po.cancelReason}` : '—' },
+      { key: 'ordered-progress', label: '下單階段', children: displayLabel(po.orderedProgress) },
       { key: 'ordered', label: '下單資訊', children: po.orderedBy ? `${po.orderedByDisplayName} (#${po.orderedBy}) · ${formatTimestamp(po.orderedAt)}` : '—' },
       { key: 'received', label: '收貨資訊', children: po.receivedBy ? `${po.receivedByDisplayName} (#${po.receivedBy}) · ${formatTimestamp(po.receivedAt)}` : '—' },
       { key: 'updated', label: '更新時間', children: formatTimestamp(po.updatedAt) },
@@ -147,6 +154,10 @@ export default function PurchaseOrderDetailPage() {
     </Modal>
     <Modal title="駁回採購單" open={active === 'reject'} okText="確認駁回" okButtonProps={{ danger: true, disabled: !rejectReason.trim() }} confirmLoading={submitting} onCancel={() => { setActive(null); setRejectReason(''); }} onOk={() => void perform('reject', () => rejectPurchaseOrder(po.id, rejectReason.trim()))}>
       <Form layout="vertical"><Form.Item label="駁回原因" required><Input.TextArea aria-label="採購單駁回原因" maxLength={2000} rows={4} value={rejectReason} onChange={(event) => setRejectReason(event.target.value)} /></Form.Item></Form>
+    </Modal>
+    <Modal title="確認取消採購單" open={active === 'cancel'} okText="確認取消" okButtonProps={{ danger: true, disabled: !cancelReason.trim() || submitting || verificationRequired }} confirmLoading={submitting} onCancel={() => { if (!submitting) { setActive(null); setCancelReason(''); } }} onOk={() => void perform('cancel', () => cancelPurchaseOrder(po.id, cancelReason.trim()))}>
+      <Alert type="warning" showIcon title="系統內取消不代表供應商同意。此採購單取消後不可恢復。" />
+      <Form layout="vertical" style={{ marginTop: 16 }}><Form.Item label="取消原因" required><Input.TextArea aria-label="採購單取消原因" maxLength={2000} rows={4} value={cancelReason} onChange={(event) => setCancelReason(event.target.value)} /></Form.Item></Form>
     </Modal>
     <Modal title="標記採購單已下單" open={active === 'order'} okText="確認下單" confirmLoading={submitting} onCancel={() => setActive(null)} onOk={() => void perform('order', () => markPurchaseOrderOrdered(po.id))}>
       <Alert type="warning" showIcon title="此動作只標記正式下單，不會修改交期，也不會增加庫存。" /><Descriptions style={{ marginTop: 16 }} column={1} bordered items={[{ key: 'delivery', label: '核准的預計交期', children: po.expectedDeliveryDate ?? '未設定' }]} />

@@ -2499,3 +2499,11 @@ ai
 - `PATCH /api/v1/purchase-orders/{id}` 只允許 `DRAFT`，可更換有效供應商、完整替換品項及設定/清除期望到貨日。Draft Edit 與核准先取得同一 PO 的 `PESSIMISTIC_WRITE` 列鎖並在鎖內檢查狀態，避免彼此交錯造成覆寫；`@Version` 仍保留作版本保護。失敗時交易不提交部分資料。
 - V2 帳號是 `ADMIN` 業務角色。Demand 的建立/編輯/取消僅保留舊角色相容，V2 `ADMIN` 無法寫入；採購 Recommendation 建立亦不授權 V2 `ADMIN`。歷史 Demand/Recommendation 查詢仍可供舊資料相容，資料列與外鍵保留。
 - Draft Edit 不讀取或重驗歷史 Recommendation 關聯以決定 PO 是否可編輯。既有 PO item 的推薦 ID、供應商/數量快照與覆寫原因不可透過草稿編輯改寫或清除；新手動 PO 不需這些欄位。
+
+## V2-202：採購單駁回、取消與第 5/6 欄保護
+
+`POST /api/v1/purchase-orders/{id}/reject` 僅將 DRAFT 駁回為 REJECTED；原因必填。`POST /api/v1/purchase-orders/{id}/cancel` 接受 `{ "reason": "..." }`，原因長度 1–2000 且不可空白；僅 ADMIN 可將 APPROVED 或 `orderedProgress=FOLLOW_UP` 的 ORDERED PO 取消為 CANCELLED。缺少/無效輸入回 400，未登入回 401，無權限回 403，PO 不存在回 404，狀態或階段不允許回 `409 INVALID_PO_STATUS_TRANSITION`。取消回傳一般 PO 回應，包括 `cancelReason`、`cancelledBy`、`cancelledByUsername`、`cancelledByDisplayName`、`cancelledAt`；操作者由登入帳號、時間由 Backend Clock 產生。
+
+`POST /api/v1/purchase-orders/{id}/begin-receiving-inspection` 無 Request body，僅 ADMIN 可將 ORDERED 的 `FOLLOW_UP` 或 `LEGACY_UNKNOWN` 設為 `RECEIVING_INSPECTION`。這是供 #141/#142 沿用的受控第 5→6 欄契約，不接受任意 Stage 輸入。PO 回應提供 `orderedProgress`；對非 ORDERED 狀態為 `null`。CANCELLED 為終態，不能再次取消、核准、下單、收貨或指派。
+
+PO 狀態命令（核准、駁回、下單、開始驗收、取消、收貨）先以 `findByIdForUpdate()` 鎖 PO。收貨取得 PO 列鎖後才寫 Inventory 與 StockTransaction；任一品項失敗整筆回滾。Incoming Inventory 仍僅加總 ORDERED，因此取消後自動排除且不改實際庫存或交易記錄。

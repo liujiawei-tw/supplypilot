@@ -15,7 +15,7 @@ import { formatTimestamp, isUnknownMutation, statusColors } from './purchaseOrde
 import { displayLabel } from '../../utils/displayLabels';
 import type { ApiErrorResponse, PageResponse } from '../../types/api';
 
-const statuses = ['DRAFT', 'APPROVED', 'ORDERED', 'RECEIVED', 'REJECTED'] as const;
+const statuses = ['DRAFT', 'APPROVED', 'ORDERED', 'RECEIVED', 'REJECTED', 'CANCELLED'] as const;
 const sortable = new Set(['id', 'poNumber', 'status', 'expectedDeliveryDate', 'createdAt', 'updatedAt', 'orderedAt']);
 
 export default function PurchaseOrdersPage() {

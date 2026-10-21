@@ -1317,3 +1317,7 @@ End-to-end demo / bug fix
 ## V2-201 採購主流程入口
 
 V2 Sidebar 與 Dashboard 以真實 PO 為主要採購工作入口，不顯示 Demand/Recommendation/Ranking 導覽或快速操作；V2 `ADMIN` 也無法透過直接路徑使用舊 Demand/Recommendation 畫面。PO 清單可直接建立持久化 DRAFT。建立表單要求供應商、至少一項物料、正數數量與非負單價；交期可留空，PO 詳情會說明交期未補齊不能核准。編輯表單不提交推薦 ID 或覆寫原因，歷史依據在 PO 詳情中僅供追溯。
+
+## V2-202 PO 駁回/取消互動
+
+PO 明細在 DRAFT 顯示駁回；APPROVED 與 `orderedProgress=FOLLOW_UP` 顯示取消；進入 `RECEIVING_INSPECTION` 或階段未知時不提供取消。取消對話框要求非空白原因，顯示「系統內取消不代表供應商同意」及不可恢復警告，送出期間鎖定重複操作。成功採用 API 回應更新狀態與取消稽核；409/5xx/Timeout/Network Error 不假設成功、不自動重送，先由使用者明確查詢 PO 最新狀態。CANCELLED 保留在一般歷史列表與明細，可依狀態篩選。此頁只提供受控進入到貨驗收的動作，不含完整八欄看板；#143 UI 與 #142 Stage 模型尚待實作。
