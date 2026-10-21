@@ -94,7 +94,7 @@ class PurchaseOrderServiceTests {
     void approveUsesCurrentUserAndPersistsOnlyWhenDeliveryDateExists() {
         PurchaseOrder order = draftOrder(TestDataConstants.TEST_TODAY.plusDays(2));
         User manager = manager();
-        when(purchaseOrderRepository.findById(10L)).thenReturn(Optional.of(order));
+        when(purchaseOrderRepository.findByIdForUpdate(10L)).thenReturn(Optional.of(order));
         when(currentUserProvider.getCurrentUserId()).thenReturn(manager.getId());
         when(userRepository.findById(manager.getId())).thenReturn(Optional.of(manager));
         when(purchaseOrderRepository.saveAndFlush(order)).thenReturn(order);
@@ -111,7 +111,7 @@ class PurchaseOrderServiceTests {
     void approveWithoutDeliveryDateDoesNotPersist() {
         PurchaseOrder order = draftOrder(null);
         User manager = manager();
-        when(purchaseOrderRepository.findById(10L)).thenReturn(Optional.of(order));
+        when(purchaseOrderRepository.findByIdForUpdate(10L)).thenReturn(Optional.of(order));
         when(currentUserProvider.getCurrentUserId()).thenReturn(manager.getId());
         when(userRepository.findById(manager.getId())).thenReturn(Optional.of(manager));
 

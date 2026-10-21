@@ -220,21 +220,26 @@ class DemoSeedSmokeIntegrationTests {
         Long materialId = materials.findByCode("MAT-001").orElseThrow().getId();
         LocalDate baseline = jdbc.queryForObject(
                 "SELECT baseline_date FROM demo_dataset_state WHERE dataset_key = 'SP-901'", LocalDate.class);
-        String token = login("admin");
+        User recommendationStaff = createRecommendationStaff();
+        String token = login(recommendationStaff.getUsername(), "RecommendationTest123");
         String request = """
                 {"materialId":%d,"periodStart":"%s","periodEnd":"%s"}
                 """.formatted(materialId, baseline, baseline.plusDays(30));
 
-        mockMvc.perform(post("/api/v1/recommendations")
-                        .header("Authorization", "Bearer " + token)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(request))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.calculation.expectedDemand").value(1000))
-                .andExpect(jsonPath("$.calculation.safetyStock").value(200))
-                .andExpect(jsonPath("$.calculation.currentInventory").value(300))
-                .andExpect(jsonPath("$.calculation.incomingInventory").value(150))
-                .andExpect(jsonPath("$.calculation.netRequirement").value(750));
+        try {
+            mockMvc.perform(post("/api/v1/recommendations")
+                            .header("Authorization", "Bearer " + token)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(request))
+                    .andExpect(status().isCreated())
+                    .andExpect(jsonPath("$.calculation.expectedDemand").value(1000))
+                    .andExpect(jsonPath("$.calculation.safetyStock").value(200))
+                    .andExpect(jsonPath("$.calculation.currentInventory").value(300))
+                    .andExpect(jsonPath("$.calculation.incomingInventory").value(150))
+                    .andExpect(jsonPath("$.calculation.netRequirement").value(750));
+        } finally {
+            users.deleteById(recommendationStaff.getId());
+        }
     }
 
     @Test
@@ -255,9 +260,11 @@ class DemoSeedSmokeIntegrationTests {
         LocalDate baseline = jdbc.queryForObject(
                 "SELECT baseline_date FROM demo_dataset_state WHERE dataset_key = 'SP-901'", LocalDate.class);
         String admin = login("admin");
+        User recommendationStaff = createRecommendationStaff();
+        String recommendationToken = login(recommendationStaff.getUsername(), "RecommendationTest123");
 
         JsonNode recommendation = responseJson(post("/api/v1/recommendations")
-                .header("Authorization", bearer(admin)).contentType(MediaType.APPLICATION_JSON)
+                .header("Authorization", bearer(recommendationToken)).contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(Map.of(
                         "materialId", material.getId(), "periodStart", baseline,
                         "periodEnd", baseline.plusDays(30)))), 201);
@@ -266,7 +273,7 @@ class DemoSeedSmokeIntegrationTests {
         BigDecimal quantity = recommendation.get("recommendation").get("quantity").decimalValue();
 
         String suppliersJson = mockMvc.perform(get("/api/v1/recommendations/{id}/suppliers", recommendationId)
-                        .header("Authorization", bearer(admin)))
+                        .header("Authorization", bearer(recommendationToken)))
                 .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
         JsonNode selected = objectMapper.readTree(suppliersJson).valueStream()
                 .filter(node -> node.get("supplierId").asLong() == supplierId).findFirst().orElseThrow();
@@ -277,7 +284,7 @@ class DemoSeedSmokeIntegrationTests {
                 """, supplierId, material.getId());
         JsonNode retainedSnapshot = objectMapper.readTree(mockMvc.perform(
                         get("/api/v1/recommendations/{id}/suppliers", recommendationId)
-                                .header("Authorization", bearer(admin)))
+                                .header("Authorization", bearer(recommendationToken)))
                 .andExpect(status().isOk()).andReturn().getResponse().getContentAsString()).valueStream()
                 .filter(node -> node.get("id").asLong() == selected.get("id").asLong()).findFirst().orElseThrow();
         assertThat(retainedSnapshot.get("unitPrice").decimalValue()).isEqualByComparingTo(selectedUnitPrice);
@@ -357,6 +364,13 @@ class DemoSeedSmokeIntegrationTests {
 
     private String bearer(String token) { return "Bearer " + token; }
 
+    private User createRecommendationStaff() {
+        String username = "recommendation_staff_" + UUID.randomUUID().toString().replace("-", "").substring(0, 8);
+        User user = User.create(username, passwordEncoder.encode("RecommendationTest123"), "Recommendation Test Staff",
+                UserRole.PROCUREMENT_STAFF, java.time.Instant.now());
+        return users.saveAndFlush(user);
+    }
+
     private void assertLogin(String username, String password, int expectedStatus, String expectedRole)
             throws Exception {
         var result = mockMvc.perform(post("/api/v1/auth/login").contentType(MediaType.APPLICATION_JSON)
@@ -368,9 +382,13 @@ class DemoSeedSmokeIntegrationTests {
     }
 
     private String login(String username) throws Exception {
+        return login(username, PASSWORD);
+    }
+
+    private String login(String username, String password) throws Exception {
         String response = mockMvc.perform(post("/api/v1/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"username\":\"" + username + "\",\"password\":\"" + PASSWORD + "\"}"))
+                        .content(objectMapper.writeValueAsString(Map.of("username", username, "password", password))))
                 .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
         JsonNode json = objectMapper.readTree(response);
         return json.get("accessToken").asText();
