@@ -1921,3 +1921,9 @@ ERD 應直接依照本文件建立，而不是重新發明 Domain。
 StockTransaction 除 `created_by_user_id_snapshot` 外，V24 亦回填並保存 `created_by_username_snapshot` 與 `created_by_display_name_snapshot`；新建人工調整及收貨交易會在建立時一併擷取三項操作者快照。查詢 API 的 `createdBy` 與 `createdByDisplayName` 讀取快照，帳號改名或刪除不改變歷史稽核資料。V23 為已套用遷移，保持其歷史 SQL 與 checksum 不變；V23 後加入的 `idx_users_manager_status_id` 由 V24 建立。
 
 `purchase_orders.assigned_to` 是可空的目前負責人 FK，刪除帳號時設為 `NULL`；與建立者及各事件操作者分離。建立、核准、駁回、下單、收貨的 `*_by_user_id_snapshot`、`*_username_snapshot`、`*_display_name_snapshot` 是事件發生當下寫入的非 FK 快照；事件時間仍由原 `created_at`、`approved_at`、`rejected_at`、`ordered_at`、`received_at` 保存。V24 保留 Demand、Recommendation、Inventory Import、StockTransaction、DocumentMetadata 與 AI 草稿資料列，並將歷史使用者 FK 置空、以非 FK ID snapshot 留存原關聯識別。
+
+## V2-201 PO Draft 編輯與歷史來源快照
+
+PO 與 PO item 原有正式 Entity/Schema 已支援直接建立 `DRAFT`、nullable `expected_delivery_date`、非空 item 集合、`quantity > 0`、`unit_price >= 0`、資料庫 `DECIMAL(19,4)`、PO `@Version` 與單一交易邊界；本 Issue 不新增資料欄位或 Migration。Draft Edit 與核准以同一 PO 列鎖序列化狀態檢查，並保留 `@Version`。Draft Edit 只能變更商業欄位，既有 item 的 `recommendation_id`、`supplier_recommendation_result_id`、推薦供應商/數量快照及覆寫原因保留為不可變歷史資料。
+
+建立或更換供應商/品項仍要求 ACTIVE Supplier、ACTIVE Material 與 ACTIVE SupplierMaterial 關聯。SupplierMaterial 是現行供應主檔的有效供應關係，V2-201 沒有核准移除此 Domain 驗證；手動草稿可輸入暫估單價，不使用該主檔價格作為 PO 單價。

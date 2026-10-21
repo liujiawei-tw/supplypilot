@@ -2492,3 +2492,10 @@ ai
 - `POST /api/v1/purchase-orders/{id}/claim` 將未指派採購單指派給目前登入者；`POST /api/v1/purchase-orders/{id}/assign` 接受 `{ "userId": <id> }`。兩者都保留正式採購單狀態，並以列鎖與 `@Version` 防止競態覆寫。無效或停用帳號不可指派。
 - PO 回應提供 `assignedTo`、`assignedToDisplayName`、`assignedToUsername`；未指派時三者為 `null`。歷史建立、核准、駁回、下單及收貨操作者使用 `*UserId`、`*Username`、`*DisplayName` 快照欄位與既有事件時間。
 - V24 讓人員 FK 刪除時置空，另存非 FK 的歷史 ID 快照；PO 操作者的 username/display name 由舊資料回填，無法還原既有資料從未記錄的原姓名。
+
+## V2-201：直接建立採購草稿
+
+- `POST /api/v1/purchase-orders` 直接建立正式 `DRAFT`，要求有效供應商與至少一筆有效品項；數量為正、單價非負，使用既有 `DECIMAL(19,4)` 精度。`expectedDeliveryDate` 可省略或為 `null`；核准命令仍由 Domain 要求該日期。
+- `PATCH /api/v1/purchase-orders/{id}` 只允許 `DRAFT`，可更換有效供應商、完整替換品項及設定/清除期望到貨日。Draft Edit 與核准先取得同一 PO 的 `PESSIMISTIC_WRITE` 列鎖並在鎖內檢查狀態，避免彼此交錯造成覆寫；`@Version` 仍保留作版本保護。失敗時交易不提交部分資料。
+- V2 帳號是 `ADMIN` 業務角色。Demand 的建立/編輯/取消僅保留舊角色相容，V2 `ADMIN` 無法寫入；採購 Recommendation 建立亦不授權 V2 `ADMIN`。歷史 Demand/Recommendation 查詢仍可供舊資料相容，資料列與外鍵保留。
+- Draft Edit 不讀取或重驗歷史 Recommendation 關聯以決定 PO 是否可編輯。既有 PO item 的推薦 ID、供應商/數量快照與覆寫原因不可透過草稿編輯改寫或清除；新手動 PO 不需這些欄位。

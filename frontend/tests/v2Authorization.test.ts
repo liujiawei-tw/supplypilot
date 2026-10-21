@@ -24,4 +24,12 @@ describe('V2 account capability authorization', () => {
     expect(canUser(account(true), 'userManagement')).toBe(true);
     expect(isAllowedDestination('/users', account(true))).toBe(true);
   });
+
+  it('does not expose legacy Demand or recommendation routes to V2 business accounts', () => {
+    const businessAccount = account(false);
+    expect(isAllowedDestination('/demands', businessAccount)).toBe(false);
+    expect(isAllowedDestination('/recommendations', businessAccount)).toBe(false);
+    expect(isAllowedDestination('/recommendations/12', businessAccount)).toBe(false);
+    expect(isAllowedDestination('/purchase-orders', businessAccount)).toBe(true);
+  });
 });

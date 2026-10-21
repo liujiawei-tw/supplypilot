@@ -139,6 +139,8 @@ class RecommendationControllerIntegrationTests extends AbstractIntegrationTest {
                 .andExpect(status().isUnauthorized());
         create(user(UserRole.WAREHOUSE_STAFF), unqualified, LocalDate.of(2026, 10, 20), LocalDate.of(2026, 10, 20))
                 .andExpect(status().isForbidden());
+        create(user(UserRole.ADMIN), unqualified, LocalDate.of(2026, 10, 20), LocalDate.of(2026, 10, 20))
+                .andExpect(status().isForbidden());
     }
 
     @Test

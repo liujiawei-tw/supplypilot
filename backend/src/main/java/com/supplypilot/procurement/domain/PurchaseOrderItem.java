@@ -116,12 +116,8 @@ public class PurchaseOrderItem {
         quantity = replacement.quantity;
         unitPrice = replacement.unitPrice;
         unit = replacement.unit;
-        recommendationId = replacement.recommendationId;
-        supplierRecommendationResultId = replacement.supplierRecommendationResultId;
-        recommendedSupplierIdSnapshot = replacement.recommendedSupplierIdSnapshot;
-        recommendedQuantitySnapshot = replacement.recommendedQuantitySnapshot;
-        supplierOverrideReason = replacement.supplierOverrideReason;
-        quantityOverrideReason = replacement.quantityOverrideReason;
+        // Recommendation references and override details are historical snapshots. Draft edits
+        // may update commercial values but cannot erase or rewrite the original decision record.
     }
 
     private static BigDecimal validQuantity(BigDecimal value) {

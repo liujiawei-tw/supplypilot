@@ -4,7 +4,6 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../../auth/useAuth';
 import { can, roleLabels } from '../../auth/permissions';
 import { routeCatalog } from '../../router/routeCatalog';
-import { listDemands, type DemandResponse } from '../../api/demand';
 import { listPurchaseOrders, type PurchaseOrderResponse, type PurchaseOrderStatus } from '../../api/purchaseOrder';
 import { listReceivingPurchaseOrders, type ReceivingPurchaseOrderResponse } from '../../api/receiving';
 import { toApiError } from '../../api/apiError';
@@ -17,8 +16,8 @@ import './DashboardPage.css';
 
 const { Paragraph, Text, Title } = Typography;
 
-type WorkKind = 'purchase-order' | 'receiving' | 'demand';
-type WorkRow = PurchaseOrderResponse | ReceivingPurchaseOrderResponse | DemandResponse;
+type WorkKind = 'purchase-order' | 'receiving';
+type WorkRow = PurchaseOrderResponse | ReceivingPurchaseOrderResponse;
 type WorkPanelStatus = 'LOADING' | 'READY' | 'EMPTY' | 'FORBIDDEN' | 'ERROR';
 
 interface WorkPanelDefinition {
@@ -26,7 +25,7 @@ interface WorkPanelDefinition {
   title: string;
   description: string;
   kind: WorkKind;
-  permission: 'purchaseOrderRead' | 'receiving' | 'demands';
+  permission: 'purchaseOrderRead' | 'receiving';
   status?: PurchaseOrderStatus | 'ORDERED' | 'ACTIVE';
   destination: string;
   emptyDescription: string;
@@ -74,20 +73,16 @@ function panelsForRole(role: UserRole): WorkPanelDefinition[] {
     { key: 'admin-receiving', title: '待收貨採購單', description: '以收貨專用資料檢視到貨作業。', kind: 'receiving', permission: 'receiving', status: 'ORDERED', destination: '/receiving/purchase-orders', emptyDescription: '目前沒有待收貨採購單。' },
   ];
 
-  return [
-    { key: 'planner-demands', title: '進行中的需求', description: '依需求日期查看進行中的生產需求；數量不跨物料或單位加總。', kind: 'demand', permission: 'demands', status: 'ACTIVE', destination: '/demands', emptyDescription: '目前沒有進行中的生產需求。' },
-  ];
+  return [];
 }
 
 function quickActionsForRole(role: UserRole): QuickAction[] {
   const actions: Record<UserRole, QuickAction[]> = {
     PROCUREMENT_STAFF: [
-      { path: 'recommendations', label: '建立採購建議', description: '依期間與物料取得後端推薦結果。' },
       { path: 'purchase-orders', label: '查看採購單', description: '查詢草稿、核准、下單與歷史狀態。' },
     ],
     PROCUREMENT_MANAGER: [
       { path: 'purchase-orders', label: '審核採購單', description: '檢視 DRAFT 並執行授權的核准或退回。' },
-      { path: 'recommendations', label: '查看採購建議', description: '依既有採購建議編號查詢決策快照。' },
     ],
     WAREHOUSE_STAFF: [
       { path: 'receiving/purchase-orders', label: '開啟收貨作業', description: '查看待收貨採購單並執行整筆收貨。' },
@@ -96,10 +91,8 @@ function quickActionsForRole(role: UserRole): QuickAction[] {
     ADMIN: [
       { path: 'purchase-orders', label: '管理採購單', description: '查看授權的採購單與處理流程。' },
       { path: 'receiving/purchase-orders', label: '開啟收貨作業', description: '使用收貨專用資料檢視待收貨項目。' },
-      { path: 'recommendations', label: '建立採購建議', description: '依期間與物料取得後端推薦結果。' },
     ],
     PRODUCTION_PLANNER: [
-      { path: 'demands', label: '管理需求', description: '查看與維護生產需求。' },
       { path: 'inventory', label: '查看庫存', description: '依物料查詢已授權的庫存資料。' },
     ],
   };
@@ -117,7 +110,7 @@ async function fetchPanel(definition: WorkPanelDefinition): Promise<PageResponse
   if (definition.kind === 'receiving') {
     return await listReceivingPurchaseOrders({ status: 'ORDERED', page: 0, size: 5, sort: 'expectedDeliveryDate,asc' }) as PageResponse<WorkRow>;
   }
-  return await listDemands({ status: 'ACTIVE', page: 0, size: 5, sort: 'requiredDate,asc' }) as PageResponse<WorkRow>;
+  throw new Error('Unsupported dashboard work panel');
 }
 
 function isPageResponse(value: unknown): value is PageResponse<WorkRow> {
@@ -149,10 +142,7 @@ function rowDescription(row: WorkRow): ReactNode {
       {row.isOverdue && <Tag color="red">已逾期</Tag>}
     </Space>;
   }
-  return <Space wrap size={[8, 4]}>
-    <Text>物料 ID {row.materialId}</Text>
-    <Text type="secondary">需求日：{row.requiredDate}</Text>
-  </Space>;
+  return null;
 }
 
 function rowTitle(row: WorkRow): ReactNode {
@@ -162,10 +152,7 @@ function rowTitle(row: WorkRow): ReactNode {
       <Tag color={row.status === 'DRAFT' ? 'default' : row.status === 'APPROVED' ? 'blue' : 'gold'}>{displayLabel(row.status)}</Tag>
     </Space>;
   }
-  return <Space wrap>
-    <Text strong>需求 #{row.id}</Text>
-    <Tag color="blue">{displayLabel(row.status)}</Tag>
-  </Space>;
+  return null;
 }
 
 function nextStep(row: WorkRow, role: UserRole): string {
@@ -175,7 +162,7 @@ function nextStep(row: WorkRow, role: UserRole): string {
     return '追蹤採購單與收貨進度';
   }
   if (isReceivingOrder(row)) return '核對物料與數量後進入收貨';
-  return '開啟需求清單檢視完整資料';
+  return '開啟採購單清單檢視完整資料';
 }
 
 function DashboardWorkPanel({
@@ -226,9 +213,9 @@ function DashboardWorkPanel({
       renderItem={(row) => <List.Item
         actions={[<Link
           key="open"
-          aria-label={isPurchaseOrder(row) || isReceivingOrder(row) ? `開啟 ${row.poNumber} 明細` : `查看需求 ${row.id}`}
-          to={isReceivingOrder(row) ? `/receiving/purchase-orders/${row.id}` : isPurchaseOrder(row) ? `/purchase-orders/${row.id}` : definition.destination}
-        >{isPurchaseOrder(row) || isReceivingOrder(row) ? '開啟明細' : '查看需求'}</Link>]}
+          aria-label={`開啟 ${row.poNumber} 明細`}
+          to={isReceivingOrder(row) ? `/receiving/purchase-orders/${row.id}` : `/purchase-orders/${row.id}`}
+        >開啟明細</Link>]}
       >
         <List.Item.Meta
           title={rowTitle(row)}
@@ -239,7 +226,7 @@ function DashboardWorkPanel({
         />
       </List.Item>}
     />}
-    <Link className="dashboard-panel-link" to={definition.destination}>前往{definition.kind === 'receiving' ? '收貨作業' : definition.kind === 'demand' ? '需求管理' : '採購單清單'}</Link>
+    <Link className="dashboard-panel-link" to={definition.destination}>前往{definition.kind === 'receiving' ? '收貨作業' : '採購單清單'}</Link>
   </section>;
 }
 

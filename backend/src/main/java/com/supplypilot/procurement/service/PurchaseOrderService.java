@@ -205,7 +205,7 @@ public class PurchaseOrderService {
     @Transactional
     @PreAuthorize("hasAnyRole('PROCUREMENT_STAFF', 'ADMIN')")
     public PurchaseOrderResponse updateDraft(Long id, UpdatePurchaseOrderRequest request) {
-        PurchaseOrder purchaseOrder = purchaseOrderRepository.findById(id)
+        PurchaseOrder purchaseOrder = purchaseOrderRepository.findByIdForUpdate(id)
                 .orElseThrow(() -> new BusinessException(ErrorCode.PURCHASE_ORDER_NOT_FOUND));
         if (purchaseOrder.getStatus() != PurchaseOrderStatus.DRAFT) {
             throw new BusinessException(ErrorCode.PO_NOT_EDITABLE);
@@ -223,7 +223,7 @@ public class PurchaseOrderService {
                 if (!materialIds.add(itemRequest.materialId())) throw new BusinessException(ErrorCode.DUPLICATE_MATERIAL);
                 Material material = activeMaterial(itemRequest.materialId());
                 validateSupplierMaterial(finalSupplier, material);
-                return createItem(itemInput(itemRequest), material, finalSupplier);
+                return PurchaseOrderItem.create(material, itemRequest.quantity(), itemRequest.unitPrice(), clock.instant());
             }).toList();
         } else {
             for (PurchaseOrderItem item : purchaseOrder.getItems()) {
@@ -246,7 +246,7 @@ public class PurchaseOrderService {
     @Transactional
     @PreAuthorize("hasAnyRole('PROCUREMENT_MANAGER', 'ADMIN')")
     public PurchaseOrderResponse approve(Long id) {
-        PurchaseOrder purchaseOrder = purchaseOrderRepository.findById(id)
+        PurchaseOrder purchaseOrder = purchaseOrderRepository.findByIdForUpdate(id)
                 .orElseThrow(() -> new BusinessException(ErrorCode.PURCHASE_ORDER_NOT_FOUND));
         User approver = currentUser();
         purchaseOrder.approve(approver, clock.instant());
@@ -400,41 +400,9 @@ public class PurchaseOrderService {
     private void validateRetainedItem(PurchaseOrderItem item, Supplier supplier) {
         Material material = activeMaterial(item.getMaterial().getId());
         validateSupplierMaterial(supplier, material);
-        if (item.getRecommendationId() == null && item.getSupplierRecommendationResultId() == null) return;
-        if (item.getRecommendationId() == null) {
-            throw new BusinessException(ErrorCode.INVALID_RECOMMENDATION_REFERENCE);
-        }
-        if (item.getSupplierRecommendationResultId() == null) {
-            throw new BusinessException(ErrorCode.INVALID_SUPPLIER_RECOMMENDATION_REFERENCE);
-        }
-
-        PurchaseRecommendation recommendation = purchaseRecommendationRepository.findById(item.getRecommendationId())
-                .orElseThrow(() -> new BusinessException(ErrorCode.RECOMMENDATION_NOT_FOUND));
-        if (!recommendation.getMaterial().getId().equals(material.getId())) {
-            throw new BusinessException(ErrorCode.INVALID_RECOMMENDATION_REFERENCE);
-        }
-        SupplierRecommendationResult supplierResult = supplierRecommendationResultRepository
-                .findById(item.getSupplierRecommendationResultId())
-                .orElseThrow(() -> new BusinessException(ErrorCode.INVALID_SUPPLIER_RECOMMENDATION_REFERENCE));
-        if (!supplierResult.getRecommendation().getId().equals(recommendation.getId())
-                || !supplierResult.getSupplier().getId().equals(supplier.getId())) {
-            throw new BusinessException(ErrorCode.INVALID_SUPPLIER_RECOMMENDATION_REFERENCE);
-        }
-        Long recommendedSupplierId = recommendation.getRecommendedSupplier() == null
-                ? null : recommendation.getRecommendedSupplier().getId();
-        boolean supplierOverride = !Objects.equals(supplier.getId(), recommendedSupplierId);
-        boolean quantityOverride = recommendation.getRecommendedQuantity() == null
-                || item.getQuantity().compareTo(recommendation.getRecommendedQuantity()) != 0;
-        overrideReason(supplierOverride, item.getSupplierOverrideReason(), ErrorCode.SUPPLIER_OVERRIDE_REASON_REQUIRED);
-        overrideReason(quantityOverride, item.getQuantityOverrideReason(), ErrorCode.QUANTITY_OVERRIDE_REASON_REQUIRED);
     }
 
     private ItemInput itemInput(CreatePurchaseOrderItemRequest request) {
-        return new ItemInput(request.materialId(), request.quantity(), request.unitPrice(), request.recommendationId(),
-                request.supplierRecommendationResultId(), request.supplierOverrideReason(), request.quantityOverrideReason());
-    }
-
-    private ItemInput itemInput(UpdatePurchaseOrderItemRequest request) {
         return new ItemInput(request.materialId(), request.quantity(), request.unitPrice(), request.recommendationId(),
                 request.supplierRecommendationResultId(), request.supplierOverrideReason(), request.quantityOverrideReason());
     }

@@ -33,11 +33,11 @@ class DemandControllerIntegrationTests extends AbstractIntegrationTest {
 
     @BeforeEach void setUp() { mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext).apply(SecurityMockMvcConfigurers.springSecurity()).build(); tokens = new JwtTokenService(jwtProperties, clock); }
 
-    @Test void postAllowsPlannerAndAdminAndRejectsOtherRolesAndAnonymous() throws Exception {
+    @Test void postAllowsLegacyPlannerAndRejectsV2AdminOtherRolesAndAnonymous() throws Exception {
         Material material = material(); User planner = user(UserRole.PRODUCTION_PLANNER); User admin = user(UserRole.ADMIN);
         User buyer = user(UserRole.PROCUREMENT_STAFF); User manager = user(UserRole.PROCUREMENT_MANAGER); User warehouse = user(UserRole.WAREHOUSE_STAFF);
-        create(material, planner).andExpect(status().isCreated()); create(material, admin).andExpect(status().isCreated());
-        for (User denied : java.util.List.of(buyer, manager, warehouse)) create(material, denied).andExpect(status().isForbidden()).andExpect(jsonPath("$.code").value("ACCESS_DENIED"));
+        create(material, planner).andExpect(status().isCreated());
+        for (User denied : java.util.List.of(admin, buyer, manager, warehouse)) create(material, denied).andExpect(status().isForbidden()).andExpect(jsonPath("$.code").value("ACCESS_DENIED"));
         mockMvc.perform(post("/api/v1/demands").contentType(MediaType.APPLICATION_JSON).content(payload(material))).andExpect(status().isUnauthorized()).andExpect(jsonPath("$.code").value("UNAUTHENTICATED"));
     }
 
@@ -49,15 +49,15 @@ class DemandControllerIntegrationTests extends AbstractIntegrationTest {
         mockMvc.perform(get("/api/v1/demands")).andExpect(status().isUnauthorized()); mockMvc.perform(get("/api/v1/demands/{id}", demand.getId())).andExpect(status().isUnauthorized());
     }
 
-    @Test void patchAndCancelAllowPlannerAndAdminAndRejectOtherRolesAndAnonymous() throws Exception {
+    @Test void patchAndCancelAllowLegacyPlannerAndRejectV2AdminOtherRolesAndAnonymous() throws Exception {
         Material material = material(); User planner = user(UserRole.PRODUCTION_PLANNER); User admin = user(UserRole.ADMIN);
         User buyer = user(UserRole.PROCUREMENT_STAFF); User manager = user(UserRole.PROCUREMENT_MANAGER); User warehouse = user(UserRole.WAREHOUSE_STAFF);
         Demand plannerDemand = demand(material, planner, LocalDate.of(2026, 10, 8)); Demand adminDemand = demand(material, admin, LocalDate.of(2026, 10, 8));
         mockMvc.perform(patch("/api/v1/demands/{id}", plannerDemand.getId()).header("Authorization", bearer(planner)).contentType(MediaType.APPLICATION_JSON).content("{\"quantity\":2}")).andExpect(status().isOk());
-        mockMvc.perform(patch("/api/v1/demands/{id}", adminDemand.getId()).header("Authorization", bearer(admin)).contentType(MediaType.APPLICATION_JSON).content("{\"quantity\":2}")).andExpect(status().isOk());
-        for (User denied : java.util.List.of(buyer, manager, warehouse)) { Demand target = demand(material, planner, LocalDate.of(2026, 10, 8)); mockMvc.perform(patch("/api/v1/demands/{id}", target.getId()).header("Authorization", bearer(denied)).contentType(MediaType.APPLICATION_JSON).content("{\"quantity\":2}")).andExpect(status().isForbidden()); mockMvc.perform(post("/api/v1/demands/{id}/cancel", target.getId()).header("Authorization", bearer(denied))).andExpect(status().isForbidden()); }
+        mockMvc.perform(patch("/api/v1/demands/{id}", adminDemand.getId()).header("Authorization", bearer(admin)).contentType(MediaType.APPLICATION_JSON).content("{\"quantity\":2}")).andExpect(status().isForbidden());
+        for (User denied : java.util.List.of(admin, buyer, manager, warehouse)) { Demand target = demand(material, planner, LocalDate.of(2026, 10, 8)); mockMvc.perform(patch("/api/v1/demands/{id}", target.getId()).header("Authorization", bearer(denied)).contentType(MediaType.APPLICATION_JSON).content("{\"quantity\":2}")).andExpect(status().isForbidden()); mockMvc.perform(post("/api/v1/demands/{id}/cancel", target.getId()).header("Authorization", bearer(denied))).andExpect(status().isForbidden()); }
         Demand cancelByPlanner = demand(material, planner, LocalDate.of(2026, 10, 8)); Demand cancelByAdmin = demand(material, admin, LocalDate.of(2026, 10, 8));
-        mockMvc.perform(post("/api/v1/demands/{id}/cancel", cancelByPlanner.getId()).header("Authorization", bearer(planner))).andExpect(status().isOk()); mockMvc.perform(post("/api/v1/demands/{id}/cancel", cancelByAdmin.getId()).header("Authorization", bearer(admin))).andExpect(status().isOk());
+        mockMvc.perform(post("/api/v1/demands/{id}/cancel", cancelByPlanner.getId()).header("Authorization", bearer(planner))).andExpect(status().isOk()); mockMvc.perform(post("/api/v1/demands/{id}/cancel", cancelByAdmin.getId()).header("Authorization", bearer(admin))).andExpect(status().isForbidden());
         mockMvc.perform(patch("/api/v1/demands/{id}", plannerDemand.getId()).contentType(MediaType.APPLICATION_JSON).content("{\"quantity\":3}")).andExpect(status().isUnauthorized()); mockMvc.perform(post("/api/v1/demands/{id}/cancel", plannerDemand.getId())).andExpect(status().isUnauthorized());
     }
 

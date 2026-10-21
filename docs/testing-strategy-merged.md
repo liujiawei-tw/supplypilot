@@ -2523,6 +2523,13 @@ README
 - [ ] 能記錄／估算請求用量、延遲、失敗與預算警示，不能宣稱 Google AI Studio 原生具備未驗證的硬額度限制。
 - [ ] Test 使用可控制的 Fake ChatModel，不呼叫真實付費 Provider；Demo 手動 Smoke Test 使用真實 Gemini。
 
+## V2-201 PO Draft 驗證增補
+
+- 直接 PO 建立不帶 Demand/Recommendation/Ranking 參照；驗證空交期可建立、缺交期核准拒絕且資料/版本不變，補齊後核准成功，核准後 Draft Edit 拒絕。
+- 驗證 ACTIVE Supplier/Material/SupplierMaterial 關係、至少一項品項、正數數量、非負單價及 `DECIMAL(19,4)` DB 邊界；保留 existing supplier-material validity gate。
+- 對含歷史推薦來源的 PO 以完整 item 清單編輯數量/單價/供應商後，斷言 Recommendation FK 與歷史快照/覆寫原因保持不變；V2 ADMIN 對 Demand 寫入與 Recommendation 建立取得 403，歷史 read 不被刪除。
+- PO 的 `@Version` 與完整交易回歸，另驗證 edit/approve 並發只允許合法提交者，409 後查詢最新狀態；收貨/庫存原子性及已合併 #137 快照測試仍須通過。
+
 ---
 
 ## E8 Backend 前置契約與 UI 測試盤點（2026-10-11）

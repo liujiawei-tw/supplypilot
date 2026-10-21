@@ -192,47 +192,33 @@ class PurchaseOrderUpdateIntegrationTests extends AbstractIntegrationTest {
     }
 
     @Test
-    void validatesRecommendationEvidenceAndOverrideReasonsFromPersistedData() throws Exception {
+    void preservesHistoricalRecommendationEvidenceWhenEditingCommercialDraftFields() throws Exception {
         Supplier supplier = supplier();
         Supplier otherSupplier = supplier();
         Material material = material();
-        Material otherMaterial = material();
         supplies(supplier, material);
-        supplies(supplier, otherMaterial);
         supplies(otherSupplier, material);
         User staff = user(UserRole.PROCUREMENT_STAFF);
         RecommendationFixture fixture = recommendation(material, supplier, otherSupplier, staff);
-        RecommendationFixture otherFixture = recommendation(otherMaterial, supplier, null, staff);
-        long id = createdId(create(staff, supplier, manualItem(material, "10", "5")).andReturn());
+        long id = createdId(create(staff, supplier, recommendedItem(material, "10", fixture, null)).andReturn());
 
-        update(staff, id, "{\"items\":[" + recommendedItem(material, "12", fixture, null) + "]}")
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("QUANTITY_OVERRIDE_REASON_REQUIRED"));
-        update(staff, id, "{\"items\":[" + recommendedItem(material, "10", otherFixture, null) + "]}")
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("INVALID_RECOMMENDATION_REFERENCE"));
-        update(staff, id, "{\"items\":[{\"materialId\":" + material.getId()
-                + ",\"quantity\":10,\"unitPrice\":5,\"recommendationId\":" + fixture.recommendation().getId()
-                + ",\"supplierRecommendationResultId\":" + fixture.alternateResult().getId() + "}]}")
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("INVALID_SUPPLIER_RECOMMENDATION_REFERENCE"));
-
-        update(staff, id, "{\"items\":[" + recommendedItem(material, "12", fixture, "Demand increased") + "]}")
+        update(staff, id, "{\"items\":[" + manualItem(material, "12", "7") + "]}")
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.items[0].quantityOverride").value(true))
-                .andExpect(jsonPath("$.items[0].quantityOverrideReason").value("Demand increased"));
+                .andExpect(jsonPath("$.items[0].quantity").value(12))
+                .andExpect(jsonPath("$.items[0].unitPrice").value(7))
+                .andExpect(jsonPath("$.items[0].recommendationId").value(fixture.recommendation().getId()))
+                .andExpect(jsonPath("$.items[0].supplierRecommendationResultId").value(fixture.result().getId()));
         assertThat(jdbcTemplate.queryForObject(
-                "SELECT recommended_supplier_id_snapshot FROM purchase_order_items WHERE purchase_order_id = ?",
-                Long.class, id)).isEqualTo(supplier.getId());
+                "SELECT recommendation_id FROM purchase_order_items WHERE purchase_order_id = ?",
+                Long.class, id)).isEqualTo(fixture.recommendation().getId());
         assertThat(jdbcTemplate.queryForObject(
                 "SELECT recommended_quantity_snapshot FROM purchase_order_items WHERE purchase_order_id = ?",
                 BigDecimal.class, id)).isEqualByComparingTo("10");
 
         update(staff, id, "{\"supplierId\":" + otherSupplier.getId() + "}")
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("INVALID_SUPPLIER_RECOMMENDATION_REFERENCE"));
+                .andExpect(status().isOk()).andExpect(jsonPath("$.supplierId").value(otherSupplier.getId()));
         assertThat(jdbcTemplate.queryForObject(
-                "SELECT supplier_id FROM purchase_orders WHERE id = ?", Long.class, id)).isEqualTo(supplier.getId());
+                "SELECT supplier_id FROM purchase_orders WHERE id = ?", Long.class, id)).isEqualTo(otherSupplier.getId());
     }
 
     @Test
