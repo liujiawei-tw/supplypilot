@@ -15,7 +15,7 @@
 | Compose 設定 | `docker compose -f compose.yaml config --quiet`；`docker compose -f compose.dev.yaml config --quiet`；`docker compose -f compose.yaml -f compose.demo.yaml config --quiet` | PASS；三種配置 | Compose YAML 未修改；本次只影響資料庫遷移與服務 API。 |
 | Docker Image Build／隔離 Smoke | Backend、Frontend image build；臨時 network/containers 啟動、API proxy 401、Frontend health 200、Backend restart health UP、Flyway V24 | PASS | 以 #137 工作樹 Dockerfile／應用程式建置。僅使用臨時容器與 network，沒有建立、刪除或修改 volume。 |
 | Git diff whitespace | `git diff --check` | PASS | 加入本驗證紀錄後再執行。 |
-| GitHub Actions 完整 CI | Feature Branch 交付 SHA | NOT RUN | Push 後取得同一 SHA 的 Workflow Run 與每個 Job 結果再更新。 |
+| GitHub Actions 完整 CI | 原審查 SHA `c02eaed6d90209bb9844ee01c2855d7c0c235e95`；Run #173 | PASS | [GitHub Actions Run #173](https://github.com/liujiawei-tw/supplypilot/actions/runs/39567728185) 全部 Job 通過；這是前一版 SHA 的結果，不取代本次修正 SHA 的回歸。 |
 
 ## 本次 Review 修正驗證（基於 `c02eaed6d90209bb9844ee01c2855d7c0c235e95` 的目前工作樹）
 
@@ -35,7 +35,7 @@
 | 隔離 Frontend／API Proxy | `frontend:issue137-review` 容器內 `/health`；`/api/v1/purchase-orders` 經 Nginx proxy | PASS；health `ok`，API 返回預期 `401`，證明 proxy 抵達需認證的後端路由 | 只驗證隔離內部網路；未驗證宿主機瀏覽器連線。 |
 | 隔離容器重啟／資料保留 | 重啟 `issue137-backend-smoke` 後查 health、Flyway history、users、purchase_orders、stock_transactions、管理索引 | PASS；health `UP`；V23 checksum 1761549949、V24 success；users=6、PO=12、stock_transactions=6；索引 metadata 有 3 列 | 數據只來自隔離複本。 |
 | Git whitespace | `git diff --check` | PASS | 本次工作樹；文件更新完成後仍須再跑一次。 |
-| GitHub Actions | 本次交付 SHA | NOT RUN | Push 後查核各 Job，僅用相同 Head SHA 結果作完整回歸證據。 |
+| GitHub Actions 完整 CI | `1a0ea5035a6817b432aba0a44edc19d1020c52ba`；Run #174 | PASS；Detect CI scope、Backend CI、Frontend CI、Container image and Compose validation 全部成功；Frontend Vitest 24/24 files、202/202 tests | [GitHub Actions Run #174](https://github.com/liujiawei-tw/supplypilot/actions/runs/39574370963)；push 觸發，workflow Head SHA 與本次程式 Commit 完全一致。Frontend CI 13m 27s；未重跑本機整套 Vitest。 |
 
 ### Docker Demo V23 Checksum 調查
 
