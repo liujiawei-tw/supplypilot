@@ -22,6 +22,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
     boolean existsByRoleAndStatus(UserRole role, UserStatus status);
 
     boolean existsByCanManageUsersTrueAndStatus(UserStatus status);
+    List<User> findByRoleAndStatusOrderByDisplayNameAsc(UserRole role, UserStatus status);
 
     long countByCanManageUsersTrueAndStatus(UserStatus status);
 
@@ -33,4 +34,8 @@ public interface UserRepository extends JpaRepository<User, Long> {
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select u from User u where u.canManageUsers = true and u.status = :status order by u.id")
     List<User> findActiveManagersForUpdate(@Param("status") UserStatus status);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select u from User u where u.id = :id")
+    Optional<User> findByIdForUpdate(@Param("id") Long id);
 }

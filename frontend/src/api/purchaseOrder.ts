@@ -26,11 +26,14 @@ export interface PurchaseOrderItemResponse {
 }
 export interface PurchaseOrderResponse {
   id: number; poNumber: string; supplierId: number; supplierCode: string; supplierName: string; status: PurchaseOrderStatus;
-  expectedDeliveryDate: string | null; items: PurchaseOrderItemResponse[]; createdBy: number; createdByDisplayName: string;
+  expectedDeliveryDate: string | null; items: PurchaseOrderItemResponse[]; createdBy: number | null; createdByDisplayName: string;
+  createdByUsername: string | null; assignedTo: number | null; assignedToDisplayName: string | null; assignedToUsername: string | null;
   createdAt: string; approvedBy: number | null; approvedByDisplayName: string | null; approvedAt: string | null;
+  approvedByUsername: string | null;
   rejectReason: string | null; rejectedBy: number | null; rejectedByDisplayName: string | null; rejectedAt: string | null;
-  orderedBy: number | null; orderedByDisplayName: string | null; orderedAt: string | null; receivedBy: number | null;
-  receivedByDisplayName: string | null; receivedAt: string | null; isOverdue: boolean; updatedAt: string;
+  rejectedByUsername: string | null;
+  orderedBy: number | null; orderedByDisplayName: string | null; orderedByUsername: string | null; orderedAt: string | null; receivedBy: number | null;
+  receivedByDisplayName: string | null; receivedByUsername: string | null; receivedAt: string | null; isOverdue: boolean; updatedAt: string;
 }
 export interface PurchaseOrderQuery {
   status?: PurchaseOrderStatus; supplierId?: number; materialId?: number; createdFrom?: string; createdTo?: string;
@@ -58,4 +61,10 @@ export async function rejectPurchaseOrder(id: number, reason: string): Promise<P
 }
 export async function markPurchaseOrderOrdered(id: number): Promise<PurchaseOrderResponse> {
   return (await axiosClient.post<PurchaseOrderResponse>(`/purchase-orders/${id}/order`, undefined, decimalResponseConfig)).data;
+}
+export async function claimPurchaseOrder(id: number): Promise<PurchaseOrderResponse> {
+  return (await axiosClient.post<PurchaseOrderResponse>(`/purchase-orders/${id}/claim`, undefined, decimalResponseConfig)).data;
+}
+export async function assignPurchaseOrder(id: number, userId: number): Promise<PurchaseOrderResponse> {
+  return (await axiosClient.post<PurchaseOrderResponse>(`/purchase-orders/${id}/assign`, { userId }, decimalResponseConfig)).data;
 }

@@ -180,7 +180,7 @@ describe('SP-805 PO lifecycle UI', () => {
     expect(screen.queryByRole('button', { name: '編輯草稿' })).toBeNull();
     expect(screen.queryByRole('button', { name: '標記為已下單' })).toBeNull();
     expect(screen.getByText('999999999999999.1234000 KG')).toBeTruthy();
-    expect(requests).toEqual(['/auth/me', '/purchase-orders/42']);
+    expect(requests).toEqual(['/auth/me', '/users/assignable', '/purchase-orders/42']);
   });
 
   it('requires a non-blank reject reason before enabling the confirmed request', async () => {

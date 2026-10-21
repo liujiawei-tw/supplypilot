@@ -11,6 +11,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.data.jpa.repository.Lock;
+import jakarta.persistence.LockModeType;
 
 public interface PurchaseOrderRepository extends JpaRepository<PurchaseOrder, Long>, JpaSpecificationExecutor<PurchaseOrder> {
 
@@ -22,15 +24,20 @@ public interface PurchaseOrderRepository extends JpaRepository<PurchaseOrder, Lo
     @Query("select purchaseOrder.id as id, purchaseOrder.poNumber as poNumber from PurchaseOrder purchaseOrder where purchaseOrder.id in :ids")
     List<NumberProjection> findNumberByIdIn(@Param("ids") Collection<Long> ids);
 
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select po from PurchaseOrder po where po.id = :id")
+    java.util.Optional<PurchaseOrder> findByIdForUpdate(@Param("id") Long id);
+
     @Query("""
             select distinct purchaseOrder
             from PurchaseOrder purchaseOrder
             join fetch purchaseOrder.supplier
-            join fetch purchaseOrder.createdBy
+            left join fetch purchaseOrder.createdBy
             left join fetch purchaseOrder.approvedBy
             left join fetch purchaseOrder.rejectedBy
             left join fetch purchaseOrder.orderedBy
             left join fetch purchaseOrder.receivedBy
+            left join fetch purchaseOrder.assignedTo
             left join fetch purchaseOrder.items item
             left join fetch item.material
             where purchaseOrder.id in :ids
@@ -42,6 +49,7 @@ public interface PurchaseOrderRepository extends JpaRepository<PurchaseOrder, Lo
             from PurchaseOrder purchaseOrder
             join fetch purchaseOrder.supplier
             left join fetch purchaseOrder.receivedBy
+            left join fetch purchaseOrder.assignedTo
             left join fetch purchaseOrder.items item
             left join fetch item.material
             where purchaseOrder.id in :ids

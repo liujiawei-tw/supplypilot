@@ -49,9 +49,12 @@ public class StockTransaction {
     @Column(length = 500)
     private String reason;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "created_by", nullable = false)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "created_by")
     private User createdBy;
+
+    @Column(name = "created_by_user_id_snapshot")
+    private Long createdByUserIdSnapshot;
 
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
@@ -89,6 +92,7 @@ public class StockTransaction {
         transaction.purchaseOrderId = null;
         transaction.reason = trimmedReason;
         transaction.createdBy = createdBy;
+        transaction.createdByUserIdSnapshot = createdBy.getId();
         transaction.createdAt = now;
         return transaction;
     }
@@ -118,6 +122,7 @@ public class StockTransaction {
         transaction.purchaseOrderId = purchaseOrderId;
         transaction.reason = null;
         transaction.createdBy = createdBy;
+        transaction.createdByUserIdSnapshot = createdBy.getId();
         transaction.createdAt = now;
         return transaction;
     }
@@ -144,5 +149,6 @@ public class StockTransaction {
     public Long getPurchaseOrderId() { return purchaseOrderId; }
     public String getReason() { return reason; }
     public User getCreatedBy() { return createdBy; }
+    public Long getCreatedByUserIdSnapshot() { return createdByUserIdSnapshot; }
     public Instant getCreatedAt() { return createdAt; }
 }

@@ -8,6 +8,6 @@ import org.springframework.stereotype.Component;
 public class DemandMapper {
     public DemandResponse toResponse(Demand demand) {
         return new DemandResponse(demand.getId(), demand.getMaterial().getId(), demand.getQuantity(), demand.getRequiredDate(),
-                demand.getStatus(), demand.getNote(), demand.getCreatedBy().getId(), demand.getCreatedAt(), demand.getUpdatedAt());
+                demand.getStatus(), demand.getNote(), demand.getCreatedByUserIdSnapshot(), demand.getCreatedAt(), demand.getUpdatedAt());
     }
 }

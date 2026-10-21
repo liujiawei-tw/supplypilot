@@ -8,6 +8,7 @@ import com.supplypilot.common.exception.ErrorCode;
 import com.supplypilot.common.pagination.PageResponse;
 import com.supplypilot.procurement.domain.PurchaseOrderStatus;
 import com.supplypilot.procurement.dto.request.CreatePurchaseOrderRequest;
+import com.supplypilot.procurement.dto.request.AssignPurchaseOrderRequest;
 import com.supplypilot.procurement.dto.request.RejectPurchaseOrderRequest;
 import com.supplypilot.procurement.dto.request.UpdatePurchaseOrderRequest;
 import com.supplypilot.procurement.dto.response.PurchaseOrderResponse;
@@ -93,6 +94,16 @@ public class PurchaseOrderController {
     @PostMapping("/{id}/order")
     public PurchaseOrderResponse order(@PathVariable Long id) {
         return purchaseOrderService.markOrdered(id);
+    }
+
+    @PostMapping("/{id}/claim")
+    public PurchaseOrderResponse claim(@PathVariable Long id) {
+        return purchaseOrderService.claim(id);
+    }
+
+    @PostMapping("/{id}/assign")
+    public PurchaseOrderResponse assign(@PathVariable Long id, @Valid @RequestBody AssignPurchaseOrderRequest request) {
+        return purchaseOrderService.assign(id, request.userId());
     }
 
     @PostMapping("/{id}/receive")

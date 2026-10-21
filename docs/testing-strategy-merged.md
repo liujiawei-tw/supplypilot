@@ -42,6 +42,10 @@ Security Boundary
 Concurrency Correctness
 ```
 
+## Codex 開發期間的驗證節奏
+
+依變更影響範圍執行精準測試；修改共用認證／授權、資料庫 Schema／交易或存在跨模組風險時，擴大到相關整合測試。完整回歸優先由 GitHub Actions 在交付的 Feature Branch Head SHA 執行。本機完整回歸集中於必要的交付驗證，不為微小修正無理由重跑相同套件。此流程不縮減 CI Gate 或安全、授權、交易、併發測試；程式變更後須重跑受影響驗證，並記錄結果對應的 SHA／工作樹版本。
+
 ---
 
 # 2. Test Categories

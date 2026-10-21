@@ -19,6 +19,12 @@
 
 **本章只補充 V2 專案背景及規格引用；下方繁體中文 PR、單 Issue／Branch、Codex→GPT Review、Final PASS 才建立 PR、由使用者親自 Merge 的原有強制規則全部持續有效。**
 
+### Codex 測試執行節奏
+
+- 開發期間依變更影響範圍執行精準測試；共用認證／授權、資料庫 Schema／交易或跨模組風險才擴大至相關整合測試。
+- 完整回歸優先由 GitHub Actions 在交付的 Feature Branch Head SHA 執行。本機完整回歸應集中於必要的交付驗證，不得為微小修正無理由重跑相同套件。
+- 不得因此縮減 CI Gate、測試覆蓋、安全／授權／交易／併發驗證，或忽略任何失敗；程式變更後須重跑受影響驗證，並記錄結果對應的 SHA／工作樹版本。
+
 ## GitHub Pull Request 語言規範（強制）
 
 - **所有 SupplyPilot Pull Request（預設由 GPT 建立），標題與描述一律使用繁體中文（台灣，zh-TW）。**

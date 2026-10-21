@@ -46,6 +46,17 @@ class V23MigrationIntegrationTests {
             assertThat(migrated.get(3)).containsEntry("status", "INACTIVE").containsEntry("can_manage_users", false);
             assertThat(db.queryForObject("SELECT created_by FROM purchase_orders WHERE id = 501", Long.class)).isEqualTo(102L);
             assertThat(db.queryForObject("SELECT COUNT(*) FROM purchase_orders WHERE created_by = 102", Long.class)).isEqualTo(1L);
+            assertThat(db.queryForObject("SELECT assigned_to FROM purchase_orders WHERE id = 501", Long.class)).isEqualTo(102L);
+            assertThat(db.queryForObject("SELECT created_by_user_id_snapshot FROM purchase_orders WHERE id = 501", Long.class)).isEqualTo(102L);
+            assertThat(db.queryForObject("SELECT created_by_username_snapshot FROM purchase_orders WHERE id = 501", String.class)).isEqualTo("legacy_staff");
+            assertThat(db.queryForObject("SELECT created_by_display_name_snapshot FROM purchase_orders WHERE id = 501", String.class)).isEqualTo("Legacy Staff");
+
+            // V24 must preserve historical PO identity while allowing true account deletion.
+            db.update("DELETE FROM users WHERE id = 102");
+            assertThat(db.queryForObject("SELECT created_by FROM purchase_orders WHERE id = 501", Long.class)).isNull();
+            assertThat(db.queryForObject("SELECT assigned_to FROM purchase_orders WHERE id = 501", Long.class)).isNull();
+            assertThat(db.queryForObject("SELECT created_by_user_id_snapshot FROM purchase_orders WHERE id = 501", Long.class)).isEqualTo(102L);
+            assertThat(db.queryForObject("SELECT created_by_display_name_snapshot FROM purchase_orders WHERE id = 501", String.class)).isEqualTo("Legacy Staff");
     }
 
     private static void seedV1Rows(JdbcTemplate db) {

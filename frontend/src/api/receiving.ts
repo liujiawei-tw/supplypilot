@@ -9,7 +9,7 @@ export interface ReceivingPurchaseOrderItemResponse { id: number; materialId: nu
 export interface ReceivingPurchaseOrderResponse {
   id: number; poNumber: string; supplierId: number; supplierCode: string; supplierName: string; status: ReceivingStatus;
   expectedDeliveryDate: string | null; isOverdue: boolean; items: ReceivingPurchaseOrderItemResponse[]; orderedAt: string;
-  receivedBy: number | null; receivedByDisplayName: string | null; receivedAt: string | null;
+  receivedBy: number | null; receivedByDisplayName: string | null; receivedByUsername: string | null; receivedAt: string | null;
 }
 export interface ReceivingQuery { status?: ReceivingStatus; materialId?: number; expectedDeliveryFrom?: string; expectedDeliveryTo?: string; orderedFrom?: string; orderedTo?: string; page?: number; size?: number; sort?: string; }
 export async function listReceivingPurchaseOrders(query: ReceivingQuery): Promise<PageResponse<ReceivingPurchaseOrderResponse>> {

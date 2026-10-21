@@ -26,6 +26,7 @@ final class ErrorHttpStatusMapper {
                     DUPLICATE_USERNAME,
                     DUPLICATE_SUPPLIER_MATERIAL,
                     PO_NOT_EDITABLE,
+                    PURCHASE_ORDER_ALREADY_ASSIGNED,
                     INVALID_PO_STATUS,
                     INVALID_PO_STATUS_TRANSITION,
                     DUPLICATE_RECEIVING,

@@ -49,9 +49,12 @@ public class DocumentMetadata {
     @Column(nullable = false, length = 20)
     private DocumentStatus status;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "uploaded_by", nullable = false)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "uploaded_by")
     private User uploadedBy;
+
+    @Column(name = "uploaded_by_user_id_snapshot")
+    private Long uploadedByUserIdSnapshot;
 
     @Column(name = "uploaded_at", nullable = false)
     private Instant uploadedAt;
@@ -98,6 +101,7 @@ public class DocumentMetadata {
         document.storagePath = requiredText(storagePath);
         document.status = DocumentStatus.PROCESSING;
         document.uploadedBy = Objects.requireNonNull(uploadedBy, "Uploaded by must not be null");
+        document.uploadedByUserIdSnapshot = uploadedBy.getId();
         document.uploadedAt = Objects.requireNonNull(now, "Timestamp must not be null");
         document.updatedAt = now;
         return document;
@@ -177,6 +181,7 @@ public class DocumentMetadata {
     public String getStoragePath() { return storagePath; }
     public DocumentStatus getStatus() { return status; }
     public User getUploadedBy() { return uploadedBy; }
+    public Long getUploadedByUserIdSnapshot() { return uploadedByUserIdSnapshot; }
     public Instant getUploadedAt() { return uploadedAt; }
     public Instant getUpdatedAt() { return updatedAt; }
     public String getSemanticApprovedSourceHash() { return semanticApprovedSourceHash; }

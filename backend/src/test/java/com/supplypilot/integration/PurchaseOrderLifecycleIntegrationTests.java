@@ -223,7 +223,8 @@ class PurchaseOrderLifecycleIntegrationTests extends AbstractIntegrationTest {
         User manager = user(UserRole.PROCUREMENT_MANAGER);
         long approvalId = draftIdWithDate();
         jdbcTemplate.execute("ALTER TABLE purchase_orders ADD CONSTRAINT chk_sp610_forced_approval_failure "
-                + "CHECK (approved_by IS NULL OR approved_by <> " + manager.getId() + ")");
+                + "CHECK (approved_by_username_snapshot IS NULL OR approved_by_username_snapshot <> '"
+                + manager.getUsername() + "')");
         try {
             approve(manager, approvalId, null)
                     .andExpect(status().isConflict())

@@ -14,8 +14,11 @@ public class AiPurchaseDraftProposal {
     @Column(length = 36)
     private String id;
 
-    @Column(name = "user_id", nullable = false)
+    @Column(name = "user_id")
     private Long userId;
+
+    @Column(name = "user_id_snapshot")
+    private Long userIdSnapshot;
 
     @Column(name = "token_hash", nullable = false, length = 64)
     private String tokenHash;
@@ -42,6 +45,7 @@ public class AiPurchaseDraftProposal {
         AiPurchaseDraftProposal proposal = new AiPurchaseDraftProposal();
         proposal.id = id;
         proposal.userId = userId;
+        proposal.userIdSnapshot = userId;
         proposal.tokenHash = tokenHash;
         proposal.payloadJson = payloadJson;
         proposal.createdAt = now;

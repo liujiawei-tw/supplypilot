@@ -2,7 +2,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Alert, Button, Descriptions, Input, Modal, Select, Space, Table, Tag, Typography, message } from 'antd';
 import type { TableProps } from 'antd';
 import { Link } from 'react-router-dom';
-import { createPurchaseOrderDraft, listPurchaseOrders, type CreatePurchaseOrderRequest, type PurchaseOrderQuery, type PurchaseOrderResponse, type UpdatePurchaseOrderRequest } from '../../api/purchaseOrder';
+import { assignPurchaseOrder, claimPurchaseOrder, createPurchaseOrderDraft, listPurchaseOrders, type CreatePurchaseOrderRequest, type PurchaseOrderQuery, type PurchaseOrderResponse, type UpdatePurchaseOrderRequest } from '../../api/purchaseOrder';
+import { listAssignableUsers, type AssignableUser } from '../../api/users';
 import { toApiError } from '../../api/apiError';
 import { can } from '../../auth/permissions';
 import { useAuth } from '../../auth/useAuth';
@@ -20,6 +21,7 @@ export default function PurchaseOrdersPage() {
   const { user } = useAuth();
   const [apiMessage, contextHolder] = message.useMessage();
   const [data, setData] = useState<PageResponse<PurchaseOrderResponse> | null>(null);
+  const [assignableUsers, setAssignableUsers] = useState<AssignableUser[]>([]);
   const [error, setError] = useState<ApiErrorResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState<PurchaseOrderQuery>({ page: 0, size: 20, sort: 'createdAt,desc' });
@@ -38,6 +40,18 @@ export default function PurchaseOrdersPage() {
     finally { if (current === requestId.current) setLoading(false); }
   }, [query]);
   useEffect(() => { const timer = window.setTimeout(() => void load(), 0); return () => window.clearTimeout(timer); }, [load]);
+  useEffect(() => { void listAssignableUsers().then(setAssignableUsers).catch(() => setAssignableUsers([])); }, []);
+
+  const changeOwner = async (po: PurchaseOrderResponse, value: number | 'claim') => {
+    try {
+      if (value === 'claim') await claimPurchaseOrder(po.id);
+      else await assignPurchaseOrder(po.id, value);
+      apiMessage.success('採購單負責人已更新');
+      await load();
+    } catch (cause) {
+      setError(toApiError(cause));
+    }
+  };
 
   const confirmCreate = async () => {
     if (!pending || submittingRef.current || createUnknown) return;
@@ -54,6 +68,13 @@ export default function PurchaseOrdersPage() {
   const columns: TableProps<PurchaseOrderResponse>['columns'] = [
     { title: '採購單編號', dataIndex: 'poNumber', sorter: true },
     { title: '供應商', render: (_, row) => `${row.supplierCode} — ${row.supplierName}` },
+    { title: '目前負責人', render: (_, row) => <Space wrap>
+      <span>{row.assignedToDisplayName ?? '未指派'}</span>
+      {!row.assignedTo && <Button size="small" onClick={() => void changeOwner(row, 'claim')}>認領</Button>}
+      <Select aria-label={`${row.poNumber} 指派負責人`} size="small" placeholder="指派" style={{ width: 140 }} value={row.assignedTo ?? undefined}
+        options={assignableUsers.map((item) => ({ value: item.id, label: item.displayName }))}
+        onChange={(value: number) => { void changeOwner(row, value); }} />
+    </Space> },
     { title: '狀態', dataIndex: 'status', sorter: true, render: (value) => <Tag color={statusColors[value as PurchaseOrderResponse['status']]}>{displayLabel(value)}</Tag> },
     { title: '預計交期', dataIndex: 'expectedDeliveryDate', sorter: true, render: (value, row) => <Space>{value ?? '—'}{row.isOverdue && <Tag color="red">已逾期</Tag>}</Space> },
     { title: '建立時間', dataIndex: 'createdAt', sorter: true, render: formatTimestamp },

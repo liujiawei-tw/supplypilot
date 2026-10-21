@@ -107,3 +107,9 @@ Demo 密碼變更後也使用上述 `down → up`。Production 使用 `docker co
 - Compose 結構驗證：見 `docs/SP-903-DOCKER-RELEASE-CANDIDATE.md`。驗證時使用隔離的假憑證，不要輸出未遮蔽的 Compose 設定或 Container Environment。
 
 更多 Profile、Environment Variable 及 Secret 規則見 `docs/environment-configuration.md`。
+
+## V2-102 Migration 與 Docker Compose
+
+Flyway V24 在每個 Backend 啟動時依既有設定套用。MySQL DDL 可能逐句自動提交，不能視為完整可交易回滾；部署前須依既有備份／復原 Runbook 操作，並確認 Flyway 與應用版本一致。V24 只新增快照與指派欄位、回填現有值及調整 User FK，不清空或重建資料庫。
+
+本次盤點到 `compose.yaml`（預設/Production）、`compose.dev.yaml`（Local DB）、`compose.demo.yaml`（Demo overlay）。它們共用同一 Backend Dockerfile／Flyway classpath，V24 未增加環境變數、公開埠、Volume 或啟動命令，因此無需改 Compose YAML；驗證 Demo 時須以 `docker compose -f compose.yaml -f compose.demo.yaml config --quiet` 組合檢查。既有 volume 名稱與持久化設定維持不變。

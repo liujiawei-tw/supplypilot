@@ -273,7 +273,7 @@ class ReceivingPurchaseOrderControllerIntegrationTests extends AbstractIntegrati
     private void assertReceivingContract(JsonNode response) {
         assertThat(fieldNames(response)).containsExactlyInAnyOrder("id", "poNumber", "supplierId", "supplierCode",
                 "supplierName", "status", "expectedDeliveryDate", "isOverdue", "items", "orderedAt", "receivedBy",
-                "receivedByDisplayName", "receivedAt");
+                "receivedByUsername", "receivedByDisplayName", "receivedAt");
         assertThat(fieldNames(response.path("items").get(0))).containsExactlyInAnyOrder("id", "materialId", "materialCode",
                 "materialName", "quantity", "unit");
     }

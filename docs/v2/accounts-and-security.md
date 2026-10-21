@@ -1,6 +1,6 @@
 # SupplyPilot V2 — 帳號、權限、永久刪除與交接
 
-> 已確認需求；尚未實作。對應：[#136](https://github.com/liujiawei-tw/supplypilot/issues/136)、[#137](https://github.com/liujiawei-tw/supplypilot/issues/137)。舊 V1 多角色矩陣見 docs/security-design.md（衝突部分由本文件覆蓋）。
+> 規格基線；實作狀態依各 Issue 的合併與驗收記錄判定。對應：[#136](https://github.com/liujiawei-tw/supplypilot/issues/136)、[#137](https://github.com/liujiawei-tw/supplypilot/issues/137)。舊 V1 多角色矩陣見 docs/security-design.md（衝突部分由本文件覆蓋）。
 
 ## 1. 帳號與業務授權
 

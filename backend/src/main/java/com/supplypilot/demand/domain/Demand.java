@@ -31,7 +31,8 @@ public class Demand {
     @Column(name = "required_date", nullable = false) private LocalDate requiredDate;
     @Enumerated(EnumType.STRING) @Column(nullable = false, length = 20) private DemandStatus status;
     @Column(length = 500) private String note;
-    @ManyToOne(fetch = FetchType.LAZY, optional = false) @JoinColumn(name = "created_by", nullable = false) private User createdBy;
+    @ManyToOne(fetch = FetchType.LAZY) @JoinColumn(name = "created_by") private User createdBy;
+    @Column(name = "created_by_user_id_snapshot") private Long createdByUserIdSnapshot;
     @Column(name = "created_at", nullable = false) private Instant createdAt;
     @Column(name = "updated_at", nullable = false) private Instant updatedAt;
 
@@ -44,6 +45,7 @@ public class Demand {
         demand.requiredDate = Objects.requireNonNull(requiredDate, "Required date must not be null");
         demand.note = note;
         demand.createdBy = Objects.requireNonNull(createdBy, "Created by must not be null");
+        demand.createdByUserIdSnapshot = createdBy.getId();
         demand.status = DemandStatus.ACTIVE;
         demand.createdAt = Objects.requireNonNull(now, "Timestamp must not be null");
         demand.updatedAt = now;
@@ -93,6 +95,7 @@ public class Demand {
     public DemandStatus getStatus() { return status; }
     public String getNote() { return note; }
     public User getCreatedBy() { return createdBy; }
+    public Long getCreatedByUserIdSnapshot() { return createdByUserIdSnapshot; }
     public Instant getCreatedAt() { return createdAt; }
     public Instant getUpdatedAt() { return updatedAt; }
 }

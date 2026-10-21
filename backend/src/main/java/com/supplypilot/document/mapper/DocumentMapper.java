@@ -16,7 +16,7 @@ public class DocumentMapper {
                 document.getVersion(),
                 document.getStoragePath(),
                 document.getStatus(),
-                document.getUploadedBy().getId(),
+                document.getUploadedByUserIdSnapshot(),
                 document.getUploadedAt(),
                 document.getUpdatedAt()
         );

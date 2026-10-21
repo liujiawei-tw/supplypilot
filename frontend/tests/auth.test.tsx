@@ -43,6 +43,7 @@ function mockServer(identity: 'business' | 'manager', loginStatus = 200) {
     if (config.url === '/purchase-orders/42') return response(config, purchaseOrder);
     if (config.url === '/stock-transactions') return response(config, { content: [], page: 0, size: 20, totalElements: 0, totalPages: 0 });
     if (config.url === '/users') return response(config, { content: [], page: 0, size: 20, totalElements: 0, totalPages: 0 });
+    if (config.url === '/users/assignable') return response(config, []);
     throw new Error(`Unexpected API request: ${config.url}`);
   });
   return requests;
@@ -69,7 +70,7 @@ describe('authentication and routing', () => {
     await user.click(screen.getByRole('button', { name: '登 入' }));
     expect(await screen.findByText('PO-000042')).toBeTruthy();
     expect(router.state.location.pathname).toBe('/purchase-orders/42');
-    expect(requests).toEqual(['/auth/login', '/auth/me', '/purchase-orders/42']);
+    expect(requests).toEqual(['/auth/login', '/auth/me', '/users/assignable', '/purchase-orders/42']);
     expect(localStorage.getItem(TOKEN_STORAGE_KEY)).toBe('valid-token');
   });
 

@@ -1305,3 +1305,7 @@ Exception Flow
 V2 migrates all existing business roles to `ADMIN` and stores user-management access separately in `users.can_manage_users`. V23 grants that capability only to accounts that already had V1 `ADMIN`; new users default to no user-management access. User management service methods require the `USER_MANAGEMENT` authority, and `/auth/me` plus login responses expose the database-backed capability for frontend guards.
 
 The JWT filter validates the signed token, then reloads the account by `userId` on every request. The account must still exist, be active, match the token subject, and have the role recorded in the token. Current database role, management capability, and `must_change_password` state replace token claims when building the principal, so revocation and deactivation apply to existing tokens immediately. V1 role-specific rules below remain historical context; V2's `ADMIN` business role is shared by all active ordinary accounts.
+
+## V2-102 帳號永久刪除
+
+人員刪除 Service 同時要求 `USER_MANAGEMENT`，並在同一 Transaction 先鎖定啟用管理者集合，再鎖定待刪帳號；只有仍至少保留一位 `ACTIVE + canManageUsers=true` 帳號時才執行。資料庫使用 `ON DELETE SET NULL` 保留交易列，PO 事件由不可變快照供查詢，帳號 JWT 因 #136 的每請求 DB 驗證而失效。PO 指派與刪除共用使用者列鎖；認領／改派另鎖採購單，錯誤或約束衝突不會級聯刪除交易資料。

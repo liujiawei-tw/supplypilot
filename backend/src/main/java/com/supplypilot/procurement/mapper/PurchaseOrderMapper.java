@@ -24,16 +24,23 @@ public class PurchaseOrderMapper {
                 purchaseOrder.getId(), purchaseOrder.getPoNumber(), purchaseOrder.getSupplier().getId(),
                 purchaseOrder.getSupplier().getCode(), purchaseOrder.getSupplier().getName(), purchaseOrder.getStatus(),
                 purchaseOrder.getExpectedDeliveryDate(), purchaseOrder.getItems().stream().map(this::toItemResponse).toList(),
-                purchaseOrder.getCreatedBy().getId(), purchaseOrder.getCreatedBy().getDisplayName(),
+                purchaseOrder.getCreatedByUserIdSnapshot(), purchaseOrder.getCreatedByDisplayNameSnapshot(),
+                purchaseOrder.getCreatedByUsernameSnapshot(),
                 purchaseOrder.getCreatedAt(),
-                userId(purchaseOrder.getApprovedBy()), userDisplayName(purchaseOrder.getApprovedBy()),
+                purchaseOrder.getApprovedByUserIdSnapshot(), purchaseOrder.getApprovedByDisplayNameSnapshot(),
+                purchaseOrder.getApprovedByUsernameSnapshot(),
                 purchaseOrder.getApprovedAt(), purchaseOrder.getRejectReason(),
-                userId(purchaseOrder.getRejectedBy()), userDisplayName(purchaseOrder.getRejectedBy()),
+                purchaseOrder.getRejectedByUserIdSnapshot(), purchaseOrder.getRejectedByDisplayNameSnapshot(),
+                purchaseOrder.getRejectedByUsernameSnapshot(),
                 purchaseOrder.getRejectedAt(),
-                userId(purchaseOrder.getOrderedBy()), userDisplayName(purchaseOrder.getOrderedBy()),
+                purchaseOrder.getOrderedByUserIdSnapshot(), purchaseOrder.getOrderedByDisplayNameSnapshot(),
+                purchaseOrder.getOrderedByUsernameSnapshot(),
                 purchaseOrder.getOrderedAt(),
-                userId(purchaseOrder.getReceivedBy()), userDisplayName(purchaseOrder.getReceivedBy()),
-                purchaseOrder.getReceivedAt(), isOverdue(purchaseOrder), purchaseOrder.getUpdatedAt());
+                purchaseOrder.getReceivedByUserIdSnapshot(), purchaseOrder.getReceivedByDisplayNameSnapshot(),
+                purchaseOrder.getReceivedByUsernameSnapshot(), purchaseOrder.getReceivedAt(),
+                userId(purchaseOrder.getAssignedTo()), userDisplayName(purchaseOrder.getAssignedTo()),
+                purchaseOrder.getAssignedTo() == null ? null : purchaseOrder.getAssignedTo().getUsername(),
+                isOverdue(purchaseOrder), purchaseOrder.getUpdatedAt());
     }
 
     private boolean isOverdue(PurchaseOrder purchaseOrder) {
