@@ -1,6 +1,16 @@
 # SupplyPilot Documentation
 
-This directory is the V1 specification source of truth. Implementation status belongs in GitHub Issues and pull requests after the baseline issues are created.
+This directory preserves the V1 implementation baseline. **Confirmed V2 requirements and planned changes live under [docs/v2/](v2/README.md); they are not implemented merely because the specifications exist.** GitHub Issues and merged pull requests remain the source of implementation status.
+
+## SupplyPilot V2 已確認需求（待實作）
+
+- [V2 需求決策總綱](v2/README.md)
+- [V2 帳號安全與人員交接](v2/accounts-and-security.md)
+- [V2 採購／八階段 Kanban](v2/procurement-and-kanban.md)
+- [V2 Documents / RAG](v2/document-rag.md)
+- [V2 前端與顯示](v2/ui-and-reporting.md)
+- [V2 Demo 與驗收](v2/demo-and-acceptance.md)
+- [V1→V2 差異與 Issue 對照](v2/migration-and-issue-map.md)
 
 ## Product and Requirements
 
