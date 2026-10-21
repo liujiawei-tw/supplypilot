@@ -15,6 +15,14 @@ SupplyPilot 是採購與供應鏈決策平台。Backend 以 Java 21、Spring Boo
 
 **V2 本輪明確不新增：** 文件級 ACL、PDF 頁碼定位、合約比較、Supplier Ranking、庫存安全庫存警示、採購單 CSV/Excel/PDF 匯出、PO 附件關聯及通知中心；請勿依舊版 V1 提案自行恢復已取消的功能。
 
+## V2 Agent 協作（Matt Pocock Skills）
+
+SupplyPilot V2 維持 **Codex 實作／測試／Commit/Push → GPT 遠端獨立 Code Review／Final PASS／建立 PR → 使用者人工 Merge** 的原有流程。Matt Pocock Skills 僅協助 Codex 的 TDD、除錯、單一 Issue 實作及內部 Review；不啟用原版跨 Issue `implement-spec` 整合／自動開 PR 模式。
+
+- **協作與新 GPT 對話接續：** [Matt Pocock Skills × Codex × GPT 協作交接](docs/v2/matt-pocock-codex-gpt-handoff.md)
+- **強制規則：** [AGENTS.md](AGENTS.md)；每張 V2 Issue 依其核准 Scope 與前置依賴執行。
+- **狀態聲明：** 文件導入不是本機 Codex CLI 安裝成功、功能實作完成、測試或部署通過的證據。是否已安裝應由使用者的 Windows 環境實際驗證。
+
 ## Docker 啟動方式
 
 > **以下為目前已實作 V1 基線的操作方式，非 V2 已完成證明。** V2 各模組的資料庫、角色、種子資料與畫面需依相關 Issue 實作後，才可更新此節為 V2 實際操作說明。
