@@ -1,6 +1,6 @@
 # Issue #137 驗證紀錄
 
-本紀錄對應 Feature Branch `codex/issue-137-v2-102`。歷史列保留各次執行當時的工作樹與結果，不視為目前交付 SHA 的證據；目前 Review 修正的測試結果見文末「本次 Review 修正驗證」。最終完整回歸以交付 SHA 的 GitHub Actions 為準。
+本紀錄對應 Feature Branch `codex/issue-137-v2-102`。歷史列保留各次執行當時的工作樹與結果，不視為目前交付 SHA 的證據；目前 Review 修正的測試結果見「本次 Review 修正驗證」，正式 Demo 最新唯讀驗收見文末。程式完整回歸以對應程式 SHA 的 GitHub Actions 為準。
 
 | 驗證 | 指令／範圍 | 結果 | 版本與後續適用性 |
 |---|---|---|---|
@@ -39,12 +39,67 @@
 
 ### Docker Demo V23 Checksum 調查
 
-Git 歷史顯示 V23 原始已套用內容位於 `a4977ee478ff7b7d5ce35b82334ed58a396600d1`，該 SQL 僅新增 `can_manage_users`；其 Flyway checksum 為 `1761549949`。後續 `f9a00229ce8f9d4df31a01364482f583c566b46e` 在已發佈 V23 加入 `idx_users_manager_status_id`，使 checksum 變為 `1985409924`。現有 Demo Volume 的 V23 history checksum 是 `1761549949`，資料庫結構符合原 V23、索引不存在，V24 尚未套用。故障根因是修改已套用的版本化 Migration，並非 JWT Filter 或資料損壞。
+Git 歷史顯示 V23 原始已套用內容位於 `a4977ee478ff7b7d5ce35b82334ed58a396600d1`，該 SQL 僅新增 `can_manage_users`；其 Flyway checksum 為 `1761549949`。後續 `f9a00229ce8f9d4df31a01364482f583c566b46e` 在已發佈 V23 加入 `idx_users_manager_status_id`，使 checksum 變為 `1985409924`。首次故障調查時的 Demo Volume V23 history checksum 是 `1761549949`，結構符合原 V23、索引不存在、V24 尚未套用。故障根因是修改已套用的版本化 Migration，並非 JWT Filter 或資料損壞。
 
-修正方式是恢復 V23 原文，將該索引移至尚未套用的 V24，讓 Flyway 正常驗證 V23 並執行後續版本。V24 的 MySQL DDL 可能逐句自動提交；真實 Demo 尚未執行 V24，也沒有修改或 repair `flyway_schema_history`。原 Demo 資料備份位於 ignored 路徑 `backend/target/sp903-demo-mysql-before-issue137.tar.gz`，SHA-256 `A9C28815173537205729C5DBB54D705F369630CAEE29F509FC72F5AF054BDFA1`；備份清單及隔離複本比對已通過。這些備份／隔離準備不代表真實 Demo 修復或重啟 PASS。
+修正方式是恢復 V23 原文，將該索引移至 V24。使用者後續確認正式 Demo 已由先前正式啟動流程成功套用 V24；本次驗收沒有再次 Migration，也沒有修改或 repair `flyway_schema_history`。舊 V23 備份位於 ignored 路徑 `backend/target/sp903-demo-mysql-before-issue137-review.tar.gz`，SHA-256 `A9C28815173537205729C5DBB54D705F369630CAEE29F509FC72F5AF054BDFA1`；該備份可還原但不含目前 V24 狀態，不可作為目前資料的回復點。最新備份與還原驗證見文末。
 
-Compose 檔案盤點：`compose.yaml`（Production 基本配置）、`compose.demo.yaml`（Demo overlay）、`compose.dev.yaml`（Development）。三份檔案皆用 placeholder env 成功執行 config 驗證；本次沒有修改 Compose 服務、Project、資料庫、Volume 或 Health Check；CI workflow 增加 `compose.dev.yaml` 配置檢查。`backend/Dockerfile`、`frontend/Dockerfile` 未修改，兩個映像已在本次工作樹重建成功。隔離 Clone Runtime、V24、Backend health、Frontend health/API proxy 及容器重啟資料持久性均通過；宿主機瀏覽器路徑未測。真實 Demo Volume 仍未執行 V24 或重啟，因為這會對既有持久資料庫寫入 Migration History 與 Schema，需使用者明確核准；不得把克隆結果標示成真實 Demo Runtime PASS。
+Compose 檔案盤點：`compose.yaml`（Production 基本配置）、`compose.demo.yaml`（Demo overlay）、`compose.dev.yaml`（Development）。三份檔案皆用 placeholder env 成功執行 config 驗證；本次沒有修改 Compose 服務、Project、資料庫、Volume 或 Health Check；CI workflow 增加 `compose.dev.yaml` 配置檢查。`backend/Dockerfile`、`frontend/Dockerfile` 未修改，兩個映像已在本次工作樹重建成功。隔離 Clone Runtime、V24、Backend health、Frontend health/API proxy 及容器重啟資料持久性均通過；宿主機瀏覽器路徑未測。以上是先前隔離測試，不代表目前正式 Demo Runtime；最新正式 Volume 的 V24／資料狀態與目前服務狀態見文末。
 
 ## SP-806 診斷結論
 
 先前完整 Vitest 有 3 個 30 秒 timeout；當時 SP-806 單檔 25/25 通過。本次在目前 Review 修正工作樹再次單獨執行，仍為 25/25 PASS，耗時 396.91 秒（測例耗時 387.48 秒）。這確認隔離執行穩定通過，但尚不足以區分完整套件中的資源競爭、跨測試狀態污染或等待條件，也不足以證明或排除 #137 引入；完整執行的具體錯誤堆疊無法恢復。沒有提高 timeout、跳過案例、放寬斷言或修改 SP-806 功能。以交付 SHA 的 GitHub CI 完整 Vitest 結果判斷是否可交付；若 CI 失敗，依其實際失敗名稱與堆疊精準診斷。
+
+## 正式 SP-903 Demo V24 唯讀最終驗收（2026-10-21）
+
+### 範圍、服務狀態與觀測方式
+
+目標 Docker Volume 標籤確認為 Compose Project `supplypilot-sp903-local-demo` 的 `sp903-mysql-data`，實際 Volume 名稱 `supplypilot-sp903-local-demo-mysql`；另兩個既有 Volume 為 `supplypilot-sp903-local-demo-pgvector` 與 `supplypilot-sp903-local-demo-documents`。此次確認時，沒有該 Compose Project 的 MySQL、pgvector、Backend 或 Frontend Container，也沒有容器掛載這三個 Volume。正式服務未啟動的原因無法從不存在的 Container 診斷；本次沒有重啟或重建任何正式服務。
+
+以下 DB／檔案檢查來自正式 Volume 以唯讀 mount 複製出的隔離快照，以及該快照的備份還原件；不是正式 Container Runtime 結果。正式 Volume 在建立備份時均未被 Container 掛載，沒有活動中的服務寫入或 DDL。正式 Volume 的掛載來源為唯讀；查詢在隔離還原件執行。
+
+### Flyway 與 V24 Schema
+
+| 項目 | 驗收結果 |
+|---|---|
+| V23 History | checksum `1761549949`、`success=1`；DB 記錄時間 `2026-10-21 02:40:09`（欄位不含時區） |
+| V24 History | checksum `-1757611084`、`success=1`；與目前 V24 Migration 的已驗證 checksum 一致；DB 記錄時間 `2026-10-21 10:50:37`（欄位不含時區）。V24 實際執行程序／操作者來源 `UNKNOWN`；本次沒有重新執行 Migration。 |
+| V24 結構 | `users.can_manage_users` 為 NOT NULL；`idx_users_manager_status_id` 三欄索引存在。PO 的 `assigned_to` 及建立、核准、駁回、下單、收貨快照欄位均存在；`idx_purchase_orders_assigned_to` 存在。StockTransaction 與 Demand、Inventory Import、Purchase Recommendation、Document Metadata、AI Draft Proposal 的 V24 快照欄位存在。 |
+| 外鍵 | PO 六個 User 關聯及其他 V24 User 關聯均為 `ON DELETE SET NULL`；PO 建立者、負責人及 StockTransaction 操作者沒有孤兒外鍵。 |
+| 表完整性 | 還原件上的 `CHECK TABLE` 對 users、PO／items、StockTransaction、Demand、Import、Recommendation、Document Metadata／chunks、AI Draft Proposal 均回報 `OK`。 |
+
+### 人員刪除後的業務資料
+
+使用者確認正式 Demo Users 從 6 減至 1，是使用者親自登入並測試人員永久刪除功能造成的預期結果；不恢復帳號，也不追查刪除來源。隔離還原查詢確認剩餘帳號 `id=5` 為 `ACTIVE`、`ADMIN`、`can_manage_users=1`，目前仍有一位有效人員管理者。
+
+| 資料 | 還原件唯讀結果 |
+|---|---|
+| Purchase Orders | 12 張、13 個 PO Item 保留。建立者快照 12/12；核准 9/12、駁回 1/12、下單 6/12、收貨 5/12 的快照符合實際事件。11 張 PO 的 `assigned_to` 與現行 `created_by` 為 NULL，且刪除者的原始 ID／姓名快照仍在；另 1 張仍有指派人。 |
+| StockTransaction | 6 筆保留；原始操作者 ID、username、display name 快照皆為 6/6；其中 3 筆現行 User FK 為 NULL，歷史快照仍在。 |
+| 其他歷史表 | Demand 13（12 筆 NULL 建立者有 ID 快照）；Inventory Import Batch 5；Purchase Recommendation 8（1 筆 NULL 建立者有 ID 快照）；Document Metadata 6（全部 READY）；AI Purchase Draft Proposal 0。 |
+| 文件與語意索引 | 6 筆 metadata 的六個 `storage_path` 均在文件 Volume 還原件找到。PostgreSQL 17／pgvector 0.8.7 還原件有 6 筆 `READY` semantic index、6 個 chunk、1 筆 generation、3 筆 audit；六份 metadata source hash 與對應 semantic index source hash 一致。 |
+
+### 目前狀態備份與隔離還原
+
+備份於本機時間 `2026-10-21 19:07:11–19:07:12 +08:00` 建立。三個來源 Volume 均以唯讀 mount 複製；每份 tar 清單完整列舉、SHA-256 已計算，並還原至各自全新隔離 Volume。沒有覆寫既有備份或 Volume。
+
+| 備份來源 | 檔案（ignored `backend/target/`） | 大小／項目 | SHA-256 | 還原驗證 |
+|---|---|---:|---|---|
+| MySQL `supplypilot-sp903-local-demo-mysql` | `sp903-demo-mysql-v24-final-20261021.tar.gz` | 6,660,108 bytes／219 entries | `424F3E40EC1373FF6458DCAD6CE66863925CCA6621143BDA7AEBA2874FF439D4` | MySQL 8.4.11 還原件啟動並可查詢；V23/V24 History、Schema、資料筆數與完整性檢查通過。 |
+| pgvector `supplypilot-sp903-local-demo-pgvector` | `sp903-demo-pgvector-v24-final-20261021.tar.gz` | 6,966,075 bytes／1,316 entries | `10BF5C743FE25015F9D7AC91BF0E28708694639DA5C10C78822C129C37B32EEB` | PostgreSQL 17 還原件可連線；vector extension、semantic tables、索引、chunks 與 source hashes 可讀。 |
+| 文件 `supplypilot-sp903-local-demo-documents` | `sp903-demo-documents-v24-final-20261021.tar.gz` | 2,506 bytes／7 entries | `7B11EF697CF6CB6315AF9D0D161442E8A018B9A1FE03FCA5FD432234CD93D938` | 隔離還原件有 6 個文件檔案；均與 MySQL metadata 路徑對應，檔案可計算 SHA-256。 |
+
+來源三個 Volume 在備份時皆離線、無執行中或停止中的掛載容器，因此備份期間無應用程式寫入。三份資料在靜止狀態下依序備份，非跨 MySQL／PostgreSQL／檔案系統原子交易快照；已用文件 ID、版本及 source hash 驗證目前六份文件與語意索引互相對應。這是目前 V24 狀態的可還原本機備份，不涵蓋 AWS 或外部 Secret／設定。
+
+### 正式 Docker Runtime 與交付狀態
+
+| 驗證 | 結果 |
+|---|---|
+| MySQL／pgvector／Backend／Frontend Container | `NOT RUN`：正式 Project 無 Container；本次遵守限制，沒有重啟或建立。 |
+| Backend `/actuator/health` | `NOT RUN`：服務未啟動，無法請求。 |
+| Frontend `/health`、`/api/v1/purchase-orders` Proxy | `NOT RUN`：Frontend 未啟動，無法請求。 |
+| 正式服務日誌 | `NOT AVAILABLE`：目前沒有正式 Container 可供讀取。 |
+| 正式 Demo 功能 | 帳號刪除由使用者已親自驗證；本次未登入、未新增／刪除帳號、未寫入任何正式業務資料。 |
+
+依 `docs/SP-903-DOCKER-RELEASE-CANDIDATE.md`，服務需由使用者核准後以標準 Demo Compose 啟動（例如 `docker compose --env-file .env.demo -f compose.yaml -f compose.demo.yaml up -d --build`）。這會建立／啟動四個正式 Demo Container，Backend 啟動會連線正式 MySQL／pgvector 並執行 Flyway 啟動驗證；雖然目前 DB History 已有 V24 success，且 Dataset 狀態為 `COMPLETE`，啟動仍會寫服務／資料庫運行狀態，且應用程式啟動鉤子可能觸及資料庫。因此超出本次唯讀授權，需使用者明確核准後才能做 Health、API Proxy 與正式日誌驗收。
+
+本次僅更新驗證文件；程式完整 CI 仍為 SHA `1a0ea5035a6817b432aba0a44edc19d1020c52ba` 的 [Run #174](https://github.com/liujiawei-tw/supplypilot/actions/runs/39574370963)（Backend、Frontend、Container/Compose 全通過）；目前文件 HEAD `e83b191742e720f58f99dae5bab96db9d4ab2977` 的 [Run #175](https://github.com/liujiawei-tw/supplypilot/actions/runs/39576262894) 整體成功，程式 jobs 因文件專用變更 skipped。此次沒有修改產品程式、Migration 或測試，未重跑完整 Maven／Vitest。正式 Runtime 尚未驗收，故本紀錄狀態為 `BLOCKED — REQUIRES USER APPROVAL`，尚未標記 `READY FOR GPT RE-REVIEW`。
