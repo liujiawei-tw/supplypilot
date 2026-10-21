@@ -5,7 +5,6 @@ import com.fasterxml.jackson.annotation.JsonSetter;
 import com.supplypilot.user.domain.UserRole;
 
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
 public class CreateUserRequest {
@@ -22,8 +21,8 @@ public class CreateUserRequest {
     @Size(max = 100, message = "Display name must not exceed 100 characters.")
     private String displayName;
 
-    @NotNull(message = "Role is required.")
     private UserRole role;
+    private boolean canManageUsers;
 
     /**
      * No-arg constructor for Jackson setter-based deserialization.
@@ -62,6 +61,9 @@ public class CreateUserRequest {
         this.role = role;
     }
 
+    @JsonSetter("canManageUsers")
+    public void setCanManageUsers(boolean canManageUsers) { this.canManageUsers = canManageUsers; }
+
     /**
      * Rejects any JSON property not explicitly declared above.
      * Throwing here propagates as HttpMessageNotReadableException → 400 VALIDATION_FAILED.
@@ -86,4 +88,6 @@ public class CreateUserRequest {
     public UserRole role() {
         return role;
     }
+
+    public boolean canManageUsers() { return canManageUsers; }
 }

@@ -1,5 +1,5 @@
-import { can, type Permission } from '../auth/permissions';
-import type { UserRole } from '../types/api';
+import { can, canUser, type Permission } from '../auth/permissions';
+import type { AuthenticatedUser, UserRole } from '../types/api';
 
 export interface RouteEntry {
   path: string;
@@ -25,11 +25,13 @@ export const routeCatalog: RouteEntry[] = [
   { path: 'users', label: '人員管理', group: '系統管理', permission: 'userManagement', navigation: true },
 ];
 
-export function isAllowedDestination(pathname: string, role: UserRole): boolean {
+export function isAllowedDestination(pathname: string, user: AuthenticatedUser | UserRole): boolean {
   if (pathname === '/dashboard') return true;
   const entry = routeCatalog.find(({ path }) => {
     const pattern = new RegExp(`^/${path.replace(/:[^/]+/g, '[^/]+')}/?$`);
     return pattern.test(pathname);
   });
-  return !!entry && can(role, entry.permission);
+  return !!entry && (typeof user === 'string'
+    ? entry.permission !== 'userManagement' && can(user, entry.permission)
+    : canUser(user, entry.permission));
 }

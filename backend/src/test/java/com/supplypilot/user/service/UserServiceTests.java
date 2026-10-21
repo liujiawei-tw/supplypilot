@@ -69,7 +69,7 @@ class UserServiceTests {
                 "  buyer_service_test  ",
                 "secretPassword123",
                 "Buyer User",
-                UserRole.PROCUREMENT_STAFF
+                UserRole.ADMIN
         );
 
         when(userRepository.existsByUsername("buyer_service_test")).thenReturn(false);
@@ -85,7 +85,8 @@ class UserServiceTests {
         assertThat(savedUser.getPasswordHash()).isNotEqualTo("secretPassword123");
         assertThat(passwordEncoder.matches("secretPassword123", savedUser.getPasswordHash())).isTrue();
         assertThat(savedUser.getDisplayName()).isEqualTo("Buyer User");
-        assertThat(savedUser.getRole()).isEqualTo(UserRole.PROCUREMENT_STAFF);
+        assertThat(savedUser.getRole()).isEqualTo(UserRole.ADMIN);
+        assertThat(savedUser.canManageUsers()).isFalse();
         assertThat(savedUser.getStatus()).isEqualTo(UserStatus.ACTIVE);
         assertThat(savedUser.getCreatedAt()).isEqualTo(FIXED_NOW);
         assertThat(savedUser.getUpdatedAt()).isEqualTo(FIXED_NOW);
@@ -93,8 +94,33 @@ class UserServiceTests {
         // Security check: response DTO contains no password/hash
         assertThat(response.username()).isEqualTo("buyer_service_test");
         assertThat(response.displayName()).isEqualTo("Buyer User");
-        assertThat(response.role()).isEqualTo(UserRole.PROCUREMENT_STAFF);
+        assertThat(response.role()).isEqualTo(UserRole.ADMIN);
         assertThat(response.status()).isEqualTo(UserStatus.ACTIVE);
+    }
+
+    @Test
+    @DisplayName("New account management capability is explicit and defaults to false")
+    void newAccountDoesNotGainUserManagementByDefault() {
+        CreateUserRequest request = new CreateUserRequest("ordinary", "secretPassword123", "Ordinary", null);
+        when(userRepository.existsByUsername("ordinary")).thenReturn(false);
+        when(userRepository.saveAndFlush(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        UserResponse response = userService.createUser(request);
+
+        assertThat(response.role()).isEqualTo(UserRole.ADMIN);
+        assertThat(response.canManageUsers()).isFalse();
+    }
+
+    @Test
+    @DisplayName("Legacy business roles cannot be assigned to newly created V2 accounts")
+    void rejectsLegacyRoleAssignment() {
+        CreateUserRequest request = new CreateUserRequest("legacy-role", "secretPassword123", "Legacy", UserRole.WAREHOUSE_STAFF);
+        when(userRepository.existsByUsername("legacy-role")).thenReturn(false);
+
+        assertThatThrownBy(() -> userService.createUser(request))
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCode").isEqualTo(ErrorCode.VALIDATION_FAILED);
+        verify(userRepository, never()).saveAndFlush(any(User.class));
     }
 
     @Test
@@ -261,6 +287,34 @@ class UserServiceTests {
         assertThat(response.displayName()).isEqualTo("New Name");
         assertThat(response.role()).isEqualTo(UserRole.ADMIN);
         assertThat(response.status()).isEqualTo(UserStatus.INACTIVE);
+    }
+
+    @Test
+    @DisplayName("The last active user manager cannot revoke their own management capability")
+    void cannotRevokeLastActiveManager() {
+        User manager = User.create("last-manager", "hash", "Last manager", UserRole.ADMIN, true, FIXED_NOW);
+        when(userRepository.findById(3L)).thenReturn(Optional.of(manager));
+        when(userRepository.countByCanManageUsersTrueAndStatus(UserStatus.ACTIVE)).thenReturn(1L);
+
+        assertThatThrownBy(() -> userService.updateUser(3L,
+                new UpdateUserRequest(null, null, null, false)))
+                .isInstanceOf(org.springframework.security.access.AccessDeniedException.class);
+        assertThat(manager.canManageUsers()).isTrue();
+    }
+
+    @Test
+    @DisplayName("A user manager can revoke one account when another active manager remains")
+    void canRevokeWhenAnotherActiveManagerRemains() {
+        User manager = User.create("one-of-two", "hash", "Manager", UserRole.ADMIN, true, FIXED_NOW);
+        when(userRepository.findById(4L)).thenReturn(Optional.of(manager));
+        when(userRepository.countByCanManageUsersTrueAndStatus(UserStatus.ACTIVE)).thenReturn(2L);
+        when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        UserResponse response = userService.updateUser(4L,
+                new UpdateUserRequest(null, null, null, false));
+
+        assertThat(response.canManageUsers()).isFalse();
+        assertThat(manager.canManageUsers()).isFalse();
     }
 
     @Test

@@ -172,6 +172,8 @@ load /auth/me
 build AuthContext
 ```
 
+V2 `/auth/me` also provides `canManageUsers`. Navigation, direct route guards and user-management actions use that capability independently from the `ADMIN` procurement business role.
+
 ---
 
 # 5. JWT Storage

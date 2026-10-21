@@ -5,7 +5,7 @@ export const roleLabels: Record<UserRole, string> = {
   PROCUREMENT_STAFF: '採購人員',
   PROCUREMENT_MANAGER: '採購經理',
   WAREHOUSE_STAFF: '倉庫人員',
-  ADMIN: '系統管理員',
+  ADMIN: '採購業務帳號',
 };
 
 // Mirrors security-design.md and the backend service-level @PreAuthorize rules.
@@ -38,9 +38,14 @@ export const permissions = {
 export type Permission = keyof typeof permissions | 'inventory' | 'documents';
 
 export function can(role: UserRole, permission: Permission): boolean {
+  if (permission === 'userManagement') return false;
   if (permission === 'inventory') {
     return can(role, 'inventoryLevels') || can(role, 'stockTransactions');
   }
   if (permission === 'documents') return can(role, 'documentRead');
   return (permissions[permission] as readonly UserRole[]).includes(role);
+}
+
+export function canUser(user: { role: UserRole; canManageUsers: boolean }, permission: Permission): boolean {
+  return permission === 'userManagement' ? user.canManageUsers : can(user.role, permission);
 }

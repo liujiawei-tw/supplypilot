@@ -18,6 +18,7 @@ public class UserMapper {
                 user.getDisplayName(),
                 user.getRole(),
                 user.getStatus(),
+                user.canManageUsers(),
                 user.getCreatedAt(),
                 user.getUpdatedAt()
         );

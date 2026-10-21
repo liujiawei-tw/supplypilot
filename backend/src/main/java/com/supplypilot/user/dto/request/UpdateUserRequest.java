@@ -17,6 +17,7 @@ public class UpdateUserRequest {
     private UserRole role;
 
     private UserStatus status;
+    private Boolean canManageUsers;
 
     /**
      * No-arg constructor for Jackson setter-based deserialization.
@@ -34,6 +35,11 @@ public class UpdateUserRequest {
         this.status = status;
     }
 
+    public UpdateUserRequest(String displayName, UserRole role, UserStatus status, Boolean canManageUsers) {
+        this(displayName, role, status);
+        this.canManageUsers = canManageUsers;
+    }
+
     @JsonSetter("displayName")
     public void setDisplayName(String displayName) {
         this.displayName = displayName;
@@ -48,6 +54,9 @@ public class UpdateUserRequest {
     public void setStatus(UserStatus status) {
         this.status = status;
     }
+
+    @JsonSetter("canManageUsers")
+    public void setCanManageUsers(Boolean canManageUsers) { this.canManageUsers = canManageUsers; }
 
     /**
      * Rejects any JSON property not explicitly declared above.
@@ -69,4 +78,6 @@ public class UpdateUserRequest {
     public UserStatus status() {
         return status;
     }
+
+    public Boolean canManageUsers() { return canManageUsers; }
 }

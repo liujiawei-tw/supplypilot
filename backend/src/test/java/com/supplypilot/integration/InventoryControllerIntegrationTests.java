@@ -269,7 +269,9 @@ class InventoryControllerIntegrationTests extends AbstractIntegrationTest {
     }
 
     private String bearer(UserRole role) {
-        return "Bearer " + jwtTokenService.generateToken(new AuthenticatedUser(1000L + role.ordinal(), role.name(), role));
+        User principal = userRepository.saveAndFlush(User.create("inventory-auth-" + UUID.randomUUID(), "hash",
+                role.name(), role, clock.instant()));
+        return "Bearer " + jwtTokenService.generateToken(new AuthenticatedUser(principal.getId(), principal.getUsername(), principal.getRole()));
     }
 
     private String bearer(User user) {

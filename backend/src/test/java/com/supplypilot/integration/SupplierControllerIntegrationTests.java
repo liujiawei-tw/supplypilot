@@ -11,6 +11,8 @@ import com.supplypilot.supplier.domain.Supplier;
 import com.supplypilot.supplier.domain.SupplierStatus;
 import com.supplypilot.supplier.repository.SupplierRepository;
 import com.supplypilot.user.domain.UserRole;
+import com.supplypilot.user.domain.User;
+import com.supplypilot.user.repository.UserRepository;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -31,6 +33,7 @@ class SupplierControllerIntegrationTests extends AbstractIntegrationTest {
     @Autowired private JwtProperties jwtProperties;
     @Autowired private Clock clock;
     @Autowired private SupplierRepository supplierRepository;
+    @Autowired private UserRepository userRepository;
     private MockMvc mockMvc;
     private JwtTokenService tokens;
 
@@ -166,5 +169,9 @@ class SupplierControllerIntegrationTests extends AbstractIntegrationTest {
     private Supplier byCode(String code) { return supplierRepository.findAll().stream().filter(supplier -> supplier.getCode().equals(code)).findFirst().orElseThrow(); }
     private String code() { return "SUP-HTTP-" + UUID.randomUUID().toString().replace("-", "").substring(0, 12); }
     private String json(String code, String name, String country, int reliability, int quality) { return "{\"code\":\"" + code + "\",\"name\":\"" + name + "\",\"country\":\"" + country + "\",\"reliabilityScore\":" + reliability + ",\"qualityScore\":" + quality + "}"; }
-    private String bearer(UserRole role) { return "Bearer " + tokens.generateToken(new AuthenticatedUser(1000L + role.ordinal(), role.name(), role)); }
+    private String bearer(UserRole role) {
+        User principal = userRepository.saveAndFlush(User.create("supplier-auth-" + UUID.randomUUID(), "hash",
+                role.name(), role, clock.instant()));
+        return "Bearer " + tokens.generateToken(new AuthenticatedUser(principal.getId(), principal.getUsername(), principal.getRole()));
+    }
 }

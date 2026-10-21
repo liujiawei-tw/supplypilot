@@ -225,9 +225,15 @@ Response：
 
 # 7. User API
 
+### V2-101 授權覆寫
+
+V2 帳號的 `role` 固定為 `ADMIN`，代表採購業務角色；人員管理以獨立 `canManageUsers` 能力授權。登入與 `/auth/me` 的 user object 都回傳 `canManageUsers`。新建帳號可省略 `role`（伺服器以 `ADMIN` 建立），並可由已授權管理者明確設定 `canManageUsers`，預設為 `false`。更新 API 僅允許 `displayName`、`status`、`canManageUsers`；舊 V1 角色不接受為新帳號指派值。
+
+`GET /api/v1/users`、`GET /api/v1/users/{id}`、`POST /api/v1/users` 與 `PATCH /api/v1/users/{id}` 均要求 `canManageUsers=true`，否則回 `403 ACCESS_DENIED`。最後一位啟用的人員管理者不能被停用或撤銷此能力。
+
 ## GET /api/v1/users
 
-**Role**
+**V1 Role**
 
 ```text
 ADMIN
@@ -241,7 +247,7 @@ ADMIN
 
 建立使用者。
 
-**Role**
+**V1 Role**
 
 ```text
 ADMIN
@@ -257,7 +263,7 @@ ADMIN
 
 ## PATCH /api/v1/users/{id}
 
-可修改：
+V1 可修改：
 
 ```text
 displayName

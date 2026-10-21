@@ -14,6 +14,8 @@ import com.supplypilot.security.AuthenticatedUser;
 import com.supplypilot.security.JwtProperties;
 import com.supplypilot.security.JwtTokenService;
 import com.supplypilot.user.domain.UserRole;
+import com.supplypilot.user.domain.User;
+import com.supplypilot.user.repository.UserRepository;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -38,6 +40,7 @@ class MaterialControllerIntegrationTests extends AbstractIntegrationTest {
     @Autowired private JwtProperties jwtProperties;
     @Autowired private Clock clock;
     @Autowired private MaterialRepository materialRepository;
+    @Autowired private UserRepository userRepository;
 
     private MockMvc mockMvc;
     private JwtTokenService jwtTokenService;
@@ -143,6 +146,8 @@ class MaterialControllerIntegrationTests extends AbstractIntegrationTest {
     private String uniqueCode() { return "MAT-HTTP-" + UUID.randomUUID().toString().replace("-", "").substring(0, 12); }
     private String createJson(String code) { return "{\"code\":\"" + code + "\",\"name\":\"Berry\",\"baseUnit\":\"KG\",\"safetyStock\":0}"; }
     private String bearerToken(UserRole role) {
-        return "Bearer " + jwtTokenService.generateToken(new AuthenticatedUser(1000L + role.ordinal(), role.name(), role));
+        User principal = userRepository.saveAndFlush(User.create("material-auth-" + UUID.randomUUID(), "hash",
+                role.name(), role, clock.instant()));
+        return "Bearer " + jwtTokenService.generateToken(new AuthenticatedUser(principal.getId(), principal.getUsername(), principal.getRole()));
     }
 }

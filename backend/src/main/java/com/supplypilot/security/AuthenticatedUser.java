@@ -22,15 +22,21 @@ public final class AuthenticatedUser implements UserDetails {
     private final String username;
     private final UserRole role;
     private final boolean mustChangePassword;
+    private final boolean canManageUsers;
 
     public AuthenticatedUser(Long id, String username, UserRole role) {
         this(id, username, role, false);
     }
 
     public AuthenticatedUser(Long id, String username, UserRole role, boolean mustChangePassword) {
+        this(id, username, role, false, mustChangePassword);
+    }
+
+    public AuthenticatedUser(Long id, String username, UserRole role, boolean canManageUsers, boolean mustChangePassword) {
         this.id = id;
         this.username = username;
         this.role = role;
+        this.canManageUsers = canManageUsers;
         this.mustChangePassword = mustChangePassword;
     }
 
@@ -46,6 +52,8 @@ public final class AuthenticatedUser implements UserDetails {
         return mustChangePassword;
     }
 
+    public boolean canManageUsers() { return canManageUsers; }
+
     /**
      * Returns a single authority derived from the user's role.
      * Spring Security convention uses {@code ROLE_} prefix.
@@ -55,7 +63,9 @@ public final class AuthenticatedUser implements UserDetails {
         if (mustChangePassword) {
             return List.of(new SimpleGrantedAuthority("ROLE_PASSWORD_CHANGE_REQUIRED"));
         }
-        return List.of(new SimpleGrantedAuthority("ROLE_" + role.name()));
+        return canManageUsers
+                ? List.of(new SimpleGrantedAuthority("ROLE_" + role.name()), new SimpleGrantedAuthority("USER_MANAGEMENT"))
+                : List.of(new SimpleGrantedAuthority("ROLE_" + role.name()));
     }
 
     /** Returns {@code null} — password is never carried in the security principal. */

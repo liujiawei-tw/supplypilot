@@ -87,7 +87,7 @@ class UserAuthorizationIntegrationTests extends AbstractIntegrationTest {
     }
 
     @Test
-    @DisplayName("An authenticated user without ADMIN receives the standard 403 response")
+    @DisplayName("An authenticated business account without user-management capability receives 403")
     void authorizationFailureReturnsStandard403() throws Exception {
         mockMvc.perform(get("/api/v1/users").header("Authorization", bearerToken(UserRole.PROCUREMENT_STAFF)))
                 .andExpect(status().isForbidden())
@@ -105,11 +105,11 @@ class UserAuthorizationIntegrationTests extends AbstractIntegrationTest {
                         .header("Authorization", bearerToken(role))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"username":"role_create_%s","password":"password123","displayName":"Role Test","role":"WAREHOUSE_STAFF"}
+                                {"username":"role_create_%s","password":"password123","displayName":"Role Test"}
                                 """.formatted(role.name().toLowerCase())))
                 .andExpect(role == UserRole.ADMIN ? status().isCreated() : status().isForbidden())
                 .andExpect(role == UserRole.ADMIN
-                        ? jsonPath("$.role").value("WAREHOUSE_STAFF")
+                        ? jsonPath("$.role").value("ADMIN")
                         : jsonPath("$.code").value("ACCESS_DENIED"));
     }
 
@@ -138,13 +138,13 @@ class UserAuthorizationIntegrationTests extends AbstractIntegrationTest {
     }
 
     @Test
-    @DisplayName("Authenticated users may read an individual user because this endpoint has no stricter role rule")
-    void getUserByIdRemainsAuthenticatedOnly() throws Exception {
+    @DisplayName("User detail requires the same user-management capability as the list")
+    void getUserByIdRequiresUserManagementCapability() throws Exception {
         Long userId = createUserForUpdate();
         mockMvc.perform(get("/api/v1/users/{id}", userId)
                         .header("Authorization", bearerToken(UserRole.PRODUCTION_PLANNER)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(userId));
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("ACCESS_DENIED"));
     }
 
     @Test
@@ -158,7 +158,7 @@ class UserAuthorizationIntegrationTests extends AbstractIntegrationTest {
         assertThatThrownBy(() -> userService.listUsers(org.springframework.data.domain.PageRequest.of(0, 20)))
                 .isInstanceOf(org.springframework.security.access.AccessDeniedException.class);
 
-        AuthenticatedUser admin = new AuthenticatedUser(102L, "admin", UserRole.ADMIN);
+        AuthenticatedUser admin = new AuthenticatedUser(102L, "admin", UserRole.ADMIN, true, false);
         SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken(
                 admin, null, admin.getAuthorities()
         ));
@@ -167,9 +167,11 @@ class UserAuthorizationIntegrationTests extends AbstractIntegrationTest {
     }
 
     private String bearerToken(UserRole role) {
+        User principal = userRepository.saveAndFlush(User.create(
+                "authz_" + java.util.UUID.randomUUID().toString().replace("-", ""), "hash", role.name(),
+                role == UserRole.ADMIN ? UserRole.ADMIN : role, role == UserRole.ADMIN, clock.instant()));
         return "Bearer " + jwtTokenService.generateToken(new AuthenticatedUser(
-                1000L + role.ordinal(), role.name().toLowerCase(), role
-        ));
+                principal.getId(), principal.getUsername(), principal.getRole(), principal.canManageUsers(), false));
     }
 
     private String expiredToken() {
@@ -187,7 +189,7 @@ class UserAuthorizationIntegrationTests extends AbstractIntegrationTest {
     private Long createUserForUpdate() {
         String username = "target_" + java.util.UUID.randomUUID().toString().replace("-", "");
         return userRepository.saveAndFlush(User.create(
-                username, "$2a$10$notARealHashForAuthorizationTests", "Target", UserRole.WAREHOUSE_STAFF,
+                username, "$2a$10$notARealHashForAuthorizationTests", "Target", UserRole.ADMIN,
                 java.time.Instant.now()
         )).getId();
     }

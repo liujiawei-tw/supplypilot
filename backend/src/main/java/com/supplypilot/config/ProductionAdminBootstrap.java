@@ -53,7 +53,7 @@ public class ProductionAdminBootstrap implements ApplicationRunner {
         if (inserted == 1) {
             if (users.count() == 0) {
                 User admin = User.create("admin", passwordEncoder.encode("admin"), "系統管理員",
-                        UserRole.ADMIN, clock.instant());
+                        UserRole.ADMIN, true, clock.instant());
                 admin.requirePasswordChange();
                 users.saveAndFlush(admin);
                 return BootstrapOutcome.INITIALIZED;

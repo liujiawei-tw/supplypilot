@@ -4,7 +4,7 @@ import { DashboardOutlined, LogoutOutlined, RobotOutlined } from '@ant-design/ic
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import './AppLayout.css';
 import { useAuth } from '../auth/useAuth';
-import { can, roleLabels } from '../auth/permissions';
+import { canUser, roleLabels } from '../auth/permissions';
 import { routeCatalog } from '../router/routeCatalog';
 import AiAssistantDrawer from '../components/AiAssistant';
 
@@ -27,7 +27,7 @@ export const AppLayout: React.FC = () => {
     ...groups.map((group) => ({
       key: group,
       label: group,
-      children: routeCatalog.filter((entry) => entry.group === group && entry.navigation && can(user.role, entry.permission))
+      children: routeCatalog.filter((entry) => entry.group === group && entry.navigation && canUser(user, entry.permission))
         .map((entry) => ({ key: `/${entry.path}`, label: entry.label })),
     })).filter((group) => group.children.length > 0),
   ];
@@ -75,7 +75,7 @@ export const AppLayout: React.FC = () => {
             </Text>
           </div>
           <Space wrap>
-            {can(user.role, 'aiQuery') && <Button icon={<RobotOutlined />} onClick={() => setAiOpen(true)}>AI 助理</Button>}
+            {canUser(user, 'aiQuery') && <Button icon={<RobotOutlined />} onClick={() => setAiOpen(true)}>AI 助理</Button>}
             <Text>{user.displayName}（{user.username}）</Text>
             <Text type="secondary">{roleLabels[user.role]}</Text>
             <Button icon={<LogoutOutlined />} onClick={() => { logout(); navigate('/login', { replace: true, state: null }); }}>登出</Button>
@@ -94,7 +94,7 @@ export const AppLayout: React.FC = () => {
           </div>
         </Content>
       </Layout>
-      {can(user.role, 'aiQuery') && <AiAssistantDrawer open={aiOpen} onClose={() => setAiOpen(false)} />}
+      {canUser(user, 'aiQuery') && <AiAssistantDrawer open={aiOpen} onClose={() => setAiOpen(false)} />}
     </Layout>
   );
 };

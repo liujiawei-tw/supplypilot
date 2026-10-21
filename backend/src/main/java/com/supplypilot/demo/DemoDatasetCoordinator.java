@@ -175,7 +175,7 @@ public class DemoDatasetCoordinator implements DemoDataCoordinator {
         Map<String, com.supplypilot.supplier.domain.Supplier> supplierMap = seedSuppliers(now);
         Map<String, SupplierMaterial> supplierMaterialMap = seedSupplierMaterials(
                 supplierMap, materialMap, now);
-        seedDemands(materialMap, userMap.get("planner"), baselineDate, now);
+        seedDemands(materialMap, userMap.get("admin"), baselineDate, now);
         seedPurchaseOrders(materialMap, supplierMap, supplierMaterialMap, userMap, baselineDate, now);
     }
 
@@ -184,15 +184,7 @@ public class DemoDatasetCoordinator implements DemoDataCoordinator {
         // Keep a random, unusable BCrypt value so BCrypt authentication cannot become a fallback.
         String hash = passwordEncoder.encode(java.util.UUID.randomUUID().toString());
         Map<String, User> result = new LinkedHashMap<>();
-        result.put("planner", User.create("planner", hash, "Demo Production Planner",
-                UserRole.PRODUCTION_PLANNER, now));
-        result.put("buyer", User.create("buyer", hash, "Demo Procurement Buyer",
-                UserRole.PROCUREMENT_STAFF, now));
-        result.put("manager", User.create("manager", hash, "Demo Procurement Manager",
-                UserRole.PROCUREMENT_MANAGER, now));
-        result.put("warehouse", User.create("warehouse", hash, "Demo Warehouse Staff",
-                UserRole.WAREHOUSE_STAFF, now));
-        result.put("admin", User.create("admin", hash, "Demo Administrator", UserRole.ADMIN, now));
+        result.put("admin", User.create("admin", hash, "Demo Administrator", UserRole.ADMIN, true, now));
         users.saveAll(result.values());
         users.flush();
         return result;
@@ -328,7 +320,7 @@ public class DemoDatasetCoordinator implements DemoDataCoordinator {
                           Map<String, com.supplypilot.supplier.domain.Supplier> supplierMap,
                           Map<String, SupplierMaterial> relationMap, Map<String, User> userMap, Instant now) {
         Material material = materialMap.get(materialCode);
-        PurchaseOrder order = PurchaseOrder.create(supplierMap.get(supplierCode), deliveryDate, userMap.get("buyer"), now);
+        PurchaseOrder order = PurchaseOrder.create(supplierMap.get(supplierCode), deliveryDate, userMap.get("admin"), now);
         order.assignPendingPoNumber("DEMO-PENDING-" + sequence);
         order.addItem(PurchaseOrderItem.create(material, decimal(quantity),
                 relationMap.get(supplierCode + ":" + materialCode).getUnitPrice(), now));
@@ -336,19 +328,19 @@ public class DemoDatasetCoordinator implements DemoDataCoordinator {
         order.assignDisplayPoNumber("PO-%04d%02d%02d-%06d".formatted(deliveryDate.getYear(),
                 deliveryDate.getMonthValue(), deliveryDate.getDayOfMonth(), order.getId()));
         if (target == PurchaseOrderStatus.REJECTED) {
-            order.reject("Demo rejection: delivery plan changed", userMap.get("manager"), now);
+            order.reject("Demo rejection: delivery plan changed", userMap.get("admin"), now);
         } else if (target != PurchaseOrderStatus.DRAFT) {
-            order.approve(userMap.get("manager"), now);
+            order.approve(userMap.get("admin"), now);
             if (target == PurchaseOrderStatus.ORDERED || target == PurchaseOrderStatus.RECEIVED) {
-                order.markOrdered(userMap.get("buyer"), now);
+                order.markOrdered(userMap.get("admin"), now);
             }
             if (target == PurchaseOrderStatus.RECEIVED) {
                 Inventory inventory = inventories.findByMaterialId(material.getId()).orElseThrow();
                 inventory.receive(decimal(quantity), now);
                 inventories.save(inventory);
                 stockTransactions.save(StockTransaction.purchaseReceive(
-                        material, decimal(quantity), order.getId(), userMap.get("warehouse"), now));
-                order.receive(userMap.get("warehouse"), now);
+                        material, decimal(quantity), order.getId(), userMap.get("admin"), now));
+                order.receive(userMap.get("admin"), now);
             }
         }
         purchaseOrders.saveAndFlush(order);

@@ -11,6 +11,15 @@
 - 登入、密碼儲存、Token 時效、帳號停用、401/403、後端 Service 權威授權均保留。前端隱藏按鈕不是授權替代品。
 - Demo **初始化帳號**只建立 admin；**AWS 公開 Demo 共用帳號權限**未定，延至 #133 部署時再決策，不能把 Demo 初始化 admin 直接推論成要公開高權限帳號。
 
+### V2-101 落地契約
+
+- `users.can_manage_users` 是獨立持久能力；新建帳號預設 `false`。人員管理 list/detail/create/update 服務均以此能力授權，不能只檢查 `role=ADMIN`。
+- V23 將既有角色遷移為 `ADMIN`，只將遷移前已是 V1 `ADMIN` 的帳號保留 `can_manage_users=true`；既有其他角色不獲提升。Production 首次建立的 `admin` 及新 Demo baseline `admin` 明確獲管理能力。
+- 每次 Bearer Token 請求都以資料庫的帳號啟用狀態、角色、管理能力與首次改密碼狀態重建 principal。Token 的 `userId`、`subject` 或角色與資料庫不一致時拒絕請求；停用或撤銷管理能力後，舊 Token 不沿用過時權限。Token 簽章與期限仍須有效。
+- 建立與更新帳號的 API 不允許指派舊 V1 業務角色；新建帳號的業務角色固定為 `ADMIN`。只有已授權者可透過 `canManageUsers` 授予／撤銷人員管理能力。
+- 停用或撤銷最後一個有效人員管理帳號會被拒絕。完整並發控制及刪除／PO 交接仍屬 #137。
+- V2 Demo relational baseline 只建立 `admin`；既有資料集只會依既有 Dataset Guard/明確 reset 流程處理，不藉此 Issue 自動清除或重建持久資料。
+
 ## 2. 生命週期與永久刪除
 
 | 動作 | 要求 |

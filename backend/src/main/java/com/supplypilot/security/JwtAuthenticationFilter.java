@@ -14,6 +14,9 @@ import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
+import com.supplypilot.user.domain.User;
+import com.supplypilot.user.domain.UserStatus;
+import com.supplypilot.user.repository.UserRepository;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 /**
@@ -30,9 +33,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private static final String BEARER_PREFIX = "Bearer ";
 
     private final JwtTokenService jwtTokenService;
+    private final UserRepository users;
 
-    public JwtAuthenticationFilter(JwtTokenService jwtTokenService) {
+    public JwtAuthenticationFilter(JwtTokenService jwtTokenService, UserRepository users) {
         this.jwtTokenService = jwtTokenService;
+        this.users = users;
     }
 
     @Override
@@ -47,7 +52,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             String token = authHeader.substring(BEARER_PREFIX.length()).trim();
             if (!token.isEmpty()) {
                 try {
-                    AuthenticatedUser user = jwtTokenService.parseAndValidateToken(token);
+                    AuthenticatedUser tokenUser = jwtTokenService.parseAndValidateToken(token);
+                    User current = users.findById(tokenUser.getId())
+                            .filter(found -> found.getStatus() == UserStatus.ACTIVE)
+                            .filter(found -> found.getUsername().equals(tokenUser.getUsername()))
+                            .filter(found -> found.getRole() == tokenUser.getRole())
+                            .orElseThrow(() -> new JwtAuthenticationException("Invalid authentication token"));
+                    AuthenticatedUser user = new AuthenticatedUser(current.getId(), current.getUsername(),
+                            current.getRole(), current.canManageUsers(), current.isMustChangePassword());
                     UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
                             user,
                             null,

@@ -6,8 +6,11 @@ import com.supplypilot.security.*;
 import com.supplypilot.supplier.domain.*;
 import com.supplypilot.supplier.repository.*;
 import com.supplypilot.user.domain.UserRole;
+import com.supplypilot.user.domain.User;
+import com.supplypilot.user.repository.UserRepository;
 import java.math.BigDecimal;
 import java.time.Clock;
+import java.util.UUID;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
@@ -22,6 +25,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class SupplierMaterialControllerIntegrationTests extends AbstractIntegrationTest {
     @Autowired WebApplicationContext context; @Autowired JwtProperties jwtProperties; @Autowired Clock clock;
     @Autowired SupplierRepository supplierRepository; @Autowired MaterialRepository materialRepository; @Autowired SupplierMaterialRepository supplierMaterialRepository;
+    @Autowired UserRepository userRepository;
     MockMvc mockMvc; JwtTokenService tokens;
     @BeforeEach void setUp() { mockMvc = MockMvcBuilders.webAppContextSetup(context).apply(SecurityMockMvcConfigurers.springSecurity()).build(); tokens = new JwtTokenService(jwtProperties, clock); }
     @Test void adminCreatesListsUpdatesAndRetainsInactiveRecord() throws Exception {
@@ -86,5 +90,9 @@ class SupplierMaterialControllerIntegrationTests extends AbstractIntegrationTest
     private long create(Supplier supplier, Material material) throws Exception { MvcResult result = mockMvc.perform(post("/api/v1/supplier-materials").header("Authorization", bearer(UserRole.ADMIN)).contentType(MediaType.APPLICATION_JSON).content(body(supplier, material, 0, 1, null, 0, "TWD"))).andExpect(status().isCreated()).andReturn(); return ((Number) com.jayway.jsonpath.JsonPath.read(result.getResponse().getContentAsString(), "$.id")).longValue(); }
     private String body(Supplier supplier, Material material, int price, int moq, Integer pack, int lead, String currency) { return body(supplier.getId(), material.getId(), price, moq, pack, lead, currency); }
     private String body(long supplierId, long materialId, int price, int moq, Integer pack, int lead, String currency) { return "{\"supplierId\":" + supplierId + ",\"materialId\":" + materialId + ",\"unitPrice\":" + price + ",\"moq\":" + moq + ",\"packageMultiple\":" + (pack == null ? "null" : pack) + ",\"leadTimeDays\":" + lead + ",\"currency\":\"" + currency + "\"}"; }
-    private String bearer(UserRole role) { return "Bearer " + tokens.generateToken(new AuthenticatedUser(7000L + role.ordinal(), role.name(), role)); }
+    private String bearer(UserRole role) {
+        User principal = userRepository.saveAndFlush(User.create("supplier-material-auth-" + UUID.randomUUID(), "hash",
+                role.name(), role, clock.instant()));
+        return "Bearer " + tokens.generateToken(new AuthenticatedUser(principal.getId(), principal.getUsername(), principal.getRole()));
+    }
 }
