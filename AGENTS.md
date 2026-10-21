@@ -2,6 +2,19 @@
 
 本檔案適用於此儲存庫內所有 Codex 工作階段及子目錄。開始工作時請先遵守本檔案，並同時遵守目前 Issue、專案規格與使用者的明確指示。
 
+## V2 的 Matt Pocock Skills 協作定位（強制）
+
+> 詳細契約與新對話對接：[docs/v2/matt-pocock-codex-gpt-handoff.md](docs/v2/matt-pocock-codex-gpt-handoff.md)。**Skills 是 Codex 的工程方法庫，不是第三位 Agent，也不覆蓋本檔、Issue 或 V2 規格。** 本節只決定使用邊界，不代表 Skills 已安裝或通過測試。
+
+- **Matt Skills 最小相容設定：** GitHub Issue Tracker 使用 [docs/agents/issue-tracker.md](docs/agents/issue-tracker.md)；領域文件導覽使用 [docs/agents/domain.md](docs/agents/domain.md)。這兩份已採既有規則設定，**不需要為使用這些設定自行執行會寫入檔案／Labels 的完整 setup**；若上游版本另有必要要求，先只讀核對並回報差異。
+
+1. **角色不變：** 使用者決定需求及 Merge；Codex 以 Matt Pocock 的 `implement`／`tdd`／`diagnosing-bugs` 輔助單一 Issue 的程式實作與驗證，`code-review` 僅作 Codex 內部預檢；GPT 仍須針對已 Push 的確切 Head SHA **獨立審查** Spec／Standards／Security／Transaction／Tests，GPT Final PASS 後才建立 PR。
+2. **單 Issue 流程優先：** 沿用單 Issue／單 Feature Branch／單 PR、前一張已 Merge／Closed 才實作下一張。**禁止直接執行原版 `implement-spec` 跨 Issue 子 Agent／Integration Branch／自動 Merge／Draft PR 行為**；同一 Issue 的唯讀調查或測試設計子 Agent 可協助，但不得順便修改其他 Issue。
+3. **適用方法：** 已核定 Issue 與測試契約優先；測試可先由既有 Acceptance Criteria 決定範圍，若真正缺少業務規則或測試邊界才提請確認。使用 TDD 不能取代必要整合／併發／安全測試；除錯須有實際重現訊號。精準測試與交付時完整 Gate 沿用下方原規定。
+4. **衝突處理：** 第三方 Skill 的 setup、triage、auto-PR、auto-merge、全域重構、額外 Ticket 或更改 AGENTS／GitHub／CI 等動作，若無當次授權與 Issue Scope，一律不得執行；先指出衝突再按本專案的 ADR／規格程序處理。
+5. **安裝與交接分離：** 本文件不是 Windows Codex CLI 的安裝證據；不得自行執行第三方安裝／更新或宣稱新 GPT 對話已載入本機 Skills。新對話先核實本協作文件是否已合併 main、實際安裝狀態，以及正確的 Issue／Branch／SHA，再開始工作。
+6. **不可降低既有 Gate：** Matt Skill 的內部 Review、Mock、文件檢查不可宣稱等於 GPT Final PASS、GitHub CI、真實 Gemini／Browser／AWS PASS。未執行或受阻明確標示 `NOT RUN`／`BLOCKED`，安全及交易要求不變。
+
 ## 目前開發階段：SupplyPilot V2（強制）
 
 > **V2 規格已透過 [PR #150](https://github.com/liujiawei-tw/supplypilot/pull/150) 合併 main，目前進入 V2 功能實作階段；現有 main 業務程式仍主要是 V1 基線。** V2 Markdown、Issue 或「已決策」不等於已寫程式、驗收 PASS 或 AWS 上線。
