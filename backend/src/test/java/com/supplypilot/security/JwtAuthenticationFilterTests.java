@@ -111,6 +111,31 @@ class JwtAuthenticationFilterTests {
     }
 
     @Test
+    @DisplayName("A token issued for mandatory password change stays restricted after the database flag clears")
+    void passwordChangeRequiredClaimCannotUpgradeAnExistingToken() throws ServletException, IOException {
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.addHeader("Authorization", "Bearer restricted.jwt.token");
+        User current = org.mockito.Mockito.mock(User.class);
+        when(jwtTokenService.parseAndValidateToken("restricted.jwt.token"))
+                .thenReturn(new AuthenticatedUser(8L, "bootstrap-admin", UserRole.ADMIN, true, true));
+        when(users.findById(8L)).thenReturn(Optional.of(current));
+        when(current.getId()).thenReturn(8L);
+        when(current.getUsername()).thenReturn("bootstrap-admin");
+        when(current.getRole()).thenReturn(UserRole.ADMIN);
+        when(current.getStatus()).thenReturn(UserStatus.ACTIVE);
+        when(current.canManageUsers()).thenReturn(true);
+        when(current.isMustChangePassword()).thenReturn(false);
+
+        filter.doFilter(request, new MockHttpServletResponse(), new MockFilterChain());
+
+        AuthenticatedUser principal = (AuthenticatedUser) SecurityContextHolder.getContext()
+                .getAuthentication().getPrincipal();
+        assertThat(principal.isMustChangePassword()).isTrue();
+        assertThat(principal.getAuthorities()).extracting("authority")
+                .containsExactly("ROLE_PASSWORD_CHANGE_REQUIRED");
+    }
+
+    @Test
     @DisplayName("Missing Authorization header does not populate SecurityContext and continues chain")
     void testMissingAuthHeaderContinuesChain() throws ServletException, IOException {
         MockHttpServletRequest request = new MockHttpServletRequest();

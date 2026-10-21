@@ -472,12 +472,12 @@ describe('SP-806 Global AI 助理', () => {
     fireEvent.change(screen.getByLabelText('AI 草稿供應商編號'), { target: { value: '12' } });
     fireEvent.change(screen.getByLabelText('AI 草稿預計交期'), { target: { value: '2099-10-20' } });
     fireEvent.change(screen.getByLabelText('AI 草稿品項 1 物料編號'), { target: { value: '7' } });
-    await user.type(screen.getByLabelText('AI 草稿品項 1 數量'), '999999999999999.1234000');
-    await user.type(screen.getByLabelText('AI 草稿品項 1 單價'), '0.0000001234500');
+    fireEvent.change(screen.getByLabelText('AI 草稿品項 1 數量'), { target: { value: '999999999999999.1234000' } });
+    fireEvent.change(screen.getByLabelText('AI 草稿品項 1 單價'), { target: { value: '0.0000001234500' } });
     await user.click(screen.getByRole('button', { name: /新增品項/ }));
     fireEvent.change(screen.getByLabelText('AI 草稿品項 2 物料編號'), { target: { value: '8' } });
-    await user.type(screen.getByLabelText('AI 草稿品項 2 數量'), '2.0000');
-    await user.type(screen.getByLabelText('AI 草稿品項 2 單價'), '50.0000');
+    fireEvent.change(screen.getByLabelText('AI 草稿品項 2 數量'), { target: { value: '2.0000' } });
+    fireEvent.change(screen.getByLabelText('AI 草稿品項 2 單價'), { target: { value: '50.0000' } });
     await user.click(screen.getByRole('button', { name: '產生提案供審閱' }));
     expect(await screen.findByText('後端提案快照')).toBeTruthy();
     expect(screen.getByText('999999999999999.1234000')).toBeTruthy();
@@ -513,8 +513,8 @@ describe('SP-806 Global AI 助理', () => {
     await user.click(screen.getByRole('tab', { name: '採購草稿提案' }));
     fireEvent.change(screen.getByLabelText('AI 草稿供應商編號'), { target: { value: '12' } });
     fireEvent.change(screen.getByLabelText('AI 草稿品項 1 物料編號'), { target: { value: '7' } });
-    await user.type(screen.getByLabelText('AI 草稿品項 1 數量'), '1');
-    await user.type(screen.getByLabelText('AI 草稿品項 1 單價'), '2');
+    fireEvent.change(screen.getByLabelText('AI 草稿品項 1 數量'), { target: { value: '1' } });
+    fireEvent.change(screen.getByLabelText('AI 草稿品項 1 單價'), { target: { value: '2' } });
     await user.click(screen.getByRole('button', { name: '產生提案供審閱' }));
     expect(await screen.findByText(/items\[0\]\.unitPrice/)).toBeTruthy();
     expect(screen.queryByRole('button', { name: '審閱並確認草稿' })).toBeNull();

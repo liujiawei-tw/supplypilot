@@ -252,7 +252,7 @@ describe('SP-907 role-adaptive dashboard API access', () => {
     });
 
     await openDashboard('PROCUREMENT_STAFF');
-    const forbiddenPanel = screen.getByRole('region', { name: '採購草稿' });
+    const forbiddenPanel = await screen.findByRole('region', { name: '採購草稿' });
     expect(await within(forbiddenPanel).findByText('此工作資料無權限顯示')).toBeTruthy();
     expect(within(forbiddenPanel).queryByText(/目前 0 筆/)).toBeNull();
     expect(within(forbiddenPanel).queryByText(/目前沒有 .*採購草稿/)).toBeNull();

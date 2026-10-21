@@ -19,6 +19,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.access.AccessDeniedException;
+import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -109,6 +110,10 @@ public class UserService {
             throw new BusinessException(ErrorCode.VALIDATION_FAILED);
         }
 
+        // A locking current read serializes all capability/status changes against
+        // the active manager set. A plain COUNT under MySQL REPEATABLE READ would
+        // let two concurrent requests both observe the same pre-update count.
+        List<User> activeManagers = userRepository.findActiveManagersForUpdate(UserStatus.ACTIVE);
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
 
@@ -120,7 +125,7 @@ public class UserService {
                 ? user.canManageUsers() : request.canManageUsers();
         if (user.canManageUsers() && user.getStatus() == UserStatus.ACTIVE
                 && (!resultingCapability || resultingStatus != UserStatus.ACTIVE)
-                && userRepository.countByCanManageUsersTrueAndStatus(UserStatus.ACTIVE) <= 1) {
+                && activeManagers.size() <= 1) {
             throw new AccessDeniedException("The last active user manager cannot be removed.");
         }
 

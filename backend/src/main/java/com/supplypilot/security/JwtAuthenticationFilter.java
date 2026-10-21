@@ -59,7 +59,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                             .filter(found -> found.getRole() == tokenUser.getRole())
                             .orElseThrow(() -> new JwtAuthenticationException("Invalid authentication token"));
                     AuthenticatedUser user = new AuthenticatedUser(current.getId(), current.getUsername(),
-                            current.getRole(), current.canManageUsers(), current.isMustChangePassword());
+                            current.getRole(), current.canManageUsers(),
+                            current.isMustChangePassword() || tokenUser.isMustChangePassword());
                     UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
                             user,
                             null,

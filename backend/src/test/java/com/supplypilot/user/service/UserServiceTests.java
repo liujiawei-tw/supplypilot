@@ -294,7 +294,7 @@ class UserServiceTests {
     void cannotRevokeLastActiveManager() {
         User manager = User.create("last-manager", "hash", "Last manager", UserRole.ADMIN, true, FIXED_NOW);
         when(userRepository.findById(3L)).thenReturn(Optional.of(manager));
-        when(userRepository.countByCanManageUsersTrueAndStatus(UserStatus.ACTIVE)).thenReturn(1L);
+        when(userRepository.findActiveManagersForUpdate(UserStatus.ACTIVE)).thenReturn(List.of(manager));
 
         assertThatThrownBy(() -> userService.updateUser(3L,
                 new UpdateUserRequest(null, null, null, false)))
@@ -307,7 +307,8 @@ class UserServiceTests {
     void canRevokeWhenAnotherActiveManagerRemains() {
         User manager = User.create("one-of-two", "hash", "Manager", UserRole.ADMIN, true, FIXED_NOW);
         when(userRepository.findById(4L)).thenReturn(Optional.of(manager));
-        when(userRepository.countByCanManageUsersTrueAndStatus(UserStatus.ACTIVE)).thenReturn(2L);
+        User otherManager = User.create("other-manager", "hash", "Other", UserRole.ADMIN, true, FIXED_NOW);
+        when(userRepository.findActiveManagersForUpdate(UserStatus.ACTIVE)).thenReturn(List.of(manager, otherManager));
         when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         UserResponse response = userService.updateUser(4L,

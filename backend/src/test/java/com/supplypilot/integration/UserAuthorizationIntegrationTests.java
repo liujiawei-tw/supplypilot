@@ -1,12 +1,17 @@
 package com.supplypilot.integration;
 
 import java.util.stream.Stream;
+import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 import com.supplypilot.security.AuthenticatedUser;
 import com.supplypilot.security.JwtProperties;
 import com.supplypilot.security.JwtTokenService;
 import com.supplypilot.user.domain.User;
 import com.supplypilot.user.domain.UserRole;
+import com.supplypilot.user.domain.UserStatus;
 import com.supplypilot.user.repository.UserRepository;
 import com.supplypilot.user.service.UserService;
 
@@ -27,6 +32,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 
 import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
@@ -96,6 +102,145 @@ class UserAuthorizationIntegrationTests extends AbstractIntegrationTest {
                 .andExpect(jsonPath("$.path").value("/api/v1/users"))
                 .andExpect(jsonPath("$.traceId").isNotEmpty())
                 .andExpect(jsonPath("$.timestamp").isNotEmpty());
+    }
+
+    @Test
+    @DisplayName("V2 ADMIN business access is separate from user management over HTTP")
+    void adminBusinessAccountAndManagerHaveDistinctHttpPermissions() throws Exception {
+        User business = saveUser("v2_business", UserRole.ADMIN, false);
+        User manager = saveUser("v2_manager", UserRole.ADMIN, true);
+        User target = saveUser("v2_target", UserRole.ADMIN, false);
+        String businessToken = bearerTokenFor(business);
+        String managerToken = bearerTokenFor(manager);
+
+        mockMvc.perform(get("/api/v1/purchase-orders").header("Authorization", businessToken))
+                .andExpect(status().isOk());
+        mockMvc.perform(get("/api/v1/users").header("Authorization", businessToken))
+                .andExpect(status().isForbidden());
+        mockMvc.perform(get("/api/v1/users/{id}", target.getId()).header("Authorization", businessToken))
+                .andExpect(status().isForbidden());
+        mockMvc.perform(post("/api/v1/users").header("Authorization", businessToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"username\":\"v2_forbidden_create\",\"password\":\"Password123\",\"displayName\":\"Denied\"}"))
+                .andExpect(status().isForbidden());
+        mockMvc.perform(patch("/api/v1/users/{id}", target.getId()).header("Authorization", businessToken)
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"displayName\":\"Denied\"}"))
+                .andExpect(status().isForbidden());
+
+        mockMvc.perform(get("/api/v1/users").header("Authorization", managerToken))
+                .andExpect(status().isOk());
+        mockMvc.perform(get("/api/v1/users/{id}", target.getId()).header("Authorization", managerToken))
+                .andExpect(status().isOk());
+        mockMvc.perform(post("/api/v1/users").header("Authorization", managerToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"username\":\"v2_allowed_create\",\"password\":\"Password123\",\"displayName\":\"Allowed\"}"))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.role").value("ADMIN"))
+                .andExpect(jsonPath("$.canManageUsers").value(false));
+        mockMvc.perform(patch("/api/v1/users/{id}", target.getId()).header("Authorization", managerToken)
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"displayName\":\"Updated\"}"))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    @DisplayName("Existing JWT observes account deactivation and management revocation immediately")
+    void existingJwtUsesCurrentDatabaseAuthorization() throws Exception {
+        User actor = saveUser("v2_actor", UserRole.ADMIN, true);
+        User peer = saveUser("v2_peer", UserRole.ADMIN, true);
+        User inactiveAfterIssue = saveUser("v2_deactivate", UserRole.ADMIN, false);
+        User firstLogin = User.create("v2_first_login_" + java.util.UUID.randomUUID().toString().replace("-", "").substring(0, 12), "hash", "First Login",
+                UserRole.ADMIN, false, clock.instant());
+        firstLogin.requirePasswordChange();
+        firstLogin = userRepository.saveAndFlush(firstLogin);
+        String actorToken = bearerTokenFor(actor);
+        String deactivatedToken = bearerTokenFor(inactiveAfterIssue);
+        String peerOldToken = bearerTokenFor(peer);
+        String firstLoginToken = bearerTokenFor(firstLogin);
+
+        mockMvc.perform(get("/api/v1/purchase-orders").header("Authorization", firstLoginToken))
+                .andExpect(status().isForbidden());
+
+        mockMvc.perform(get("/api/v1/users").header("Authorization", peerOldToken))
+                .andExpect(status().isOk());
+        mockMvc.perform(patch("/api/v1/users/{id}", peer.getId()).header("Authorization", actorToken)
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"canManageUsers\":false}"))
+                .andExpect(status().isOk());
+        mockMvc.perform(get("/api/v1/users").header("Authorization", peerOldToken))
+                .andExpect(status().isForbidden());
+
+        mockMvc.perform(patch("/api/v1/users/{id}", inactiveAfterIssue.getId()).header("Authorization", actorToken)
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"status\":\"INACTIVE\"}"))
+                .andExpect(status().isOk());
+        mockMvc.perform(get("/api/v1/purchase-orders").header("Authorization", deactivatedToken))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("UNAUTHENTICATED"));
+
+        // The same database user rejects a token whose signed identity claims disagree.
+        String wrongSubject = "Bearer " + jwtTokenService.generateToken(
+                new AuthenticatedUser(actor.getId(), "different-subject", UserRole.ADMIN, true, false));
+        mockMvc.perform(get("/api/v1/users").header("Authorization", wrongSubject))
+                .andExpect(status().isUnauthorized());
+        String wrongRole = "Bearer " + jwtTokenService.generateToken(
+                new AuthenticatedUser(actor.getId(), actor.getUsername(), UserRole.PROCUREMENT_STAFF, true, false));
+        mockMvc.perform(get("/api/v1/purchase-orders").header("Authorization", wrongRole))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    @DisplayName("Concurrent revocation of two remaining managers cannot remove both")
+    void concurrentLastManagerRevocationsLeaveOneManager() throws Exception {
+        List<User> priorManagers = userRepository.findAll().stream()
+                .filter(user -> user.getStatus() == UserStatus.ACTIVE && user.canManageUsers())
+                .toList();
+        try {
+            priorManagers.forEach(user -> {
+                user.update(null, null, UserStatus.ACTIVE, false, clock.instant());
+                userRepository.saveAndFlush(user);
+            });
+            User first = saveUser("v2_race_first", UserRole.ADMIN, true);
+            User second = saveUser("v2_race_second", UserRole.ADMIN, true);
+            CountDownLatch ready = new CountDownLatch(2);
+            CountDownLatch start = new CountDownLatch(1);
+            try (var executor = Executors.newFixedThreadPool(2)) {
+                var a = executor.submit(() -> revokeAtSameTime(first, ready, start));
+                var b = executor.submit(() -> revokeAtSameTime(second, ready, start));
+                assertThat(ready.await(10, TimeUnit.SECONDS)).isTrue();
+                start.countDown();
+                List<Integer> statuses = List.of(a.get(30, TimeUnit.SECONDS), b.get(30, TimeUnit.SECONDS));
+                assertThat(statuses).contains(200, 403);
+            }
+            assertThat(userRepository.countByCanManageUsersTrueAndStatus(UserStatus.ACTIVE)).isEqualTo(1);
+        } finally {
+            priorManagers.forEach(user -> {
+                user.update(null, null, UserStatus.ACTIVE, true, clock.instant());
+                userRepository.saveAndFlush(user);
+            });
+        }
+    }
+
+    private int revokeAtSameTime(User target, CountDownLatch ready, CountDownLatch start) {
+        ready.countDown();
+        try {
+            if (!start.await(10, TimeUnit.SECONDS)) throw new IllegalStateException("Concurrent request did not start");
+            return mockMvc.perform(patch("/api/v1/users/{id}", target.getId())
+                            .header("Authorization", bearerTokenFor(target))
+                            .contentType(MediaType.APPLICATION_JSON).content("{\"canManageUsers\":false}"))
+                    .andReturn().getResponse().getStatus();
+        } catch (Exception exception) {
+            throw new RuntimeException(exception);
+        }
+    }
+
+    private User saveUser(String username, UserRole role, boolean canManageUsers) {
+        String uniqueUsername = username + "_" + java.util.UUID.randomUUID().toString().replace("-", "").substring(0, 6);
+        if (uniqueUsername.length() > 50) uniqueUsername = uniqueUsername.substring(0, 43) + "_" + java.util.UUID.randomUUID().toString().replace("-", "").substring(0, 6);
+        return userRepository.saveAndFlush(User.create(uniqueUsername, "hash",
+                username, role, canManageUsers, clock.instant()));
+    }
+
+    private String bearerTokenFor(User user) {
+        return "Bearer " + jwtTokenService.generateToken(new AuthenticatedUser(user.getId(), user.getUsername(),
+                user.getRole(), user.canManageUsers(), user.isMustChangePassword()));
     }
 
     @ParameterizedTest(name = "POST users allows only ADMIN: {0}")

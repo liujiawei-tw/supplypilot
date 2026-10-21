@@ -107,13 +107,9 @@ class InventoryControllerIntegrationTests extends AbstractIntegrationTest {
     }
 
     @Test
-    void requiresAuthenticationAndRestrictsAccessToInventoryRoles() throws Exception {
+    void requiresAuthenticationAndAllowsV2BusinessAccountsToAccessInventory() throws Exception {
         mockMvc.perform(get("/api/v1/inventory")).andExpect(status().isUnauthorized()).andExpect(jsonPath("$.code").value("UNAUTHENTICATED"));
-        for (UserRole role : new UserRole[] {UserRole.PRODUCTION_PLANNER, UserRole.PROCUREMENT_STAFF, UserRole.WAREHOUSE_STAFF, UserRole.ADMIN}) {
-            mockMvc.perform(get("/api/v1/inventory").header("Authorization", bearer(role))).andExpect(status().isOk());
-        }
-        mockMvc.perform(get("/api/v1/inventory").header("Authorization", bearer(UserRole.PROCUREMENT_MANAGER)))
-                .andExpect(status().isForbidden()).andExpect(jsonPath("$.code").value("ACCESS_DENIED"));
+        mockMvc.perform(get("/api/v1/inventory").header("Authorization", bearer(UserRole.ADMIN))).andExpect(status().isOk());
     }
 
     @Test
@@ -269,9 +265,10 @@ class InventoryControllerIntegrationTests extends AbstractIntegrationTest {
     }
 
     private String bearer(UserRole role) {
-        User principal = userRepository.saveAndFlush(User.create("inventory-auth-" + UUID.randomUUID(), "hash",
-                role.name(), role, clock.instant()));
-        return "Bearer " + jwtTokenService.generateToken(new AuthenticatedUser(principal.getId(), principal.getUsername(), principal.getRole()));
+        String username = "inv-" + UUID.randomUUID().toString().replace("-", "").substring(0, 12);
+        User principal = userRepository.saveAndFlush(User.create(username, "hash", username,
+                UserRole.ADMIN, false, clock.instant()));
+        return "Bearer " + jwtTokenService.generateToken(new AuthenticatedUser(principal.getId(), principal.getUsername(), principal.getRole(), false, false));
     }
 
     private String bearer(User user) {

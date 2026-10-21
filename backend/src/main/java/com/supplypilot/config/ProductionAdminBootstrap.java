@@ -39,7 +39,7 @@ public class ProductionAdminBootstrap implements ApplicationRunner {
         BootstrapOutcome outcome = transactions.execute(status -> bootstrapInTransaction());
         if (outcome == BootstrapOutcome.ADMIN_RECOVERY_REQUIRED) {
             throw new IllegalStateException(
-                    "Production database has no active ADMIN account. Restore an approved administrator using the runbook.");
+                    "Production database has no active user manager. Restore an approved administrator using the runbook.");
         }
     }
 
@@ -49,7 +49,7 @@ public class ProductionAdminBootstrap implements ApplicationRunner {
                 VALUES (?, CURRENT_TIMESTAMP(6))
                 """, BOOTSTRAP_KEY);
 
-        boolean activeAdminExists = users.existsByRoleAndStatus(UserRole.ADMIN, UserStatus.ACTIVE);
+        boolean activeManagerExists = users.existsByCanManageUsersTrueAndStatus(UserStatus.ACTIVE);
         if (inserted == 1) {
             if (users.count() == 0) {
                 User admin = User.create("admin", passwordEncoder.encode("admin"), "系統管理員",
@@ -58,11 +58,11 @@ public class ProductionAdminBootstrap implements ApplicationRunner {
                 users.saveAndFlush(admin);
                 return BootstrapOutcome.INITIALIZED;
             }
-            return activeAdminExists ? BootstrapOutcome.ALREADY_INITIALIZED
+            return activeManagerExists ? BootstrapOutcome.ALREADY_INITIALIZED
                     : BootstrapOutcome.ADMIN_RECOVERY_REQUIRED;
         }
 
-        return activeAdminExists ? BootstrapOutcome.ALREADY_INITIALIZED
+        return activeManagerExists ? BootstrapOutcome.ALREADY_INITIALIZED
                 : BootstrapOutcome.ADMIN_RECOVERY_REQUIRED;
     }
 

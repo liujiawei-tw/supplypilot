@@ -6,16 +6,13 @@ import { AxiosError, AxiosHeaders, type AxiosResponse, type InternalAxiosRequest
 import App from '../src/App';
 import { axiosClient, TOKEN_STORAGE_KEY } from '../src/api/axiosClient';
 import { router } from '../src/router/routes';
-import type { AuthenticatedUser, UserRole } from '../src/types/api';
+import type { AuthenticatedUser } from '../src/types/api';
 import { AuthProvider } from '../src/auth/AuthContext';
 import { useAuth } from '../src/auth/useAuth';
 
-const identities: Record<UserRole, AuthenticatedUser> = {
-  PRODUCTION_PLANNER: { id: 1, username: 'planner', displayName: 'Planner', role: 'PRODUCTION_PLANNER' },
-  PROCUREMENT_STAFF: { id: 2, username: 'buyer', displayName: 'Buyer', role: 'PROCUREMENT_STAFF' },
-  PROCUREMENT_MANAGER: { id: 3, username: 'manager', displayName: 'Manager', role: 'PROCUREMENT_MANAGER' },
-  WAREHOUSE_STAFF: { id: 4, username: 'warehouse', displayName: 'Warehouse', role: 'WAREHOUSE_STAFF' },
-  ADMIN: { id: 5, username: 'admin', displayName: 'Admin', role: 'ADMIN' },
+const identities: Record<'business' | 'manager', AuthenticatedUser> = {
+  business: { id: 1, username: 'business', displayName: 'Business User', role: 'ADMIN', canManageUsers: false },
+  manager: { id: 2, username: 'manager', displayName: 'User Manager', role: 'ADMIN', canManageUsers: true },
 };
 
 const purchaseOrder = {
@@ -30,21 +27,22 @@ function response(config: InternalAxiosRequestConfig, data: unknown, status = 20
   return { config, data, status, statusText: String(status), headers: {} };
 }
 
-function mockServer(role: UserRole, loginStatus = 200) {
+function mockServer(identity: 'business' | 'manager', loginStatus = 200) {
   const requests: string[] = [];
   axiosClient.defaults.adapter = vi.fn(async (config) => {
     requests.push(config.url ?? '');
     if (config.url === '/auth/login') {
       if (loginStatus !== 200) throw new AxiosError('Unauthorized', 'ERR_BAD_REQUEST', config, undefined, response(config, { code: 'UNAUTHENTICATED', message: 'Sensitive server detail' }, loginStatus));
-      return response(config, { accessToken: 'valid-token', tokenType: 'Bearer', user: identities[role] });
+      return response(config, { accessToken: 'valid-token', tokenType: 'Bearer', user: identities[identity] });
     }
-    if (config.url === '/auth/me') return response(config, identities[role]);
+    if (config.url === '/auth/me') return response(config, identities[identity]);
     if (config.url === '/purchase-orders') return response(config, { content: [], page: 0, size: 5, totalElements: 0, totalPages: 0 });
     if (config.url === '/receiving/purchase-orders') return response(config, { content: [], page: 0, size: 5, totalElements: 0, totalPages: 0 });
     if (config.url === '/demands') return response(config, { content: [], page: 0, size: 5, totalElements: 0, totalPages: 0 });
     if (config.url === '/inventory') return response(config, { content: [], page: 0, size: 20, totalElements: 0, totalPages: 0 });
     if (config.url === '/purchase-orders/42') return response(config, purchaseOrder);
     if (config.url === '/stock-transactions') return response(config, { content: [], page: 0, size: 20, totalElements: 0, totalPages: 0 });
+    if (config.url === '/users') return response(config, { content: [], page: 0, size: 20, totalElements: 0, totalPages: 0 });
     throw new Error(`Unexpected API request: ${config.url}`);
   });
   return requests;
@@ -62,7 +60,7 @@ beforeEach(() => {
 
 describe('authentication and routing', () => {
   it('redirects an unauthenticated deep link, logs in, checks /auth/me and returns to it', async () => {
-    const requests = mockServer('PROCUREMENT_STAFF');
+    const requests = mockServer('business');
     await open('/purchase-orders/42');
     expect(await screen.findByText('登入採購與供應鏈決策平台')).toBeTruthy();
     const user = userEvent.setup();
@@ -76,7 +74,7 @@ describe('authentication and routing', () => {
   });
 
   it('keeps the form available after bad credentials without exposing server detail', async () => {
-    mockServer('PROCUREMENT_STAFF', 401);
+    mockServer('business', 401);
     await open('/login');
     const user = userEvent.setup();
     await user.type(screen.getByLabelText('帳號'), 'buyer');
@@ -92,7 +90,7 @@ describe('authentication and routing', () => {
     { status: 429, message: '登入請求過於頻繁，請稍後再試。' },
     { status: 503, message: '無法連線或登入服務暫時異常，請稍後再試。' },
   ])('shows a safe message for login HTTP $status', async ({ status, message }) => {
-    mockServer('ADMIN', status);
+    mockServer('manager', status);
     await open('/login');
     const user = userEvent.setup();
     await user.type(screen.getByLabelText('帳號'), 'admin');
@@ -120,8 +118,8 @@ describe('authentication and routing', () => {
     const requests: string[] = [];
     axiosClient.defaults.adapter = vi.fn(async (config) => {
       requests.push(config.url ?? '');
-      if (config.url === '/auth/login') return response(config, { accessToken: 'restricted-token', tokenType: 'Bearer', user: identities.ADMIN });
-      if (config.url === '/auth/me') return response(config, { ...identities.ADMIN, mustChangePassword: true });
+      if (config.url === '/auth/login') return response(config, { accessToken: 'restricted-token', tokenType: 'Bearer', user: identities.manager });
+      if (config.url === '/auth/me') return response(config, { ...identities.manager, mustChangePassword: true });
       throw new Error(`Unexpected API request: ${config.url}`);
     });
     await open('/login');
@@ -142,9 +140,9 @@ describe('authentication and routing', () => {
     axiosClient.defaults.adapter = vi.fn((config) => {
       requests.push(config.url ?? '');
       if (config.url === '/auth/login') return new Promise((resolve) => {
-        finishLogin = () => resolve(response(config, { accessToken: 'valid-token', tokenType: 'Bearer', user: identities.ADMIN }));
+        finishLogin = () => resolve(response(config, { accessToken: 'valid-token', tokenType: 'Bearer', user: identities.manager }));
       });
-      return Promise.resolve(response(config, identities.ADMIN));
+      return Promise.resolve(response(config, identities.manager));
     });
     await open('/login');
     const user = userEvent.setup();
@@ -160,7 +158,7 @@ describe('authentication and routing', () => {
   });
 
   it('restores a session after reload and clears it on logout', async () => {
-    const requests = mockServer('ADMIN');
+    const requests = mockServer('manager');
     localStorage.setItem(TOKEN_STORAGE_KEY, 'valid-token');
     await open('/dashboard');
     expect(await screen.findByText('工作總覽')).toBeTruthy();
@@ -193,7 +191,7 @@ describe('authentication and routing', () => {
         if (failure === 'network') throw new AxiosError('Network Error', 'ERR_NETWORK', config);
         throw new AxiosError('Temporary failure', 'ERR_BAD_RESPONSE', config, undefined, response(config, { code: 'SYSTEM_ERROR' }, failure));
       }
-      return response(config, identities.ADMIN);
+      return response(config, identities.manager);
     });
     localStorage.setItem(TOKEN_STORAGE_KEY, 'valid-token');
     await open('/dashboard');
@@ -209,11 +207,11 @@ describe('authentication and routing', () => {
   it('keeps a just-issued token when post-login /auth/me fails, then returns to the requested route after retry', async () => {
     let meCalls = 0;
     axiosClient.defaults.adapter = vi.fn(async (config) => {
-      if (config.url === '/auth/login') return response(config, { accessToken: 'valid-token', tokenType: 'Bearer', user: identities.PROCUREMENT_STAFF });
+      if (config.url === '/auth/login') return response(config, { accessToken: 'valid-token', tokenType: 'Bearer', user: identities.business });
       if (config.url === '/auth/me') {
         meCalls += 1;
         if (meCalls === 1) throw new AxiosError('Temporary failure', 'ERR_BAD_RESPONSE', config, undefined, response(config, { code: 'SYSTEM_ERROR' }, 503));
-        return response(config, identities.PROCUREMENT_STAFF);
+        return response(config, identities.business);
       }
       if (config.url === '/purchase-orders/42') return response(config, purchaseOrder);
       throw new Error(`Unexpected request ${config.url}`);
@@ -239,7 +237,7 @@ describe('authentication and routing', () => {
       calls += 1;
       if (calls === 1) return Promise.reject(new AxiosError('Network Error', 'ERR_NETWORK', config));
       return new Promise((resolve) => {
-        finishRetry = () => resolve(response(config, identities.ADMIN));
+        finishRetry = () => resolve(response(config, identities.manager));
       });
     });
     localStorage.setItem(TOKEN_STORAGE_KEY, 'valid-token');
@@ -254,7 +252,7 @@ describe('authentication and routing', () => {
 
   it('clears a just-issued token when post-login /auth/me returns 401', async () => {
     axiosClient.defaults.adapter = vi.fn(async (config) => {
-      if (config.url === '/auth/login') return response(config, { accessToken: 'invalid-token', tokenType: 'Bearer', user: identities.ADMIN });
+      if (config.url === '/auth/login') return response(config, { accessToken: 'invalid-token', tokenType: 'Bearer', user: identities.manager });
       throw new AxiosError('Expired', 'ERR_BAD_REQUEST', config, undefined, response(config, { code: 'UNAUTHENTICATED' }, 401));
     });
     await open('/dashboard');
@@ -267,62 +265,67 @@ describe('authentication and routing', () => {
     expect(localStorage.getItem(TOKEN_STORAGE_KEY)).toBeNull();
   });
 
-  it.each(Object.keys(identities) as UserRole[])('shows role navigation and a readable 403 for %s', async (role) => {
-    const requests = mockServer(role);
-    localStorage.setItem(TOKEN_STORAGE_KEY, 'valid-token');
-    await open('/dashboard');
+  it('keeps ADMIN business accounts out of user management menu, redirect, and direct route', async () => {
+    const requests = mockServer('business');
+    await open('/users');
+    expect(await screen.findByText('登入採購與供應鏈決策平台')).toBeTruthy();
+    const user = userEvent.setup();
+    await user.type(screen.getByLabelText('帳號'), 'business');
+    await user.type(screen.getByLabelText('密碼'), 'password');
+    await user.click(screen.getByRole('button', { name: '登 入' }));
     expect(await screen.findByText('工作總覽')).toBeTruthy();
-    expect(document.querySelector('.ant-layout-header')?.textContent).toContain(identities[role].displayName);
+    expect(router.state.location.pathname).toBe('/dashboard');
+    expect(document.querySelector('.ant-layout-header')?.textContent).toContain('Business User');
     const sidebar = document.querySelector('.ant-layout-sider')!;
-    expect(sidebar.textContent).toContain('需求與庫存');
-    fireEvent.click([...sidebar.querySelectorAll('.ant-menu-submenu-title')].find((item) => item.textContent === '需求與庫存')!);
-    await waitFor(() => expect([...sidebar.querySelectorAll('.ant-menu-item')].some((item) => item.textContent === '庫存管理')).toBe(true));
-    const workLinks = [...document.querySelectorAll('.dashboard-workspace a')].map((link) => link.textContent);
-    expect(workLinks.includes('開啟收貨作業')).toBe(role === 'WAREHOUSE_STAFF' || role === 'ADMIN');
-    expect(workLinks.includes('查看採購單') || workLinks.includes('審核採購單') || workLinks.includes('管理採購單')).toBe(role === 'PROCUREMENT_STAFF' || role === 'PROCUREMENT_MANAGER' || role === 'ADMIN');
-    expect(screen.queryByRole('button', { name: /AI 助理/ }) !== null).toBe(role === 'PROCUREMENT_STAFF' || role === 'PROCUREMENT_MANAGER' || role === 'ADMIN');
-    await router.navigate('/purchase-orders/42');
-    if (role === 'WAREHOUSE_STAFF' || role === 'PRODUCTION_PLANNER') expect(await screen.findByText('403')).toBeTruthy();
-    else expect(await screen.findByText('PO-000042')).toBeTruthy();
-    expect(requests.filter((url) => url === '/purchase-orders/42')).toHaveLength(role === 'WAREHOUSE_STAFF' || role === 'PRODUCTION_PLANNER' ? 0 : 1);
+    expect(sidebar.textContent).not.toContain('人員管理');
+    await router.navigate('/users');
+    expect(await screen.findByText('403')).toBeTruthy();
+    expect(requests).not.toContain('/users');
   });
 
-  it('allows manager into inventory without making an inventory GET request, and shows 404 for unknown routes', async () => {
-    const requests = mockServer('PROCUREMENT_MANAGER');
+  it('allows an explicitly authorized ADMIN account to follow a user-management deep link', async () => {
+    const requests = mockServer('manager');
+    localStorage.setItem(TOKEN_STORAGE_KEY, 'valid-token');
+    await open('/users');
+    expect(await screen.findByRole('heading', { name: '人員管理' })).toBeTruthy();
+    expect(router.state.location.pathname).toBe('/users');
+    expect(requests).toContain('/users');
+  });
+
+  it('allows an ADMIN business account into inventory tabs and shows 404 for unknown routes', async () => {
+    const requests = mockServer('business');
     localStorage.setItem(TOKEN_STORAGE_KEY, 'valid-token');
     await open('/inventory?tab=stock-levels&purchaseOrderId=42');
-    expect(await screen.findByText('庫存異動')).toBeTruthy();
-    expect(screen.queryByText('庫存水位')).toBeNull();
-    await waitFor(() => expect(router.state.location.search).toBe('?tab=stock-transactions&purchaseOrderId=42'));
-    expect(router.state.historyAction).toBe('REPLACE');
-    expect(requests).toEqual(['/auth/me', '/stock-transactions']);
+    expect((await screen.findByRole('tab', { name: '庫存水位' })).getAttribute('aria-selected')).toBe('true');
+    expect(screen.getByRole('tab', { name: '庫存異動' }).getAttribute('aria-selected')).toBe('false');
+    await waitFor(() => expect(router.state.location.search).toBe('?tab=stock-levels&purchaseOrderId=42'));
+    expect(requests).toEqual(['/auth/me', '/inventory']);
     await router.navigate('/unknown');
     expect(await screen.findByText('404')).toBeTruthy();
   });
 
-  it('replaces an unauthorized inventory deep link with the first allowed tab for a planner', async () => {
-    const requests = mockServer('PRODUCTION_PLANNER');
+  it('allows an ADMIN business account to open the inventory transactions deep link', async () => {
+    const requests = mockServer('business');
     localStorage.setItem(TOKEN_STORAGE_KEY, 'valid-token');
     await open('/inventory?tab=stock-transactions&materialId=7');
-    expect(await screen.findByText('庫存水位')).toBeTruthy();
-    expect(screen.queryByText('庫存異動')).toBeNull();
-    await waitFor(() => expect(router.state.location.search).toBe('?tab=stock-levels&materialId=7'));
-    expect(router.state.historyAction).toBe('REPLACE');
-    expect(requests).toEqual(['/auth/me', '/inventory']);
+    expect((await screen.findByRole('tab', { name: '庫存異動' })).getAttribute('aria-selected')).toBe('true');
+    expect(screen.getByRole('tab', { name: '庫存水位' }).getAttribute('aria-selected')).toBe('false');
+    await waitFor(() => expect(router.state.location.search).toBe('?tab=stock-transactions&materialId=7'));
+    expect(requests).toContain('/stock-transactions');
   });
 
-  it.each(['PRODUCTION_PLANNER', 'WAREHOUSE_STAFF'] as const)('does not call Supplier APIs when %s opens the protected route', async (role) => {
-    const requests = mockServer(role);
+  it('retains business API authorization for ADMIN accounts without user-management capability', async () => {
+    const requests = mockServer('business');
     localStorage.setItem(TOKEN_STORAGE_KEY, 'valid-token');
-    await open('/suppliers');
-    expect(await screen.findByText('403')).toBeTruthy();
-    expect(requests).toEqual(['/auth/me']);
+    await open('/purchase-orders/42');
+    expect(await screen.findByText('PO-000042')).toBeTruthy();
+    expect(requests).toContain('/purchase-orders/42');
   });
 
   it('does not restore a logged-out session from late /auth/me responses under StrictMode', async () => {
     const complete: Array<() => void> = [];
     axiosClient.defaults.adapter = vi.fn((config) => new Promise((resolve) => {
-      complete.push(() => resolve(response(config, identities.ADMIN)));
+      complete.push(() => resolve(response(config, identities.manager)));
     }));
     localStorage.setItem(TOKEN_STORAGE_KEY, 'valid-token');
     function Harness() {
