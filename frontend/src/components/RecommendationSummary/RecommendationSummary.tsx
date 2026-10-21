@@ -43,10 +43,12 @@ export default function RecommendationSummary({
   recommendation,
   showDeepLink = false,
   rankingState,
+  historicalOnly = false,
 }: {
   recommendation: RecommendationResponse;
   showDeepLink?: boolean;
   rankingState: 'loading' | 'error' | 'ready';
+  historicalOnly?: boolean;
 }) {
   const { user } = useAuth();
   const outcome = outcomePresentation[recommendation.outcome];
@@ -54,7 +56,9 @@ export default function RecommendationSummary({
   const unit = recommendation.material.unit;
 
   let nextStep: ReactNode;
-  if (recommendation.outcome === 'PURCHASE_NOT_REQUIRED') {
+  if (historicalOnly) {
+    nextStep = <Typography.Text>此為舊版已保存決策，僅供歷史追溯。</Typography.Text>;
+  } else if (recommendation.outcome === 'PURCHASE_NOT_REQUIRED') {
     nextStep = <Typography.Text>此結果不需要建立採購單草稿。</Typography.Text>;
   } else if (recommendation.outcome === 'NO_QUALIFIED_SUPPLIER') {
     nextStep = <Typography.Text>排名區已展開，可查看後端回傳的未符合原因。</Typography.Text>;
@@ -84,7 +88,12 @@ export default function RecommendationSummary({
         <Tag color={outcome.color}>{displayLabel(recommendation.outcome)}</Tag>
         {showDeepLink && <Link to={`/recommendations/${recommendation.id}`}>開啟已儲存明細</Link>}
       </Space>
-      <Alert type={outcome.alert} showIcon title={outcome.alertTitle} description={outcome.description} />
+      <Alert
+        type={historicalOnly ? 'info' : outcome.alert}
+        showIcon
+        title={historicalOnly ? '已保存的歷史決策快照' : outcome.alertTitle}
+        description={historicalOnly ? '以下推薦內容保留自舊版資料，僅供查閱與追溯。' : outcome.description}
+      />
 
       <div className="recommendation-decision-grid">
         <div className="recommendation-material">

@@ -29,7 +29,7 @@ describe('V2 account capability authorization', () => {
     const businessAccount = account(false);
     expect(isAllowedDestination('/demands', businessAccount)).toBe(false);
     expect(isAllowedDestination('/recommendations', businessAccount)).toBe(false);
-    expect(isAllowedDestination('/recommendations/12', businessAccount)).toBe(false);
+    expect(isAllowedDestination('/recommendations/12', businessAccount)).toBe(true);
     expect(isAllowedDestination('/purchase-orders', businessAccount)).toBe(true);
   });
 });

@@ -203,25 +203,44 @@ class PurchaseOrderUpdateIntegrationTests extends AbstractIntegrationTest {
         supplies(otherSupplier, material);
         User staff = user(UserRole.PROCUREMENT_STAFF);
         RecommendationFixture fixture = recommendation(material, supplier, otherSupplier, staff);
-        long id = createdId(create(staff, supplier, recommendedItem(material, "10", fixture, null)).andReturn());
+        SupplierRecommendationResult alternateResult = fixture.alternateResult();
+        assertThat(alternateResult).isNotNull();
+        String supplierOverrideReason = "原供應商議價後改採替代供應商";
+        String quantityOverrideReason = "需求確認後調整採購量";
+        long id = createdId(create(staff, otherSupplier, recommendedItem(
+                material, "12", fixture, alternateResult, supplierOverrideReason, quantityOverrideReason)).andReturn());
 
         update(staff, id, "{\"items\":[" + manualItem(material, "12", "7") + "]}")
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.items[0].quantity").value(12))
                 .andExpect(jsonPath("$.items[0].unitPrice").value(7))
                 .andExpect(jsonPath("$.items[0].recommendationId").value(fixture.recommendation().getId()))
-                .andExpect(jsonPath("$.items[0].supplierRecommendationResultId").value(fixture.result().getId()));
+                .andExpect(jsonPath("$.items[0].supplierRecommendationResultId").value(alternateResult.getId()))
+                .andExpect(jsonPath("$.items[0].supplierOverrideReason").value(supplierOverrideReason))
+                .andExpect(jsonPath("$.items[0].quantityOverrideReason").value(quantityOverrideReason));
         assertThat(jdbcTemplate.queryForObject(
                 "SELECT recommendation_id FROM purchase_order_items WHERE purchase_order_id = ?",
                 Long.class, id)).isEqualTo(fixture.recommendation().getId());
         assertThat(jdbcTemplate.queryForObject(
+                "SELECT supplier_recommendation_result_id FROM purchase_order_items WHERE purchase_order_id = ?",
+                Long.class, id)).isEqualTo(alternateResult.getId());
+        assertThat(jdbcTemplate.queryForObject(
+                "SELECT recommended_supplier_id_snapshot FROM purchase_order_items WHERE purchase_order_id = ?",
+                Long.class, id)).isEqualTo(supplier.getId());
+        assertThat(jdbcTemplate.queryForObject(
                 "SELECT recommended_quantity_snapshot FROM purchase_order_items WHERE purchase_order_id = ?",
                 BigDecimal.class, id)).isEqualByComparingTo("10");
-
-        update(staff, id, "{\"supplierId\":" + otherSupplier.getId() + "}")
-                .andExpect(status().isOk()).andExpect(jsonPath("$.supplierId").value(otherSupplier.getId()));
         assertThat(jdbcTemplate.queryForObject(
-                "SELECT supplier_id FROM purchase_orders WHERE id = ?", Long.class, id)).isEqualTo(otherSupplier.getId());
+                "SELECT supplier_override_reason FROM purchase_order_items WHERE purchase_order_id = ?",
+                String.class, id)).isEqualTo(supplierOverrideReason);
+        assertThat(jdbcTemplate.queryForObject(
+                "SELECT quantity_override_reason FROM purchase_order_items WHERE purchase_order_id = ?",
+                String.class, id)).isEqualTo(quantityOverrideReason);
+
+        update(staff, id, "{\"supplierId\":" + supplier.getId() + "}")
+                .andExpect(status().isOk()).andExpect(jsonPath("$.supplierId").value(supplier.getId()));
+        assertThat(jdbcTemplate.queryForObject(
+                "SELECT supplier_id FROM purchase_orders WHERE id = ?", Long.class, id)).isEqualTo(supplier.getId());
     }
 
     @Test
@@ -359,11 +378,18 @@ class PurchaseOrderUpdateIntegrationTests extends AbstractIntegrationTest {
                 + ",\"unitPrice\":" + price + "}";
     }
 
-    private String recommendedItem(Material material, String quantity, RecommendationFixture fixture, String reason) {
+    private String recommendedItem(
+            Material material,
+            String quantity,
+            RecommendationFixture fixture,
+            SupplierRecommendationResult result,
+            String supplierReason,
+            String quantityReason) {
         return "{\"materialId\":" + material.getId() + ",\"quantity\":" + quantity + ",\"unitPrice\":5"
                 + ",\"recommendationId\":" + fixture.recommendation().getId()
-                + ",\"supplierRecommendationResultId\":" + fixture.result().getId()
-                + (reason == null ? "" : ",\"quantityOverrideReason\":\"" + reason + "\"") + "}";
+                + ",\"supplierRecommendationResultId\":" + result.getId()
+                + ",\"supplierOverrideReason\":\"" + supplierReason + "\""
+                + ",\"quantityOverrideReason\":\"" + quantityReason + "\"}";
     }
 
     private RecommendationFixture recommendation(

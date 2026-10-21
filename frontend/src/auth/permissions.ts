@@ -17,7 +17,7 @@ export const permissions = {
   stockTransactions: ['WAREHOUSE_STAFF', 'PROCUREMENT_MANAGER', 'ADMIN'],
   inventoryImport: ['WAREHOUSE_STAFF', 'ADMIN'],
   recommendations: ['PROCUREMENT_STAFF', 'PROCUREMENT_MANAGER'],
-  recommendationRead: ['PRODUCTION_PLANNER', 'PROCUREMENT_STAFF', 'PROCUREMENT_MANAGER', 'WAREHOUSE_STAFF'],
+  recommendationRead: ['PRODUCTION_PLANNER', 'PROCUREMENT_STAFF', 'PROCUREMENT_MANAGER', 'WAREHOUSE_STAFF', 'ADMIN'],
   purchaseOrderRead: ['PROCUREMENT_STAFF', 'PROCUREMENT_MANAGER', 'ADMIN'],
   purchaseOrderCreate: ['PROCUREMENT_STAFF', 'ADMIN'],
   purchaseOrderEdit: ['PROCUREMENT_STAFF', 'ADMIN'],
