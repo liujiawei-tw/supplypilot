@@ -2,13 +2,14 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Alert, Button, Descriptions, Input, Modal, Select, Space, Table, Tag, Typography, message } from 'antd';
 import type { TableProps } from 'antd';
 import { Link } from 'react-router-dom';
-import { assignPurchaseOrder, claimPurchaseOrder, createPurchaseOrderDraft, listPurchaseOrders, type CreatePurchaseOrderRequest, type PurchaseOrderQuery, type PurchaseOrderResponse, type UpdatePurchaseOrderRequest } from '../../api/purchaseOrder';
+import { assignPurchaseOrder, claimPurchaseOrder, createPurchaseOrderDraft, getPurchaseOrder, listPurchaseOrders, type CreatePurchaseOrderRequest, type PurchaseOrderQuery, type PurchaseOrderResponse, type UpdatePurchaseOrderRequest } from '../../api/purchaseOrder';
 import { listAssignableUsers, type AssignableUser } from '../../api/users';
-import { toApiError } from '../../api/apiError';
+import { requiresMutationVerification, toApiError } from '../../api/apiError';
 import { can } from '../../auth/permissions';
 import { useAuth } from '../../auth/useAuth';
 import EmptyState from '../../components/EmptyState';
 import ErrorState from '../../components/ErrorState';
+import VerificationRequiredAlert from '../../components/VerificationRequiredAlert';
 import PurchaseOrderForm from './PurchaseOrderForm';
 import { formatTimestamp, isUnknownMutation, statusColors } from './purchaseOrderUi';
 import { displayLabel } from '../../utils/displayLabels';
@@ -31,6 +32,12 @@ export default function PurchaseOrdersPage() {
   const [createUnknown, setCreateUnknown] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const submittingRef = useRef(false);
+  const [ownerSubmitting, setOwnerSubmitting] = useState(false);
+  const ownerSubmittingRef = useRef(false);
+  const [ownerError, setOwnerError] = useState<ApiErrorResponse | null>(null);
+  const [ownerVerificationId, setOwnerVerificationId] = useState<number | null>(null);
+  const [ownerVerificationState, setOwnerVerificationState] = useState<'required' | 'checking' | 'failed' | 'verified' | null>(null);
+  const [ownerVerificationError, setOwnerVerificationError] = useState<ApiErrorResponse | null>(null);
   const requestId = useRef(0);
 
   const load = useCallback(async () => {
@@ -43,13 +50,31 @@ export default function PurchaseOrdersPage() {
   useEffect(() => { void listAssignableUsers().then(setAssignableUsers).catch(() => setAssignableUsers([])); }, []);
 
   const changeOwner = async (po: PurchaseOrderResponse, value: number | 'claim') => {
+    if (ownerSubmittingRef.current || ownerVerificationId !== null) return;
+    ownerSubmittingRef.current = true; setOwnerSubmitting(true); setOwnerError(null);
     try {
       if (value === 'claim') await claimPurchaseOrder(po.id);
       else await assignPurchaseOrder(po.id, value);
       apiMessage.success('採購單負責人已更新');
       await load();
     } catch (cause) {
-      setError(toApiError(cause));
+      setOwnerError(toApiError(cause));
+      if (requiresMutationVerification(cause)) {
+        setOwnerVerificationId(po.id); setOwnerVerificationState('required');
+      }
+    } finally { ownerSubmittingRef.current = false; setOwnerSubmitting(false); }
+  };
+
+  const verifyOwnerState = async () => {
+    if (ownerVerificationId === null || ownerVerificationState === 'checking') return;
+    const id = ownerVerificationId;
+    setOwnerVerificationState('checking'); setOwnerVerificationError(null);
+    try {
+      const latest = await getPurchaseOrder(id);
+      setData((current) => current && ({ ...current, content: current.content.map((item) => item.id === id ? latest : item) }));
+      setOwnerVerificationId(null); setOwnerVerificationState('verified'); setOwnerError(null);
+    } catch (cause) {
+      setOwnerVerificationState('failed'); setOwnerVerificationError(toApiError(cause));
     }
   };
 
@@ -70,10 +95,10 @@ export default function PurchaseOrdersPage() {
     { title: '供應商', render: (_, row) => `${row.supplierCode} — ${row.supplierName}` },
     { title: '目前負責人', render: (_, row) => <Space wrap>
       <span>{row.assignedToDisplayName ?? '未指派'}</span>
-      {!row.assignedTo && <Button size="small" onClick={() => void changeOwner(row, 'claim')}>認領</Button>}
-      <Select aria-label={`${row.poNumber} 指派負責人`} size="small" placeholder="指派" style={{ width: 140 }} value={row.assignedTo ?? undefined}
+      {!row.assignedTo && <Button aria-label={`Claim ${row.poNumber}`} size="small" loading={ownerSubmitting} disabled={ownerVerificationId !== null} onClick={() => Modal.confirm({ title: '認領此採購單？', content: `確認將目前登入帳號設為 ${row.poNumber} 的負責人。`, onOk: () => changeOwner(row, 'claim') })}>認領</Button>}
+      <Select aria-label={`${row.poNumber} 指派負責人`} size="small" placeholder="指派" style={{ width: 140 }} value={row.assignedTo ?? undefined} disabled={ownerSubmitting || ownerVerificationId !== null}
         options={assignableUsers.map((item) => ({ value: item.id, label: item.displayName }))}
-        onChange={(value: number) => { void changeOwner(row, value); }} />
+        onChange={(value: number) => Modal.confirm({ title: '變更採購單負責人？', content: `確認將 ${row.poNumber} 指派給 ${assignableUsers.find((item) => item.id === value)?.displayName ?? '所選帳號'}。`, onOk: () => changeOwner(row, value) })} />
     </Space> },
     { title: '狀態', dataIndex: 'status', sorter: true, render: (value) => <Tag color={statusColors[value as PurchaseOrderResponse['status']]}>{displayLabel(value)}</Tag> },
     { title: '預計交期', dataIndex: 'expectedDeliveryDate', sorter: true, render: (value, row) => <Space>{value ?? '—'}{row.isOverdue && <Tag color="red">已逾期</Tag>}</Space> },
@@ -97,6 +122,16 @@ export default function PurchaseOrdersPage() {
       <Select allowClear placeholder="逾期狀態" style={{ width: 140 }} options={[{ value: true, label: '只看逾期' }, { value: false, label: '排除逾期' }]} onChange={(value) => setQuery((current) => ({ ...current, overdue: value, page: 0 }))} />
     </Space>
     {error && <ErrorState title="採購單清單載入失敗" error={error} onRetry={() => void load()} />}
+    {ownerVerificationState && <VerificationRequiredAlert
+      state={ownerVerificationState}
+      title={ownerVerificationState === 'verified' ? '已取得最新採購單狀態' : ownerVerificationState === 'failed' ? '結果尚未確認，負責人操作維持鎖定' : '負責人操作結果待查核'}
+      message={ownerVerificationState === 'verified' ? '畫面已更新為後端最新資料。請重新審閱後，再次明確確認認領或指派。' : '操作遇到 409、伺服器錯誤或連線結果不明。系統不會自動重送；請先查詢後端真實狀態。'}
+      onVerify={ownerVerificationId !== null ? () => void verifyOwnerState() : undefined}
+      verifyText="重新查詢採購單"
+    />}
+    {ownerVerificationError && <ErrorState title="採購單狀態查核失敗" error={ownerVerificationError} onRetry={() => void verifyOwnerState()} retryText="重新查核" />}
+    {ownerError && <ErrorState title={ownerVerificationId !== null ? '負責人操作結果待查核' : '負責人操作失敗'} error={ownerError} operation="mutation" />}
+
     <Table rowKey="id" columns={columns} dataSource={data?.content ?? []} loading={loading}
       locale={{ emptyText: <EmptyState simple description="沒有符合條件的 Purchase Order" /> }}
       scroll={{ x: true }}

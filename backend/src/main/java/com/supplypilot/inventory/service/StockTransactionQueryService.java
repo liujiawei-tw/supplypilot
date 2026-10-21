@@ -79,6 +79,6 @@ public class StockTransactionQueryService {
         return new StockTransactionReadResponse(transaction.getId(), material.getId(), material.getCode(), material.getName(),
                 material.getBaseUnit(), transaction.getType(), transaction.getQuantity(), transaction.getPurchaseOrderId(),
                 purchaseOrderNumber, transaction.getReason(), transaction.getCreatedByUserIdSnapshot(),
-                transaction.getCreatedBy() == null ? null : transaction.getCreatedBy().getDisplayName(), transaction.getCreatedAt());
+                transaction.getCreatedByDisplayNameSnapshot(), transaction.getCreatedAt());
     }
 }

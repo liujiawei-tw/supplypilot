@@ -2,6 +2,7 @@ package com.supplypilot.integration;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -146,6 +147,33 @@ class StockTransactionControllerIntegrationTests extends AbstractIntegrationTest
     }
 
     @Test
+    void preservesStockTransactionActorSnapshotAfterRenameAndPermanentDeletion() throws Exception {
+        Long actorId = warehouse.getId();
+        String originalUsername = warehouse.getUsername();
+        String originalDisplayName = warehouse.getDisplayName();
+        Long receivedTransactionId = transactionRepository.findAll().stream()
+                .filter(transaction -> receivedOrder.getId().equals(transaction.getPurchaseOrderId()))
+                .findFirst().orElseThrow().getId();
+
+        warehouse.update("Renamed Warehouse Operator", null, null, clock.instant());
+        userRepository.saveAndFlush(warehouse);
+        mockMvc.perform(delete("/api/v1/users/{id}", actorId)
+                        .header("Authorization", bearer(user(UserRole.ADMIN, true))))
+                .andExpect(status().isNoContent());
+
+        StockTransaction deletedActorTransaction = transactionRepository.findById(receivedTransactionId).orElseThrow();
+        assertThat(deletedActorTransaction.getCreatedBy()).isNull();
+        assertThat(deletedActorTransaction.getCreatedByUserIdSnapshot()).isEqualTo(actorId);
+        assertThat(deletedActorTransaction.getCreatedByUsernameSnapshot()).isEqualTo(originalUsername);
+        assertThat(deletedActorTransaction.getCreatedByDisplayNameSnapshot()).isEqualTo(originalDisplayName);
+        getDetail(admin, receivedTransactionId).andExpect(status().isOk())
+                .andExpect(jsonPath("$.createdBy").value(actorId))
+                .andExpect(jsonPath("$.createdByDisplayName").value(originalDisplayName));
+        assertThat(purchaseOrderRepository.findById(receivedOrder.getId()).orElseThrow().getStatus().name())
+                .isEqualTo("RECEIVED");
+    }
+
+    @Test
     void filtersInclusivelyPaginatesAndValidatesAllQueryParameters() throws Exception {
         String materialId = kg.getId().toString();
         mockMvc.perform(get("/api/v1/stock-transactions").param("materialId", materialId)
@@ -287,12 +315,17 @@ class StockTransactionControllerIntegrationTests extends AbstractIntegrationTest
     }
 
     private User user(UserRole role) {
+        return user(role, false);
+    }
+
+    private User user(UserRole role, boolean canManageUsers) {
         return userRepository.saveAndFlush(User.create("st-402-" + role.name() + "-" + suffix(), "hash",
-                role.name(), role, clock.instant()));
+                role.name(), role, canManageUsers, clock.instant()));
     }
 
     private String bearer(User user) {
-        return "Bearer " + jwtTokenService.generateToken(new AuthenticatedUser(user.getId(), user.getUsername(), user.getRole()));
+        return "Bearer " + jwtTokenService.generateToken(new AuthenticatedUser(user.getId(), user.getUsername(),
+                user.getRole(), user.canManageUsers(), user.isMustChangePassword()));
     }
 
     private JsonNode find(JsonNode content, long id) {

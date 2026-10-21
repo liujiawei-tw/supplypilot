@@ -149,6 +149,9 @@ public class PurchaseOrder {
     }
 
     public void assignTo(User assignee, Instant now) {
+        if (status == PurchaseOrderStatus.REJECTED) {
+            throw new BusinessException(ErrorCode.INVALID_PO_STATUS_TRANSITION);
+        }
         assignedTo = assignee;
         updatedAt = Objects.requireNonNull(now, "Timestamp must not be null");
     }

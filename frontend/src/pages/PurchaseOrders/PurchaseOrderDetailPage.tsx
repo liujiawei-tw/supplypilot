@@ -47,13 +47,18 @@ export default function PurchaseOrderDetailPage() {
   useEffect(() => { void listAssignableUsers().then(setAssignableUsers).catch(() => setAssignableUsers([])); }, []);
 
   const updateOwner = async (userId: number | 'claim') => {
-    if (!po || submitting) return;
-    setSubmitting(true); setActionError(null);
+    if (!po || submittingRef.current || verificationRequired) return;
+    submittingRef.current = true; setSubmitting(true); setActionError(null);
     try {
       const updated = userId === 'claim' ? await claimPurchaseOrder(po.id) : await assignPurchaseOrder(po.id, userId);
       setPo(updated); apiMessage.success('採購單負責人已更新');
-    } catch (cause) { setActionError(toApiError(cause)); }
-    finally { setSubmitting(false); }
+    } catch (cause) {
+      setActionError(toApiError(cause));
+      if (requiresMutationVerification(cause)) {
+        setVerificationRequired(true); setVerificationState('required'); setVerificationError(null);
+        setVerificationMessage('負責人操作遇到 409、伺服器錯誤或連線結果不明。系統不會自動重送；請先查詢後端真實狀態。');
+      }
+    } finally { submittingRef.current = false; setSubmitting(false); }
   };
 
   const verifyLatestState = async () => {
@@ -99,7 +104,7 @@ export default function PurchaseOrderDetailPage() {
     {contextHolder}
     <Space style={{ width: '100%', justifyContent: 'space-between' }} wrap>
       <div><Link to="/purchase-orders">← 採購單管理</Link><Typography.Title level={2} style={{ margin: '8px 0 0' }}>{po.poNumber}</Typography.Title></div>
-      <Space wrap>{!po.assignedTo && <Button disabled={submitting} onClick={() => Modal.confirm({ title: '認領此採購單？', content: '確認將目前登入的帳號設為負責人。', onOk: () => updateOwner('claim') })}>認領</Button>}<Select aria-label="指派採購單負責人" size="small" placeholder="指派負責人" style={{ width: 170 }} value={po.assignedTo ?? undefined} disabled={submitting} options={assignableUsers.map((candidate) => ({ value: candidate.id, label: candidate.displayName }))} onChange={(value: number) => Modal.confirm({ title: '變更採購單負責人？', content: `將負責人指派給 ${assignableUsers.find((candidate) => candidate.id === value)?.displayName ?? '所選帳號'}。`, onOk: () => updateOwner(value) })} />{canEdit && <Button disabled={verificationRequired} onClick={() => { if (!verificationRequired) { setActive('edit'); setActionError(null); } }}>編輯草稿</Button>}{canDecide && <><Button type="primary" disabled={!po.expectedDeliveryDate || verificationRequired} title={!po.expectedDeliveryDate ? '請先編輯草稿並補齊交期' : undefined} onClick={() => setActive('approve')}>核准</Button><Button danger disabled={verificationRequired} onClick={() => setActive('reject')}>駁回</Button></>}{canOrder && <Button type="primary" disabled={!po.expectedDeliveryDate || verificationRequired} onClick={() => setActive('order')}>標記為已下單</Button>}{canViewTransactions && <Link to={`/inventory?tab=stock-transactions&purchaseOrderId=${po.id}`}>庫存異動</Link>}</Space>
+      <Space wrap>{!po.assignedTo && <Button aria-label={`Claim ${po.poNumber}`} loading={submitting} disabled={verificationRequired} onClick={() => Modal.confirm({ title: '認領此採購單？', content: '確認將目前登入的帳號設為負責人。', onOk: () => updateOwner('claim') })}>認領</Button>}<Select aria-label="指派採購單負責人" size="small" placeholder="指派負責人" style={{ width: 170 }} value={po.assignedTo ?? undefined} disabled={submitting || verificationRequired} options={assignableUsers.map((candidate) => ({ value: candidate.id, label: candidate.displayName }))} onChange={(value: number) => Modal.confirm({ title: '變更採購單負責人？', content: `將負責人指派給 ${assignableUsers.find((candidate) => candidate.id === value)?.displayName ?? '所選帳號'}。`, onOk: () => updateOwner(value) })} />{canEdit && <Button disabled={verificationRequired} onClick={() => { if (!verificationRequired) { setActive('edit'); setActionError(null); } }}>編輯草稿</Button>}{canDecide && <><Button type="primary" disabled={!po.expectedDeliveryDate || verificationRequired} title={!po.expectedDeliveryDate ? '請先編輯草稿並補齊交期' : undefined} onClick={() => setActive('approve')}>核准</Button><Button danger disabled={verificationRequired} onClick={() => setActive('reject')}>駁回</Button></>}{canOrder && <Button type="primary" disabled={!po.expectedDeliveryDate || verificationRequired} onClick={() => setActive('order')}>標記為已下單</Button>}{canViewTransactions && <Link to={`/inventory?tab=stock-transactions&purchaseOrderId=${po.id}`}>庫存異動</Link>}</Space>
     </Space>
     {!po.expectedDeliveryDate && canDecide && <Alert type="warning" showIcon title="此草稿尚未設定交期，無法核准。請先編輯草稿補齊。" />}
     {verificationState && <VerificationRequiredAlert

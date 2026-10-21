@@ -2,6 +2,10 @@
 -- MySQL DDL autocommits; apply with the application's normal Flyway backup/recovery
 -- process. Every change is additive except nullable historical FK columns.
 
+-- This index was added after V23 had already run in deployed databases. Keep the
+-- applied V23 immutable and introduce the index in this still-pending migration.
+ALTER TABLE users ADD INDEX idx_users_manager_status_id (can_manage_users, status, id);
+
 ALTER TABLE purchase_orders
     ADD COLUMN assigned_to BIGINT NULL,
     ADD COLUMN created_by_user_id_snapshot BIGINT NULL,
@@ -68,8 +72,15 @@ ALTER TABLE demands DROP FOREIGN KEY fk_demands_created_by, MODIFY COLUMN create
 ALTER TABLE demands
     ADD CONSTRAINT fk_demands_created_by FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL;
 
-ALTER TABLE stock_transactions ADD COLUMN created_by_user_id_snapshot BIGINT NULL;
-UPDATE stock_transactions SET created_by_user_id_snapshot = created_by;
+ALTER TABLE stock_transactions
+    ADD COLUMN created_by_user_id_snapshot BIGINT NULL,
+    ADD COLUMN created_by_username_snapshot VARCHAR(50) NULL,
+    ADD COLUMN created_by_display_name_snapshot VARCHAR(100) NULL;
+UPDATE stock_transactions st
+LEFT JOIN users creator ON creator.id = st.created_by
+SET st.created_by_user_id_snapshot = st.created_by,
+    st.created_by_username_snapshot = creator.username,
+    st.created_by_display_name_snapshot = creator.display_name;
 ALTER TABLE stock_transactions DROP FOREIGN KEY fk_stock_transactions_created_by, MODIFY COLUMN created_by BIGINT NULL;
 ALTER TABLE stock_transactions
     ADD CONSTRAINT fk_stock_transactions_created_by FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL;
