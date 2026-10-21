@@ -61,7 +61,15 @@
 - **不允許：** 原版 `implement-spec` 的多 Issue 同時修改／自動 Merger／Integration Branch／Draft PR；不得因 #139／#140／#145 有不同依賴就自動破例。
 - **未來若要正式並行：** 必須另經使用者明確授權並修改 `AGENTS.md`／Issue 流程；至少滿足每 Issue 獨立 Worktree、Branch、PR、GPT Review、相依檢查及 Docker Compose project／網路埠／資料庫／Volume／憑證隔離。未核准前維持單 Issue 流程。
 
-## 6. Windows Codex CLI：安裝與驗證分界
+## 6. Matt Skills 所需的最小 Repo 設定
+
+為避免原版 `setup-matt-pocock-skills` 改寫既有 `AGENTS.md`、建立額外 Labels 或重新設計 V2 流程，本 Issue 已**直接提供唯讀優先的最小相容設定文件**：
+
+- [Issue Tracker](../agents/issue-tracker.md)：明確設定 `liujiawei-tw/supplypilot`、GitHub CLI 唯讀查詢與所有寫入禁止範圍；供 `implement`／`code-review` 找回 Issue／Spec。
+- [Domain 文件導覽](../agents/domain.md)：讓 Skills 優先讀 V2 規格、既有 Domain／API／Testing 契約；不新建重複的 Glossary 或 ADR 體系。
+- **尚未實測：** 這是按上游 Skill 預期預先建立的相容設定，並未在使用者 Windows Codex CLI 驗證所有指令及 Skill 自動讀取是否成功。若實際使用的上游版本仍要求執行 setup，先進行唯讀差異分析，不得直接套用 setup 的寫入步驟。
+
+## 7. Windows Codex CLI：安裝與驗證分界
 
 以下指令**僅供使用者在自己的 Windows Codex CLI 執行**；本文件不代表已執行，亦不要求任何 Agent 自動安裝：
 
@@ -75,10 +83,10 @@ npx skills@latest add mattpocock/skills -a codex
 - 重新開啟 Codex CLI，核對實際可用的 Skill 名稱、版本／來源和讀取範圍；至少以單張 Issue 的「唯讀讀取 + 測試規劃」進行 Smoke 驗證。**確認安裝不代表已通過 V2 實作驗收**。
 - ChatGPT 網頁對話**不會自動繼承你在 Windows 安裝的 Codex CLI Skills**。GPT 可讀取這份 GitHub 協作契約與上游 Skill 原始碼以進行對接／Review，但不得宣稱能直接調用你本機未連線的 CLI Skill。
 
-## 7. 新的 GPT 對話：首次對接步驟
+## 8. 新的 GPT 對話：首次對接步驟
 
 新的 GPT 對話開始時請先：
-1. 讀取 `liujiawei-tw/supplypilot` 的最新 `AGENTS.md`、`docs/v2/README.md`、本文件，以及 `docs/v2/migration-and-issue-map.md`；核實這次導入文件的 PR 是否**已合併至 main**。若仍只在 Feature Branch，應明確標為待合併草案，不能當 main 的既定規則。
+1. 讀取 `liujiawei-tw/supplypilot` 的最新 `AGENTS.md`、`docs/v2/README.md`、本文件、`docs/agents/issue-tracker.md`、`docs/agents/domain.md`，以及 `docs/v2/migration-and-issue-map.md`；核實這次導入文件的 PR 是否**已合併至 main**。若仍只在 Feature Branch，應明確標為待合併草案，不能當 main 的既定規則。
 2. 讀取 Matt Pocock Skills 對應的上游 README、`implement`、`tdd`、`diagnosing-bugs`、`code-review` 原始 Skill；詢問／驗證實際 Windows Codex CLI 是否已安裝（不可從文件推定）。
 3. 確認 GPT 只負責獨立審查與 PR、Codex 負責實作與證據、使用者負責 Merge；確認單 Issue／單 Branch 及 Skills 的衝突限制。
 4. 若使用者希望先「對接」而非直接寫程式：先產出一份簡短的相容性檢查，核對 Skills 實際可用、AGENTS 優先序、正確 GitHub Repo、測試 Gate 與交接格式；**不要擅自開始實作下一張 Issue**。
@@ -88,6 +96,6 @@ npx skills@latest add mattpocock/skills -a codex
 
 > 請先連線讀取 SupplyPilot GitHub `AGENTS.md`、`docs/v2/matt-pocock-codex-gpt-handoff.md`、V2 規格與 Matt Pocock Skills 原始檔。先確認文件是否已合併 main、Windows Codex CLI Skills 是否真的安裝，對接 Codex 實作／GPT 獨立 Review 的角色與交付格式；只做相容性檢查，不要開始下一張 Issue 或修改 Repository。用繁體中文回報差異和阻擋點。
 
-## 8. 導入成效驗證（非強制產品功能）
+## 9. 導入成效驗證（非強制產品功能）
 
 選一張相依已滿足、尚未開始的 Issue 作為第一個試行案例，對比先前同類 Issue 的：實作時間、測試修正次數、GPT P0/P1 Findings／Review 往返次數、使用 Token／實際費用（如可得）。結果受 Issue 難度影響，不宣稱固定效率增幅。除非使用者另行授權，本文件本身不改動 Issue 優先順序、測試標準或 PR 規則。
