@@ -1,6 +1,6 @@
 # Issue #138（V2-201）實作與驗證證據
 
-> 狀態：本機驗證通過，等待 Feature Branch 推送與 GitHub Actions。此紀錄只反映本 Issue Feature Branch 的實際結果；不能代表其他 V2 Issue、AWS 或正式 Demo 驗收。
+> 狀態：本機驗證通過；已推送 Feature Branch，但無法從目前 GitHub Actions 連線取得 push workflow run/job 證據。此紀錄只反映本 Issue Feature Branch 的實際結果；不能代表其他 V2 Issue、AWS 或正式 Demo 驗收。
 
 ## 基線與差異分析
 
@@ -37,15 +37,15 @@
 
 | 類別 | 指令 / 證據 | 結果 | SHA |
 |---|---|---|---|
-| 後端精準測試 | `cd backend; .\mvnw.cmd '-Dtest=PurchaseOrderUpdateIntegrationTests,DemandControllerIntegrationTests,RecommendationControllerIntegrationTests,PurchaseOrderLifecycleIntegrationTests' test` | PASS，23 tests，0 failures/errors/skips；Testcontainers MySQL 8.4.11 驗證 V1–V24 | 最終 Feature SHA 待記錄 |
-| 後端 PO controller/update | `cd backend; .\mvnw.cmd '-Dtest=PurchaseOrderControllerIntegrationTests,PurchaseOrderUpdateIntegrationTests' test` | PASS，14 tests，0 failures/errors/skips；Update suite 重跑 | 最終 Feature SHA 待記錄 |
-| 後端鎖定/lifecycle/收貨併發 | `cd backend; .\mvnw.cmd '-Dtest=PurchaseOrderUpdateIntegrationTests,PurchaseOrderLifecycleIntegrationTests,PurchaseOrderControllerIntegrationTests,PurchaseOrderConcurrentReceivingIntegrationTests' test` | PASS，24 tests，0 failures/errors/skips；含收貨併發與重複收貨驗證 | 最終 Feature SHA 待記錄 |
-| 前端精準測試 | `cd frontend; npm test -- --maxWorkers=1 --no-file-parallelism tests/dashboard.test.tsx tests/v2Authorization.test.ts tests/purchaseOrderApi.test.ts` | PASS，3 files，13 tests；受限沙盒 Temp rename EPERM 後在授權環境重跑通過 | 最終 Feature SHA 待記錄 |
-| Build | `cd frontend; npm run build` | PASS；Vite 輸出 bundle 大於 500 kB 的分包建議警告 | 最終 Feature SHA 待記錄 |
-| Lint | `cd frontend; npm run lint` | PASS | 最終 Feature SHA 待記錄 |
-| GitHub Actions | Push 後查詢 commit workflow runs | 尚未 Push；NOT RUN | 待記錄 Workflow URL/Jobs/SHA |
-| Migration/隔離資料庫 | 無 Schema 變更；Testcontainers MySQL 8.4.11 驗證乾淨 V1–V24 Migration | PASS；未執行 Demo DB 操作 | 最終 Feature SHA 待記錄 |
-| `git diff --check` | `git diff --check` | PASS；只有 Git 的 LF→CRLF working-copy 提示 | 最終 Feature SHA 待記錄 |
+| 後端精準測試 | `cd backend; .\mvnw.cmd '-Dtest=PurchaseOrderUpdateIntegrationTests,DemandControllerIntegrationTests,RecommendationControllerIntegrationTests,PurchaseOrderLifecycleIntegrationTests' test` | PASS，23 tests，0 failures/errors/skips；Testcontainers MySQL 8.4.11 驗證 V1–V24 | `6d5c890a7746e0192991387f5ca4c2c325208b8d` 的程式碼樹 |
+| 後端 PO controller/update | `cd backend; .\mvnw.cmd '-Dtest=PurchaseOrderControllerIntegrationTests,PurchaseOrderUpdateIntegrationTests' test` | PASS，14 tests，0 failures/errors/skips；Update suite 重跑 | `6d5c890a7746e0192991387f5ca4c2c325208b8d` 的程式碼樹 |
+| 後端鎖定/lifecycle/收貨併發 | `cd backend; .\mvnw.cmd '-Dtest=PurchaseOrderUpdateIntegrationTests,PurchaseOrderLifecycleIntegrationTests,PurchaseOrderControllerIntegrationTests,PurchaseOrderConcurrentReceivingIntegrationTests' test` | PASS，24 tests，0 failures/errors/skips；含收貨併發與重複收貨驗證 | `6d5c890a7746e0192991387f5ca4c2c325208b8d` 的程式碼樹 |
+| 前端精準測試 | `cd frontend; npm test -- --maxWorkers=1 --no-file-parallelism tests/dashboard.test.tsx tests/v2Authorization.test.ts tests/purchaseOrderApi.test.ts` | PASS，3 files，13 tests；受限沙盒 Temp rename EPERM 後在授權環境重跑通過 | `6d5c890a7746e0192991387f5ca4c2c325208b8d` 的程式碼樹 |
+| Build | `cd frontend; npm run build` | PASS；Vite 輸出 bundle 大於 500 kB 的分包建議警告 | `6d5c890a7746e0192991387f5ca4c2c325208b8d` 的程式碼樹 |
+| Lint | `cd frontend; npm run lint` | PASS | `6d5c890a7746e0192991387f5ca4c2c325208b8d` 的程式碼樹 |
+| GitHub Actions | 推送後查詢 `github_fetch_commit_workflow_runs` 與 commit combined status；目前工具只列 PR 觸發 runs。`gh` CLI 未安裝，匿名 GitHub Actions REST API 回 404 | 此 SHA 的 workflow runs/jobs/statuses 均未能由可用介面取得；CI 證據 `NOT AVAILABLE`，不得視為 PASS | `6d5c890a7746e0192991387f5ca4c2c325208b8d` |
+| Migration/隔離資料庫 | 無 Schema 變更；Testcontainers MySQL 8.4.11 驗證乾淨 V1–V24 Migration | PASS；未執行 Demo DB 操作 | `6d5c890a7746e0192991387f5ca4c2c325208b8d` 的程式碼樹 |
+| `git diff --check` | `git diff --check` | PASS；只有 Git 的 LF→CRLF working-copy 提示 | `6d5c890a7746e0192991387f5ca4c2c325208b8d` 的程式碼樹 |
 
 ## 風險與範圍
 
