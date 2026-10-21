@@ -1,6 +1,6 @@
 # Issue #138（V2-201）實作與驗證證據
 
-> 狀態：本機精準驗證通過；GitHub Actions Run `39598790523` 已確認在 `Detect CI scope` 開始前被 GitHub 帳務／支出限制阻擋，Backend、Frontend、Container jobs 均 Skipped，並非測試失敗或通過。此紀錄只反映本 Issue Feature Branch 的實際結果；不能代表其他 V2 Issue、AWS 或正式 Demo 驗收。
+> 狀態：本機精準驗證通過；GitHub Actions Run `39602321149`（修正程式碼 SHA `e29e28afcf5f3f9b6ad2ecd3e4b975aac7d6a0be`）再次確認在 runner 啟動前被 GitHub 帳務／支出限制阻擋，Backend、Frontend、Container jobs 均 Skipped，並非測試失敗或通過。舊 SHA 的 Run `39598790523` 有相同原因。此紀錄只反映本 Issue Feature Branch 的實際結果；不能代表其他 V2 Issue、AWS 或正式 Demo 驗收。
 
 ## 基線與差異分析
 
@@ -52,6 +52,7 @@
 | Build | `cd frontend; npm run build` | PASS；Vite 輸出 bundle 大於 500 kB 的分包建議警告 | `6d5c890a7746e0192991387f5ca4c2c325208b8d` 的程式碼樹 |
 | Lint | `cd frontend; npm run lint` | PASS | `6d5c890a7746e0192991387f5ca4c2c325208b8d` 的程式碼樹 |
 | GitHub Actions Run `39598790523` | [CI Merge Gate](https://github.com/liujiawei-tw/supplypilot/actions/runs/39598790523)，push event，branch `codex/issue-138-v2-201`，SHA `b4615ef8324a8055fe5421b7fe0818f6a3e4430c`；GitHub Check Run annotation 顯示 `The job was not started because recent account payments have failed or your spending limit needs to be increased. Please check the 'Billing & plans' section in your settings` | `Detect CI scope` = Failure，runner 未分配且 steps 為空；Backend CI、Frontend CI、Container image and Compose validation = Skipped（依賴 scope job）。因此該 Run 沒有執行任何 Backend/Frontend/Container 測試，不能標記為測試失敗或 PASS。最小修復：Repository/Organization owner 在 GitHub Settings 的 Billing & plans 修正付款或提高 Actions spending limit，之後重跑 Workflow。 | `b4615ef8324a8055fe5421b7fe0818f6a3e4430c` |
+| GitHub Actions Run `39602321149` | [CI Merge Gate](https://github.com/liujiawei-tw/supplypilot/actions/runs/39602321149)，push event，branch `codex/issue-138-v2-201`，SHA `e29e28afcf5f3f9b6ad2ecd3e4b975aac7d6a0be`；GitHub Check Run annotation 顯示與 Run `39598790523` 相同的 account payments/spending limit 訊息 | `Detect CI scope` = Failure，runner 未分配、steps 空白；Backend CI、Frontend CI、Container image and Compose validation = Skipped。該 SHA 的 Workflow 仍未執行 CI 測試。新 SHA 的後續本機證據：Backend 7/7、Frontend 28/28、Build PASS、Lint PASS；這些本機結果不等於 GitHub CI Gate。Billing 修復後仍須對最終 Feature Branch Head 重跑完整 CI。 | `e29e28afcf5f3f9b6ad2ecd3e4b975aac7d6a0be` |
 | Migration/隔離資料庫 | 無 Schema 變更；Testcontainers MySQL 8.4.11 驗證乾淨 V1–V24 Migration | PASS；未執行 Demo DB 操作 | `6d5c890a7746e0192991387f5ca4c2c325208b8d` 的程式碼樹 |
 | `git diff --check` | `git diff --check` | PASS；只有 Git 的 LF→CRLF working-copy 提示 | 本次 GPT Review 修正程式碼樹 |
 
@@ -59,6 +60,6 @@
 
 - P2：既有「舊 V1 角色」可保留 Demand/Recommendation 相容操作；V23 後的 V2 帳號皆為 ADMIN，後端不授權其執行這些新寫入。
 - P2：PO 仍要求 ACTIVE SupplierMaterial 關聯；本 Issue 將此保留為有效供應關係驗證，沒有擅自移除。
-- P2／CI 環境阻擋：Run `39598790523` 的 GitHub Check annotation 已明確指出帳務付款失敗或 Actions 支出上限需提高；workflow 未分配 runner，三個驗證 jobs 全部 Skipped。這是 GitHub 執行環境阻擋證據，不能藉由修改 workflow 或縮減驗證排除。修正帳務後須在最終 Feature Branch SHA 取得 Backend、Frontend、Container jobs 有效結果。
+- P2／CI 環境阻擋：Run `39598790523` 與 `39602321149` 的 GitHub Check annotation 均明確指出帳務付款失敗或 Actions 支出上限需提高；workflow 未分配 runner，三個驗證 jobs 全部 Skipped。這是 GitHub 執行環境阻擋證據，不能藉由修改 workflow 或縮減驗證排除。修正帳務後須在最終 Feature Branch SHA 取得 Backend、Frontend、Container jobs 有效結果。
 - #139～#144 的 CANCELLED、供應商承諾交期、整筆驗收/付款、Stage/Kanban、搜尋欄位不在本次實作範圍；既有 PO API/Domain 保持可供後續擴充。
 - 本次未執行 AWS Deployment、Demo Reset、Production 資源修改或真實 Gemini/Browser/AWS E2E。
