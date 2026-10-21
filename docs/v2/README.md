@@ -43,6 +43,7 @@
 - [前端與顯示](ui-and-reporting.md)
 - [Demo 與驗收](demo-and-acceptance.md)
 - [V1 → V2 差異／Issue 對照](migration-and-issue-map.md)
+- [Matt Pocock Skills × Codex × GPT 協作與新對話交接](matt-pocock-codex-gpt-handoff.md)（工程方法與交付權限；不變更 V2 產品 Scope）
 
 ## 5. 工作原則
 
