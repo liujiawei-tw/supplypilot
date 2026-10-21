@@ -2,6 +2,23 @@
 
 本檔案適用於此儲存庫內所有 Codex 工作階段及子目錄。開始工作時請先遵守本檔案，並同時遵守目前 Issue、專案規格與使用者的明確指示。
 
+## 目前開發階段：SupplyPilot V2（強制）
+
+> **V2 規格已透過 [PR #150](https://github.com/liujiawei-tw/supplypilot/pull/150) 合併 main，目前進入 V2 功能實作階段；現有 main 業務程式仍主要是 V1 基線。** V2 Markdown、Issue 或「已決策」不等於已寫程式、驗收 PASS 或 AWS 上線。
+
+### 開始任何 V2 Issue 前的必讀與查核
+
+1. 先閱讀本檔、[V2 需求總綱](docs/v2/README.md)、[V1→V2 差異與 Issue 對照](docs/v2/migration-and-issue-map.md)，再閱讀**本次唯一要實作的 Issue**與其對應的 V2 專題文件；須讀取最新 main 的實際程式與 API/DB/測試契約，不得只看設計 Markdown 直接猜測實作狀態。
+2. **規格優先順序：** 使用者針對目前工作明確指示及已核定的 Scope → 當前 Issue 的驗收條件與相依 → `docs/v2/` 中適用的已確認 V2 需求 → 未被 V2 覆蓋的 V1 安全／交易／錯誤／測試契約。若 Issue、規格或程式間有實質衝突，先指出檔案/條文並依 ADR/規格修正程序解決，**不得默默猜測或自行擴 Scope**。
+3. 先確認當前 V2 Issue 的前置依賴／前置 PR 已合併，再依此 Issue 單獨修改程式、Flyway、測試及其直接相關文件；不能因同時發現另一張 V2 Issue 尚未實作，就在同一 PR 順便完成。
+4. **V2 的已確認刪減需求必須遵守：** Demand 與自動 Recommendation/Ranking 不屬於 V2 新主流程；不得重新加入已取消的文件級 ACL、PDF 頁碼、合約比較、供應商自動排名、PO 匯出、通知中心等功能。V1 舊文檔的描述不能覆蓋新版的 Scope。
+5. **不能降低安全／交易要求：** V2 帳號簡化不代表人員管理可無授權開放；RAG Hybrid Search 不能繞過敏感資料出站限制；Kanban 操作不能略過後端 PO/Inventory 交易；失敗與併發仍須驗證。V1 測試 PASS 不等於 V2 變更已驗收。
+6. **進度與驗收：** 應以 GitHub Issues、實際已合併 PR、當次 Build/Test/E2E 證據為準；未執行須明確標示 `NOT RUN`／`BLOCKED`，不得將 Fake Provider、單純文件變更或靜態檢查宣稱為真實 Gemini／Browser／AWS PASS。
+7. **交付順序：** V2 Issues 逐張實作、驗證及合併 → 本機測試與標準 Docker + 真實 Browser/Gemini/RAG E2E → AWS Demo [#133](https://github.com/liujiawei-tw/supplypilot/issues/133) → 最終展示影片。**AWS 公開 Demo 共用帳號角色、上傳/出站審核/人員管理權限，要到部署階段才決策；不得擅自延用 V1 `PROCUREMENT_MANAGER` 方案或公開高權限 `admin`。**
+8. 完成任何 V2 Issue 時，同步更新**受影響**的 API、Domain/ERD、Security、Frontend、RAG Runbook、測試或 README 相關說明；保留 V1 歷史測試與驗收紀錄，不得改寫舊結果假裝新版通過。
+
+**本章只補充 V2 專案背景及規格引用；下方繁體中文 PR、單 Issue／Branch、Codex→GPT Review、Final PASS 才建立 PR、由使用者親自 Merge 的原有強制規則全部持續有效。**
+
 ## GitHub Pull Request 語言規範（強制）
 
 - **所有 SupplyPilot Pull Request（預設由 GPT 建立），標題與描述一律使用繁體中文（台灣，zh-TW）。**
