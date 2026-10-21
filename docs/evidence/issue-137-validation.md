@@ -94,12 +94,19 @@ Compose 檔案盤點：`compose.yaml`（Production 基本配置）、`compose.de
 
 | 驗證 | 結果 |
 |---|---|
-| MySQL／pgvector／Backend／Frontend Container | `NOT RUN`：正式 Project 無 Container；本次遵守限制，沒有重啟或建立。 |
-| Backend `/actuator/health` | `NOT RUN`：服務未啟動，無法請求。 |
-| Frontend `/health`、`/api/v1/purchase-orders` Proxy | `NOT RUN`：Frontend 未啟動，無法請求。 |
-| 正式服務日誌 | `NOT AVAILABLE`：目前沒有正式 Container 可供讀取。 |
-| 正式 Demo 功能 | 帳號刪除由使用者已親自驗證；本次未登入、未新增／刪除帳號、未寫入任何正式業務資料。 |
+| 前置 Marker（V24 隔離還原件） | MySQL 備份 SHA-256 `424F3E40EC1373FF6458DCAD6CE66863925CCA6621143BDA7AEBA2874FF439D4` 相符；唯讀查詢為 `SP-901 / sp-905-zh-tw-v1 / COMPLETE`，`completed_at=2026-10-18 02:30:14.734008`。隔離還原件 V23 `1761549949`、V24 `-1757611084` 均 `success=1`，最新成功版本 24，失敗 Migration 0。該查詢只連隔離還原 Volume。 |
+| Compose／正式 Volume 前置條件 | 有效 Project `supplypilot-sp903-local-demo`、DB `supplypilot_demo`、Dataset Version `sp-905-zh-tw-v1`；Shell 未覆蓋 Compose 參照設定。三個既有 Volume 均具有正確 Project／Compose Volume 標籤。啟動前本地 Migration 僅 V1–V24，無 Repeatable 或 V25+；正式 Demo 容器不存在，8081 未占用。 |
+| 正式啟動 | 2026-10-21 本機時間 19:22 執行標準命令 `docker compose --env-file .env.demo -f compose.yaml -f compose.demo.yaml up -d --build`；程式 Git SHA `23617f6eef985f80ec404c4f44e746bb287f64aa`。MySQL／pgvector 19:22:46、Backend 19:22:52、Frontend 19:23:08 +08:00 啟動。 |
+| 四個 Container Health | MySQL `healthy`、pgvector `healthy`、Backend `healthy`、Frontend `healthy`。正式容器分別掛載既有 Volume `supplypilot-sp903-local-demo-mysql`、`supplypilot-sp903-local-demo-pgvector`、`supplypilot-sp903-local-demo-documents`；Backend samples bind mount 維持 Compose 定義。 |
+| Backend `/actuator/health` | 經 Demo Docker network 請求 `http://backend:8080/actuator/health`，回應 HTTP 成功，JSON `status=UP`。 |
+| Frontend 與 API Proxy | `http://127.0.0.1:8081/health` HTTP 200、body `ok`；未帶認證請求 `/api/v1/purchase-orders` 經 Frontend Proxy 得 HTTP 401（預期拒絕）。 |
+| Flyway／Dataset 初始化 | 正式啟動後 V23 `1761549949`、V24 `-1757611084` 均 `success=1`，最新版本 24、失敗 Migration 0，與啟動前一致；本地無 V25 或其他待執行 Migration。 Backend 記錄 `DEMO_DATASET_ALREADY_COMPLETE key=SP-901 version=sp-905-zh-tw-v1`，沒有重新 Seed。 |
+| 啟動前／後資料保留 | 啟動前基準為 19:07 建立且 Hash 已驗證的正式 V24 離線備份／隔離還原件；當時正式 Demo 容器不存在。啟動後 MySQL：Users 1（有效 ACTIVE ADMIN 管理者 1）、PO 12、PO Items 13、StockTransactions 6、READY Documents 6、Document Chunks 6；與基準一致。 |
+| 歷史快照 | 啟動後 PO creator 快照 12/12、現行 creator 為 NULL 的 11 筆仍有 ID／顯示名稱快照 11/11；StockTransaction actor 快照 6/6。代表性 PO ID 1–3 及 StockTransaction ID 1–3 的現行 User FK 為 NULL，原始 ID 與顯示名稱快照均保留。 |
+| 文件／pgvector 關聯 | 啟動後文件 Storage 有 6 個檔案；MySQL metadata／chunks 各 6。PostgreSQL READY semantic indexes 6、semantic chunks 6；ID 1–6、version `1.0` 的六筆 READY `source_hash` 與 MySQL metadata `semantic_approved_source_hash` 逐筆一致。 |
+| 啟動日誌 | MySQL、pgvector、Frontend 未見 ERROR/FATAL、Migration／Checksum 或 Seeder 異常；Backend 正常啟動並確認 Dataset 已完成。另有一條 Spring Security WARN：已配置 `AuthenticationProvider` 時 `UserDetailsService` 不會用於自動登入組態；本次 Proxy 未認證拒絕符合預期。 |
+| 資料異動範圍 | 未執行 Migration、Repair、Reset 或重新 Seed；未新增、修改、刪除使用者或採購業務資料。未用既有安全認證執行登入後 API 查詢。 |
 
-依 `docs/SP-903-DOCKER-RELEASE-CANDIDATE.md`，服務需由使用者核准後以標準 Demo Compose 啟動（例如 `docker compose --env-file .env.demo -f compose.yaml -f compose.demo.yaml up -d --build`）。這會建立／啟動四個正式 Demo Container，Backend 啟動會連線正式 MySQL／pgvector 並執行 Flyway 啟動驗證；雖然目前 DB History 已有 V24 success，且 Dataset 狀態為 `COMPLETE`，啟動仍會寫服務／資料庫運行狀態，且應用程式啟動鉤子可能觸及資料庫。因此超出本次唯讀授權，需使用者明確核准後才能做 Health、API Proxy 與正式日誌驗收。
+查核過程曾有一條唯讀 MySQL 查詢誤引用只存在於 pgvector 的索引表，MySQL 回傳 `1146`；該查詢未寫入資料。隨後分別對 MySQL 與 PostgreSQL 執行唯讀查詢，兩端檢查均成功，六筆文件索引雜湊逐筆一致。
 
-本次僅更新驗證文件；程式完整 CI 仍為 SHA `1a0ea5035a6817b432aba0a44edc19d1020c52ba` 的 [Run #174](https://github.com/liujiawei-tw/supplypilot/actions/runs/39574370963)（Backend、Frontend、Container/Compose 全通過）；目前文件 HEAD `e83b191742e720f58f99dae5bab96db9d4ab2977` 的 [Run #175](https://github.com/liujiawei-tw/supplypilot/actions/runs/39576262894) 整體成功，程式 jobs 因文件專用變更 skipped。此次沒有修改產品程式、Migration 或測試，未重跑完整 Maven／Vitest。正式 Runtime 尚未驗收，故本紀錄狀態為 `BLOCKED — REQUIRES USER APPROVAL`，尚未標記 `READY FOR GPT RE-REVIEW`。
+本次只更新驗證文件；未修改產品程式、Migration 或測試，未重跑完整 Maven／Vitest。程式完整 CI 證據仍為 SHA `1a0ea5035a6817b432aba0a44edc19d1020c52ba` 的 [Run #174](https://github.com/liujiawei-tw/supplypilot/actions/runs/39574370963)（Backend、Frontend、Container/Compose 全通過）；先前文件專用 [Run #175](https://github.com/liujiawei-tw/supplypilot/actions/runs/39576262894) 成功，程式 jobs skipped。以上 Runtime 結果完成於 SHA `23617f6eef985f80ec404c4f44e746bb287f64aa`；本文件更新後需 Commit／Push 至同一 Feature Branch，取得最新 SHA 與 GitHub CI 後交 GPT 獨立複審。未建立 PR 或 Merge。
