@@ -6,6 +6,8 @@
 
 > 詳細契約與新對話對接：[docs/v2/matt-pocock-codex-gpt-handoff.md](docs/v2/matt-pocock-codex-gpt-handoff.md)。**Skills 是 Codex 的工程方法庫，不是第三位 Agent，也不覆蓋本檔、Issue 或 V2 規格。** 本節只決定使用邊界，不代表 Skills 已安裝或通過測試。
 
+- **Matt Skills 最小相容設定：** GitHub Issue Tracker 使用 [docs/agents/issue-tracker.md](docs/agents/issue-tracker.md)；領域文件導覽使用 [docs/agents/domain.md](docs/agents/domain.md)。這兩份已採既有規則設定，**不需要為使用這些設定自行執行會寫入檔案／Labels 的完整 setup**；若上游版本另有必要要求，先只讀核對並回報差異。
+
 1. **角色不變：** 使用者決定需求及 Merge；Codex 以 Matt Pocock 的 `implement`／`tdd`／`diagnosing-bugs` 輔助單一 Issue 的程式實作與驗證，`code-review` 僅作 Codex 內部預檢；GPT 仍須針對已 Push 的確切 Head SHA **獨立審查** Spec／Standards／Security／Transaction／Tests，GPT Final PASS 後才建立 PR。
 2. **單 Issue 流程優先：** 沿用單 Issue／單 Feature Branch／單 PR、前一張已 Merge／Closed 才實作下一張。**禁止直接執行原版 `implement-spec` 跨 Issue 子 Agent／Integration Branch／自動 Merge／Draft PR 行為**；同一 Issue 的唯讀調查或測試設計子 Agent 可協助，但不得順便修改其他 Issue。
 3. **適用方法：** 已核定 Issue 與測試契約優先；測試可先由既有 Acceptance Criteria 決定範圍，若真正缺少業務規則或測試邊界才提請確認。使用 TDD 不能取代必要整合／併發／安全測試；除錯須有實際重現訊號。精準測試與交付時完整 Gate 沿用下方原規定。
