@@ -33,10 +33,11 @@
 
 ## GitHub Actions 證據
 
-- Issue #139 分支尚未 Push 前無法產生該分支 Workflow run；Push 後須查核對應 Head SHA 的 CI。
+- 交付 SHA `6580be95d4ff541744065454ec9c80f87c619af6` 的 GitHub Actions Run `39642896016`（2026-10-21）：`Detect CI scope` 為 `failure`；Backend CI、Frontend CI、Container image and Compose validation 均為 `skipped`。因此 GitHub Actions 尚未驗證本次變更。
+- 該 Run 的 job log API 回應 404（BlobNotFound），無法取得 scope gate 的詳細錯誤；不得推定是程式測試失敗或 GitHub Billing 阻擋。
 - PR #155 已合併的歷史 CI Run `39622948089`：`Detect CI scope` 失敗，Backend／Frontend／Container jobs skipped；這不代表 GitHub CI PASS。
 - PR #155 描述亦記錄先前 Run `39620449208` 因 GitHub runner/free quota 或 Billing 限制無法取得 runner。這些是暫行本機 Gate 的背景證據，不是本 Issue 的 GitHub CI 結果。
-- Issue #139 驗收狀態須區分本機完整 Gate 與 GitHub CI；若 GitHub CI 仍無法執行，標示 `FINAL PASS — LOCAL VERIFIED / GITHUB CI PENDING`，不可標成 GitHub CI PASS。
+- Issue #139 驗收狀態須區分本機驗收與 GitHub CI：後端完整 verify、前端 Linux 完整 suite、Docker image 等依上方逐項列示；前端 Linux suite 有一個 timeout，且 GitHub CI jobs 被 skipped，不能標成 GitHub CI PASS 或完整 `FINAL PASS — LOCAL VERIFIED / GITHUB CI PENDING`。
 
 ## Vitest timeout 詳細紀錄
 
