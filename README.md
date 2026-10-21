@@ -4,7 +4,7 @@ SupplyPilot 是採購與供應鏈決策平台。Backend 以 Java 21、Spring Boo
 
 ## 目前開發版本：V2
 
-> **版本狀態（2026/10/21）：V2 需求規格已合併至 main，正在進入 V2 功能開發；根目錄以下操作說明仍主要適用於目前已實作的 V1 系統。**
+> **版本狀態（2026/10/21）：V2 需求規格已經 [PR #150](https://github.com/liujiawei-tw/supplypilot/pull/150) 合併至 main，正在進入 V2 功能開發；根目錄以下操作說明仍主要適用於目前已實作的 V1 系統。**
 > **不要將 V2 規格決策或已建立的 GitHub Issues 誤認為功能已完成、通過 E2E，或已部署 AWS。**
 
 - **V1（現有程式基線）：** Java / Spring Boot、MySQL、PostgreSQL/pgvector、React 與 Docker Compose，仍保有原本 Demand、Recommendation、V1 多角色以及目前 Semantic Gate 的已實作流程。
