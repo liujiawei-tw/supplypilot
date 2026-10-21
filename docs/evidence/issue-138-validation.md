@@ -1,6 +1,6 @@
 # Issue #138（V2-201）實作與驗證證據
 
-> 狀態：本機精準驗證通過；GitHub Actions Run `39602321149`（修正程式碼 SHA `e29e28afcf5f3f9b6ad2ecd3e4b975aac7d6a0be`）再次確認在 runner 啟動前被 GitHub 帳務／支出限制阻擋，Backend、Frontend、Container jobs 均 Skipped，並非測試失敗或通過。舊 SHA 的 Run `39598790523` 有相同原因。此紀錄只反映本 Issue Feature Branch 的實際結果；不能代表其他 V2 Issue、AWS 或正式 Demo 驗收。
+> 狀態：本機完整 CI 等價驗證通過，對應程式碼 Commit `00016df2a1e96c98bfdd60c29f658c9938a353ba`；GitHub Actions Run `39602579538`（文件 SHA `f29fbfb59ee2a9e3a9bc1312366b325dad50e33b`）因 GitHub 帳務／Actions 支出限制在 runner 啟動前受阻，Backend、Frontend、Container jobs 均 Skipped，並非測試失敗或通過。本機驗收不等於 GitHub CI PASS。舊 Run `39598790523`、`39602321149` 亦有相同阻擋。此紀錄只反映本 Issue Feature Branch 的實際結果；不能代表其他 V2 Issue、AWS 或正式 Demo 驗收。
 
 ## 基線與差異分析
 
@@ -55,6 +55,18 @@
 | GitHub Actions Run `39602321149` | [CI Merge Gate](https://github.com/liujiawei-tw/supplypilot/actions/runs/39602321149)，push event，branch `codex/issue-138-v2-201`，SHA `e29e28afcf5f3f9b6ad2ecd3e4b975aac7d6a0be`；GitHub Check Run annotation 顯示與 Run `39598790523` 相同的 account payments/spending limit 訊息 | `Detect CI scope` = Failure，runner 未分配、steps 空白；Backend CI、Frontend CI、Container image and Compose validation = Skipped。該 SHA 的 Workflow 仍未執行 CI 測試。新 SHA 的後續本機證據：Backend 7/7、Frontend 28/28、Build PASS、Lint PASS；這些本機結果不等於 GitHub CI Gate。Billing 修復後仍須對最終 Feature Branch Head 重跑完整 CI。 | `e29e28afcf5f3f9b6ad2ecd3e4b975aac7d6a0be` |
 | Migration/隔離資料庫 | 無 Schema 變更；Testcontainers MySQL 8.4.11 驗證乾淨 V1–V24 Migration | PASS；未執行 Demo DB 操作 | `6d5c890a7746e0192991387f5ca4c2c325208b8d` 的程式碼樹 |
 | `git diff --check` | `git diff --check` | PASS；只有 Git 的 LF→CRLF working-copy 提示 | 本次 GPT Review 修正程式碼樹 |
+
+## 本機完整 CI 等價驗證
+
+- 日期：2026-10-21（Asia/Taipei）。本次完整本機驗證使用相同 Feature Branch 的修改工作樹，程式碼與測試 SHA 為 `00016df2a1e96c98bfdd60c29f658c9938a353ba`；程式碼變更包括後端測試修正及前端 V2 PO 歷史來源斷言修正。最終 Head 後續只增加本驗證文件。
+- 環境：Windows；Java 21.0.10 (Zulu)、Maven Wrapper 3.9.16、Node.js 24.15.0、npm 11.12.1、Python 3.12.14、Docker Desktop/Engine 29.6.1；Testcontainers 啟動隔離 MySQL 8.4.11 與 PostgreSQL 17.11。
+- Backend CI 等價：`cd backend; .\mvnw.cmd -B --no-transfer-progress verify` — **PASS**，647 tests，0 failures，0 errors，1 skipped，Maven `BUILD SUCCESS`，耗時約 10 分 48 秒。測試 XML/文字報告位於 `backend/target/surefire-reports/`。唯一 skipped 為需明確 opt-in 的 `SemanticRealProviderSmokeTests.developerApiReturnsConfiguredDimension`（`semantic.real-smoke=false`；不呼叫付費真實 Gemini）。首次完整 Verify 暴露 4 個過期測試設定問題（兩個 PO service mock 未 stub `findByIdForUpdate`、兩項舊 Demo smoke 仍以 V2 ADMIN 呼叫受限 Recommendation API）；修正測試 fixture/stub 後，精準測試 13/13 PASS，完整 Verify 再 PASS。未修改採購業務邏輯。
+- Frontend CI 等價：`cd frontend; npm ci` — PASS（212 packages，audit 0 vulnerabilities）；`npm run lint` — PASS；`npm test` — **PASS**，24 files、202 tests 全通過，耗時 1057.94 秒；`$env:VITE_API_BASE_URL='http://localhost:8080/api/v1'; npm run build` — PASS。Build 有 Vite bundle 大於 500 kB 的分包建議警告，不影響成功結果。
+- 前端重跑紀錄：第一次 `npm test` 與完整 Maven Verify 併行，24 files 中 5 files/14 tests 失敗（含 timeout/render assertions）。依 AGENTS.md 對失敗檔案逐檔定位重跑；初次單檔重跑中 sp805 的兩項非偶發斷言確認與 V2 API 契約不符，修正測試為「前端只送商業欄位、歷史推薦快照仍由詳情顯示」；timeout 及其他失敗檔案定位重跑皆通過。最後停止其他重負載工作後，整套 24 files/202 tests 重跑全部 PASS，未調高 timeout、略過或刪除測試。
+- Container/Compose：`docker info` — PASS；`python -m unittest scripts.tests.test_compose_config -v` — PASS，4 tests；以臨時非真實 CI Placeholder 環境變數檔執行 Production、Demo、Development 三種 `docker compose config --quiet` — 全部 PASS；`docker build --file backend/Dockerfile --tag supplypilot-backend:ci .` — PASS；`docker build --file frontend/Dockerfile --build-arg VITE_API_BASE_URL=/api/v1 --tag supplypilot-frontend:ci .` — PASS。僅執行 Compose config 驗證，未執行 `up`、`down -v`、持久化 Demo Volume 操作或 Demo Reset。完整後端測試中的 Demo Reset 整合測例僅操作 Testcontainers 建立的隔離測試資料庫，不涉及持久化 Demo Volume。
+- Git：`git diff --check` 與 `git diff --check origin/main...HEAD` 均 PASS。本機測試結果對應程式碼 Commit `00016df2a1e96c98bfdd60c29f658c9938a353ba`；最終 Head 後續僅包含本驗證文件變更。`AGENTS.md` 亦為流程政策文件，不改變程式碼測試對應 SHA。
+- GitHub Actions：最新既有 Run [39602579538](https://github.com/liujiawei-tw/supplypilot/actions/runs/39602579538) 對應文件 SHA `f29fbfb59ee2a9e3a9bc1312366b325dad50e33b`，Check annotation 表示 recent account payments failed or spending limit needs increase；`Detect CI scope` = Failure（runner 未啟動），Backend CI、Frontend CI、Container image and Compose validation = Skipped。狀態為 **BLOCKED_BY_BILLING / GitHub Actions 無有效測試結果**；不是程式測試 FAIL，也不是 PASS。需 Repository/Organization Owner 至 GitHub Settings → Billing & plans 修復付款狀態或 Actions spending limit；本次未變更帳務或 Workflow。
+- 本機完整驗證證明此工作樹通過 CI 等價測試，但不等於 GitHub CI PASS。免費額度／帳務恢復且可有效執行 Workflow 後，須恢復 GitHub CI Gate。GPT 仍須獨立審查程式與上述證據，才可給出 `FINAL PASS — LOCAL VERIFIED / GITHUB CI PENDING`；若 Branch Protection 要求 GitHub Status Checks，不得繞過。
 
 ## 風險與範圍
 
