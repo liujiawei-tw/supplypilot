@@ -30,9 +30,12 @@ public class InventoryImportBatch {
     @Column(nullable = false, length = 255)
     private String filename;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "uploaded_by", nullable = false)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "uploaded_by")
     private User uploadedBy;
+
+    @Column(name = "uploaded_by_user_id_snapshot")
+    private Long uploadedByUserIdSnapshot;
 
     @Column(name = "uploaded_at", nullable = false)
     private Instant uploadedAt;
@@ -58,6 +61,7 @@ public class InventoryImportBatch {
         InventoryImportBatch batch = new InventoryImportBatch();
         batch.filename = sanitizeFilename(filename);
         batch.uploadedBy = uploadedBy;
+        batch.uploadedByUserIdSnapshot = uploadedBy.getId();
         batch.uploadedAt = uploadedAt;
         batch.rowCount = rowCount;
         batch.status = errorRows == 0 ? InventoryImportStatus.VALIDATED : InventoryImportStatus.VALIDATION_FAILED;
@@ -91,6 +95,7 @@ public class InventoryImportBatch {
     public Long getId() { return id; }
     public String getFilename() { return filename; }
     public User getUploadedBy() { return uploadedBy; }
+    public Long getUploadedByUserIdSnapshot() { return uploadedByUserIdSnapshot; }
     public Instant getUploadedAt() { return uploadedAt; }
     public int getRowCount() { return rowCount; }
     public InventoryImportStatus getStatus() { return status; }

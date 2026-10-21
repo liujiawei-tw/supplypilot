@@ -6,6 +6,15 @@ export async function listUsers(): Promise<PageResponse<UserRecord>> {
   return data;
 }
 
+export interface AssignableUser { id: number; username: string; displayName: string; }
+export async function listAssignableUsers(): Promise<AssignableUser[]> {
+  return (await axiosClient.get<AssignableUser[]>('/users/assignable')).data;
+}
+
+export async function deleteUser(id: number): Promise<void> {
+  await axiosClient.delete(`/users/${id}`);
+}
+
 export async function createUser(input: { username: string; displayName: string; password: string; canManageUsers: boolean }): Promise<UserRecord> {
   const { data } = await axiosClient.post<UserRecord>('/users', input);
   return data;

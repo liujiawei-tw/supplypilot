@@ -29,6 +29,7 @@ import jakarta.persistence.OneToMany;
 import jakarta.persistence.OrderBy;
 import jakarta.persistence.Table;
 import jakarta.persistence.Version;
+import jakarta.persistence.PrePersist;
 
 @Entity
 @Table(name = "purchase_orders")
@@ -54,9 +55,29 @@ public class PurchaseOrder {
     @Column(name = "reject_reason", columnDefinition = "TEXT")
     private String rejectReason;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "created_by", nullable = false)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "created_by")
     private User createdBy;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "assigned_to")
+    private User assignedTo;
+
+    @Column(name = "created_by_user_id_snapshot") private Long createdByUserIdSnapshot;
+    @Column(name = "created_by_username_snapshot", length = 50) private String createdByUsernameSnapshot;
+    @Column(name = "created_by_display_name_snapshot", length = 100) private String createdByDisplayNameSnapshot;
+    @Column(name = "approved_by_user_id_snapshot") private Long approvedByUserIdSnapshot;
+    @Column(name = "approved_by_username_snapshot", length = 50) private String approvedByUsernameSnapshot;
+    @Column(name = "approved_by_display_name_snapshot", length = 100) private String approvedByDisplayNameSnapshot;
+    @Column(name = "rejected_by_user_id_snapshot") private Long rejectedByUserIdSnapshot;
+    @Column(name = "rejected_by_username_snapshot", length = 50) private String rejectedByUsernameSnapshot;
+    @Column(name = "rejected_by_display_name_snapshot", length = 100) private String rejectedByDisplayNameSnapshot;
+    @Column(name = "ordered_by_user_id_snapshot") private Long orderedByUserIdSnapshot;
+    @Column(name = "ordered_by_username_snapshot", length = 50) private String orderedByUsernameSnapshot;
+    @Column(name = "ordered_by_display_name_snapshot", length = 100) private String orderedByDisplayNameSnapshot;
+    @Column(name = "received_by_user_id_snapshot") private Long receivedByUserIdSnapshot;
+    @Column(name = "received_by_username_snapshot", length = 50) private String receivedByUsernameSnapshot;
+    @Column(name = "received_by_display_name_snapshot", length = 100) private String receivedByDisplayNameSnapshot;
 
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
@@ -108,11 +129,35 @@ public class PurchaseOrder {
         purchaseOrder.supplier = Objects.requireNonNull(supplier, "Supplier must not be null");
         purchaseOrder.expectedDeliveryDate = expectedDeliveryDate;
         purchaseOrder.createdBy = Objects.requireNonNull(createdBy, "Created by must not be null");
+        purchaseOrder.assignedTo = createdBy;
+        purchaseOrder.createdByUserIdSnapshot = createdBy.getId();
+        purchaseOrder.createdByUsernameSnapshot = createdBy.getUsername();
+        purchaseOrder.createdByDisplayNameSnapshot = createdBy.getDisplayName();
         purchaseOrder.status = PurchaseOrderStatus.DRAFT;
         purchaseOrder.createdAt = Objects.requireNonNull(now, "Timestamp must not be null");
         purchaseOrder.updatedAt = now;
         return purchaseOrder;
     }
+
+    @PrePersist
+    private void captureCreator() {
+        if (createdBy != null) {
+            createdByUserIdSnapshot = createdBy.getId();
+            createdByUsernameSnapshot = createdBy.getUsername();
+            createdByDisplayNameSnapshot = createdBy.getDisplayName();
+        }
+    }
+
+    public void assignTo(User assignee, Instant now) {
+        if (status == PurchaseOrderStatus.REJECTED) {
+            throw new BusinessException(ErrorCode.INVALID_PO_STATUS_TRANSITION);
+        }
+        assignedTo = assignee;
+        updatedAt = Objects.requireNonNull(now, "Timestamp must not be null");
+    }
+
+    private static String username(User actor) { return actor == null ? null : actor.getUsername(); }
+    private static String displayName(User actor) { return actor == null ? null : actor.getDisplayName(); }
 
     public void assignPendingPoNumber(String pendingPoNumber) {
         if (poNumber != null) throw new IllegalStateException("PO number has already been assigned");
@@ -163,6 +208,9 @@ public class PurchaseOrder {
         status = PurchaseOrderStatus.APPROVED;
         approvedBy = validatedApprover;
         approvedAt = validatedNow;
+        approvedByUserIdSnapshot = validatedApprover.getId();
+        approvedByUsernameSnapshot = username(validatedApprover);
+        approvedByDisplayNameSnapshot = displayName(validatedApprover);
         updatedAt = validatedNow;
     }
 
@@ -177,6 +225,9 @@ public class PurchaseOrder {
         rejectReason = reason.trim();
         rejectedBy = validatedRejector;
         rejectedAt = validatedNow;
+        rejectedByUserIdSnapshot = validatedRejector.getId();
+        rejectedByUsernameSnapshot = username(validatedRejector);
+        rejectedByDisplayNameSnapshot = displayName(validatedRejector);
         updatedAt = validatedNow;
     }
 
@@ -202,6 +253,9 @@ public class PurchaseOrder {
         status = PurchaseOrderStatus.ORDERED;
         orderedBy = validatedOrderer;
         orderedAt = validatedNow;
+        orderedByUserIdSnapshot = validatedOrderer.getId();
+        orderedByUsernameSnapshot = username(validatedOrderer);
+        orderedByDisplayNameSnapshot = displayName(validatedOrderer);
         updatedAt = validatedNow;
     }
 
@@ -236,6 +290,9 @@ public class PurchaseOrder {
         status = PurchaseOrderStatus.RECEIVED;
         receivedBy = validatedReceiver;
         receivedAt = validatedNow;
+        receivedByUserIdSnapshot = validatedReceiver.getId();
+        receivedByUsernameSnapshot = username(validatedReceiver);
+        receivedByDisplayNameSnapshot = displayName(validatedReceiver);
         updatedAt = validatedNow;
     }
 
@@ -283,6 +340,22 @@ public class PurchaseOrder {
     public LocalDate getExpectedDeliveryDate() { return expectedDeliveryDate; }
     public String getRejectReason() { return rejectReason; }
     public User getCreatedBy() { return createdBy; }
+    public User getAssignedTo() { return assignedTo; }
+    public Long getCreatedByUserIdSnapshot() { return createdByUserIdSnapshot; }
+    public String getCreatedByUsernameSnapshot() { return createdByUsernameSnapshot; }
+    public String getCreatedByDisplayNameSnapshot() { return createdByDisplayNameSnapshot; }
+    public Long getApprovedByUserIdSnapshot() { return approvedByUserIdSnapshot; }
+    public String getApprovedByUsernameSnapshot() { return approvedByUsernameSnapshot; }
+    public String getApprovedByDisplayNameSnapshot() { return approvedByDisplayNameSnapshot; }
+    public Long getRejectedByUserIdSnapshot() { return rejectedByUserIdSnapshot; }
+    public String getRejectedByUsernameSnapshot() { return rejectedByUsernameSnapshot; }
+    public String getRejectedByDisplayNameSnapshot() { return rejectedByDisplayNameSnapshot; }
+    public Long getOrderedByUserIdSnapshot() { return orderedByUserIdSnapshot; }
+    public String getOrderedByUsernameSnapshot() { return orderedByUsernameSnapshot; }
+    public String getOrderedByDisplayNameSnapshot() { return orderedByDisplayNameSnapshot; }
+    public Long getReceivedByUserIdSnapshot() { return receivedByUserIdSnapshot; }
+    public String getReceivedByUsernameSnapshot() { return receivedByUsernameSnapshot; }
+    public String getReceivedByDisplayNameSnapshot() { return receivedByDisplayNameSnapshot; }
     public Instant getCreatedAt() { return createdAt; }
     public User getApprovedBy() { return approvedBy; }
     public Instant getApprovedAt() { return approvedAt; }

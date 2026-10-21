@@ -35,6 +35,7 @@ import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -102,6 +103,38 @@ class UserAuthorizationIntegrationTests extends AbstractIntegrationTest {
                 .andExpect(jsonPath("$.path").value("/api/v1/users"))
                 .andExpect(jsonPath("$.traceId").isNotEmpty())
                 .andExpect(jsonPath("$.timestamp").isNotEmpty());
+    }
+
+    @Test
+    @DisplayName("Permanent deletion enforces authentication, capability, existence, and last-manager invariant")
+    void permanentDeletionRequiresCapabilityAndProtectsLastManager() throws Exception {
+        User manager = saveUser("delete_manager", UserRole.ADMIN, true);
+        User business = saveUser("delete_business", UserRole.ADMIN, false);
+        User target = saveUser("delete_target", UserRole.ADMIN, false);
+        List<User> otherManagers = userRepository.findAll().stream()
+                .filter(candidate -> !candidate.getId().equals(manager.getId()))
+                .filter(candidate -> candidate.canManageUsers() && candidate.getStatus() == UserStatus.ACTIVE)
+                .toList();
+        otherManagers.forEach(candidate -> candidate.inactivate(clock.instant()));
+        userRepository.saveAllAndFlush(otherManagers);
+
+        mockMvc.perform(delete("/api/v1/users/{id}", target.getId()))
+                .andExpect(status().isUnauthorized());
+        mockMvc.perform(delete("/api/v1/users/{id}", target.getId())
+                        .header("Authorization", bearerTokenFor(business)))
+                .andExpect(status().isForbidden());
+        mockMvc.perform(delete("/api/v1/users/{id}", 99999999L)
+                        .header("Authorization", bearerTokenFor(manager)))
+                .andExpect(status().isNotFound());
+        mockMvc.perform(delete("/api/v1/users/{id}", manager.getId())
+                        .header("Authorization", bearerTokenFor(manager)))
+                .andExpect(status().isForbidden());
+        mockMvc.perform(delete("/api/v1/users/{id}", target.getId())
+                        .header("Authorization", bearerTokenFor(manager)))
+                .andExpect(status().isNoContent());
+        assertThat(userRepository.findById(target.getId())).isEmpty();
+        otherManagers.forEach(candidate -> candidate.activate(clock.instant()));
+        userRepository.saveAllAndFlush(otherManagers);
     }
 
     @Test
@@ -217,6 +250,58 @@ class UserAuthorizationIntegrationTests extends AbstractIntegrationTest {
             });
         }
     }
+
+    @Test
+    @DisplayName("Concurrent deletion and revocation cannot remove both remaining managers")
+    void concurrentLastManagerDeletionAndRevocationLeaveOneManager() throws Exception {
+        List<User> priorManagers = userRepository.findAll().stream()
+                .filter(user -> user.getStatus() == UserStatus.ACTIVE && user.canManageUsers())
+                .toList();
+        try {
+            priorManagers.forEach(user -> {
+                user.update(null, null, UserStatus.ACTIVE, false, clock.instant());
+                userRepository.saveAndFlush(user);
+            });
+            User deleteTarget = saveUser("v2_race_delete", UserRole.ADMIN, true);
+            User revokeTarget = saveUser("v2_race_revoke", UserRole.ADMIN, true);
+            CountDownLatch ready = new CountDownLatch(2);
+            CountDownLatch start = new CountDownLatch(1);
+            try (var executor = Executors.newFixedThreadPool(2)) {
+                var deletion = executor.submit(() -> deleteAtSameTime(deleteTarget, ready, start));
+                var revocation = executor.submit(() -> revokeAtSameTime(revokeTarget, ready, start));
+                assertThat(ready.await(10, TimeUnit.SECONDS)).isTrue();
+                start.countDown();
+                ConcurrentHttpResult deleteResult = deletion.get(30, TimeUnit.SECONDS);
+                int revokeStatus = revocation.get(30, TimeUnit.SECONDS);
+                assertThat(deleteResult.status()).withFailMessage("DELETE response: %s", deleteResult)
+                        .isIn(204, 403, 409);
+                assertThat(revokeStatus).isIn(200, 403, 409);
+                assertThat(deleteResult.status() == 204 || revokeStatus == 200)
+                        .withFailMessage("Both operations were rejected: DELETE %s, PATCH %s", deleteResult, revokeStatus)
+                        .isTrue();
+            }
+            assertThat(userRepository.countByCanManageUsersTrueAndStatus(UserStatus.ACTIVE)).isEqualTo(1);
+        } finally {
+            priorManagers.forEach(user -> {
+                user.update(null, null, UserStatus.ACTIVE, true, clock.instant());
+                userRepository.saveAndFlush(user);
+            });
+        }
+    }
+
+    private ConcurrentHttpResult deleteAtSameTime(User target, CountDownLatch ready, CountDownLatch start) {
+        ready.countDown();
+        try {
+            if (!start.await(10, TimeUnit.SECONDS)) throw new IllegalStateException("Concurrent request did not start");
+            var result = mockMvc.perform(delete("/api/v1/users/{id}", target.getId())
+                            .header("Authorization", bearerTokenFor(target))).andReturn();
+            return new ConcurrentHttpResult(result.getResponse().getStatus(), result.getResponse().getContentAsString());
+        } catch (Exception exception) {
+            throw new RuntimeException(exception);
+        }
+    }
+
+    private record ConcurrentHttpResult(int status, String body) {}
 
     private int revokeAtSameTime(User target, CountDownLatch ready, CountDownLatch start) {
         ready.countDown();

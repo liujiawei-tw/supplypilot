@@ -273,6 +273,35 @@ public class PurchaseOrderService {
         return purchaseOrderMapper.toResponse(purchaseOrderRepository.saveAndFlush(purchaseOrder));
     }
 
+    @Transactional
+    @PreAuthorize("hasRole('ADMIN')")
+    public PurchaseOrderResponse claim(Long id) {
+        PurchaseOrder purchaseOrder = purchaseOrderRepository.findByIdForUpdate(id)
+                .orElseThrow(() -> new BusinessException(ErrorCode.PURCHASE_ORDER_NOT_FOUND));
+        User actor = userRepository.findByIdForUpdate(currentUserProvider.getCurrentUserId())
+                .filter(user -> user.getStatus() == com.supplypilot.user.domain.UserStatus.ACTIVE
+                        && user.getRole() == com.supplypilot.user.domain.UserRole.ADMIN)
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_INACTIVE));
+        if (purchaseOrder.getAssignedTo() != null) {
+            throw new BusinessException(ErrorCode.PURCHASE_ORDER_ALREADY_ASSIGNED);
+        }
+        purchaseOrder.assignTo(actor, clock.instant());
+        return purchaseOrderMapper.toResponse(purchaseOrderRepository.saveAndFlush(purchaseOrder));
+    }
+
+    @Transactional
+    @PreAuthorize("hasRole('ADMIN')")
+    public PurchaseOrderResponse assign(Long id, Long assigneeId) {
+        PurchaseOrder purchaseOrder = purchaseOrderRepository.findByIdForUpdate(id)
+                .orElseThrow(() -> new BusinessException(ErrorCode.PURCHASE_ORDER_NOT_FOUND));
+        User assignee = userRepository.findByIdForUpdate(assigneeId)
+                .filter(user -> user.getStatus() == com.supplypilot.user.domain.UserStatus.ACTIVE
+                        && user.getRole() == com.supplypilot.user.domain.UserRole.ADMIN)
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
+        purchaseOrder.assignTo(assignee, clock.instant());
+        return purchaseOrderMapper.toResponse(purchaseOrderRepository.saveAndFlush(purchaseOrder));
+    }
+
     private void validateRange(LocalDate from, LocalDate to) {
         if (from != null && to != null && from.isAfter(to)) {
             throw new BusinessException(ErrorCode.INVALID_DATE_RANGE);

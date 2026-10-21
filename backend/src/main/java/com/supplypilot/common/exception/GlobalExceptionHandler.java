@@ -13,6 +13,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.CannotAcquireLockException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -160,9 +161,9 @@ public class GlobalExceptionHandler {
         return badRequestResponse(ErrorCode.FILE_TOO_LARGE, request);
     }
 
-    @ExceptionHandler(ObjectOptimisticLockingFailureException.class)
+    @ExceptionHandler({ObjectOptimisticLockingFailureException.class, CannotAcquireLockException.class})
     ResponseEntity<ErrorResponse> handleOptimisticLockingFailure(
-            ObjectOptimisticLockingFailureException exception,
+            Exception exception,
             HttpServletRequest request
     ) {
         return conflictResponse(ErrorCode.CONCURRENT_MODIFICATION, request);

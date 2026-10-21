@@ -152,6 +152,32 @@ class PurchaseOrderLifecycleIntegrationTests extends AbstractIntegrationTest {
     }
 
     @Test
+    void rejectedPurchaseOrderCannotBeClaimedOrAssigned() throws Exception {
+        User manager = user(UserRole.PROCUREMENT_MANAGER);
+        User admin = user(UserRole.ADMIN);
+        long id = draftId();
+        reject(manager, id, "{\"reason\":\"Closed\"}").andExpect(status().isOk());
+        jdbcTemplate.update("UPDATE purchase_orders SET assigned_to = NULL WHERE id = ?", id);
+
+        mockMvc.perform(post("/api/v1/purchase-orders/{id}/claim", id)
+                        .header("Authorization", bearer(admin)))
+                .andExpect(status().isConflict()).andExpect(jsonPath("$.code").value("INVALID_PO_STATUS_TRANSITION"));
+        mockMvc.perform(post("/api/v1/purchase-orders/{id}/assign", id)
+                        .header("Authorization", bearer(admin)).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"userId\":" + admin.getId() + "}"))
+                .andExpect(status().isConflict()).andExpect(jsonPath("$.code").value("INVALID_PO_STATUS_TRANSITION"));
+        assertThat(statusOf(id)).isEqualTo("REJECTED");
+        assertThat(jdbcTemplate.queryForObject("SELECT assigned_to FROM purchase_orders WHERE id = ?", Long.class, id)).isNull();
+
+        // RECEIVED can remain billable/in-progress in V2, so ownership assignment stays allowed.
+        jdbcTemplate.update("UPDATE purchase_orders SET status = 'RECEIVED' WHERE id = ?", id);
+        mockMvc.perform(post("/api/v1/purchase-orders/{id}/claim", id)
+                        .header("Authorization", bearer(admin)))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("RECEIVED"))
+                .andExpect(jsonPath("$.assignedTo").value(admin.getId()));
+    }
+
+    @Test
     void enforcesAuthenticationAndCompleteRoleMatrixForBothActions() throws Exception {
         long id = draftId();
         mockMvc.perform(post("/api/v1/purchase-orders/{id}/approve", id))
@@ -223,7 +249,8 @@ class PurchaseOrderLifecycleIntegrationTests extends AbstractIntegrationTest {
         User manager = user(UserRole.PROCUREMENT_MANAGER);
         long approvalId = draftIdWithDate();
         jdbcTemplate.execute("ALTER TABLE purchase_orders ADD CONSTRAINT chk_sp610_forced_approval_failure "
-                + "CHECK (approved_by IS NULL OR approved_by <> " + manager.getId() + ")");
+                + "CHECK (approved_by_username_snapshot IS NULL OR approved_by_username_snapshot <> '"
+                + manager.getUsername() + "')");
         try {
             approve(manager, approvalId, null)
                     .andExpect(status().isConflict())

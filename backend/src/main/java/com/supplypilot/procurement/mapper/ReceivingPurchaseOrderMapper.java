@@ -24,7 +24,8 @@ public class ReceivingPurchaseOrderMapper {
                 purchaseOrder.getSupplier().getCode(), purchaseOrder.getSupplier().getName(), purchaseOrder.getStatus(),
                 purchaseOrder.getExpectedDeliveryDate(), purchaseOrder.isOverdue(LocalDate.now(clock)),
                 purchaseOrder.getItems().stream().map(this::toItemResponse).toList(), purchaseOrder.getOrderedAt(),
-                userId(purchaseOrder.getReceivedBy()), userDisplayName(purchaseOrder.getReceivedBy()),
+                purchaseOrder.getReceivedByUserIdSnapshot(), purchaseOrder.getReceivedByDisplayNameSnapshot(),
+                purchaseOrder.getReceivedByUsernameSnapshot(),
                 purchaseOrder.getReceivedAt());
     }
 

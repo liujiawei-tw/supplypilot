@@ -1,6 +1,5 @@
 ALTER TABLE users
-    ADD COLUMN can_manage_users BOOLEAN NOT NULL DEFAULT FALSE,
-    ADD INDEX idx_users_manager_status_id (can_manage_users, status, id);
+    ADD COLUMN can_manage_users BOOLEAN NOT NULL DEFAULT FALSE;
 
 -- Only accounts that already held V1 ADMIN authority retain user-management access.
 UPDATE users

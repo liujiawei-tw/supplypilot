@@ -49,9 +49,18 @@ public class StockTransaction {
     @Column(length = 500)
     private String reason;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "created_by", nullable = false)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "created_by")
     private User createdBy;
+
+    @Column(name = "created_by_user_id_snapshot")
+    private Long createdByUserIdSnapshot;
+
+    @Column(name = "created_by_username_snapshot", length = 50)
+    private String createdByUsernameSnapshot;
+
+    @Column(name = "created_by_display_name_snapshot", length = 100)
+    private String createdByDisplayNameSnapshot;
 
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
@@ -89,6 +98,9 @@ public class StockTransaction {
         transaction.purchaseOrderId = null;
         transaction.reason = trimmedReason;
         transaction.createdBy = createdBy;
+        transaction.createdByUserIdSnapshot = createdBy.getId();
+        transaction.createdByUsernameSnapshot = createdBy.getUsername();
+        transaction.createdByDisplayNameSnapshot = createdBy.getDisplayName();
         transaction.createdAt = now;
         return transaction;
     }
@@ -118,6 +130,9 @@ public class StockTransaction {
         transaction.purchaseOrderId = purchaseOrderId;
         transaction.reason = null;
         transaction.createdBy = createdBy;
+        transaction.createdByUserIdSnapshot = createdBy.getId();
+        transaction.createdByUsernameSnapshot = createdBy.getUsername();
+        transaction.createdByDisplayNameSnapshot = createdBy.getDisplayName();
         transaction.createdAt = now;
         return transaction;
     }
@@ -144,5 +159,8 @@ public class StockTransaction {
     public Long getPurchaseOrderId() { return purchaseOrderId; }
     public String getReason() { return reason; }
     public User getCreatedBy() { return createdBy; }
+    public Long getCreatedByUserIdSnapshot() { return createdByUserIdSnapshot; }
+    public String getCreatedByUsernameSnapshot() { return createdByUsernameSnapshot; }
+    public String getCreatedByDisplayNameSnapshot() { return createdByDisplayNameSnapshot; }
     public Instant getCreatedAt() { return createdAt; }
 }

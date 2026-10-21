@@ -2484,3 +2484,11 @@ ai
 ```
 
 以及 Modular Monolith 各 module 的 Java package boundary。
+
+## V2-102：人員刪除、負責人與 PO 歷史快照
+
+- `DELETE /api/v1/users/{id}` 需要 `USER_MANAGEMENT`；成功回 `204`，找不到回 `404`，無權限回 `403`，未登入回 `401`。最後一位啟用且具人員管理能力的帳號受併發鎖保護，不可刪除。
+- `GET /api/v1/users/assignable` 回傳啟用中的 ADMIN 業務帳號最小指派資料，供採購操作使用。
+- `POST /api/v1/purchase-orders/{id}/claim` 將未指派採購單指派給目前登入者；`POST /api/v1/purchase-orders/{id}/assign` 接受 `{ "userId": <id> }`。兩者都保留正式採購單狀態，並以列鎖與 `@Version` 防止競態覆寫。無效或停用帳號不可指派。
+- PO 回應提供 `assignedTo`、`assignedToDisplayName`、`assignedToUsername`；未指派時三者為 `null`。歷史建立、核准、駁回、下單及收貨操作者使用 `*UserId`、`*Username`、`*DisplayName` 快照欄位與既有事件時間。
+- V24 讓人員 FK 刪除時置空，另存非 FK 的歷史 ID 快照；PO 操作者的 username/display name 由舊資料回填，無法還原既有資料從未記錄的原姓名。

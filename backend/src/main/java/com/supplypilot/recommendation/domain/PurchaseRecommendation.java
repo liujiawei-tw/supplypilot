@@ -77,9 +77,12 @@ public class PurchaseRecommendation {
     @Column(name = "recommended_supplier_score", precision = 17, scale = 14)
     private BigDecimal recommendedSupplierScore;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "created_by", nullable = false)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "created_by")
     private User createdBy;
+
+    @Column(name = "created_by_user_id_snapshot")
+    private Long createdByUserIdSnapshot;
 
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
@@ -124,6 +127,7 @@ public class PurchaseRecommendation {
         recommendation.recommendedQuantity = recommendedQuantity;
         recommendation.recommendedSupplierScore = recommendedSupplierScore;
         recommendation.createdBy = Objects.requireNonNull(createdBy, "Created by must not be null");
+        recommendation.createdByUserIdSnapshot = createdBy.getId();
         recommendation.createdAt = Objects.requireNonNull(createdAt, "Created at must not be null");
         recommendation.validateOutcome();
         return recommendation;
@@ -176,6 +180,7 @@ public class PurchaseRecommendation {
     public BigDecimal getRecommendedQuantity() { return recommendedQuantity; }
     public BigDecimal getRecommendedSupplierScore() { return recommendedSupplierScore; }
     public User getCreatedBy() { return createdBy; }
+    public Long getCreatedByUserIdSnapshot() { return createdByUserIdSnapshot; }
     public Instant getCreatedAt() { return createdAt; }
     public List<SupplierRecommendationResult> getSupplierResults() { return List.copyOf(supplierResults); }
 }

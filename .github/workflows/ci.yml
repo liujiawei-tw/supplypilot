@@ -175,7 +175,8 @@ jobs:
           set -euo pipefail
           prod_env="$RUNNER_TEMP/supplypilot-prod-compose.env"
           demo_env="$RUNNER_TEMP/supplypilot-demo-compose.env"
-          trap 'rm -f "$prod_env" "$demo_env"' EXIT
+          dev_env="$RUNNER_TEMP/supplypilot-dev-compose.env"
+          trap 'rm -f "$prod_env" "$demo_env" "$dev_env"' EXIT
           printf '%s\n' \
             'DB_USERNAME=ci-user' \
             'DB_PASSWORD=ci-db-placeholder' \
@@ -186,8 +187,10 @@ jobs:
             > "$prod_env"
           cp "$prod_env" "$demo_env"
           printf '%s\n' 'DEMO_ACCOUNT_PASSWORD=ci-demo-placeholder' >> "$demo_env"
+          cp "$prod_env" "$dev_env"
           docker compose --env-file "$prod_env" config --quiet
           docker compose --env-file "$demo_env" -f compose.yaml -f compose.demo.yaml config --quiet
+          docker compose --env-file "$dev_env" -f compose.dev.yaml config --quiet
 
       - name: Build backend production image
         run: docker build --file backend/Dockerfile --tag supplypilot-backend:ci .

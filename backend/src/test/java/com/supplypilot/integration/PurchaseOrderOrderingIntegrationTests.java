@@ -223,7 +223,8 @@ class PurchaseOrderOrderingIntegrationTests extends AbstractIntegrationTest {
     void databaseFailureRollsBackOrderingStatusAndAudit() throws Exception {
         long id = approved(TestDataConstants.TEST_TODAY.plusDays(1), material);
         jdbcTemplate.execute("ALTER TABLE purchase_orders ADD CONSTRAINT chk_sp611_forced_order_failure "
-                + "CHECK (ordered_by IS NULL OR ordered_by <> " + staff.getId() + ")");
+                + "CHECK (ordered_by_username_snapshot IS NULL OR ordered_by_username_snapshot <> '"
+                + staff.getUsername() + "')");
         try {
             order(staff, id, null).andExpect(status().isConflict())
                     .andExpect(jsonPath("$.code").value("DATA_INTEGRITY_VIOLATION"));

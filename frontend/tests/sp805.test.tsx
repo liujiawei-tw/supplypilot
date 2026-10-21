@@ -180,7 +180,7 @@ describe('SP-805 PO lifecycle UI', () => {
     expect(screen.queryByRole('button', { name: '編輯草稿' })).toBeNull();
     expect(screen.queryByRole('button', { name: '標記為已下單' })).toBeNull();
     expect(screen.getByText('999999999999999.1234000 KG')).toBeTruthy();
-    expect(requests).toEqual(['/auth/me', '/purchase-orders/42']);
+    expect(requests).toEqual(['/auth/me', '/users/assignable', '/purchase-orders/42']);
   });
 
   it('requires a non-blank reject reason before enabling the confirmed request', async () => {
@@ -245,3 +245,41 @@ describe('SP-805 receiving and stock security boundaries', () => {
 });
 
 function configMethod(requests: InternalAxiosRequestConfig[], url: string | undefined): string | undefined { return requests.find((request) => request.url === url)?.method; }
+
+describe('SP-805 PO ownership mutation verification', () => {
+  const ownerPo = { ...po, assignedTo: null, assignedToDisplayName: null, assignedToUsername: null };
+  const latestAssignedPo = { ...ownerPo, assignedTo: 1, assignedToDisplayName: 'Admin', assignedToUsername: 'admin' };
+  const assignable = [{ id: 1, username: 'admin', displayName: 'Admin' }];
+
+  it('locks detail owner changes after a conflict until the PO is explicitly refetched', async () => {
+    const requests: InternalAxiosRequestConfig[] = [];
+    let detailReads = 0;
+    axiosClient.defaults.adapter = vi.fn(async (config) => {
+      requests.push(config);
+      if (config.url === '/auth/me') return response(config, admin);
+      if (config.url === '/users/assignable') return response(config, assignable);
+      if (config.url === '/purchase-orders/42' && config.method === 'get') {
+        detailReads += 1;
+        return response(config, detailReads === 1 ? ownerPo : latestAssignedPo);
+      }
+      if (config.url === '/purchase-orders/42/claim') throw new AxiosError('Conflict', 'ERR_BAD_REQUEST', config, undefined, response(config, { code: 'CONCURRENT_MODIFICATION' }, 409));
+      throw new Error(`Unexpected ${config.method} ${config.url}`);
+    });
+    await open('/purchase-orders/42'); const user = userEvent.setup();
+    await user.click(await screen.findByRole('button', { name: 'Claim PO-000042' }));
+    const dialog = screen.getByRole('dialog');
+    await user.click(within(dialog).getAllByRole('button').at(-1)!);
+    await waitFor(() => expect(requests.filter(({ url }) => url === '/purchase-orders/42/claim')).toHaveLength(1));
+
+    const verifyButton = await waitFor(() => {
+      const button = screen.getAllByRole('alert').map((alert) => alert.querySelector('button')).find(Boolean);
+      if (!button) throw new Error('Verification action is not available');
+      return button;
+    });
+    expect(requests.filter(({ url }) => url === '/purchase-orders/42/claim')).toHaveLength(1);
+    await user.click(verifyButton);
+    await waitFor(() => expect(screen.getAllByText('Admin').length).toBeGreaterThan(1));
+    expect(detailReads).toBe(2);
+    expect(requests.filter(({ url }) => url === '/purchase-orders/42/claim')).toHaveLength(1);
+  }, 30_000);
+});

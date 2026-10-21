@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Alert, Button, Form, Input, Modal, Select, Space, Switch, Table, Tag, Typography } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
-import { createUser, listUsers, updateUser } from '../../api/users';
+import { createUser, deleteUser, listUsers, updateUser } from '../../api/users';
 import { roleLabels } from '../../auth/permissions';
 import type { UserRecord, UserStatus } from '../../types/api';
 
@@ -27,7 +27,7 @@ export default function UsersPage() {
     }
   }, []);
 
-  useEffect(() => { void load(); }, [load]);
+  useEffect(() => { const timer = window.setTimeout(() => void load(), 0); return () => window.clearTimeout(timer); }, [load]);
 
   const saveNew = async (values: { username: string; displayName: string; password: string; canManageUsers: boolean }) => {
     try {
@@ -57,13 +57,37 @@ export default function UsersPage() {
     }
   };
 
+  const confirmDelete = (record: UserRecord) => {
+    Modal.confirm({
+      title: `永久刪除「${record.username}」？`,
+      content: '此操作不可復原。帳號及認證資料會永久刪除；交易與稽核歷史會保留，該帳號目前負責的採購單將變成未指派。',
+      okText: '永久刪除', cancelText: '取消', okButtonProps: { danger: true },
+      onOk: async () => {
+        try {
+          await deleteUser(record.id);
+          await load();
+        } catch (cause) {
+          const response = (cause as { response?: { data?: { code?: string } } }).response;
+          if (!response) {
+            setError(`刪除「${record.username}」結果不明。為避免重複送出，系統不會自動重試；請先重新載入清單確認帳號狀態。`);
+          } else {
+            const code = response.data?.code;
+            setError(code === 'ACCESS_DENIED'
+              ? '刪除失敗：不可刪除最後一位有效人員管理者，或目前帳號沒有刪除權限。'
+              : code === 'USER_NOT_FOUND' ? '帳號已不存在，請重新載入清單。' : '刪除失敗，請確認錯誤後再操作。');
+          }
+        }
+      },
+    });
+  };
+
   const columns: ColumnsType<UserRecord> = [
     { title: '帳號', dataIndex: 'username', key: 'username' },
     { title: '顯示名稱', dataIndex: 'displayName', key: 'displayName' },
     { title: '業務角色', key: 'role', render: () => roleLabels.ADMIN },
     { title: '人員管理', dataIndex: 'canManageUsers', key: 'canManageUsers', render: (allowed: boolean) => allowed ? '已授權' : '未授權' },
     { title: '狀態', dataIndex: 'status', key: 'status', render: (status: UserStatus) => <Tag color={status === 'ACTIVE' ? 'green' : 'default'}>{status === 'ACTIVE' ? '啟用' : '停用'}</Tag> },
-    { title: '操作', key: 'action', render: (_, record) => <Button onClick={() => openEdit(record)}>編輯</Button> },
+    { title: '操作', key: 'action', render: (_, record) => <Space><Button onClick={() => openEdit(record)}>編輯</Button><Button danger onClick={() => confirmDelete(record)}>永久刪除</Button></Space> },
   ];
 
   return <section>

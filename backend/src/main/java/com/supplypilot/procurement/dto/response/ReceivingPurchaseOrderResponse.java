@@ -23,5 +23,6 @@ public record ReceivingPurchaseOrderResponse(
         Instant orderedAt,
         Long receivedBy,
         String receivedByDisplayName,
+        String receivedByUsername,
         Instant receivedAt
 ) { }

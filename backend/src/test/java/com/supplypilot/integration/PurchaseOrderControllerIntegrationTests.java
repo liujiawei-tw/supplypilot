@@ -3,6 +3,7 @@ package com.supplypilot.integration;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -64,6 +65,40 @@ class PurchaseOrderControllerIntegrationTests extends AbstractIntegrationTest {
         mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext)
                 .apply(SecurityMockMvcConfigurers.springSecurity()).build();
         tokens = new JwtTokenService(jwtProperties, clock);
+    }
+
+    @Test
+    void deletingPoOwnerPreservesHistoricalSnapshotAndAllowsClaim() throws Exception {
+        Supplier supplier = activeSupplier();
+        Material material = activeMaterial();
+        activeSupplierMaterial(supplier, material);
+        User owner = user(UserRole.ADMIN);
+        User manager = userWithManagement();
+        User nextOwner = user(UserRole.ADMIN);
+
+        MvcResult created = create(owner, payload(supplier, List.of(item(material, 2, 10))))
+                .andExpect(status().isCreated()).andReturn();
+        long id = ((Number) com.jayway.jsonpath.JsonPath.read(created.getResponse().getContentAsString(), "$.id")).longValue();
+
+        mockMvc.perform(delete("/api/v1/users/{id}", owner.getId()).header("Authorization", bearer(manager)))
+                .andExpect(status().isNoContent());
+        mockMvc.perform(get("/api/v1/purchase-orders/{id}", id).header("Authorization", bearer(owner)))
+                .andExpect(status().isUnauthorized());
+
+        mockMvc.perform(get("/api/v1/purchase-orders/{id}", id).header("Authorization", bearer(manager)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("DRAFT"))
+                .andExpect(jsonPath("$.assignedTo").doesNotExist())
+                .andExpect(jsonPath("$.createdBy").value(owner.getId()))
+                .andExpect(jsonPath("$.createdByDisplayName").value(owner.getRole().name()));
+
+        mockMvc.perform(post("/api/v1/purchase-orders/{id}/claim", id).header("Authorization", bearer(nextOwner)))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.assignedTo").value(nextOwner.getId()));
+    }
+
+    private User userWithManagement() {
+        return userRepository.saveAndFlush(User.create("manager-" + suffix(), "hash", "採購管理者",
+                UserRole.ADMIN, true, clock.instant()));
     }
 
     @Test

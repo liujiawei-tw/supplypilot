@@ -10,6 +10,8 @@ import com.supplypilot.user.domain.UserStatus;
 import com.supplypilot.user.dto.request.CreateUserRequest;
 import com.supplypilot.user.dto.request.UpdateUserRequest;
 import com.supplypilot.user.dto.response.UserResponse;
+import com.supplypilot.user.dto.response.AssignableUserResponse;
+import com.supplypilot.user.domain.UserRole;
 import com.supplypilot.user.mapper.UserMapper;
 import com.supplypilot.user.repository.UserRepository;
 
@@ -103,6 +105,14 @@ public class UserService {
         return PageResponse.from(userPage.map(userMapper::toResponse));
     }
 
+    @Transactional(readOnly = true)
+    @PreAuthorize("hasRole('ADMIN')")
+    public List<AssignableUserResponse> listAssignableUsers() {
+        return userRepository.findByRoleAndStatusOrderByDisplayNameAsc(UserRole.ADMIN, UserStatus.ACTIVE)
+                .stream().map(user -> new AssignableUserResponse(user.getId(), user.getUsername(), user.getDisplayName()))
+                .toList();
+    }
+
     @Transactional
     @PreAuthorize("hasAuthority('USER_MANAGEMENT')")
     public UserResponse updateUser(Long id, UpdateUserRequest request) {
@@ -139,5 +149,22 @@ public class UserService {
 
         User savedUser = userRepository.save(user);
         return userMapper.toResponse(savedUser);
+    }
+
+    @Transactional
+    @PreAuthorize("hasAuthority('USER_MANAGEMENT')")
+    public void deleteUser(Long id) {
+        List<User> activeManagers = userRepository.findActiveManagersForUpdate(UserStatus.ACTIVE);
+        User user = userRepository.findByIdForUpdate(id)
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
+        if (user.canManageUsers() && user.getStatus() == UserStatus.ACTIVE && activeManagers.size() <= 1) {
+            throw new AccessDeniedException("The last active user manager cannot be removed.");
+        }
+        try {
+            userRepository.delete(user);
+            userRepository.flush();
+        } catch (DataIntegrityViolationException exception) {
+            throw new BusinessException(ErrorCode.DATA_INTEGRITY_VIOLATION);
+        }
     }
 }

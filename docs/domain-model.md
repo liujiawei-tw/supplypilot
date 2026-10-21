@@ -1915,3 +1915,9 @@ erd.md
 ```
 
 ERD 應直接依照本文件建立，而不是重新發明 Domain。
+
+## V2-102 資料模型補充
+
+StockTransaction 除 `created_by_user_id_snapshot` 外，V24 亦回填並保存 `created_by_username_snapshot` 與 `created_by_display_name_snapshot`；新建人工調整及收貨交易會在建立時一併擷取三項操作者快照。查詢 API 的 `createdBy` 與 `createdByDisplayName` 讀取快照，帳號改名或刪除不改變歷史稽核資料。V23 為已套用遷移，保持其歷史 SQL 與 checksum 不變；V23 後加入的 `idx_users_manager_status_id` 由 V24 建立。
+
+`purchase_orders.assigned_to` 是可空的目前負責人 FK，刪除帳號時設為 `NULL`；與建立者及各事件操作者分離。建立、核准、駁回、下單、收貨的 `*_by_user_id_snapshot`、`*_username_snapshot`、`*_display_name_snapshot` 是事件發生當下寫入的非 FK 快照；事件時間仍由原 `created_at`、`approved_at`、`rejected_at`、`ordered_at`、`received_at` 保存。V24 保留 Demand、Recommendation、Inventory Import、StockTransaction、DocumentMetadata 與 AI 草稿資料列，並將歷史使用者 FK 置空、以非 FK ID snapshot 留存原關聯識別。
