@@ -40,10 +40,12 @@
 | 後端精準測試 | `cd backend; .\mvnw.cmd '-Dtest=PurchaseOrderUpdateIntegrationTests,DemandControllerIntegrationTests,RecommendationControllerIntegrationTests,PurchaseOrderLifecycleIntegrationTests' test` | PASS，23 tests，0 failures/errors/skips；Testcontainers MySQL 8.4.11 驗證 V1–V24 | `6d5c890a7746e0192991387f5ca4c2c325208b8d` 的程式碼樹 |
 | 後端 PO controller/update | `cd backend; .\mvnw.cmd '-Dtest=PurchaseOrderControllerIntegrationTests,PurchaseOrderUpdateIntegrationTests' test` | PASS，14 tests，0 failures/errors/skips；Update suite 重跑 | `6d5c890a7746e0192991387f5ca4c2c325208b8d` 的程式碼樹 |
 | 後端鎖定/lifecycle/收貨併發 | `cd backend; .\mvnw.cmd '-Dtest=PurchaseOrderUpdateIntegrationTests,PurchaseOrderLifecycleIntegrationTests,PurchaseOrderControllerIntegrationTests,PurchaseOrderConcurrentReceivingIntegrationTests' test` | PASS，24 tests，0 failures/errors/skips；含收貨併發與重複收貨驗證 | `6d5c890a7746e0192991387f5ca4c2c325208b8d` 的程式碼樹 |
+| T13 編輯／核准並發 | `cd backend; .\mvnw.cmd '-Dtest=PurchaseOrderUpdateIntegrationTests' test` | PASS，7 tests，0 failures/errors/skips；並發 PATCH/核准後狀態為 APPROVED，若更新未先提交則原品項數量不變；接受 `PO_NOT_EDITABLE` 或 `CONCURRENT_MODIFICATION` 衝突契約 | `00d62913d3539d7f36dbbdb8e68c5f548d1b6566` |
+| T11 人工供應商評分 | `cd backend; .\mvnw.cmd '-Dtest=SupplierControllerIntegrationTests' test` | PASS，5 tests，0 failures/errors/skips；驗證 0–100 分數與越界拒絕 | `585f54cda848d6385be773e8ddc53c77e57d9733` 的程式碼樹 |
 | 前端精準測試 | `cd frontend; npm test -- --maxWorkers=1 --no-file-parallelism tests/dashboard.test.tsx tests/v2Authorization.test.ts tests/purchaseOrderApi.test.ts` | PASS，3 files，13 tests；受限沙盒 Temp rename EPERM 後在授權環境重跑通過 | `6d5c890a7746e0192991387f5ca4c2c325208b8d` 的程式碼樹 |
 | Build | `cd frontend; npm run build` | PASS；Vite 輸出 bundle 大於 500 kB 的分包建議警告 | `6d5c890a7746e0192991387f5ca4c2c325208b8d` 的程式碼樹 |
 | Lint | `cd frontend; npm run lint` | PASS | `6d5c890a7746e0192991387f5ca4c2c325208b8d` 的程式碼樹 |
-| GitHub Actions | 推送後查詢 `github_fetch_commit_workflow_runs` 與 commit combined status；目前工具只列 PR 觸發 runs。`gh` CLI 未安裝，匿名 GitHub Actions REST API 回 404 | 此 SHA 的 workflow runs/jobs/statuses 均未能由可用介面取得；CI 證據 `NOT AVAILABLE`，不得視為 PASS | `6d5c890a7746e0192991387f5ca4c2c325208b8d` |
+| GitHub Actions | 推送後查詢 `github_fetch_commit_workflow_runs` 與 commit combined status；目前工具只列 PR 觸發 runs。`gh` CLI 未安裝，匿名 GitHub Actions REST API 回 404 | 此 SHA 的 workflow runs/jobs/statuses 均未能由可用介面取得；CI 證據 `NOT AVAILABLE`，不得視為 PASS | `00d62913d3539d7f36dbbdb8e68c5f548d1b6566` |
 | Migration/隔離資料庫 | 無 Schema 變更；Testcontainers MySQL 8.4.11 驗證乾淨 V1–V24 Migration | PASS；未執行 Demo DB 操作 | `6d5c890a7746e0192991387f5ca4c2c325208b8d` 的程式碼樹 |
 | `git diff --check` | `git diff --check` | PASS；只有 Git 的 LF→CRLF working-copy 提示 | `6d5c890a7746e0192991387f5ca4c2c325208b8d` 的程式碼樹 |
 
@@ -51,5 +53,6 @@
 
 - P2：既有「舊 V1 角色」可保留 Demand/Recommendation 相容操作；V23 後的 V2 帳號皆為 ADMIN，後端不授權其執行這些新寫入。
 - P2：PO 仍要求 ACTIVE SupplierMaterial 關聯；本 Issue 將此保留為有效供應關係驗證，沒有擅自移除。
+- P2：GitHub Actions push workflow 的實際 run/job 狀態無法從目前連線介面取得；本機測試不代表 GitHub CI PASS。
 - #139～#144 的 CANCELLED、供應商承諾交期、整筆驗收/付款、Stage/Kanban、搜尋欄位不在本次實作範圍；既有 PO API/Domain 保持可供後續擴充。
 - 本次未執行 AWS Deployment、Demo Reset、Production 資源修改或真實 Gemini/Browser/AWS E2E。
