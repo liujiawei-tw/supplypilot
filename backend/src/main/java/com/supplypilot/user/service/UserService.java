@@ -6,6 +6,7 @@ import com.supplypilot.common.exception.BusinessException;
 import com.supplypilot.common.exception.ErrorCode;
 import com.supplypilot.common.pagination.PageResponse;
 import com.supplypilot.user.domain.User;
+import com.supplypilot.user.domain.UserStatus;
 import com.supplypilot.user.dto.request.CreateUserRequest;
 import com.supplypilot.user.dto.request.UpdateUserRequest;
 import com.supplypilot.user.dto.response.UserResponse;
@@ -17,6 +18,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.access.AccessDeniedException;
+import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -41,7 +44,7 @@ public class UserService {
     }
 
     @Transactional
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('USER_MANAGEMENT')")
     public UserResponse createUser(CreateUserRequest request) {
         String normalizedUsername = request.username().trim();
         if (userRepository.existsByUsername(normalizedUsername)) {
@@ -49,11 +52,15 @@ public class UserService {
         }
 
         String passwordHash = passwordEncoder.encode(request.password());
+        if (request.role() != null && request.role() != com.supplypilot.user.domain.UserRole.ADMIN) {
+            throw new BusinessException(ErrorCode.VALIDATION_FAILED);
+        }
         User user = User.create(
                 normalizedUsername,
                 passwordHash,
                 request.displayName(),
-                request.role(),
+                com.supplypilot.user.domain.UserRole.ADMIN,
+                request.canManageUsers(),
                 clock.instant()
         );
 
@@ -82,6 +89,7 @@ public class UserService {
     }
 
     @Transactional(readOnly = true)
+    @PreAuthorize("hasAuthority('USER_MANAGEMENT')")
     public UserResponse getUserById(Long id) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
@@ -89,26 +97,43 @@ public class UserService {
     }
 
     @Transactional(readOnly = true)
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('USER_MANAGEMENT')")
     public PageResponse<UserResponse> listUsers(Pageable pageable) {
         Page<User> userPage = userRepository.findAll(pageable);
         return PageResponse.from(userPage.map(userMapper::toResponse));
     }
 
     @Transactional
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('USER_MANAGEMENT')")
     public UserResponse updateUser(Long id, UpdateUserRequest request) {
         if (request.displayName() != null && request.displayName().trim().isEmpty()) {
             throw new BusinessException(ErrorCode.VALIDATION_FAILED);
         }
 
+        // A locking current read serializes all capability/status changes against
+        // the active manager set. A plain COUNT under MySQL REPEATABLE READ would
+        // let two concurrent requests both observe the same pre-update count.
+        List<User> activeManagers = userRepository.findActiveManagersForUpdate(UserStatus.ACTIVE);
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
+
+        if (request.role() != null && request.role() != com.supplypilot.user.domain.UserRole.ADMIN) {
+            throw new BusinessException(ErrorCode.VALIDATION_FAILED);
+        }
+        UserStatus resultingStatus = request.status() == null ? user.getStatus() : request.status();
+        boolean resultingCapability = request.canManageUsers() == null
+                ? user.canManageUsers() : request.canManageUsers();
+        if (user.canManageUsers() && user.getStatus() == UserStatus.ACTIVE
+                && (!resultingCapability || resultingStatus != UserStatus.ACTIVE)
+                && activeManagers.size() <= 1) {
+            throw new AccessDeniedException("The last active user manager cannot be removed.");
+        }
 
         user.update(
                 request.displayName(),
                 request.role(),
                 request.status(),
+                request.canManageUsers(),
                 clock.instant()
         );
 

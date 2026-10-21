@@ -97,6 +97,7 @@ public class JwtTokenService {
                 .claim("userId", user.getId())
                 .claim("role", user.getRole().name())
                 .claim("mustChangePassword", user.isMustChangePassword())
+                .claim("canManageUsers", user.canManageUsers())
                 .issuedAt(Date.from(now))
                 .expiration(Date.from(expiration))
                 .signWith(signingKey, Jwts.SIG.HS256)
@@ -173,7 +174,13 @@ public class JwtTokenService {
             UserRole role = parseAndValidateRole(claims.get("role"));
 
             Boolean mustChangePassword = claims.get("mustChangePassword", Boolean.class);
-            return new AuthenticatedUser(userId, subject, role, Boolean.TRUE.equals(mustChangePassword));
+            // The capability claim is validated for token compatibility only. The filter
+            // always reloads current authorization from the database before accepting it.
+            Object canManageUsers = claims.get("canManageUsers");
+            if (canManageUsers != null && !(canManageUsers instanceof Boolean)) {
+                throw new JwtAuthenticationException("Invalid authentication token");
+            }
+            return new AuthenticatedUser(userId, subject, role, false, Boolean.TRUE.equals(mustChangePassword));
 
         } catch (ExpiredJwtException e) {
             log.debug("JWT token has expired");

@@ -32,7 +32,7 @@ export default function LoginPage() {
 
   if (isLoading) return <LoadingState />;
   if (verificationError) return <SessionVerificationError />;
-  if (user) return <Navigate to={user.mustChangePassword ? '/change-password' : from?.pathname && isAllowedDestination(from.pathname, user.role) ? `${from.pathname}${from.search ?? ''}` : '/dashboard'} replace />;
+  if (user) return <Navigate to={user.mustChangePassword ? '/change-password' : from?.pathname && isAllowedDestination(from.pathname, user) ? `${from.pathname}${from.search ?? ''}` : '/dashboard'} replace />;
 
   const submit = async (values: { username: string; password: string }) => {
     if (pending.current) return;
@@ -45,7 +45,7 @@ export default function LoginPage() {
         navigate('/change-password', { replace: true });
         return;
       }
-      const destination = from?.pathname && isAllowedDestination(from.pathname, authenticatedUser.role)
+      const destination = from?.pathname && isAllowedDestination(from.pathname, authenticatedUser)
         ? `${from.pathname}${from.search ?? ''}`
         : '/dashboard';
       navigate(destination, { replace: true });

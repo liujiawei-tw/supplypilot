@@ -27,14 +27,14 @@ class DemoBaselineCredentialAuthenticatorTests {
     }
 
     @Test
-    void acceptsConfiguredPasswordForActiveBaselineUserAndUsesDatabaseRole() {
-        when(users.findByUsername("manager")).thenReturn(Optional.of(activeUser("manager", UserRole.PROCUREMENT_MANAGER)));
+    void acceptsConfiguredPasswordForOnlyBaselineAdmin() {
+        when(users.findByUsername("admin")).thenReturn(Optional.of(activeUser("admin", UserRole.ADMIN)));
 
-        Authentication result = authenticator.authenticate("manager", PASSWORD);
+        Authentication result = authenticator.authenticate("admin", PASSWORD);
 
         assertInstanceOf(SecurityUser.class, result.getPrincipal());
-        assertEquals(UserRole.PROCUREMENT_MANAGER, ((SecurityUser) result.getPrincipal()).getRole());
-        verify(users).findByUsername("manager");
+        assertEquals(UserRole.ADMIN, ((SecurityUser) result.getPrincipal()).getRole());
+        verify(users).findByUsername("admin");
     }
 
     @Test
@@ -47,20 +47,21 @@ class DemoBaselineCredentialAuthenticatorTests {
 
     @Test
     void rejectsInactiveOrUnknownBaselineUsers() {
-        User inactive = activeUser("manager", UserRole.ADMIN);
+        User inactive = activeUser("admin", UserRole.ADMIN);
         inactive.inactivate(Instant.now());
-        when(users.findByUsername("manager")).thenReturn(Optional.of(inactive));
+        when(users.findByUsername("admin")).thenReturn(Optional.of(inactive));
         when(users.findByUsername("planner")).thenReturn(Optional.empty());
 
-        assertThrows(BadCredentialsException.class, () -> authenticator.authenticate("manager", PASSWORD));
+        assertThrows(BadCredentialsException.class, () -> authenticator.authenticate("admin", PASSWORD));
         assertThrows(BadCredentialsException.class, () -> authenticator.authenticate("planner", PASSWORD));
     }
 
     @Test
-    void onlyFiveNamedAccountsUseDemoPasswordAuthentication() {
-        for (String username : new String[]{"admin", "manager", "buyer", "warehouse", "planner"}) {
-            assertTrue(authenticator.handles(username));
-            assertTrue(authenticator.handles(username.toUpperCase(java.util.Locale.ROOT)));
+    void onlyAdminUsesDemoPasswordAuthentication() {
+        assertTrue(authenticator.handles("admin"));
+        assertTrue(authenticator.handles("ADMIN"));
+        for (String username : new String[]{"manager", "buyer", "warehouse", "planner"}) {
+            assertFalse(authenticator.handles(username));
         }
         assertFalse(authenticator.handles("custom-user"));
         assertFalse(authenticator.handles(null));

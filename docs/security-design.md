@@ -1300,3 +1300,8 @@ Exception Flow
 
 ### Scope
 不遷移核心 MySQL 業務資料、不增加跨庫 FK、不改寫 SP-720 Tool Allowlist、不改動 SP-721 Confirmation、無 OCR／Multi-Agent／完整新前端。部署／資料出站可能涉及法務／公司授權時，沒有授權不得傳送真實文件。
+# V2 account authorization override
+
+V2 migrates all existing business roles to `ADMIN` and stores user-management access separately in `users.can_manage_users`. V23 grants that capability only to accounts that already had V1 `ADMIN`; new users default to no user-management access. User management service methods require the `USER_MANAGEMENT` authority, and `/auth/me` plus login responses expose the database-backed capability for frontend guards.
+
+The JWT filter validates the signed token, then reloads the account by `userId` on every request. The account must still exist, be active, match the token subject, and have the role recorded in the token. Current database role, management capability, and `must_change_password` state replace token claims when building the principal, so revocation and deactivation apply to existing tokens immediately. V1 role-specific rules below remain historical context; V2's `ADMIN` business role is shared by all active ordinary accounts.

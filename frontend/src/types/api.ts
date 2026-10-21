@@ -37,6 +37,7 @@ export interface AuthenticatedUser {
   username: string;
   displayName: string;
   role: UserRole;
+  canManageUsers: boolean;
   mustChangePassword?: boolean;
 }
 
@@ -48,6 +49,7 @@ export interface UserRecord {
   displayName: string;
   role: UserRole;
   status: UserStatus;
+  canManageUsers: boolean;
   createdAt: string;
   updatedAt: string;
 }

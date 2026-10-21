@@ -72,13 +72,13 @@ class DemoResetIntegrationTests {
         properties.setResetConfirmation("wrong-confirmation");
         assertThatThrownBy(coordinator::resetAndInitialize).isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("confirmation");
-        assertThat(users.count()).isEqualTo(5);
+        assertThat(users.count()).isEqualTo(1);
 
         properties.setResetConfirmation(DemoDatasetCoordinator.RESET_CONFIRMATION);
         properties.setAllowedDatabase("other_demo_database");
         assertThatThrownBy(coordinator::resetAndInitialize).isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("unexpected MySQL database");
-        assertThat(users.count()).isEqualTo(5);
+        assertThat(users.count()).isEqualTo(1);
 
         properties.setAllowedDatabase("supplypilot_demo_test");
         properties.setAllowedSemanticDatabase("shared_semantic");
@@ -100,7 +100,7 @@ class DemoResetIntegrationTests {
 
         assertThat(postgresCount("semantic_gate_audit")).isZero();
         assertThat(postgresCount("semantic_document_indexes")).isZero();
-        assertThat(users.count()).isEqualTo(5);
+        assertThat(users.count()).isEqualTo(1);
         assertThat(documents.count()).isEqualTo(5);
         assertThat(fileCount()).isEqualTo(5);
 

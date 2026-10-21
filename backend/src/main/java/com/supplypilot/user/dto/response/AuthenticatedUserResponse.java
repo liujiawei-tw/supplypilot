@@ -7,9 +7,15 @@ public record AuthenticatedUserResponse(
         String username,
         String displayName,
         UserRole role,
+        boolean canManageUsers,
         boolean mustChangePassword
 ) {
     public AuthenticatedUserResponse(Long id, String username, String displayName, UserRole role) {
-        this(id, username, displayName, role, false);
+        this(id, username, displayName, role, false, false);
+    }
+
+    public AuthenticatedUserResponse(Long id, String username, String displayName, UserRole role,
+                                     boolean mustChangePassword) {
+        this(id, username, displayName, role, false, mustChangePassword);
     }
 }

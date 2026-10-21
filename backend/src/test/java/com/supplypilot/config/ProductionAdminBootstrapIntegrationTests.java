@@ -116,20 +116,21 @@ class ProductionAdminBootstrapIntegrationTests {
 
         assertThatThrownBy(() -> bootstrap.run(null))
                 .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("no active ADMIN");
+                .hasMessageContaining("no active user manager");
         assertThat(users.count()).isZero();
     }
 
     @Test
-    void populatedDatabaseWithoutActiveAdminCommitsDecisionThenFailsClosed() {
-        User staff = User.create("recovery_staff", passwordEncoder.encode("StaffPass123"), "Staff",
-                UserRole.PROCUREMENT_STAFF, Instant.now());
-        users.saveAndFlush(staff);
+    void activeBusinessAdminWithoutManagementCapabilityFailsClosed() {
+        User businessAdmin = User.create("ordinary_admin", passwordEncoder.encode("StaffPass123"), "Business Admin",
+                UserRole.ADMIN, false, Instant.now());
+        users.saveAndFlush(businessAdmin);
 
         assertThatThrownBy(() -> bootstrap.run(null))
                 .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("no active ADMIN");
+                .hasMessageContaining("no active user manager");
         assertThat(users.findByUsername("admin")).isEmpty();
+        assertThat(users.findByUsername("ordinary_admin")).isPresent();
         assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM system_initialization", Long.class)).isEqualTo(1);
     }
 

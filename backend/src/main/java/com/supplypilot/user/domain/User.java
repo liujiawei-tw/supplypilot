@@ -43,6 +43,9 @@ public class User {
     @Column(name = "must_change_password", nullable = false)
     private boolean mustChangePassword;
 
+    @Column(name = "can_manage_users", nullable = false)
+    private boolean canManageUsers;
+
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
@@ -59,24 +62,29 @@ public class User {
             UserRole role,
             Instant now
     ) {
+        return create(username, passwordHash, displayName, role, false, now);
+    }
+
+    public static User create(
+            String username, String passwordHash, String displayName, UserRole role,
+            boolean canManageUsers, Instant now
+    ) {
         Objects.requireNonNull(username, "Username must not be null");
         Objects.requireNonNull(passwordHash, "Password hash must not be null");
         Objects.requireNonNull(displayName, "Display name must not be null");
         Objects.requireNonNull(role, "Role must not be null");
         Objects.requireNonNull(now, "Timestamp must not be null");
-
         String trimmedUsername = username.trim();
         String trimmedDisplayName = displayName.trim();
-
         if (trimmedUsername.isEmpty() || trimmedDisplayName.isEmpty() || passwordHash.isBlank()) {
             throw new BusinessException(ErrorCode.VALIDATION_FAILED);
         }
-
         User user = new User();
         user.username = trimmedUsername;
         user.passwordHash = passwordHash;
         user.displayName = trimmedDisplayName;
         user.role = role;
+        user.canManageUsers = canManageUsers;
         user.status = UserStatus.ACTIVE;
         user.createdAt = now;
         user.updatedAt = now;
@@ -87,6 +95,16 @@ public class User {
             String newDisplayName,
             UserRole newRole,
             UserStatus newStatus,
+            Instant now
+    ) {
+        update(newDisplayName, newRole, newStatus, null, now);
+    }
+
+    public void update(
+            String newDisplayName,
+            UserRole newRole,
+            UserStatus newStatus,
+            Boolean newCanManageUsers,
             Instant now
     ) {
         Objects.requireNonNull(now, "Timestamp must not be null");
@@ -110,6 +128,11 @@ public class User {
 
         if (newStatus != null && newStatus != this.status) {
             this.status = newStatus;
+            modified = true;
+        }
+
+        if (newCanManageUsers != null && newCanManageUsers != this.canManageUsers) {
+            this.canManageUsers = newCanManageUsers;
             modified = true;
         }
 
@@ -176,6 +199,8 @@ public class User {
     public boolean isMustChangePassword() {
         return mustChangePassword;
     }
+
+    public boolean canManageUsers() { return canManageUsers; }
 
     public Instant getCreatedAt() {
         return createdAt;

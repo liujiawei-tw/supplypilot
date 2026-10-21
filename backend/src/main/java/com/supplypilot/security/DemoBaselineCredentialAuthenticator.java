@@ -19,7 +19,7 @@ import org.springframework.stereotype.Component;
 @Component
 @Profile("demo & !prod")
 public class DemoBaselineCredentialAuthenticator {
-    private static final Set<String> BASELINE_USERS = Set.of("admin", "manager", "buyer", "warehouse", "planner");
+    private static final Set<String> BASELINE_USERS = Set.of("admin");
     private final UserRepository users;
     private final byte[] configuredPassword;
 

@@ -89,24 +89,22 @@ public class AuthService {
         }
 
         SecurityUser securityUser = (SecurityUser) authResult.getPrincipal();
-        AuthenticatedUser authenticatedUser = new AuthenticatedUser(
-                securityUser.getId(),
-                securityUser.getUsername(),
-                securityUser.getRole(),
-                userRepository.findById(securityUser.getId()).map(User::isMustChangePassword).orElse(false)
-        );
-
-        String token = jwtTokenService.generateToken(authenticatedUser);
-
-        // Fetch displayName safely from database by authenticated ID
-        User user = userRepository.findById(authenticatedUser.getId())
+        // Read authoritative state after password verification. Roles and management
+        // capability are not trusted from the authentication request or JWT.
+        User user = userRepository.findById(securityUser.getId())
                 .orElseThrow(() -> new BusinessException(ErrorCode.UNAUTHENTICATED));
+
+        AuthenticatedUser authenticatedUser = new AuthenticatedUser(
+                securityUser.getId(), securityUser.getUsername(), user.getRole(),
+                user.canManageUsers(), user.isMustChangePassword());
+        String token = jwtTokenService.generateToken(authenticatedUser);
 
         AuthenticatedUserResponse userResponse = new AuthenticatedUserResponse(
                 user.getId(),
                 user.getUsername(),
                 user.getDisplayName(),
                 user.getRole(),
+                user.canManageUsers(),
                 user.isMustChangePassword()
         );
 
@@ -134,6 +132,7 @@ public class AuthService {
                 user.getUsername(),
                 user.getDisplayName(),
                 user.getRole(),
+                user.canManageUsers(),
                 user.isMustChangePassword()
         );
     }

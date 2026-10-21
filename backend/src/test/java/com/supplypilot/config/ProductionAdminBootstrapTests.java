@@ -35,7 +35,7 @@ class ProductionAdminBootstrapTests {
     void firstRunOnEmptyDatabaseCreatesRestrictedAdminAndPersistentMarker() {
         when(jdbc.update(anyString(), any(Object[].class))).thenReturn(1);
         when(users.count()).thenReturn(0L);
-        when(users.existsByRoleAndStatus(UserRole.ADMIN, UserStatus.ACTIVE)).thenReturn(false);
+        when(users.existsByCanManageUsersTrueAndStatus(UserStatus.ACTIVE)).thenReturn(false);
         when(users.saveAndFlush(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         bootstrap.run(null);
@@ -56,7 +56,7 @@ class ProductionAdminBootstrapTests {
     void populatedDatabaseWithActiveAdminIsNeverModified() {
         when(jdbc.update(anyString(), any(Object[].class))).thenReturn(1);
         when(users.count()).thenReturn(4L);
-        when(users.existsByRoleAndStatus(UserRole.ADMIN, UserStatus.ACTIVE)).thenReturn(true);
+        when(users.existsByCanManageUsersTrueAndStatus(UserStatus.ACTIVE)).thenReturn(true);
 
         assertDoesNotThrow(() -> bootstrap.run(null));
 
@@ -67,7 +67,7 @@ class ProductionAdminBootstrapTests {
     void existingBootstrapMarkerAndEmptyUserTableCannotRecreateInitialCredentials() {
         when(jdbc.update(anyString(), any(Object[].class))).thenReturn(0);
         when(users.count()).thenReturn(0L);
-        when(users.existsByRoleAndStatus(UserRole.ADMIN, UserStatus.ACTIVE)).thenReturn(false);
+        when(users.existsByCanManageUsersTrueAndStatus(UserStatus.ACTIVE)).thenReturn(false);
 
         assertThrows(IllegalStateException.class, () -> bootstrap.run(null));
 
@@ -78,10 +78,10 @@ class ProductionAdminBootstrapTests {
     void populatedDatabaseWithoutActiveAdminFailsStartupAndDoesNotCreateOne() {
         when(jdbc.update(anyString(), any(Object[].class))).thenReturn(1);
         when(users.count()).thenReturn(2L);
-        when(users.existsByRoleAndStatus(UserRole.ADMIN, UserStatus.ACTIVE)).thenReturn(false);
+        when(users.existsByCanManageUsersTrueAndStatus(UserStatus.ACTIVE)).thenReturn(false);
 
         IllegalStateException failure = assertThrows(IllegalStateException.class, () -> bootstrap.run(null));
-        assertTrue(failure.getMessage().contains("no active ADMIN"));
+        assertTrue(failure.getMessage().contains("no active user manager"));
         verify(users, never()).saveAndFlush(any(User.class));
     }
 
@@ -89,9 +89,21 @@ class ProductionAdminBootstrapTests {
     void existingMarkerWithNoActiveAdminFailsStartup() {
         when(jdbc.update(anyString(), any(Object[].class))).thenReturn(0);
         when(users.count()).thenReturn(3L);
-        when(users.existsByRoleAndStatus(UserRole.ADMIN, UserStatus.ACTIVE)).thenReturn(false);
+        when(users.existsByCanManageUsersTrueAndStatus(UserStatus.ACTIVE)).thenReturn(false);
 
         assertThrows(IllegalStateException.class, () -> bootstrap.run(null));
         verify(users, never()).saveAndFlush(any(User.class));
+    }
+
+    @Test
+    void activeAdminBusinessRoleWithoutManagementCapabilityFailsClosed() {
+        when(jdbc.update(anyString(), any(Object[].class))).thenReturn(0);
+        when(users.count()).thenReturn(2L);
+        when(users.existsByCanManageUsersTrueAndStatus(UserStatus.ACTIVE)).thenReturn(false);
+
+        assertThrows(IllegalStateException.class, () -> bootstrap.run(null));
+        verify(users, never()).saveAndFlush(any(User.class));
+        verify(users).existsByCanManageUsersTrueAndStatus(UserStatus.ACTIVE);
+        verify(users, never()).existsByRoleAndStatus(UserRole.ADMIN, UserStatus.ACTIVE);
     }
 }

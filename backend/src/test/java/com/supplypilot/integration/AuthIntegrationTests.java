@@ -272,13 +272,14 @@ class AuthIntegrationTests extends AbstractIntegrationTest {
                 passwordEncoder.encode("password123"),
                 "User List Tester",
                 UserRole.ADMIN,
+                true,
                 clock.instant()
         );
         User savedUser = userRepository.saveAndFlush(user);
 
         JwtTokenService tokenService = new JwtTokenService(jwtProperties, clock);
         String token = tokenService.generateToken(
-                new AuthenticatedUser(savedUser.getId(), savedUser.getUsername(), savedUser.getRole())
+                new AuthenticatedUser(savedUser.getId(), savedUser.getUsername(), savedUser.getRole(), true, false)
         );
 
         mockMvc.perform(get("/api/v1/users")

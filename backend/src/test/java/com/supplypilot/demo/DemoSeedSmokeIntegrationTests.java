@@ -89,13 +89,11 @@ class DemoSeedSmokeIntegrationTests {
     @Autowired private ObjectMapper objectMapper;
 
     @Test
-    void allFiveBaselineAccountsUseConfiguredPasswordAndDatabaseRoles() throws Exception {
-        Map<String, String> expectedRoles = Map.of(
-                "admin", "ADMIN", "manager", "PROCUREMENT_MANAGER", "buyer", "PROCUREMENT_STAFF",
-                "warehouse", "WAREHOUSE_STAFF", "planner", "PRODUCTION_PLANNER");
-        for (var entry : expectedRoles.entrySet()) {
-            assertLogin(entry.getKey(), PASSWORD, 200, entry.getValue());
-            assertLogin(entry.getKey(), ROTATED_PASSWORD, 401, null);
+    void onlyAdminBaselineAccountUsesConfiguredPassword() throws Exception {
+        assertLogin("admin", PASSWORD, 200, "ADMIN");
+        assertLogin("admin", ROTATED_PASSWORD, 401, null);
+        for (String username : List.of("manager", "buyer", "warehouse", "planner")) {
+            assertLogin(username, PASSWORD, 401, null);
         }
     }
 
@@ -134,10 +132,10 @@ class DemoSeedSmokeIntegrationTests {
     void nonBaselineAccountStillUsesDatabasePassword() throws Exception {
         String username = "demo_custom_" + UUID.randomUUID().toString().replace("-", "").substring(0, 8);
         User user = User.create(username, passwordEncoder.encode("Database123"), "Custom Demo User",
-                UserRole.PROCUREMENT_STAFF, java.time.Instant.now());
+                UserRole.ADMIN, java.time.Instant.now());
         users.saveAndFlush(user);
         try {
-            assertLogin(username, "Database123", 200, "PROCUREMENT_STAFF");
+            assertLogin(username, "Database123", 200, "ADMIN");
             assertLogin(username, ROTATED_PASSWORD, 401, null);
         } finally {
             users.deleteById(user.getId());
@@ -145,8 +143,8 @@ class DemoSeedSmokeIntegrationTests {
     }
 
     @Test
-    void seedsCompleteDeterministicBaselineAndCanRunAgainWithoutDuplicates() {
-        assertThat(users.count()).isEqualTo(5);
+    void seedsCompleteDeterministicBaselineAndCanRunAgainWithoutDuplicates() throws Exception {
+        assertThat(users.count()).isEqualTo(1);
         assertThat(materials.count()).isEqualTo(12);
         assertThat(suppliers.count()).isEqualTo(6);
         assertThat(supplierMaterials.count()).isEqualTo(30);
@@ -197,30 +195,16 @@ class DemoSeedSmokeIntegrationTests {
         var admin = users.findByUsername("admin").orElseThrow();
         assertThat(admin.getRole()).isEqualTo(UserRole.ADMIN);
         assertThat(passwordEncoder.matches(PASSWORD, admin.getPasswordHash())).isFalse();
-        Map<String, UserRole> demoRoles = Map.of(
-                "planner", UserRole.PRODUCTION_PLANNER,
-                "buyer", UserRole.PROCUREMENT_STAFF,
-                "manager", UserRole.PROCUREMENT_MANAGER,
-                "warehouse", UserRole.WAREHOUSE_STAFF,
-                "admin", UserRole.ADMIN);
-        demoRoles.forEach((username, role) -> {
-            var seededUser = users.findByUsername(username).orElseThrow();
-            assertThat(seededUser.getRole()).isEqualTo(role);
-            assertThat(passwordEncoder.matches(PASSWORD, seededUser.getPasswordHash())).isFalse();
-        });
-        demoRoles.keySet().forEach(username -> {
-            try {
-                assertThat(login(username)).isNotBlank();
-            } catch (Exception exception) {
-                throw new AssertionError("Demo user login should succeed for " + username, exception);
-            }
-        });
+        assertThat(admin.canManageUsers()).isTrue();
+        assertThat(passwordEncoder.matches(PASSWORD, admin.getPasswordHash())).isFalse();
+        assertThat(users.findAll()).extracting(User::getUsername).containsExactly("admin");
+        assertThat(login("admin")).isNotBlank();
         assertThat(jdbc.queryForObject(
                 "SELECT status FROM demo_dataset_state WHERE dataset_key = 'SP-901'", String.class))
                 .isEqualTo("COMPLETE");
 
         coordinator.initialize();
-        assertThat(users.count()).isEqualTo(5);
+        assertThat(users.count()).isEqualTo(1);
         assertThat(purchaseOrders.count()).isEqualTo(10);
         assertThat(documents.count()).isEqualTo(5);
 
@@ -236,7 +220,7 @@ class DemoSeedSmokeIntegrationTests {
         Long materialId = materials.findByCode("MAT-001").orElseThrow().getId();
         LocalDate baseline = jdbc.queryForObject(
                 "SELECT baseline_date FROM demo_dataset_state WHERE dataset_key = 'SP-901'", LocalDate.class);
-        String token = login("buyer");
+        String token = login("admin");
         String request = """
                 {"materialId":%d,"periodStart":"%s","periodEnd":"%s"}
                 """.formatted(materialId, baseline, baseline.plusDays(30));
@@ -260,7 +244,7 @@ class DemoSeedSmokeIntegrationTests {
         assertThatThrownBy(coordinator::initialize)
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("non-empty database");
-        assertThat(users.count()).isEqualTo(5);
+        assertThat(users.count()).isEqualTo(1);
         assertThat(materials.findByCode("MAT-001")).isPresent();
     }
 
@@ -270,12 +254,10 @@ class DemoSeedSmokeIntegrationTests {
         var material = materials.findByCode("MAT-001").orElseThrow();
         LocalDate baseline = jdbc.queryForObject(
                 "SELECT baseline_date FROM demo_dataset_state WHERE dataset_key = 'SP-901'", LocalDate.class);
-        String buyer = login("buyer");
-        String manager = login("manager");
-        String warehouse = login("warehouse");
+        String admin = login("admin");
 
         JsonNode recommendation = responseJson(post("/api/v1/recommendations")
-                .header("Authorization", bearer(buyer)).contentType(MediaType.APPLICATION_JSON)
+                .header("Authorization", bearer(admin)).contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(Map.of(
                         "materialId", material.getId(), "periodStart", baseline,
                         "periodEnd", baseline.plusDays(30)))), 201);
@@ -284,7 +266,7 @@ class DemoSeedSmokeIntegrationTests {
         BigDecimal quantity = recommendation.get("recommendation").get("quantity").decimalValue();
 
         String suppliersJson = mockMvc.perform(get("/api/v1/recommendations/{id}/suppliers", recommendationId)
-                        .header("Authorization", bearer(buyer)))
+                        .header("Authorization", bearer(admin)))
                 .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
         JsonNode selected = objectMapper.readTree(suppliersJson).valueStream()
                 .filter(node -> node.get("supplierId").asLong() == supplierId).findFirst().orElseThrow();
@@ -295,7 +277,7 @@ class DemoSeedSmokeIntegrationTests {
                 """, supplierId, material.getId());
         JsonNode retainedSnapshot = objectMapper.readTree(mockMvc.perform(
                         get("/api/v1/recommendations/{id}/suppliers", recommendationId)
-                                .header("Authorization", bearer(buyer)))
+                                .header("Authorization", bearer(admin)))
                 .andExpect(status().isOk()).andReturn().getResponse().getContentAsString()).valueStream()
                 .filter(node -> node.get("id").asLong() == selected.get("id").asLong()).findFirst().orElseThrow();
         assertThat(retainedSnapshot.get("unitPrice").decimalValue()).isEqualByComparingTo(selectedUnitPrice);
@@ -307,7 +289,7 @@ class DemoSeedSmokeIntegrationTests {
         item.put("recommendationId", recommendationId);
         item.put("supplierRecommendationResultId", selected.get("id").asLong());
         JsonNode draft = responseJson(post("/api/v1/purchase-orders")
-                .header("Authorization", bearer(buyer)).contentType(MediaType.APPLICATION_JSON)
+                .header("Authorization", bearer(admin)).contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(Map.of(
                         "supplierId", supplierId,
                         "expectedDeliveryDate", baseline.plusDays(12),
@@ -315,28 +297,25 @@ class DemoSeedSmokeIntegrationTests {
         long purchaseOrderId = draft.get("id").asLong();
 
         mockMvc.perform(post("/api/v1/purchase-orders/{id}/approve", purchaseOrderId)
-                        .header("Authorization", bearer(manager)))
+                        .header("Authorization", bearer(admin)))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("APPROVED"));
         mockMvc.perform(post("/api/v1/purchase-orders/{id}/order", purchaseOrderId)
-                        .header("Authorization", bearer(buyer)))
+                        .header("Authorization", bearer(admin)))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("ORDERED"));
-        mockMvc.perform(post("/api/v1/purchase-orders/{id}/receive", purchaseOrderId)
-                        .header("Authorization", bearer(buyer)))
-                .andExpect(status().isForbidden());
 
         BigDecimal before = inventories.findByMaterialId(material.getId()).orElseThrow().getQuantity();
         mockMvc.perform(post("/api/v1/purchase-orders/{id}/receive", purchaseOrderId)
-                        .header("Authorization", bearer(warehouse)))
+                        .header("Authorization", bearer(admin)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("RECEIVED"))
-                .andExpect(jsonPath("$.receivedBy").value(users.findByUsername("warehouse").orElseThrow().getId()));
+                .andExpect(jsonPath("$.receivedBy").value(users.findByUsername("admin").orElseThrow().getId()));
         assertThat(inventories.findByMaterialId(material.getId()).orElseThrow().getQuantity())
                 .isEqualByComparingTo(before.add(quantity));
         assertThat(jdbc.queryForObject(
                 "SELECT COUNT(*) FROM stock_transactions WHERE purchase_order_id = ?", Long.class, purchaseOrderId))
                 .isEqualTo(1);
         mockMvc.perform(post("/api/v1/purchase-orders/{id}/receive", purchaseOrderId)
-                        .header("Authorization", bearer(warehouse)))
+                        .header("Authorization", bearer(admin)))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.code").value("DUPLICATE_RECEIVING"));
     }
@@ -344,7 +323,7 @@ class DemoSeedSmokeIntegrationTests {
     @Test
     @Transactional
     void sampleCsvRunsOneSuccessfulImportAndOneValidationFailure() throws Exception {
-        String warehouse = login("warehouse");
+        String warehouse = login("admin");
         Path validPath = Path.of("../samples/inventory-valid.csv");
         MockMultipartFile valid = new MockMultipartFile(
                 "file", validPath.getFileName().toString(), "text/csv", Files.readAllBytes(validPath));

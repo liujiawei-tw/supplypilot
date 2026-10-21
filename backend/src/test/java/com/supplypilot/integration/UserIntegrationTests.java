@@ -28,7 +28,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@WithMockUser(roles = "ADMIN")
+@WithMockUser(authorities = {"ROLE_ADMIN", "USER_MANAGEMENT"})
 class UserIntegrationTests extends AbstractIntegrationTest {
 
     @Autowired
@@ -58,14 +58,14 @@ class UserIntegrationTests extends AbstractIntegrationTest {
                                   "username": "e2e_planner",
                                   "password": "secretPass_2026",
                                   "displayName": "Production Planner E2E",
-                                  "role": "PRODUCTION_PLANNER"
+                                  "role": "ADMIN"
                                 }
                                 """))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").isNumber())
                 .andExpect(jsonPath("$.username").value("e2e_planner"))
                 .andExpect(jsonPath("$.displayName").value("Production Planner E2E"))
-                .andExpect(jsonPath("$.role").value("PRODUCTION_PLANNER"))
+                .andExpect(jsonPath("$.role").value("ADMIN"))
                 .andExpect(jsonPath("$.status").value("ACTIVE"))
                 .andExpect(jsonPath("$.createdAt").isNotEmpty())
                 .andExpect(jsonPath("$.updatedAt").isNotEmpty())
@@ -90,7 +90,7 @@ class UserIntegrationTests extends AbstractIntegrationTest {
                 .andExpect(jsonPath("$.id").value(userId))
                 .andExpect(jsonPath("$.username").value("e2e_planner"))
                 .andExpect(jsonPath("$.displayName").value("Production Planner E2E"))
-                .andExpect(jsonPath("$.role").value("PRODUCTION_PLANNER"))
+                .andExpect(jsonPath("$.role").value("ADMIN"))
                 .andExpect(jsonPath("$.status").value("ACTIVE"))
                 .andExpect(jsonPath("$.password").doesNotExist())
                 .andExpect(jsonPath("$.passwordHash").doesNotExist());
@@ -120,14 +120,14 @@ class UserIntegrationTests extends AbstractIntegrationTest {
                         .content("""
                                 {
                                   "displayName": "Updated Planner Name",
-                                  "role": "PROCUREMENT_MANAGER",
+                                  "role": "ADMIN",
                                   "status": "INACTIVE"
                                 }
                                 """))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(userId))
                 .andExpect(jsonPath("$.displayName").value("Updated Planner Name"))
-                .andExpect(jsonPath("$.role").value("PROCUREMENT_MANAGER"))
+                .andExpect(jsonPath("$.role").value("ADMIN"))
                 .andExpect(jsonPath("$.status").value("INACTIVE"))
                 .andExpect(jsonPath("$.password").doesNotExist())
                 .andExpect(jsonPath("$.passwordHash").doesNotExist());
@@ -136,7 +136,7 @@ class UserIntegrationTests extends AbstractIntegrationTest {
         User updatedInDb = userRepository.findById(userId).orElseThrow();
         assertThat(updatedInDb.getStatus()).isEqualTo(UserStatus.INACTIVE);
         assertThat(updatedInDb.getDisplayName()).isEqualTo("Updated Planner Name");
-        assertThat(updatedInDb.getRole()).isEqualTo(UserRole.PROCUREMENT_MANAGER);
+        assertThat(updatedInDb.getRole()).isEqualTo(UserRole.ADMIN);
 
         // 6. List users with pagination
         mockMvc.perform(get("/api/v1/users")
@@ -179,7 +179,7 @@ class UserIntegrationTests extends AbstractIntegrationTest {
                                   "username": "space_user",
                                   "password": "password123",
                                   "displayName": "Space User",
-                                  "role": "WAREHOUSE_STAFF"
+                                  "role": "ADMIN"
                                 }
                                 """))
                 .andExpect(status().isCreated());

@@ -11,7 +11,12 @@ public record UserResponse(
         String displayName,
         UserRole role,
         UserStatus status,
+        boolean canManageUsers,
         Instant createdAt,
         Instant updatedAt
 ) {
+    public UserResponse(Long id, String username, String displayName, UserRole role, UserStatus status,
+                        Instant createdAt, Instant updatedAt) {
+        this(id, username, displayName, role, status, false, createdAt, updatedAt);
+    }
 }

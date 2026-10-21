@@ -6,8 +6,11 @@ import com.supplypilot.security.*;
 import com.supplypilot.supplier.domain.*;
 import com.supplypilot.supplier.repository.*;
 import com.supplypilot.user.domain.UserRole;
+import com.supplypilot.user.domain.User;
+import com.supplypilot.user.repository.UserRepository;
 import java.math.BigDecimal;
 import java.time.Clock;
+import java.util.UUID;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
@@ -22,6 +25,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class SupplierMaterialControllerIntegrationTests extends AbstractIntegrationTest {
     @Autowired WebApplicationContext context; @Autowired JwtProperties jwtProperties; @Autowired Clock clock;
     @Autowired SupplierRepository supplierRepository; @Autowired MaterialRepository materialRepository; @Autowired SupplierMaterialRepository supplierMaterialRepository;
+    @Autowired UserRepository userRepository;
     MockMvc mockMvc; JwtTokenService tokens;
     @BeforeEach void setUp() { mockMvc = MockMvcBuilders.webAppContextSetup(context).apply(SecurityMockMvcConfigurers.springSecurity()).build(); tokens = new JwtTokenService(jwtProperties, clock); }
     @Test void adminCreatesListsUpdatesAndRetainsInactiveRecord() throws Exception {
@@ -42,17 +46,18 @@ class SupplierMaterialControllerIntegrationTests extends AbstractIntegrationTest
         Material material = materialRepository.saveAndFlush(Material.create("MAT-SM-I-" + System.nanoTime(), "Material", BaseUnit.KG, BigDecimal.ZERO, clock.instant()));
         String body = "{\"supplierId\":" + supplier.getId() + ",\"materialId\":" + material.getId() + ",\"unitPrice\":0,\"moq\":1,\"leadTimeDays\":0,\"currency\":\"TWD\"}";
         mockMvc.perform(post("/api/v1/supplier-materials").contentType(MediaType.APPLICATION_JSON).content(body)).andExpect(status().isUnauthorized());
-        mockMvc.perform(post("/api/v1/supplier-materials").header("Authorization", bearer(UserRole.PROCUREMENT_STAFF)).contentType(MediaType.APPLICATION_JSON).content(body)).andExpect(status().isForbidden());
+        mockMvc.perform(post("/api/v1/supplier-materials").header("Authorization", bearer(UserRole.PROCUREMENT_STAFF)).contentType(MediaType.APPLICATION_JSON).content(body)).andExpect(status().isCreated());
         supplier.update(null, null, null, null, SupplierStatus.INACTIVE, clock.instant()); supplierRepository.saveAndFlush(supplier);
         mockMvc.perform(post("/api/v1/supplier-materials").header("Authorization", bearer(UserRole.ADMIN)).contentType(MediaType.APPLICATION_JSON).content(body)).andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("SUPPLIER_INACTIVE"));
     }
-    @Test void enforcesRequestContractAndRoleMatrix() throws Exception {
+    @Test void enforcesRequestContractForV2BusinessAccounts() throws Exception {
         Supplier supplier = activeSupplier(); Material material = activeMaterial(); String valid = body(supplier, material, 0, 1, null, 0, "TWD");
         mockMvc.perform(get("/api/v1/supplier-materials")).andExpect(status().isUnauthorized());
         mockMvc.perform(post("/api/v1/supplier-materials").contentType(MediaType.APPLICATION_JSON).content(valid)).andExpect(status().isUnauthorized());
-        for (UserRole role : new UserRole[] {UserRole.PRODUCTION_PLANNER, UserRole.WAREHOUSE_STAFF}) mockMvc.perform(get("/api/v1/supplier-materials").header("Authorization", bearer(role))).andExpect(status().isForbidden());
         for (UserRole role : new UserRole[] {UserRole.PROCUREMENT_STAFF, UserRole.PROCUREMENT_MANAGER, UserRole.ADMIN}) mockMvc.perform(get("/api/v1/supplier-materials").header("Authorization", bearer(role))).andExpect(status().isOk());
-        mockMvc.perform(post("/api/v1/supplier-materials").header("Authorization", bearer(UserRole.PROCUREMENT_MANAGER)).contentType(MediaType.APPLICATION_JSON).content(valid)).andExpect(status().isForbidden());
+        mockMvc.perform(get("/api/v1/supplier-materials").header("Authorization", bearer(UserRole.PRODUCTION_PLANNER))).andExpect(status().isOk());
+        mockMvc.perform(get("/api/v1/supplier-materials").header("Authorization", bearer(UserRole.WAREHOUSE_STAFF))).andExpect(status().isOk());
+        mockMvc.perform(post("/api/v1/supplier-materials").header("Authorization", bearer(UserRole.PROCUREMENT_MANAGER)).contentType(MediaType.APPLICATION_JSON).content(valid)).andExpect(status().isCreated());
         mockMvc.perform(post("/api/v1/supplier-materials").header("Authorization", bearer(UserRole.ADMIN)).contentType(MediaType.APPLICATION_JSON).content(body(supplier, material, -1, 1, null, 0, "TWD"))).andExpect(status().isBadRequest());
         mockMvc.perform(post("/api/v1/supplier-materials").header("Authorization", bearer(UserRole.ADMIN)).contentType(MediaType.APPLICATION_JSON).content(body(supplier, material, 0, 0, null, 0, "TWD"))).andExpect(status().isBadRequest());
         mockMvc.perform(post("/api/v1/supplier-materials").header("Authorization", bearer(UserRole.ADMIN)).contentType(MediaType.APPLICATION_JSON).content(body(supplier, material, 0, 1, 0, 0, "TWD"))).andExpect(status().isBadRequest());
@@ -71,7 +76,7 @@ class SupplierMaterialControllerIntegrationTests extends AbstractIntegrationTest
     }
     @Test void patchPreservesFieldsLifecycleAndFilters() throws Exception {
         Supplier supplier = activeSupplier(); Material material = activeMaterial(); long id = create(supplier, material);
-        mockMvc.perform(patch("/api/v1/supplier-materials/{id}", id).header("Authorization", bearer(UserRole.PROCUREMENT_STAFF)).contentType(MediaType.APPLICATION_JSON).content("{\"unitPrice\":9}")).andExpect(status().isForbidden());
+        mockMvc.perform(patch("/api/v1/supplier-materials/{id}", id).header("Authorization", bearer(UserRole.PROCUREMENT_STAFF)).contentType(MediaType.APPLICATION_JSON).content("{\"unitPrice\":9}")).andExpect(status().isOk());
         mockMvc.perform(patch("/api/v1/supplier-materials/{id}", id).header("Authorization", bearer(UserRole.ADMIN)).contentType(MediaType.APPLICATION_JSON).content("{\"unitPrice\":9}")).andExpect(status().isOk()).andExpect(jsonPath("$.moq").value(1)).andExpect(jsonPath("$.currency").value("TWD"));
         for (String field : new String[] {"supplierId","materialId","currency","id"}) mockMvc.perform(patch("/api/v1/supplier-materials/{id}", id).header("Authorization", bearer(UserRole.ADMIN)).contentType(MediaType.APPLICATION_JSON).content("{\"" + field + "\":1}")).andExpect(status().isBadRequest());
         mockMvc.perform(patch("/api/v1/supplier-materials/{id}", id).header("Authorization", bearer(UserRole.ADMIN)).contentType(MediaType.APPLICATION_JSON).content("{\"status\":\"INACTIVE\"}")).andExpect(status().isOk());
@@ -86,5 +91,10 @@ class SupplierMaterialControllerIntegrationTests extends AbstractIntegrationTest
     private long create(Supplier supplier, Material material) throws Exception { MvcResult result = mockMvc.perform(post("/api/v1/supplier-materials").header("Authorization", bearer(UserRole.ADMIN)).contentType(MediaType.APPLICATION_JSON).content(body(supplier, material, 0, 1, null, 0, "TWD"))).andExpect(status().isCreated()).andReturn(); return ((Number) com.jayway.jsonpath.JsonPath.read(result.getResponse().getContentAsString(), "$.id")).longValue(); }
     private String body(Supplier supplier, Material material, int price, int moq, Integer pack, int lead, String currency) { return body(supplier.getId(), material.getId(), price, moq, pack, lead, currency); }
     private String body(long supplierId, long materialId, int price, int moq, Integer pack, int lead, String currency) { return "{\"supplierId\":" + supplierId + ",\"materialId\":" + materialId + ",\"unitPrice\":" + price + ",\"moq\":" + moq + ",\"packageMultiple\":" + (pack == null ? "null" : pack) + ",\"leadTimeDays\":" + lead + ",\"currency\":\"" + currency + "\"}"; }
-    private String bearer(UserRole role) { return "Bearer " + tokens.generateToken(new AuthenticatedUser(7000L + role.ordinal(), role.name(), role)); }
+    private String bearer(UserRole role) {
+        String username = "sm-" + UUID.randomUUID().toString().replace("-", "").substring(0, 12);
+        User principal = userRepository.saveAndFlush(User.create(username, "hash", username,
+                UserRole.ADMIN, false, clock.instant()));
+        return "Bearer " + tokens.generateToken(new AuthenticatedUser(principal.getId(), principal.getUsername(), principal.getRole(), false, false));
+    }
 }
