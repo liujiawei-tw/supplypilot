@@ -11,6 +11,9 @@ import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 import com.jayway.jsonpath.JsonPath;
 import com.supplypilot.material.domain.BaseUnit;
@@ -219,6 +222,58 @@ class PurchaseOrderUpdateIntegrationTests extends AbstractIntegrationTest {
                 .andExpect(status().isOk()).andExpect(jsonPath("$.supplierId").value(otherSupplier.getId()));
         assertThat(jdbcTemplate.queryForObject(
                 "SELECT supplier_id FROM purchase_orders WHERE id = ?", Long.class, id)).isEqualTo(otherSupplier.getId());
+    }
+
+    @Test
+    void concurrentDraftEditAndApprovalAreSerializedWithoutOverwritingApprovedState() throws Exception {
+        Supplier supplier = supplier();
+        Material material = material();
+        supplies(supplier, material);
+        User staff = user(UserRole.PROCUREMENT_STAFF);
+        User manager = user(UserRole.PROCUREMENT_MANAGER);
+        long id = createdId(create(staff, supplier, manualItem(material, "2", "10")).andReturn());
+        update(staff, id, "{\"expectedDeliveryDate\":\"2026-10-30\"}")
+                .andExpect(status().isOk());
+
+        CountDownLatch ready = new CountDownLatch(2);
+        CountDownLatch start = new CountDownLatch(1);
+        try (var executor = Executors.newFixedThreadPool(2)) {
+            var edit = executor.submit(() -> {
+                ready.countDown();
+                start.await();
+                return update(staff, id, "{\"items\":[" + manualItem(material, "7", "12") + "]}")
+                        .andReturn();
+            });
+            var approve = executor.submit(() -> {
+                ready.countDown();
+                start.await();
+                return mockMvc.perform(post("/api/v1/purchase-orders/{id}/approve", id)
+                        .header("Authorization", bearer(manager))).andReturn();
+            });
+
+            assertThat(ready.await(10, TimeUnit.SECONDS)).isTrue();
+            start.countDown();
+            MvcResult editResult = edit.get(30, TimeUnit.SECONDS);
+            MvcResult approveResult = approve.get(30, TimeUnit.SECONDS);
+            assertThat(approveResult.getResponse().getStatus()).isEqualTo(200);
+            assertThat(editResult.getResponse().getStatus()).isIn(200, 400, 409);
+            if (editResult.getResponse().getStatus() == 400) {
+                assertThat(editResult.getResponse().getContentAsString()).contains("PO_NOT_EDITABLE");
+            }
+            if (editResult.getResponse().getStatus() == 409) {
+                assertThat(editResult.getResponse().getContentAsString())
+                        .containsAnyOf("PO_NOT_EDITABLE", "CONCURRENT_MODIFICATION");
+            }
+
+            String latest = mockMvc.perform(get("/api/v1/purchase-orders/{id}", id)
+                            .header("Authorization", bearer(staff)))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.status").value("APPROVED"))
+                    .andReturn().getResponse().getContentAsString();
+            BigDecimal finalQuantity = new BigDecimal(JsonPath.read(latest, "$.items[0].quantity").toString());
+            assertThat(finalQuantity).isEqualByComparingTo(
+                    editResult.getResponse().getStatus() == 200 ? "7" : "2");
+        }
     }
 
     @Test
