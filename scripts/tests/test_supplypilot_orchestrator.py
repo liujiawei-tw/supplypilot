@@ -512,7 +512,8 @@ class StateTests(unittest.TestCase):
             full_evidence["command"] = ["supplypilot-full-gate"]
             review_evidence = Path(temp).parent / f"{Path(temp).name}-manifest-review.txt"
             review_evidence.write_text(
-                f"Reviewed SHA: {self._state_head}\nReviewed scripts/supplypilot_full_gate.py\n",
+                f"Reviewed SHA: {self._state_head}\nReviewed scripts/supplypilot_full_gate.py\n"
+                "FULL_GATE_MANIFEST_REVIEW: PASS\n",
                 encoding="utf-8")
             manifest = Path(temp) / "scripts" / "supplypilot_full_gate.py"
             manifest_sha = hashlib.sha256(manifest.read_bytes()).hexdigest()
@@ -613,7 +614,8 @@ class StateTests(unittest.TestCase):
             orch.atomic_write_json(path, state)
             evidence = Path(temp) / "independent-review.txt"
             evidence.write_text(
-                f"Reviewed SHA: {self._state_head}\nReviewed scripts/supplypilot_full_gate.py\n",
+                f"Reviewed SHA: {self._state_head}\nReviewed scripts/supplypilot_full_gate.py\n"
+                "FULL_GATE_MANIFEST_REVIEW: PASS\n",
                 encoding="utf-8")
             url = "https://chatgpt.com/g/g-review/c/conversation"
             with self.assertRaisesRegex(orch.PolicyError, "interactive human terminal"):
@@ -628,6 +630,24 @@ class StateTests(unittest.TestCase):
             self.assertTrue(orch._trusted_full_gate_manifest_valid(trusted, Path(temp)))
             manifest.write_text("unreviewed feature-branch replacement\n", encoding="utf-8")
             self.assertFalse(orch._trusted_full_gate_manifest_valid(trusted, Path(temp)))
+
+    def test_full_gate_trust_rejects_changes_required_review_verdict(self):
+        with tempfile.TemporaryDirectory() as temp:
+            path = self._make_state(temp)
+            state = orch.read_json(path)
+            state["issues"]["9"]["head_sha"] = self._state_head
+            orch.atomic_write_json(path, state)
+            evidence = Path(temp) / "changes-required-review.txt"
+            evidence.write_text(
+                f"Reviewed SHA: {self._state_head}\nReviewed scripts/supplypilot_full_gate.py\n"
+                "The review request mentions FULL_GATE_MANIFEST_REVIEW: PASS.\n"
+                "CHANGES REQUIRED\n",
+                encoding="utf-8")
+            with patch.object(orch.sys.stdin, "isatty", return_value=True):
+                with self.assertRaisesRegex(orch.PolicyError, "FULL_GATE_MANIFEST_REVIEW: PASS"):
+                    orch.state_trust_full_gate_manifest(
+                        path, 9, self._state_head,
+                        "https://chatgpt.com/g/review/c/conversation", evidence, "reviewer")
 
     def test_full_gate_pending_requires_feature_worktree_to_contain_verified_main(self):
         with tempfile.TemporaryDirectory() as temp:

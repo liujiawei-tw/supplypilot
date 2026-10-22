@@ -652,8 +652,13 @@ def _trusted_full_gate_manifest_valid(trusted: Any, root: Path) -> bool:
     except OSError:
         return False
     return (trusted["reviewed_sha"] in content and "supplypilot_full_gate.py" in content
+            and _has_full_gate_manifest_pass(content)
             and evidence_sha == trusted["review_evidence_sha256"].lower()
             and manifest_sha == trusted["sha256"].lower())
+
+
+def _has_full_gate_manifest_pass(content: str) -> bool:
+    return any(line.strip() == "FULL_GATE_MANIFEST_REVIEW: PASS" for line in content.splitlines())
 
 
 def atomic_write_json(path: Path, value: dict[str, Any]) -> None:
@@ -1135,8 +1140,11 @@ def state_trust_full_gate_manifest(path: Path, number: int, reviewed_sha: str,
         raise PolicyError("Independent review evidence must exist and be readable as UTF-8.") from exc
     parsed = urllib.parse.urlparse(conversation_url)
     if (parsed.scheme != "https" or parsed.netloc.casefold() != "chatgpt.com" or "/c/" not in parsed.path
-            or reviewed_sha not in content or "supplypilot_full_gate.py" not in content):
-        raise PolicyError("Review evidence must identify this SHA, the Full Gate manifest, and its ChatGPT conversation.")
+            or reviewed_sha not in content or "supplypilot_full_gate.py" not in content
+            or not _has_full_gate_manifest_pass(content)):
+        raise PolicyError(
+            "Review evidence must identify this SHA and Full Gate manifest and explicitly report "
+            "FULL_GATE_MANIFEST_REVIEW: PASS in the ChatGPT conversation.")
     manifest_sha256 = hashlib.sha256(manifest.read_bytes()).hexdigest()
     expected = f"TRUST FULL GATE MANIFEST {manifest_sha256}"
     print("Proceed only after an independent GPT Review confirms this manifest trust issue is resolved.")
