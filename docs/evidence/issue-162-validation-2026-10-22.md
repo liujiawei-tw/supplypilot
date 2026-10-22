@@ -50,6 +50,8 @@
 
 本輪只修改 #162 Orchestrator、其單元測試，以及 SupplyPilot Implement-Spec Skill 的 Gate／狀態機說明。P1-06 將 Targeted Gate 限定為單一測試檔／指定 unittest module，按 runner 選擇 frontend、backend 或 repository root 的執行目錄，驗證實際測試數並保存命令、CWD、時間、輸出及前後工作樹快照。P1-07 以短暫 State Lock 建立 Gate reservation、在鎖外執行驗證，完成後重核 reservation token 與 context；中斷需確認 owner 已停止並人工 recovery，Recovery 不會自動清除共用高負載鎖。P1-08 記錄使用者明確授權的 provisional dependency contract 來源與指紋，只有來源契約未漂移才可恢復編碼；依賴未合併前仍不能通過 Full Gate。
 
+本輪程式與測試驗證所對應的 commit：`bbc01e1da2f40994d1c6a26ab3665c9f082b2fbc`。下方各 log 由該 commit 的相同程式／測試內容執行產生；隨後只會再提交本驗收文件中的 SHA 對應紀錄。
+
 | 驗證 | 結果 |
 | --- | --- |
 | Orchestrator `StateTests` | **PASS**：38 tests，77.576 秒；涵蓋 Gate reservation 併發／中斷／context 漂移、實際執行計數、runner/CWD 約束、已合併依賴的正常 Resume、provisional contract 漂移與恢復條件。輸出：[State regression log](issue-162-p1-06-p1-08-state-regression-2026-10-23.log) |
