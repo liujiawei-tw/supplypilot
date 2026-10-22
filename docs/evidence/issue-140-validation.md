@@ -47,3 +47,20 @@
 - 未加入交期歷史、供應商自動對接、通知或其他 V2 Issue 功能。
 - 本次未執行 AWS、Gemini 或 Browser E2E；這些不在 Issue #140 本機 CI Gate 內。
 - GitHub Actions 未使用；未建立 PR、未 Merge、未關閉 Issue。
+
+### Windows 完整 Vitest 失敗測例名稱與耗時
+
+- `tests/sp805.test.tsx`（16 tests；檔案總耗時 154.12 秒）：
+  - `does not retry after a conflict and requires querying the actual PO state`：assertion failure（找不到「取消採購單」按鈕），1.202 秒。
+  - `creates a Manual DRAFT with exact decimal strings after explicit confirmation`：timeout，30.698 秒。
+  - `creates a DRAFT with the exact IDs of page-6 master records and does not confuse duplicate names`：timeout，30.260 秒。
+  - `locks detail owner changes after a conflict until the PO is explicitly refetched`：assertion failure，1.064 秒。
+- `tests/sp806.test.tsx`（25 tests；檔案總耗時 518.885 秒）：
+  - `ignores a delayed ingestion response after switching documents`：timeout，30.068 秒。
+  - `ignores a delayed ingestion verification response after switching documents`：timeout，30.501 秒。
+  - `reviews a multi-item backend snapshot and sends one token-based Confirm with no ordinary PO create call`：timeout，30.479 秒。
+  - `shows clarification without Confirm and locks unknown Confirm results without resending`：timeout，31.385 秒。
+  - `locks the old Proposal after AI_PROPOSAL_ALREADY_CONFIRMED`：timeout，30.623 秒。
+  - `locks the old Proposal after AI_PROPOSAL_EXPIRED`：timeout，32.296 秒。
+  - `fails closed when Proposal expiresAt is invalid without calling Confirm`：timeout，31.279 秒.
+- 以上 11 個失敗在各自的單檔重跑均未重現；兩檔完整單檔結果、測例逐項耗時及 Vitest 輸出已保存於相鄰 log。Linux Node 24 的整套 Frontend Workflow 亦 207/207 PASS。未提高 timeout、未略過測例、未刪除或放寬斷言。
