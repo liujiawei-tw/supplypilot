@@ -1313,3 +1313,9 @@ The JWT filter validates the signed token, then reloads the account by `userId` 
 ## V2-201 Demand/Recommendation 寫入退場
 
 Demand 的 create/update/cancel Service 僅允許舊 V1 `PRODUCTION_PLANNER` 相容角色；自 V23 遷移後 V2 業務帳號為 `ADMIN`，不能再呼叫這些舊寫入操作。Recommendation 建立 Service 同樣排除 V2 `ADMIN`。需求與 Recommendation 的讀取權限保留，供既有歷史資料、PO 歷史參照與相容查詢使用；沒有移除資料表、FK 或資料列。PO 建立/編輯仍受 Service `@PreAuthorize`、Domain 狀態與 optimistic locking 保護。
+
+## V2-202 採購單取消授權與序列化
+
+V2 採購業務命令（含駁回/取消）由 `ADMIN` 執行；Service 授權為最終防線。Request 僅接受必填取消原因，不接受 Client 操作者 ID、username、displayName、時間、狀態或 Stage。`CurrentUserProvider` 與 Backend Clock 產生取消 audit；獨立非 FK 快照支援人員永久刪除後查閱歷史。
+
+Approve、Reject、Mark Ordered、Begin Receiving Inspection、Cancel、Receive 對同一 PO 共用 `PESSIMISTIC_WRITE` 列鎖與交易；收貨在鎖住 PO 後才依序寫 Inventory/StockTransaction。失敗時全數 rollback。Cancellation 不呼叫供應商、不產生外部通知，不寫庫存交易。

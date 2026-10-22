@@ -256,7 +256,7 @@ public class PurchaseOrderService {
     @Transactional
     @PreAuthorize("hasAnyRole('PROCUREMENT_MANAGER', 'ADMIN')")
     public PurchaseOrderResponse reject(Long id, RejectPurchaseOrderRequest request) {
-        PurchaseOrder purchaseOrder = purchaseOrderRepository.findById(id)
+        PurchaseOrder purchaseOrder = purchaseOrderRepository.findByIdForUpdate(id)
                 .orElseThrow(() -> new BusinessException(ErrorCode.PURCHASE_ORDER_NOT_FOUND));
         String reason = request == null ? null : request.reason();
         User rejector = currentUser();
@@ -267,9 +267,28 @@ public class PurchaseOrderService {
     @Transactional
     @PreAuthorize("hasAnyRole('PROCUREMENT_STAFF', 'ADMIN')")
     public PurchaseOrderResponse markOrdered(Long id) {
-        PurchaseOrder purchaseOrder = purchaseOrderRepository.findById(id)
+        PurchaseOrder purchaseOrder = purchaseOrderRepository.findByIdForUpdate(id)
                 .orElseThrow(() -> new BusinessException(ErrorCode.PURCHASE_ORDER_NOT_FOUND));
         purchaseOrder.markOrdered(currentUser(), clock.instant());
+        return purchaseOrderMapper.toResponse(purchaseOrderRepository.saveAndFlush(purchaseOrder));
+    }
+
+    @Transactional
+    @PreAuthorize("hasRole('ADMIN')")
+    public PurchaseOrderResponse beginReceivingInspection(Long id) {
+        PurchaseOrder purchaseOrder = purchaseOrderRepository.findByIdForUpdate(id)
+                .orElseThrow(() -> new BusinessException(ErrorCode.PURCHASE_ORDER_NOT_FOUND));
+        purchaseOrder.beginReceivingInspection(clock.instant());
+        return purchaseOrderMapper.toResponse(purchaseOrderRepository.saveAndFlush(purchaseOrder));
+    }
+
+    @Transactional
+    @PreAuthorize("hasRole('ADMIN')")
+    public PurchaseOrderResponse cancel(Long id, String reason) {
+        PurchaseOrder purchaseOrder = purchaseOrderRepository.findByIdForUpdate(id)
+                .orElseThrow(() -> new BusinessException(ErrorCode.PURCHASE_ORDER_NOT_FOUND));
+        User actor = currentUser();
+        purchaseOrder.cancel(reason, actor, clock.instant());
         return purchaseOrderMapper.toResponse(purchaseOrderRepository.saveAndFlush(purchaseOrder));
     }
 

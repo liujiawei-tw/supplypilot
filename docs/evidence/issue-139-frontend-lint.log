@@ -1,0 +1,6 @@
+
+> frontend@0.0.0 lint
+> oxlint src tests vite.config.ts vitest.config.ts
+
+Found 0 warnings and 0 errors.
+Finished in 438ms on 113 files with 116 rules using 12 threads.

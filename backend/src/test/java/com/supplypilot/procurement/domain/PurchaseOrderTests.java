@@ -188,6 +188,7 @@ class PurchaseOrderTests {
         order.markOrdered(user, orderedAt);
 
         assertThat(order.getStatus()).isEqualTo(PurchaseOrderStatus.ORDERED);
+        assertThat(order.getOrderedProgress()).isEqualTo(OrderedProgress.FOLLOW_UP);
         assertThat(order.getOrderedBy()).isSameAs(user);
         assertThat(order.getOrderedAt()).isEqualTo(orderedAt);
         assertThat(order.getUpdatedAt()).isEqualTo(orderedAt);
@@ -195,6 +196,61 @@ class PurchaseOrderTests {
         assertThat(order.getApprovedBy()).isSameAs(manager);
         assertThat(order.getSupplier()).isSameAs(supplier);
         assertThat(order.getItems()).hasSize(1);
+    }
+
+    @Test void cancelsApprovedAndFollowUpOrdersWithRequiredReasonAndIndependentActorSnapshot() {
+        User admin = User.create("cancel-admin", "hash", "Cancel Admin", UserRole.ADMIN,
+                TestDataConstants.TEST_INSTANT);
+        PurchaseOrder approved = approvedOrderWithDate(TestDataConstants.TEST_TODAY.plusDays(1));
+        approved.cancel("  Supplier changed plan  ", admin, TestDataConstants.TEST_INSTANT.plusSeconds(10));
+        assertThat(approved.getStatus()).isEqualTo(PurchaseOrderStatus.CANCELLED);
+        assertThat(approved.getCancelReason()).isEqualTo("Supplier changed plan");
+        assertThat(approved.getCancelledByUserIdSnapshot()).isEqualTo(admin.getId());
+        assertThat(approved.getCancelledByUsernameSnapshot()).isEqualTo("cancel-admin");
+        assertThat(approved.getCancelledByDisplayNameSnapshot()).isEqualTo("Cancel Admin");
+        assertThat(approved.getCancelledAt()).isEqualTo(TestDataConstants.TEST_INSTANT.plusSeconds(10));
+
+        PurchaseOrder ordered = approvedOrderWithDate(TestDataConstants.TEST_TODAY.plusDays(1));
+        ordered.markOrdered(user, TestDataConstants.TEST_INSTANT.plusSeconds(1));
+        ordered.cancel("No longer required", admin, TestDataConstants.TEST_INSTANT.plusSeconds(20));
+        assertThat(ordered.getStatus()).isEqualTo(PurchaseOrderStatus.CANCELLED);
+        assertThat(ordered.getOrderedProgress()).isNull();
+    }
+
+    @Test void receivingInspectionAndLegacyUnknownOrdersCannotBeCancelledOrRepeatedlyMoved() {
+        User admin = User.create("cancel-admin-2", "hash", "Cancel Admin", UserRole.ADMIN,
+                TestDataConstants.TEST_INSTANT);
+        PurchaseOrder order = approvedOrderWithDate(TestDataConstants.TEST_TODAY.plusDays(1));
+        order.markOrdered(user, TestDataConstants.TEST_INSTANT.plusSeconds(1));
+        order.beginReceivingInspection(TestDataConstants.TEST_INSTANT.plusSeconds(2));
+        assertThat(order.getOrderedProgress()).isEqualTo(OrderedProgress.RECEIVING_INSPECTION);
+        assertThatThrownBy(() -> order.cancel("late", admin, TestDataConstants.TEST_INSTANT.plusSeconds(3)))
+                .isInstanceOf(BusinessException.class).extracting("errorCode")
+                .isEqualTo(ErrorCode.INVALID_PO_STATUS_TRANSITION);
+        assertThatThrownBy(() -> order.beginReceivingInspection(TestDataConstants.TEST_INSTANT.plusSeconds(3)))
+                .isInstanceOf(BusinessException.class).extracting("errorCode")
+                .isEqualTo(ErrorCode.INVALID_PO_STATUS_TRANSITION);
+
+        PurchaseOrder legacy = approvedOrderWithDate(TestDataConstants.TEST_TODAY.plusDays(1));
+        ReflectionTestUtils.setField(legacy, "status", PurchaseOrderStatus.ORDERED);
+        ReflectionTestUtils.setField(legacy, "orderedProgress", OrderedProgress.LEGACY_UNKNOWN);
+        assertThatThrownBy(() -> legacy.cancel("legacy", admin, TestDataConstants.TEST_INSTANT.plusSeconds(4)))
+                .isInstanceOf(BusinessException.class).extracting("errorCode")
+                .isEqualTo(ErrorCode.INVALID_PO_STATUS_TRANSITION);
+        legacy.beginReceivingInspection(TestDataConstants.TEST_INSTANT.plusSeconds(5));
+        assertThat(legacy.getOrderedProgress()).isEqualTo(OrderedProgress.RECEIVING_INSPECTION);
+    }
+
+    @Test void rejectsMissingBlankAndOverlongCancellationReasonsWithoutChangingOrder() {
+        User admin = User.create("cancel-admin-3", "hash", "Cancel Admin", UserRole.ADMIN,
+                TestDataConstants.TEST_INSTANT);
+        for (String reason : new String[] {null, "", "  ", "x".repeat(2001)}) {
+            PurchaseOrder order = approvedOrderWithDate(TestDataConstants.TEST_TODAY.plusDays(1));
+            assertThatThrownBy(() -> order.cancel(reason, admin, TestDataConstants.TEST_INSTANT.plusSeconds(2)))
+                    .isInstanceOf(BusinessException.class);
+            assertThat(order.getStatus()).isEqualTo(PurchaseOrderStatus.APPROVED);
+            assertThat(order.getCancelledAt()).isNull();
+        }
     }
 
     @Test void markOrderedRejectsMissingDeliveryDateAndEveryNonApprovedStatusWithoutChangingAudit() {

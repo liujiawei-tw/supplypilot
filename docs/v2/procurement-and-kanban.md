@@ -80,3 +80,11 @@
 ## V2-201 實作狀態
 
 Issue #138 的程式與驗證狀態以 [`docs/evidence/issue-138-validation.md`](../evidence/issue-138-validation.md) 為準。本 Issue 保留原有 PO Draft、可空期望日、核准日期檢查、PO 編號、`@Version` 與收貨交易能力；Draft Edit 和核准對同一 PO 使用列鎖序列化；不建立 Kanban Stage 欄位或移除歷史資料。V2 新業務流程直接建立 PO，Demand/Recommendation 寫入不向 V2 ADMIN 開放，舊資料讀取及歷史參照保留。
+
+## V2-202（Issue #139）實作狀態
+
+程式與驗證狀態以 [`docs/evidence/issue-139-validation.md`](../evidence/issue-139-validation.md) 為準。已實作 DRAFT 駁回、APPROVED 取消、ORDERED 第 5 欄取消、取消稽核快照、不可復原終態、取消後排除在途查詢及禁止收貨。取消與收貨、核准、駁回、下單使用相同的 PO `PESSIMISTIC_WRITE` 列鎖，收貨先鎖 PO 再寫 Inventory/StockTransaction。
+
+為辨認第 5/6 欄，只新增 ORDERED 專用的持久化 `ordered_progress` 契約：新下單為 `FOLLOW_UP`（第 5 欄），「開始到貨驗收」命令將其改為 `RECEIVING_INSPECTION`（第 6 欄）；第 6 欄起取消被後端拒絕。既有 ORDERED 資料無法由舊欄位可靠推算第 5 或第 6 欄，Migration 以 `LEGACY_UNKNOWN` 保留未知並禁止取消；管理員可經受控命令明確移入第 6 欄，不接受 Client 任意 Stage 值。此欄位與遷移規則是 #139 的最小取消保護契約；#141 沿用第 5→6 操作並補齊驗收/收貨流程，#142 再擴為完整八階段模型與轉移不變量。目前沒有完整八欄看板或任意 Stage API。
+
+**#139 範圍限制：** 本 Issue 只完成取消及第 5／6 欄的取消保護，不代表第 6 欄收貨驗收已完成。目前 `PurchaseOrder.validateReceivingEligibility()` 尚未要求 `ordered_progress = RECEIVING_INSPECTION`；第 6 欄完整人工數量／品質驗收與 6→7 收貨准入由 #141 實作。未完成 #141 前，不得宣稱 V2 完整收貨流程已通過驗收。

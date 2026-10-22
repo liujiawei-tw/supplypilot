@@ -5,6 +5,7 @@ import java.time.LocalDate;
 import java.util.List;
 
 import com.supplypilot.procurement.domain.PurchaseOrderStatus;
+import com.supplypilot.procurement.domain.OrderedProgress;
 
 public record PurchaseOrderResponse(
         Long id,
@@ -13,6 +14,7 @@ public record PurchaseOrderResponse(
         String supplierCode,
         String supplierName,
         PurchaseOrderStatus status,
+        OrderedProgress orderedProgress,
         LocalDate expectedDeliveryDate,
         List<PurchaseOrderItemResponse> items,
         Long createdBy,
@@ -28,6 +30,11 @@ public record PurchaseOrderResponse(
         String rejectedByDisplayName,
         String rejectedByUsername,
         Instant rejectedAt,
+        String cancelReason,
+        Long cancelledBy,
+        String cancelledByDisplayName,
+        String cancelledByUsername,
+        Instant cancelledAt,
         Long orderedBy,
         String orderedByDisplayName,
         String orderedByUsername,

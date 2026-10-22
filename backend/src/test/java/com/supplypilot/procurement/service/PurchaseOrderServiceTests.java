@@ -67,7 +67,7 @@ class PurchaseOrderServiceTests {
     @Test
     void markOrderedUsesAuthenticatedUserAndPersistsAggregate() {
         PurchaseOrder order = approvedOrder();
-        when(purchaseOrderRepository.findById(10L)).thenReturn(Optional.of(order));
+        when(purchaseOrderRepository.findByIdForUpdate(10L)).thenReturn(Optional.of(order));
         when(currentUserProvider.getCurrentUserId()).thenReturn(staff.getId());
         when(userRepository.findById(staff.getId())).thenReturn(Optional.of(staff));
         when(purchaseOrderRepository.saveAndFlush(order)).thenReturn(order);
@@ -83,7 +83,7 @@ class PurchaseOrderServiceTests {
 
     @Test
     void markOrderedReturnsNotFoundBeforeResolvingCurrentUser() {
-        when(purchaseOrderRepository.findById(404L)).thenReturn(Optional.empty());
+        when(purchaseOrderRepository.findByIdForUpdate(404L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> service.markOrdered(404L))
                 .isInstanceOf(BusinessException.class)

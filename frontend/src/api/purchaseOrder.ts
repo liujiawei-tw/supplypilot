@@ -4,7 +4,8 @@ import type { PageResponse } from '../types/api';
 import { decimalResponseConfig } from './decimalJson';
 
 export type DecimalValue = string | number;
-export type PurchaseOrderStatus = 'DRAFT' | 'APPROVED' | 'ORDERED' | 'RECEIVED' | 'REJECTED';
+export type PurchaseOrderStatus = 'DRAFT' | 'APPROVED' | 'ORDERED' | 'RECEIVED' | 'REJECTED' | 'CANCELLED';
+export type OrderedProgress = 'FOLLOW_UP' | 'RECEIVING_INSPECTION' | 'LEGACY_UNKNOWN';
 
 export interface CreatePurchaseOrderItemRequest {
   materialId: number;
@@ -25,13 +26,14 @@ export interface PurchaseOrderItemResponse {
   supplierOverride: boolean; quantityOverride: boolean; supplierOverrideReason: string | null; quantityOverrideReason: string | null;
 }
 export interface PurchaseOrderResponse {
-  id: number; poNumber: string; supplierId: number; supplierCode: string; supplierName: string; status: PurchaseOrderStatus;
+  id: number; poNumber: string; supplierId: number; supplierCode: string; supplierName: string; status: PurchaseOrderStatus; orderedProgress: OrderedProgress | null;
   expectedDeliveryDate: string | null; items: PurchaseOrderItemResponse[]; createdBy: number | null; createdByDisplayName: string;
   createdByUsername: string | null; assignedTo: number | null; assignedToDisplayName: string | null; assignedToUsername: string | null;
   createdAt: string; approvedBy: number | null; approvedByDisplayName: string | null; approvedAt: string | null;
   approvedByUsername: string | null;
   rejectReason: string | null; rejectedBy: number | null; rejectedByDisplayName: string | null; rejectedAt: string | null;
   rejectedByUsername: string | null;
+  cancelReason: string | null; cancelledBy: number | null; cancelledByDisplayName: string | null; cancelledByUsername: string | null; cancelledAt: string | null;
   orderedBy: number | null; orderedByDisplayName: string | null; orderedByUsername: string | null; orderedAt: string | null; receivedBy: number | null;
   receivedByDisplayName: string | null; receivedByUsername: string | null; receivedAt: string | null; isOverdue: boolean; updatedAt: string;
 }
@@ -58,6 +60,12 @@ export async function approvePurchaseOrder(id: number): Promise<PurchaseOrderRes
 }
 export async function rejectPurchaseOrder(id: number, reason: string): Promise<PurchaseOrderResponse> {
   return (await axiosClient.post<PurchaseOrderResponse>(`/purchase-orders/${id}/reject`, { reason }, decimalResponseConfig)).data;
+}
+export async function cancelPurchaseOrder(id: number, reason: string): Promise<PurchaseOrderResponse> {
+  return (await axiosClient.post<PurchaseOrderResponse>(`/purchase-orders/${id}/cancel`, { reason }, decimalResponseConfig)).data;
+}
+export async function beginReceivingInspection(id: number): Promise<PurchaseOrderResponse> {
+  return (await axiosClient.post<PurchaseOrderResponse>(`/purchase-orders/${id}/begin-receiving-inspection`, undefined, decimalResponseConfig)).data;
 }
 export async function markPurchaseOrderOrdered(id: number): Promise<PurchaseOrderResponse> {
   return (await axiosClient.post<PurchaseOrderResponse>(`/purchase-orders/${id}/order`, undefined, decimalResponseConfig)).data;

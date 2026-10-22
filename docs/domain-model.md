@@ -1927,3 +1927,9 @@ StockTransaction 除 `created_by_user_id_snapshot` 外，V24 亦回填並保存 
 PO 與 PO item 原有正式 Entity/Schema 已支援直接建立 `DRAFT`、nullable `expected_delivery_date`、非空 item 集合、`quantity > 0`、`unit_price >= 0`、資料庫 `DECIMAL(19,4)`、PO `@Version` 與單一交易邊界；本 Issue 不新增資料欄位或 Migration。Draft Edit 與核准以同一 PO 列鎖序列化狀態檢查，並保留 `@Version`。Draft Edit 只能變更商業欄位，既有 item 的 `recommendation_id`、`supplier_recommendation_result_id`、推薦供應商/數量快照及覆寫原因保留為不可變歷史資料。
 
 建立或更換供應商/品項仍要求 ACTIVE Supplier、ACTIVE Material 與 ACTIVE SupplierMaterial 關聯。SupplierMaterial 是現行供應主檔的有效供應關係，V2-201 沒有核准移除此 Domain 驗證；手動草稿可輸入暫估單價，不使用該主檔價格作為 PO 單價。
+
+## V2-202 PO 終止稽核與 ORDERED 進度保護
+
+V2 `PurchaseOrderStatus` 增加終態 `CANCELLED`。`cancelReason`、`cancelledAt`、`cancelledBy` 與非 FK 的 user ID/username/displayName 快照同交易寫入；刪除操作人時 FK 可置空，快照仍供歷史明細讀取。取消不刪除/重建 PO、供應商、品項或交易資料。
+
+V25 新增 nullable `ordered_progress`：新標記下單寫入 `FOLLOW_UP`；明確進入到貨驗收後寫入 `RECEIVING_INSPECTION`；舊 ORDERED 記錄回填 `LEGACY_UNKNOWN`，因 V1 沒有保存能判斷第 5/6 欄的事件。資料庫 CHECK 保證該欄只有 status=ORDERED 時有值；其他狀態必須為 NULL。只有 APPROVED 或 ORDERED + FOLLOW_UP 可取消；RECEIVING_INSPECTION/LEGACY_UNKNOWN 皆拒絕。完整八階段及狀態映射仍由 #142 負責。

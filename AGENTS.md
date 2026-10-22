@@ -39,6 +39,13 @@
 - 前端 Vitest 有已知單測 timeout 時，先單獨執行該測試檔並保留測例名稱、耗時及完整錯誤輸出，再比較完整套件紀錄；不得提高 timeout、skip／刪除測試或放寬斷言來掩蓋問題。精準重跑用於定位，交付 SHA 的 CI 才是完整回歸證據。
 - 不得因此縮減 CI Gate、測試覆蓋、安全／授權／交易／併發驗證，或忽略任何失敗；程式變更後須重跑受影響驗證，並記錄結果對應的 SHA／工作樹版本。
 
+### 使用者暫停 GitHub Actions（暫行，優先於下方 CI Gate）
+
+- **使用者於 2026-10-22 決定：** SupplyPilot Issues 暫停使用 GitHub Actions，直到使用者親自明確通知恢復。期間統一標示 `PAUSED BY USER / NOT USED AS GATE`；不等待、查詢、重跑或依賴 Actions 結果。
+- 不修改 `.github/workflows/ci.yml`、Branch Protection 或 Repository Actions 設定。這項決策只暫停使用與依賴 Actions；Push 仍可能觸發 GitHub 自動 Workflow，不得宣稱 Repository Actions 已停止或停用。
+- 本機 Backend、Node.js 24 Linux Frontend（`npm ci`、lint、完整 test、build）、Docker／Compose Gate 繼續依原標準執行；所有未通過或未執行項目照實記錄。不得因暫停 Actions 而減少測試、跳過案例或直接宣稱 Final PASS。
+- 此規範適用於後續 SupplyPilot Issues，直到使用者親自解除；暫停期間，前方測試節奏中「完整回歸優先由 GitHub Actions」的安排及下方暫行帳務規則均由本節與本機 Gate 取代。歷史 Actions Run 紀錄保留原狀。
+
 ### GitHub CI 免費額度／帳務阻擋時的暫行本機驗收
 
 - **使用者已決定：** GitHub Actions 因免費額度或 Billing 限制無法執行時，Issue #138 及後續 Issues 暫用本機完整 CI 等價驗證作為交付 Gate，直到 GitHub CI 恢復有效執行。每次須保存 GitHub Run 的阻擋證據及本機驗收結果；本機驗收不得描述成 GitHub CI PASS。

@@ -23,6 +23,7 @@ function deferred<T>() {
 async function open(path: string) { localStorage.setItem(TOKEN_STORAGE_KEY, 'valid-token'); await router.navigate(path); render(<App />); }
 function latestDialog() { const dialogs = screen.getAllByRole('dialog'); return dialogs[dialogs.length - 1]; }
 function documentDrawer() { return screen.getByText('文件明細').closest('.ant-drawer')!; }
+function aiAssistantDrawer() { return screen.getByText('SupplyPilot AI 助理').closest('.ant-drawer')!; }
 async function openDraftProposal(user: ReturnType<typeof userEvent.setup>) {
   await open('/dashboard');
   await user.click(await screen.findByRole('button', { name: /AI 助理/ }));
@@ -510,23 +511,24 @@ describe('SP-806 Global AI 助理', () => {
     });
     await open('/dashboard'); const user = userEvent.setup();
     await user.click(await screen.findByRole('button', { name: /AI 助理/ }));
-    await user.click(screen.getByRole('tab', { name: '採購草稿提案' }));
-    fireEvent.change(screen.getByLabelText('AI 草稿供應商編號'), { target: { value: '12' } });
-    fireEvent.change(screen.getByLabelText('AI 草稿品項 1 物料編號'), { target: { value: '7' } });
-    fireEvent.change(screen.getByLabelText('AI 草稿品項 1 數量'), { target: { value: '1' } });
-    fireEvent.change(screen.getByLabelText('AI 草稿品項 1 單價'), { target: { value: '2' } });
-    await user.click(screen.getByRole('button', { name: '產生提案供審閱' }));
-    expect(await screen.findByText(/items\[0\]\.unitPrice/)).toBeTruthy();
+    const drawer = aiAssistantDrawer();
+    await user.click(within(drawer).getByRole('tab', { name: '採購草稿提案' }));
+    fireEvent.change(within(drawer).getByLabelText('AI 草稿供應商編號'), { target: { value: '12' } });
+    fireEvent.change(within(drawer).getByLabelText('AI 草稿品項 1 物料編號'), { target: { value: '7' } });
+    fireEvent.change(within(drawer).getByLabelText('AI 草稿品項 1 數量'), { target: { value: '1' } });
+    fireEvent.change(within(drawer).getByLabelText('AI 草稿品項 1 單價'), { target: { value: '2' } });
+    await user.click(within(drawer).getByRole('button', { name: '產生提案供審閱' }));
+    expect(await within(drawer).findByText(/items\[0\]\.unitPrice/)).toBeTruthy();
     expect(screen.queryByRole('button', { name: '審閱並確認草稿' })).toBeNull();
-    await user.click(screen.getByRole('button', { name: '產生提案供審閱' }));
-    await user.click(await screen.findByRole('button', { name: '審閱並確認草稿' }));
+    await user.click(within(drawer).getByRole('button', { name: '產生提案供審閱' }));
+    await user.click(await within(drawer).findByRole('button', { name: '審閱並確認草稿' }));
     await user.click(within(latestDialog()).getByRole('button', { name: '確認建立草稿' }));
-    expect(await screen.findByText(/系統已鎖定重送/)).toBeTruthy();
+    expect(await within(drawer).findByText(/系統已鎖定重送/)).toBeTruthy();
     expect(requests.filter(({ url }) => url === '/ai/purchase-draft-proposals/p2/confirm')).toHaveLength(1);
-    expect(screen.getByRole('button', { name: '審閱並確認草稿' }).hasAttribute('disabled')).toBe(true);
-    expect(screen.getByRole('button', { name: '捨棄並編輯' }).hasAttribute('disabled')).toBe(true);
-    await user.click(screen.getByRole('button', { name: '捨棄並編輯' }));
-    expect(screen.getByText('後端提案快照')).toBeTruthy();
+    expect(within(drawer).getByRole('button', { name: '審閱並確認草稿' }).hasAttribute('disabled')).toBe(true);
+    expect(within(drawer).getByRole('button', { name: '捨棄並編輯' }).hasAttribute('disabled')).toBe(true);
+    await user.click(within(drawer).getByRole('button', { name: '捨棄並編輯' }));
+    expect(within(drawer).getByText('後端提案快照')).toBeTruthy();
     expect(requests.filter(({ url }) => url === '/ai/purchase-draft-proposals')).toHaveLength(2);
   }, 30_000);
 

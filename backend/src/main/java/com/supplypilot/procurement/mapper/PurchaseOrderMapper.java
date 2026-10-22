@@ -23,6 +23,7 @@ public class PurchaseOrderMapper {
         return new PurchaseOrderResponse(
                 purchaseOrder.getId(), purchaseOrder.getPoNumber(), purchaseOrder.getSupplier().getId(),
                 purchaseOrder.getSupplier().getCode(), purchaseOrder.getSupplier().getName(), purchaseOrder.getStatus(),
+                purchaseOrder.getOrderedProgress(),
                 purchaseOrder.getExpectedDeliveryDate(), purchaseOrder.getItems().stream().map(this::toItemResponse).toList(),
                 purchaseOrder.getCreatedByUserIdSnapshot(), purchaseOrder.getCreatedByDisplayNameSnapshot(),
                 purchaseOrder.getCreatedByUsernameSnapshot(),
@@ -33,6 +34,9 @@ public class PurchaseOrderMapper {
                 purchaseOrder.getRejectedByUserIdSnapshot(), purchaseOrder.getRejectedByDisplayNameSnapshot(),
                 purchaseOrder.getRejectedByUsernameSnapshot(),
                 purchaseOrder.getRejectedAt(),
+                purchaseOrder.getCancelReason(), purchaseOrder.getCancelledByUserIdSnapshot(),
+                purchaseOrder.getCancelledByDisplayNameSnapshot(), purchaseOrder.getCancelledByUsernameSnapshot(),
+                purchaseOrder.getCancelledAt(),
                 purchaseOrder.getOrderedByUserIdSnapshot(), purchaseOrder.getOrderedByDisplayNameSnapshot(),
                 purchaseOrder.getOrderedByUsernameSnapshot(),
                 purchaseOrder.getOrderedAt(),

@@ -38,6 +38,7 @@ public enum ErrorCode {
     DUPLICATE_SUPPLIER_MATERIAL("Supplier material already exists."),
     EXPECTED_DELIVERY_DATE_REQUIRED("Expected delivery date is required."),
     REJECT_REASON_REQUIRED("Reject reason is required."),
+    CANCEL_REASON_REQUIRED("Cancellation reason is required."),
     SUPPLIER_OVERRIDE_REASON_REQUIRED("Supplier override reason is required."),
     QUANTITY_OVERRIDE_REASON_REQUIRED("Quantity override reason is required."),
 

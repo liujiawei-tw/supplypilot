@@ -53,7 +53,7 @@ public class ReceivingService {
     @Transactional
     @PreAuthorize("hasAnyRole('WAREHOUSE_STAFF', 'ADMIN')")
     public ReceivingPurchaseOrderResponse receive(Long purchaseOrderId) {
-        PurchaseOrder purchaseOrder = purchaseOrderRepository.findById(purchaseOrderId)
+        PurchaseOrder purchaseOrder = purchaseOrderRepository.findByIdForUpdate(purchaseOrderId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.PURCHASE_ORDER_NOT_FOUND));
         purchaseOrder.validateReceivingEligibility();
         User receiver = userRepository.findById(currentUserProvider.getCurrentUserId())

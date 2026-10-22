@@ -1,0 +1,1073 @@
+
+> frontend@0.0.0 test
+> vitest run tests/sp806.test.tsx -t shows clarification without Confirm and locks unknown Confirm results without resending --reporter=verbose
+
+
+[1m[30m[46m RUN [49m[39m[22m [36mv4.1.11 [39m[90m/work[39m
+
+[90mstdout[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Global AI 助理[2m > [22m[2mshows clarification without Confirm and locks unknown Confirm results without resending
+[22m[39m[DIAG-SP806] open dashboard + render: 391.5ms
+
+stderr | tests/sp806.test.tsx > SP-806 Global AI 助理 > shows clarification without Confirm and locks unknown Confirm results without resending
+Warning: [antd: List] The `List` component is deprecated and will be removed in the next major version. If you're using version 6.6.0 or later, please use `Listy` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+Warning: [antd: List] The `List` component is deprecated and will be removed in the next major version. If you're using version 6.6.0 or later, please use `Listy` instead.
+
+ [2m[90m↓[39m[22m tests/sp806.test.tsx[2m > [22mSP-806 Document Management UI[2m > [22mexposes Semantic operations only to ADMIN on the existing Documents route
+ [2m[90m↓[39m[22m tests/sp806.test.tsx[2m > [22mSP-806 Document Management UI[2m > [22mexposes Semantic operations only to ADMIN on the existing Documents route
+ [2m[90m↓[39m[22m tests/sp806.test.tsx[2m > [22mSP-806 Document Management UI[2m > [22mexposes Semantic operations only to ADMIN on the existing Documents route
+ [2m[90m↓[39m[22m tests/sp806.test.tsx[2m > [22mSP-806 Document Management UI[2m > [22mexposes Semantic operations only to ADMIN on the existing Documents route
+ [2m[90m↓[39m[22m tests/sp806.test.tsx[2m > [22mSP-806 Document Management UI[2m > [22mconfirms outbound approval and renders the actual 後端 Review result
+ [2m[90m↓[39m[22m tests/sp806.test.tsx[2m > [22mSP-806 Document Management UI[2m > [22mkeeps a deep-linked #21 from overwriting a fast #22 switch and reviews only the current document
+ [2m[90m↓[39m[22m tests/sp806.test.tsx[2m > [22mSP-806 Document Management UI[2m > [22mignores a delayed title response after switching documents
+ [2m[90m↓[39m[22m tests/sp806.test.tsx[2m > [22mSP-806 Document Management UI[2m > [22mignores a delayed archive response after switching documents
+ [2m[90m↓[39m[22m tests/sp806.test.tsx[2m > [22mSP-806 Document Management UI[2m > [22mignores a delayed ingestion response after switching documents
+ [2m[90m↓[39m[22m tests/sp806.test.tsx[2m > [22mSP-806 Document Management UI[2m > [22mignores a delayed ingestion verification response after switching documents
+ [2m[90m↓[39m[22m tests/sp806.test.tsx[2m > [22mSP-806 Document Management UI[2m > [22mrefreshes the same deep-linked document and closes without reloading it
+ [2m[90m↓[39m[22m tests/sp806.test.tsx[2m > [22mSP-806 Document Management UI[2m > [22mmarks saved Gate 稽核 responses historical after document upload, ingestion and outbound approval or exclusion
+ [2m[90m↓[39m[22m tests/sp806.test.tsx[2m > [22mSP-806 Document Management UI[2m > [22mshows backend status, hides storagePath, and performs one explicitly confirmed ingestion followed by refresh
+ [2m[90m↓[39m[22m tests/sp806.test.tsx[2m > [22mSP-806 Document Management UI[2m > [22mlocks an unknown or 409 ingestion result until the official document GET succeeds, without a resend
+ [2m[90m↓[39m[22m tests/sp806.test.tsx[2m > [22mSP-806 Document Management UI[2m > [22mvalidates document file extension, browser content type, and empty content
+ [2m[90m↓[39m[22m tests/sp806.test.tsx[2m > [22mSP-806 Document Management UI[2m > [22msubmits one upload on rapid clicks and locks an unknown upload instead of guessing its result
+ [2m[90m↓[39m[22m tests/sp806.test.tsx[2m > [22mSP-806 Document Management UI[2m > [22mgives manager read-only Documents without upload, edit, or ingestion controls
+ [2m[90m↓[39m[22m tests/sp806.test.tsx[2m > [22mSP-806 Document Management UI[2m > [22mdoes not call any Document or AI endpoint for warehouse role
+ [2m[90m↓[39m[22m tests/sp806.test.tsx[2m > [22mSP-806 Global AI 助理[2m > [22mkeeps the route unchanged, renders verified query sources, and gives manager no Proposal tab
+ [2m[90m↓[39m[22m tests/sp806.test.tsx[2m > [22mSP-806 Global AI 助理[2m > [22misolates AI 503 so navigation stays usable and the drawer can close
+ [2m[90m↓[39m[22m tests/sp806.test.tsx[2m > [22mSP-806 Global AI 助理[2m > [22mreviews a multi-item backend snapshot and sends one token-based Confirm with no ordinary PO create call
+[90mstdout[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Global AI 助理[2m > [22m[2mshows clarification without Confirm and locks unknown Confirm results without resending
+stderr | tests/sp806.test.tsx > SP-806 Global AI 助理 > shows clarification without Confirm and locks unknown Confirm results without resending
+[22m[39m[DIAG-SP806] find AI assistant: 1069.9ms
+Warning: [antd: List] The `List` component is deprecated and will be removed in the next major version. If you're using version 6.6.0 or later, please use `Listy` instead.
+
+
+[90mstdout[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Global AI 助理[2m > [22m[2mshows clarification without Confirm and locks unknown Confirm results without resending
+[22m[39m[DIAG-SP806] query proposal tab: 4026.8ms
+[DIAG-SP806] click proposal tab: 4027.0ms
+
+ [31m×[39m tests/sp806.test.tsx[2m > [22mSP-806 Global AI 助理[2m > [22mshows clarification without Confirm and locks unknown Confirm results without resending[33m 5515[2mms[22m[39m
+[31m   → Unable to find an accessible element with the role "tab" and name "採購草稿提案"
+
+Here are the accessible roles:
+
+  complementary:
+
+  Name "":
+  [36m<aside[31m
+    [33mclass[31m=[32m"ant-layout-sider ant-layout-sider-dark css-dev-only-do-not-override-oc1rc0 css-var-_r_0_"[31m
+    [33mstyle[31m=[32m"flex: 0 0 200px; max-width: 200px; min-width: 200px; width: 200px;"[31m
+  [36m/>[31m
+
+  --------------------------------------------------
+  heading:
+
+  Name "SupplyPilot":
+  [36m<h4[31m
+    [33mclass[31m=[32m"ant-typography css-dev-only-do-not-override-oc1rc0 css-var-_r_0_"[31m
+    [33mstyle[31m=[32m"color: rgb(255, 255, 255); margin: 0px;"[31m
+  [36m/>[31m
+
+  Name "工作總覽":
+  [36m<h2[31m
+    [33mclass[31m=[32m"ant-typography css-dev-only-do-not-override-oc1rc0 css-var-_r_0_"[31m
+  [36m/>[31m
+
+  Name "優先工作":
+  [36m<h3[31m
+    [33mclass[31m=[32m"ant-typography css-dev-only-do-not-override-oc1rc0 css-var-_r_0_"[31m
+    [33mid[31m=[32m"dashboard-work-heading"[31m
+  [36m/>[31m
+
+  Name "採購草稿":
+  [36m<h4[31m
+    [33mclass[31m=[32m"ant-typography css-dev-only-do-not-override-oc1rc0 css-var-_r_0_"[31m
+    [33mid[31m=[32m"purchase-draft-heading"[31m
+  [36m/>[31m
+
+  Name "待下單採購單":
+  [36m<h4[31m
+    [33mclass[31m=[32m"ant-typography css-dev-only-do-not-override-oc1rc0 css-var-_r_0_"[31m
+    [33mid[31m=[32m"purchase-approval-heading"[31m
+  [36m/>[31m
+
+  Name "已下單採購單":
+  [36m<h4[31m
+    [33mclass[31m=[32m"ant-typography css-dev-only-do-not-override-oc1rc0 css-var-_r_0_"[31m
+    [33mid[31m=[32m"purchase-ordered-heading"[31m
+  [36m/>[31m
+
+  Name "常用工作入口":
+  [36m<h3[31m
+    [33mclass[31m=[32m"ant-typography css-dev-only-do-not-override-oc1rc0 css-var-_r_0_"[31m
+    [33mid[31m=[32m"dashboard-actions-heading"[31m
+  [36m/>[31m
+
+  --------------------------------------------------
+  menu:
+
+  Name "":
+  [36m<ul[31m
+    [33mclass[31m=[32m"ant-menu ant-menu-root ant-menu-inline ant-menu-dark css-dev-only-do-not-override-oc1rc0 css-var-_r_0_ ant-menu-css-var"[31m
+    [33mdata-menu-list[31m=[32m"true"[31m
+    [33mrole[31m=[32m"menu"[31m
+    [33mtabindex[31m=[32m"0"[31m
+  [36m/>[31m
+
+  --------------------------------------------------
+  menuitem:
+
+  Name "dashboard 儀表板":
+  [36m<li[31m
+    [33mclass[31m=[32m"ant-menu-item ant-menu-item-selected"[31m
+    [33mdata-menu-id[31m=[32m"rc-menu-uuid-test-id-/dashboard"[31m
+    [33mrole[31m=[32m"menuitem"[31m
+    [33mstyle[31m=[32m"padding-left: 24px;"[31m
+    [33mtabindex[31m=[32m"-1"[31m
+  [36m/>[31m
+
+  Name "主檔管理":
+  [36m<div[31m
+    [33maria-controls[31m=[32m"rc-menu-uuid-test-id-主檔管理-popup"[31m
+    [33maria-expanded[31m=[32m"false"[31m
+    [33maria-haspopup[31m=[32m"true"[31m
+    [33mclass[31m=[32m"ant-menu-submenu-title"[31m
+    [33mdata-menu-id[31m=[32m"rc-menu-uuid-test-id-主檔管理"[31m
+    [33mrole[31m=[32m"menuitem"[31m
+    [33mstyle[31m=[32m"padding-left: 24px;"[31m
+    [33mtabindex[31m=[32m"-1"[31m
+  [36m/>[31m
+
+  Name "需求與庫存":
+  [36m<div[31m
+    [33maria-controls[31m=[32m"rc-menu-uuid-test-id-需求與庫存-popup"[31m
+    [33maria-expanded[31m=[32m"false"[31m
+    [33maria-haspopup[31m=[32m"true"[31m
+    [33mclass[31m=[32m"ant-menu-submenu-title"[31m
+    [33mdata-menu-id[31m=[32m"rc-menu-uuid-test-id-需求與庫存"[31m
+    [33mrole[31m=[32m"menuitem"[31m
+    [33mstyle[31m=[32m"padding-left: 24px;"[31m
+    [33mtabindex[31m=[32m"-1"[31m
+  [36m/>[31m
+
+  Name "採購單與收貨":
+  [36m<div[31m
+    [33maria-controls[31m=[32m"rc-menu-uuid-test-id-採購單與收貨-popup"[31m
+    [33maria-expanded[31m=[32m"false"[31m
+    [33maria-haspopup[31m=[32m"true"[31m
+    [33mclass[31m=[32m"ant-menu-submenu-title"[31m
+    [33mdata-menu-id[31m=[32m"rc-menu-uuid-test-id-採購單與收貨"[31m
+    [33mrole[31m=[32m"menuitem"[31m
+    [33mstyle[31m=[32m"padding-left: 24px;"[31m
+    [33mtabindex[31m=[32m"-1"[31m
+  [36m/>[31m
+
+  Name "文件與 AI":
+  [36m<div[31m
+    [33maria-controls[31m=[32m"rc-menu-uuid-test-id-文件與 AI-popup"[31m
+    [33maria-expanded[31m=[32m"false"[31m
+    [33maria-haspopup[31m=[32m"true"[31m
+    [33mclass[31m=[32m"ant-menu-submenu-title"[31m
+    [33mdata-menu-id[31m=[32m"rc-menu-uuid-test-id-文件與 AI"[31m
+    [33mrole[31m=[32m"menuitem"[31m
+    [33mstyle[31m=[32m"padding-left: 24px;"[31m
+    [33mtabindex[31m=[32m"-1"[31m
+  [36m/>[31m
+
+  --------------------------------------------------
+  img:
+
+  Name "dashboard":
+  [36m<span[31m
+    [33maria-label[31m=[32m"dashboard"[31m
+    [33mclass[31m=[32m"anticon anticon-dashboard ant-menu-item-icon"[31m
+    [33mrole[31m=[32m"img"[31m
+  [36m/>[31m
+
+  Name "robot":
+  [36m<span[31m
+    [33maria-label[31m=[32m"robot"[31m
+    [33mclass[31m=[32m"anticon anticon-robot"[31m
+    [33mrole[31m=[32m"img"[31m
+  [36m/>[31m
+
+  Name "logout":
+  [36m<span[31m
+    [33maria-label[31m=[32m"logout"[31m
+    [33mclass[31m=[32m"anticon anticon-logout"[31m
+    [33mrole[31m=[32m"img"[31m
+  [36m/>[31m
+
+  Name "close-circle":
+  [36m<span[31m
+    [33maria-label[31m=[32m"close-circle"[31m
+    [33mclass[31m=[32m"anticon anticon-close-circle"[31m
+    [33mrole[31m=[32m"img"[31m
+  [36m/>[31m
+
+  Name "close-circle":
+  [36m<span[31m
+    [33maria-label[31m=[32m"close-circle"[31m
+    [33mclass[31m=[32m"anticon anticon-close-circle"[31m
+    [33mrole[31m=[32m"img"[31m
+  [36m/>[31m
+
+  Name "close-circle":
+  [36m<span[31m
+    [33maria-label[31m=[32m"close-circle"[31m
+    [33mclass[31m=[32m"anticon anticon-close-circle"[31m
+    [33mrole[31m=[32m"img"[31m
+  [36m/>[31m
+
+  --------------------------------------------------
+  none:
+
+  Name "":
+  [36m<li[31m
+    [33mclass[31m=[32m"ant-menu-submenu ant-menu-submenu-inline"[31m
+    [33mrole[31m=[32m"none"[31m
+  [36m/>[31m
+
+  Name "":
+  [36m<li[31m
+    [33mclass[31m=[32m"ant-menu-submenu ant-menu-submenu-inline"[31m
+    [33mrole[31m=[32m"none"[31m
+  [36m/>[31m
+
+  Name "":
+  [36m<li[31m
+    [33mclass[31m=[32m"ant-menu-submenu ant-menu-submenu-inline"[31m
+    [33mrole[31m=[32m"none"[31m
+  [36m/>[31m
+
+  Name "":
+  [36m<li[31m
+    [33mclass[31m=[32m"ant-menu-submenu ant-menu-submenu-inline"[31m
+    [33mrole[31m=[32m"none"[31m
+  [36m/>[31m
+
+  --------------------------------------------------
+  banner:
+
+  Name "":
+  [36m<header[31m
+    [33mclass[31m=[32m"ant-layout-header app-header css-dev-only-do-not-override-oc1rc0 css-var-_r_0_"[31m
+    [33mstyle[31m=[32m"padding: 0px 24px; background: rgb(255, 255, 255); display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid rgb(240, 240, 240);"[31m
+  [36m/>[31m
+
+  Name "":
+  [36m<header[31m
+    [33mclass[31m=[32m"dashboard-header"[31m
+  [36m/>[31m
+
+  --------------------------------------------------
+  strong:
+
+  Name "":
+  [36m<strong />[31m
+
+  --------------------------------------------------
+  button:
+
+  Name "robot AI 助理":
+  [36m<button[31m
+    [33mclass[31m=[32m"ant-btn css-dev-only-do-not-override-oc1rc0 css-var-_r_0_ ant-btn-default ant-btn-color-default ant-btn-variant-outlined"[31m
+    [33mtype[31m=[32m"button"[31m
+  [36m/>[31m
+
+  Name "logout 登出":
+  [36m<button[31m
+    [33mclass[31m=[32m"ant-btn css-dev-only-do-not-override-oc1rc0 css-var-_r_0_ ant-btn-default ant-btn-color-default ant-btn-variant-outlined"[31m
+    [33mtype[31m=[32m"button"[31m
+  [36m/>[31m
+
+  Name "重新查詢":
+  [36m<button[31m
+    [33mclass[31m=[32m"ant-btn css-dev-only-do-not-override-oc1rc0 css-var-_r_0_ ant-btn-primary ant-btn-color-primary ant-btn-variant-solid ant-btn-sm"[31m
+    [33mtype[31m=[32m"button"[31m
+  [36m/>[31m
+
+  Name "重新查詢":
+  [36m<button[31m
+    [33mclass[31m=[32m"ant-btn css-dev-only-do-not-override-oc1rc0 css-var-_r_0_ ant-btn-primary ant-btn-color-primary ant-btn-variant-solid ant-btn-sm"[31m
+    [33mtype[31m=[32m"button"[31m
+  [36m/>[31m
+
+  Name "重新查詢":
+  [36m<button[31m
+    [33mclass[31m=[32m"ant-btn css-dev-only-do-not-override-oc1rc0 css-var-_r_0_ ant-btn-primary ant-btn-color-primary ant-btn-variant-solid ant-btn-sm"[31m
+    [33mtype[31m=[32m"button"[31m
+  [36m/>[31m
+
+  --------------------------------------------------
+  main:
+
+  Name "":
+  [36m<main[31m
+    [33mclass[31m=[32m"ant-layout-content css-dev-only-do-not-override-oc1rc0 css-var-_r_0_"[31m
+    [33mstyle[31m=[32m"margin: 24px 16px 0px;"[31m
+  [36m/>[31m
+
+  Name "":
+  [36m<main[31m
+    [33mclass[31m=[32m"dashboard-workspace"[31m
+  [36m/>[31m
+
+  --------------------------------------------------
+  region:
+
+  Name "優先工作":
+  [36m<section[31m
+    [33maria-labelledby[31m=[32m"dashboard-work-heading"[31m
+    [33mclass[31m=[32m"dashboard-primary"[31m
+  [36m/>[31m
+
+  Name "採購草稿":
+  [36m<section[31m
+    [33maria-labelledby[31m=[32m"purchase-draft-heading"[31m
+    [33mclass[31m=[32m"dashboard-panel"[31m
+  [36m/>[31m
+
+  Name "待下單採購單":
+  [36m<section[31m
+    [33maria-labelledby[31m=[32m"purchase-approval-heading"[31m
+    [33mclass[31m=[32m"dashboard-panel"[31m
+  [36m/>[31m
+
+  Name "已下單採購單":
+  [36m<section[31m
+    [33maria-labelledby[31m=[32m"purchase-ordered-heading"[31m
+    [33mclass[31m=[32m"dashboard-panel"[31m
+  [36m/>[31m
+
+  Name "常用工作入口":
+  [36m<section[31m
+    [33maria-labelledby[31m=[32m"dashboard-actions-heading"[31m
+    [33mclass[31m=[32m"dashboard-quick-actions"[31m
+  [36m/>[31m
+
+  --------------------------------------------------
+  alert:
+
+  Name "":
+  [36m<div[31m
+    [33mclass[31m=[32m"ant-alert ant-alert-error ant-alert-outlined ant-alert-with-description css-var-_r_0_ css-dev-only-do-not-override-oc1rc0"[31m
+    [33mdata-error-kind[31m=[32m"request-failed"[31m
+    [33mdata-show[31m=[32m"true"[31m
+    [33mrole[31m=[32m"alert"[31m
+    [33mstyle[31m=[32m"margin: 16px 0px;"[31m
+  [36m/>[31m
+
+  Name "":
+  [36m<div[31m
+    [33mclass[31m=[32m"ant-alert ant-alert-error ant-alert-outlined ant-alert-with-description css-var-_r_0_ css-dev-only-do-not-override-oc1rc0"[31m
+    [33mdata-error-kind[31m=[32m"request-failed"[31m
+    [33mdata-show[31m=[32m"true"[31m
+    [33mrole[31m=[32m"alert"[31m
+    [33mstyle[31m=[32m"margin: 16px 0px;"[31m
+  [36m/>[31m
+
+  Name "":
+  [36m<div[31m
+    [33mclass[31m=[32m"ant-alert ant-alert-error ant-alert-outlined ant-alert-with-description css-var-_r_0_ css-dev-only-do-not-override-oc1rc0"[31m
+    [33mdata-error-kind[31m=[32m"request-failed"[31m
+    [33mdata-show[31m=[32m"true"[31m
+    [33mrole[31m=[32m"alert"[31m
+    [33mstyle[31m=[32m"margin: 16px 0px;"[31m
+  [36m/>[31m
+
+  --------------------------------------------------
+  code:
+
+  Name "":
+  [36m<code />[31m
+
+  Name "":
+  [36m<code />[31m
+
+  Name "":
+  [36m<code />[31m
+
+  --------------------------------------------------
+  link:
+
+  Name "前往採購單清單":
+  [36m<a[31m
+    [33mclass[31m=[32m"dashboard-panel-link"[31m
+    [33mdata-discover[31m=[32m"true"[31m
+    [33mhref[31m=[32m"/purchase-orders"[31m
+  [36m/>[31m
+
+  Name "前往採購單清單":
+  [36m<a[31m
+    [33mclass[31m=[32m"dashboard-panel-link"[31m
+    [33mdata-discover[31m=[32m"true"[31m
+    [33mhref[31m=[32m"/purchase-orders"[31m
+  [36m/>[31m
+
+  Name "前往採購單清單":
+  [36m<a[31m
+    [33mclass[31m=[32m"dashboard-panel-link"[31m
+    [33mdata-discover[31m=[32m"true"[31m
+    [33mhref[31m=[32m"/purchase-orders"[31m
+  [36m/>[31m
+
+  Name "查看採購單":
+  [36m<a[31m
+    [33mdata-discover[31m=[32m"true"[31m
+    [33mhref[31m=[32m"/purchase-orders"[31m
+  [36m/>[31m
+
+  --------------------------------------------------
+
+Ignored nodes: comments, script, style
+[36m<body>[31m
+  [36m<div>[31m
+    [36m<div[31m
+      [33mclass[31m=[32m"ant-layout ant-layout-has-sider css-dev-only-do-not-override-oc1rc0 css-var-_r_0_"[31m
+      [33mstyle[31m=[32m"min-height: 100vh;"[31m
+    [36m>[31m
+      [36m<aside[31m
+        [33mclass[31m=[32m"ant-layout-sider ant-layout-sider-dark css-dev-only-do-not-override-oc1rc0 css-var-_r_0_"[31m
+        [33mstyle[31m=[32m"flex: 0 0 200px; max-width: 200px; min-width: 200px; width: 200px;"[31m
+      [36m>[31m
+        [36m<div[31m
+          [33mclass[31m=[32m"ant-layout-sider-children"[31m
+        [36m>[31m
+          [36m<div[31m
+            [33mstyle[31m=[32m"padding: 16px; text-align: center;"[31m
+          [36m>[31m
+            [36m<h4[31m
+              [33mclass[31m=[32m"ant-typography css-dev-only-do-not-override-oc1rc0 css-var-_r_0_"[31m
+              [33mstyle[31m=[32m"color: rgb(255, 255, 255); margin: 0px;"[31m
+            [36m>[31m
+              [0mSupplyPilot[0m
+            [36m</h4>[31m
+            [36m<span[31m
+              [33mclass[31m=[32m"ant-typography css-dev-only-do-not-override-oc1rc0 css-var-_r_0_"[31m
+              [33mstyle[31m=[32m"color: rgb(140, 140, 140); font-size: 11px; display: block; margin-top: 4px;"[31m
+            [36m>[31m
+              [0m採購決策平台[0m
+            [36m</span>[31m
+          [36m</div>[31m
+          [36m<ul[31m
+            [33mclass[31m=[32m"ant-menu ant-menu-root ant-menu-inline ant-menu-dark css-dev-only-do-not-override-oc1rc0 css-var-_r_0_ ant-menu-css-var"[31m
+            [33mdata-menu-list[31m=[32m"true"[31m
+            [33mrole[31m=[32m"menu"[31m
+            [33mtabindex[31m=[32m"0"[31m
+          [36m>[31m
+            [36m<li[31m
+              [33mclass[31m=[32m"ant-menu-item ant-menu-item-selected"[31m
+              [33mdata-menu-id[31m=[32m"rc-menu-uuid-test-id-/dashboard"[31m
+              [33mrole[31m=[32m"menuitem"[31m
+              [33mstyle[31m=[32m"padding-left: 24px;"[31m
+              [33mtabindex[31m=[32m"-1"[31m
+            [36m>[31m
+              [36m<span[31m
+                [33maria-label[31m=[32m"dashboard"[31m
+                [33mclass[31m=[32m"anticon anticon-dashboard ant-menu-item-icon"[31m
+                [33mrole[31m=[32m"img"[31m
+              [36m>[31m
+                [36m<svg[31m
+                  [33maria-hidden[31m=[32m"true"[31m
+                  [33mdata-icon[31m=[32m"dashboard"[31m
+                  [33mfill[31m=[32m"currentColor"[31m
+                  [33mfocusable[31m=[32m"false"[31m
+                  [33mheight[31m=[32m"1em"[31m
+                  [33mviewBox[31m=[32m"64 64 896 896"[31m
+                  [33mwidth[31m=[32m"1em"[31m
+                [36m>[31m
+                  [36m<path[31m
+                    [33md[31m=[32m"M924.8 385.6a446.7 446.7 0 00-96-142.4 446.7 446.7 0 00-142.4-96C631.1 123.8 572.5 112 512 112s-119.1 11.8-174.4 35.2a446.7 446.7 0 00-142.4 96 446.7 446.7 0 00-96 142.4C75.8 440.9 64 499.5 64 560c0 132.7 58.3 257.7 159.9 343.1l1.7 1.4c5.8 4.8 13.1 7.5 20.6 7.5h531.7c7.5 0 14.8-2.7 20.6-7.5l1.7-1.4C901.7 817.7 960 692.7 960 560c0-60.5-11.9-119.1-35.2-174.4zM761.4 836H262.6A371.12 371.12 0 01140 560c0-99.4 38.7-192.8 109-263 70.3-70.3 163.7-109 263-109 99.4 0 192.8 38.7 263 109 70.3 70.3 109 163.7 109 263 0 105.6-44.5 205.5-122.6 276zM623.5 421.5a8.03 8.03 0 00-11.3 0L527.7 506c-18.7-5-39.4-.2-54.1 14.5a55.95 55.95 0 000 79.2 55.95 55.95 0 0079.2 0 55.87 55.87 0 0014.5-54.1l84.5-84.5c3.1-3.1 3.1-8.2 0-11.3l-28.3-28.3zM490 320h44c4.4 0 8-3.6 8-8v-80c0-4.4-3.6-8-8-8h-44c-4.4 0-8 3.6-8 8v80c0 4.4 3.6 8 8 8zm260 218v44c0 4.4 3.6 8 8 8h80c4.4 0 8-3.6 8-8v-44c0-4.4-3.6-8-8-8h-80c-4.4 0-8 3.6-8 8zm12.7-197.2l-31.1-31.1a8.03 8.03 0 00-11.3 0l-56.6 56.6a8.03 8.03 0 000 11.3l31.1 31.1c3.1 3.1 8.2 3.1 11.3 0l56.6-56.6c3.1-3.1 3.1-8.2 0-11.3zm-458.6-31.1a8.03 8.03 0 00-11.3 0l-31.1 31.1a8.03 8.03 0 000 11.3l56.6 56.6c3.1 3.1 8.2 3.1 11.3 0l31.1-31.1c3.1-3.1 3.1-8.2 0-11.3l-56.6-56.6zM262 530h-80c-4.4 0-8 3.6-8 8v44c0 4.4 3.6 8 8 8h80c4.4 0 8-3.6 8-8v-44c0-4.4-3.6-8-8-8z"[31m
+                  [36m/>[31m
+                [36m</svg>[31m
+              [36m</span>[31m
+              [36m<span[31m
+                [33mclass[31m=[32m"ant-menu-title-content"[31m
+              [36m>[31m
+                [0m儀表板[0m
+              [36m</span>[31m
+            [36m</li>[31m
+            [36m<li[31m
+              [33mclass[31m=[32m"ant-menu-submenu ant-menu-submenu-inline"[31m
+              [33mrole[31m=[32m"none"[31m
+            [36m>[31m
+              [36m<div[31m
+                [33maria-controls[31m=[32m"rc-menu-uuid-test-id-主檔管理-popup"[31m
+                [33maria-expanded[31m=[32m"false"[31m
+                [33maria-haspopup[31m=[32m"true"[31m
+                [33mclass[31m=[32m"ant-menu-submenu-title"[31m
+                [33mdata-menu-id[31m=[32m"rc-menu-uuid-test-id-主檔管理"[31m
+                [33mrole[31m=[32m"menuitem"[31m
+                [33mstyle[31m=[32m"padding-left: 24px;"[31m
+                [33mtabindex[31m=[32m"-1"[31m
+              [36m>[31m
+                [36m<span[31m
+                  [33mclass[31m=[32m"ant-menu-title-content"[31m
+                [36m>[31m
+                  [0m主檔管理[0m
+                [36m</span>[31m
+                [36m<i[31m
+                  [33mclass[31m=[32m"ant-menu-submenu-arrow"[31m
+                [36m/>[31m
+              [36m</div>[31m
+            [36m</li>[31m
+            [36m<li[31m
+              [33mclass[31m=[32m"ant-menu-submenu ant-menu-submenu-inline"[31m
+              [33mrole[31m=[32m"none"[31m
+            [36m>[31m
+              [36m<div[31m
+                [33maria-controls[31m=[32m"rc-menu-uuid-test-id-需求與庫存-popup"[31m
+                [33maria-expanded[31m=[32m"false"[31m
+                [33maria-haspopup[31m=[32m"true"[31m
+                [33mclass[31m=[32m"ant-menu-submenu-title"[31m
+                [33mdata-menu-id[31m=[32m"rc-menu-uuid-test-id-需求與庫存"[31m
+                [33mrole[31m=[32m"menuitem"[31m
+                [33mstyle[31m=[32m"padding-left: 24px;"[31m
+                [33mtabindex[31m=[32m"-1"[31m
+              [36m>[31m
+                [36m<span[31m
+                  [33mclass[31m=[32m"ant-menu-title-content"[31m
+                [36m>[31m
+                  [0m需求與庫存[0m
+                [36m</span>[31m
+                [36m<i[31m
+                  [33mclass[31m=[32m"ant-menu-submenu-arrow"[31m
+                [36m/>[31m
+              [36m</div>[31m
+            [36m</li>[31m
+            [36m<li[31m
+              [33mclass[31m=[32m"ant-menu-submenu ant-menu-submenu-inline"[31m
+              [33mrole[31m=[32m"none"[31m
+            [36m>[31m
+              [36m<div[31m
+                [33maria-controls[31m=[32m"rc-menu-u...[39m
+ [2m[90m↓[39m[22m tests/sp806.test.tsx[2m > [22mSP-806 Global AI 助理[2m > [22mlocks the old Proposal after AI_PROPOSAL_ALREADY_CONFIRMED
+ [2m[90m↓[39m[22m tests/sp806.test.tsx[2m > [22mSP-806 Global AI 助理[2m > [22mlocks the old Proposal after AI_PROPOSAL_EXPIRED
+ [2m[90m↓[39m[22m tests/sp806.test.tsx[2m > [22mSP-806 Global AI 助理[2m > [22mfails closed when Proposal expiresAt is invalid without calling Confirm
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/sp806.test.tsx > SP-806 Global AI 助理 > shows clarification without Confirm and locks unknown Confirm results without resending
+TestingLibraryElementError: Unable to find an accessible element with the role "tab" and name "採購草稿提案"
+
+Here are the accessible roles:
+
+  complementary:
+
+  Name "":
+  <aside
+    class="ant-layout-sider ant-layout-sider-dark css-dev-only-do-not-override-oc1rc0 css-var-_r_0_"
+    style="flex: 0 0 200px; max-width: 200px; min-width: 200px; width: 200px;"
+  />
+
+  --------------------------------------------------
+  heading:
+
+  Name "SupplyPilot":
+  <h4
+    class="ant-typography css-dev-only-do-not-override-oc1rc0 css-var-_r_0_"
+    style="color: rgb(255, 255, 255); margin: 0px;"
+  />
+
+  Name "工作總覽":
+  <h2
+    class="ant-typography css-dev-only-do-not-override-oc1rc0 css-var-_r_0_"
+  />
+
+  Name "優先工作":
+  <h3
+    class="ant-typography css-dev-only-do-not-override-oc1rc0 css-var-_r_0_"
+    id="dashboard-work-heading"
+  />
+
+  Name "採購草稿":
+  <h4
+    class="ant-typography css-dev-only-do-not-override-oc1rc0 css-var-_r_0_"
+    id="purchase-draft-heading"
+  />
+
+  Name "待下單採購單":
+  <h4
+    class="ant-typography css-dev-only-do-not-override-oc1rc0 css-var-_r_0_"
+    id="purchase-approval-heading"
+  />
+
+  Name "已下單採購單":
+  <h4
+    class="ant-typography css-dev-only-do-not-override-oc1rc0 css-var-_r_0_"
+    id="purchase-ordered-heading"
+  />
+
+  Name "常用工作入口":
+  <h3
+    class="ant-typography css-dev-only-do-not-override-oc1rc0 css-var-_r_0_"
+    id="dashboard-actions-heading"
+  />
+
+  --------------------------------------------------
+  menu:
+
+  Name "":
+  <ul
+    class="ant-menu ant-menu-root ant-menu-inline ant-menu-dark css-dev-only-do-not-override-oc1rc0 css-var-_r_0_ ant-menu-css-var"
+    data-menu-list="true"
+    role="menu"
+    tabindex="0"
+  />
+
+  --------------------------------------------------
+  menuitem:
+
+  Name "dashboard 儀表板":
+  <li
+    class="ant-menu-item ant-menu-item-selected"
+    data-menu-id="rc-menu-uuid-test-id-/dashboard"
+    role="menuitem"
+    style="padding-left: 24px;"
+    tabindex="-1"
+  />
+
+  Name "主檔管理":
+  <div
+    aria-controls="rc-menu-uuid-test-id-主檔管理-popup"
+    aria-expanded="false"
+    aria-haspopup="true"
+    class="ant-menu-submenu-title"
+    data-menu-id="rc-menu-uuid-test-id-主檔管理"
+    role="menuitem"
+    style="padding-left: 24px;"
+    tabindex="-1"
+  />
+
+  Name "需求與庫存":
+  <div
+    aria-controls="rc-menu-uuid-test-id-需求與庫存-popup"
+    aria-expanded="false"
+    aria-haspopup="true"
+    class="ant-menu-submenu-title"
+    data-menu-id="rc-menu-uuid-test-id-需求與庫存"
+    role="menuitem"
+    style="padding-left: 24px;"
+    tabindex="-1"
+  />
+
+  Name "採購單與收貨":
+  <div
+    aria-controls="rc-menu-uuid-test-id-採購單與收貨-popup"
+    aria-expanded="false"
+    aria-haspopup="true"
+    class="ant-menu-submenu-title"
+    data-menu-id="rc-menu-uuid-test-id-採購單與收貨"
+    role="menuitem"
+    style="padding-left: 24px;"
+    tabindex="-1"
+  />
+
+  Name "文件與 AI":
+  <div
+    aria-controls="rc-menu-uuid-test-id-文件與 AI-popup"
+    aria-expanded="false"
+    aria-haspopup="true"
+    class="ant-menu-submenu-title"
+    data-menu-id="rc-menu-uuid-test-id-文件與 AI"
+    role="menuitem"
+    style="padding-left: 24px;"
+    tabindex="-1"
+  />
+
+  --------------------------------------------------
+  img:
+
+  Name "dashboard":
+  <span
+    aria-label="dashboard"
+    class="anticon anticon-dashboard ant-menu-item-icon"
+    role="img"
+  />
+
+  Name "robot":
+  <span
+    aria-label="robot"
+    class="anticon anticon-robot"
+    role="img"
+  />
+
+  Name "logout":
+  <span
+    aria-label="logout"
+    class="anticon anticon-logout"
+    role="img"
+  />
+
+  Name "close-circle":
+  <span
+    aria-label="close-circle"
+    class="anticon anticon-close-circle"
+    role="img"
+  />
+
+  Name "close-circle":
+  <span
+    aria-label="close-circle"
+    class="anticon anticon-close-circle"
+    role="img"
+  />
+
+  Name "close-circle":
+  <span
+    aria-label="close-circle"
+    class="anticon anticon-close-circle"
+    role="img"
+  />
+
+  --------------------------------------------------
+  none:
+
+  Name "":
+  <li
+    class="ant-menu-submenu ant-menu-submenu-inline"
+    role="none"
+  />
+
+  Name "":
+  <li
+    class="ant-menu-submenu ant-menu-submenu-inline"
+    role="none"
+  />
+
+  Name "":
+  <li
+    class="ant-menu-submenu ant-menu-submenu-inline"
+    role="none"
+  />
+
+  Name "":
+  <li
+    class="ant-menu-submenu ant-menu-submenu-inline"
+    role="none"
+  />
+
+  --------------------------------------------------
+  banner:
+
+  Name "":
+  <header
+    class="ant-layout-header app-header css-dev-only-do-not-override-oc1rc0 css-var-_r_0_"
+    style="padding: 0px 24px; background: rgb(255, 255, 255); display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid rgb(240, 240, 240);"
+  />
+
+  Name "":
+  <header
+    class="dashboard-header"
+  />
+
+  --------------------------------------------------
+  strong:
+
+  Name "":
+  <strong />
+
+  --------------------------------------------------
+  button:
+
+  Name "robot AI 助理":
+  <button
+    class="ant-btn css-dev-only-do-not-override-oc1rc0 css-var-_r_0_ ant-btn-default ant-btn-color-default ant-btn-variant-outlined"
+    type="button"
+  />
+
+  Name "logout 登出":
+  <button
+    class="ant-btn css-dev-only-do-not-override-oc1rc0 css-var-_r_0_ ant-btn-default ant-btn-color-default ant-btn-variant-outlined"
+    type="button"
+  />
+
+  Name "重新查詢":
+  <button
+    class="ant-btn css-dev-only-do-not-override-oc1rc0 css-var-_r_0_ ant-btn-primary ant-btn-color-primary ant-btn-variant-solid ant-btn-sm"
+    type="button"
+  />
+
+  Name "重新查詢":
+  <button
+    class="ant-btn css-dev-only-do-not-override-oc1rc0 css-var-_r_0_ ant-btn-primary ant-btn-color-primary ant-btn-variant-solid ant-btn-sm"
+    type="button"
+  />
+
+  Name "重新查詢":
+  <button
+    class="ant-btn css-dev-only-do-not-override-oc1rc0 css-var-_r_0_ ant-btn-primary ant-btn-color-primary ant-btn-variant-solid ant-btn-sm"
+    type="button"
+  />
+
+  --------------------------------------------------
+  main:
+
+  Name "":
+  <main
+    class="ant-layout-content css-dev-only-do-not-override-oc1rc0 css-var-_r_0_"
+    style="margin: 24px 16px 0px;"
+  />
+
+  Name "":
+  <main
+    class="dashboard-workspace"
+  />
+
+  --------------------------------------------------
+  region:
+
+  Name "優先工作":
+  <section
+    aria-labelledby="dashboard-work-heading"
+    class="dashboard-primary"
+  />
+
+  Name "採購草稿":
+  <section
+    aria-labelledby="purchase-draft-heading"
+    class="dashboard-panel"
+  />
+
+  Name "待下單採購單":
+  <section
+    aria-labelledby="purchase-approval-heading"
+    class="dashboard-panel"
+  />
+
+  Name "已下單採購單":
+  <section
+    aria-labelledby="purchase-ordered-heading"
+    class="dashboard-panel"
+  />
+
+  Name "常用工作入口":
+  <section
+    aria-labelledby="dashboard-actions-heading"
+    class="dashboard-quick-actions"
+  />
+
+  --------------------------------------------------
+  alert:
+
+  Name "":
+  <div
+    class="ant-alert ant-alert-error ant-alert-outlined ant-alert-with-description css-var-_r_0_ css-dev-only-do-not-override-oc1rc0"
+    data-error-kind="request-failed"
+    data-show="true"
+    role="alert"
+    style="margin: 16px 0px;"
+  />
+
+  Name "":
+  <div
+    class="ant-alert ant-alert-error ant-alert-outlined ant-alert-with-description css-var-_r_0_ css-dev-only-do-not-override-oc1rc0"
+    data-error-kind="request-failed"
+    data-show="true"
+    role="alert"
+    style="margin: 16px 0px;"
+  />
+
+  Name "":
+  <div
+    class="ant-alert ant-alert-error ant-alert-outlined ant-alert-with-description css-var-_r_0_ css-dev-only-do-not-override-oc1rc0"
+    data-error-kind="request-failed"
+    data-show="true"
+    role="alert"
+    style="margin: 16px 0px;"
+  />
+
+  --------------------------------------------------
+  code:
+
+  Name "":
+  <code />
+
+  Name "":
+  <code />
+
+  Name "":
+  <code />
+
+  --------------------------------------------------
+  link:
+
+  Name "前往採購單清單":
+  <a
+    class="dashboard-panel-link"
+    data-discover="true"
+    href="/purchase-orders"
+  />
+
+  Name "前往採購單清單":
+  <a
+    class="dashboard-panel-link"
+    data-discover="true"
+    href="/purchase-orders"
+  />
+
+  Name "前往採購單清單":
+  <a
+    class="dashboard-panel-link"
+    data-discover="true"
+    href="/purchase-orders"
+  />
+
+  Name "查看採購單":
+  <a
+    data-discover="true"
+    href="/purchase-orders"
+  />
+
+  --------------------------------------------------
+
+Ignored nodes: comments, script, style
+<body>
+  <div>
+    <div
+      class="ant-layout ant-layout-has-sider css-dev-only-do-not-override-oc1rc0 css-var-_r_0_"
+      style="min-height: 100vh;"
+    >
+      <aside
+        class="ant-layout-sider ant-layout-sider-dark css-dev-only-do-not-override-oc1rc0 css-var-_r_0_"
+        style="flex: 0 0 200px; max-width: 200px; min-width: 200px; width: 200px;"
+      >
+        <div
+          class="ant-layout-sider-children"
+        >
+          <div
+            style="padding: 16px; text-align: center;"
+          >
+            <h4
+              class="ant-typography css-dev-only-do-not-override-oc1rc0 css-var-_r_0_"
+              style="color: rgb(255, 255, 255); margin: 0px;"
+            >
+              SupplyPilot
+            </h4>
+            <span
+              class="ant-typography css-dev-only-do-not-override-oc1rc0 css-var-_r_0_"
+              style="color: rgb(140, 140, 140); font-size: 11px; display: block; margin-top: 4px;"
+            >
+              採購決策平台
+            </span>
+          </div>
+          <ul
+            class="ant-menu ant-menu-root ant-menu-inline ant-menu-dark css-dev-only-do-not-override-oc1rc0 css-var-_r_0_ ant-menu-css-var"
+            data-menu-list="true"
+            role="menu"
+            tabindex="0"
+          >
+            <li
+              class="ant-menu-item ant-menu-item-selected"
+              data-menu-id="rc-menu-uuid-test-id-/dashboard"
+              role="menuitem"
+              style="padding-left: 24px;"
+              tabindex="-1"
+            >
+              <span
+                aria-label="dashboard"
+                class="anticon anticon-dashboard ant-menu-item-icon"
+                role="img"
+              >
+                <svg
+                  aria-hidden="true"
+                  data-icon="dashboard"
+                  fill="currentColor"
+                  focusable="false"
+                  height="1em"
+                  viewBox="64 64 896 896"
+                  width="1em"
+                >
+                  <path
+                    d="M924.8 385.6a446.7 446.7 0 00-96-142.4 446.7 446.7 0 00-142.4-96C631.1 123.8 572.5 112 512 112s-119.1 11.8-174.4 35.2a446.7 446.7 0 00-142.4 96 446.7 446.7 0 00-96 142.4C75.8 440.9 64 499.5 64 560c0 132.7 58.3 257.7 159.9 343.1l1.7 1.4c5.8 4.8 13.1 7.5 20.6 7.5h531.7c7.5 0 14.8-2.7 20.6-7.5l1.7-1.4C901.7 817.7 960 692.7 960 560c0-60.5-11.9-119.1-35.2-174.4zM761.4 836H262.6A371.12 371.12 0 01140 560c0-99.4 38.7-192.8 109-263 70.3-70.3 163.7-109 263-109 99.4 0 192.8 38.7 263 109 70.3 70.3 109 163.7 109 263 0 105.6-44.5 205.5-122.6 276zM623.5 421.5a8.03 8.03 0 00-11.3 0L527.7 506c-18.7-5-39.4-.2-54.1 14.5a55.95 55.95 0 000 79.2 55.95 55.95 0 0079.2 0 55.87 55.87 0 0014.5-54.1l84.5-84.5c3.1-3.1 3.1-8.2 0-11.3l-28.3-28.3zM490 320h44c4.4 0 8-3.6 8-8v-80c0-4.4-3.6-8-8-8h-44c-4.4 0-8 3.6-8 8v80c0 4.4 3.6 8 8 8zm260 218v44c0 4.4 3.6 8 8 8h80c4.4 0 8-3.6 8-8v-44c0-4.4-3.6-8-8-8h-80c-4.4 0-8 3.6-8 8zm12.7-197.2l-31.1-31.1a8.03 8.03 0 00-11.3 0l-56.6 56.6a8.03 8.03 0 000 11.3l31.1 31.1c3.1 3.1 8.2 3.1 11.3 0l56.6-56.6c3.1-3.1 3.1-8.2 0-11.3zm-458.6-31.1a8.03 8.03 0 00-11.3 0l-31.1 31.1a8.03 8.03 0 000 11.3l56.6 56.6c3.1 3.1 8.2 3.1 11.3 0l31.1-31.1c3.1-3.1 3.1-8.2 0-11.3l-56.6-56.6zM262 530h-80c-4.4 0-8 3.6-8 8v44c0 4.4 3.6 8 8 8h80c4.4 0 8-3.6 8-8v-44c0-4.4-3.6-8-8-8z"
+                  />
+                </svg>
+              </span>
+              <span
+                class="ant-menu-title-content"
+              >
+                儀表板
+              </span>
+            </li>
+            <li
+              class="ant-menu-submenu ant-menu-submenu-inline"
+              role="none"
+            >
+              <div
+                aria-controls="rc-menu-uuid-test-id-主檔管理-popup"
+                aria-expanded="false"
+                aria-haspopup="true"
+                class="ant-menu-submenu-title"
+                data-menu-id="rc-menu-uuid-test-id-主檔管理"
+                role="menuitem"
+                style="padding-left: 24px;"
+                tabindex="-1"
+              >
+                <span
+                  class="ant-menu-title-content"
+                >
+                  主檔管理
+                </span>
+                <i
+                  class="ant-menu-submenu-arrow"
+                />
+              </div>
+            </li>
+            <li
+              class="ant-menu-submenu ant-menu-submenu-inline"
+              role="none"
+            >
+              <div
+                aria-controls="rc-menu-uuid-test-id-需求與庫存-popup"
+                aria-expanded="false"
+                aria-haspopup="true"
+                class="ant-menu-submenu-title"
+                data-menu-id="rc-menu-uuid-test-id-需求與庫存"
+                role="menuitem"
+                style="padding-left: 24px;"
+                tabindex="-1"
+              >
+                <span
+                  class="ant-menu-title-content"
+                >
+                  需求與庫存
+                </span>
+                <i
+                  class="ant-menu-submenu-arrow"
+                />
+              </div>
+            </li>
+            <li
+              class="ant-menu-submenu ant-menu-submenu-inline"
+              role="none"
+            >
+              <div
+                aria-controls="rc-menu-u...
+ ❯ Object.getElementError node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ tests/sp806.test.tsx:521:103
+    519|     await __measure('open dashboard + render', () => open('/dashboard'…
+    520|     const __assistant = await __measure('find AI assistant', () => scr…
+    521|     await __measure('click proposal tab', () => user.click(__query('qu…
+       |                                                                                                       ^
+    522|     fireEvent.change(__query('query supplier field', () => screen.getB…
+    523|     fireEvent.change(__query('query material field', () => screen.getB…
+ ❯ __query tests/sp806.test.tsx:506:20
+ ❯ tests/sp806.test.tsx:521:60
+ ❯ __measure tests/sp806.test.tsx:502:26
+ ❯ tests/sp806.test.tsx:521:11
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+[2m Test Files [22m [1m[31m1 failed[39m[22m[90m (1)[39m
+[2m      Tests [22m [1m[31m1 failed[39m[22m[2m | [22m[33m24 skipped[39m[90m (25)[39m
+[2m   Start at [22m 18:15:46
+[2m   Duration [22m 106.77s[2m (transform 4.44s, setup 2.79s, import 87.31s, tests 5.52s, environment 9.79s)[22m
+
+npm notice
+npm notice New major version of npm available! 11.19.1 -> 12.2.0
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.0
+npm notice To update run: npm install -g npm@12.2.0
+npm notice

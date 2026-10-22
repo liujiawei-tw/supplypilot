@@ -40,6 +40,7 @@ import com.supplypilot.user.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers;
 import org.springframework.test.web.servlet.MockMvc;
@@ -132,6 +133,12 @@ class PurchaseOrderReceivingIntegrationTests extends AbstractIntegrationTest {
                 .andExpect(jsonPath("$.receivedBy").value(warehouse.getId()))
                 .andExpect(jsonPath("$.receivedAt").value(clock.instant().toString()))
                 .andExpect(jsonPath("$.isOverdue").value(false));
+        receiveCancel(admin, order.getId(), "receiving is complete").andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("INVALID_PO_STATUS_TRANSITION"));
+        assertThat(jdbcTemplate.queryForObject("SELECT status FROM purchase_orders WHERE id = ?", String.class,
+                order.getId())).isEqualTo("RECEIVED");
+        assertThat(quantity(first)).isEqualByComparingTo("110");
+        assertThat(transactionCount(order.getId())).isEqualTo(3);
     }
 
     @Test
@@ -163,7 +170,8 @@ class PurchaseOrderReceivingIntegrationTests extends AbstractIntegrationTest {
         for (String statusValue : new String[] {"DRAFT", "APPROVED", "REJECTED"}) {
             Material material = material(statusValue, "5");
             PurchaseOrder order = orderedOrder(Map.of(material, "4"));
-            jdbcTemplate.update("UPDATE purchase_orders SET status = ? WHERE id = ?", statusValue, order.getId());
+            jdbcTemplate.update("UPDATE purchase_orders SET status = ?, ordered_progress = NULL WHERE id = ?",
+                    statusValue, order.getId());
             receive(warehouse, order.getId()).andExpect(status().isConflict())
                     .andExpect(jsonPath("$.code").value("INVALID_PO_STATUS"));
             assertThat(quantity(material)).isEqualByComparingTo("5");
@@ -240,6 +248,20 @@ class PurchaseOrderReceivingIntegrationTests extends AbstractIntegrationTest {
         assertUnreceived(order.getId());
     }
 
+    @Test
+    void cancelledOrderIsExcludedFromIncomingAndCannotReceiveOrTouchInventory() throws Exception {
+        Material material = material("CANCELLED", "80");
+        PurchaseOrder order = orderedOrder(Map.of(material, "12"));
+        receiveCancel(admin, order.getId(), "plan changed").andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("CANCELLED"));
+        assertThat(incomingInventoryQuery.calculateIncomingQuantity(
+                material.getId(), TestDataConstants.TEST_TODAY.plusDays(2))).isZero();
+        receive(warehouse, order.getId()).andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("INVALID_PO_STATUS"));
+        assertThat(quantity(material)).isEqualByComparingTo("80");
+        assertThat(transactionCount(order.getId())).isZero();
+    }
+
     private PurchaseOrder orderedOrder(Map<Material, String> quantities) {
         for (Material material : quantities.keySet()) {
             if (inventoryRepository.findByMaterialId(material.getId()).isEmpty()) {
@@ -285,6 +307,12 @@ class PurchaseOrderReceivingIntegrationTests extends AbstractIntegrationTest {
     private ResultActions receive(User actor, long purchaseOrderId) throws Exception {
         return mockMvc.perform(post("/api/v1/purchase-orders/{id}/receive", purchaseOrderId)
                 .header("Authorization", bearer(actor)));
+    }
+
+    private ResultActions receiveCancel(User actor, long purchaseOrderId, String reason) throws Exception {
+        return mockMvc.perform(post("/api/v1/purchase-orders/{id}/cancel", purchaseOrderId)
+                .header("Authorization", bearer(actor)).contentType(MediaType.APPLICATION_JSON)
+                .content("{\"reason\":\"" + reason + "\"}"));
     }
 
     private BigDecimal quantity(Material material) {

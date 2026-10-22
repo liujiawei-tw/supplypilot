@@ -55,6 +55,20 @@ public class PurchaseOrder {
     @Column(name = "reject_reason", columnDefinition = "TEXT")
     private String rejectReason;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "ordered_progress", length = 30)
+    private OrderedProgress orderedProgress;
+
+    @Column(name = "cancel_reason", columnDefinition = "TEXT")
+    private String cancelReason;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "cancelled_by")
+    private User cancelledBy;
+
+    @Column(name = "cancelled_at")
+    private Instant cancelledAt;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "created_by")
     private User createdBy;
@@ -72,6 +86,9 @@ public class PurchaseOrder {
     @Column(name = "rejected_by_user_id_snapshot") private Long rejectedByUserIdSnapshot;
     @Column(name = "rejected_by_username_snapshot", length = 50) private String rejectedByUsernameSnapshot;
     @Column(name = "rejected_by_display_name_snapshot", length = 100) private String rejectedByDisplayNameSnapshot;
+    @Column(name = "cancelled_by_user_id_snapshot") private Long cancelledByUserIdSnapshot;
+    @Column(name = "cancelled_by_username_snapshot", length = 50) private String cancelledByUsernameSnapshot;
+    @Column(name = "cancelled_by_display_name_snapshot", length = 100) private String cancelledByDisplayNameSnapshot;
     @Column(name = "ordered_by_user_id_snapshot") private Long orderedByUserIdSnapshot;
     @Column(name = "ordered_by_username_snapshot", length = 50) private String orderedByUsernameSnapshot;
     @Column(name = "ordered_by_display_name_snapshot", length = 100) private String orderedByDisplayNameSnapshot;
@@ -149,7 +166,7 @@ public class PurchaseOrder {
     }
 
     public void assignTo(User assignee, Instant now) {
-        if (status == PurchaseOrderStatus.REJECTED) {
+        if (status == PurchaseOrderStatus.REJECTED || status == PurchaseOrderStatus.CANCELLED) {
             throw new BusinessException(ErrorCode.INVALID_PO_STATUS_TRANSITION);
         }
         assignedTo = assignee;
@@ -251,11 +268,42 @@ public class PurchaseOrder {
         User validatedOrderer = Objects.requireNonNull(orderer, "Orderer must not be null");
         Instant validatedNow = Objects.requireNonNull(now, "Timestamp must not be null");
         status = PurchaseOrderStatus.ORDERED;
+        orderedProgress = OrderedProgress.FOLLOW_UP;
         orderedBy = validatedOrderer;
         orderedAt = validatedNow;
         orderedByUserIdSnapshot = validatedOrderer.getId();
         orderedByUsernameSnapshot = username(validatedOrderer);
         orderedByDisplayNameSnapshot = displayName(validatedOrderer);
+        updatedAt = validatedNow;
+    }
+
+    public void beginReceivingInspection(Instant now) {
+        if (status != PurchaseOrderStatus.ORDERED
+                || (orderedProgress != OrderedProgress.FOLLOW_UP && orderedProgress != OrderedProgress.LEGACY_UNKNOWN)) {
+            throw new BusinessException(ErrorCode.INVALID_PO_STATUS_TRANSITION);
+        }
+        orderedProgress = OrderedProgress.RECEIVING_INSPECTION;
+        updatedAt = Objects.requireNonNull(now, "Timestamp must not be null");
+    }
+
+    public void cancel(String reason, User actor, Instant now) {
+        if (status != PurchaseOrderStatus.APPROVED
+                && !(status == PurchaseOrderStatus.ORDERED && orderedProgress == OrderedProgress.FOLLOW_UP)) {
+            throw new BusinessException(ErrorCode.INVALID_PO_STATUS_TRANSITION);
+        }
+        if (reason == null || reason.trim().isEmpty()) throw new BusinessException(ErrorCode.CANCEL_REASON_REQUIRED);
+        String normalizedReason = reason.trim();
+        if (normalizedReason.length() > 2000) throw new BusinessException(ErrorCode.VALIDATION_FAILED);
+        User validatedActor = Objects.requireNonNull(actor, "Cancelling actor must not be null");
+        Instant validatedNow = Objects.requireNonNull(now, "Timestamp must not be null");
+        status = PurchaseOrderStatus.CANCELLED;
+        orderedProgress = null;
+        cancelReason = normalizedReason;
+        cancelledBy = validatedActor;
+        cancelledAt = validatedNow;
+        cancelledByUserIdSnapshot = validatedActor.getId();
+        cancelledByUsernameSnapshot = username(validatedActor);
+        cancelledByDisplayNameSnapshot = displayName(validatedActor);
         updatedAt = validatedNow;
     }
 
@@ -288,6 +336,7 @@ public class PurchaseOrder {
         User validatedReceiver = Objects.requireNonNull(receiver, "Receiver must not be null");
         Instant validatedNow = Objects.requireNonNull(now, "Timestamp must not be null");
         status = PurchaseOrderStatus.RECEIVED;
+        orderedProgress = null;
         receivedBy = validatedReceiver;
         receivedAt = validatedNow;
         receivedByUserIdSnapshot = validatedReceiver.getId();
@@ -339,6 +388,12 @@ public class PurchaseOrder {
     public PurchaseOrderStatus getStatus() { return status; }
     public LocalDate getExpectedDeliveryDate() { return expectedDeliveryDate; }
     public String getRejectReason() { return rejectReason; }
+    public OrderedProgress getOrderedProgress() { return orderedProgress; }
+    public String getCancelReason() { return cancelReason; }
+    public Long getCancelledByUserIdSnapshot() { return cancelledByUserIdSnapshot; }
+    public String getCancelledByUsernameSnapshot() { return cancelledByUsernameSnapshot; }
+    public String getCancelledByDisplayNameSnapshot() { return cancelledByDisplayNameSnapshot; }
+    public Instant getCancelledAt() { return cancelledAt; }
     public User getCreatedBy() { return createdBy; }
     public User getAssignedTo() { return assignedTo; }
     public Long getCreatedByUserIdSnapshot() { return createdByUserIdSnapshot; }
