@@ -16,7 +16,9 @@ This Skill and its proposed AGENTS.md changes are tracked by Issue #162. Until t
 3. Limit work to the Issue set the user authorized. Build a dependency graph from explicit Issue blockers and confirmed contracts; run scripts/supplypilot_orchestrator.py validate and plan on a reviewed JSON export. Stop on missing dependencies, cycles, conflicting ownership, stale contracts, or unclear scope.
 4. Apply the Code Gate before assigning implementation. A Provisional Contract may permit coding only if the user authorized it and its source Issue, branch, commit/worktree state, contract text/version, and verification status are recorded. It never satisfies the Release Gate.
 5. Check each Issue's branch, worktree, status, index, ownership and base SHA. Use the Codex managed Worktree controls where available; create or reuse a worktree only after verifying its exact Issue and branch. If this Codex client cannot create/inspect an isolated worktree, do not dispatch a writing agent. Never touch another Issue's WIP.
-6. Reserve conflicting files to one Issue owner. Keep implementer concurrency at or below 3 by default; lower it for file/API overlap. Delegate bounded exploration, implementation, and internal review to subagents only when supported. Subagents inherit parent sandbox and approval settings.
+6. Reserve conflicting files to one Issue owner. Active Issues and explicit held owners keep ownership until they reach `MERGED`/`FAILED` or release it; normalize paths case-insensitively with Windows separators and treat directory/child paths as overlapping. Unknown ownership blocks dispatch.
+7. For an existing WIP worktree, use `state adopt` to record branch, HEAD, index, tracked diffs, untracked files and a content fingerprint without changing that worktree. Adoption leaves verification `NOT_RUN` and does not resume work. Before resuming, verify the same fingerprint, worktree identity, base, dependencies, current Issue Code Gate and explicit user authorization with `state resume --code-gate-pass`; a changed fingerprint requires a fresh adoption, preserved fingerprint history and user confirmation.
+8. Keep implementer concurrency at or below 3 by default; lower it for file/API overlap. Delegate bounded exploration, implementation, and internal review to subagents only when supported. Subagents inherit parent sandbox and approval settings.
 
 ## Run
 
@@ -24,12 +26,14 @@ This Skill and its proposed AGENTS.md changes are tracked by Issue #162. Until t
 - Give each implementer only its Issue, exact worktree path, base SHA, acceptance criteria, required contract pointers, owned files, test budget, and stop conditions.
 - Use spec-driven implementation, TDD for behavior changes, and diagnosing-bugs for reproduced failures. Do not install or run upstream setup scripts.
 - After a dependency merges, re-fetch GitHub state and recompute the ready frontier. Do not integrate unmerged Issue branches into one another.
-- Use the resource lock helper for full Vitest, Maven Verify, and Docker/Testcontainers work. If unavailable or held, report BLOCKED/DEFERRED rather than interfering with another agent.
+- Use the shared `high-load` resource lock for full Vitest, Maven Verify, Docker/Testcontainers, Docker image builds and other confirmed high-load validation. These types are mutually exclusive across linked worktrees. If unavailable or held, report BLOCKED/DEFERRED rather than interfering with another agent.
 - Record evidence and state transitions with the Issue and exact SHA. Internal review is only a preflight.
 
 ## Release
 
-Release is per Issue. Only move an Issue to GPT handoff when its prerequisites are merged/closed, its branch is based on current main, the API/schema contracts agree, required targeted and full delivery gates have evidence for the exact head, and no blocking issue remains.
+Release is per Issue. Planner stages are separate: `ready_frontier` means Code Ready; `full_gate_eligible_frontier` means targeted evidence and prerequisites permit a full gate; `full_gate_verified_frontier` requires full evidence for the exact HEAD; `gpt_handoff_frontier` additionally requires internal review and local/remote HEAD equality; `release_frontier` requires GPT Final PASS for the exact HEAD. `NOT_STARTED`, `IMPLEMENTING`, and targeted evidence alone never mean Release Ready.
+
+After a GitHub-confirmed merge, run `state sync-main <state.json> --issue <number>`. The tool reads PR merge/base/commit and Issue closure through GitHub CLI and fetches current `origin/main`; caller-supplied SHA/evidence alone is insufficient. It records the new main SHA and event, marks dependent old verification/review/contracts stale, preserves their evidence, and leaves feature worktrees and `base_sha` unchanged pending explicit re-evaluation.
 
 Commit and push only that Issue's feature branch when authorized by AGENTS.md. Produce the handoff template in references/gpt-review-handoff.md, then wait for GPT's independent review of that exact SHA. A changed head or dependency invalidates the previous review evidence.
 

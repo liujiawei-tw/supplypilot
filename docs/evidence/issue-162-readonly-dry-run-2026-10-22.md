@@ -27,3 +27,16 @@ python scripts/supplypilot_orchestrator.py plan docs/evidence/issue-162-live-dry
 - #146、#147：分別等待 #145、#146 Merge/Closed。
 
 此快照只測試依賴與派工防重邏輯；每次真正執行都必須重新讀取 GitHub 和 worktree，而不可沿用此日期的狀態。
+
+## P1 修正後重跑（2026-10-23）：#142／#143／#160 WIP 保護
+
+使用同一份只讀 JSON，於 2026-10-23 在 Issue #162 工作樹重新執行 `validate` 與 `plan`。GitHub API 重新核對 #142、#143、#160 均為 Open；相依 #138/#139/#140/#141 所對應 PR #155/#158/#159/#161 均為 merged，base 為 `main`。輸入主線 SHA 為 `9240d6aeeba2361476a0454ac965a214769638a0`。
+
+- `validate`：PASS，12 個 Issue 節點，無缺少相依或循環。
+- #160：仍是 `IMPLEMENTING`，未派發新工作。
+- #142：仍是 `IMPLEMENTING`；未滿足依賴只有 #160，故保持阻擋。
+- #143：仍是 `IMPLEMENTING`；未滿足依賴只有 #142，故保持阻擋。
+- #142／#143／#160 皆非新候選，沒有 reassign；`ready_frontier=[145]`，代表獨立的 #145 僅通過 Code Gate 候選判定。
+- `full_gate_eligible_frontier=[]`、`full_gate_verified_frontier=[]`、`gpt_handoff_frontier=[]`、`release_frontier=[]`。
+
+開始與結束時以 `capture_worktree` 唯讀計算的 WIP fingerprint 完全相同：#142 `bb82bb9ae95bfdf1724b895facec743a06ad61a4aab86c00041e25a71a000232`、#143 `fe5b81aad311814f308e945fd3145247b11dcfb22ddb1f288525026c2f4f6969`、#160 `fa6cc7f6f5ccc7a63c99792dabeab32474e4b0c59e234060f121c20ba2976d28`。三樹均仍在 `9240d6aeeba2361476a0454ac965a214769638a0`，dirty 狀態及 untracked 檔案清單不變。整個 Dry Run 僅讀取 GitHub、Git 狀態與檔案內容；未執行其測試、未寫入、未恢復或刪除 WIP。

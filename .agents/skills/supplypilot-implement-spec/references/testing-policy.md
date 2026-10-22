@@ -2,8 +2,10 @@
 
 依根目錄 AGENTS.md 執行。開發期間先跑受影響精準測試，交易、安全、schema 或跨模組風險時擴至相應整合測試。禁止刪減/skip 測試、放寬 assertions/timeouts、將 mock 結果當作真實 provider/browser/AWS gate。
 
-預設並行上限：implementer 3；Full Vitest 1；Maven Verify 1；Docker/Testcontainers 高負載工作 1；共用高風險檔案同一 owner。硬體及近期實測可支持更低限制；不得未驗證就提高上限。
+預設並行上限：implementer 3；**Full Vitest、Maven Verify、Docker/Testcontainers、Docker Image Build 及其他已確認高負載完整驗證，共用一個 `high-load` 互斥鎖，同一時間最多一項**；共用高風險檔案同一 owner。精準輕量測試依已核實的資源需求分類。硬體及近期實測可支持更低限制；不得未驗證就提高上限。
 
-在高負載工作前以 `python scripts/supplypilot_orchestrator.py resource run --issue <number> <vitest|maven|docker> -- <command> [args...]` 取得鎖並執行命令；以 `resource status` 檢查持有者。預設鎖與主狀態路徑在 `git rev-parse --git-common-dir` 下的 `supplypilot-orchestrator/`，確保所有 linked worktrees 共用同一組鎖；明確指定 `--state-dir` 時，所有工作樹必須傳入同一絕對路徑。進程持有原子目錄鎖；OS 在進程退出後會執行正常清理。若進程崩潰留下紀錄，工具只報告 stale 並拒絕自動回收，須由確認該持有者已停止的維護者手動處置。不要無限重試，也不刪除 Docker volume 或停止其他服務。
+在高負載工作前以 `python scripts/supplypilot_orchestrator.py resource run <vitest|maven|docker> --issue <number> -- <command> [args...]` 取得鎖並執行命令；以 `resource status` 檢查持有者。鎖固定位於 `git rev-parse --git-common-dir` 下的 `supplypilot-orchestrator/`，確保所有 linked worktrees 共用同一組鎖；若使用 `--state-dir`，必須指向這個共同路徑，工具會拒絕工作樹各自的鎖目錄。Orchestrator 執行 npm/Vitest、Maven Targeted Gate 與 Full Gate 時也會自行取得相同鎖。Owner 紀錄保留資源類型、Issue、PID、Host、開始時間與命令。鎖正常結束後釋放；命令異常中止時保留診斷紀錄且不釋放鎖。若進程崩潰留下鎖，工具報告 stale 並拒絕自動回收，須由確認該持有者已停止的維護者手動處置。無法取得鎖時立即 BLOCKED，不無限重試，也不刪除 Docker volume 或停止其他服務。
 
 完整交付依 AGENTS.md 本機 Gate 範圍執行，保存命令、版本、原始 log、SHA 和 PASS/FAIL/BLOCKED/NOT RUN。GitHub Actions 是否可用以使用者現行設定和實際 run 為準；此 Skill 不啟動 workflow。
+
+`TARGETED_VERIFIED` 與 `FULL_GATE_VERIFIED` 不接受呼叫端聲稱的 PASS、退出碼或自備 log 雜湊。Targeted Gate 僅接受受限的測試命令與可信 runner：Python 由目前執行 Orchestrator 的 `sys.executable` 啟動；Maven 只用 Issue Worktree 的 `backend/mvnw`／`mvnw.cmd`；npm 由安裝路徑解析。拒絕任意 shell、`docker compose run`、pytest collect-only、Maven skip/failure-ignore 參數、lint、build 與 Compose config。Orchestrator 會確認命令成功輸出包含非零實際測試數，並拒絕全 skip、Failures 或 Errors；npm/Vitest 與 Maven targeted 命令在執行時取得共同 `high-load` 鎖。Full Gate 僅接受固定的 `supplypilot-full-gate` manifest，由 Orchestrator 在已登記 Issue Worktree 內執行 `scripts/supplypilot_full_gate.py`，依 AGENTS.md 順序跑完整 Backend、Frontend、Compose 與 Docker Image Gate，並先取得跨工作樹共用的 `high-load` 鎖。不得以單一測試、lint、build、config 或呼叫端自組命令標記 Full Gate 通過。Targeted 與 Full Gate 都要求工作樹 clean 且 HEAD 等於登記 SHA。成功或失敗輸出由 Orchestrator 寫入共享狀態目錄、計算 SHA-256，再把實際結果與完整 log 路徑寫入狀態。

@@ -8,6 +8,8 @@
 
 合併後，只有在使用者列出授權 Issue 集合、Orchestrator 驗證依賴圖及 Code Gate，並為每張 Issue 核實獨立 Worktree/Branch、檔案所有權及共享測試資源時，才可平行開發。Code Gate 可按使用者明確授權記錄 provisional contract；Release Gate 仍要求必要依賴已 Merge/Closed、整合最新 main、契約與必要 Gate 有該 SHA 證據。每張 Issue 獨立測試、Commit/Push、GPT Review、PR 和使用者 Merge。完整規範見 .agents/skills/supplypilot-implement-spec/ 與 docs/v2/matt-pocock-codex-gpt-handoff.md。
 
+Planner 的 `ready_frontier` 只代表 Code Ready；Full Gate Eligibility、Full Gate Verified、GPT Handoff Ready 與確切 SHA 的 GPT Final PASS 分層輸出，`release_frontier` 僅包含已取得 GPT Final PASS 的 Issue。Full Gate 需核對 feature branch 包含目前遠端 main，測試證據須有實際存在且 SHA-256 相符的檔案。Active file owner 的目錄/檔案重疊會阻擋新派工；existing WIP 必須先唯讀 Adopt，再經 Code Gate、指紋、依賴、base 與使用者授權核對才可 Resume。Full Vitest、Maven Verify、Docker/Testcontainers/Image Build 等已確認高負載完整驗證共用一個互斥資源鎖；異常中止保留鎖供診斷。Merge/Main SHA 只能由 GitHub PR/Issue 狀態與即時 `origin/main` 核實後推進；下游舊證據標為 STALE 並保留歷史，不自動覆寫 Worktree。
+
 ## V2 的 Matt Pocock Skills 協作定位（強制）
 
 > 詳細契約與新對話對接：[docs/v2/matt-pocock-codex-gpt-handoff.md](docs/v2/matt-pocock-codex-gpt-handoff.md)。**Skills 是 Codex 的工程方法庫，不是第三位 Agent，也不覆蓋本檔、Issue 或 V2 規格。** 本節只決定使用邊界，不代表 Skills 已安裝或通過測試。

@@ -61,7 +61,9 @@
 
 使用者列出可處理的 Issue 集合後，主控根據 GitHub Issue/PR、目前 main、V2 需求、repo 程式契約建依賴 DAG，驗證 Missing/Cycle、Ready Frontier、Code Gate 與 Release Gate。Codex subagent 可平行做唯讀探索，也可平行實作不同 Issue，但前提是主控先建立並核實獨立 Worktree/Branch、文件 owner 和測試資源限制；官方文件未宣稱 subagent 會自帶 Worktree。遇到既有 WIP、衝突或能力不支援就停止該項派工。
 
-第一版上限為 implementer 3；Full Vitest、Maven Verify、Docker/Testcontainers 各自同時 1 組。持久化狀態由單一 Orchestrator writer 維護於 Git common directory 下的 `supplypilot-orchestrator/orchestrator.json`；共享資源鎖也放在此 common directory，讓所有 linked worktrees 都能互斥。implementer 回報事實，不直接改共享狀態。完整規則、狀態資料與命令見 .agents/skills/supplypilot-implement-spec/；Internal Review 只屬預檢。
+第一版上限為 implementer 3；Full Vitest、Maven Verify、Docker/Testcontainers、Docker Image Build 等已確認高負載完整驗證共用同一個 `high-load` 鎖，同一時間只允許一項。持久化狀態由單一 Orchestrator writer 維護於 Git common directory 下的 `supplypilot-orchestrator/orchestrator.json`；共享資源鎖也放在此 common directory，讓所有 linked worktrees 都使用同一把鎖。Active Issue 保留 file ownership，直到 Merge、Failed 或明確釋放；未知 owner 狀態阻擋派工。
+
+Planner 分別輸出 Code Ready、Full Gate Eligibility、Full Gate Verified、GPT Handoff Ready 與 GPT Final PASS；`release_frontier` 代表確切 SHA 已有 GPT Final PASS，不包含未開始或只通過 targeted tests 的 Issue。`state init` 與 Merge/Main 同步需由即時 `origin/main`、GitHub PR merged/base/merge commit、Issue Closed 狀態核實；main 更新會保留事件並將相依舊驗證、review、contract 標為 STALE，絕不替下游分支更新 base 或整合 main。既有 WIP 可透過唯讀 Adopt 記錄 index、tracked/untracked 內容與指紋；Resume 前需再次核對指紋、worktree 身分、依賴、base 及使用者授權。implementer 回報事實，不直接改共享狀態。完整規則、狀態資料與命令見 .agents/skills/supplypilot-implement-spec/；Internal Review 只屬預檢。
 
 ## 6. Matt Skills 所需的最小 Repo 設定
 

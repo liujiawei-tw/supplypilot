@@ -8,18 +8,22 @@ import contextlib
 import datetime as dt
 import json
 import os
+import shlex
 import socket
 import subprocess
 import sys
 import time
 import uuid
-from pathlib import Path
+import hashlib
+import re
+from pathlib import Path, PurePosixPath, PureWindowsPath
 from typing import Any, Iterator
 
 RESOURCES = ("vitest", "maven", "docker")
+HIGH_LOAD_GROUP = "high-load"
 ACTIVE_STATES = {"READY_TO_CODE", "IMPLEMENTING", "TARGETED_VERIFIED", "WAITING_DEPENDENCIES",
                  "FULL_GATE_PENDING", "FULL_GATE_VERIFIED", "WAITING_GPT_REVIEW", "CHANGES_REQUIRED",
-                 "GPT_FINAL_PASS", "PR_OPEN"}
+                 "GPT_FINAL_PASS", "PR_OPEN", "BLOCKED_ENVIRONMENT"}
 TERMINAL = {"MERGED", "FAILED"}
 VALID_GPT = {"NOT_REVIEWED", "CHANGES_REQUIRED", "FINAL_PASS"}
 
@@ -102,11 +106,19 @@ def _provisional_authorized(row: dict[str, Any], unmet: list[int]) -> bool:
     return True
 
 
-def _paths_overlap(left: str, right: str) -> bool:
-    def normalize(value: str) -> str:
-        return value.replace("\\", "/").removeprefix("./").rstrip("/")
+def _normalize_owned_path(value: str) -> str:
+    raw = value.replace("\\", "/").strip()
+    windows = PureWindowsPath(value)
+    if not raw or raw.startswith("/") or windows.drive:
+        raise PolicyError(f"owned_files path must be repository-relative: {value!r}.")
+    parts = [part for part in PurePosixPath(raw).parts if part not in ("", ".")]
+    if not parts or ".." in parts:
+        raise PolicyError(f"owned_files path is ambiguous or escapes the repository: {value!r}.")
+    return "/".join(parts).casefold()
 
-    a, b = normalize(left), normalize(right)
+
+def _paths_overlap(left: str, right: str) -> bool:
+    a, b = _normalize_owned_path(left), _normalize_owned_path(right)
     return a == b or a.startswith(b + "/") or b.startswith(a + "/")
 
 
@@ -120,6 +132,12 @@ def plan_graph(graph: dict[str, Any]) -> dict[str, Any]:
         unmet = [d for d in deps if not _merged(issues[d])]
         started = (row.get("implementation_state", "NOT_STARTED") in ACTIVE_STATES | TERMINAL
                     or _merged(row) or row.get("closed") is True)
+        adoption = row.get("wip_adoption", {})
+        adopted_wip = isinstance(adoption, dict) and adoption.get("status") in {
+            "ADOPTED_PENDING_RESUME", "RESUMED"
+        }
+        if adopted_wip:
+            started = True
         provisional = bool(unmet and _provisional_authorized(row, unmet))
         code_ready = not unmet or provisional
         reason = []
@@ -135,14 +153,68 @@ def plan_graph(graph: dict[str, Any]) -> dict[str, Any]:
         if not contract_current:
             reason.append("contract_version_changed_or_unverified")
         owned = row.get("owned_files", [])
+        state = row.get("implementation_state", "NOT_STARTED")
+        ownership_state = row.get("ownership_state")
+        if ownership_state is not None and not isinstance(ownership_state, str):
+            raise PolicyError(f"Issue #{number}: ownership_state must be a string.")
+        explicitly_released = ownership_state == "RELEASED"
+        holds_ownership = not explicitly_released and (
+            state in ACTIVE_STATES or ownership_state in {"OWNED", "HELD"} or adopted_wip
+        )
+        if holds_ownership and "owned_files" not in row:
+            raise PolicyError(f"Issue #{number}: active ownership is unknown; fail closed.")
         if not isinstance(owned, list) or any(not isinstance(p, str) or not p.strip() for p in owned):
             raise PolicyError(f"Issue #{number}: owned_files must be a string array.")
+        normalized_owned = [_normalize_owned_path(p) for p in owned]
+        if len(set(normalized_owned)) != len(normalized_owned):
+            raise PolicyError(f"Issue #{number}: owned_files contains duplicate normalized paths.")
         if code_ready:
             candidates.append(number)
-        release_ready = not started and not unmet and row.get("base_sha") == main_sha and contract_current
+        head = row.get("head_sha")
+        verification = row.get("verification", {})
+        verified_artifacts = _verification_artifacts_valid(
+            verification.get("evidence", []) if isinstance(verification, dict) else []
+        )
+        full_gate_verified = (
+            row.get("implementation_state") in {
+                "FULL_GATE_VERIFIED", "WAITING_GPT_REVIEW", "CHANGES_REQUIRED", "GPT_FINAL_PASS", "PR_OPEN"
+            }
+            and isinstance(head, str) and bool(head)
+            and isinstance(verification, dict)
+            and verification.get("status") == "FULL_GATE_VERIFIED"
+            and verification.get("sha") == head
+            and verified_artifacts
+            and not unmet and not provisional and row.get("base_sha") == main_sha and contract_current
+        )
+        eligible_for_full_gate = (
+            row.get("implementation_state") in {"TARGETED_VERIFIED", "WAITING_DEPENDENCIES", "FULL_GATE_PENDING"}
+            and not unmet and not provisional and row.get("base_sha") == main_sha
+            and contract_current and isinstance(head, str) and bool(head)
+            and isinstance(verification, dict) and verification.get("status") == "TARGETED_VERIFIED"
+            and verification.get("sha") == head
+        )
+        handoff = row.get("handoff", {})
+        ready_for_gpt_handoff = (
+            full_gate_verified and row.get("implementation_state") == "WAITING_GPT_REVIEW"
+            and row.get("internal_review") == "PASS"
+            and isinstance(handoff, dict) and handoff.get("local_sha") == head
+            and handoff.get("remote_sha") == head
+        )
+        gpt_review = row.get("gpt_review", {})
+        gpt_final_pass = (
+            full_gate_verified and row.get("implementation_state") == "GPT_FINAL_PASS"
+            and row.get("internal_review") == "PASS"
+            and isinstance(handoff, dict) and handoff.get("local_sha") == head
+            and handoff.get("remote_sha") == head
+            and isinstance(gpt_review, dict) and gpt_review.get("status") == "FINAL_PASS"
+            and gpt_review.get("reviewed_sha") == head
+        )
         result[number] = {
             "code_ready": code_ready,
-            "release_ready": release_ready,
+            "eligible_for_full_gate": eligible_for_full_gate,
+            "full_gate_verified": full_gate_verified,
+            "ready_for_gpt_handoff": ready_for_gpt_handoff,
+            "gpt_final_pass": gpt_final_pass,
             "provisional": provisional,
             "unmet_dependencies": unmet,
             "reasons": reason,
@@ -150,24 +222,43 @@ def plan_graph(graph: dict[str, Any]) -> dict[str, Any]:
             "base_current": row.get("base_sha") == main_sha,
         }
 
-    owners: dict[str, int] = {}
+    active_owners = [n for n, row in issues.items()
+                     if row.get("ownership_state") != "RELEASED" and (
+                         row.get("implementation_state", "NOT_STARTED") in ACTIVE_STATES
+                         or row.get("ownership_state") in {"OWNED", "HELD"}
+                         or (isinstance(row.get("wip_adoption"), dict)
+                             and row["wip_adoption"].get("status") in {"ADOPTED_PENDING_RESUME", "RESUMED"}))]
+    blocked_candidates: set[int] = set()
     for number in candidates:
-        for path in result[number]["owned_files"]:
-            conflict = next(((owned_path, owner) for owned_path, owner in owners.items()
-                             if _paths_overlap(path, owned_path)), None)
+        for owner in active_owners:
+            if owner == number:
+                continue
+            owner_paths = issues[owner].get("owned_files")
+            if not isinstance(owner_paths, list):
+                raise PolicyError(f"Issue #{owner}: active ownership is unknown; fail closed.")
+            for path in result[number]["owned_files"]:
+                for owner_path in owner_paths:
+                    if _paths_overlap(path, owner_path):
+                        blocked_candidates.add(number)
+                        result[number]["reasons"].append(f"file_owned_by_active_issue_{owner}:{owner_path}")
+                        break
+    for index, number in enumerate(candidates):
+        for other in candidates[index + 1:]:
+            conflict = next(((left, right) for left in result[number]["owned_files"]
+                             for right in result[other]["owned_files"] if _paths_overlap(left, right)), None)
             if conflict:
-                owned_path, other = conflict
-                for target in (number, other):
-                    reason = f"file_owned_by_issue_{other if target == number else number}:{owned_path}"
-                    if reason not in result[target]["reasons"]:
-                        result[target]["code_ready"] = False
-                        result[target]["reasons"].append(reason)
-            else:
-                owners[path] = number
+                blocked_candidates.update((number, other))
+                result[number]["reasons"].append(f"file_owned_by_issue_{other}:{conflict[1]}")
+                result[other]["reasons"].append(f"file_owned_by_issue_{number}:{conflict[0]}")
+    for number in blocked_candidates:
+        result[number]["code_ready"] = False
     ready = sorted(n for n in candidates if result[n]["code_ready"])
     return {"main_sha": main_sha, "issues": {str(n): result[n] for n in sorted(result)},
             "ready_frontier": ready,
-            "release_frontier": sorted(n for n, item in result.items() if item["release_ready"])}
+            "full_gate_eligible_frontier": sorted(n for n, item in result.items() if item["eligible_for_full_gate"]),
+            "full_gate_verified_frontier": sorted(n for n, item in result.items() if item["full_gate_verified"]),
+            "gpt_handoff_frontier": sorted(n for n, item in result.items() if item["ready_for_gpt_handoff"]),
+            "release_frontier": sorted(n for n, item in result.items() if item["gpt_final_pass"])}
 
 
 def can_open_pr(record: dict[str, Any], current_head: str) -> tuple[bool, str]:
@@ -181,12 +272,30 @@ def can_open_pr(record: dict[str, Any], current_head: str) -> tuple[bool, str]:
     return True, "PR gate satisfied for exact HEAD."
 
 
+def _verification_artifacts_valid(artifacts: Any) -> bool:
+    if not isinstance(artifacts, list) or not artifacts:
+        return False
+    for artifact in artifacts:
+        if not isinstance(artifact, dict):
+            return False
+        path, expected = artifact.get("path"), artifact.get("sha256")
+        if not isinstance(path, str) or not Path(path).is_absolute() \
+                or not isinstance(expected, str) or not re.fullmatch(r"[0-9a-fA-F]{64}", expected):
+            return False
+        try:
+            actual = hashlib.sha256(Path(path).read_bytes()).hexdigest()
+        except OSError:
+            return False
+        if actual != expected.lower():
+            return False
+    return True
+
+
 def _lock_dir(kind: str, state_dir: Path) -> Path:
     if kind not in RESOURCES:
         raise PolicyError(f"Unknown resource {kind!r}; expected one of {', '.join(RESOURCES)}.")
     folder = state_dir / "locks"
-    folder.mkdir(parents=True, exist_ok=True)
-    return folder / f"{kind}.lock"
+    return folder / f"{HIGH_LOAD_GROUP}.lock"
 
 
 def shared_state_dir() -> Path:
@@ -204,6 +313,13 @@ def shared_state_dir() -> Path:
     if not common_dir.is_absolute():
         common_dir = Path.cwd() / common_dir
     return common_dir.resolve() / "supplypilot-orchestrator"
+
+
+def _resource_state_dir(requested: str | None) -> Path:
+    shared = shared_state_dir()
+    if requested is not None and Path(requested).resolve() != shared:
+        raise PolicyError(f"High-load resources must use the shared Git common-dir lock path: {shared}.")
+    return shared
 
 
 def _read_owner(lock_dir: Path) -> dict[str, Any] | None:
@@ -243,19 +359,27 @@ def _is_stale_lock(lock_exists: bool, owner: dict[str, Any] | None,
 
 def resource_status(state_dir: Path) -> dict[str, Any]:
     result = {}
+    lock_dir = state_dir / "locks" / f"{HIGH_LOAD_GROUP}.lock"
+    exists = lock_dir.exists()
+    owner = _read_owner(lock_dir) if exists else None
+    alive = _process_alive(owner) if exists else False
+    stale = _is_stale_lock(exists, owner, alive)
     for kind in RESOURCES:
-        lock_dir = _lock_dir(kind, state_dir)
-        exists = lock_dir.exists()
-        owner = _read_owner(lock_dir) if exists else None
-        alive = _process_alive(owner) if exists else False
-        stale = _is_stale_lock(exists, owner, alive)
         result[kind] = {"busy": exists, "owner": owner, "stale_record": stale,
-                        "owner_process_alive": alive}
+                        "owner_process_alive": alive, "resource_group": HIGH_LOAD_GROUP}
     return result
 
 
 def run_with_resource(kind: str, issue: int, argv: list[str], state_dir: Path) -> int:
+    with _resource_lock(kind, issue, argv, state_dir):
+        result = subprocess.run(argv, check=False)
+        return result.returncode
+
+
+@contextlib.contextmanager
+def _resource_lock(kind: str, issue: int, argv: list[str], state_dir: Path):
     lock_dir = _lock_dir(kind, state_dir)
+    lock_dir.parent.mkdir(parents=True, exist_ok=True)
     try:
         # Directory creation is atomic across Windows processes and survives a crash as a
         # diagnosable stale record. It is intentionally never auto-reclaimed.
@@ -265,6 +389,7 @@ def run_with_resource(kind: str, issue: int, argv: list[str], state_dir: Path) -
         raise PolicyError(f"{kind} resource is busy; owner={json.dumps(owner, ensure_ascii=False)}")
     owner = {
         "issue": issue, "pid": os.getpid(), "host": socket.gethostname(),
+        "resource": kind, "resource_group": HIGH_LOAD_GROUP,
         "token": uuid.uuid4().hex,
         "started_at": dt.datetime.now(dt.timezone.utc).isoformat(),
         "command": argv,
@@ -278,17 +403,24 @@ def run_with_resource(kind: str, issue: int, argv: list[str], state_dir: Path) -
         except OSError:
             pass
         raise
+    completed = False
     try:
-        return subprocess.run(argv, check=False).returncode
+        yield
+        completed = True
     finally:
         current = _read_owner(lock_dir)
         if current and current.get("token") == owner["token"]:
-            owner_path.unlink(missing_ok=True)
-            try:
-                lock_dir.rmdir()
-            except OSError:
-                # Preserve unexpected contents for manual inspection.
-                pass
+            if completed:
+                owner_path.unlink(missing_ok=True)
+                try:
+                    lock_dir.rmdir()
+                except OSError:
+                    # Preserve unexpected contents for manual inspection.
+                    pass
+            else:
+                current["status"] = "INTERRUPTED_OR_FAILED"
+                current["ended_at"] = dt.datetime.now(dt.timezone.utc).isoformat()
+                atomic_write_json(owner_path, current)
 
 
 STATE_VALUES = {
@@ -324,11 +456,42 @@ def atomic_write_json(path: Path, value: dict[str, Any]) -> None:
     os.replace(temporary, path)
 
 
+@contextlib.contextmanager
+def state_lock(path: Path) -> Iterator[None]:
+    """Serialize state read/modify/write operations; a leftover lock fails closed."""
+    lock_dir = Path(str(path) + ".lock")
+    lock_dir.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        lock_dir.mkdir()
+    except FileExistsError as exc:
+        owner = _read_owner(lock_dir)
+        raise PolicyError(f"State is locked; owner={json.dumps(owner, ensure_ascii=False)}") from exc
+    owner = {"pid": os.getpid(), "host": socket.gethostname(),
+             "started_at": dt.datetime.now(dt.timezone.utc).isoformat()}
+    try:
+        (lock_dir / "owner.json").write_text(json.dumps(owner, indent=2), encoding="utf-8")
+        yield
+    finally:
+        (lock_dir / "owner.json").unlink(missing_ok=True)
+        try:
+            lock_dir.rmdir()
+        except OSError:
+            pass
+
+
 def state_init(path: Path, main_sha: str) -> None:
+    with state_lock(path):
+        _state_init(path, main_sha)
+
+
+def _state_init(path: Path, main_sha: str) -> None:
     if path.exists():
         raise PolicyError(f"State file already exists; refusing to overwrite: {path}")
-    if not main_sha.strip():
-        raise PolicyError("main_sha is required.")
+    if not isinstance(main_sha, str) or not re.fullmatch(r"[0-9a-fA-F]{40}", main_sha):
+        raise PolicyError("main_sha must be a full commit SHA verified against origin/main.")
+    verified_sha = _verified_remote_main_sha()
+    if main_sha != verified_sha:
+        raise PolicyError("main_sha does not match the verified origin/main SHA.")
     atomic_write_json(path, {
         "schema_version": 1, "main_sha": main_sha,
         "created_at": dt.datetime.now(dt.timezone.utc).isoformat(),
@@ -337,12 +500,22 @@ def state_init(path: Path, main_sha: str) -> None:
 
 
 def state_register(path: Path, record: dict[str, Any]) -> None:
+    with state_lock(path):
+        _state_register(path, record)
+
+
+def _state_register(path: Path, record: dict[str, Any]) -> None:
     number = record.get("number")
     if not isinstance(number, int):
         raise PolicyError("Issue record needs integer number.")
     required = ("dependencies", "base_sha", "branch", "worktree", "contract_version", "owned_files")
     if not all(key in record for key in required):
         raise PolicyError("Issue record is missing one or more required graph/worktree fields.")
+    if not isinstance(record["dependencies"], list) or any(not isinstance(dep, int) for dep in record["dependencies"]):
+        raise PolicyError("Issue dependencies must be an integer array.")
+    if not isinstance(record["owned_files"], list) or any(
+            not isinstance(item, str) or not item.strip() for item in record["owned_files"]):
+        raise PolicyError("Issue owned_files must be a non-empty-string array.")
     state = read_json(path)
     key = str(number)
     if key in state.get("issues", {}):
@@ -371,6 +544,146 @@ def state_register(path: Path, record: dict[str, Any]) -> None:
              "at": dt.datetime.now(dt.timezone.utc).isoformat(), "evidence": {"registered": True}}
     state.setdefault("events", []).append(event)
     atomic_write_json(path, state)
+
+
+def _git_bytes(worktree: Path, *args: str) -> bytes:
+    try:
+        result = subprocess.run(["git", "-C", str(worktree), *args], check=True,
+                                stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    except (OSError, subprocess.CalledProcessError) as exc:
+        raise PolicyError(f"Cannot inspect existing Issue worktree with git {' '.join(args)}.") from exc
+    return result.stdout
+
+
+def capture_worktree(worktree: Path) -> dict[str, Any]:
+    root = worktree.resolve(strict=True)
+    branch = _git_bytes(root, "branch", "--show-current").decode("utf-8", "replace").strip()
+    head = _git_bytes(root, "rev-parse", "HEAD").decode("ascii", "replace").strip()
+    if not branch:
+        raise PolicyError("Existing Issue worktree is detached; adoption requires its dedicated branch.")
+    status = _git_bytes(root, "status", "--porcelain=v1", "-z", "--untracked-files=all")
+    staged = _git_bytes(root, "diff", "--cached", "--binary")
+    unstaged = _git_bytes(root, "diff", "--binary")
+    untracked = _git_bytes(root, "ls-files", "--others", "--exclude-standard", "-z")
+    digest = hashlib.sha256()
+    for label, payload in ((b"branch", branch.encode()), (b"head", head.encode()),
+                           (b"status", status), (b"staged", staged), (b"unstaged", unstaged)):
+        digest.update(label + b"\0" + payload + b"\0")
+    untracked_paths: list[str] = []
+    for raw_path in untracked.split(b"\0"):
+        if not raw_path:
+            continue
+        relative = os.fsdecode(raw_path)
+        candidate = root / relative
+        target = candidate.resolve(strict=True)
+        if os.path.commonpath((str(root), str(target))) != str(root):
+            raise PolicyError("Untracked path resolves outside the worktree; refusing adoption.")
+        if candidate.is_symlink():
+            content = os.readlink(candidate).encode("utf-8", "surrogateescape")
+        elif candidate.is_file():
+            content = candidate.read_bytes()
+        else:
+            raise PolicyError(f"Cannot fingerprint untracked path {relative!r}.")
+        digest.update(b"untracked\0" + raw_path + b"\0" + hashlib.sha256(content).digest())
+        untracked_paths.append(relative)
+    return {"branch": branch, "head": head, "clean": not status,
+            "index_sha256": hashlib.sha256(staged).hexdigest(),
+            "worktree_sha256": hashlib.sha256(unstaged).hexdigest(),
+            "untracked_files": sorted(untracked_paths), "fingerprint": digest.hexdigest()}
+
+
+def state_adopt(path: Path, record: dict[str, Any], authorized_issue: int) -> None:
+    number = record.get("number")
+    if not isinstance(number, int) or authorized_issue != number:
+        raise PolicyError("Adoption requires explicit authorization for the same Issue number.")
+    if not isinstance(record.get("worktree"), str):
+        raise PolicyError("Adoption requires the existing absolute worktree path.")
+    worktree = Path(record["worktree"]).resolve(strict=True)
+    first = capture_worktree(worktree)
+    second = capture_worktree(worktree)
+    if first != second:
+        raise PolicyError("Worktree changed while capturing its WIP fingerprint; retry after it is stable.")
+    expected_prefix = f"codex/issue-{number}-"
+    if first["branch"] != record.get("branch") or not first["branch"].startswith(expected_prefix):
+        raise PolicyError("Existing worktree branch does not match the dedicated Issue branch.")
+    record = dict(record)
+    record["worktree"] = str(worktree)
+    record["wip_adoption"] = {
+        "status": "ADOPTED_PENDING_RESUME", "fingerprint": first["fingerprint"],
+        "branch": first["branch"], "head": first["head"], "clean": first["clean"],
+        "index_sha256": first["index_sha256"], "worktree_sha256": first["worktree_sha256"],
+        "untracked_files": first["untracked_files"], "authorized_issue": authorized_issue,
+        "adopted_at": dt.datetime.now(dt.timezone.utc).isoformat(),
+    }
+    with state_lock(path):
+        if capture_worktree(worktree) != first:
+            raise PolicyError("Worktree changed before adoption was recorded; retry after it is stable.")
+        state = read_json(path)
+        existing = state.get("issues", {}).get(str(number))
+        if not existing:
+            _state_register(path, record)
+            return
+        if existing.get("branch") != first["branch"] or Path(existing.get("worktree", "")).resolve() != worktree:
+            raise PolicyError("Existing Issue record points to a different branch or worktree.")
+        previous = existing.get("wip_adoption")
+        if not isinstance(previous, dict) or previous.get("fingerprint") == first["fingerprint"]:
+            raise PolicyError(f"Issue #{number} already has this state/fingerprint; refusing duplicate adoption.")
+        if existing.get("implementation_state") in TERMINAL:
+            raise PolicyError("A terminal Issue cannot adopt or replace an existing WIP snapshot.")
+        history = list(previous.get("history", []))
+        history.append({key: previous[key] for key in (
+            "status", "fingerprint", "branch", "head", "clean", "index_sha256", "worktree_sha256", "adopted_at"
+        ) if key in previous})
+        record["wip_adoption"]["history"] = history
+        existing["wip_adoption"] = record["wip_adoption"]
+        existing["implementation_state"] = "BLOCKED_DEPENDENCY"
+        existing["verification"] = {"status": "NOT_RUN", "sha": None, "evidence": []}
+        existing["gpt_review"] = {"status": "NOT_REVIEWED", "reviewed_sha": None}
+        event = {"issue": number, "type": "WIP_READOPTED", "at": dt.datetime.now(dt.timezone.utc).isoformat(),
+                 "evidence": {"previous_fingerprint": previous.get("fingerprint"),
+                              "fingerprint": first["fingerprint"], "authorized_issue": authorized_issue}}
+        existing.setdefault("events", []).append(event)
+        state.setdefault("events", []).append(event)
+        atomic_write_json(path, state)
+
+
+def state_resume(path: Path, number: int, authorized_issue: int, fingerprint: str,
+                 code_gate_pass: bool = False) -> None:
+    with state_lock(path):
+        state = read_json(path)
+        record = state.get("issues", {}).get(str(number))
+        adoption = record.get("wip_adoption") if record else None
+        if not record or not isinstance(adoption, dict):
+            raise PolicyError(f"Issue #{number} has no adopted worktree snapshot.")
+        if authorized_issue != number or adoption.get("authorized_issue") != number:
+            raise PolicyError("Resume requires explicit authorization for the same Issue number.")
+        if code_gate_pass is not True:
+            raise PolicyError("Resume requires the current Issue Code Gate to pass.")
+        if adoption.get("status") != "ADOPTED_PENDING_RESUME":
+            raise PolicyError("Adopted WIP is not pending resume.")
+        if fingerprint != adoption.get("fingerprint"):
+            raise PolicyError("WIP fingerprint changed; re-adopt and re-confirm before resuming.")
+        current = capture_worktree(Path(record["worktree"]))
+        if current["fingerprint"] != fingerprint or current["branch"] != record.get("branch"):
+            raise PolicyError("Worktree identity or WIP changed since adoption; re-adopt before resuming.")
+        if record.get("base_sha") != state.get("main_sha"):
+            raise PolicyError("Adopted worktree base is stale; re-evaluate dependencies and base first.")
+        if _verified_remote_main_sha() != state.get("main_sha"):
+            raise PolicyError("origin/main advanced since the recorded base; synchronize main before resuming.")
+        _verify_feature_contains_main({**record, "head_sha": adoption.get("head")}, state["main_sha"])
+        for dependency in record.get("dependencies", []):
+            dependency_record = state.get("issues", {}).get(str(dependency))
+            if not dependency_record or dependency_record.get("implementation_state") != "MERGED":
+                raise PolicyError(f"Dependency #{dependency} is not verified MERGED; resume is blocked.")
+        adoption["status"] = "RESUMED"
+        adoption["resumed_at"] = dt.datetime.now(dt.timezone.utc).isoformat()
+        record["implementation_state"] = "IMPLEMENTING"
+        event = {"issue": number, "from": "BLOCKED_DEPENDENCY", "to": "IMPLEMENTING",
+                 "type": "WIP_RESUMED", "at": dt.datetime.now(dt.timezone.utc).isoformat(),
+                 "evidence": {"fingerprint": fingerprint, "authorized_issue": authorized_issue}}
+        record.setdefault("events", []).append(event)
+        state.setdefault("events", []).append(event)
+        atomic_write_json(path, state)
 
 
 def _transition_record(record: dict[str, Any], target: str,
@@ -429,32 +742,483 @@ def _transition_record(record: dict[str, Any], target: str,
         record["pr"] = {"status": "OPEN", "number": evidence.get("number"),
                         "head_sha": head, "url": evidence["url"]}
     elif target == "MERGED":
-        if evidence.get("pr_merged") is not True or evidence.get("issue_closed") is not True:
-            raise PolicyError("MERGED requires GitHub-confirmed PR merge and Issue closure.")
+        if evidence.get("verified_github") is not True:
+            raise PolicyError("MERGED requires live GitHub PR/Issue verification.")
         if not evidence.get("merge_commit") or not evidence.get("main_sha"):
-            raise PolicyError("MERGED requires the merge commit and current main SHA.")
+            raise PolicyError("MERGED requires the verified merge commit and current main SHA.")
         record["merge"] = {"status": "MERGED", "merge_commit": evidence["merge_commit"],
                            "main_sha": evidence["main_sha"]}
     record["implementation_state"] = target
 
 
 def state_transition(path: Path, number: int, target: str, evidence: dict[str, Any]) -> None:
-    state = read_json(path)
-    record = state.get("issues", {}).get(str(number))
-    if not record:
-        raise PolicyError(f"Issue #{number} has no registered state record.")
+    with state_lock(path):
+        state = read_json(path)
+        record = state.get("issues", {}).get(str(number))
+        if not record:
+            raise PolicyError(f"Issue #{number} has no registered state record.")
+        if target == "MERGED":
+            verified = _verify_github_merge(record)
+        elif target == "FULL_GATE_PENDING":
+            base_proof = _verify_feature_base(record, state["main_sha"])
+            missing_dependencies = [dep for dep in record.get("dependencies", [])
+                                   if state.get("issues", {}).get(str(dep), {}).get("implementation_state") != "MERGED"]
+            if missing_dependencies:
+                raise PolicyError(f"Dependencies are not verified MERGED: {missing_dependencies}.")
+            verified = dict(evidence)
+            verified.update(base_proof)
+            verified.update({"dependencies_merged": True, "current_main_sha": state["main_sha"]})
+        elif target in {"TARGETED_VERIFIED", "FULL_GATE_VERIFIED"}:
+            verified = _verify_gate_artifacts(record, evidence, path.parent / "evidence", target)
+        elif target == "WAITING_GPT_REVIEW":
+            verified = dict(evidence)
+            verified.update(_verify_local_remote_feature_head(record))
+        else:
+            verified = evidence
+        _state_transition_locked(path, state, record, number, target, verified)
+
+
+def _state_transition_locked(path: Path, state: dict[str, Any], record: dict[str, Any],
+                             number: int, target: str, evidence: dict[str, Any]) -> None:
     previous = record["implementation_state"]
     _transition_record(record, target, evidence, state["main_sha"])
     event = {"issue": number, "from": previous, "to": target,
              "at": dt.datetime.now(dt.timezone.utc).isoformat(), "evidence": evidence}
     record.setdefault("events", []).append(event)
     state.setdefault("events", []).append(event)
+    if target == "MERGED":
+        _apply_main_sync(state, number, evidence)
     atomic_write_json(path, state)
 
 
+def _repository_slug() -> str:
+    result = subprocess.run(["git", "remote", "get-url", "origin"], check=True,
+                            stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                            text=True, encoding="utf-8", errors="replace")
+    remote = result.stdout.strip()
+    match = re.search(r"(?:github\.com[:/])([^/]+/[^/]+?)(?:\.git)?$", remote)
+    if not match:
+        raise PolicyError("origin is not a recognizable GitHub repository URL.")
+    return match.group(1)
+
+
+def _verified_remote_main_sha() -> str:
+    try:
+        result = subprocess.run(["git", "ls-remote", "origin", "refs/heads/main"], check=True,
+                                stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                                text=True, encoding="utf-8", errors="replace")
+    except (OSError, subprocess.CalledProcessError) as exc:
+        raise PolicyError("Cannot verify the current origin/main SHA.") from exc
+    fields = result.stdout.split()
+    main_sha = fields[0] if len(fields) >= 2 and fields[1] == "refs/heads/main" else None
+    if not isinstance(main_sha, str) or not re.fullmatch(r"[0-9a-fA-F]{40}", main_sha):
+        raise PolicyError("origin/main did not return a valid commit SHA.")
+    return main_sha
+
+
+def _verify_local_remote_feature_head(record: dict[str, Any]) -> dict[str, str]:
+    worktree, branch = record.get("worktree"), record.get("branch")
+    if not isinstance(worktree, str) or not isinstance(branch, str):
+        raise PolicyError("Feature HEAD verification requires a recorded worktree and branch.")
+    root = Path(worktree)
+    local_branch = _git_bytes(root, "branch", "--show-current").decode("utf-8", "replace").strip()
+    local_sha = _git_bytes(root, "rev-parse", "HEAD").decode("ascii", "replace").strip()
+    if local_branch != branch or not re.fullmatch(r"[0-9a-fA-F]{40}", local_sha):
+        raise PolicyError("Local Issue worktree branch or HEAD does not match its registered identity.")
+    try:
+        result = subprocess.run(["git", "-C", worktree, "ls-remote", "origin", f"refs/heads/{branch}"],
+                                check=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                                text=True, encoding="utf-8", errors="replace")
+    except (OSError, subprocess.CalledProcessError) as exc:
+        raise PolicyError("Cannot verify the Issue feature branch on origin.") from exc
+    fields = result.stdout.split()
+    ref = f"refs/heads/{branch}"
+    remote_sha = fields[0] if len(fields) >= 2 and fields[1] == ref else None
+    if not isinstance(remote_sha, str) or not re.fullmatch(r"[0-9a-fA-F]{40}", remote_sha):
+        raise PolicyError("origin does not contain the registered Issue feature branch.")
+    return {"branch": branch, "local_sha": local_sha, "remote_sha": remote_sha}
+
+
+def _verify_feature_base(record: dict[str, Any], main_sha: str) -> dict[str, Any]:
+    worktree_value = record.get("worktree")
+    expected_branch, expected_head = record.get("branch"), record.get("head_sha")
+    if not isinstance(worktree_value, str) or not isinstance(expected_branch, str) \
+            or not isinstance(expected_head, str):
+        raise PolicyError("Full Gate requires recorded branch, worktree, and committed HEAD.")
+    snapshot = capture_worktree(Path(worktree_value))
+    if snapshot["branch"] != expected_branch or snapshot["head"] != expected_head:
+        raise PolicyError("Full Gate worktree branch/HEAD differs from the registered Issue branch/HEAD.")
+    if not snapshot["clean"]:
+        raise PolicyError("Full Gate requires a clean committed worktree; uncommitted WIP is not verified.")
+    if _verified_remote_main_sha() != main_sha:
+        raise PolicyError("State main_sha no longer matches the verified origin/main SHA.")
+    _verify_feature_contains_main(record, main_sha)
+    return {"verified_worktree_branch": snapshot["branch"], "verified_worktree_head": snapshot["head"],
+            "verified_base_main_sha": main_sha}
+
+
+def _verify_feature_contains_main(record: dict[str, Any], main_sha: str) -> None:
+    worktree_value, expected_head = record.get("worktree"), record.get("head_sha")
+    if not isinstance(worktree_value, str) or not isinstance(expected_head, str):
+        raise PolicyError("Feature ancestry verification requires a worktree and commit HEAD.")
+    try:
+        subprocess.run(["git", "-C", worktree_value, "merge-base", "--is-ancestor", main_sha, expected_head],
+                       check=True, stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
+    except (OSError, subprocess.CalledProcessError) as exc:
+        raise PolicyError("Feature HEAD does not contain the verified current main commit.") from exc
+
+
+def _gate_command_supported(command: Any, target: str = "TARGETED_VERIFIED",
+                            worktree: Path | None = None) -> bool:
+    if not isinstance(command, list) or not command or any(not isinstance(arg, str) for arg in command):
+        return False
+    if target == "FULL_GATE_VERIFIED":
+        # Full verification is one fixed repository manifest. Individual lint, build,
+        # config, or test commands can never attest the whole gate.
+        return command == ["supplypilot-full-gate"]
+    executable = Path(command[0].replace("\\", "/")).name.casefold()
+    requested_path = Path(command[0])
+    is_bare_executable = requested_path.parent == Path(".") and PureWindowsPath(command[0]).parent == PureWindowsPath(".")
+    args = command[1:]
+    if os.name == "nt" and executable.endswith((".cmd", ".bat")) \
+            and any(re.search(r"[%!&|<>^()]", arg) for arg in args):
+        return False
+    if executable in {"python", "python.exe", "python3", "python3.exe", "py", "py.exe"}:
+        if not is_bare_executable and Path(command[0]).resolve() != Path(sys.executable).resolve():
+            return False
+        if len(args) < 3 or args[0] != "-m" or args[1] not in {"unittest", "pytest"}:
+            return False
+        test_args = args[2:]
+        if args[1] == "unittest":
+            test_args = [item for item in test_args if item in {"-v", "--verbose"}]
+            # Require explicit test module names; help, discovery with no target,
+            # and option-only invocations cannot attest a targeted test run.
+            targets = [item for item in args[2:] if item not in {"-v", "--verbose"}]
+            return bool(targets) and all(not item.startswith("-") for item in targets)
+        allowed_options = {"-v", "-q"}
+        targets = [item for item in test_args if item not in allowed_options]
+        return bool(targets) and all(not item.startswith("-") for item in targets)
+    if executable in {"npm", "npm.cmd", "npm.exe"}:
+        trusted_npm = _trusted_npm_runner(executable, worktree)
+        if not trusted_npm or (not is_bare_executable and Path(command[0]).resolve() != Path(trusted_npm).resolve()):
+            return False
+        return args in (["test"], ["run", "test"])
+    if executable in {"mvn", "mvn.cmd", "mvnw", "mvnw.cmd"}:
+        unsafe_properties = {
+            "skiptests", "maven.test.skip", "skipits", "skipsurefiretests", "skipfailsafetests",
+            "maven.test.failure.ignore", "surefire.test.failure.ignore", "testfailureignore",
+        }
+        has_test_goal = any(arg in {"test", "verify"} for arg in args)
+        if not has_test_goal or any(arg.casefold() in {"--fail-never", "-fn"} for arg in args):
+            return False
+        for index, arg in enumerate(args):
+            property_arg = None
+            if arg.startswith("-D"):
+                property_arg = arg[2:]
+                if not property_arg and index + 1 < len(args):
+                    property_arg = args[index + 1]
+            elif arg.startswith("--define="):
+                property_arg = arg.split("=", 1)[1]
+            elif arg == "--define" and index + 1 < len(args):
+                property_arg = args[index + 1]
+            if property_arg and property_arg.split("=", 1)[0].casefold() in unsafe_properties:
+                return False
+        if worktree is None:
+            return True
+        root = worktree.resolve()
+        if is_bare_executable:
+            wrapper = root / "backend" / Path(command[0]).name
+        else:
+            wrapper = Path(command[0]) if Path(command[0]).is_absolute() else root / command[0]
+        allowed_wrappers = {(root / "backend" / name).resolve() for name in ("mvnw", "mvnw.cmd")}
+        return wrapper.resolve() in allowed_wrappers
+    return False
+
+
+def _execute_gate_command(command: list[str], worktree: Path, issue: int | None = None,
+                          state_dir: Path | None = None) -> subprocess.CompletedProcess[str]:
+    resource_kind = _targeted_resource_kind(command)
+    if resource_kind and issue is not None:
+        lock_root = state_dir if state_dir is not None else shared_state_dir()
+        with _resource_lock(resource_kind, issue, command, lock_root):
+            return _run_captured(command, worktree)
+    return _run_captured(command, worktree)
+
+
+def _run_captured(command: list[str], worktree: Path) -> subprocess.CompletedProcess[str]:
+    if os.name == "nt" and command[0].casefold().endswith((".cmd", ".bat")):
+        return subprocess.run(subprocess.list2cmdline(command), cwd=worktree, check=False,
+                              stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                              text=True, encoding="utf-8", errors="replace", shell=True)
+    return subprocess.run(command, cwd=worktree, check=False, stdout=subprocess.PIPE,
+                          stderr=subprocess.STDOUT, text=True, encoding="utf-8", errors="replace")
+
+
+def _targeted_resource_kind(command: list[str]) -> str | None:
+    executable = Path(command[0].replace("\\", "/")).name.casefold()
+    if executable in {"npm", "npm.cmd", "npm.exe"}:
+        return "vitest"
+    if executable in {"mvn", "mvn.cmd", "mvnw", "mvnw.cmd"}:
+        return "maven"
+    return None
+
+
+def _prepare_gate_command(command: list[str], worktree: Path) -> list[str]:
+    executable = Path(command[0].replace("\\", "/")).name.casefold()
+    if executable in {"python", "python.exe", "python3", "python3.exe", "py", "py.exe"}:
+        return [sys.executable, *command[1:]]
+    if executable in {"npm", "npm.cmd", "npm.exe"}:
+        resolved = _trusted_npm_runner(executable, worktree)
+        if not resolved:
+            raise PolicyError("Cannot resolve the installed npm runner.")
+        return [resolved, *command[1:]]
+    if executable in {"mvnw", "mvnw.cmd"}:
+        path = Path(command[0])
+        wrapper = path if path.is_absolute() else worktree / path
+        if path.parent == Path(".") and PureWindowsPath(command[0]).parent == PureWindowsPath("."):
+            wrapper = worktree / "backend" / path.name
+        return [str(wrapper.resolve(strict=True)), *command[1:]]
+    return list(command)
+
+
+def _trusted_path_entries(worktree: Path | None = None) -> list[str]:
+    """Return absolute PATH entries outside the current directory and Issue worktree."""
+    # Search PATH entries explicitly. shutil.which on Windows may prepend CWD even
+    # when a filtered path argument is supplied, which can select a fake npm.cmd.
+    current = Path.cwd().resolve()
+    worktree_root = worktree.resolve() if worktree is not None else None
+    safe_entries = []
+    for raw_entry in os.environ.get("PATH", "").split(os.pathsep):
+        if not raw_entry:
+            continue
+        entry = Path(raw_entry)
+        if not entry.is_absolute():
+            continue
+        try:
+            resolved = entry.resolve()
+            if resolved == current or (worktree_root and
+                                       os.path.commonpath((str(worktree_root), str(resolved))) == str(worktree_root)):
+                continue
+        except (OSError, ValueError):
+            continue
+        safe_entries.append(str(resolved))
+    return safe_entries
+
+
+def _trusted_path_runner(executable: str, worktree: Path | None = None) -> str | None:
+    safe_entries = _trusted_path_entries(worktree)
+    candidates = [executable]
+    if os.name == "nt" and not Path(executable).suffix:
+        extensions = [item.casefold() for item in os.environ.get("PATHEXT", ".COM;.EXE;.BAT;.CMD").split(";")]
+        candidates = [executable + extension for extension in extensions]
+    for entry in safe_entries:
+        for name in candidates:
+            candidate = Path(entry) / name
+            if candidate.is_file() and (os.name == "nt" or os.access(candidate, os.X_OK)):
+                return str(candidate.resolve())
+    return None
+
+
+def _trusted_npm_runner(executable: str, worktree: Path | None = None) -> str | None:
+    return _trusted_path_runner(executable, worktree)
+
+
+def _verification_worktree_snapshot(root: Path) -> tuple[str, str, bool]:
+    branch = _git_bytes(root, "branch", "--show-current").decode("utf-8", "replace").strip()
+    head = _git_bytes(root, "rev-parse", "HEAD").decode("ascii", "replace").strip()
+    dirty = bool(_git_bytes(root, "status", "--porcelain=v1", "-z"))
+    return branch, head, dirty
+
+
+def _verification_output_contains_test_run(command: list[str], output: str) -> bool:
+    executable = Path(command[0].replace("\\", "/")).name.casefold()
+    args = command[1:]
+    if executable in {"python", "python.exe", "python3", "python3.exe", "py", "py.exe"}:
+        if args[1] == "unittest":
+            ran = re.search(r"Ran\s+([1-9]\d*)\s+tests?", output, re.IGNORECASE)
+            skipped = re.search(r"skipped=(\d+)", output, re.IGNORECASE)
+            return (bool(ran) and (not skipped or int(skipped.group(1)) < int(ran.group(1)))
+                    and not _output_has_test_failures(output))
+        return _output_has_executed_test_count(output)
+    if executable in {"npm", "npm.cmd", "npm.exe"}:
+        return _output_has_executed_test_count(output)
+    if executable in {"mvn", "mvn.cmd", "mvnw", "mvnw.cmd"}:
+        summaries = re.findall(
+            r"Tests run:\s*(\d+),\s*Failures:\s*(\d+),\s*Errors:\s*(\d+),\s*Skipped:\s*(\d+)",
+            output, re.IGNORECASE)
+        return bool(summaries) and all(int(failures) == 0 and int(errors) == 0
+                                       for _, failures, errors, _ in summaries) \
+            and any(int(total) > int(skipped) for total, _, _, skipped in summaries)
+    return False
+
+
+def _output_has_executed_test_count(output: str) -> bool:
+    return (any(int(count) > 0 for count in re.findall(
+        r"\b(\d+)\s+(?:tests?\s+)?(?:passed|xfailed|xpassed)\b", output, re.IGNORECASE))
+        and not _output_has_test_failures(output))
+
+
+def _output_has_test_failures(output: str) -> bool:
+    return bool(re.search(r"\b[1-9]\d*\s+(?:tests?\s+)?(?:failed|errors?)\b", output, re.IGNORECASE)
+                or re.search(r"\b(?:failures|errors)=[1-9]\d*\b", output, re.IGNORECASE))
+
+
+def _verify_gate_artifacts(record: dict[str, Any], evidence: dict[str, Any],
+                           evidence_dir: Path, target: str) -> dict[str, Any]:
+    """Run an approved test command and persist its actual output as verification evidence."""
+    if evidence.get("sha") != record.get("head_sha"):
+        raise PolicyError("Verification command must target the exact current HEAD.")
+    worktree_value = record.get("worktree")
+    if not isinstance(worktree_value, str):
+        raise PolicyError("Verification requires the registered Issue worktree.")
+    root = Path(worktree_value).resolve(strict=True)
+    command = evidence.get("command")
+    if not _gate_command_supported(command, target, root):
+        raise PolicyError("Verification requires an approved command and trusted runner for this gate; arbitrary or partial commands are rejected.")
+    branch, actual_head, dirty = _verification_worktree_snapshot(root)
+    if branch != record.get("branch") or actual_head != record.get("head_sha"):
+        raise PolicyError("Verification worktree branch/HEAD does not match the registered Issue HEAD.")
+    if dirty:
+        raise PolicyError("Verification requires a clean worktree at the committed HEAD.")
+    try:
+        if target == "FULL_GATE_VERIFIED":
+            result = _execute_full_gate(root, int(record["number"]), shared_state_dir())
+        else:
+            prepared_command = _prepare_gate_command(command, root)
+            result = _execute_gate_command(prepared_command, root, int(record["number"]), shared_state_dir())
+    except OSError as exc:
+        raise PolicyError("Could not execute the approved verification command.") from exc
+    after_branch, after_head, after_dirty = _verification_worktree_snapshot(root)
+    artifact = evidence_dir / f"issue-{record['number']}-{target.lower()}-{actual_head}-{uuid.uuid4().hex}.log"
+    artifact.parent.mkdir(parents=True, exist_ok=True)
+    transcript = json.dumps({"issue": record["number"], "gate": target, "sha": actual_head,
+                             "branch": branch, "command": command,
+                             "executed_command": prepared_command if target != "FULL_GATE_VERIFIED" else [sys.executable, str(root / "scripts" / "supplypilot_full_gate.py")],
+                             "worktree_after": {"branch": after_branch, "head_sha": after_head,
+                                                "dirty": after_dirty},
+                             "exit_code": result.returncode,
+                             "output": result.stdout}, ensure_ascii=False, indent=2)
+    artifact.write_text(transcript, encoding="utf-8")
+    artifact_evidence = {"path": str(artifact.resolve()),
+                         "sha256": hashlib.sha256(artifact.read_bytes()).hexdigest()}
+    if result.returncode != 0:
+        raise PolicyError(f"Verification command failed with exit code {result.returncode}; evidence={artifact}.")
+    if after_branch != branch or after_head != actual_head or after_dirty:
+        raise PolicyError(f"Verification worktree changed during execution; refusing to record PASS; evidence={artifact}.")
+    if target == "TARGETED_VERIFIED" and not _verification_output_contains_test_run(command, result.stdout):
+        raise PolicyError(f"Verification command reported success without a nonzero test count; evidence={artifact}.")
+    return {"status": "PASS", "sha": actual_head, "command": command, "exit_code": result.returncode,
+            "artifacts": [artifact_evidence]}
+
+
+def _execute_full_gate(root: Path, issue: int, state_dir: Path) -> subprocess.CompletedProcess[str]:
+    command = [sys.executable, str(root / "scripts" / "supplypilot_full_gate.py")]
+    with _resource_lock("docker", issue, command, state_dir):
+        return subprocess.run(command, cwd=root, check=False, stdout=subprocess.PIPE,
+                              stderr=subprocess.STDOUT, text=True, encoding="utf-8", errors="replace")
+
+
+def _run_gh_json(command: list[str]) -> dict[str, Any]:
+    try:
+        result = subprocess.run(command, check=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
+                                encoding="utf-8", errors="replace")
+    except (OSError, subprocess.CalledProcessError) as exc:
+        raise PolicyError(f"GitHub CLI verification failed for {shlex.join(command)}.") from exc
+    try:
+        value = json.loads(result.stdout)
+    except json.JSONDecodeError as exc:
+        raise PolicyError("GitHub CLI returned invalid JSON; refusing state update.") from exc
+    if not isinstance(value, dict):
+        raise PolicyError("GitHub CLI returned an unexpected response; refusing state update.")
+    return value
+
+
+def _verify_github_merge(record: dict[str, Any]) -> dict[str, Any]:
+    issue = record.get("number")
+    pr_number = record.get("pr", {}).get("number") if isinstance(record.get("pr"), dict) else None
+    if not isinstance(issue, int) or not isinstance(pr_number, int):
+        raise PolicyError("A recorded Issue and PR number are required for GitHub merge verification.")
+    repo = _repository_slug()
+    pr = _run_gh_json(["gh", "pr", "view", str(pr_number), "--repo", repo,
+                       "--json", "state,mergedAt,mergeCommit,baseRefName,headRefName,headRefOid,body"])
+    merge_commit = pr.get("mergeCommit")
+    merge_sha = merge_commit.get("oid") if isinstance(merge_commit, dict) else None
+    expected_close = f"Closes #{issue}"
+    body = pr.get("body")
+    if (pr.get("state") != "CLOSED" or not pr.get("mergedAt") or pr.get("baseRefName") != "main"
+            or pr.get("headRefName") != record.get("branch")
+            or pr.get("headRefOid") != record.get("head_sha")
+            or not isinstance(body, str) or not any(line.strip() == expected_close for line in body.splitlines())
+            or not isinstance(merge_sha, str) or not re.fullmatch(r"[0-9a-fA-F]{40}", merge_sha)):
+        raise PolicyError("GitHub does not confirm the recorded PR merged into main for this Issue and exact HEAD.")
+    gh_issue = _run_gh_json(["gh", "issue", "view", str(issue), "--repo", repo, "--json", "state"])
+    if gh_issue.get("state") != "CLOSED":
+        raise PolicyError("GitHub Issue is not closed; refusing MERGED state.")
+    main_sha = _verified_remote_main_sha()
+    return {"verified_github": True, "pr": pr_number, "issue": issue,
+            "merge_commit": merge_sha, "main_sha": main_sha,
+            "pr_url": f"https://github.com/{repo}/pull/{pr_number}"}
+
+
+def _apply_main_sync(state: dict[str, Any], number: int, evidence: dict[str, Any]) -> None:
+    old_sha, new_sha = state.get("main_sha"), evidence["main_sha"]
+    if old_sha == new_sha:
+        return
+    if not re.fullmatch(r"[0-9a-fA-F]{40}", new_sha):
+        raise PolicyError("Only a verified full Git commit SHA can become main_sha.")
+    affected: set[int] = {number}
+    changed = True
+    while changed:
+        changed = False
+        for key, record in state.get("issues", {}).items():
+            if int(key) not in affected and any(dep in affected for dep in record.get("dependencies", [])):
+                affected.add(int(key))
+                changed = True
+    for key, record in state.get("issues", {}).items():
+        issue_number = int(key)
+        if (issue_number != number and record.get("implementation_state") not in TERMINAL
+                and record.get("base_sha") != new_sha):
+            affected.add(issue_number)
+    for affected_number in affected - {number}:
+        record = state["issues"][str(affected_number)]
+        verification = record.get("verification", {})
+        review = record.get("gpt_review", {})
+        if isinstance(verification, dict) and verification.get("status") not in {None, "NOT_RUN", "STALE"}:
+            verification["status"] = "STALE"
+            verification["stale_reason"] = f"dependency #{number} merged; main advanced to {new_sha}"
+        if isinstance(review, dict) and review.get("status") not in {None, "NOT_REVIEWED", "STALE"}:
+            review["status"] = "STALE"
+            review["stale_reason"] = f"dependency #{number} merged; main advanced to {new_sha}"
+        record["contract_verified"] = False
+    state["main_sha"] = new_sha
+    event = {"type": "MAIN_SYNCED", "issue": number, "old_main_sha": old_sha,
+             "new_main_sha": new_sha, "merge_commit": evidence["merge_commit"],
+             "affected_issues": sorted(affected - {number}),
+             "at": dt.datetime.now(dt.timezone.utc).isoformat()}
+    state.setdefault("events", []).append(event)
+
+
+def state_sync_main(path: Path, number: int) -> None:
+    with state_lock(path):
+        state = read_json(path)
+        record = state.get("issues", {}).get(str(number))
+        if not record or record.get("implementation_state") != "MERGED":
+            raise PolicyError("Only a recorded MERGED Issue can synchronize main.")
+        evidence = _verify_github_merge(record)
+        if evidence["merge_commit"] != record.get("merge", {}).get("merge_commit"):
+            raise PolicyError("Verified GitHub merge commit differs from the recorded Issue merge.")
+        if state.get("main_sha") == evidence["main_sha"]:
+            raise PolicyError("State already records the verified current main SHA.")
+        _apply_main_sync(state, number, evidence)
+        atomic_write_json(path, state)
+
+
 def state_set_head(path: Path, number: int, sha: str, local_sha: str, remote_sha: str) -> None:
-    if not sha or not (sha == local_sha == remote_sha):
-        raise PolicyError("Head update requires local SHA, remote SHA, and requested SHA to match.")
+    with state_lock(path):
+        _state_set_head(path, number, sha, local_sha, remote_sha)
+
+
+def _state_set_head(path: Path, number: int, sha: str, local_sha: str, remote_sha: str) -> None:
     state = read_json(path)
     record = state.get("issues", {}).get(str(number))
     if not record:
@@ -464,6 +1228,9 @@ def state_set_head(path: Path, number: int, sha: str, local_sha: str, remote_sha
         raise PolicyError("Resolve the existing PR state explicitly before recording a new head.")
     if current != "IMPLEMENTING":
         raise PolicyError("Record a new HEAD only while the authorized Issue is IMPLEMENTING.")
+    verified = _verify_local_remote_feature_head(record)
+    if not sha or not (sha == local_sha == remote_sha == verified["local_sha"] == verified["remote_sha"]):
+        raise PolicyError("Head update requires actual local HEAD and origin branch SHA to match.")
     old_sha = record.get("head_sha")
     if old_sha == sha:
         raise PolicyError("Head SHA is unchanged.")
@@ -511,6 +1278,19 @@ def main(argv: list[str] | None = None) -> int:
     set_head.add_argument("--remote-sha", required=True)
     state_list = state_sub.add_parser("list")
     state_list.add_argument("path")
+    sync_main = state_sub.add_parser("sync-main")
+    sync_main.add_argument("path")
+    sync_main.add_argument("--issue", type=int, required=True)
+    adopt = state_sub.add_parser("adopt")
+    adopt.add_argument("path")
+    adopt.add_argument("record")
+    adopt.add_argument("--authorized-issue", type=int, required=True)
+    resume = state_sub.add_parser("resume")
+    resume.add_argument("path")
+    resume.add_argument("--issue", type=int, required=True)
+    resume.add_argument("--authorized-issue", type=int, required=True)
+    resume.add_argument("--fingerprint", required=True)
+    resume.add_argument("--code-gate-pass", action="store_true", required=True)
     res = sub.add_parser("resource")
     res_sub = res.add_subparsers(dest="resource_command", required=True)
     status = res_sub.add_parser("status")
@@ -542,14 +1322,20 @@ def main(argv: list[str] | None = None) -> int:
             state_set_head(Path(args.path), args.issue, args.sha, args.local_sha, args.remote_sha)
         elif args.command == "state" and args.state_command == "list":
             print(json.dumps(read_json(args.path), ensure_ascii=False, indent=2))
+        elif args.command == "state" and args.state_command == "sync-main":
+            state_sync_main(Path(args.path), args.issue)
+        elif args.command == "state" and args.state_command == "adopt":
+            state_adopt(Path(args.path), read_json(args.record), args.authorized_issue)
+        elif args.command == "state" and args.state_command == "resume":
+            state_resume(Path(args.path), args.issue, args.authorized_issue, args.fingerprint, args.code_gate_pass)
         elif args.command == "resource" and args.resource_command == "status":
-            state_dir = Path(args.state_dir) if args.state_dir else shared_state_dir()
+            state_dir = _resource_state_dir(args.state_dir)
             print(json.dumps(resource_status(state_dir), indent=2))
         elif args.command == "resource" and args.resource_command == "run":
             command = args.argv[1:] if args.argv and args.argv[0] == "--" else args.argv
             if not command:
                 raise PolicyError("Provide a command after --.")
-            state_dir = Path(args.state_dir) if args.state_dir else shared_state_dir()
+            state_dir = _resource_state_dir(args.state_dir)
             return run_with_resource(args.kind, args.issue, command, state_dir)
     except (PolicyError, OSError, json.JSONDecodeError) as exc:
         print(f"BLOCKED: {exc}", file=sys.stderr)
