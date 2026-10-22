@@ -34,5 +34,6 @@
 - Node 24 Linux 安裝相依套件時 npm audit 回報 2 個 moderate vulnerabilities；未變更套件或 lockfile 以規避此既有訊息。
 - 完整 Vitest 的中止是使用者對驗收範圍的明確指示，不是測試成功或失敗的結論。
 - Review 後首次 Receiving 頁面精準測試因移除付款區塊時漏留狀態 `Tag` 元件 import 而失敗；修正 import 後相同案例重跑 PASS。這是已修正的測試失敗。
+- 首次後端精準測試 48 tests 中有 5 個失敗：2 個 Domain 測試使用未持久化的檢查者，實作錯誤地只接受非空 actor ID 快照；改為接受關聯或快照任一有效。另 3 個重複收貨測試以驗收前舊的 JPA `@Version` 作比較基準；改為讀取驗收完成後資料庫版本。修正後後端精準測試重跑 52/52 PASS。
 - Matt Pocock `code-review` Spec／Standards 內部雙軸預檢：初審發現付款資料曝光與競速／授權測試缺口；修正後兩軸複審 PASS，無剩餘 findings。
 - 本文件記錄的是未提交工作樹版本；Commit SHA 與遠端 Head SHA 將於交付時補充。
