@@ -30,3 +30,10 @@ Targeted/Full Gate 使用短暫 State Lock 建立 reservation 與提交結果；
 `BLOCKED_ENVIRONMENT` 會繼續持有其已登記檔案 owner；只有 Issue 進入終止狀態或 owner 明確標記 `RELEASED` 才能重新分配重疊路徑。
 
 Planner 的 `ready_frontier` 是 Code Ready。Full Gate Eligibility、Full Gate Verified、GPT Handoff Ready、GPT Final PASS 各自使用獨立 frontier；`release_frontier` 只包含確切 SHA 已取得 GPT Final PASS 的 Issue。實作未開始、執行中或只有 targeted tests 的 Issue 不可列為正式 Release Ready。
+
+## Review 修正後的強制驗證
+
+- 首次 `state adopt` 以 Git 計算 WIP HEAD 與記錄中 main 的真實 merge-base；舊 base 可唯讀登記並標記 `STALE_BASE`，但不得 Resume、Release 或進 Gate。先安全整合目前 main、重驗契約與依賴，再重新 Adopt/Resume。未提交內容與指紋須保留。
+- `READY_TO_CODE` 忽略呼叫端宣稱的 Gate PASS，重新核對即時 `origin/main`、branch/HEAD/clean Worktree、contract version、已合併或具完整授權 provisional contract 的依賴、以及其他 active Issue 的檔案 owner。缺資料即 fail closed。
+- 一般 state transition 的 Evidence JSON 不得登記 `GPT_FINAL_PASS`。使用 `state review-attest` 經互動 TTY，由人類核對 ChatGPT URL、含 `FINAL PASS` 和 Reviewed SHA 的完整 UTF-8 回覆檔及其 SHA-256，輸入綁定 Reviewed SHA 的確認字串。Planner 與 PR Gate 重新核對 attestation 與證據檔。
+- `FULL_GATE_VERIFIED` 需先經 `state trust-full-gate` 互動登記獨立 GPT Review 對確切 SHA 上 `scripts/supplypilot_full_gate.py` 的審查證據與 SHA-256 baseline。Gate 執行前後都核對該 manifest digest；分支替換檔案、review evidence 或 digest 不符時拒絕 PASS。更新 baseline 必須再次提供獨立 Review 證據與人類確認。

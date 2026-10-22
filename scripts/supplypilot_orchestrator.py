@@ -16,11 +16,13 @@ import time
 import uuid
 import hashlib
 import re
+import urllib.parse
 from pathlib import Path, PurePosixPath, PureWindowsPath
 from typing import Any, Iterator
 
 RESOURCES = ("vitest", "maven", "docker")
 HIGH_LOAD_GROUP = "high-load"
+GPT_REVIEW_CONFIRMATION_PREFIX = "CONFIRM GPT FINAL PASS "
 ACTIVE_STATES = {"READY_TO_CODE", "IMPLEMENTING", "TARGETED_VERIFIED", "WAITING_DEPENDENCIES",
                  "FULL_GATE_PENDING", "FULL_GATE_VERIFIED", "WAITING_GPT_REVIEW", "CHANGES_REQUIRED",
                  "GPT_FINAL_PASS", "PR_OPEN", "BLOCKED_ENVIRONMENT"}
@@ -291,6 +293,7 @@ def plan_graph(graph: dict[str, Any]) -> dict[str, Any]:
             and handoff.get("remote_sha") == head
             and isinstance(gpt_review, dict) and gpt_review.get("status") == "FINAL_PASS"
             and gpt_review.get("reviewed_sha") == head
+            and _gpt_review_attestation_valid(gpt_review.get("attestation"), head)
         )
         result[number] = {
             "code_ready": code_ready,
@@ -350,6 +353,8 @@ def can_open_pr(record: dict[str, Any], current_head: str) -> tuple[bool, str]:
         return False, "GPT FINAL PASS is required."
     if review.get("reviewed_sha") != current_head:
         return False, "GPT review SHA does not match current HEAD."
+    if not _gpt_review_attestation_valid(review.get("attestation"), current_head):
+        return False, "An interactive external GPT review attestation is required."
     if record.get("head_sha") != current_head:
         return False, "Recorded HEAD does not match current HEAD."
     return True, "PR gate satisfied for exact HEAD."
@@ -532,6 +537,125 @@ for _state in STATE_VALUES - {"MERGED", "FAILED"}:
     TRANSITIONS[_state] = TRANSITIONS.get(_state, set()) | {"BLOCKED_ENVIRONMENT", "FAILED"}
 
 
+def _verify_code_gate(state: dict[str, Any], record: dict[str, Any]) -> dict[str, Any]:
+    number = record.get("number")
+    main_sha = state.get("main_sha")
+    worktree_value = record.get("worktree")
+    if not isinstance(number, int) or not isinstance(main_sha, str) or not isinstance(worktree_value, str):
+        raise PolicyError("Code Gate requires a registered Issue, main SHA, and worktree.")
+    root = Path(worktree_value).resolve(strict=True)
+    if _verified_remote_main_sha(root) != main_sha:
+        raise PolicyError("Code Gate is stale because origin/main differs from the recorded main SHA.")
+    if record.get("base_sha") != main_sha or record.get("base_status", "CURRENT") != "CURRENT":
+        raise PolicyError("Code Gate is blocked until the Issue branch is integrated with current main.")
+    contract_version = record.get("contract_version")
+    if (record.get("contract_verified") is not True or not isinstance(contract_version, str)
+            or not contract_version or record.get("verified_contract_version") != contract_version):
+        raise PolicyError("Code Gate requires a current, verified contract version.")
+
+    snapshot = capture_worktree(root)
+    if (snapshot["branch"] != record.get("branch") or snapshot["head"] != main_sha
+            or not snapshot["clean"]):
+        raise PolicyError("Code Gate requires the registered dedicated branch at current main with a clean worktree.")
+    _verify_feature_contains_main({**record, "head_sha": snapshot["head"]}, main_sha)
+
+    owned_files = record.get("owned_files")
+    if not isinstance(owned_files, list) or not owned_files:
+        raise PolicyError("Code Gate requires a known, non-empty file ownership list.")
+    normalized_owned = [_normalize_owned_path(item) for item in owned_files]
+    if len(set(normalized_owned)) != len(normalized_owned):
+        raise PolicyError("Code Gate ownership contains duplicate paths.")
+
+    unmet = []
+    for dependency in record.get("dependencies", []):
+        upstream = state.get("issues", {}).get(str(dependency))
+        merge = upstream.get("merge", {}) if isinstance(upstream, dict) else {}
+        if (not isinstance(upstream, dict) or upstream.get("implementation_state") != "MERGED"
+                or not isinstance(merge, dict) or merge.get("status") != "MERGED"):
+            unmet.append(dependency)
+    provisional_sources = _provisional_resume_sources(state, record, unmet) if unmet else []
+
+    for other_number, owner in state.get("issues", {}).items():
+        if str(other_number) == str(number) or not isinstance(owner, dict):
+            continue
+        if owner.get("ownership_state") == "RELEASED":
+            continue
+        active = (owner.get("implementation_state", "NOT_STARTED") in ACTIVE_STATES
+                  or owner.get("ownership_state") in {"OWNED", "HELD"}
+                  or (isinstance(owner.get("wip_adoption"), dict)
+                      and owner["wip_adoption"].get("status") in {"ADOPTED_PENDING_RESUME", "RESUMED"}))
+        if not active:
+            continue
+        owner_files = owner.get("owned_files")
+        if not isinstance(owner_files, list):
+            raise PolicyError(f"Issue #{other_number} has unknown active file ownership; Code Gate fails closed.")
+        if any(_paths_overlap(left, right) for left in owned_files for right in owner_files):
+            raise PolicyError(f"Code Gate file ownership conflicts with active Issue #{other_number}.")
+
+    return {
+        "code_gate": "PASS", "branch_verified": True, "worktree_verified": True,
+        "branch": snapshot["branch"], "worktree": str(root), "worktree_clean": True,
+        "worktree_head": snapshot["head"], "verified_main_sha": main_sha,
+        "unmet_dependencies": unmet, "provisional_sources": provisional_sources,
+    }
+
+
+def _gpt_review_attestation_valid(attestation: Any, current_head: str) -> bool:
+    if not isinstance(attestation, dict):
+        return False
+    required = ("reviewed_sha", "conversation_url", "evidence_path", "evidence_sha256",
+                "confirmed_by", "confirmation", "confirmed_at")
+    if not all(isinstance(attestation.get(key), str) and attestation[key].strip() for key in required):
+        return False
+    if attestation["reviewed_sha"] != current_head:
+        return False
+    if attestation["confirmation"] != GPT_REVIEW_CONFIRMATION_PREFIX + current_head:
+        return False
+    parsed = urllib.parse.urlparse(attestation["conversation_url"])
+    if parsed.scheme != "https" or parsed.netloc.casefold() != "chatgpt.com" or "/c/" not in parsed.path:
+        return False
+    evidence_path = Path(attestation["evidence_path"])
+    expected = attestation["evidence_sha256"]
+    if not evidence_path.is_absolute() or not re.fullmatch(r"[0-9a-fA-F]{64}", expected):
+        return False
+    try:
+        content = evidence_path.read_text(encoding="utf-8")
+        actual = hashlib.sha256(evidence_path.read_bytes()).hexdigest()
+    except OSError:
+        return False
+    return (actual == expected.lower() and current_head in content
+            and re.search(r"\bFINAL\s+PASS\b", content, re.IGNORECASE) is not None)
+
+
+def _trusted_full_gate_manifest_valid(trusted: Any, root: Path) -> bool:
+    if not isinstance(trusted, dict):
+        return False
+    required = ("path", "sha256", "reviewed_sha", "conversation_url", "review_evidence_path",
+                "review_evidence_sha256", "confirmed_by", "confirmation", "confirmed_at")
+    if not all(isinstance(trusted.get(key), str) and trusted[key].strip() for key in required):
+        return False
+    manifest = root / "scripts" / "supplypilot_full_gate.py"
+    if trusted["path"] != str(manifest.resolve()) or not re.fullmatch(r"[0-9a-fA-F]{64}", trusted["sha256"]):
+        return False
+    if trusted["confirmation"] != f"TRUST FULL GATE MANIFEST {trusted['sha256']}":
+        return False
+    parsed = urllib.parse.urlparse(trusted["conversation_url"])
+    if parsed.scheme != "https" or parsed.netloc.casefold() != "chatgpt.com" or "/c/" not in parsed.path:
+        return False
+    evidence_path = Path(trusted["review_evidence_path"])
+    if not evidence_path.is_absolute() or not re.fullmatch(r"[0-9a-fA-F]{64}", trusted["review_evidence_sha256"]):
+        return False
+    try:
+        content = evidence_path.read_text(encoding="utf-8")
+        evidence_sha = hashlib.sha256(evidence_path.read_bytes()).hexdigest()
+        manifest_sha = hashlib.sha256(manifest.read_bytes()).hexdigest()
+    except OSError:
+        return False
+    return (trusted["reviewed_sha"] in content and "supplypilot_full_gate.py" in content
+            and evidence_sha == trusted["review_evidence_sha256"].lower()
+            and manifest_sha == trusted["sha256"].lower())
+
+
 def atomic_write_json(path: Path, value: dict[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     temporary = path.with_name(path.name + f".{uuid.uuid4().hex}.tmp")
@@ -577,6 +701,7 @@ def _state_init(path: Path, main_sha: str) -> None:
         raise PolicyError("main_sha does not match the verified origin/main SHA.")
     atomic_write_json(path, {
         "schema_version": 1, "main_sha": main_sha,
+        "trusted_full_gate_manifest": None,
         "created_at": dt.datetime.now(dt.timezone.utc).isoformat(),
         "issues": {}, "events": [],
     })
@@ -587,7 +712,7 @@ def state_register(path: Path, record: dict[str, Any]) -> None:
         _state_register(path, record)
 
 
-def _state_register(path: Path, record: dict[str, Any]) -> None:
+def _state_register(path: Path, record: dict[str, Any], *, allow_stale_base: bool = False) -> None:
     number = record.get("number")
     if not isinstance(number, int):
         raise PolicyError("Issue record needs integer number.")
@@ -608,16 +733,19 @@ def _state_register(path: Path, record: dict[str, Any]) -> None:
         raise PolicyError(f"Issue #{number} must use its dedicated {expected_branch_prefix}<slug> branch.")
     if not isinstance(record["worktree"], str) or not Path(record["worktree"]).is_absolute():
         raise PolicyError("Issue worktree must be an absolute path.")
-    if record["base_sha"] != state.get("main_sha"):
+    base_status = "CURRENT" if record["base_sha"] == state.get("main_sha") else "STALE_BASE"
+    if base_status == "STALE_BASE" and not allow_stale_base:
         raise PolicyError("Issue base_sha must match the current main_sha at registration.")
     for existing in state.get("issues", {}).values():
         if existing.get("branch") == record["branch"] or existing.get("worktree") == record["worktree"]:
             raise PolicyError("Branch or worktree is already assigned to another Issue.")
     normalized = {
         **record,
+        "base_status": base_status,
         "implementation_state": "BLOCKED_DEPENDENCY",
         "verification": {"status": "NOT_RUN", "sha": None, "evidence": []},
         "gpt_review": {"status": "NOT_REVIEWED", "reviewed_sha": None},
+        "trusted_full_gate_manifest": None,
         "pr": {"status": "NONE", "number": None, "head_sha": None},
         "merge": {"status": "UNMERGED", "merge_commit": None},
         "events": [],
@@ -636,6 +764,21 @@ def _git_bytes(worktree: Path, *args: str) -> bytes:
     except (OSError, subprocess.CalledProcessError) as exc:
         raise PolicyError(f"Cannot inspect existing Issue worktree with git {' '.join(args)}.") from exc
     return result.stdout
+
+
+def _worktree_merge_base(worktree: Path, main_sha: str) -> str:
+    try:
+        result = subprocess.run(
+            ["git", "-C", str(worktree), "merge-base", "HEAD", main_sha], check=True,
+            stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
+            encoding="utf-8", errors="replace",
+        )
+    except (OSError, subprocess.CalledProcessError) as exc:
+        raise PolicyError("Cannot verify the existing WIP worktree base against recorded main.") from exc
+    base_sha = result.stdout.strip()
+    if not re.fullmatch(r"[0-9a-fA-F]{40}", base_sha):
+        raise PolicyError("Existing WIP does not have a verifiable commit base against recorded main.")
+    return base_sha
 
 
 def capture_worktree(worktree: Path) -> dict[str, Any]:
@@ -689,22 +832,31 @@ def state_adopt(path: Path, record: dict[str, Any], authorized_issue: int) -> No
     expected_prefix = f"codex/issue-{number}-"
     if first["branch"] != record.get("branch") or not first["branch"].startswith(expected_prefix):
         raise PolicyError("Existing worktree branch does not match the dedicated Issue branch.")
+    state_main_sha = read_json(path).get("main_sha")
+    if not isinstance(state_main_sha, str):
+        raise PolicyError("Adoption requires the recorded main SHA.")
+    actual_base_sha = _worktree_merge_base(worktree, state_main_sha)
     record = dict(record)
     record["worktree"] = str(worktree)
+    record["base_sha"] = actual_base_sha
+    record["base_status"] = "CURRENT" if actual_base_sha == state_main_sha else "STALE_BASE"
     record["wip_adoption"] = {
         "status": "ADOPTED_PENDING_RESUME", "fingerprint": first["fingerprint"],
         "branch": first["branch"], "head": first["head"], "clean": first["clean"],
         "index_sha256": first["index_sha256"], "worktree_sha256": first["worktree_sha256"],
         "untracked_files": first["untracked_files"], "authorized_issue": authorized_issue,
+        "base_sha": actual_base_sha, "base_status": record["base_status"],
         "adopted_at": dt.datetime.now(dt.timezone.utc).isoformat(),
     }
     with state_lock(path):
         if capture_worktree(worktree) != first:
             raise PolicyError("Worktree changed before adoption was recorded; retry after it is stable.")
         state = read_json(path)
+        if state.get("main_sha") != state_main_sha:
+            raise PolicyError("Recorded main changed during adoption; retry against the current state.")
         existing = state.get("issues", {}).get(str(number))
         if not existing:
-            _state_register(path, record)
+            _state_register(path, record, allow_stale_base=True)
             return
         reservation = existing.get("gate_reservation")
         if isinstance(reservation, dict) and reservation.get("status") == "RUNNING":
@@ -722,6 +874,8 @@ def state_adopt(path: Path, record: dict[str, Any], authorized_issue: int) -> No
         ) if key in previous})
         record["wip_adoption"]["history"] = history
         existing["wip_adoption"] = record["wip_adoption"]
+        existing["base_sha"] = actual_base_sha
+        existing["base_status"] = record["base_status"]
         existing["implementation_state"] = "BLOCKED_DEPENDENCY"
         existing["verification"] = {"status": "NOT_RUN", "sha": None, "evidence": []}
         existing["gpt_review"] = {"status": "NOT_REVIEWED", "reviewed_sha": None}
@@ -836,8 +990,12 @@ def _transition_record(record: dict[str, Any], target: str,
         required_review = "CHANGES_REQUIRED" if target == "CHANGES_REQUIRED" else "FINAL_PASS"
         if evidence.get("review_status") != required_review or not head or evidence.get("reviewed_sha") != head:
             raise PolicyError(f"{target} requires GPT evidence for the exact current HEAD.")
+        if target == "GPT_FINAL_PASS" and not _gpt_review_attestation_valid(
+                evidence.get("attestation"), head):
+            raise PolicyError("GPT_FINAL_PASS requires a verified interactive external-review attestation.")
         record["gpt_review"] = {"status": required_review, "reviewed_sha": head,
-                                "evidence": evidence.get("url")}
+                                "evidence": evidence.get("url"),
+                                "attestation": evidence.get("attestation")}
     elif target == "PR_OPEN":
         description = evidence.get("description", "")
         expected = f"Closes #{number}"
@@ -860,6 +1018,8 @@ def _transition_record(record: dict[str, Any], target: str,
 
 
 def state_transition(path: Path, number: int, target: str, evidence: dict[str, Any]) -> None:
+    if target == "GPT_FINAL_PASS":
+        raise PolicyError("GPT_FINAL_PASS cannot be set from Evidence JSON; use the interactive review-attest command.")
     if target in {"TARGETED_VERIFIED", "FULL_GATE_VERIFIED"}:
         _state_transition_with_gate(path, number, target, evidence)
         return
@@ -891,9 +1051,122 @@ def state_transition(path: Path, number: int, target: str, evidence: dict[str, A
         elif target == "WAITING_GPT_REVIEW":
             verified = dict(evidence)
             verified.update(_verify_local_remote_feature_head(record))
+        elif target == "READY_TO_CODE":
+            if evidence.get("authorized_issue") != number:
+                raise PolicyError("READY_TO_CODE requires explicit authorization for this Issue.")
+            verified = dict(evidence)
+            verified.update(_verify_code_gate(state, record))
         else:
             verified = evidence
         _state_transition_locked(path, state, record, number, target, verified)
+
+
+def state_attest_gpt_review(path: Path, number: int, review_status: str, reviewed_sha: str,
+                            conversation_url: str, evidence_path: Path, confirmed_by: str) -> None:
+    if review_status != "FINAL_PASS":
+        raise PolicyError("Only an exact GPT FINAL PASS can be attested for release.")
+    if not confirmed_by.strip():
+        raise PolicyError("A human reviewer identity is required for the Final Pass attestation.")
+    before = read_json(path).get("issues", {}).get(str(number))
+    if (not isinstance(before, dict) or before.get("implementation_state") != "WAITING_GPT_REVIEW"
+            or reviewed_sha != before.get("head_sha")):
+        raise PolicyError("Final Pass attestation requires the current SHA of an Issue waiting for GPT review.")
+    if not sys.stdin.isatty():
+        raise PolicyError("GPT Final Pass attestation requires an interactive human terminal.")
+    try:
+        resolved_evidence = evidence_path.resolve(strict=True)
+        content = resolved_evidence.read_text(encoding="utf-8")
+        digest = hashlib.sha256(resolved_evidence.read_bytes()).hexdigest()
+    except OSError as exc:
+        raise PolicyError("GPT review evidence file must exist and be readable as UTF-8.") from exc
+    attestation = {
+        "reviewed_sha": reviewed_sha, "conversation_url": conversation_url,
+        "evidence_path": str(resolved_evidence), "evidence_sha256": digest,
+        "confirmed_by": confirmed_by.strip(),
+        "confirmation": "", "confirmed_at": dt.datetime.now(dt.timezone.utc).isoformat(),
+    }
+    if not _gpt_review_attestation_valid({**attestation, "confirmation": GPT_REVIEW_CONFIRMATION_PREFIX + reviewed_sha},
+                                         reviewed_sha):
+        # Validation below binds the visible review excerpt to both the verdict and exact SHA.
+        parsed = urllib.parse.urlparse(conversation_url)
+        if (parsed.scheme != "https" or parsed.netloc.casefold() != "chatgpt.com" or "/c/" not in parsed.path
+                or reviewed_sha not in content or re.search(r"\bFINAL\s+PASS\b", content, re.IGNORECASE) is None):
+            raise PolicyError("Review evidence must show FINAL PASS for the exact SHA and a ChatGPT conversation URL.")
+    expected = GPT_REVIEW_CONFIRMATION_PREFIX + reviewed_sha
+    print(f"Review status: {review_status}\nReviewed SHA: {reviewed_sha}\nConversation: {conversation_url}")
+    print(f"Evidence SHA-256: {digest}\nReviewer: {confirmed_by.strip()}")
+    confirmation = input(f"Human reviewer: type exactly '{expected}' to attest: ").strip()
+    if confirmation != expected:
+        raise PolicyError("Human Final Pass confirmation did not match the exact reviewed SHA.")
+    attestation["confirmation"] = confirmation
+
+    with state_lock(path):
+        state = read_json(path)
+        record = state.get("issues", {}).get(str(number))
+        if not isinstance(record, dict) or record.get("implementation_state") != "WAITING_GPT_REVIEW":
+            raise PolicyError("GPT Final Pass attestation requires an Issue waiting for GPT review.")
+        if reviewed_sha != record.get("head_sha"):
+            raise PolicyError("GPT review SHA does not match the current Issue HEAD.")
+        evidence = {"review_status": "FINAL_PASS", "reviewed_sha": reviewed_sha,
+                    "url": conversation_url, "attestation": attestation}
+        _state_transition_locked(path, state, record, number, "GPT_FINAL_PASS", evidence)
+
+
+def state_trust_full_gate_manifest(path: Path, number: int, reviewed_sha: str,
+                                   conversation_url: str, evidence_path: Path,
+                                   confirmed_by: str) -> None:
+    if not confirmed_by.strip():
+        raise PolicyError("A human reviewer identity is required to trust a Full Gate manifest.")
+    if not sys.stdin.isatty():
+        raise PolicyError("Trusting a Full Gate manifest requires an interactive human terminal.")
+    state = read_json(path)
+    record = state.get("issues", {}).get(str(number))
+    if not isinstance(record, dict) or reviewed_sha != record.get("head_sha"):
+        raise PolicyError("Manifest review must target the exact current Issue HEAD.")
+    worktree = Path(record.get("worktree", "")).resolve(strict=True)
+    manifest = (worktree / "scripts" / "supplypilot_full_gate.py").resolve(strict=True)
+    if not manifest.is_file() or worktree not in manifest.parents:
+        raise PolicyError("Full Gate manifest must be a regular file inside the registered Issue worktree.")
+    try:
+        resolved_evidence = evidence_path.resolve(strict=True)
+        content = resolved_evidence.read_text(encoding="utf-8")
+        evidence_sha256 = hashlib.sha256(resolved_evidence.read_bytes()).hexdigest()
+    except OSError as exc:
+        raise PolicyError("Independent review evidence must exist and be readable as UTF-8.") from exc
+    parsed = urllib.parse.urlparse(conversation_url)
+    if (parsed.scheme != "https" or parsed.netloc.casefold() != "chatgpt.com" or "/c/" not in parsed.path
+            or reviewed_sha not in content or "supplypilot_full_gate.py" not in content):
+        raise PolicyError("Review evidence must identify this SHA, the Full Gate manifest, and its ChatGPT conversation.")
+    manifest_sha256 = hashlib.sha256(manifest.read_bytes()).hexdigest()
+    expected = f"TRUST FULL GATE MANIFEST {manifest_sha256}"
+    print("Proceed only after an independent GPT Review confirms this manifest trust issue is resolved.")
+    print(f"Manifest: {manifest}\nManifest SHA-256: {manifest_sha256}")
+    print(f"Reviewed SHA: {reviewed_sha}\nConversation: {conversation_url}")
+    print(f"Review evidence SHA-256: {evidence_sha256}\nReviewer: {confirmed_by.strip()}")
+    confirmation = input(f"Human reviewer: type exactly '{expected}' to trust this reviewed manifest: ").strip()
+    if confirmation != expected:
+        raise PolicyError("Human Full Gate manifest confirmation did not match its SHA-256.")
+    trusted = {
+        "path": str(manifest), "sha256": manifest_sha256,
+        "reviewed_sha": reviewed_sha, "conversation_url": conversation_url,
+        "review_evidence_path": str(resolved_evidence),
+        "review_evidence_sha256": evidence_sha256,
+        "confirmed_by": confirmed_by.strip(), "confirmation": confirmation,
+        "confirmed_at": dt.datetime.now(dt.timezone.utc).isoformat(),
+    }
+    with state_lock(path):
+        latest = read_json(path)
+        current = latest.get("issues", {}).get(str(number))
+        if not isinstance(current, dict) or current.get("head_sha") != reviewed_sha:
+            raise PolicyError("Issue HEAD changed while the Full Gate manifest trust was being confirmed.")
+        if hashlib.sha256(manifest.read_bytes()).hexdigest() != manifest_sha256:
+            raise PolicyError("Full Gate manifest changed while its trust baseline was being recorded.")
+        current["trusted_full_gate_manifest"] = trusted
+        event = {"issue": number, "type": "FULL_GATE_MANIFEST_TRUSTED",
+                 "at": trusted["confirmed_at"], "evidence": trusted}
+        current.setdefault("events", []).append(event)
+        latest.setdefault("events", []).append(event)
+        atomic_write_json(path, latest)
 
 
 def _gate_context_sha(state: dict[str, Any], record: dict[str, Any]) -> str:
@@ -921,6 +1194,7 @@ def _gate_context_sha(state: dict[str, Any], record: dict[str, Any]) -> str:
         "contract_verified": record.get("contract_verified"),
         "dependencies": dependencies,
         "provisional_contract": record.get("provisional_contract"),
+        "trusted_full_gate_manifest": record.get("trusted_full_gate_manifest"),
         "resume_evidence": (record.get("wip_adoption", {}).get("resume_evidence")
                             if isinstance(record.get("wip_adoption"), dict) else None),
     }
@@ -973,7 +1247,10 @@ def _state_transition_with_gate(path: Path, number: int, target: str,
         atomic_write_json(path, state)
 
     try:
-        verified = _verify_gate_artifacts(record, evidence, path.parent / "evidence", target)
+        verified = _verify_gate_artifacts(
+            record, evidence, path.parent / "evidence", target,
+            trusted_manifest=record.get("trusted_full_gate_manifest"),
+        )
     except Exception as exc:
         _finish_gate_reservation(path, number, token, target, None, str(exc))
         raise
@@ -1065,9 +1342,13 @@ def _repository_slug() -> str:
     return match.group(1)
 
 
-def _verified_remote_main_sha() -> str:
+def _verified_remote_main_sha(worktree: str | Path | None = None) -> str:
     try:
-        result = subprocess.run(["git", "ls-remote", "origin", "refs/heads/main"], check=True,
+        command = ["git"]
+        if worktree is not None:
+            command.extend(["-C", str(worktree)])
+        command.extend(["ls-remote", "origin", "refs/heads/main"])
+        result = subprocess.run(command, check=True,
                                 stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                                 text=True, encoding="utf-8", errors="replace")
     except (OSError, subprocess.CalledProcessError) as exc:
@@ -1370,7 +1651,8 @@ def _output_has_test_failures(output: str) -> bool:
 
 
 def _verify_gate_artifacts(record: dict[str, Any], evidence: dict[str, Any],
-                           evidence_dir: Path, target: str) -> dict[str, Any]:
+                           evidence_dir: Path, target: str,
+                           trusted_manifest: dict[str, Any] | None = None) -> dict[str, Any]:
     """Run an approved test command and persist its actual output as verification evidence."""
     if evidence.get("sha") != record.get("head_sha"):
         raise PolicyError("Verification command must target the exact current HEAD.")
@@ -1386,15 +1668,22 @@ def _verify_gate_artifacts(record: dict[str, Any], evidence: dict[str, Any],
         raise PolicyError("Verification worktree branch/HEAD does not match the registered Issue HEAD.")
     if dirty:
         raise PolicyError("Verification requires a clean worktree at the committed HEAD.")
-    prepared_command = ([sys.executable, str(root / "scripts" / "supplypilot_full_gate.py")]
-                        if target == "FULL_GATE_VERIFIED" else _prepare_gate_command(command, root))
+    manifest_sha256 = None
+    if target == "FULL_GATE_VERIFIED":
+        manifest_path = root / "scripts" / "supplypilot_full_gate.py"
+        if not _trusted_full_gate_manifest_valid(trusted_manifest, root):
+            raise PolicyError("Full Gate manifest has no independent, human-confirmed trust baseline.")
+        manifest_sha256 = trusted_manifest["sha256"].lower()
+        prepared_command = [sys.executable, str(manifest_path)]
+    else:
+        prepared_command = _prepare_gate_command(command, root)
     run_cwd = root if target == "FULL_GATE_VERIFIED" else _gate_working_directory(command, root)
     if run_cwd is None:
         raise PolicyError("Targeted Gate worktree is not a repository root with the expected module layout.")
     started_at = dt.datetime.now(dt.timezone.utc).isoformat()
     try:
         if target == "FULL_GATE_VERIFIED":
-            result = _execute_full_gate(root, int(record["number"]), shared_state_dir())
+            result = _execute_full_gate(root, int(record["number"]), shared_state_dir(), manifest_sha256)
         else:
             result = _execute_gate_command(prepared_command, root, int(record["number"]), shared_state_dir())
     except OSError as exc:
@@ -1409,6 +1698,7 @@ def _verify_gate_artifacts(record: dict[str, Any], evidence: dict[str, Any],
                              "ended_at": dt.datetime.now(dt.timezone.utc).isoformat(),
                              "worktree_after": {"branch": after_branch, "head_sha": after_head,
                                                 "dirty": after_dirty},
+                             "manifest_sha256": manifest_sha256,
                              "exit_code": result.returncode,
                              "output": result.stdout}, ensure_ascii=False, indent=2)
     artifact.write_text(transcript, encoding="utf-8")
@@ -1424,11 +1714,22 @@ def _verify_gate_artifacts(record: dict[str, Any], evidence: dict[str, Any],
             "artifacts": [artifact_evidence]}
 
 
-def _execute_full_gate(root: Path, issue: int, state_dir: Path) -> subprocess.CompletedProcess[str]:
+def _execute_full_gate(root: Path, issue: int, state_dir: Path,
+                       expected_manifest_sha256: str | None = None) -> subprocess.CompletedProcess[str]:
+    manifest = root / "scripts" / "supplypilot_full_gate.py"
+    if (not isinstance(expected_manifest_sha256, str)
+            or not re.fullmatch(r"[0-9a-fA-F]{64}", expected_manifest_sha256)
+            or not manifest.is_file()
+            or hashlib.sha256(manifest.read_bytes()).hexdigest() != expected_manifest_sha256.lower()):
+        raise PolicyError("Full Gate manifest differs from its independently reviewed trust baseline.")
     command = [sys.executable, str(root / "scripts" / "supplypilot_full_gate.py")]
     with _resource_lock("docker", issue, command, state_dir):
-        return subprocess.run(command, cwd=root, check=False, stdout=subprocess.PIPE,
-                              stderr=subprocess.STDOUT, text=True, encoding="utf-8", errors="replace")
+        result = subprocess.run(command, cwd=root, check=False, stdout=subprocess.PIPE,
+                                stderr=subprocess.STDOUT, text=True, encoding="utf-8", errors="replace")
+        actual = hashlib.sha256(manifest.read_bytes()).hexdigest()
+        if actual != expected_manifest_sha256.lower():
+            return subprocess.CompletedProcess(command, 125, result.stdout + "\nFull Gate manifest changed during execution.\n")
+        return result
 
 
 def _run_gh_json(command: list[str]) -> dict[str, Any]:
@@ -1635,6 +1936,21 @@ def main(argv: list[str] | None = None) -> int:
     recover_gate.add_argument("--token", required=True)
     recover_gate.add_argument("--owner-stopped", action="store_true", required=True)
     recover_gate.add_argument("--reason", required=True)
+    review_attest = state_sub.add_parser("review-attest")
+    review_attest.add_argument("path")
+    review_attest.add_argument("--issue", type=int, required=True)
+    review_attest.add_argument("--review-status", required=True, choices=["FINAL_PASS"])
+    review_attest.add_argument("--reviewed-sha", required=True)
+    review_attest.add_argument("--conversation-url", required=True)
+    review_attest.add_argument("--evidence-file", required=True)
+    review_attest.add_argument("--confirmed-by", required=True)
+    trust_gate = state_sub.add_parser("trust-full-gate")
+    trust_gate.add_argument("path")
+    trust_gate.add_argument("--issue", type=int, required=True)
+    trust_gate.add_argument("--reviewed-sha", required=True)
+    trust_gate.add_argument("--conversation-url", required=True)
+    trust_gate.add_argument("--evidence-file", required=True)
+    trust_gate.add_argument("--confirmed-by", required=True)
     res = sub.add_parser("resource")
     res_sub = res.add_subparsers(dest="resource_command", required=True)
     status = res_sub.add_parser("status")
@@ -1674,6 +1990,12 @@ def main(argv: list[str] | None = None) -> int:
             state_resume(Path(args.path), args.issue, args.authorized_issue, args.fingerprint, args.code_gate_pass)
         elif args.command == "state" and args.state_command == "gate-recover":
             state_gate_recover(Path(args.path), args.issue, args.token, args.owner_stopped, args.reason)
+        elif args.command == "state" and args.state_command == "review-attest":
+            state_attest_gpt_review(Path(args.path), args.issue, args.review_status, args.reviewed_sha,
+                                    args.conversation_url, Path(args.evidence_file), args.confirmed_by)
+        elif args.command == "state" and args.state_command == "trust-full-gate":
+            state_trust_full_gate_manifest(Path(args.path), args.issue, args.reviewed_sha,
+                                           args.conversation_url, Path(args.evidence_file), args.confirmed_by)
         elif args.command == "resource" and args.resource_command == "status":
             state_dir = _resource_state_dir(args.state_dir)
             print(json.dumps(resource_status(state_dir), indent=2))

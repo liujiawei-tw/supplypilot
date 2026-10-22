@@ -220,16 +220,26 @@ class GraphTests(unittest.TestCase):
             "gpt_handoff_frontier"])
 
     def test_final_pass_frontier_requires_exact_reviewed_head(self):
-        issue = row(1, implementation_state="GPT_FINAL_PASS", head_sha="head-1",
-                    verification={"status": "FULL_GATE_VERIFIED", "sha": "head-1",
-                                  "evidence": self._verified_artifact()},
-                    internal_review="PASS", handoff={"local_sha": "head-1", "remote_sha": "head-1"},
-                    gpt_review={"status": "FINAL_PASS", "reviewed_sha": "head-1"})
-        self.assertEqual([1], orch.plan_graph({"main_sha": "main-a", "issues": [issue]})[
-            "release_frontier"])
-        issue["gpt_review"]["reviewed_sha"] = "old-head"
-        self.assertEqual([], orch.plan_graph({"main_sha": "main-a", "issues": [issue]})[
-            "release_frontier"])
+        with tempfile.TemporaryDirectory() as temp:
+            evidence_file = Path(temp) / "review.txt"
+            evidence_file.write_text("FINAL PASS\nReviewed SHA: head-1\n", encoding="utf-8")
+            evidence_sha = hashlib.sha256(evidence_file.read_bytes()).hexdigest()
+            attestation = {
+                "reviewed_sha": "head-1", "conversation_url": "https://chatgpt.com/g/g-review/c/conversation",
+                "evidence_path": str(evidence_file), "evidence_sha256": evidence_sha,
+                "confirmed_by": "reviewer", "confirmation": orch.GPT_REVIEW_CONFIRMATION_PREFIX + "head-1",
+                "confirmed_at": "2026-10-23T00:00:00Z",
+            }
+            issue = row(1, implementation_state="GPT_FINAL_PASS", head_sha="head-1",
+                        verification={"status": "FULL_GATE_VERIFIED", "sha": "head-1",
+                                      "evidence": self._verified_artifact()},
+                        internal_review="PASS", handoff={"local_sha": "head-1", "remote_sha": "head-1"},
+                        gpt_review={"status": "FINAL_PASS", "reviewed_sha": "head-1"})
+            self.assertEqual([], orch.plan_graph({"main_sha": "main-a", "issues": [issue]})["release_frontier"])
+            issue["gpt_review"]["attestation"] = attestation
+            self.assertEqual([1], orch.plan_graph({"main_sha": "main-a", "issues": [issue]})["release_frontier"])
+            issue["gpt_review"]["reviewed_sha"] = "old-head"
+            self.assertEqual([], orch.plan_graph({"main_sha": "main-a", "issues": [issue]})["release_frontier"])
 
 
 class GateTests(unittest.TestCase):
@@ -243,7 +253,7 @@ class GateTests(unittest.TestCase):
             "status": "FINAL_PASS", "reviewed_sha": "old"}}
         self.assertFalse(orch.can_open_pr(record, "new")[0])
         record["gpt_review"]["reviewed_sha"] = "new"
-        self.assertTrue(orch.can_open_pr(record, "new")[0])
+        self.assertFalse(orch.can_open_pr(record, "new")[0])
 
 
 class ResourceTests(unittest.TestCase):
@@ -367,17 +377,21 @@ class StateTests(unittest.TestCase):
         (worktree / "src" / "a.py").write_text("VALUE = 1\n", encoding="utf-8")
         (worktree / "scripts" / "tests").mkdir(parents=True)
         (worktree / "scripts" / "tests" / "__init__.py").write_text("", encoding="utf-8")
+        (worktree / "scripts" / "supplypilot_full_gate.py").write_text(
+            "# isolated trusted gate manifest\n", encoding="utf-8")
         (worktree / "frontend").mkdir()
         (worktree / "frontend" / "package.json").write_text('{"scripts":{"test":"vitest run"}}', encoding="utf-8")
         (worktree / "backend").mkdir()
         (worktree / "backend" / "pom.xml").write_text("<project />", encoding="utf-8")
-        self._git(worktree, "add", "src/a.py", "scripts/tests/__init__.py", "frontend/package.json", "backend/pom.xml")
+        self._git(worktree, "add", "src/a.py", "scripts/tests/__init__.py",
+                  "scripts/supplypilot_full_gate.py", "frontend/package.json", "backend/pom.xml")
         self._git(worktree, "commit", "-m", "base")
         self._state_head = self._git(worktree, "rev-parse", "HEAD")
         self._state_remote = worktree.parent / f"{worktree.name}-origin.git"
         self._git(worktree.parent, "init", "--bare", str(self._state_remote))
         self._git(worktree, "remote", "add", "origin", str(self._state_remote))
         self._git(worktree, "push", "-u", "origin", "codex/issue-9-example")
+        self._git(worktree, "push", "origin", f"{self._state_head}:refs/heads/main")
         state_path = worktree.parent / f"{worktree.name}-orchestrator.json"
         main_sha = self._state_head
         self._state_base_sha = main_sha
@@ -388,7 +402,8 @@ class StateTests(unittest.TestCase):
         orch.state_register(state_path, {
             "number": 9, "dependencies": [], "base_sha": main_sha,
             "branch": "codex/issue-9-example", "worktree": self._state_worktree,
-            "contract_version": "v1", "owned_files": ["src/a.py"]
+            "contract_version": "v1", "contract_verified": True,
+            "verified_contract_version": "v1", "owned_files": ["src/a.py"]
         })
         return state_path
 
@@ -397,6 +412,41 @@ class StateTests(unittest.TestCase):
                 "branch_verified": True, "worktree_verified": True,
                 "branch": "codex/issue-9-example", "worktree": self._state_worktree,
                 "worktree_clean": True, "worktree_head": self._state_base_sha}
+
+    def test_ready_to_code_recomputes_dependencies_ownership_and_worktree(self):
+        with tempfile.TemporaryDirectory() as temp:
+            path = self._make_state(temp)
+            state = orch.read_json(path)
+            state["issues"]["9"]["dependencies"] = [8]
+            state["issues"]["8"] = {
+                "number": 8, "dependencies": [], "implementation_state": "IMPLEMENTING",
+                "ownership_state": "OWNED", "owned_files": ["src/a.py"],
+            }
+            orch.atomic_write_json(path, state)
+            with patch.object(orch, "_verified_remote_main_sha", return_value=self._state_base_sha):
+                with self.assertRaisesRegex(orch.PolicyError, "provisional Code Gate contract"):
+                    orch.state_transition(path, 9, "READY_TO_CODE", self._ready_evidence())
+            self.assertEqual("BLOCKED_DEPENDENCY", orch.read_json(path)["issues"]["9"]["implementation_state"])
+
+            state = orch.read_json(path)
+            state["issues"]["9"]["dependencies"] = []
+            orch.atomic_write_json(path, state)
+            with patch.object(orch, "_verified_remote_main_sha", return_value=self._state_base_sha):
+                with self.assertRaisesRegex(orch.PolicyError, "file ownership conflicts"):
+                    orch.state_transition(path, 9, "READY_TO_CODE", self._ready_evidence())
+
+            state = orch.read_json(path)
+            state["issues"]["8"]["owned_files"] = ["different/path.py"]
+            orch.atomic_write_json(path, state)
+            with patch.object(orch, "_verified_remote_main_sha", return_value=self._state_base_sha):
+                orch.state_transition(path, 9, "READY_TO_CODE", {
+                    "code_gate": "PASS", "authorized_issue": 9,
+                    "branch_verified": True, "worktree_verified": True,
+                    "worktree_clean": True, "worktree_head": "caller-fake",
+                })
+            record = orch.read_json(path)["issues"]["9"]
+            self.assertEqual("READY_TO_CODE", record["implementation_state"])
+            self.assertEqual(self._state_head, record["events"][-1]["evidence"]["worktree_head"])
 
     def _artifact(self, root, name, content):
         return {"command": ["python", "-m", "unittest", "scripts.tests.test_supplypilot_orchestrator"],
@@ -460,6 +510,24 @@ class StateTests(unittest.TestCase):
             full_evidence = {"status": "PASS", "sha": self._state_head, **self._artifact(
                 temp, "full-gate.log", "full gate passed")}
             full_evidence["command"] = ["supplypilot-full-gate"]
+            review_evidence = Path(temp).parent / f"{Path(temp).name}-manifest-review.txt"
+            review_evidence.write_text(
+                f"Reviewed SHA: {self._state_head}\nReviewed scripts/supplypilot_full_gate.py\n",
+                encoding="utf-8")
+            manifest = Path(temp) / "scripts" / "supplypilot_full_gate.py"
+            manifest_sha = hashlib.sha256(manifest.read_bytes()).hexdigest()
+            state = orch.read_json(path)
+            state["issues"]["9"]["trusted_full_gate_manifest"] = {
+                "path": str(manifest.resolve()), "sha256": manifest_sha,
+                "reviewed_sha": self._state_head,
+                "conversation_url": "https://chatgpt.com/g/g-review/c/conversation",
+                "review_evidence_path": str(review_evidence.resolve()),
+                "review_evidence_sha256": hashlib.sha256(review_evidence.read_bytes()).hexdigest(),
+                "confirmed_by": "test reviewer",
+                "confirmation": f"TRUST FULL GATE MANIFEST {manifest_sha}",
+                "confirmed_at": "2026-10-23T00:00:00Z",
+            }
+            orch.atomic_write_json(path, state)
             with patch.object(orch, "_verified_remote_main_sha", return_value=self._state_base_sha), \
                     patch.object(orch, "_execute_full_gate", return_value=Mock(returncode=0, stdout="full gate passed")):
                 orch.state_transition(path, 9, "FULL_GATE_VERIFIED", full_evidence)
@@ -473,14 +541,21 @@ class StateTests(unittest.TestCase):
             orch.state_transition(path, 9, "WAITING_GPT_REVIEW", {
                 "local_sha": self._state_head, "remote_sha": self._state_head, "internal_review": "PASS"
             })
-            with self.assertRaisesRegex(orch.PolicyError, "exact current HEAD"):
+            with self.assertRaisesRegex(orch.PolicyError, "cannot be set from Evidence JSON"):
                 orch.state_transition(path, 9, "GPT_FINAL_PASS", {
-                    "review_status": "FINAL_PASS", "reviewed_sha": "old-sha"
+                    "review_status": "FINAL_PASS", "reviewed_sha": self._state_head,
+                    "url": "https://chatgpt.com/g/g-review/c/conversation"
                 })
-            orch.state_transition(path, 9, "GPT_FINAL_PASS", {
-                "review_status": "FINAL_PASS", "reviewed_sha": self._state_head,
-                "url": "https://github.com/liujiawei-tw/supplypilot/pull/999"
-            })
+            review_evidence = Path(temp) / "review.txt"
+            review_evidence.write_text(f"FINAL PASS\nReviewed SHA: {self._state_head}\n", encoding="utf-8")
+            confirmation = orch.GPT_REVIEW_CONFIRMATION_PREFIX + self._state_head
+            with patch.object(orch.sys.stdin, "isatty", return_value=True), \
+                    patch("builtins.input", return_value=confirmation):
+                orch.state_attest_gpt_review(
+                    path, 9, "FINAL_PASS", self._state_head,
+                    "https://chatgpt.com/g/g-review/c/conversation", review_evidence, "test reviewer")
+            self.assertTrue(orch.can_open_pr(
+                orch.read_json(path)["issues"]["9"], self._state_head)[0])
             with self.assertRaisesRegex(orch.PolicyError, "standalone Closes"):
                 orch.state_transition(path, 9, "PR_OPEN", {
                     "base": "main", "head_sha": self._state_head, "url": "https://github.com/example/pr/999",
@@ -529,6 +604,30 @@ class StateTests(unittest.TestCase):
                 with self.assertRaisesRegex(orch.PolicyError, "does not match"):
                     orch.state_init(path, "a" * 40)
             self.assertFalse(path.exists())
+
+    def test_full_gate_trust_requires_interactive_review_record_and_detects_tampering(self):
+        with tempfile.TemporaryDirectory() as temp:
+            path = self._make_state(temp)
+            state = orch.read_json(path)
+            state["issues"]["9"]["head_sha"] = self._state_head
+            orch.atomic_write_json(path, state)
+            evidence = Path(temp) / "independent-review.txt"
+            evidence.write_text(
+                f"Reviewed SHA: {self._state_head}\nReviewed scripts/supplypilot_full_gate.py\n",
+                encoding="utf-8")
+            url = "https://chatgpt.com/g/g-review/c/conversation"
+            with self.assertRaisesRegex(orch.PolicyError, "interactive human terminal"):
+                with patch.object(orch.sys.stdin, "isatty", return_value=False):
+                    orch.state_trust_full_gate_manifest(path, 9, self._state_head, url, evidence, "reviewer")
+            manifest = Path(temp) / "scripts" / "supplypilot_full_gate.py"
+            digest = hashlib.sha256(manifest.read_bytes()).hexdigest()
+            with patch.object(orch.sys.stdin, "isatty", return_value=True), \
+                    patch("builtins.input", return_value=f"TRUST FULL GATE MANIFEST {digest}"):
+                orch.state_trust_full_gate_manifest(path, 9, self._state_head, url, evidence, "reviewer")
+            trusted = orch.read_json(path)["issues"]["9"]["trusted_full_gate_manifest"]
+            self.assertTrue(orch._trusted_full_gate_manifest_valid(trusted, Path(temp)))
+            manifest.write_text("unreviewed feature-branch replacement\n", encoding="utf-8")
+            self.assertFalse(orch._trusted_full_gate_manifest_valid(trusted, Path(temp)))
 
     def test_full_gate_pending_requires_feature_worktree_to_contain_verified_main(self):
         with tempfile.TemporaryDirectory() as temp:
@@ -1114,15 +1213,32 @@ class StateTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp:
             state_dir = Path(temp) / "state"
             lock_dir = state_dir / "locks" / "high-load.lock"
+            manifest = Path(temp) / "scripts" / "supplypilot_full_gate.py"
+            manifest.parent.mkdir(parents=True)
+            manifest.write_text("# trusted isolated manifest\n", encoding="utf-8")
+            digest = hashlib.sha256(manifest.read_bytes()).hexdigest()
             def assert_locked(*args, **kwargs):
                 self.assertTrue(lock_dir.is_dir())
                 return Mock(returncode=0, stdout="FULL GATE PASS")
             with patch.object(orch.subprocess, "run", side_effect=assert_locked) as run:
-                result = orch._execute_full_gate(Path(temp), 162, state_dir)
+                result = orch._execute_full_gate(Path(temp), 162, state_dir, digest)
             self.assertEqual(0, result.returncode)
             self.assertFalse((state_dir / "locks" / "high-load.lock").exists())
             command = run.call_args.args[0]
             self.assertEqual("supplypilot_full_gate.py", Path(command[1]).name)
+
+    def test_full_gate_refuses_manifest_changed_after_human_review(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            manifest = root / "scripts" / "supplypilot_full_gate.py"
+            manifest.parent.mkdir()
+            manifest.write_text("reviewed manifest\n", encoding="utf-8")
+            digest = hashlib.sha256(manifest.read_bytes()).hexdigest()
+            manifest.write_text("feature-branch replacement that only prints PASS\n", encoding="utf-8")
+            with patch.object(orch.subprocess, "run") as run:
+                with self.assertRaisesRegex(orch.PolicyError, "differs from its independently reviewed"):
+                    orch._execute_full_gate(root, 162, root / "state", digest)
+            run.assert_not_called()
 
     def _git(self, path, *args):
         return subprocess.run(["git", "-C", str(path), *args], check=True,
@@ -1302,6 +1418,33 @@ class StateTests(unittest.TestCase):
             self.assertTrue(record["wip_adoption"]["clean"])
             self.assertEqual("BLOCKED_DEPENDENCY", record["implementation_state"])
             self.assertEqual("NOT_RUN", record["verification"]["status"])
+
+    def test_first_adopt_accepts_dirty_wip_based_on_older_main_and_marks_stale(self):
+        with tempfile.TemporaryDirectory() as temp:
+            worktree = self._existing_worktree(temp)
+            old_base = self._git(worktree, "rev-parse", "HEAD")
+            self._git(worktree, "branch", "main", old_base)
+            self._git(worktree, "checkout", "main")
+            (worktree / "main-only.txt").write_text("new main\n", encoding="utf-8")
+            self._git(worktree, "add", "main-only.txt")
+            self._git(worktree, "commit", "-m", "advance main")
+            current_main = self._git(worktree, "rev-parse", "HEAD")
+            self._git(worktree, "checkout", "codex/issue-42-existing")
+            (worktree / "tracked.txt").write_text("preserved old-base WIP\n", encoding="utf-8")
+            (worktree / "untracked.txt").write_text("preserved untracked WIP\n", encoding="utf-8")
+            path = Path(temp) / "state.json"
+            with patch.object(orch, "_verified_remote_main_sha", return_value=current_main):
+                orch.state_init(path, current_main)
+            orch.state_adopt(path, self._adoption_record(worktree), 42)
+            record = orch.read_json(path)["issues"]["42"]
+            self.assertEqual(old_base, record["base_sha"])
+            self.assertEqual("STALE_BASE", record["base_status"])
+            self.assertEqual("STALE_BASE", record["wip_adoption"]["base_status"])
+            self.assertEqual("preserved old-base WIP\n", (worktree / "tracked.txt").read_text(encoding="utf-8"))
+            self.assertEqual("preserved untracked WIP\n", (worktree / "untracked.txt").read_text(encoding="utf-8"))
+            with patch.object(orch, "_verified_remote_main_sha", return_value=current_main):
+                with self.assertRaisesRegex(orch.PolicyError, "stale; re-evaluate"):
+                    orch.state_resume(path, 42, 42, record["wip_adoption"]["fingerprint"], code_gate_pass=True)
 
     def test_dirty_wip_and_untracked_files_survive_adopt_and_authorized_resume(self):
         with tempfile.TemporaryDirectory() as temp:
