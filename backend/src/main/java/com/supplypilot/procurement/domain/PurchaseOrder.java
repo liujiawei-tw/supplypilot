@@ -55,6 +55,40 @@ public class PurchaseOrder {
     @Column(name = "supplier_promised_delivery_date")
     private LocalDate supplierPromisedDeliveryDate;
 
+    @Column(name = "inspection_all_items_received", nullable = false)
+    private boolean inspectionAllItemsReceived;
+
+    @Column(name = "inspection_all_quantities_confirmed", nullable = false)
+    private boolean inspectionAllQuantitiesConfirmed;
+
+    @Column(name = "inspection_all_quality_accepted", nullable = false)
+    private boolean inspectionAllQualityAccepted;
+
+    @Column(name = "inspection_note", columnDefinition = "TEXT")
+    private String inspectionNote;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "inspected_by")
+    private User inspectedBy;
+
+    @Column(name = "inspected_by_user_id_snapshot") private Long inspectedByUserIdSnapshot;
+    @Column(name = "inspected_by_username_snapshot", length = 50) private String inspectedByUsernameSnapshot;
+    @Column(name = "inspected_by_display_name_snapshot", length = 100) private String inspectedByDisplayNameSnapshot;
+
+    @Column(name = "inspected_at")
+    private Instant inspectedAt;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "payment_confirmed_by")
+    private User paymentConfirmedBy;
+
+    @Column(name = "payment_confirmed_by_user_id_snapshot") private Long paymentConfirmedByUserIdSnapshot;
+    @Column(name = "payment_confirmed_by_username_snapshot", length = 50) private String paymentConfirmedByUsernameSnapshot;
+    @Column(name = "payment_confirmed_by_display_name_snapshot", length = 100) private String paymentConfirmedByDisplayNameSnapshot;
+
+    @Column(name = "payment_confirmed_at")
+    private Instant paymentConfirmedAt;
+
     @Column(name = "reject_reason", columnDefinition = "TEXT")
     private String rejectReason;
 
@@ -297,6 +331,55 @@ public class PurchaseOrder {
         updatedAt = Objects.requireNonNull(now, "Timestamp must not be null");
     }
 
+    public void recordReceivingInspection(boolean allItemsReceived, boolean allQuantitiesConfirmed,
+            boolean allQualityAccepted, String note, User inspector, Instant now) {
+        if (status != PurchaseOrderStatus.ORDERED || orderedProgress != OrderedProgress.RECEIVING_INSPECTION) {
+            throw new BusinessException(ErrorCode.INVALID_PO_STATUS_TRANSITION);
+        }
+        String normalizedNote = note == null || note.isBlank() ? null : note.trim();
+        if (normalizedNote != null && normalizedNote.length() > 2000) {
+            throw new BusinessException(ErrorCode.VALIDATION_FAILED);
+        }
+        User validatedInspector = Objects.requireNonNull(inspector, "Inspector must not be null");
+        Instant validatedNow = Objects.requireNonNull(now, "Timestamp must not be null");
+        inspectionAllItemsReceived = allItemsReceived;
+        inspectionAllQuantitiesConfirmed = allQuantitiesConfirmed;
+        inspectionAllQualityAccepted = allQualityAccepted;
+        inspectionNote = normalizedNote;
+        inspectedBy = validatedInspector;
+        inspectedByUserIdSnapshot = validatedInspector.getId();
+        inspectedByUsernameSnapshot = username(validatedInspector);
+        inspectedByDisplayNameSnapshot = displayName(validatedInspector);
+        inspectedAt = validatedNow;
+        updatedAt = validatedNow;
+    }
+
+    public void confirmPayment(User confirmer, Instant now) {
+        if (status != PurchaseOrderStatus.RECEIVED || paymentConfirmedAt != null) {
+            throw new BusinessException(ErrorCode.INVALID_PO_STATUS_TRANSITION);
+        }
+        User validatedConfirmer = Objects.requireNonNull(confirmer, "Payment confirmer must not be null");
+        Instant validatedNow = Objects.requireNonNull(now, "Timestamp must not be null");
+        paymentConfirmedBy = validatedConfirmer;
+        paymentConfirmedByUserIdSnapshot = validatedConfirmer.getId();
+        paymentConfirmedByUsernameSnapshot = username(validatedConfirmer);
+        paymentConfirmedByDisplayNameSnapshot = displayName(validatedConfirmer);
+        paymentConfirmedAt = validatedNow;
+        updatedAt = validatedNow;
+    }
+
+    public void revokePaymentConfirmation(Instant now) {
+        if (status != PurchaseOrderStatus.RECEIVED || paymentConfirmedAt == null) {
+            throw new BusinessException(ErrorCode.INVALID_PO_STATUS_TRANSITION);
+        }
+        paymentConfirmedBy = null;
+        paymentConfirmedByUserIdSnapshot = null;
+        paymentConfirmedByUsernameSnapshot = null;
+        paymentConfirmedByDisplayNameSnapshot = null;
+        paymentConfirmedAt = null;
+        updatedAt = Objects.requireNonNull(now, "Timestamp must not be null");
+    }
+
     public void cancel(String reason, User actor, Instant now) {
         if (status != PurchaseOrderStatus.APPROVED
                 && !(status == PurchaseOrderStatus.ORDERED && orderedProgress == OrderedProgress.FOLLOW_UP)) {
@@ -324,6 +407,11 @@ public class PurchaseOrder {
         }
         if (status != PurchaseOrderStatus.ORDERED) {
             throw new BusinessException(ErrorCode.INVALID_PO_STATUS);
+        }
+        if (orderedProgress != OrderedProgress.RECEIVING_INSPECTION
+                || !inspectionAllItemsReceived || !inspectionAllQuantitiesConfirmed || !inspectionAllQualityAccepted
+                || inspectedAt == null || (inspectedBy == null && inspectedByUserIdSnapshot == null)) {
+            throw new BusinessException(ErrorCode.RECEIVING_INSPECTION_INCOMPLETE);
         }
         if (items.isEmpty()) {
             throw new BusinessException(ErrorCode.VALIDATION_FAILED);
@@ -432,6 +520,19 @@ public class PurchaseOrder {
     public Instant getOrderedAt() { return orderedAt; }
     public User getReceivedBy() { return receivedBy; }
     public Instant getReceivedAt() { return receivedAt; }
+    public boolean isInspectionAllItemsReceived() { return inspectionAllItemsReceived; }
+    public boolean isInspectionAllQuantitiesConfirmed() { return inspectionAllQuantitiesConfirmed; }
+    public boolean isInspectionAllQualityAccepted() { return inspectionAllQualityAccepted; }
+    public String getInspectionNote() { return inspectionNote; }
+    public Long getInspectedByUserIdSnapshot() { return inspectedByUserIdSnapshot; }
+    public String getInspectedByUsernameSnapshot() { return inspectedByUsernameSnapshot; }
+    public String getInspectedByDisplayNameSnapshot() { return inspectedByDisplayNameSnapshot; }
+    public Instant getInspectedAt() { return inspectedAt; }
+    public boolean isPaymentConfirmed() { return paymentConfirmedAt != null; }
+    public Long getPaymentConfirmedByUserIdSnapshot() { return paymentConfirmedByUserIdSnapshot; }
+    public String getPaymentConfirmedByUsernameSnapshot() { return paymentConfirmedByUsernameSnapshot; }
+    public String getPaymentConfirmedByDisplayNameSnapshot() { return paymentConfirmedByDisplayNameSnapshot; }
+    public Instant getPaymentConfirmedAt() { return paymentConfirmedAt; }
     public Instant getUpdatedAt() { return updatedAt; }
     public Long getVersion() { return version; }
     public List<PurchaseOrderItem> getItems() { return Collections.unmodifiableList(items); }

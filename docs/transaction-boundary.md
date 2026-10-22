@@ -1399,6 +1399,10 @@ module architecture
 19. InventoryImportItem 正式納入 V1。
 20. DocumentStatus 正式支援 ingestion lifecycle。
 
+## V2-204 收貨驗收與付款交易
+
+驗收紀錄與付款確認/撤銷是各自獨立的 PO 寫入命令，均先用 `findByIdForUpdate()` 鎖定同一 PO，再檢查正式狀態與 `ordered_progress`，最後保存目前狀態與操作者快照。收貨使用同一 PO 列鎖，必須在 `ORDERED + RECEIVING_INSPECTION` 且三項驗收旗標全真時通過；交易順序仍為 PO 鎖 → Inventory 更新 → StockTransaction 寫入 → PO RECEIVED。StockTransaction `saveAndFlush` 或任何品項失敗會讓 Inventory、交易列及 PO 收貨稽核一併 rollback。付款確認/撤銷只更新 PO 欄位，不寫 Inventory 或 StockTransaction。相同 PO 上的重複/併發確認、撤銷與收貨由列鎖序列化；不自動重試交易命令。
+
 ---
 
 # 42. Next Stage

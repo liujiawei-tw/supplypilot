@@ -19,6 +19,12 @@ public record PurchaseOrderResponse(
         LocalDate expectedDeliveryDate,
         @JsonInclude(JsonInclude.Include.ALWAYS)
         LocalDate supplierPromisedDeliveryDate,
+        ReceivingInspectionResponse receivingInspection,
+        boolean paymentConfirmed,
+        Long paymentConfirmedBy,
+        String paymentConfirmedByDisplayName,
+        String paymentConfirmedByUsername,
+        Instant paymentConfirmedAt,
         List<PurchaseOrderItemResponse> items,
         Long createdBy,
         String createdByDisplayName,

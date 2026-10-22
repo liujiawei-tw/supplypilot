@@ -2515,3 +2515,13 @@ PO 狀態命令（核准、駁回、下單、開始驗收、取消、收貨）�
 `PUT /api/v1/purchase-orders/{id}/supplier-promised-delivery-date` 接受 `{ "supplierPromisedDeliveryDate": "2026-11-05" }`，或以 `{ "supplierPromisedDeliveryDate": null }` 清除目前承諾。省略欄位、未知欄位及無效日期回 `400 VALIDATION_FAILED`。僅有採購業務權限的使用者可呼叫；DRAFT、RECEIVED、REJECTED、CANCELLED 回 `409 INVALID_PO_STATUS_TRANSITION`，APPROVED 與 ORDERED 可更新。成功回 `200` 及完整 PO 回應。
 
 更新使用 Service 交易、`findByIdForUpdate()` PO 列鎖與既有 `@Version`，不接收 Client 操作者、狀態或核准日期。Flyway V26 新增 nullable `supplier_promised_delivery_date`，既有資料保持 `NULL`，不以舊 `expected_delivery_date` 回填。逾期仍是 `status=ORDERED AND expectedDeliveryDate < 台灣目前日期`；更新或清除承諾日不影響逾期判定。Backend Clock 使用 `Asia/Taipei` 計算業務日期；事件時間仍以 Instant 保存。
+
+## V2-204：全數驗收、整筆收貨與付款確認
+
+第 5→6 欄沿用 `POST /api/v1/purchase-orders/{id}/begin-receiving-inspection`。PO 仍為 `ORDERED`，`orderedProgress` 設為 `RECEIVING_INSPECTION`；此命令不動庫存與 StockTransaction。驗收紀錄透過 `PUT /api/v1/purchase-orders/{id}/receiving-inspection` 保存 `{ "allItemsReceived": true, "allQuantitiesConfirmed": true, "allQualityAccepted": true, "note": null }`。三項均由使用者明確提交；任一為 `false` 時可保留異常備註，但收貨服務會拒絕入庫。一般 PO GET 回應及收貨專用 GET 回應都提供目前驗收旗標、備註與最後驗收者/時間快照。
+
+既有 `POST /api/v1/purchase-orders/{id}/receive` 仍為正式收貨命令，但後端只接受 `status=ORDERED`、`orderedProgress=RECEIVING_INSPECTION` 且三項驗收旗標全為 true、存在驗收操作者快照與時間的 PO。第 5 欄、未到貨、短收、數量未確認、品質不合格、未知舊階段或未曾提交驗收的舊資料均回 `409 RECEIVING_INSPECTION_INCOMPLETE` 或狀態錯誤，不可由直接呼叫 `/receive` 繞過。成功時仍在單一交易內按「鎖 PO → 寫 Inventory → 建 StockTransaction → 更新 PO」執行；失敗整筆 rollback，重複收貨回 409。
+
+`POST /api/v1/purchase-orders/{id}/confirm-payment` 只接受 `RECEIVED` 且尚未確認付款的 PO；`POST /api/v1/purchase-orders/{id}/revoke-payment-confirmation` 只接受 `RECEIVED` 且目前已有付款確認的 PO。兩者無 request body，操作者與時間由登入帳號及 Backend Clock 取得。一般採購單回應包含 `paymentConfirmed`、付款確認者快照與 `paymentConfirmedAt`；倉庫專用白名單回應不包含付款狀態或付款操作者資料。確認或撤銷均不改 PO `RECEIVED`、Inventory、StockTransaction；重複或錯誤狀態回 `409 INVALID_PO_STATUS_TRANSITION`。V27 將既有 PO 預設為未驗收、未付款，不將舊 ORDERED／RECEIVED 資料推測成新狀態。
+
+所有驗收、收貨、付款確認與撤銷均由 Service `@PreAuthorize` 保護，並先取得 PO `PESSIMISTIC_WRITE` 列鎖；Request 不接受 Client 狀態、操作者 ID 或時間。未登入為 401，角色不足為 403，非法 body 為 400。未知寫入結果時 Client 需重新查詢 Backend 狀態，不自動重送。

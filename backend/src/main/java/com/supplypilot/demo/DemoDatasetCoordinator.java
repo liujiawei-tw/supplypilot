@@ -335,6 +335,8 @@ public class DemoDatasetCoordinator implements DemoDataCoordinator {
                 order.markOrdered(userMap.get("admin"), now);
             }
             if (target == PurchaseOrderStatus.RECEIVED) {
+                order.beginReceivingInspection(now);
+                order.recordReceivingInspection(true, true, true, null, userMap.get("admin"), now);
                 Inventory inventory = inventories.findByMaterialId(material.getId()).orElseThrow();
                 inventory.receive(decimal(quantity), now);
                 inventories.save(inventory);

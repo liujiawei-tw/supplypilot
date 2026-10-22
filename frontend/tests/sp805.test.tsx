@@ -12,12 +12,15 @@ const staff: AuthenticatedUser = { id: 2, username: 'buyer', displayName: 'Buyer
 const warehouse: AuthenticatedUser = { id: 4, username: 'warehouse', displayName: 'Warehouse', role: 'WAREHOUSE_STAFF' };
 const admin: AuthenticatedUser = { id: 1, username: 'admin', displayName: 'Admin', role: 'ADMIN' };
 const po = {
-  id: 42, poNumber: 'PO-000042', supplierId: 7, supplierCode: 'SUP-007', supplierName: 'Supplier', status: 'DRAFT',
+  id: 42, poNumber: 'PO-000042', supplierId: 7, supplierCode: 'SUP-007', supplierName: 'Supplier', status: 'DRAFT', orderedProgress: null,
   expectedDeliveryDate: null, supplierPromisedDeliveryDate: null, items: [{ id: 1, materialId: 8, materialCode: 'MAT-008', materialName: 'Steel', quantity: '999999999999999.1234000', unit: 'KG', unitPrice: '0.0000001234500', total: '123.456789', recommendationId: 91, supplierRecommendationResultId: 101, supplierOverride: true, quantityOverride: true, supplierOverrideReason: 'Capacity', quantityOverrideReason: 'Demand changed' }],
-  createdBy: 2, createdByDisplayName: 'Buyer', createdAt: '2026-10-01T00:00:00Z', approvedBy: null, approvedByDisplayName: null, approvedAt: null, rejectReason: null, rejectedBy: null, rejectedByDisplayName: null, rejectedAt: null, orderedBy: null, orderedByDisplayName: null, orderedAt: null, receivedBy: null, receivedByDisplayName: null, receivedAt: null, isOverdue: false, updatedAt: '2026-10-01T00:00:00Z',
+  receivingInspection: { allItemsReceived: false, allQuantitiesConfirmed: false, allQualityAccepted: false, note: null, inspectedBy: null, inspectedByDisplayName: null, inspectedByUsername: null, inspectedAt: null },
+  createdBy: 2, createdByDisplayName: 'Buyer', createdAt: '2026-10-01T00:00:00Z', approvedBy: null, approvedByDisplayName: null, approvedAt: null, rejectReason: null, rejectedBy: null, rejectedByDisplayName: null, rejectedAt: null, orderedBy: null, orderedByDisplayName: null, orderedAt: null, receivedBy: null, receivedByDisplayName: null, receivedAt: null, paymentConfirmed: false, paymentConfirmedBy: null, paymentConfirmedByDisplayName: null, paymentConfirmedByUsername: null, paymentConfirmedAt: null, isOverdue: false, updatedAt: '2026-10-01T00:00:00Z',
 };
 const receiving = {
-  id: 42, poNumber: 'PO-000042', supplierId: 7, supplierCode: 'SUP-007', supplierName: 'Supplier', status: 'ORDERED', expectedDeliveryDate: '2026-10-01', isOverdue: true,
+  id: 42, poNumber: 'PO-000042', supplierId: 7, supplierCode: 'SUP-007', supplierName: 'Supplier', status: 'ORDERED', orderedProgress: 'RECEIVING_INSPECTION',
+  receivingInspection: { allItemsReceived: true, allQuantitiesConfirmed: true, allQualityAccepted: true, note: null, inspectedBy: 1, inspectedByDisplayName: 'Admin', inspectedByUsername: 'admin', inspectedAt: '2026-10-01T00:00:00Z' },
+  expectedDeliveryDate: '2026-10-01', isOverdue: true,
   items: [{ id: 1, materialId: 8, materialCode: 'MAT-008', materialName: 'Steel', quantity: '50.0000', unit: 'KG' }], orderedAt: '2026-09-30T00:00:00Z', receivedBy: null, receivedByDisplayName: null, receivedAt: null,
 };
 const transaction = { id: 71, materialId: 8, materialCode: 'MAT-008', materialName: 'Steel', unit: 'KG', type: 'PURCHASE_RECEIVE', quantity: '50.0000', purchaseOrderId: 42, purchaseOrderNumber: 'PO-000042', reason: null, createdBy: 4, createdByDisplayName: 'Warehouse', createdAt: '2026-10-01T00:00:00Z' };
@@ -28,6 +31,7 @@ const optionPage = (content: unknown[]) => ({ content, page: 0, size: 100, total
 
 function response(config: InternalAxiosRequestConfig, data: unknown, status = 200): AxiosResponse { return { config, data, status, statusText: String(status), headers: {} }; }
 async function open(path: string) { localStorage.setItem(TOKEN_STORAGE_KEY, 'valid-token'); await router.navigate(path); render(<App />); }
+const activeDialog = () => screen.getAllByRole('dialog').at(-1)!;
 beforeEach(() => { localStorage.clear(); });
 
 describe('SP-805 PO lifecycle UI', () => {
@@ -48,8 +52,8 @@ describe('SP-805 PO lifecycle UI', () => {
     expect(await screen.findByText('2026-10-30')).toBeTruthy();
     expect(screen.getByText('尚未提供')).toBeTruthy();
     await user.click(screen.getByRole('button', { name: '更新供應商承諾交期' }));
-    fireEvent.change(within(screen.getByRole('dialog')).getByLabelText('供應商承諾交期'), { target: { value: '2026-11-05' } });
-    await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: '確認更新' }));
+    fireEvent.change(within(activeDialog()).getByLabelText('供應商承諾交期'), { target: { value: '2026-11-05' } });
+    await user.click(within(activeDialog()).getByRole('button', { name: '確認更新' }));
     expect(await screen.findByText('2026-11-05')).toBeTruthy();
     expect(screen.getByText('2026-10-30')).toBeTruthy();
     expect(JSON.parse((requests.find(({ url, method }) => url?.endsWith('/supplier-promised-delivery-date') && method === 'put')?.data) as string))
@@ -286,8 +290,8 @@ describe('SP-805 PO lifecycle UI', () => {
     expect(await screen.findByText('歷史建議 #91 / 結果 #101')).toBeTruthy();
     expect(screen.getByText('原供應商覆寫：Capacity')).toBeTruthy();
     expect(screen.getByText('原數量覆寫：Demand changed')).toBeTruthy();
-    await user.click(screen.getByRole('button', { name: /核\s*准/ })); await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: '確認核准' }));
-    await user.click(await screen.findByRole('button', { name: '標記為已下單' })); await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: '確認下單' }));
+    await user.click(screen.getByRole('button', { name: /核\s*准/ })); await user.click(within(activeDialog()).getByRole('button', { name: '確認核准' }));
+    await user.click(await screen.findByRole('button', { name: '標記為已下單' })); await user.click(within(activeDialog()).getByRole('button', { name: '確認下單' }));
     expect(await screen.findByText('已下單')).toBeTruthy();
     expect(requests.filter(({ url }) => url === '/purchase-orders/42/approve')).toHaveLength(1);
     expect(requests.filter(({ url }) => url === '/purchase-orders/42/order')).toHaveLength(1);
@@ -310,28 +314,76 @@ describe('SP-805 PO lifecycle UI', () => {
     const requests: InternalAxiosRequestConfig[] = [];
     axiosClient.defaults.adapter = vi.fn(async (config) => { requests.push(config); if (config.url === '/auth/me') return response(config, manager); if (config.url === '/purchase-orders/42') return response(config, po); if (config.url === '/purchase-orders/42/reject') return response(config, { ...po, status: 'REJECTED', rejectReason: 'Budget', rejectedBy: 3, rejectedByDisplayName: 'Manager', rejectedAt: '2026-10-02T00:00:00Z' }); throw new Error(`Unexpected ${config.url}`); });
     await open('/purchase-orders/42'); const user = userEvent.setup(); await user.click(await screen.findByRole('button', { name: /駁\s*回/ }));
-    const dialog = screen.getByRole('dialog'); const confirm = within(dialog).getByRole('button', { name: '確認駁回' });
+    const dialog = activeDialog(); const confirm = within(dialog).getByRole('button', { name: '確認駁回' });
     expect(confirm.hasAttribute('disabled')).toBe(true); fireEvent.change(within(dialog).getByLabelText('採購單駁回原因'), { target: { value: 'Budget' } }); expect(confirm.hasAttribute('disabled')).toBe(false);
     await user.click(confirm); await waitFor(() => expect(requests.filter(({ url }) => url === '/purchase-orders/42/reject')).toHaveLength(1));
     expect(JSON.parse(requests.find(({ url }) => url === '/purchase-orders/42/reject')!.data as string)).toEqual({ reason: 'Budget' });
   });
+
+  it('confirms the move into receiving inspection without issuing a receive command', async () => {
+    const requests: InternalAxiosRequestConfig[] = [];
+    const followUp = { ...po, status: 'ORDERED', orderedProgress: 'FOLLOW_UP', expectedDeliveryDate: '2026-10-30' };
+    const inspecting = { ...followUp, orderedProgress: 'RECEIVING_INSPECTION' };
+    axiosClient.defaults.adapter = vi.fn(async (config) => {
+      requests.push(config);
+      if (config.url === '/auth/me') return response(config, admin);
+      if (config.url === '/users/assignable') return response(config, []);
+      if (config.url === '/purchase-orders/42' && config.method === 'get') return response(config, followUp);
+      if (config.url === '/purchase-orders/42/begin-receiving-inspection') return response(config, inspecting);
+      throw new Error(`Unexpected ${config.method} ${config.url}`);
+    });
+    await open('/purchase-orders/42'); const user = userEvent.setup();
+    await user.click(await screen.findByRole('button', { name: '開始到貨驗收' }));
+    await user.click(within(activeDialog()).getAllByRole('button').at(-1)!);
+    await waitFor(() => expect(screen.getByText('到貨驗收中')).toBeTruthy());
+    expect(requests.filter(({ url }) => url === '/purchase-orders/42/begin-receiving-inspection')).toHaveLength(1);
+    expect(requests.filter(({ url }) => url === '/purchase-orders/42/receive')).toHaveLength(0);
+  });
 });
 
 describe('SP-805 receiving and stock security boundaries', () => {
+  it('saves abnormal inspection notes and keeps whole receiving disabled until all three confirmations are true', async () => {
+    const requests: InternalAxiosRequestConfig[] = [];
+    const pending = { ...receiving, receivingInspection: { ...receiving.receivingInspection, allItemsReceived: false,
+      allQuantitiesConfirmed: false, allQualityAccepted: false, note: null, inspectedBy: null, inspectedByDisplayName: null,
+      inspectedByUsername: null, inspectedAt: null } };
+    const savedPo = { ...po, status: 'ORDERED', orderedProgress: 'RECEIVING_INSPECTION',
+      receivingInspection: { allItemsReceived: false, allQuantitiesConfirmed: false, allQualityAccepted: false,
+        note: '短收 2 箱，等待補貨', inspectedBy: 1, inspectedByDisplayName: 'Admin', inspectedByUsername: 'admin', inspectedAt: '2026-10-01T00:00:00Z' } };
+    axiosClient.defaults.adapter = vi.fn(async (config) => {
+      requests.push(config);
+      if (config.url === '/auth/me') return response(config, admin);
+      if (config.url === '/receiving/purchase-orders/42') return response(config, pending);
+      if (config.url === '/purchase-orders/42/receiving-inspection') return response(config, savedPo);
+      throw new Error(`Unexpected ${config.method} ${config.url}`);
+    });
+    await open('/receiving/purchase-orders/42'); const user = userEvent.setup();
+    await user.click(await screen.findByRole('button', { name: '填寫／更新驗收結果' }));
+    fireEvent.change(within(activeDialog()).getByLabelText('驗收異常備註'), { target: { value: '短收 2 箱，等待補貨' } });
+    await user.click(within(activeDialog()).getByRole('button', { name: '儲存驗收紀錄' }));
+    expect((await screen.findAllByText('短收 2 箱，等待補貨')).length).toBeGreaterThan(0);
+    expect(screen.getByRole('button', { name: '確認整筆收貨' }).hasAttribute('disabled')).toBe(true);
+    const request = requests.find(({ url }) => url === '/purchase-orders/42/receiving-inspection');
+    expect(request?.method).toBe('put');
+    expect(JSON.parse(request?.data as string)).toEqual({ allItemsReceived: false, allQuantitiesConfirmed: false,
+      allQualityAccepted: false, note: '短收 2 箱，等待補貨' });
+    expect(requests.filter(({ url }) => url === '/purchase-orders/42/receive')).toHaveLength(0);
+  });
+
   it('loads warehouse detail only from the restricted endpoint and sends one Full Receive POST', async () => {
     const requests: InternalAxiosRequestConfig[] = []; let finish!: () => void;
     axiosClient.defaults.adapter = vi.fn((config) => { requests.push(config); if (config.url === '/auth/me') return Promise.resolve(response(config, warehouse)); if (config.url === '/receiving/purchase-orders/42') return Promise.resolve(response(config, receiving)); if (config.url === '/purchase-orders/42/receive') return new Promise((resolve) => { finish = () => resolve(response(config, { ...receiving, status: 'RECEIVED', isOverdue: false, receivedBy: 4, receivedByDisplayName: 'Warehouse', receivedAt: '2026-10-02T00:00:00Z' })); }); return Promise.reject(new Error(`Unexpected ${config.url}`)); });
     await open('/receiving/purchase-orders/42'); const user = userEvent.setup(); expect(await screen.findByText('PO-000042')).toBeTruthy();
     expect(requests.some(({ url }) => url === '/purchase-orders/42' && configMethod(requests, url) === 'get')).toBe(false);
     expect(screen.queryByText('單價')).toBeNull(); expect(screen.queryByText('採購建議依據')).toBeNull();
-    await user.click(screen.getByRole('button', { name: '確認整筆收貨' })); const confirm = within(screen.getByRole('dialog')).getByRole('button', { name: '確認整筆收貨' }); await user.click(confirm); fireEvent.click(confirm);
+    await user.click(screen.getByRole('button', { name: '確認整筆收貨' })); const confirm = within(activeDialog()).getByRole('button', { name: '確認整筆收貨' }); await user.click(confirm); fireEvent.click(confirm);
     await waitFor(() => expect(requests.filter(({ url }) => url === '/purchase-orders/42/receive')).toHaveLength(1)); finish(); await screen.findByText('已收貨');
   });
 
   it('locks a 409 receive result until an explicit restricted refetch and never auto-retries', async () => {
     const requests: InternalAxiosRequestConfig[] = [];
     axiosClient.defaults.adapter = vi.fn(async (config) => { requests.push(config); if (config.url === '/auth/me') return response(config, warehouse); if (config.url === '/receiving/purchase-orders/42') return response(config, receiving); if (config.url === '/purchase-orders/42/receive') throw new AxiosError('Conflict', 'ERR_BAD_REQUEST', config, undefined, response(config, { code: 'DUPLICATE_RECEIVING', message: 'Already received', traceId: '', timestamp: '', path: '' }, 409)); throw new Error(`Unexpected ${config.url}`); });
-    await open('/receiving/purchase-orders/42'); const user = userEvent.setup(); await user.click(await screen.findByRole('button', { name: '確認整筆收貨' })); await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: '確認整筆收貨' }));
+    await open('/receiving/purchase-orders/42'); const user = userEvent.setup(); await user.click(await screen.findByRole('button', { name: '確認整筆收貨' })); await user.click(within(activeDialog()).getByRole('button', { name: '確認整筆收貨' }));
     expect(await screen.findByText('收貨結果需要查核，已鎖定再次提交')).toBeTruthy(); expect(requests.filter(({ url }) => url === '/purchase-orders/42/receive')).toHaveLength(1);
     expect(screen.getByRole('button', { name: '確認整筆收貨' }).hasAttribute('disabled')).toBe(true); await user.click(screen.getByRole('button', { name: '重新查詢收貨狀態' }));
     await waitFor(() => expect(requests.filter(({ url }) => url === '/receiving/purchase-orders/42')).toHaveLength(2)); expect(requests.filter(({ url }) => url === '/purchase-orders/42/receive')).toHaveLength(1); expect(screen.getByText('已下單')).toBeTruthy();
@@ -350,7 +402,7 @@ describe('SP-805 receiving and stock security boundaries', () => {
       throw new Error(`Unexpected ${config.url}`);
     });
     await open('/receiving/purchase-orders/42'); const user = userEvent.setup();
-    await user.click(await screen.findByRole('button', { name: '確認整筆收貨' })); await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: '確認整筆收貨' }));
+    await user.click(await screen.findByRole('button', { name: '確認整筆收貨' })); await user.click(within(activeDialog()).getByRole('button', { name: '確認整筆收貨' }));
     expect(await screen.findByText('收貨結果需要查核，已鎖定再次提交')).toBeTruthy();
     await user.click(screen.getByRole('button', { name: '重新查詢收貨狀態' }));
     expect(await screen.findByText('已收貨')).toBeTruthy();
@@ -390,7 +442,7 @@ describe('SP-805 PO ownership mutation verification', () => {
     });
     await open('/purchase-orders/42'); const user = userEvent.setup();
     await user.click(await screen.findByRole('button', { name: 'Claim PO-000042' }));
-    const dialog = screen.getByRole('dialog');
+    const dialog = activeDialog();
     await user.click(within(dialog).getAllByRole('button').at(-1)!);
     await waitFor(() => expect(requests.filter(({ url }) => url === '/purchase-orders/42/claim')).toHaveLength(1));
 

@@ -2566,3 +2566,12 @@ README
 ## V2-202 驗收紀錄
 
 Issue #139 的測試指令、環境、測試數、Migration 與 CI 狀態以 [`docs/evidence/issue-139-validation.md`](evidence/issue-139-validation.md) 為準。須區分本機結果與 GitHub Actions；收貨/取消、雙取消、核准/駁回、下單/取消競態使用 Testcontainers MySQL 實際查核 PO、Inventory 版本/數量及 StockTransaction。沒有第 6 欄持久化資料時不得以 Mock 情境宣稱階段保護 PASS。
+
+## V2-204 驗收測試矩陣
+
+- Testcontainers MySQL 驗證 5→6 保持 PO `ORDERED`、不增加 Inventory、不寫 StockTransaction；異常旗標與備註可儲存、GET 可讀。
+- 驗證未開始第 6 欄及每種未到貨/短收/品質不合格情境都不能通過舊 `/receive`；只有三旗標全真且保存驗收操作者/時間才完成整筆收貨。
+- 使用多品項交易失敗注入，驗證 Inventory、StockTransaction、PO 收貨狀態及稽核全部 rollback；重複收貨及並發收貨至多一筆成功。
+- 以同一 MySQL PO 鎖同步執行取消/開始驗收，以及重複付款確認/撤銷；查詢 PO、Inventory 版本與 StockTransaction 確認無競態雙重提交。
+- 付款確認與撤銷皆維持 `RECEIVED`，且不改庫存或庫存交易；重複、未付款撤銷、非 RECEIVED 狀態、401/403、錯誤 request 與未知結果查詢流程均要驗證。
+- Flyway V27 以既有 PO 預設旗標/付款未確認做舊資料相容測試；Front-end API、互動狀態及載入後持久資料需精準測試。完整 Issue #141 驗收記錄於 `docs/evidence/issue-141-validation.md`。

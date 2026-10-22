@@ -13,6 +13,7 @@ import com.supplypilot.procurement.dto.request.RejectPurchaseOrderRequest;
 import com.supplypilot.procurement.dto.request.CancelPurchaseOrderRequest;
 import com.supplypilot.procurement.dto.request.UpdatePurchaseOrderRequest;
 import com.supplypilot.procurement.dto.request.UpdateSupplierPromisedDeliveryDateRequest;
+import com.supplypilot.procurement.dto.request.ReceivingInspectionRequest;
 import com.supplypilot.procurement.dto.response.PurchaseOrderResponse;
 import com.supplypilot.procurement.dto.response.ReceivingPurchaseOrderResponse;
 import com.supplypilot.procurement.service.PurchaseOrderService;
@@ -114,6 +115,22 @@ public class PurchaseOrderController {
     @PostMapping("/{id}/begin-receiving-inspection")
     public PurchaseOrderResponse beginReceivingInspection(@PathVariable Long id) {
         return purchaseOrderService.beginReceivingInspection(id);
+    }
+
+    @PutMapping("/{id}/receiving-inspection")
+    public PurchaseOrderResponse recordReceivingInspection(@PathVariable Long id,
+            @Valid @RequestBody ReceivingInspectionRequest request) {
+        return purchaseOrderService.recordReceivingInspection(id, request);
+    }
+
+    @PostMapping("/{id}/confirm-payment")
+    public PurchaseOrderResponse confirmPayment(@PathVariable Long id) {
+        return purchaseOrderService.confirmPayment(id);
+    }
+
+    @PostMapping("/{id}/revoke-payment-confirmation")
+    public PurchaseOrderResponse revokePaymentConfirmation(@PathVariable Long id) {
+        return purchaseOrderService.revokePaymentConfirmation(id);
     }
 
     @PostMapping("/{id}/claim")

@@ -8,6 +8,7 @@ import com.supplypilot.procurement.domain.PurchaseOrder;
 import com.supplypilot.procurement.domain.PurchaseOrderItem;
 import com.supplypilot.procurement.dto.response.PurchaseOrderItemResponse;
 import com.supplypilot.procurement.dto.response.PurchaseOrderResponse;
+import com.supplypilot.procurement.dto.response.ReceivingInspectionResponse;
 import com.supplypilot.user.domain.User;
 import org.springframework.stereotype.Component;
 
@@ -25,6 +26,10 @@ public class PurchaseOrderMapper {
                 purchaseOrder.getSupplier().getCode(), purchaseOrder.getSupplier().getName(), purchaseOrder.getStatus(),
                 purchaseOrder.getOrderedProgress(),
                 purchaseOrder.getExpectedDeliveryDate(), purchaseOrder.getSupplierPromisedDeliveryDate(),
+                receivingInspection(purchaseOrder), purchaseOrder.isPaymentConfirmed(),
+                purchaseOrder.getPaymentConfirmedByUserIdSnapshot(),
+                purchaseOrder.getPaymentConfirmedByDisplayNameSnapshot(),
+                purchaseOrder.getPaymentConfirmedByUsernameSnapshot(), purchaseOrder.getPaymentConfirmedAt(),
                 purchaseOrder.getItems().stream().map(this::toItemResponse).toList(),
                 purchaseOrder.getCreatedByUserIdSnapshot(), purchaseOrder.getCreatedByDisplayNameSnapshot(),
                 purchaseOrder.getCreatedByUsernameSnapshot(),
@@ -46,6 +51,14 @@ public class PurchaseOrderMapper {
                 userId(purchaseOrder.getAssignedTo()), userDisplayName(purchaseOrder.getAssignedTo()),
                 purchaseOrder.getAssignedTo() == null ? null : purchaseOrder.getAssignedTo().getUsername(),
                 isOverdue(purchaseOrder), purchaseOrder.getUpdatedAt());
+    }
+
+    private ReceivingInspectionResponse receivingInspection(PurchaseOrder purchaseOrder) {
+        return new ReceivingInspectionResponse(purchaseOrder.isInspectionAllItemsReceived(),
+                purchaseOrder.isInspectionAllQuantitiesConfirmed(), purchaseOrder.isInspectionAllQualityAccepted(),
+                purchaseOrder.getInspectionNote(), purchaseOrder.getInspectedByUserIdSnapshot(),
+                purchaseOrder.getInspectedByDisplayNameSnapshot(), purchaseOrder.getInspectedByUsernameSnapshot(),
+                purchaseOrder.getInspectedAt());
     }
 
     private boolean isOverdue(PurchaseOrder purchaseOrder) {

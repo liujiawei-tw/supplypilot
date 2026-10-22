@@ -28,6 +28,7 @@ import com.supplypilot.procurement.dto.request.RejectPurchaseOrderRequest;
 import com.supplypilot.procurement.dto.request.UpdatePurchaseOrderItemRequest;
 import com.supplypilot.procurement.dto.request.UpdatePurchaseOrderRequest;
 import com.supplypilot.procurement.dto.request.UpdateSupplierPromisedDeliveryDateRequest;
+import com.supplypilot.procurement.dto.request.ReceivingInspectionRequest;
 import com.supplypilot.procurement.dto.response.PurchaseOrderResponse;
 import com.supplypilot.procurement.mapper.PurchaseOrderMapper;
 import com.supplypilot.procurement.repository.PurchaseOrderRepository;
@@ -290,6 +291,34 @@ public class PurchaseOrderService {
         PurchaseOrder purchaseOrder = purchaseOrderRepository.findByIdForUpdate(id)
                 .orElseThrow(() -> new BusinessException(ErrorCode.PURCHASE_ORDER_NOT_FOUND));
         purchaseOrder.beginReceivingInspection(clock.instant());
+        return purchaseOrderMapper.toResponse(purchaseOrderRepository.saveAndFlush(purchaseOrder));
+    }
+
+    @Transactional
+    @PreAuthorize("hasRole('ADMIN')")
+    public PurchaseOrderResponse recordReceivingInspection(Long id, ReceivingInspectionRequest request) {
+        PurchaseOrder purchaseOrder = purchaseOrderRepository.findByIdForUpdate(id)
+                .orElseThrow(() -> new BusinessException(ErrorCode.PURCHASE_ORDER_NOT_FOUND));
+        purchaseOrder.recordReceivingInspection(request.allItemsReceived(), request.allQuantitiesConfirmed(),
+                request.allQualityAccepted(), request.note(), currentUser(), clock.instant());
+        return purchaseOrderMapper.toResponse(purchaseOrderRepository.saveAndFlush(purchaseOrder));
+    }
+
+    @Transactional
+    @PreAuthorize("hasRole('ADMIN')")
+    public PurchaseOrderResponse confirmPayment(Long id) {
+        PurchaseOrder purchaseOrder = purchaseOrderRepository.findByIdForUpdate(id)
+                .orElseThrow(() -> new BusinessException(ErrorCode.PURCHASE_ORDER_NOT_FOUND));
+        purchaseOrder.confirmPayment(currentUser(), clock.instant());
+        return purchaseOrderMapper.toResponse(purchaseOrderRepository.saveAndFlush(purchaseOrder));
+    }
+
+    @Transactional
+    @PreAuthorize("hasRole('ADMIN')")
+    public PurchaseOrderResponse revokePaymentConfirmation(Long id) {
+        PurchaseOrder purchaseOrder = purchaseOrderRepository.findByIdForUpdate(id)
+                .orElseThrow(() -> new BusinessException(ErrorCode.PURCHASE_ORDER_NOT_FOUND));
+        purchaseOrder.revokePaymentConfirmation(clock.instant());
         return purchaseOrderMapper.toResponse(purchaseOrderRepository.saveAndFlush(purchaseOrder));
     }
 

@@ -341,6 +341,9 @@ class PurchaseOrderTests {
                 TestDataConstants.TEST_INSTANT);
         Instant receivedAt = TestDataConstants.TEST_INSTANT.plusSeconds(60);
 
+        order.beginReceivingInspection(TestDataConstants.TEST_INSTANT.plusSeconds(40));
+        order.recordReceivingInspection(true, true, true, null, receiver, TestDataConstants.TEST_INSTANT.plusSeconds(50));
+
         order.receive(receiver, receivedAt);
 
         assertThat(order.getStatus()).isEqualTo(PurchaseOrderStatus.RECEIVED);
@@ -361,13 +364,16 @@ class PurchaseOrderTests {
             ReflectionTestUtils.setField(order, "status", status);
             assertThatThrownBy(() -> order.receive(user, TestDataConstants.TEST_INSTANT.plusSeconds(60)))
                     .isInstanceOf(BusinessException.class)
-                    .extracting("errorCode").isEqualTo(ErrorCode.INVALID_PO_STATUS);
+                    .extracting("errorCode").isEqualTo(status == PurchaseOrderStatus.ORDERED
+                            ? ErrorCode.RECEIVING_INSPECTION_INCOMPLETE : ErrorCode.INVALID_PO_STATUS);
             assertThat(order.getReceivedBy()).isNull();
             assertThat(order.getReceivedAt()).isNull();
         }
 
         PurchaseOrder received = approvedOrderWithDate(TestDataConstants.TEST_TODAY);
         received.markOrdered(user, TestDataConstants.TEST_INSTANT.plusSeconds(30));
+        received.beginReceivingInspection(TestDataConstants.TEST_INSTANT.plusSeconds(40));
+        received.recordReceivingInspection(true, true, true, null, user, TestDataConstants.TEST_INSTANT.plusSeconds(50));
         received.receive(user, TestDataConstants.TEST_INSTANT.plusSeconds(60));
         assertThatThrownBy(() -> received.receive(user, TestDataConstants.TEST_INSTANT.plusSeconds(90)))
                 .isInstanceOf(BusinessException.class)
