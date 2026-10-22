@@ -176,13 +176,22 @@ class PurchaseOrderReceivingIntegrationTests extends AbstractIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.receivingInspection.note").value("尚未到貨，尚未清點"));
 
+        recordInspection(admin, order.getId(), false, false, false, null).andExpect(status().isOk())
+                .andExpect(jsonPath("$.receivingInspection.allItemsReceived").value(false))
+                .andExpect(jsonPath("$.receivingInspection.allQuantitiesConfirmed").value(false))
+                .andExpect(jsonPath("$.receivingInspection.allQualityAccepted").value(false));
+        assertThat(jdbcTemplate.queryForObject(
+                "SELECT inspection_note FROM purchase_orders WHERE id = ?", String.class, order.getId())).isNull();
+        receive(admin, order.getId()).andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("RECEIVING_INSPECTION_INCOMPLETE"));
+
         for (boolean[] result : List.of(new boolean[] {false, true, true}, new boolean[] {true, false, true},
                 new boolean[] {true, true, false})) {
             recordInspection(admin, order.getId(), result[0], result[1], result[2], "驗收異常").andExpect(status().isOk());
             receive(admin, order.getId()).andExpect(status().isConflict())
                     .andExpect(jsonPath("$.code").value("RECEIVING_INSPECTION_INCOMPLETE"));
         }
-        recordInspection(admin, order.getId(), true, true, true, "").andExpect(status().isOk())
+        recordInspection(admin, order.getId(), true, true, true, null).andExpect(status().isOk())
                 .andExpect(jsonPath("$.receivingInspection.allItemsReceived").value(true))
                 .andExpect(jsonPath("$.receivingInspection.allQuantitiesConfirmed").value(true))
                 .andExpect(jsonPath("$.receivingInspection.allQualityAccepted").value(true))
@@ -211,6 +220,51 @@ class PurchaseOrderReceivingIntegrationTests extends AbstractIntegrationTest {
                 .andExpect(status().isConflict()).andExpect(jsonPath("$.code").value("INVALID_PO_STATUS_TRANSITION"));
         assertThat(quantity(material)).isEqualByComparingTo("30");
         assertThat(transactionCount(order.getId())).isEqualTo(1);
+    }
+
+    @Test
+    void rejectsIncompleteNullAndUnknownInspectionRequestsWithoutChangingAnyState() throws Exception {
+        Material material = material("INVALID-INSPECTION", "25");
+        PurchaseOrder order = orderedOrder(Map.of(material, "5"));
+        mockMvc.perform(post("/api/v1/purchase-orders/{id}/begin-receiving-inspection", order.getId())
+                        .header("Authorization", bearer(admin)))
+                .andExpect(status().isOk());
+        Map<String, Object> before = jdbcTemplate.queryForMap("""
+                SELECT status, ordered_progress, inspection_all_items_received,
+                       inspection_all_quantities_confirmed, inspection_all_quality_accepted, inspection_note,
+                       inspected_by, inspected_by_user_id_snapshot, inspected_by_username_snapshot,
+                       inspected_by_display_name_snapshot, inspected_at, updated_at, version
+                FROM purchase_orders WHERE id = ?
+                """, order.getId());
+        BigDecimal inventoryBefore = quantity(material);
+        int transactionsBefore = transactionCount(order.getId());
+        List<String> invalidBodies = List.of(
+                "{}",
+                "{\"allQuantitiesConfirmed\":true,\"allQualityAccepted\":true}",
+                "{\"allItemsReceived\":true,\"allQualityAccepted\":true}",
+                "{\"allItemsReceived\":true,\"allQuantitiesConfirmed\":true}",
+                "{\"allItemsReceived\":null,\"allQuantitiesConfirmed\":true,\"allQualityAccepted\":true}",
+                "{\"allItemsReceived\":true,\"allQuantitiesConfirmed\":null,\"allQualityAccepted\":true}",
+                "{\"allItemsReceived\":true,\"allQuantitiesConfirmed\":true,\"allQualityAccepted\":null}",
+                "{\"allItemsReceived\":true,\"allQuantitiesConfirmed\":true,"
+                        + "\"allQualityAccepted\":true,\"unknownStage\":\"RECEIVED\"}");
+
+        for (String body : invalidBodies) {
+            mockMvc.perform(put("/api/v1/purchase-orders/{id}/receiving-inspection", order.getId())
+                            .header("Authorization", bearer(admin)).contentType(MediaType.APPLICATION_JSON).content(body))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"));
+            Map<String, Object> after = jdbcTemplate.queryForMap("""
+                    SELECT status, ordered_progress, inspection_all_items_received,
+                           inspection_all_quantities_confirmed, inspection_all_quality_accepted, inspection_note,
+                           inspected_by, inspected_by_user_id_snapshot, inspected_by_username_snapshot,
+                           inspected_by_display_name_snapshot, inspected_at, updated_at, version
+                    FROM purchase_orders WHERE id = ?
+                    """, order.getId());
+            assertThat(after).isEqualTo(before);
+            assertThat(quantity(material)).isEqualByComparingTo(inventoryBefore);
+            assertThat(transactionCount(order.getId())).isEqualTo(transactionsBefore);
+        }
     }
 
     @Test
@@ -452,10 +506,11 @@ class PurchaseOrderReceivingIntegrationTests extends AbstractIntegrationTest {
 
     private ResultActions recordInspection(User actor, long purchaseOrderId, boolean arrived,
             boolean quantitiesConfirmed, boolean qualityAccepted, String note) throws Exception {
+        String noteJson = note == null ? "null" : "\"" + note + "\"";
         return mockMvc.perform(put("/api/v1/purchase-orders/{id}/receiving-inspection", purchaseOrderId)
                 .header("Authorization", bearer(actor)).contentType(MediaType.APPLICATION_JSON)
                 .content("{\"allItemsReceived\":" + arrived + ",\"allQuantitiesConfirmed\":" + quantitiesConfirmed
-                        + ",\"allQualityAccepted\":" + qualityAccepted + ",\"note\":\"" + note + "\"}"));
+                        + ",\"allQualityAccepted\":" + qualityAccepted + ",\"note\":" + noteJson + "}"));
     }
 
     private ResultActions receiveCancel(User actor, long purchaseOrderId, String reason) throws Exception {
