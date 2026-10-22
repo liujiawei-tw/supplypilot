@@ -1,26 +1,26 @@
 [INFO] Scanning for projects...
-[INFO] 
+[INFO]
 [INFO] ------------------< com.supplypilot:supply-pilot-api >------------------
 [INFO] Building supply-pilot-api 0.0.1-SNAPSHOT
 [INFO]   from pom.xml
 [INFO] --------------------------------[ jar ]---------------------------------
-[INFO] 
+[INFO]
 [INFO] --- resources:3.5.0:resources (default-resources) @ supply-pilot-api ---
 [INFO] Copying 5 resources from src\main\resources to target\classes
 [INFO] Copying 29 resources from src\main\resources to target\classes
-[INFO] 
+[INFO]
 [INFO] --- compiler:3.15.0:compile (default-compile) @ supply-pilot-api ---
 [INFO] Nothing to compile - all classes are up to date.
-[INFO] 
+[INFO]
 [INFO] --- resources:3.5.0:testResources (default-testResources) @ supply-pilot-api ---
 [INFO] Copying 3 resources from src\test\resources to target\test-classes
-[INFO] 
+[INFO]
 [INFO] --- compiler:3.15.0:testCompile (default-testCompile) @ supply-pilot-api ---
 [INFO] Nothing to compile - all classes are up to date.
-[INFO] 
+[INFO]
 [INFO] --- surefire:3.5.6:test (default-test) @ supply-pilot-api ---
 [INFO] Using auto detected provider org.apache.maven.surefire.junitplatform.JUnitPlatformProvider
-[INFO] 
+[INFO]
 [INFO] -------------------------------------------------------
 [INFO]  T E S T S
 [INFO] -------------------------------------------------------
@@ -306,12 +306,12 @@ java.lang.IllegalStateException: sensitive-internal-detail
 14:11:09.332 [main] INFO org.testcontainers.dockerclient.DockerClientProviderStrategy -- Loaded org.testcontainers.dockerclient.NpipeSocketClientProviderStrategy from ~/.testcontainers.properties, will try it first
 14:11:17.612 [main] INFO org.testcontainers.dockerclient.DockerClientProviderStrategy -- Found Docker environment with local Npipe socket (npipe:////./pipe/docker_engine)
 14:11:17.615 [main] INFO org.testcontainers.DockerClientFactory -- Docker host IP address is localhost
-14:11:17.635 [main] INFO org.testcontainers.DockerClientFactory -- Connected to docker: 
+14:11:17.635 [main] INFO org.testcontainers.DockerClientFactory -- Connected to docker:
   Server Version: 29.6.1
   API Version: 1.55
   Operating System: Docker Desktop
   Total Memory: 19902 MB
-  Labels: 
+  Labels:
     com.docker.desktop.address=npipe://\\.\pipe\docker_cli
 14:11:17.649 [main] INFO org.testcontainers.images.PullPolicy -- Image pull policy will be performed by: DefaultPullPolicy()
 14:11:17.652 [main] INFO org.testcontainers.utility.ImageNameSubstitutor -- Image name substitution will be performed by: DefaultImageNameSubstitutor (composite of 'ConfigurationFileImageNameSubstitutor' and 'PrefixingImageNameSubstitutor')
@@ -547,7 +547,7 @@ java.lang.IllegalStateException: sensitive-internal-detail
 2026-10-22T14:12:32.962+08:00  WARN 16936 --- [supply-pilot-api] [           main] s.c.a.AnnotationConfigApplicationContext : Exception encountered during context initialization - cancelling refresh attempt: org.springframework.beans.factory.BeanCreationException: Error creating bean with name 'entityManagerFactory' defined in class path resource [org/springframework/boot/hibernate/autoconfigure/HibernateJpaConfiguration.class]: Failed to initialize dependency 'flywayInitializer' of LoadTimeWeaverAware bean 'entityManagerFactory': Error creating bean with name 'flywayInitializer' defined in class path resource [org/springframework/boot/flyway/autoconfigure/FlywayAutoConfiguration$FlywayConfiguration.class]: Refusing Flyway migration because configured schema is not the allowed demo database: shared_flyway_schemas_target
 2026-10-22T14:12:32.962+08:00  INFO 16936 --- [supply-pilot-api] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-3 - Shutdown initiated...
 2026-10-22T14:12:32.965+08:00  INFO 16936 --- [supply-pilot-api] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-3 - Shutdown completed.
-2026-10-22T14:12:32.968+08:00  INFO 16936 --- [supply-pilot-api] [           main] .s.b.a.l.ConditionEvaluationReportLogger : 
+2026-10-22T14:12:32.968+08:00  INFO 16936 --- [supply-pilot-api] [           main] .s.b.a.l.ConditionEvaluationReportLogger :
 
 Error starting ApplicationContext. To display the condition evaluation report re-run your application with 'debug' enabled.
 2026-10-22T14:12:32.994+08:00 ERROR 16936 --- [supply-pilot-api] [           main] o.s.boot.SpringApplication               : Application run failed
@@ -688,7 +688,7 @@ Caused by: java.lang.IllegalStateException: Refusing Flyway migration because co
 2026-10-22T14:12:33.819+08:00  WARN 16936 --- [supply-pilot-api] [           main] s.c.a.AnnotationConfigApplicationContext : Exception encountered during context initialization - cancelling refresh attempt: org.springframework.beans.factory.BeanCreationException: Error creating bean with name 'entityManagerFactory' defined in class path resource [org/springframework/boot/hibernate/autoconfigure/HibernateJpaConfiguration.class]: Failed to initialize dependency 'flywayInitializer' of LoadTimeWeaverAware bean 'entityManagerFactory': Error creating bean with name 'flywayInitializer' defined in class path resource [org/springframework/boot/flyway/autoconfigure/FlywayAutoConfiguration$FlywayConfiguration.class]: Refusing Flyway migration because configured default schema is not the allowed demo database: shared_flyway_default_target
 2026-10-22T14:12:33.819+08:00  INFO 16936 --- [supply-pilot-api] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-4 - Shutdown initiated...
 2026-10-22T14:12:33.820+08:00  INFO 16936 --- [supply-pilot-api] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-4 - Shutdown completed.
-2026-10-22T14:12:33.826+08:00  INFO 16936 --- [supply-pilot-api] [           main] .s.b.a.l.ConditionEvaluationReportLogger : 
+2026-10-22T14:12:33.826+08:00  INFO 16936 --- [supply-pilot-api] [           main] .s.b.a.l.ConditionEvaluationReportLogger :
 
 Error starting ApplicationContext. To display the condition evaluation report re-run your application with 'debug' enabled.
 2026-10-22T14:12:33.826+08:00 ERROR 16936 --- [supply-pilot-api] [           main] o.s.boot.SpringApplication               : Application run failed
@@ -902,7 +902,7 @@ Caused by: java.lang.IllegalStateException: Refusing Flyway migration because co
 2026-10-22T14:12:44.800+08:00  WARN 16936 --- [supply-pilot-api] [           main] s.c.a.AnnotationConfigApplicationContext : Exception encountered during context initialization - cancelling refresh attempt: org.springframework.beans.factory.BeanCreationException: Error creating bean with name 'entityManagerFactory' defined in class path resource [org/springframework/boot/hibernate/autoconfigure/HibernateJpaConfiguration.class]: Failed to initialize dependency 'flywayInitializer' of LoadTimeWeaverAware bean 'entityManagerFactory': Error creating bean with name 'flywayInitializer' defined in class path resource [org/springframework/boot/flyway/autoconfigure/FlywayAutoConfiguration$FlywayConfiguration.class]: Refusing Flyway migration for unexpected MySQL database: shared_flyway_datasource_target
 2026-10-22T14:12:44.800+08:00  INFO 16936 --- [supply-pilot-api] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-6 - Shutdown initiated...
 2026-10-22T14:12:44.800+08:00  INFO 16936 --- [supply-pilot-api] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-6 - Shutdown completed.
-2026-10-22T14:12:44.802+08:00  INFO 16936 --- [supply-pilot-api] [           main] .s.b.a.l.ConditionEvaluationReportLogger : 
+2026-10-22T14:12:44.802+08:00  INFO 16936 --- [supply-pilot-api] [           main] .s.b.a.l.ConditionEvaluationReportLogger :
 
 Error starting ApplicationContext. To display the condition evaluation report re-run your application with 'debug' enabled.
 2026-10-22T14:12:44.802+08:00 ERROR 16936 --- [supply-pilot-api] [           main] o.s.boot.SpringApplication               : Application run failed
@@ -1042,7 +1042,7 @@ Caused by: java.lang.IllegalStateException: Refusing Flyway migration for unexpe
 2026-10-22T14:12:45.565+08:00  WARN 16936 --- [supply-pilot-api] [           main] s.c.a.AnnotationConfigApplicationContext : Exception encountered during context initialization - cancelling refresh attempt: org.springframework.beans.factory.BeanCreationException: Error creating bean with name 'entityManagerFactory' defined in class path resource [org/springframework/boot/hibernate/autoconfigure/HibernateJpaConfiguration.class]: Failed to initialize dependency 'flywayInitializer' of LoadTimeWeaverAware bean 'entityManagerFactory': Error creating bean with name 'flywayInitializer' defined in class path resource [org/springframework/boot/flyway/autoconfigure/FlywayAutoConfiguration$FlywayConfiguration.class]: Refusing Flyway migration because connection initialization SQL is not allowed for demo targets
 2026-10-22T14:12:45.565+08:00  INFO 16936 --- [supply-pilot-api] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-7 - Shutdown initiated...
 2026-10-22T14:12:45.566+08:00  INFO 16936 --- [supply-pilot-api] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-7 - Shutdown completed.
-2026-10-22T14:12:45.567+08:00  INFO 16936 --- [supply-pilot-api] [           main] .s.b.a.l.ConditionEvaluationReportLogger : 
+2026-10-22T14:12:45.567+08:00  INFO 16936 --- [supply-pilot-api] [           main] .s.b.a.l.ConditionEvaluationReportLogger :
 
 Error starting ApplicationContext. To display the condition evaluation report re-run your application with 'debug' enabled.
 2026-10-22T14:12:45.567+08:00 ERROR 16936 --- [supply-pilot-api] [           main] o.s.boot.SpringApplication               : Application run failed
@@ -1182,7 +1182,7 @@ Caused by: java.lang.IllegalStateException: Refusing Flyway migration because co
 2026-10-22T14:12:46.244+08:00  WARN 16936 --- [supply-pilot-api] [           main] s.c.a.AnnotationConfigApplicationContext : Exception encountered during context initialization - cancelling refresh attempt: org.springframework.beans.factory.BeanCreationException: Error creating bean with name 'entityManagerFactory' defined in class path resource [org/springframework/boot/hibernate/autoconfigure/HibernateJpaConfiguration.class]: Failed to initialize dependency 'flywayInitializer' of LoadTimeWeaverAware bean 'entityManagerFactory': Error creating bean with name 'flywayInitializer' defined in class path resource [org/springframework/boot/flyway/autoconfigure/FlywayAutoConfiguration$FlywayConfiguration.class]: The allowed MySQL database is not explicitly demo-isolated
 2026-10-22T14:12:46.244+08:00  INFO 16936 --- [supply-pilot-api] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-8 - Shutdown initiated...
 2026-10-22T14:12:46.245+08:00  INFO 16936 --- [supply-pilot-api] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-8 - Shutdown completed.
-2026-10-22T14:12:46.246+08:00  INFO 16936 --- [supply-pilot-api] [           main] .s.b.a.l.ConditionEvaluationReportLogger : 
+2026-10-22T14:12:46.246+08:00  INFO 16936 --- [supply-pilot-api] [           main] .s.b.a.l.ConditionEvaluationReportLogger :
 
 Error starting ApplicationContext. To display the condition evaluation report re-run your application with 'debug' enabled.
 2026-10-22T14:12:46.247+08:00 ERROR 16936 --- [supply-pilot-api] [           main] o.s.boot.SpringApplication               : Application run failed
@@ -1403,7 +1403,7 @@ Caused by: java.lang.IllegalStateException: The allowed MySQL database is not ex
 2026-10-22T14:13:09.043+08:00  WARN 16936 --- [supply-pilot-api] [           main] s.c.a.AnnotationConfigApplicationContext : Exception encountered during context initialization - cancelling refresh attempt: org.springframework.beans.factory.BeanCreationException: Error creating bean with name 'entityManagerFactory' defined in class path resource [org/springframework/boot/hibernate/autoconfigure/HibernateJpaConfiguration.class]: Failed to initialize dependency 'flywayInitializer' of LoadTimeWeaverAware bean 'entityManagerFactory': Error creating bean with name 'flywayInitializer' defined in class path resource [org/springframework/boot/flyway/autoconfigure/FlywayAutoConfiguration$FlywayConfiguration.class]: The allowed MySQL database is not explicitly demo-isolated
 2026-10-22T14:13:09.043+08:00  INFO 16936 --- [supply-pilot-api] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-10 - Shutdown initiated...
 2026-10-22T14:13:09.044+08:00  INFO 16936 --- [supply-pilot-api] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-10 - Shutdown completed.
-2026-10-22T14:13:09.045+08:00  INFO 16936 --- [supply-pilot-api] [           main] .s.b.a.l.ConditionEvaluationReportLogger : 
+2026-10-22T14:13:09.045+08:00  INFO 16936 --- [supply-pilot-api] [           main] .s.b.a.l.ConditionEvaluationReportLogger :
 
 Error starting ApplicationContext. To display the condition evaluation report re-run your application with 'debug' enabled.
 2026-10-22T14:13:09.046+08:00 ERROR 16936 --- [supply-pilot-api] [           main] o.s.boot.SpringApplication               : Application run failed
@@ -1555,7 +1555,7 @@ Caused by: java.lang.IllegalStateException: The allowed MySQL database is not ex
 2026-10-22T14:13:09.582+08:00  INFO 16936 --- [supply-pilot-api] [           main] o.a.maven.surefire.booter.ForkedBooter   : The following 1 profile is active: "demo"
 2026-10-22T14:13:09.588+08:00  INFO 16936 --- [supply-pilot-api] [           main] o.a.maven.surefire.booter.ForkedBooter   : Started ForkedBooter in 0.028 seconds (process running for 128.351)
 2026-10-22T14:13:09.589+08:00  WARN 16936 --- [supply-pilot-api] [           main] c.s.demo.DemoResetCommandRunner          : DEMO_RESET_COMMAND_START
-2026-10-22T14:13:09.590+08:00  INFO 16936 --- [supply-pilot-api] [           main] .s.b.a.l.ConditionEvaluationReportLogger : 
+2026-10-22T14:13:09.590+08:00  INFO 16936 --- [supply-pilot-api] [           main] .s.b.a.l.ConditionEvaluationReportLogger :
 
 Error starting ApplicationContext. To display the condition evaluation report re-run your application with 'debug' enabled.
 2026-10-22T14:13:09.591+08:00 ERROR 16936 --- [supply-pilot-api] [           main] o.s.boot.SpringApplication               : Application run failed
@@ -2250,7 +2250,7 @@ java.lang.AssertionError: Status expected:<200> but was:<409>
 2026-10-22T14:14:15.111+08:00  WARN 16936 --- [supply-pilot-api] [           main] s.c.a.AnnotationConfigApplicationContext : Exception encountered during context initialization - cancelling refresh attempt: org.springframework.beans.factory.BeanCreationException: Error creating bean with name 'entityManagerFactory' defined in class path resource [org/springframework/boot/hibernate/autoconfigure/HibernateJpaConfiguration.class]: Failed to initialize dependency 'flywayInitializer' of LoadTimeWeaverAware bean 'entityManagerFactory': Error creating bean with name 'flywayInitializer' defined in class path resource [org/springframework/boot/flyway/autoconfigure/FlywayAutoConfiguration$FlywayConfiguration.class]: Refusing demo initialization for unexpected MySQL database: supplypilot_demo_target_safety_test
 2026-10-22T14:14:15.111+08:00  INFO 16936 --- [supply-pilot-api] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-13 - Shutdown initiated...
 2026-10-22T14:14:15.111+08:00  INFO 16936 --- [supply-pilot-api] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-13 - Shutdown completed.
-2026-10-22T14:14:15.113+08:00  INFO 16936 --- [supply-pilot-api] [           main] .s.b.a.l.ConditionEvaluationReportLogger : 
+2026-10-22T14:14:15.113+08:00  INFO 16936 --- [supply-pilot-api] [           main] .s.b.a.l.ConditionEvaluationReportLogger :
 
 Error starting ApplicationContext. To display the condition evaluation report re-run your application with 'debug' enabled.
 2026-10-22T14:14:15.114+08:00 ERROR 16936 --- [supply-pilot-api] [           main] o.s.boot.SpringApplication               : Application run failed
@@ -2437,7 +2437,7 @@ Caused by: java.net.ConnectException: Connection refused: getsockopt
 2026-10-22T14:14:15.805+08:00  WARN 16936 --- [supply-pilot-api] [           main] s.c.a.AnnotationConfigApplicationContext : Exception encountered during context initialization - cancelling refresh attempt: org.springframework.beans.factory.BeanCreationException: Error creating bean with name 'entityManagerFactory' defined in class path resource [org/springframework/boot/hibernate/autoconfigure/HibernateJpaConfiguration.class]: Failed to initialize dependency 'flywayInitializer' of LoadTimeWeaverAware bean 'entityManagerFactory': Error creating bean with name 'flywayInitializer' defined in class path resource [org/springframework/boot/flyway/autoconfigure/FlywayAutoConfiguration$FlywayConfiguration.class]: Refusing demo initialization for a document storage path not identified as demo
 2026-10-22T14:14:15.805+08:00  INFO 16936 --- [supply-pilot-api] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-14 - Shutdown initiated...
 2026-10-22T14:14:15.806+08:00  INFO 16936 --- [supply-pilot-api] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-14 - Shutdown completed.
-2026-10-22T14:14:15.807+08:00  INFO 16936 --- [supply-pilot-api] [           main] .s.b.a.l.ConditionEvaluationReportLogger : 
+2026-10-22T14:14:15.807+08:00  INFO 16936 --- [supply-pilot-api] [           main] .s.b.a.l.ConditionEvaluationReportLogger :
 
 Error starting ApplicationContext. To display the condition evaluation report re-run your application with 'debug' enabled.
 2026-10-22T14:14:15.808+08:00 ERROR 16936 --- [supply-pilot-api] [           main] o.s.boot.SpringApplication               : Application run failed
@@ -5778,7 +5778,7 @@ MockHttpServletResponse:
     Error message = null
           Headers = [Vary:"Origin", "Access-Control-Request-Method", "Access-Control-Request-Headers", X-Content-Type-Options:"nosniff", X-XSS-Protection:"0", Cache-Control:"no-cache, no-store, max-age=0, must-revalidate", Pragma:"no-cache", Expires:"0", X-Frame-Options:"DENY"]
      Content type = null
-             Body = 
+             Body =
     Forwarded URL = null
    Redirected URL = null
           Cookies = []
@@ -5815,7 +5815,7 @@ MockHttpServletResponse:
     Error message = null
           Headers = [Vary:"Origin", "Access-Control-Request-Method", "Access-Control-Request-Headers", X-Content-Type-Options:"nosniff", X-XSS-Protection:"0", Cache-Control:"no-cache, no-store, max-age=0, must-revalidate", Pragma:"no-cache", Expires:"0", X-Frame-Options:"DENY"]
      Content type = null
-             Body = 
+             Body =
     Forwarded URL = null
    Redirected URL = null
           Cookies = []
@@ -5890,7 +5890,7 @@ MockHttpServletResponse:
     Error message = null
           Headers = [Vary:"Origin", "Access-Control-Request-Method", "Access-Control-Request-Headers", X-Content-Type-Options:"nosniff", X-XSS-Protection:"0", Cache-Control:"no-cache, no-store, max-age=0, must-revalidate", Pragma:"no-cache", Expires:"0", X-Frame-Options:"DENY"]
      Content type = null
-             Body = 
+             Body =
     Forwarded URL = null
    Redirected URL = null
           Cookies = []
@@ -5927,7 +5927,7 @@ MockHttpServletResponse:
     Error message = null
           Headers = [Vary:"Origin", "Access-Control-Request-Method", "Access-Control-Request-Headers", X-Content-Type-Options:"nosniff", X-XSS-Protection:"0", Cache-Control:"no-cache, no-store, max-age=0, must-revalidate", Pragma:"no-cache", Expires:"0", X-Frame-Options:"DENY"]
      Content type = null
-             Body = 
+             Body =
     Forwarded URL = null
    Redirected URL = null
           Cookies = []
@@ -6002,7 +6002,7 @@ MockHttpServletResponse:
     Error message = null
           Headers = [Vary:"Origin", "Access-Control-Request-Method", "Access-Control-Request-Headers", X-Content-Type-Options:"nosniff", X-XSS-Protection:"0", Cache-Control:"no-cache, no-store, max-age=0, must-revalidate", Pragma:"no-cache", Expires:"0", X-Frame-Options:"DENY"]
      Content type = null
-             Body = 
+             Body =
     Forwarded URL = null
    Redirected URL = null
           Cookies = []
@@ -6039,7 +6039,7 @@ MockHttpServletResponse:
     Error message = null
           Headers = [Vary:"Origin", "Access-Control-Request-Method", "Access-Control-Request-Headers", X-Content-Type-Options:"nosniff", X-XSS-Protection:"0", Cache-Control:"no-cache, no-store, max-age=0, must-revalidate", Pragma:"no-cache", Expires:"0", X-Frame-Options:"DENY"]
      Content type = null
-             Body = 
+             Body =
     Forwarded URL = null
    Redirected URL = null
           Cookies = []
@@ -6114,7 +6114,7 @@ MockHttpServletResponse:
     Error message = null
           Headers = [Vary:"Origin", "Access-Control-Request-Method", "Access-Control-Request-Headers", X-Content-Type-Options:"nosniff", X-XSS-Protection:"0", Cache-Control:"no-cache, no-store, max-age=0, must-revalidate", Pragma:"no-cache", Expires:"0", X-Frame-Options:"DENY"]
      Content type = null
-             Body = 
+             Body =
     Forwarded URL = null
    Redirected URL = null
           Cookies = []
@@ -6151,7 +6151,7 @@ MockHttpServletResponse:
     Error message = null
           Headers = [Vary:"Origin", "Access-Control-Request-Method", "Access-Control-Request-Headers", X-Content-Type-Options:"nosniff", X-XSS-Protection:"0", Cache-Control:"no-cache, no-store, max-age=0, must-revalidate", Pragma:"no-cache", Expires:"0", X-Frame-Options:"DENY"]
      Content type = null
-             Body = 
+             Body =
     Forwarded URL = null
    Redirected URL = null
           Cookies = []
@@ -6226,7 +6226,7 @@ MockHttpServletResponse:
     Error message = null
           Headers = [Vary:"Origin", "Access-Control-Request-Method", "Access-Control-Request-Headers", X-Content-Type-Options:"nosniff", X-XSS-Protection:"0", Cache-Control:"no-cache, no-store, max-age=0, must-revalidate", Pragma:"no-cache", Expires:"0", X-Frame-Options:"DENY"]
      Content type = null
-             Body = 
+             Body =
     Forwarded URL = null
    Redirected URL = null
           Cookies = []
@@ -6263,7 +6263,7 @@ MockHttpServletResponse:
     Error message = null
           Headers = [Vary:"Origin", "Access-Control-Request-Method", "Access-Control-Request-Headers", X-Content-Type-Options:"nosniff", X-XSS-Protection:"0", Cache-Control:"no-cache, no-store, max-age=0, must-revalidate", Pragma:"no-cache", Expires:"0", X-Frame-Options:"DENY"]
      Content type = null
-             Body = 
+             Body =
     Forwarded URL = null
    Redirected URL = null
           Cookies = []
@@ -6338,7 +6338,7 @@ MockHttpServletResponse:
     Error message = null
           Headers = [Vary:"Origin", "Access-Control-Request-Method", "Access-Control-Request-Headers", X-Content-Type-Options:"nosniff", X-XSS-Protection:"0", Cache-Control:"no-cache, no-store, max-age=0, must-revalidate", Pragma:"no-cache", Expires:"0", X-Frame-Options:"DENY"]
      Content type = null
-             Body = 
+             Body =
     Forwarded URL = null
    Redirected URL = null
           Cookies = []
@@ -6375,7 +6375,7 @@ MockHttpServletResponse:
     Error message = null
           Headers = [Vary:"Origin", "Access-Control-Request-Method", "Access-Control-Request-Headers", X-Content-Type-Options:"nosniff", X-XSS-Protection:"0", Cache-Control:"no-cache, no-store, max-age=0, must-revalidate", Pragma:"no-cache", Expires:"0", X-Frame-Options:"DENY"]
      Content type = null
-             Body = 
+             Body =
     Forwarded URL = null
    Redirected URL = null
           Cookies = []
@@ -7038,10 +7038,10 @@ Caused by: java.net.ConnectException: Connection refused: getsockopt
 [INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.135 s -- in com.supplypilot.user.repository.UserRepositoryTests
 [INFO] Running com.supplypilot.user.service.UserServiceTests
 [INFO] Tests run: 15, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.474 s -- in com.supplypilot.user.service.UserServiceTests
-[INFO] 
+[INFO]
 [INFO] Results:
-[INFO] 
-[ERROR] Failures: 
+[INFO]
+[ERROR] Failures:
 [ERROR]   DemoSeedSmokeIntegrationTests.runsRecommendationDraftApproveOrderReceiveThroughRealApisAndPreservesAudit:316 Status expected:<200> but was:<409>
 [ERROR]   StockTransactionControllerIntegrationTests.setUp:92->createAndReceivePurchaseOrder:308 Status expected:<200> but was:<409>
 [ERROR]   StockTransactionControllerIntegrationTests.setUp:92->createAndReceivePurchaseOrder:308 Status expected:<200> but was:<409>
@@ -7049,9 +7049,9 @@ Caused by: java.net.ConnectException: Connection refused: getsockopt
 [ERROR]   StockTransactionControllerIntegrationTests.setUp:92->createAndReceivePurchaseOrder:308 Status expected:<200> but was:<409>
 [ERROR]   StockTransactionControllerIntegrationTests.setUp:92->createAndReceivePurchaseOrder:308 Status expected:<200> but was:<409>
 [ERROR]   StockTransactionControllerIntegrationTests.setUp:92->createAndReceivePurchaseOrder:308 Status expected:<200> but was:<409>
-[INFO] 
+[INFO]
 [ERROR] Tests run: 682, Failures: 7, Errors: 0, Skipped: 1
-[INFO] 
+[INFO]
 [INFO] ------------------------------------------------------------------------
 [INFO] BUILD FAILURE
 [INFO] ------------------------------------------------------------------------
@@ -7059,13 +7059,13 @@ Caused by: java.net.ConnectException: Connection refused: getsockopt
 [INFO] Finished at: 2026-10-22T14:20:00+08:00
 [INFO] ------------------------------------------------------------------------
 [ERROR] Failed to execute goal org.apache.maven.plugins:maven-surefire-plugin:3.5.6:test (default-test) on project supply-pilot-api: There are test failures.
-[ERROR] 
+[ERROR]
 [ERROR] See C:\Users\z0976\OneDrive\�ୱ\dev-side\supplypilot\.worktrees\issue-141-v2-204\backend\target\surefire-reports for the individual test results.
 [ERROR] See dump files (if any exist) [date].dump, [date]-jvmRun[N].dump and [date].dumpstream.
 [ERROR] -> [Help 1]
-[ERROR] 
+[ERROR]
 [ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.
 [ERROR] Re-run Maven using the -X switch to enable full debug logging.
-[ERROR] 
+[ERROR]
 [ERROR] For more information about the errors and possible solutions, please read the following articles:
 [ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoFailureException
