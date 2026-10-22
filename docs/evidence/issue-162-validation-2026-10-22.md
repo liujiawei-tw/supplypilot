@@ -122,3 +122,29 @@ GPT 對 `8fa5b99727d7ad8550498ff7c86388e72f8f29b8` 的實際判定為 **CHANGES 
 | #160、#142、#143 | 維持暫停；本輪未修改、測試或 Resume |
 
 本輪程式與測試修改已完成，待 commit/push 並核對 local／remote Head SHA 後，沿用使用者已核對的同一 GPT Relay Conversation URL 發起正式 review。完整 Gate 尚未通過，因此不得宣稱可建立 PR。
+
+## 第六輪 GPT Review Findings 與修正（2026-10-23）
+
+GPT Relay 沿用同一 Conversation URL 審查確切 Head 947e49c41d113c6a0f0a9fa148dab2d0e997cff3，並核對遠端 branch HEAD 完全相符、Base main 為 9240d6aeeba2361476a0454ac965a214769638a0、Issue #162 Open、Ahead 10／Behind 0。GPT 的單一整體 verdict 為 **CHANGES REQUIRED**。完整 Findings 與 GitHub 核對摘要保存於 [GPT Review 947e49c](issue-162-gpt-review-947e49c-2026-10-23.md)。
+
+- P1-13 與 P1-14：GPT 確認已修正。
+- P1-15：state_resume() 與 FULL_GATE_PENDING 仍可能信任呼叫端的契約 PASS/版本欄位，未核對持久化 Issue State 的契約驗證狀態與版本一致性。
+- P1-16：GPT Final Pass 證據的 SHA 檢查仍為全文包含，缺少獨立、未引用的精確 Reviewed SHA 行，且未拒絕互相矛盾的 SHA。
+- P1-12B 補充：Full Gate 執行前核對 manifest/runner digest，但結束後只再核對 manifest；GPT 未提供 FULL_GATE_MANIFEST_REVIEW: PASS 子項標記。
+
+僅針對以上 #162 範圍完成修正：新增共用持久化契約驗證 predicate，Resume 與 Full Gate eligibility 都重新檢查 State；Final Pass 要求唯一一致的非引用／非 code fence 40 位 Reviewed SHA 行；Full Gate 執行前後核對 manifest 與 runner digest，runner 變更會以失敗退出且不記錄 PASS。同步 implement-spec 狀態機、測試政策及 GPT Review handoff 規則。
+
+| 驗證 | 結果 |
+| --- | --- |
+| 精準 P1-15／P1-16／runner 回歸 | **PASS**：8/8，9.581 秒 |
+| 完整 StateTests | **PASS**：52/52，101.045 秒 |
+| 完整 GateTests | **PASS**：5/5 |
+| 完整 Orchestrator 單次模組 | **INTERRUPTED / NOT PASS**：在 linked-worktree resource 測試的 git init -b main 收到 KeyboardInterrupt |
+| Linked-worktree resource 隔離測試 | **PASS**：1/1，0.649 秒 |
+| 中斷後剩餘五個 ResourceTests | 測試輸出顯示 5/5 OK，但命令 runner 兩次回報 exit code 1；記為 **INDETERMINATE**，不宣稱 PASS |
+| Python compileall／git diff --check | **PASS** |
+| 完整本機 CI 等價 Gate | **BLOCKED / NOT RUN**：SP-806 Vitest 歷史 208/210 與 host 缺 Python 3.12；本輪未重跑完整 Gate |
+| GPT verdict／manifest 子項／PR | 整體 **CHANGES REQUIRED**；GPT 未給 manifest 子項 PASS，沒有 Final Pass，不具 PR 資格；未建立 PR、未 Merge |
+| GitHub Actions／其他暫停 Issue | Actions 由使用者暫停；#160、#142、#143 維持暫停，未修改、測試或 Resume |
+
+本輪程式修正與文件同步完成後仍須在同一 feature branch Commit／Push、核對新 local／remote Head SHA，並透過同一 GPT Relay 對話重新審查。不得將精準回歸、資源測試部分結果或 manifest 子項信任等同完整 Gate／整體 Final Pass。

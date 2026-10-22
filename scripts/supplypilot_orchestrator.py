@@ -556,9 +556,7 @@ def _verify_code_gate(state: dict[str, Any], record: dict[str, Any], *,
         raise PolicyError("Code Gate is stale because origin/main differs from the recorded main SHA.")
     if record.get("base_sha") != main_sha or record.get("base_status", "CURRENT") != "CURRENT":
         raise PolicyError("Code Gate is blocked until the Issue branch is integrated with current main.")
-    contract_version = record.get("contract_version")
-    if (record.get("contract_verified") is not True or not isinstance(contract_version, str)
-            or not contract_version or record.get("verified_contract_version") != contract_version):
+    if not _record_contract_verified(record):
         raise PolicyError("Code Gate requires a current, verified contract version.")
 
     snapshot = capture_worktree(root)
@@ -665,11 +663,23 @@ def _review_lines(content: str) -> list[str]:
 
 def _has_positive_final_verdict(content: str, reviewed_sha: str) -> bool:
     lines = _review_lines(content)
+    reviewed_shas = [match.group(1) for line in lines
+                     if (match := re.fullmatch(r"Reviewed SHA:\s*([0-9a-fA-F]{40})", line,
+                                               re.IGNORECASE))]
     verdicts = [re.sub(r"^Verdict:\s*", "", line, flags=re.IGNORECASE).upper()
                 for line in lines
                 if re.fullmatch(r"(?:Verdict:\s*)?(?:FINAL PASS|CHANGES REQUIRED|NO FINAL PASS|BLOCKED)",
                                 line, re.IGNORECASE)]
-    return reviewed_sha in content and bool(verdicts) and verdicts[-1] == "FINAL PASS"
+    exact_sha = (bool(reviewed_shas) and re.fullmatch(r"[0-9a-fA-F]{40}", reviewed_sha)
+                 and all(value.casefold() == reviewed_sha.casefold() for value in reviewed_shas))
+    return bool(exact_sha and verdicts and verdicts[-1] == "FINAL PASS")
+
+
+def _record_contract_verified(record: dict[str, Any]) -> bool:
+    contract_version = record.get("contract_version")
+    return (record.get("contract_verified") is True
+            and isinstance(contract_version, str) and bool(contract_version.strip())
+            and record.get("verified_contract_version") == contract_version)
 
 
 def _trusted_full_gate_manifest_valid(trusted: Any, root: Path, current_head: str) -> bool:
@@ -976,6 +986,8 @@ def state_resume(path: Path, number: int, authorized_issue: int, fingerprint: st
             raise PolicyError("Worktree identity or WIP changed since adoption; re-adopt before resuming.")
         if record.get("base_sha") != state.get("main_sha"):
             raise PolicyError("Adopted worktree base is stale; re-evaluate dependencies and base first.")
+        if not _record_contract_verified(record):
+            raise PolicyError("Resume requires the persisted Issue contract to be verified at its current version.")
         if _verified_remote_main_sha() != state.get("main_sha"):
             raise PolicyError("origin/main advanced since the recorded base; synchronize main before resuming.")
         _verify_feature_contains_main({**record, "head_sha": adoption.get("head")}, state["main_sha"])
@@ -1042,9 +1054,7 @@ def _transition_record(record: dict[str, Any], target: str,
     elif target == "FULL_GATE_PENDING":
         if evidence.get("dependencies_merged") is not True:
             raise PolicyError("FULL_GATE_PENDING requires verified merged/closed dependencies.")
-        if (evidence.get("current_main_sha") != main_sha or evidence.get("contract_verified") is not True
-                or evidence.get("contract_version") != record.get("contract_version")
-                or evidence.get("verified_contract_version") != record.get("contract_version")):
+        if evidence.get("current_main_sha") != main_sha or not _record_contract_verified(record):
             raise PolicyError("FULL_GATE_PENDING requires current main and verified API/schema contracts.")
         record["base_sha"] = main_sha
     elif target == "WAITING_GPT_REVIEW":
@@ -1774,7 +1784,9 @@ def _verify_gate_artifacts(record: dict[str, Any], evidence: dict[str, Any],
     started_at = dt.datetime.now(dt.timezone.utc).isoformat()
     try:
         if target == "FULL_GATE_VERIFIED":
-            result = _execute_full_gate(root, int(record["number"]), shared_state_dir(), manifest_sha256)
+            result = _execute_full_gate(
+                root, int(record["number"]), shared_state_dir(), manifest_sha256,
+                trusted_manifest["runner_sha256"].lower())
         else:
             result = _execute_gate_command(prepared_command, root, int(record["number"]), shared_state_dir())
     except OSError as exc:
@@ -1806,20 +1818,31 @@ def _verify_gate_artifacts(record: dict[str, Any], evidence: dict[str, Any],
 
 
 def _execute_full_gate(root: Path, issue: int, state_dir: Path,
-                       expected_manifest_sha256: str | None = None) -> subprocess.CompletedProcess[str]:
+                       expected_manifest_sha256: str | None = None,
+                       expected_runner_sha256: str | None = None) -> subprocess.CompletedProcess[str]:
     manifest = root / "scripts" / "supplypilot_full_gate.py"
+    runner = root / "scripts" / "supplypilot_orchestrator.py"
     if (not isinstance(expected_manifest_sha256, str)
             or not re.fullmatch(r"[0-9a-fA-F]{64}", expected_manifest_sha256)
+            or not isinstance(expected_runner_sha256, str)
+            or not re.fullmatch(r"[0-9a-fA-F]{64}", expected_runner_sha256)
             or not manifest.is_file()
-            or hashlib.sha256(manifest.read_bytes()).hexdigest() != expected_manifest_sha256.lower()):
-        raise PolicyError("Full Gate manifest differs from its independently reviewed trust baseline.")
+            or not runner.is_file()
+            or hashlib.sha256(manifest.read_bytes()).hexdigest() != expected_manifest_sha256.lower()
+            or hashlib.sha256(runner.read_bytes()).hexdigest() != expected_runner_sha256.lower()):
+        raise PolicyError("Full Gate manifest or runner differs from its independently reviewed trust baseline.")
     command = [sys.executable, str(root / "scripts" / "supplypilot_full_gate.py")]
     with _resource_lock("docker", issue, command, state_dir):
         result = subprocess.run(command, cwd=root, check=False, stdout=subprocess.PIPE,
                                 stderr=subprocess.STDOUT, text=True, encoding="utf-8", errors="replace")
-        actual = hashlib.sha256(manifest.read_bytes()).hexdigest()
-        if actual != expected_manifest_sha256.lower():
-            return subprocess.CompletedProcess(command, 125, result.stdout + "\nFull Gate manifest changed during execution.\n")
+        actual_manifest = hashlib.sha256(manifest.read_bytes()).hexdigest()
+        actual_runner = hashlib.sha256(runner.read_bytes()).hexdigest()
+        if actual_manifest != expected_manifest_sha256.lower():
+            return subprocess.CompletedProcess(
+                command, 125, result.stdout + "\nFull Gate manifest changed during execution.\n")
+        if actual_runner != expected_runner_sha256.lower():
+            return subprocess.CompletedProcess(
+                command, 125, result.stdout + "\nFull Gate runner changed during execution.\n")
         return result
 
 

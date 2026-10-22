@@ -274,13 +274,23 @@ class GateTests(unittest.TestCase):
             self.assertIn("does not record GPT_FINAL_PASS", message)
 
     def test_final_pass_attestation_rejects_negative_or_quoted_verdict(self):
+        sha = "a" * 40
         for content in (
-            "Reviewed SHA: abc\nCHANGES REQUIRED\nNO FINAL PASS\n",
-            "Reviewed SHA: abc\n> FINAL PASS\n",
-            "Reviewed SHA: abc\n```text\nFINAL PASS\n```\n",
+            f"Reviewed SHA: {sha}\nCHANGES REQUIRED\nNO FINAL PASS\n",
+            f"Reviewed SHA: {sha}\n> FINAL PASS\n",
+            f"Reviewed SHA: {sha}\n```text\nFINAL PASS\n```\n",
         ):
             with self.subTest(content=content):
-                self.assertFalse(orch._has_positive_final_verdict(content, "abc"))
+                self.assertFalse(orch._has_positive_final_verdict(content, sha))
+
+    def test_final_pass_requires_one_consistent_unquoted_exact_reviewed_sha(self):
+        expected, other = "a" * 40, "b" * 40
+        self.assertTrue(orch._has_positive_final_verdict(
+            f"Reviewed SHA: {expected}\nFINAL PASS\n", expected))
+        self.assertFalse(orch._has_positive_final_verdict(
+            f"> Reviewed SHA: {expected}\nReviewed SHA: {other}\nFINAL PASS\n", expected))
+        self.assertFalse(orch._has_positive_final_verdict(
+            f"Reviewed SHA: {other}\nReviewed SHA: {expected}\nFINAL PASS\n", expected))
 
 
 class ResourceTests(unittest.TestCase):
@@ -1394,12 +1404,15 @@ class StateTests(unittest.TestCase):
             manifest = Path(temp) / "scripts" / "supplypilot_full_gate.py"
             manifest.parent.mkdir(parents=True)
             manifest.write_text("# trusted isolated manifest\n", encoding="utf-8")
+            runner = manifest.with_name("supplypilot_orchestrator.py")
+            runner.write_text("# trusted isolated runner\n", encoding="utf-8")
             digest = hashlib.sha256(manifest.read_bytes()).hexdigest()
+            runner_digest = hashlib.sha256(runner.read_bytes()).hexdigest()
             def assert_locked(*args, **kwargs):
                 self.assertTrue(lock_dir.is_dir())
                 return Mock(returncode=0, stdout="FULL GATE PASS")
             with patch.object(orch.subprocess, "run", side_effect=assert_locked) as run:
-                result = orch._execute_full_gate(Path(temp), 162, state_dir, digest)
+                result = orch._execute_full_gate(Path(temp), 162, state_dir, digest, runner_digest)
             self.assertEqual(0, result.returncode)
             self.assertFalse((state_dir / "locks" / "high-load.lock").exists())
             command = run.call_args.args[0]
@@ -1411,12 +1424,36 @@ class StateTests(unittest.TestCase):
             manifest = root / "scripts" / "supplypilot_full_gate.py"
             manifest.parent.mkdir()
             manifest.write_text("reviewed manifest\n", encoding="utf-8")
+            runner = manifest.with_name("supplypilot_orchestrator.py")
+            runner.write_text("reviewed runner\n", encoding="utf-8")
             digest = hashlib.sha256(manifest.read_bytes()).hexdigest()
+            runner_digest = hashlib.sha256(runner.read_bytes()).hexdigest()
             manifest.write_text("feature-branch replacement that only prints PASS\n", encoding="utf-8")
             with patch.object(orch.subprocess, "run") as run:
-                with self.assertRaisesRegex(orch.PolicyError, "differs from its independently reviewed"):
-                    orch._execute_full_gate(root, 162, root / "state", digest)
+                with self.assertRaisesRegex(orch.PolicyError, "manifest or runner differs from its independently reviewed"):
+                    orch._execute_full_gate(root, 162, root / "state", digest, runner_digest)
             run.assert_not_called()
+
+    def test_full_gate_detects_runner_changed_during_execution(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            manifest = root / "scripts" / "supplypilot_full_gate.py"
+            manifest.parent.mkdir(parents=True)
+            manifest.write_text("reviewed manifest\n", encoding="utf-8")
+            runner = manifest.with_name("supplypilot_orchestrator.py")
+            runner.write_text("reviewed runner\n", encoding="utf-8")
+            manifest_digest = hashlib.sha256(manifest.read_bytes()).hexdigest()
+            runner_digest = hashlib.sha256(runner.read_bytes()).hexdigest()
+
+            def replace_runner(*_args, **_kwargs):
+                runner.write_text("changed while Full Gate was running\n", encoding="utf-8")
+                return Mock(returncode=0, stdout="FULL GATE PASS")
+
+            with patch.object(orch.subprocess, "run", side_effect=replace_runner):
+                result = orch._execute_full_gate(
+                    root, 162, root / "state", manifest_digest, runner_digest)
+            self.assertEqual(125, result.returncode)
+            self.assertIn("Full Gate runner changed during execution", result.stdout)
 
     def _git(self, path, *args):
         return subprocess.run(["git", "-C", str(path), *args], check=True,
@@ -1440,7 +1477,8 @@ class StateTests(unittest.TestCase):
     def _adoption_record(self, worktree, number=42):
         return {"number": number, "dependencies": [], "base_sha": self._git(worktree, "rev-parse", "HEAD"),
                 "branch": f"codex/issue-{number}-existing", "worktree": str(worktree),
-                "contract_version": "v1", "owned_files": ["tracked.txt"]}
+                "contract_version": "v1", "contract_verified": True,
+                "verified_contract_version": "v1", "owned_files": ["tracked.txt"]}
 
     def _provisional_resume_fixture(self, temp, include_contract=True):
         root = Path(temp)
@@ -1510,6 +1548,43 @@ class StateTests(unittest.TestCase):
                     patch.object(orch, "_verify_feature_base", return_value={}):
                 with self.assertRaisesRegex(orch.PolicyError, "not verified MERGED"):
                     orch.state_transition(path, 42, "FULL_GATE_PENDING", {})
+
+    def test_resume_requires_persisted_current_contract_verification(self):
+        for contract_state in (
+            {"contract_verified": False, "verified_contract_version": "v1"},
+            {"contract_verified": True, "verified_contract_version": "stale"},
+        ):
+            with self.subTest(contract_state=contract_state), tempfile.TemporaryDirectory() as temp:
+                path, _upstream, _downstream, _source_sha, base_sha, fingerprint = \
+                    self._provisional_resume_fixture(temp)
+                state = orch.read_json(path)
+                state["issues"]["42"].update(contract_state)
+                orch.atomic_write_json(path, state)
+                with patch.object(orch, "_verified_remote_main_sha", return_value=base_sha):
+                    with self.assertRaisesRegex(orch.PolicyError, "persisted Issue contract"):
+                        orch.state_resume(path, 42, 42, fingerprint, code_gate_pass=True)
+                self.assertEqual("BLOCKED_DEPENDENCY",
+                                 orch.read_json(path)["issues"]["42"]["implementation_state"])
+
+    def test_full_gate_pending_rejects_unverified_persisted_contract_despite_caller_claim(self):
+        with tempfile.TemporaryDirectory() as temp:
+            path = self._make_state(temp)
+            state = orch.read_json(path)
+            record = state["issues"]["9"]
+            record["implementation_state"] = "TARGETED_VERIFIED"
+            record["contract_verified"] = False
+            orch.atomic_write_json(path, state)
+            evidence = {"dependencies_merged": True, "current_main_sha": self._state_base_sha,
+                        "contract_verified": True, "contract_version": "v1",
+                        "verified_contract_version": "v1"}
+            with patch.object(orch, "_verify_feature_base", return_value={
+                    "verified_worktree_branch": self._state_branch,
+                    "verified_worktree_head": self._state_head,
+                    "verified_base_main_sha": self._state_base_sha}):
+                with self.assertRaisesRegex(orch.PolicyError, "verified API/schema contracts"):
+                    orch.state_transition(path, 9, "FULL_GATE_PENDING", evidence)
+            self.assertEqual("TARGETED_VERIFIED",
+                             orch.read_json(path)["issues"]["9"]["implementation_state"])
 
     def test_resume_rechecks_overlapping_active_issue_file_owner(self):
         with tempfile.TemporaryDirectory() as temp:
