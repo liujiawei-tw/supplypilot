@@ -52,6 +52,9 @@ public class PurchaseOrder {
     @Column(name = "expected_delivery_date")
     private LocalDate expectedDeliveryDate;
 
+    @Column(name = "supplier_promised_delivery_date")
+    private LocalDate supplierPromisedDeliveryDate;
+
     @Column(name = "reject_reason", columnDefinition = "TEXT")
     private String rejectReason;
 
@@ -231,6 +234,14 @@ public class PurchaseOrder {
         updatedAt = validatedNow;
     }
 
+    public void updateSupplierPromisedDeliveryDate(LocalDate supplierPromisedDeliveryDate, Instant now) {
+        if (status != PurchaseOrderStatus.APPROVED && status != PurchaseOrderStatus.ORDERED) {
+            throw new BusinessException(ErrorCode.INVALID_PO_STATUS_TRANSITION);
+        }
+        this.supplierPromisedDeliveryDate = supplierPromisedDeliveryDate;
+        updatedAt = Objects.requireNonNull(now, "Timestamp must not be null");
+    }
+
     public void reject(String reason, User rejector, Instant now) {
         assertDraftTransitionTo(PurchaseOrderStatus.REJECTED);
         if (reason == null || reason.trim().isEmpty()) {
@@ -387,6 +398,7 @@ public class PurchaseOrder {
     public Supplier getSupplier() { return supplier; }
     public PurchaseOrderStatus getStatus() { return status; }
     public LocalDate getExpectedDeliveryDate() { return expectedDeliveryDate; }
+    public LocalDate getSupplierPromisedDeliveryDate() { return supplierPromisedDeliveryDate; }
     public String getRejectReason() { return rejectReason; }
     public OrderedProgress getOrderedProgress() { return orderedProgress; }
     public String getCancelReason() { return cancelReason; }

@@ -14,7 +14,7 @@ const warehouse: AuthenticatedUser = { id: 4, username: 'warehouse', displayName
 
 const draftPo = {
   id: 42, poNumber: 'PO-000042', supplierId: 7, supplierCode: 'SUP-007', supplierName: 'Supplier', status: 'DRAFT',
-  expectedDeliveryDate: '2026-10-20', items: [{ id: 1, materialId: 8, materialCode: 'MAT-008', materialName: 'Steel', quantity: '50', unit: 'KG', unitPrice: '10', total: '500', recommendationId: null, supplierRecommendationResultId: null, supplierOverride: false, quantityOverride: false, supplierOverrideReason: null, quantityOverrideReason: null }],
+  expectedDeliveryDate: '2026-10-20', supplierPromisedDeliveryDate: null, items: [{ id: 1, materialId: 8, materialCode: 'MAT-008', materialName: 'Steel', quantity: '50', unit: 'KG', unitPrice: '10', total: '500', recommendationId: null, supplierRecommendationResultId: null, supplierOverride: false, quantityOverride: false, supplierOverrideReason: null, quantityOverrideReason: null }],
   createdBy: 2, createdByDisplayName: 'Buyer', createdAt: '2026-10-01T00:00:00Z', approvedBy: null, approvedByDisplayName: null, approvedAt: null,
   rejectReason: null, rejectedBy: null, rejectedByDisplayName: null, rejectedAt: null, orderedBy: null, orderedByDisplayName: null, orderedAt: null,
   receivedBy: null, receivedByDisplayName: null, receivedAt: null, isOverdue: false, updatedAt: '2026-10-01T00:00:00Z',

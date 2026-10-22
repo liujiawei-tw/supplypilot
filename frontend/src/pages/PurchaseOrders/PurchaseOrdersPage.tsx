@@ -102,6 +102,7 @@ export default function PurchaseOrdersPage() {
     </Space> },
     { title: '狀態', dataIndex: 'status', sorter: true, render: (value) => <Tag color={statusColors[value as PurchaseOrderResponse['status']]}>{displayLabel(value)}</Tag> },
     { title: '預計交期', dataIndex: 'expectedDeliveryDate', sorter: true, render: (value, row) => <Space>{value ?? '—'}{row.isOverdue && <Tag color="red">已逾期</Tag>}</Space> },
+    { title: '供應商承諾交期', dataIndex: 'supplierPromisedDeliveryDate', render: (value) => value ?? '—' },
     { title: '建立時間', dataIndex: 'createdAt', sorter: true, render: formatTimestamp },
     { title: '下單時間', dataIndex: 'orderedAt', sorter: true, render: formatTimestamp },
     { title: '操作', render: (_, row) => <Link to={`/purchase-orders/${row.id}`}>檢視</Link> },

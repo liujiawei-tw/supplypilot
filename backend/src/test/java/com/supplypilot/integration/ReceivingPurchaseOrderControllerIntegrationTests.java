@@ -174,7 +174,7 @@ class ReceivingPurchaseOrderControllerIntegrationTests extends AbstractIntegrati
     void validatesDateBoundariesAndAllInvalidQueryParameters() throws Exception {
         LocalDate today = LocalDate.now(clock);
         Material boundaryMaterial = material("boundary");
-        PurchaseOrder order = order(boundaryMaterial, today.plusDays(3), false, Instant.parse("2026-10-12T23:30:00Z"));
+        PurchaseOrder order = order(boundaryMaterial, today.plusDays(3), false, Instant.parse("2026-10-12T02:00:00Z"));
         String id = boundaryMaterial.getId().toString();
 
         mockMvc.perform(get("/api/v1/receiving/purchase-orders").param("materialId", id)

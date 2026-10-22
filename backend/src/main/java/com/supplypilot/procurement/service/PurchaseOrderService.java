@@ -27,6 +27,7 @@ import com.supplypilot.procurement.dto.request.CreatePurchaseOrderRequest;
 import com.supplypilot.procurement.dto.request.RejectPurchaseOrderRequest;
 import com.supplypilot.procurement.dto.request.UpdatePurchaseOrderItemRequest;
 import com.supplypilot.procurement.dto.request.UpdatePurchaseOrderRequest;
+import com.supplypilot.procurement.dto.request.UpdateSupplierPromisedDeliveryDateRequest;
 import com.supplypilot.procurement.dto.response.PurchaseOrderResponse;
 import com.supplypilot.procurement.mapper.PurchaseOrderMapper;
 import com.supplypilot.procurement.repository.PurchaseOrderRepository;
@@ -241,6 +242,16 @@ public class PurchaseOrderService {
                 clock.instant());
         PurchaseOrder persisted = purchaseOrderRepository.saveAndFlush(purchaseOrder);
         return purchaseOrderMapper.toResponse(persisted);
+    }
+
+    @Transactional
+    @PreAuthorize("hasAnyRole('PROCUREMENT_STAFF', 'ADMIN')")
+    public PurchaseOrderResponse updateSupplierPromisedDeliveryDate(
+            Long id, UpdateSupplierPromisedDeliveryDateRequest request) {
+        PurchaseOrder purchaseOrder = purchaseOrderRepository.findByIdForUpdate(id)
+                .orElseThrow(() -> new BusinessException(ErrorCode.PURCHASE_ORDER_NOT_FOUND));
+        purchaseOrder.updateSupplierPromisedDeliveryDate(request.supplierPromisedDeliveryDate(), clock.instant());
+        return purchaseOrderMapper.toResponse(purchaseOrderRepository.saveAndFlush(purchaseOrder));
     }
 
     @Transactional

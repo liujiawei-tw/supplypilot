@@ -12,6 +12,7 @@ import com.supplypilot.procurement.dto.request.AssignPurchaseOrderRequest;
 import com.supplypilot.procurement.dto.request.RejectPurchaseOrderRequest;
 import com.supplypilot.procurement.dto.request.CancelPurchaseOrderRequest;
 import com.supplypilot.procurement.dto.request.UpdatePurchaseOrderRequest;
+import com.supplypilot.procurement.dto.request.UpdateSupplierPromisedDeliveryDateRequest;
 import com.supplypilot.procurement.dto.response.PurchaseOrderResponse;
 import com.supplypilot.procurement.dto.response.ReceivingPurchaseOrderResponse;
 import com.supplypilot.procurement.service.PurchaseOrderService;
@@ -26,6 +27,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -78,6 +80,13 @@ public class PurchaseOrderController {
     @PatchMapping("/{id}")
     public PurchaseOrderResponse updateDraft(@PathVariable Long id, @Valid @RequestBody UpdatePurchaseOrderRequest request) {
         return purchaseOrderService.updateDraft(id, request);
+    }
+
+    @PutMapping("/{id}/supplier-promised-delivery-date")
+    public PurchaseOrderResponse updateSupplierPromisedDeliveryDate(
+            @PathVariable Long id,
+            @Valid @RequestBody UpdateSupplierPromisedDeliveryDateRequest request) {
+        return purchaseOrderService.updateSupplierPromisedDeliveryDate(id, request);
     }
 
     @PostMapping("/{id}/approve")

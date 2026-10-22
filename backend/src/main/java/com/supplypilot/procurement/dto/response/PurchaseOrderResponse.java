@@ -6,6 +6,7 @@ import java.util.List;
 
 import com.supplypilot.procurement.domain.PurchaseOrderStatus;
 import com.supplypilot.procurement.domain.OrderedProgress;
+import com.fasterxml.jackson.annotation.JsonInclude;
 
 public record PurchaseOrderResponse(
         Long id,
@@ -16,6 +17,8 @@ public record PurchaseOrderResponse(
         PurchaseOrderStatus status,
         OrderedProgress orderedProgress,
         LocalDate expectedDeliveryDate,
+        @JsonInclude(JsonInclude.Include.ALWAYS)
+        LocalDate supplierPromisedDeliveryDate,
         List<PurchaseOrderItemResponse> items,
         Long createdBy,
         String createdByDisplayName,

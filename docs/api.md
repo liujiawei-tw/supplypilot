@@ -1706,7 +1706,7 @@ receivedAt
 
 `GET /api/v1/receiving/purchase-orders` 與 `GET /api/v1/receiving/purchase-orders/{id}` 僅允許 `WAREHOUSE_STAFF`、`ADMIN`；未登入為 `401`，其他角色為 `403`。這是新的讀取介面，不使用一般 PO Read API 讓倉管取得完整採購資訊。
 
-List 預設 `status=ORDERED`；明確指定 `status=RECEIVED` 可查歷史，用於重複提交及未知結果核實。其他狀態回 `400 VALIDATION_FAILED`。支援 `materialId`、`expectedDeliveryFrom`、`expectedDeliveryTo`、`orderedFrom`、`orderedTo`、`page`（預設 0）、`size`（預設 20、上限 100）、`sort`（預設 `id,asc`）；日期參數採 ISO-8601 LocalDate，Instant 欄位依注入的 Backend Clock 時區轉換當地日期（現行預設 UTC）後比較且範圍含兩端，反向範圍回 `400 VALIDATION_FAILED`。排序白名單為 `id`、`poNumber`、`expectedDeliveryDate`、`orderedAt`、`receivedAt`，非 id 排序以 `id ASC` 穩定次序；非法參數回 `400 VALIDATION_FAILED`。回應採既有 `PageResponse<ReceivingPurchaseOrderResponse>` 結構。先對 PO 分頁及計數，再批次取得該頁 Items、Material 與必要 Supplier / Receiver 資料，避免含 Items 的 List 對每筆 PO 反覆查詢造成 N+1；不得因 fetch join Items 使分頁或 `totalElements` 失準，亦不新增 Endpoint。Detail 不在 ORDERED / RECEIVED 範圍或不存在時回 `404 PURCHASE_ORDER_NOT_FOUND`，避免暴露其他狀態。
+List 預設 `status=ORDERED`；明確指定 `status=RECEIVED` 可查歷史，用於重複提交及未知結果核實。其他狀態回 `400 VALIDATION_FAILED`。支援 `materialId`、`expectedDeliveryFrom`、`expectedDeliveryTo`、`orderedFrom`、`orderedTo`、`page`（預設 0）、`size`（預設 20、上限 100）、`sort`（預設 `id,asc`）；日期參數採 ISO-8601 LocalDate，Instant 欄位依注入的 Backend Clock 時區轉換當地日期（V2 預設 `Asia/Taipei`）後比較且範圍含兩端，反向範圍回 `400 VALIDATION_FAILED`。排序白名單為 `id`、`poNumber`、`expectedDeliveryDate`、`orderedAt`、`receivedAt`，非 id 排序以 `id ASC` 穩定次序；非法參數回 `400 VALIDATION_FAILED`。回應採既有 `PageResponse<ReceivingPurchaseOrderResponse>` 結構。先對 PO 分頁及計數，再批次取得該頁 Items、Material 與必要 Supplier / Receiver 資料，避免含 Items 的 List 對每筆 PO 反覆查詢造成 N+1；不得因 fetch join Items 使分頁或 `totalElements` 失準，亦不新增 Endpoint。Detail 不在 ORDERED / RECEIVED 範圍或不存在時回 `404 PURCHASE_ORDER_NOT_FOUND`，避免暴露其他狀態。
 
 ---
 
@@ -2507,3 +2507,11 @@ ai
 `POST /api/v1/purchase-orders/{id}/begin-receiving-inspection` 無 Request body，僅 ADMIN 可將 ORDERED 的 `FOLLOW_UP` 或 `LEGACY_UNKNOWN` 設為 `RECEIVING_INSPECTION`。這是供 #141/#142 沿用的受控第 5→6 欄契約，不接受任意 Stage 輸入。PO 回應提供 `orderedProgress`；對非 ORDERED 狀態為 `null`。CANCELLED 為終態，不能再次取消、核准、下單、收貨或指派。
 
 PO 狀態命令（核准、駁回、下單、開始驗收、取消、收貨）先以 `findByIdForUpdate()` 鎖 PO。收貨取得 PO 列鎖後才寫 Inventory 與 StockTransaction；任一品項失敗整筆回滾。Incoming Inventory 仍僅加總 ORDERED，因此取消後自動排除且不改實際庫存或交易記錄。
+
+## V2-203：期望到貨日與供應商承諾交期
+
+一般 `PurchaseOrderResponse`（Detail 與 List）提供 `expectedDeliveryDate` 與 `supplierPromisedDeliveryDate`。前者是公司核准的期望到貨日，僅 DRAFT Draft Edit 可修改；後者是供應商目前承諾日期，無承諾時 API 明確回傳 `null`，不會以期望日代替。
+
+`PUT /api/v1/purchase-orders/{id}/supplier-promised-delivery-date` 接受 `{ "supplierPromisedDeliveryDate": "2026-11-05" }`，或以 `{ "supplierPromisedDeliveryDate": null }` 清除目前承諾。省略欄位、未知欄位及無效日期回 `400 VALIDATION_FAILED`。僅有採購業務權限的使用者可呼叫；DRAFT、RECEIVED、REJECTED、CANCELLED 回 `409 INVALID_PO_STATUS_TRANSITION`，APPROVED 與 ORDERED 可更新。成功回 `200` 及完整 PO 回應。
+
+更新使用 Service 交易、`findByIdForUpdate()` PO 列鎖與既有 `@Version`，不接收 Client 操作者、狀態或核准日期。Flyway V26 新增 nullable `supplier_promised_delivery_date`，既有資料保持 `NULL`，不以舊 `expected_delivery_date` 回填。逾期仍是 `status=ORDERED AND expectedDeliveryDate < 台灣目前日期`；更新或清除承諾日不影響逾期判定。Backend Clock 使用 `Asia/Taipei` 計算業務日期；事件時間仍以 Instant 保存。
