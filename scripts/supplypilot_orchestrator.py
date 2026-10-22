@@ -347,12 +347,19 @@ def plan_graph(graph: dict[str, Any]) -> dict[str, Any]:
             "release_frontier": sorted(n for n, item in result.items() if item["gpt_final_pass"])}
 
 
-def can_open_pr(record: dict[str, Any], current_head: str) -> tuple[bool, str]:
+def can_open_pr(state_path: Path, issue_number: int, current_head: str) -> tuple[bool, str]:
+    """Check the persisted orchestrator record; never trust caller-supplied release JSON."""
+    state = read_json(state_path)
+    record = state.get("issues", {}).get(str(issue_number))
+    if not isinstance(record, dict):
+        return False, f"Issue #{issue_number} has no persisted orchestrator state."
     review = record.get("gpt_review", {})
     if not isinstance(review, dict) or review.get("status") != "FINAL_PASS":
         return False, "GPT FINAL PASS is required."
     if review.get("reviewed_sha") != current_head:
         return False, "GPT review SHA does not match current HEAD."
+    if record.get("implementation_state") != "GPT_FINAL_PASS":
+        return False, "Persisted orchestrator state does not record GPT_FINAL_PASS."
     if not _gpt_review_attestation_valid(review.get("attestation"), current_head):
         return False, "An interactive external GPT review attestation is required."
     if record.get("head_sha") != current_head:
@@ -575,6 +582,23 @@ def _verify_code_gate(state: dict[str, Any], record: dict[str, Any]) -> dict[str
             unmet.append(dependency)
     provisional_sources = _provisional_resume_sources(state, record, unmet) if unmet else []
 
+    _verify_no_active_file_owner_conflict(state, record, owned_files)
+
+    return {
+        "code_gate": "PASS", "branch_verified": True, "worktree_verified": True,
+        "branch": snapshot["branch"], "worktree": str(root), "worktree_clean": True,
+        "worktree_head": snapshot["head"], "verified_main_sha": main_sha,
+        "unmet_dependencies": unmet, "provisional_sources": provisional_sources,
+    }
+
+
+def _verify_no_active_file_owner_conflict(state: dict[str, Any], record: dict[str, Any],
+                                          owned_files: list[str] | None = None) -> None:
+    number = record.get("number")
+    owned_files = owned_files if owned_files is not None else record.get("owned_files")
+    if not isinstance(owned_files, list) or not owned_files:
+        raise PolicyError("Code Gate requires a known, non-empty file ownership list.")
+    owned_files = [_normalize_owned_path(path) for path in owned_files]
     for other_number, owner in state.get("issues", {}).items():
         if str(other_number) == str(number) or not isinstance(owner, dict):
             continue
@@ -589,15 +613,9 @@ def _verify_code_gate(state: dict[str, Any], record: dict[str, Any]) -> dict[str
         owner_files = owner.get("owned_files")
         if not isinstance(owner_files, list):
             raise PolicyError(f"Issue #{other_number} has unknown active file ownership; Code Gate fails closed.")
+        owner_files = [_normalize_owned_path(path) for path in owner_files]
         if any(_paths_overlap(left, right) for left in owned_files for right in owner_files):
             raise PolicyError(f"Code Gate file ownership conflicts with active Issue #{other_number}.")
-
-    return {
-        "code_gate": "PASS", "branch_verified": True, "worktree_verified": True,
-        "branch": snapshot["branch"], "worktree": str(root), "worktree_clean": True,
-        "worktree_head": snapshot["head"], "verified_main_sha": main_sha,
-        "unmet_dependencies": unmet, "provisional_sources": provisional_sources,
-    }
 
 
 def _gpt_review_attestation_valid(attestation: Any, current_head: str) -> bool:
@@ -623,21 +641,51 @@ def _gpt_review_attestation_valid(attestation: Any, current_head: str) -> bool:
         actual = hashlib.sha256(evidence_path.read_bytes()).hexdigest()
     except OSError:
         return False
-    return (actual == expected.lower() and current_head in content
-            and re.search(r"\bFINAL\s+PASS\b", content, re.IGNORECASE) is not None)
+    return (actual == expected.lower() and _has_positive_final_verdict(content, current_head))
 
 
-def _trusted_full_gate_manifest_valid(trusted: Any, root: Path) -> bool:
+def _review_lines(content: str) -> list[str]:
+    """Return review text outside Markdown fences and quoted lines."""
+    lines: list[str] = []
+    in_fence = False
+    for line in content.splitlines():
+        stripped = line.strip()
+        if re.match(r"^(```|~~~)", stripped):
+            in_fence = not in_fence
+            continue
+        if in_fence or stripped.startswith(">"):
+            continue
+        lines.append(stripped)
+    return lines
+
+
+def _has_positive_final_verdict(content: str, reviewed_sha: str) -> bool:
+    lines = _review_lines(content)
+    verdicts = [re.sub(r"^Verdict:\s*", "", line, flags=re.IGNORECASE).upper()
+                for line in lines
+                if re.fullmatch(r"(?:Verdict:\s*)?(?:FINAL PASS|CHANGES REQUIRED|NO FINAL PASS|BLOCKED)",
+                                line, re.IGNORECASE)]
+    return reviewed_sha in content and bool(verdicts) and verdicts[-1] == "FINAL PASS"
+
+
+def _trusted_full_gate_manifest_valid(trusted: Any, root: Path, current_head: str) -> bool:
     if not isinstance(trusted, dict):
         return False
-    required = ("path", "sha256", "reviewed_sha", "conversation_url", "review_evidence_path",
+    required = ("path", "sha256", "runner_path", "runner_sha256", "reviewed_sha", "conversation_url", "review_evidence_path",
                 "review_evidence_sha256", "confirmed_by", "confirmation", "confirmed_at")
     if not all(isinstance(trusted.get(key), str) and trusted[key].strip() for key in required):
         return False
     manifest = root / "scripts" / "supplypilot_full_gate.py"
+    runner = root / "scripts" / "supplypilot_orchestrator.py"
     if trusted["path"] != str(manifest.resolve()) or not re.fullmatch(r"[0-9a-fA-F]{64}", trusted["sha256"]):
         return False
-    if trusted["confirmation"] != f"TRUST FULL GATE MANIFEST {trusted['sha256']}":
+    if (trusted["runner_path"] != str(runner.resolve())
+            or not re.fullmatch(r"[0-9a-fA-F]{64}", trusted["runner_sha256"])):
+        return False
+    if trusted["reviewed_sha"] != current_head:
+        return False
+    if trusted["confirmation"] != (
+            f"TRUST FULL GATE {trusted['sha256']} {trusted['runner_sha256']}"):
         return False
     parsed = urllib.parse.urlparse(trusted["conversation_url"])
     if parsed.scheme != "https" or parsed.netloc.casefold() != "chatgpt.com" or "/c/" not in parsed.path:
@@ -649,16 +697,24 @@ def _trusted_full_gate_manifest_valid(trusted: Any, root: Path) -> bool:
         content = evidence_path.read_text(encoding="utf-8")
         evidence_sha = hashlib.sha256(evidence_path.read_bytes()).hexdigest()
         manifest_sha = hashlib.sha256(manifest.read_bytes()).hexdigest()
+        runner_sha = hashlib.sha256(runner.read_bytes()).hexdigest()
     except OSError:
         return False
     return (trusted["reviewed_sha"] in content and "supplypilot_full_gate.py" in content
             and _has_full_gate_manifest_pass(content)
             and evidence_sha == trusted["review_evidence_sha256"].lower()
-            and manifest_sha == trusted["sha256"].lower())
+            and manifest_sha == trusted["sha256"].lower()
+            and runner_sha == trusted["runner_sha256"].lower())
 
 
 def _has_full_gate_manifest_pass(content: str) -> bool:
-    return any(line.strip() == "FULL_GATE_MANIFEST_REVIEW: PASS" for line in content.splitlines())
+    lines = _review_lines(content)
+    verdicts = [re.sub(r"^Verdict:\s*", "", line, flags=re.IGNORECASE).upper()
+                for line in lines
+                if re.fullmatch(r"(?:Verdict:\s*)?(?:FINAL PASS|CHANGES REQUIRED|NO FINAL PASS|BLOCKED)",
+                                line, re.IGNORECASE)]
+    return any(line == "FULL_GATE_MANIFEST_REVIEW: PASS" for line in lines) and bool(verdicts) \
+        and verdicts[-1] == "FINAL PASS"
 
 
 def atomic_write_json(path: Path, value: dict[str, Any]) -> None:
@@ -884,6 +940,7 @@ def state_adopt(path: Path, record: dict[str, Any], authorized_issue: int) -> No
         existing["implementation_state"] = "BLOCKED_DEPENDENCY"
         existing["verification"] = {"status": "NOT_RUN", "sha": None, "evidence": []}
         existing["gpt_review"] = {"status": "NOT_REVIEWED", "reviewed_sha": None}
+        existing["trusted_full_gate_manifest"] = None
         event = {"issue": number, "type": "WIP_READOPTED", "at": dt.datetime.now(dt.timezone.utc).isoformat(),
                  "evidence": {"previous_fingerprint": previous.get("fingerprint"),
                               "fingerprint": first["fingerprint"], "authorized_issue": authorized_issue}}
@@ -919,6 +976,7 @@ def state_resume(path: Path, number: int, authorized_issue: int, fingerprint: st
         if _verified_remote_main_sha() != state.get("main_sha"):
             raise PolicyError("origin/main advanced since the recorded base; synchronize main before resuming.")
         _verify_feature_contains_main({**record, "head_sha": adoption.get("head")}, state["main_sha"])
+        _verify_no_active_file_owner_conflict(state, record)
         unmet = []
         for dependency in record.get("dependencies", []):
             dependency_record = state.get("issues", {}).get(str(dependency))
@@ -962,15 +1020,15 @@ def _transition_record(record: dict[str, Any], target: str,
         raise PolicyError(f"Illegal state transition: {current} -> {target}.")
     number = record["number"]
     head = record.get("head_sha")
-    if target == "READY_TO_CODE":
+    if target in {"READY_TO_CODE", "IMPLEMENTING"}:
         if evidence.get("code_gate") != "PASS" or evidence.get("authorized_issue") != number:
-            raise PolicyError("READY_TO_CODE requires Code Gate PASS for this user-authorized Issue.")
+            raise PolicyError(f"{target} requires Code Gate PASS for this user-authorized Issue.")
         if (evidence.get("branch_verified") is not True or evidence.get("worktree_verified") is not True
                 or evidence.get("branch") != record.get("branch")
                 or evidence.get("worktree") != record.get("worktree")
                 or evidence.get("worktree_clean") is not True
                 or evidence.get("worktree_head") != record.get("base_sha")):
-            raise PolicyError("READY_TO_CODE requires independently verified branch and worktree.")
+            raise PolicyError(f"{target} requires independently verified branch and worktree.")
     elif target in {"TARGETED_VERIFIED", "FULL_GATE_VERIFIED"}:
         if evidence.get("status") != "PASS" or not head or evidence.get("sha") != head:
             raise PolicyError(f"{target} requires PASS evidence for the exact current head_sha.")
@@ -1004,7 +1062,10 @@ def _transition_record(record: dict[str, Any], target: str,
     elif target == "PR_OPEN":
         description = evidence.get("description", "")
         expected = f"Closes #{number}"
-        if record.get("gpt_review", {}).get("status") != "FINAL_PASS" or record.get("gpt_review", {}).get("reviewed_sha") != head:
+        gpt_review = record.get("gpt_review", {})
+        if (not isinstance(gpt_review, dict) or gpt_review.get("status") != "FINAL_PASS"
+                or gpt_review.get("reviewed_sha") != head
+                or not _gpt_review_attestation_valid(gpt_review.get("attestation"), head)):
             raise PolicyError("PR_OPEN requires GPT FINAL PASS for the current HEAD.")
         if evidence.get("base") != "main" or evidence.get("head_sha") != head:
             raise PolicyError("PR_OPEN requires base main and PR head SHA equal to reviewed HEAD.")
@@ -1056,9 +1117,9 @@ def state_transition(path: Path, number: int, target: str, evidence: dict[str, A
         elif target == "WAITING_GPT_REVIEW":
             verified = dict(evidence)
             verified.update(_verify_local_remote_feature_head(record))
-        elif target == "READY_TO_CODE":
+        elif target in {"READY_TO_CODE", "IMPLEMENTING"}:
             if evidence.get("authorized_issue") != number:
-                raise PolicyError("READY_TO_CODE requires explicit authorization for this Issue.")
+                raise PolicyError(f"{target} requires explicit authorization for this Issue.")
             verified = dict(evidence)
             verified.update(_verify_code_gate(state, record))
         else:
@@ -1092,11 +1153,7 @@ def state_attest_gpt_review(path: Path, number: int, review_status: str, reviewe
     }
     if not _gpt_review_attestation_valid({**attestation, "confirmation": GPT_REVIEW_CONFIRMATION_PREFIX + reviewed_sha},
                                          reviewed_sha):
-        # Validation below binds the visible review excerpt to both the verdict and exact SHA.
-        parsed = urllib.parse.urlparse(conversation_url)
-        if (parsed.scheme != "https" or parsed.netloc.casefold() != "chatgpt.com" or "/c/" not in parsed.path
-                or reviewed_sha not in content or re.search(r"\bFINAL\s+PASS\b", content, re.IGNORECASE) is None):
-            raise PolicyError("Review evidence must show FINAL PASS for the exact SHA and a ChatGPT conversation URL.")
+        raise PolicyError("Review evidence must show a standalone positive FINAL PASS verdict for the exact SHA and a ChatGPT conversation URL.")
     expected = GPT_REVIEW_CONFIRMATION_PREFIX + reviewed_sha
     print(f"Review status: {review_status}\nReviewed SHA: {reviewed_sha}\nConversation: {conversation_url}")
     print(f"Evidence SHA-256: {digest}\nReviewer: {confirmed_by.strip()}")
@@ -1146,16 +1203,24 @@ def state_trust_full_gate_manifest(path: Path, number: int, reviewed_sha: str,
             "Review evidence must identify this SHA and Full Gate manifest and explicitly report "
             "FULL_GATE_MANIFEST_REVIEW: PASS in the ChatGPT conversation.")
     manifest_sha256 = hashlib.sha256(manifest.read_bytes()).hexdigest()
-    expected = f"TRUST FULL GATE MANIFEST {manifest_sha256}"
+    runner = (worktree / "scripts" / "supplypilot_orchestrator.py").resolve(strict=True)
+    runner_sha256 = hashlib.sha256(runner.read_bytes()).hexdigest()
+    expected = f"TRUST FULL GATE {manifest_sha256} {runner_sha256}"
     print("Proceed only after an independent GPT Review confirms this manifest trust issue is resolved.")
     print(f"Manifest: {manifest}\nManifest SHA-256: {manifest_sha256}")
+    print(f"Runner: {runner}\nRunner SHA-256: {runner_sha256}")
     print(f"Reviewed SHA: {reviewed_sha}\nConversation: {conversation_url}")
     print(f"Review evidence SHA-256: {evidence_sha256}\nReviewer: {confirmed_by.strip()}")
     confirmation = input(f"Human reviewer: type exactly '{expected}' to trust this reviewed manifest: ").strip()
     if confirmation != expected:
         raise PolicyError("Human Full Gate manifest confirmation did not match its SHA-256.")
+    if hashlib.sha256(manifest.read_bytes()).hexdigest() != manifest_sha256:
+        raise PolicyError("Full Gate manifest changed while its trust baseline was being confirmed.")
+    if hashlib.sha256(runner.read_bytes()).hexdigest() != runner_sha256:
+        raise PolicyError("Full Gate runner changed while its trust baseline was being confirmed.")
     trusted = {
         "path": str(manifest), "sha256": manifest_sha256,
+        "runner_path": str(runner), "runner_sha256": runner_sha256,
         "reviewed_sha": reviewed_sha, "conversation_url": conversation_url,
         "review_evidence_path": str(resolved_evidence),
         "review_evidence_sha256": evidence_sha256,
@@ -1679,7 +1744,7 @@ def _verify_gate_artifacts(record: dict[str, Any], evidence: dict[str, Any],
     manifest_sha256 = None
     if target == "FULL_GATE_VERIFIED":
         manifest_path = root / "scripts" / "supplypilot_full_gate.py"
-        if not _trusted_full_gate_manifest_valid(trusted_manifest, root):
+        if not _trusted_full_gate_manifest_valid(trusted_manifest, root, record.get("head_sha")):
             raise PolicyError("Full Gate manifest has no independent, human-confirmed trust baseline.")
         manifest_sha256 = trusted_manifest["sha256"].lower()
         prepared_command = [sys.executable, str(manifest_path)]
@@ -1863,6 +1928,7 @@ def _state_set_head(path: Path, number: int, sha: str, local_sha: str, remote_sh
     record["verification"] = {"status": "NOT_RUN", "sha": None, "evidence": []}
     record["gpt_review"] = {"status": "NOT_REVIEWED", "reviewed_sha": None,
                             "invalidated_reviewed_sha": record.get("gpt_review", {}).get("reviewed_sha")}
+    record["trusted_full_gate_manifest"] = None
     record["implementation_state"] = "IMPLEMENTING"
     event = {"issue": number, "type": "HEAD_UPDATED", "old_sha": old_sha, "new_sha": sha,
              "from": current, "to": "IMPLEMENTING",
@@ -1902,7 +1968,8 @@ def main(argv: list[str] | None = None) -> int:
         cmd = sub.add_parser(name)
         cmd.add_argument("graph", help="path to a reviewed JSON graph export")
     gate = sub.add_parser("pr-gate")
-    gate.add_argument("record", help="path to Issue release state JSON")
+    gate.add_argument("state", help="path to persistent orchestrator state JSON")
+    gate.add_argument("--issue", type=int, required=True)
     gate.add_argument("--head", required=True)
     st = sub.add_parser("state")
     state_sub = st.add_subparsers(dest="state_command", required=True)
@@ -1977,7 +2044,7 @@ def main(argv: list[str] | None = None) -> int:
         elif args.command == "plan":
             print(json.dumps(plan_graph(read_json(args.graph)), indent=2))
         elif args.command == "pr-gate":
-            ok, message = can_open_pr(read_json(args.record), args.head)
+            ok, message = can_open_pr(Path(args.state), args.issue, args.head)
             print(json.dumps({"allowed": ok, "message": message}, indent=2))
             return 0 if ok else 2
         elif args.command == "state" and args.state_command == "init":

@@ -82,3 +82,24 @@ Orchestrator 測試分組執行合計 **78/78 PASS**（State 38 + Graph/Gate/Res
 | #160、#142、#143 | 維持暫停；本輪未修改、測試、Resume 或清除其工作樹 |
 
 本輪本機分支曾確認 `d4bad48cc5f5137482e5383f545a92cf65824fe9`，遠端仍在 `ac6e8f2d12afce069b2108ddcc717b07575c0771`，`main` 為 `9240d6aeeba2361476a0454ac965a214769638a0`。追加 P1-12 修正 commit 為 `38eaec4`；本證據文件更新後須以最終提交再次核對 Local／Remote Head SHA。GPT Relay 正式 Review 尚未送出；尚無新的 GPT verdict、PR 或 Final Pass。
+
+## 第四輪 GPT BLOCKED Findings 修正與重新交接（2026-10-23）
+
+上一輪 GPT Relay 對精確 Head `fb5fe875ca5c4b27b64e41defe0b586b1f14df57` 的實際判定為 **BLOCKED**，指出 P1-10A、P1-11A、P1-12A、P1-12B；未提供 `FULL_GATE_MANIFEST_REVIEW: PASS`，沒有 Final Pass。此輪僅修正同一 Issue #162：
+
+- 將活動檔案 owner 衝突檢查抽成共用 gate，`state resume` 與 `READY_TO_CODE → IMPLEMENTING` 實際取得執行權時重新檢查，並在檢查期間持有 state lock。
+- GPT review attestation 僅接受不在 Markdown code fence／引用中的獨立最後 verdict 行；`CHANGES REQUIRED`、`NO FINAL PASS`、`BLOCKED` 不會被正文中提到的 `FINAL PASS` 誤判。`PR_OPEN` 狀態轉移及 PR gate 都驗證持久化的有效 attestation；`pr-gate` 現在依 state file 與 Issue 編號讀取 Orchestrator 狀態，不再接收任意 Issue Record JSON。
+- Full Gate manifest marker 必須在非引用／非 code fence 正文的獨立行出現，且 review 的最後 verdict 是 `FINAL PASS`。Trust baseline 綁定目前 Issue HEAD、manifest digest 與執行它的 `supplypilot_orchestrator.py` runner digest；HEAD 更新或 WIP 重新採用會清除舊 trust，建立 baseline 時亦會核對互動確認期間兩個檔案都未變。
+
+| 驗證 | 結果 |
+| --- | --- |
+| Orchestrator `StateTests`（45 tests） | **PASS**：完整 StateTests 類別 45/45；輸出：[State regression log](issue-162-p1-09-p1-12-state-regression-2026-10-23.log)。這次完整類別執行後另有兩項小幅 fail-closed 加固（owner path normalization、`PR_OPEN` attestation 核對），由下列最終精準回歸覆蓋 |
+| 最終精準回歸（完整 state gate、resume owner overlap、Full Gate manifest/runner trust、GPT Final Pass→PR 及 GateTests） | **PASS**：10 tests，12.669 秒；其中包括否定／引用 verdict、任意 JSON PR gate、trust SHA/runner tampering、在 READY 後 owner 改變等案例 |
+| Python `compileall`（Orchestrator、Full Gate、測試模組） | **PASS** |
+| `git diff --check` | **PASS**：無 whitespace errors；僅 Git LF/CRLF 轉換提示 |
+| 完整 Orchestrator 測試模組單次執行 | **INTERRUPTED / NOT PASS**：Windows 執行在 `ResourceTests.test_linked_worktrees_resolve_to_the_same_default_lock_directory` 開始時收到 `KeyboardInterrupt`；該 linked-worktree 測試隔離執行為 **PASS**。完整狀態測試類別另有 45/45 PASS 紀錄；未把中斷的單次整套執行標成 PASS |
+| 本機完整 CI 等價 Gate | **BLOCKED / NOT RUN**：前次完整 Gate 證據仍有 Frontend SP-806 失敗及 Python 3.12 缺失；此輪未重跑完整 Gate，沒有宣稱 `LOCAL VERIFIED` |
+| GitHub Actions | **PAUSED BY USER / NOT USED AS GATE**；未啟動或修改 Workflow |
+| #160、#142、#143 | 維持暫停；此輪未修改、測試、Resume 或清除其工作樹 |
+
+本輪仍在 Issue #162 Feature Branch；實作尚待 commit/push 及核對 local／remote Head。GPT Relay 將沿用已核對的同一 Conversation URL 重新審查最終 Head。此輪尚未取得新 GPT verdict、Final Pass 或 PR；不得建立 PR。Merge 仍由使用者決定。
