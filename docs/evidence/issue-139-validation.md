@@ -102,5 +102,36 @@
 - 完整 Suite 的同一測例耗時 `31.817s` 並 timeout；隔離約 `20.1–20.7s`。差距約 11 秒。單檔完整執行也在 `30.048s` timeout。這些證據確認大 DOM 角色查詢與 UI 互動的累積成本，但尚未證明隔離與 Suite 的全部時間差由單一測例狀態、CPU 競爭或記憶體壓力造成。
 - Vitest 全域 setup 有 `afterEach(cleanup)` 並清除 `localStorage`／`sessionStorage`；目標測例檔在每測例前清除 `localStorage`。SP806 測例檔未找到 fake timer 設定。診斷輸出有重複 Ant Design Drawer 樣式／`getComputedStyle` 警告；沒有證據顯示這些警告本身造成 timeout。
 - 一次將 async `userEvent` 呼叫拆開包裝計時的隔離診斷出現「找不到 Proposal tab」；包裝改變了呼叫邊界，故該次不是原測例的有效 Gate，完整輸出另存 [`issue-139-sp806-linux-isolated-timing.log`](issue-139-sp806-linux-isolated-timing.log)，不以它判定產品或原測試失敗。同步查詢量測保留原事件順序，結果如上。
-- **SCOPE CONFLICT：** 最小修正方向是在 `frontend/tests/sp806.test.tsx` 將 Drawer／提案／確認按鈕查詢限定在其對應 AI Drawer 容器，以保留斷言和互動而避免重複掃描整頁。該測試屬 SP806，超出 Issue #139；未修改正式測試或業務程式，等待使用者授權後才能實作此修正。
-- 完整 Linux Vitest Gate 仍 `FAIL`；隔離案例 PASS 不替代完整 Suite。沒有修改 timeout、skip、斷言或測試契約。
+- 當時將 SP806 測試修正列為 `SCOPE CONFLICT`；使用者於 2026-10-22 對 `frontend/tests/sp806.test.tsx` 核准一次性有限範圍例外。依核准只在該檔將明確屬於 AI Drawer 的查詢限定於 Drawer，未修改產品程式或其他測試。
+- 上述 `3a5b775` 歷史完整 Linux Vitest Gate 為 `FAIL`。修正後完整 Suite 結果及精準耗時見下方「核准的 SP806 查詢範圍修正與最終前端 Gate」；歷史結果不改寫。
+
+## 核准的 SP806 查詢範圍修正與最終前端 Gate（2026-10-22）
+
+### 變更與測試語義
+
+- 使用者授權：僅修改 `frontend/tests/sp806.test.tsx`，把目標測例中 AI Drawer 內部的 tab、欄位、提案操作、確認鎖定狀態與快照 DOM 查詢改由 `within(drawer)` 搜尋。
+- Drawer 以標題 `SupplyPilot AI 助理` 錨定，再取最近的 `.ant-drawer` 容器；查詢限定在實際 AI Drawer。
+- 保留原有測試流程、所有欄位變更、userEvent／fireEvent 次數、HTTP Mock、Confirm 單次請求驗證、錯誤處理及所有斷言。Clarification 狀態驗證整個頁面沒有審閱按鈕的斷言仍為 `screen.queryByRole(...)`，沒有縮小成只查 Drawer。
+- 變更程式碼 Commit：`aa317221c548bc70e6d3971216e9159afd0f5522`（`test: scope SP806 AI drawer queries`）。驗收文件與完整執行 log 將在後續文件 Commit 記錄；實際測試使用的工作樹程式碼內容與此程式碼 Commit 完全相同。基準版本為 Commit `3a5b7752cb5220276d07a86b18fac83376f746ec`。
+
+### 精準測試與效能比較
+
+- 環境：Docker `node:24-bookworm-slim`，Node `v24.22.1`、npm `11.19.1`、Vitest `v4.1.11`、jsdom；全域 timeout 維持 30 秒。測試期間沒有同時執行 Maven verify 或 Docker image 建置。
+- 原未修改版目標案例：同 Node/Linux 設定下單獨 PASS，案例耗時 `20.885s`（Vitest 全程 `120.74s`）。原完整 Suite 中案例耗時 `31.817s` 並 timeout。
+- 修正後目標案例單獨 PASS：案例 `14.963s`（Vitest 全程 `186.89s`）；相對原隔離案例減少 `5.922s`（約 28.4%）。完整輸出見 [`issue-139-sp806-target-after.log`](issue-139-sp806-target-after.log)。Vitest 匯入時間在兩次獨立執行間不同，故案例時長用於比較，總執行時間不視為性能改善指標。
+- 修正後完整 `sp806.test.tsx`：25/25 PASS，總耗時 `443.34s`；目標案例 `19.674s`。完整逐案例輸出見 [`issue-139-sp806-file-after.log`](issue-139-sp806-file-after.log)。
+- 全套完整 Suite 中同一目標案例 `19.458s` PASS，對照先前全套 `31.817s` timeout，減少 `12.359s`（約 38.8%）。此結果及同一套件內另一個先前超時案例的耗時保存在完整 verbose log。
+- 執行中的唯讀 Docker 資源快照：SP806 單檔約 `105.63%` CPU、`917.2 MiB`；完整 Suite 快照約 `162.63%` CPU／`530.6 MiB`、`13.91%`／`314 MiB`、`9.55%`／`444.8 MiB`。Demo backend／MySQL 快照均低於 `1%` CPU。這些是間歇快照，並非全程宿主資源監控。
+
+### 完整 Node 24 Linux 前端 Gate
+
+- 指令順序：`npm ci` → `npm run lint` → `npm test -- --reporter=verbose`（完整 Vitest，保留逐案例耗時）→ `VITE_API_BASE_URL=http://localhost:8080/api/v1 npm run build`。
+- `npm ci`：PASS，新增安裝 212 packages、審核 213 packages；npm audit 回報 2 moderate vulnerabilities。完整輸出見 [`issue-139-frontend-npm-ci.log`](issue-139-frontend-npm-ci.log)。
+- `npm run lint`：PASS，113 files、0 warnings、0 errors；輸出見 [`issue-139-frontend-lint.log`](issue-139-frontend-lint.log)。
+- 完整 Vitest：PASS，24/24 test files、205/205 tests；沒有 timeout。Vitest duration `2170.88s`（transform 5.88s、setup 67.31s、import 943.21s、tests 892.66s、environment 237.73s）。完整逐案例輸出見 [`issue-139-frontend-vitest.log`](issue-139-frontend-vitest.log)。
+- 前端 build：PASS，`tsc -b` 與 Vite production build 成功，建置 8.60 秒；保留既有 1,501.94 kB JavaScript chunk 大小警告。輸出見 [`issue-139-frontend-build.log`](issue-139-frontend-build.log)。
+- 本輪的測試與 Gate 對應上述 `aa31722` 程式碼內容；驗收文件 Commit 是本次文件與 log 提交，不改動測試程式。`git diff --check` 在程式 Commit 前通過，文件更新後會再次執行。
+- 本次僅驗證使用者指定的完整前端 Gate；Backend 與 Docker／Compose 沒有因測試選擇器修改而重跑。既有歷史結果維持其原版本紀錄，不視為本次重新執行。
+- GitHub Actions：`PAUSED BY USER / NOT USED AS GATE`；本輪未查詢、觸發、重跑或依賴 Actions。Push 可能觸發自動 Workflow；未宣稱 GitHub Repository Actions 已停用。
+- 已核實 `PurchaseOrder.validateReceivingEligibility()` 尚未強制 `RECEIVING_INSPECTION`。#139 只完成取消及第 5／6 欄取消保護；完整第 6 欄人工驗收與 6→7 收貨准入由 #141 負責。本次未實作 #141，也不宣稱 V2 完整收貨流程通過驗收。
+- 本輪限定修改沒有剩餘 `SCOPE CONFLICT`；已知風險為本機 npm audit 的 2 moderate vulnerabilities、既有大型前端 chunk 警告，以及 Vitest 完整 Suite 總耗時偏長。均未改動相應套件、測試標準或 timeout。

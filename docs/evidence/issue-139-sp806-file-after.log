@@ -1,0 +1,1042 @@
+
+> frontend@0.0.0 test
+> vitest run tests/sp806.test.tsx --reporter=verbose
+
+
+[1m[30m[46m RUN [49m[39m[22m [36mv4.1.11 [39m[90m/repo/frontend[39m
+
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Document Management UI[2m > [22m[2mexposes Semantic operations only to ADMIN on the existing Documents route
+[22m[39mWarning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Document Management UI[2m > [22m[2mexposes Semantic operations only to ADMIN on the existing Documents route
+[22m[39mWarning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Document Management UI[2m > [22m[2mexposes Semantic operations only to ADMIN on the existing Documents route
+[22m[39mWarning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+ [32m✓[39m tests/sp806.test.tsx[2m > [22mSP-806 Document Management UI[2m > [22mexposes Semantic operations only to ADMIN on the existing Documents route[33m 1361[2mms[22m[39m
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Document Management UI[2m > [22m[2mexposes Semantic operations only to ADMIN on the existing Documents route
+[22m[39mWarning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Document Management UI[2m > [22m[2mexposes Semantic operations only to ADMIN on the existing Documents route
+[22m[39mWarning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+ [32m✓[39m tests/sp806.test.tsx[2m > [22mSP-806 Document Management UI[2m > [22mexposes Semantic operations only to ADMIN on the existing Documents route[33m 1427[2mms[22m[39m
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Document Management UI[2m > [22m[2mexposes Semantic operations only to ADMIN on the existing Documents route
+[22m[39mWarning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+ [32m✓[39m tests/sp806.test.tsx[2m > [22mSP-806 Document Management UI[2m > [22mexposes Semantic operations only to ADMIN on the existing Documents route[33m 1535[2mms[22m[39m
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Document Management UI[2m > [22m[2mconfirms outbound approval and renders the actual 後端 Review result
+[22m[39mWarning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+ [32m✓[39m tests/sp806.test.tsx[2m > [22mSP-806 Document Management UI[2m > [22mexposes Semantic operations only to ADMIN on the existing Documents route[33m 559[2mms[22m[39m
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Document Management UI[2m > [22m[2mconfirms outbound approval and renders the actual 後端 Review result
+[22m[39mWarning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Document Management UI[2m > [22m[2mconfirms outbound approval and renders the actual 後端 Review result
+[22m[39mWarning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Document Management UI[2m > [22m[2mconfirms outbound approval and renders the actual 後端 Review result
+[22m[39mWarning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Document Management UI[2m > [22m[2mconfirms outbound approval and renders the actual 後端 Review result
+[22m[39mWarning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Document Management UI[2m > [22m[2mconfirms outbound approval and renders the actual 後端 Review result
+[22m[39mWarning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Document Management UI[2m > [22m[2mconfirms outbound approval and renders the actual 後端 Review result
+[22m[39mWarning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Document Management UI[2m > [22m[2mkeeps a deep-linked #21 from overwriting a fast #22 switch and reviews only the current document
+[22m[39mWarning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+ [32m✓[39m tests/sp806.test.tsx[2m > [22mSP-806 Document Management UI[2m > [22mconfirms outbound approval and renders the actual 後端 Review result[33m 10256[2mms[22m[39m
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Document Management UI[2m > [22m[2mkeeps a deep-linked #21 from overwriting a fast #22 switch and reviews only the current document
+[22m[39mWarning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Document Management UI[2m > [22m[2mkeeps a deep-linked #21 from overwriting a fast #22 switch and reviews only the current document
+[22m[39mWarning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Document Management UI[2m > [22m[2mkeeps a deep-linked #21 from overwriting a fast #22 switch and reviews only the current document
+[22m[39mWarning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Document Management UI[2m > [22m[2mkeeps a deep-linked #21 from overwriting a fast #22 switch and reviews only the current document
+[22m[39mWarning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Document Management UI[2m > [22m[2mkeeps a deep-linked #21 from overwriting a fast #22 switch and reviews only the current document
+[22m[39mWarning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Document Management UI[2m > [22m[2mkeeps a deep-linked #21 from overwriting a fast #22 switch and reviews only the current document
+[22m[39mWarning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Document Management UI[2m > [22m[2mignores a delayed title response after switching documents
+[22m[39mWarning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+ [32m✓[39m tests/sp806.test.tsx[2m > [22mSP-806 Document Management UI[2m > [22mkeeps a deep-linked #21 from overwriting a fast #22 switch and reviews only the current document[33m 8468[2mms[22m[39m
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Document Management UI[2m > [22m[2mignores a delayed title response after switching documents
+[22m[39mWarning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Document Management UI[2m > [22m[2mignores a delayed title response after switching documents
+[22m[39mWarning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Document Management UI[2m > [22m[2mignores a delayed title response after switching documents
+[22m[39mWarning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Document Management UI[2m > [22m[2mignores a delayed title response after switching documents
+[22m[39mWarning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Document Management UI[2m > [22m[2mignores a delayed title response after switching documents
+[22m[39mWarning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Document Management UI[2m > [22m[2mignores a delayed title response after switching documents
+[22m[39mWarning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Document Management UI[2m > [22m[2mignores a delayed title response after switching documents
+[22m[39mWarning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Document Management UI[2m > [22m[2mignores a delayed title response after switching documents
+[22m[39mWarning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Document Management UI[2m > [22m[2mignores a delayed title response after switching documents
+[22m[39mWarning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Document Management UI[2m > [22m[2mignores a delayed title response after switching documents
+[22m[39mWarning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Document Management UI[2m > [22m[2mignores a delayed title response after switching documents
+[22m[39mWarning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Document Management UI[2m > [22m[2mignores a delayed title response after switching documents
+[22m[39mWarning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Document Management UI[2m > [22m[2mignores a delayed title response after switching documents
+[22m[39mWarning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Document Management UI[2m > [22m[2mignores a delayed title response after switching documents
+[22m[39mWarning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Document Management UI[2m > [22m[2mignores a delayed title response after switching documents
+[22m[39mWarning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Document Management UI[2m > [22m[2mignores a delayed title response after switching documents
+[22m[39mWarning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Document Management UI[2m > [22m[2mignores a delayed title response after switching documents
+[22m[39mWarning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Document Management UI[2m > [22m[2mignores a delayed title response after switching documents
+[22m[39mWarning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Document Management UI[2m > [22m[2mignores a delayed title response after switching documents
+[22m[39mWarning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Document Management UI[2m > [22m[2mignores a delayed title response after switching documents
+[22m[39mWarning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Document Management UI[2m > [22m[2mignores a delayed title response after switching documents
+[22m[39mWarning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Document Management UI[2m > [22m[2mignores a delayed title response after switching documents
+[22m[39mWarning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Document Management UI[2m > [22m[2mignores a delayed title response after switching documents
+[22m[39mWarning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Document Management UI[2m > [22m[2mignores a delayed title response after switching documents
+[22m[39mWarning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Document Management UI[2m > [22m[2mignores a delayed title response after switching documents
+[22m[39mWarning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Document Management UI[2m > [22m[2mignores a delayed title response after switching documents
+[22m[39mWarning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Document Management UI[2m > [22m[2mignores a delayed archive response after switching documents
+[22m[39mWarning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+ [32m✓[39m tests/sp806.test.tsx[2m > [22mSP-806 Document Management UI[2m > [22mignores a delayed title response after switching documents[33m 11588[2mms[22m[39m
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Document Management UI[2m > [22m[2mignores a delayed archive response after switching documents
+[22m[39mWarning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Document Management UI[2m > [22m[2mignores a delayed archive response after switching documents
+[22m[39mWarning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Document Management UI[2m > [22m[2mignores a delayed archive response after switching documents
+[22m[39mWarning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Document Management UI[2m > [22m[2mignores a delayed archive response after switching documents
+[22m[39mWarning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Document Management UI[2m > [22m[2mignores a delayed archive response after switching documents
+[22m[39mWarning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Document Management UI[2m > [22m[2mignores a delayed archive response after switching documents
+[22m[39mWarning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Document Management UI[2m > [22m[2mignores a delayed archive response after switching documents
+[22m[39mWarning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Document Management UI[2m > [22m[2mignores a delayed archive response after switching documents
+[22m[39mWarning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Document Management UI[2m > [22m[2mignores a delayed archive response after switching documents
+[22m[39mWarning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Document Management UI[2m > [22m[2mignores a delayed archive response after switching documents
+[22m[39mWarning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Document Management UI[2m > [22m[2mignores a delayed archive response after switching documents
+[22m[39mWarning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Document Management UI[2m > [22m[2mignores a delayed archive response after switching documents
+[22m[39mWarning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Document Management UI[2m > [22m[2mignores a delayed archive response after switching documents
+[22m[39mWarning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Document Management UI[2m > [22m[2mignores a delayed ingestion response after switching documents
+[22m[39mWarning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+ [32m✓[39m tests/sp806.test.tsx[2m > [22mSP-806 Document Management UI[2m > [22mignores a delayed archive response after switching documents[33m 10376[2mms[22m[39m
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Document Management UI[2m > [22m[2mignores a delayed ingestion response after switching documents
+[22m[39mWarning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Document Management UI[2m > [22m[2mignores a delayed ingestion response after switching documents
+[22m[39mWarning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Document Management UI[2m > [22m[2mignores a delayed ingestion response after switching documents
+[22m[39mWarning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Document Management UI[2m > [22m[2mignores a delayed ingestion response after switching documents
+[22m[39mWarning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Document Management UI[2m > [22m[2mignores a delayed ingestion response after switching documents
+[22m[39mWarning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Document Management UI[2m > [22m[2mignores a delayed ingestion response after switching documents
+[22m[39mWarning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Document Management UI[2m > [22m[2mignores a delayed ingestion response after switching documents
+[22m[39mWarning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Document Management UI[2m > [22m[2mignores a delayed ingestion response after switching documents
+[22m[39mWarning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Document Management UI[2m > [22m[2mignores a delayed ingestion response after switching documents
+[22m[39mWarning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Document Management UI[2m > [22m[2mignores a delayed ingestion response after switching documents
+[22m[39mWarning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Document Management UI[2m > [22m[2mignores a delayed ingestion response after switching documents
+[22m[39mWarning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Document Management UI[2m > [22m[2mignores a delayed ingestion response after switching documents
+[22m[39mWarning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Document Management UI[2m > [22m[2mignores a delayed ingestion response after switching documents
+[22m[39mWarning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Document Management UI[2m > [22m[2mignores a delayed ingestion response after switching documents
+[22m[39mWarning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Document Management UI[2m > [22m[2mignores a delayed ingestion response after switching documents
+[22m[39mWarning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Document Management UI[2m > [22m[2mignores a delayed ingestion verification response after switching documents
+[22m[39mWarning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+ [32m✓[39m tests/sp806.test.tsx[2m > [22mSP-806 Document Management UI[2m > [22mignores a delayed ingestion response after switching documents[33m 11590[2mms[22m[39m
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Document Management UI[2m > [22m[2mignores a delayed ingestion verification response after switching documents
+[22m[39mWarning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Document Management UI[2m > [22m[2mignores a delayed ingestion verification response after switching documents
+[22m[39mWarning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Document Management UI[2m > [22m[2mignores a delayed ingestion verification response after switching documents
+[22m[39mWarning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Document Management UI[2m > [22m[2mignores a delayed ingestion verification response after switching documents
+[22m[39mWarning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Document Management UI[2m > [22m[2mignores a delayed ingestion verification response after switching documents
+[22m[39mWarning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Document Management UI[2m > [22m[2mignores a delayed ingestion verification response after switching documents
+[22m[39mWarning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Document Management UI[2m > [22m[2mignores a delayed ingestion verification response after switching documents
+[22m[39mWarning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Document Management UI[2m > [22m[2mignores a delayed ingestion verification response after switching documents
+[22m[39mWarning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Document Management UI[2m > [22m[2mignores a delayed ingestion verification response after switching documents
+[22m[39mWarning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Document Management UI[2m > [22m[2mignores a delayed ingestion verification response after switching documents
+[22m[39mWarning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Document Management UI[2m > [22m[2mignores a delayed ingestion verification response after switching documents
+[22m[39mWarning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Document Management UI[2m > [22m[2mignores a delayed ingestion verification response after switching documents
+[22m[39mWarning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Document Management UI[2m > [22m[2mrefreshes the same deep-linked document and closes without reloading it
+[22m[39mWarning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+ [32m✓[39m tests/sp806.test.tsx[2m > [22mSP-806 Document Management UI[2m > [22mignores a delayed ingestion verification response after switching documents[33m 10384[2mms[22m[39m
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Document Management UI[2m > [22m[2mrefreshes the same deep-linked document and closes without reloading it
+[22m[39mWarning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Document Management UI[2m > [22m[2mrefreshes the same deep-linked document and closes without reloading it
+[22m[39mWarning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Document Management UI[2m > [22m[2mrefreshes the same deep-linked document and closes without reloading it
+[22m[39mWarning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Document Management UI[2m > [22m[2mrefreshes the same deep-linked document and closes without reloading it
+[22m[39mWarning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Document Management UI[2m > [22m[2mmarks saved Gate 稽核 responses historical after document upload, ingestion and outbound approval or exclusion
+[22m[39mWarning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+ [32m✓[39m tests/sp806.test.tsx[2m > [22mSP-806 Document Management UI[2m > [22mrefreshes the same deep-linked document and closes without reloading it[33m 4170[2mms[22m[39m
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Document Management UI[2m > [22m[2mmarks saved Gate 稽核 responses historical after document upload, ingestion and outbound approval or exclusion
+[22m[39mWarning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Document Management UI[2m > [22m[2mmarks saved Gate 稽核 responses historical after document upload, ingestion and outbound approval or exclusion
+[22m[39mWarning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Document Management UI[2m > [22m[2mmarks saved Gate 稽核 responses historical after document upload, ingestion and outbound approval or exclusion
+[22m[39mWarning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Document Management UI[2m > [22m[2mmarks saved Gate 稽核 responses historical after document upload, ingestion and outbound approval or exclusion
+[22m[39mWarning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Document Management UI[2m > [22m[2mmarks saved Gate 稽核 responses historical after document upload, ingestion and outbound approval or exclusion
+[22m[39mWarning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Document Management UI[2m > [22m[2mmarks saved Gate 稽核 responses historical after document upload, ingestion and outbound approval or exclusion
+[22m[39mWarning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Document Management UI[2m > [22m[2mmarks saved Gate 稽核 responses historical after document upload, ingestion and outbound approval or exclusion
+[22m[39mWarning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Document Management UI[2m > [22m[2mmarks saved Gate 稽核 responses historical after document upload, ingestion and outbound approval or exclusion
+[22m[39mWarning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Document Management UI[2m > [22m[2mmarks saved Gate 稽核 responses historical after document upload, ingestion and outbound approval or exclusion
+[22m[39mWarning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Document Management UI[2m > [22m[2mmarks saved Gate 稽核 responses historical after document upload, ingestion and outbound approval or exclusion
+[22m[39mWarning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Document Management UI[2m > [22m[2mmarks saved Gate 稽核 responses historical after document upload, ingestion and outbound approval or exclusion
+[22m[39mWarning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Document Management UI[2m > [22m[2mmarks saved Gate 稽核 responses historical after document upload, ingestion and outbound approval or exclusion
+[22m[39mWarning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Document Management UI[2m > [22m[2mmarks saved Gate 稽核 responses historical after document upload, ingestion and outbound approval or exclusion
+[22m[39mWarning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Document Management UI[2m > [22m[2mmarks saved Gate 稽核 responses historical after document upload, ingestion and outbound approval or exclusion
+[22m[39mWarning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Document Management UI[2m > [22m[2mmarks saved Gate 稽核 responses historical after document upload, ingestion and outbound approval or exclusion
+[22m[39mWarning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Document Management UI[2m > [22m[2mmarks saved Gate 稽核 responses historical after document upload, ingestion and outbound approval or exclusion
+[22m[39mWarning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Document Management UI[2m > [22m[2mmarks saved Gate 稽核 responses historical after document upload, ingestion and outbound approval or exclusion
+[22m[39mWarning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Document Management UI[2m > [22m[2mmarks saved Gate 稽核 responses historical after document upload, ingestion and outbound approval or exclusion
+[22m[39mWarning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Document Management UI[2m > [22m[2mmarks saved Gate 稽核 responses historical after document upload, ingestion and outbound approval or exclusion
+[22m[39mWarning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Document Management UI[2m > [22m[2mmarks saved Gate 稽核 responses historical after document upload, ingestion and outbound approval or exclusion
+[22m[39mWarning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Document Management UI[2m > [22m[2mmarks saved Gate 稽核 responses historical after document upload, ingestion and outbound approval or exclusion
+[22m[39mWarning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Document Management UI[2m > [22m[2mmarks saved Gate 稽核 responses historical after document upload, ingestion and outbound approval or exclusion
+[22m[39mWarning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Document Management UI[2m > [22m[2mmarks saved Gate 稽核 responses historical after document upload, ingestion and outbound approval or exclusion
+[22m[39mWarning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Document Management UI[2m > [22m[2mmarks saved Gate 稽核 responses historical after document upload, ingestion and outbound approval or exclusion
+[22m[39mWarning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Document Management UI[2m > [22m[2mmarks saved Gate 稽核 responses historical after document upload, ingestion and outbound approval or exclusion
+[22m[39mWarning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Document Management UI[2m > [22m[2mmarks saved Gate 稽核 responses historical after document upload, ingestion and outbound approval or exclusion
+[22m[39mWarning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Document Management UI[2m > [22m[2mmarks saved Gate 稽核 responses historical after document upload, ingestion and outbound approval or exclusion
+[22m[39mWarning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Document Management UI[2m > [22m[2mshows backend status, hides storagePath, and performs one explicitly confirmed ingestion followed by refresh
+[22m[39mWarning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+ [32m✓[39m tests/sp806.test.tsx[2m > [22mSP-806 Document Management UI[2m > [22mmarks saved Gate 稽核 responses historical after document upload, ingestion and outbound approval or exclusion[33m 85939[2mms[22m[39m
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Document Management UI[2m > [22m[2mshows backend status, hides storagePath, and performs one explicitly confirmed ingestion followed by refresh
+[22m[39mWarning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Document Management UI[2m > [22m[2mshows backend status, hides storagePath, and performs one explicitly confirmed ingestion followed by refresh
+[22m[39mWarning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Document Management UI[2m > [22m[2mshows backend status, hides storagePath, and performs one explicitly confirmed ingestion followed by refresh
+[22m[39mWarning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Document Management UI[2m > [22m[2mshows backend status, hides storagePath, and performs one explicitly confirmed ingestion followed by refresh
+[22m[39mWarning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Document Management UI[2m > [22m[2mshows backend status, hides storagePath, and performs one explicitly confirmed ingestion followed by refresh
+[22m[39mWarning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Document Management UI[2m > [22m[2mshows backend status, hides storagePath, and performs one explicitly confirmed ingestion followed by refresh
+[22m[39mWarning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Document Management UI[2m > [22m[2mlocks an unknown or 409 ingestion result until the official document GET succeeds, without a resend
+[22m[39mWarning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+ [32m✓[39m tests/sp806.test.tsx[2m > [22mSP-806 Document Management UI[2m > [22mshows backend status, hides storagePath, and performs one explicitly confirmed ingestion followed by refresh[33m 8414[2mms[22m[39m
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Document Management UI[2m > [22m[2mlocks an unknown or 409 ingestion result until the official document GET succeeds, without a resend
+[22m[39mWarning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Document Management UI[2m > [22m[2mlocks an unknown or 409 ingestion result until the official document GET succeeds, without a resend
+[22m[39mWarning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Document Management UI[2m > [22m[2mlocks an unknown or 409 ingestion result until the official document GET succeeds, without a resend
+[22m[39mWarning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Document Management UI[2m > [22m[2mlocks an unknown or 409 ingestion result until the official document GET succeeds, without a resend
+[22m[39mWarning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Document Management UI[2m > [22m[2mlocks an unknown or 409 ingestion result until the official document GET succeeds, without a resend
+[22m[39mWarning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Document Management UI[2m > [22m[2mlocks an unknown or 409 ingestion result until the official document GET succeeds, without a resend
+[22m[39mWarning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Document Management UI[2m > [22m[2mlocks an unknown or 409 ingestion result until the official document GET succeeds, without a resend
+[22m[39mWarning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Document Management UI[2m > [22m[2mlocks an unknown or 409 ingestion result until the official document GET succeeds, without a resend
+[22m[39mWarning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Document Management UI[2m > [22m[2mlocks an unknown or 409 ingestion result until the official document GET succeeds, without a resend
+[22m[39mWarning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Document Management UI[2m > [22m[2mlocks an unknown or 409 ingestion result until the official document GET succeeds, without a resend
+[22m[39mWarning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Document Management UI[2m > [22m[2msubmits one upload on rapid clicks and locks an unknown upload instead of guessing its result
+[22m[39mWarning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+ [32m✓[39m tests/sp806.test.tsx[2m > [22mSP-806 Document Management UI[2m > [22mlocks an unknown or 409 ingestion result until the official document GET succeeds, without a resend[33m 21200[2mms[22m[39m
+ [32m✓[39m tests/sp806.test.tsx[2m > [22mSP-806 Document Management UI[2m > [22mvalidates document file extension, browser content type, and empty content[32m 1[2mms[22m[39m
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Document Management UI[2m > [22m[2msubmits one upload on rapid clicks and locks an unknown upload instead of guessing its result
+[22m[39mWarning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Document Management UI[2m > [22m[2msubmits one upload on rapid clicks and locks an unknown upload instead of guessing its result
+[22m[39mWarning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Document Management UI[2m > [22m[2msubmits one upload on rapid clicks and locks an unknown upload instead of guessing its result
+[22m[39mWarning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Document Management UI[2m > [22m[2msubmits one upload on rapid clicks and locks an unknown upload instead of guessing its result
+[22m[39mWarning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Document Management UI[2m > [22m[2mgives manager read-only Documents without upload, edit, or ingestion controls
+[22m[39mWarning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+ [32m✓[39m tests/sp806.test.tsx[2m > [22mSP-806 Document Management UI[2m > [22msubmits one upload on rapid clicks and locks an unknown upload instead of guessing its result[33m 12164[2mms[22m[39m
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Document Management UI[2m > [22m[2mgives manager read-only Documents without upload, edit, or ingestion controls
+[22m[39mWarning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Document Management UI[2m > [22m[2mgives manager read-only Documents without upload, edit, or ingestion controls
+[22m[39mWarning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Document Management UI[2m > [22m[2mgives manager read-only Documents without upload, edit, or ingestion controls
+[22m[39mWarning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+ [32m✓[39m tests/sp806.test.tsx[2m > [22mSP-806 Document Management UI[2m > [22mgives manager read-only Documents without upload, edit, or ingestion controls[33m 5860[2mms[22m[39m
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Global AI 助理[2m > [22m[2mkeeps the route unchanged, renders verified query sources, and gives manager no Proposal tab
+[22m[39mWarning: [antd: List] The `List` component is deprecated and will be removed in the next major version. If you're using version 6.6.0 or later, please use `Listy` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+Warning: [antd: List] The `List` component is deprecated and will be removed in the next major version. If you're using version 6.6.0 or later, please use `Listy` instead.
+
+ [32m✓[39m tests/sp806.test.tsx[2m > [22mSP-806 Document Management UI[2m > [22mdoes not call any Document or AI endpoint for warehouse role[33m 768[2mms[22m[39m
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Global AI 助理[2m > [22m[2mkeeps the route unchanged, renders verified query sources, and gives manager no Proposal tab
+[22m[39mWarning: [antd: List] The `List` component is deprecated and will be removed in the next major version. If you're using version 6.6.0 or later, please use `Listy` instead.
+
+Could not parse CSS stylesheet
+Could not parse CSS stylesheet
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Global AI 助理[2m > [22m[2mkeeps the route unchanged, renders verified query sources, and gives manager no Proposal tab
+[22m[39mWarning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Global AI 助理[2m > [22m[2misolates AI 503 so navigation stays usable and the drawer can close
+[22m[39mWarning: [antd: List] The `List` component is deprecated and will be removed in the next major version. If you're using version 6.6.0 or later, please use `Listy` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+Warning: [antd: List] The `List` component is deprecated and will be removed in the next major version. If you're using version 6.6.0 or later, please use `Listy` instead.
+
+ [32m✓[39m tests/sp806.test.tsx[2m > [22mSP-806 Global AI 助理[2m > [22mkeeps the route unchanged, renders verified query sources, and gives manager no Proposal tab[33m 7876[2mms[22m[39m
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Global AI 助理[2m > [22m[2misolates AI 503 so navigation stays usable and the drawer can close
+[22m[39mWarning: [antd: List] The `List` component is deprecated and will be removed in the next major version. If you're using version 6.6.0 or later, please use `Listy` instead.
+
+Could not parse CSS stylesheet
+Could not parse CSS stylesheet
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Global AI 助理[2m > [22m[2misolates AI 503 so navigation stays usable and the drawer can close
+[22m[39mWarning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Global AI 助理[2m > [22m[2misolates AI 503 so navigation stays usable and the drawer can close
+[22m[39mWarning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Global AI 助理[2m > [22m[2mreviews a multi-item backend snapshot and sends one token-based Confirm with no ordinary PO create call
+[22m[39mWarning: [antd: List] The `List` component is deprecated and will be removed in the next major version. If you're using version 6.6.0 or later, please use `Listy` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+Warning: [antd: List] The `List` component is deprecated and will be removed in the next major version. If you're using version 6.6.0 or later, please use `Listy` instead.
+
+ [32m✓[39m tests/sp806.test.tsx[2m > [22mSP-806 Global AI 助理[2m > [22misolates AI 503 so navigation stays usable and the drawer can close[33m 9570[2mms[22m[39m
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Global AI 助理[2m > [22m[2mreviews a multi-item backend snapshot and sends one token-based Confirm with no ordinary PO create call
+[22m[39mWarning: [antd: List] The `List` component is deprecated and will be removed in the next major version. If you're using version 6.6.0 or later, please use `Listy` instead.
+
+Could not parse CSS stylesheet
+Could not parse CSS stylesheet
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Global AI 助理[2m > [22m[2mreviews a multi-item backend snapshot and sends one token-based Confirm with no ordinary PO create call
+[22m[39mWarning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Global AI 助理[2m > [22m[2mshows clarification without Confirm and locks unknown Confirm results without resending
+[22m[39mWarning: [antd: List] The `List` component is deprecated and will be removed in the next major version. If you're using version 6.6.0 or later, please use `Listy` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+Warning: [antd: List] The `List` component is deprecated and will be removed in the next major version. If you're using version 6.6.0 or later, please use `Listy` instead.
+
+ [32m✓[39m tests/sp806.test.tsx[2m > [22mSP-806 Global AI 助理[2m > [22mreviews a multi-item backend snapshot and sends one token-based Confirm with no ordinary PO create call[33m 24627[2mms[22m[39m
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Global AI 助理[2m > [22m[2mshows clarification without Confirm and locks unknown Confirm results without resending
+[22m[39mWarning: [antd: List] The `List` component is deprecated and will be removed in the next major version. If you're using version 6.6.0 or later, please use `Listy` instead.
+
+Could not parse CSS stylesheet
+Could not parse CSS stylesheet
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Global AI 助理[2m > [22m[2mshows clarification without Confirm and locks unknown Confirm results without resending
+[22m[39mWarning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Global AI 助理[2m > [22m[2mlocks the old Proposal after AI_PROPOSAL_ALREADY_CONFIRMED
+[22m[39mWarning: [antd: List] The `List` component is deprecated and will be removed in the next major version. If you're using version 6.6.0 or later, please use `Listy` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+Warning: [antd: List] The `List` component is deprecated and will be removed in the next major version. If you're using version 6.6.0 or later, please use `Listy` instead.
+
+ [32m✓[39m tests/sp806.test.tsx[2m > [22mSP-806 Global AI 助理[2m > [22mshows clarification without Confirm and locks unknown Confirm results without resending[33m 19674[2mms[22m[39m
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Global AI 助理[2m > [22m[2mlocks the old Proposal after AI_PROPOSAL_ALREADY_CONFIRMED
+[22m[39mWarning: [antd: List] The `List` component is deprecated and will be removed in the next major version. If you're using version 6.6.0 or later, please use `Listy` instead.
+
+Could not parse CSS stylesheet
+Could not parse CSS stylesheet
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Global AI 助理[2m > [22m[2mlocks the old Proposal after AI_PROPOSAL_ALREADY_CONFIRMED
+[22m[39mWarning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Global AI 助理[2m > [22m[2mlocks the old Proposal after AI_PROPOSAL_EXPIRED
+[22m[39mWarning: [antd: List] The `List` component is deprecated and will be removed in the next major version. If you're using version 6.6.0 or later, please use `Listy` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+Warning: [antd: List] The `List` component is deprecated and will be removed in the next major version. If you're using version 6.6.0 or later, please use `Listy` instead.
+
+ [32m✓[39m tests/sp806.test.tsx[2m > [22mSP-806 Global AI 助理[2m > [22mlocks the old Proposal after AI_PROPOSAL_ALREADY_CONFIRMED[33m 22000[2mms[22m[39m
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Global AI 助理[2m > [22m[2mlocks the old Proposal after AI_PROPOSAL_EXPIRED
+[22m[39mWarning: [antd: List] The `List` component is deprecated and will be removed in the next major version. If you're using version 6.6.0 or later, please use `Listy` instead.
+
+Could not parse CSS stylesheet
+Could not parse CSS stylesheet
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Global AI 助理[2m > [22m[2mlocks the old Proposal after AI_PROPOSAL_EXPIRED
+[22m[39mWarning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Global AI 助理[2m > [22m[2mfails closed when Proposal expiresAt is invalid without calling Confirm
+[22m[39mWarning: [antd: List] The `List` component is deprecated and will be removed in the next major version. If you're using version 6.6.0 or later, please use `Listy` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+Warning: [antd: List] The `List` component is deprecated and will be removed in the next major version. If you're using version 6.6.0 or later, please use `Listy` instead.
+
+ [32m✓[39m tests/sp806.test.tsx[2m > [22mSP-806 Global AI 助理[2m > [22mlocks the old Proposal after AI_PROPOSAL_EXPIRED[33m 22391[2mms[22m[39m
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Global AI 助理[2m > [22m[2mfails closed when Proposal expiresAt is invalid without calling Confirm
+[22m[39mWarning: [antd: List] The `List` component is deprecated and will be removed in the next major version. If you're using version 6.6.0 or later, please use `Listy` instead.
+
+Could not parse CSS stylesheet
+Could not parse CSS stylesheet
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+[90mstderr[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Global AI 助理[2m > [22m[2mfails closed when Proposal expiresAt is invalid without calling Confirm
+[22m[39mWarning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+ [32m✓[39m tests/sp806.test.tsx[2m > [22mSP-806 Global AI 助理[2m > [22mfails closed when Proposal expiresAt is invalid without calling Confirm[33m 15704[2mms[22m[39m
+
+[2m Test Files [22m [1m[32m1 passed[39m[22m[90m (1)[39m
+[2m      Tests [22m [1m[32m25 passed[39m[22m[90m (25)[39m
+[2m   Start at [22m 01:23:08
+[2m   Duration [22m 443.34s[2m (transform 4.64s, setup 2.83s, import 86.07s, tests 327.90s, environment 24.66s)[22m
+
+npm notice
+npm notice New major version of npm available! 11.19.1 -> 12.2.1
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.1
+npm notice To update run: npm install -g npm@12.2.1
+npm notice
