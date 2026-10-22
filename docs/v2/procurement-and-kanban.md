@@ -88,4 +88,12 @@ Issue #138 的程式與驗證狀態以 [`docs/evidence/issue-138-validation.md`]
 
 為辨認第 5/6 欄，只新增 ORDERED 專用的持久化 `ordered_progress` 契約：新下單為 `FOLLOW_UP`（第 5 欄），「開始到貨驗收」命令將其改為 `RECEIVING_INSPECTION`（第 6 欄）；第 6 欄起取消被後端拒絕。既有 ORDERED 資料無法由舊欄位可靠推算第 5 或第 6 欄，Migration 以 `LEGACY_UNKNOWN` 保留未知並禁止取消；管理員可經受控命令明確移入第 6 欄，不接受 Client 任意 Stage 值。此欄位與遷移規則是 #139 的最小取消保護契約；#141 沿用第 5→6 操作並補齊驗收/收貨流程，#142 再擴為完整八階段模型與轉移不變量。目前沒有完整八欄看板或任意 Stage API。
 
-**#139 範圍限制：** 本 Issue 只完成取消及第 5／6 欄的取消保護，不代表第 6 欄收貨驗收已完成。目前 `PurchaseOrder.validateReceivingEligibility()` 尚未要求 `ordered_progress = RECEIVING_INSPECTION`；第 6 欄完整人工數量／品質驗收與 6→7 收貨准入由 #141 實作。未完成 #141 前，不得宣稱 V2 完整收貨流程已通過驗收。
+**#139 範圍限制：** #139 原始實作僅完成取消及第 5／6 欄的取消保護；第 6 欄完整人工數量／品質驗收與 6→7 收貨准入由 #141 實作。#141 實際完成狀態見下方 V2-204 實作紀錄。完整八階段與通用轉換仍由 #142 負責。
+
+## V2-204 實作狀態（Issue #141）
+
+- 5→6 沿用 `ordered_progress`；進入驗收時仍是 ORDERED，不動 Inventory/StockTransaction。
+- 第 6 欄儲存三項明確驗收旗標與目前異常備註。只要未確認整筆到貨、全部數量與全部品質合格，舊 `/receive` 及所有其他收貨路徑均由 Backend 拒絕。
+- 合格後仍一次更新 PO、Inventory 與 StockTransaction；付款確認及撤銷以目前付款者/時間欄位記錄，不變更 RECEIVED 或庫存。
+- 欄位遷移、API 與驗收證據分別見 `docs/api.md`、`docs/domain-model.md`、`docs/transaction-boundary.md`、`docs/security-design.md`、`docs/testing-strategy-merged.md` 與 `docs/evidence/issue-141-validation.md`。
+- 第 7/8 欄由 RECEIVED 及目前付款確認時間推導；本 Issue 沒有建立完整八欄 Stage 欄位或 Stage Transition Engine。

@@ -7,7 +7,7 @@ import com.supplypilot.procurement.domain.PurchaseOrder;
 import com.supplypilot.procurement.domain.PurchaseOrderItem;
 import com.supplypilot.procurement.dto.response.ReceivingPurchaseOrderItemResponse;
 import com.supplypilot.procurement.dto.response.ReceivingPurchaseOrderResponse;
-import com.supplypilot.user.domain.User;
+import com.supplypilot.procurement.dto.response.ReceivingInspectionResponse;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -22,11 +22,15 @@ public class ReceivingPurchaseOrderMapper {
         return new ReceivingPurchaseOrderResponse(
                 purchaseOrder.getId(), purchaseOrder.getPoNumber(), purchaseOrder.getSupplier().getId(),
                 purchaseOrder.getSupplier().getCode(), purchaseOrder.getSupplier().getName(), purchaseOrder.getStatus(),
+                purchaseOrder.getOrderedProgress(), new ReceivingInspectionResponse(
+                        purchaseOrder.isInspectionAllItemsReceived(), purchaseOrder.isInspectionAllQuantitiesConfirmed(),
+                        purchaseOrder.isInspectionAllQualityAccepted(), purchaseOrder.getInspectionNote(),
+                        purchaseOrder.getInspectedByUserIdSnapshot(), purchaseOrder.getInspectedByDisplayNameSnapshot(),
+                        purchaseOrder.getInspectedByUsernameSnapshot(), purchaseOrder.getInspectedAt()),
                 purchaseOrder.getExpectedDeliveryDate(), purchaseOrder.isOverdue(LocalDate.now(clock)),
                 purchaseOrder.getItems().stream().map(this::toItemResponse).toList(), purchaseOrder.getOrderedAt(),
                 purchaseOrder.getReceivedByUserIdSnapshot(), purchaseOrder.getReceivedByDisplayNameSnapshot(),
-                purchaseOrder.getReceivedByUsernameSnapshot(),
-                purchaseOrder.getReceivedAt());
+                purchaseOrder.getReceivedByUsernameSnapshot(), purchaseOrder.getReceivedAt());
     }
 
     private ReceivingPurchaseOrderItemResponse toItemResponse(PurchaseOrderItem item) {
@@ -34,11 +38,4 @@ public class ReceivingPurchaseOrderMapper {
                 item.getMaterial().getCode(), item.getMaterial().getName(), item.getQuantity(), item.getUnit());
     }
 
-    private Long userId(User user) {
-        return user == null ? null : user.getId();
-    }
-
-    private String userDisplayName(User user) {
-        return user == null ? null : user.getDisplayName();
-    }
 }

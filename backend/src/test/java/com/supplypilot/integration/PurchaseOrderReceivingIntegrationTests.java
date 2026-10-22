@@ -3,6 +3,7 @@ package com.supplypilot.integration;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -91,6 +92,7 @@ class PurchaseOrderReceivingIntegrationTests extends AbstractIntegrationTest {
         Material second = material("B", "200");
         Material third = material("C", "300");
         PurchaseOrder order = orderedOrder(quantities(first, "10", second, "20", third, "30"));
+        prepareAcceptedInspection(admin, order.getId());
         assertThat(incomingInventoryQuery.calculateIncomingQuantity(
                 first.getId(), TestDataConstants.TEST_TODAY.plusDays(1))).isEqualByComparingTo("10");
 
@@ -142,8 +144,79 @@ class PurchaseOrderReceivingIntegrationTests extends AbstractIntegrationTest {
     }
 
     @Test
+    void inspectionConfirmationIsPersistedBeforeReceivingAndDoesNotChangeInventory() throws Exception {
+        Material material = material("INSPECT", "25");
+        PurchaseOrder order = orderedOrder(Map.of(material, "5"));
+
+        receive(admin, order.getId()).andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("RECEIVING_INSPECTION_INCOMPLETE"));
+
+        mockMvc.perform(post("/api/v1/purchase-orders/{id}/begin-receiving-inspection", order.getId())
+                        .header("Authorization", bearer(admin)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("ORDERED"))
+                .andExpect(jsonPath("$.orderedProgress").value("RECEIVING_INSPECTION"));
+
+        mockMvc.perform(put("/api/v1/purchase-orders/{id}/receiving-inspection", order.getId())
+                        .header("Authorization", bearer(admin)).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"allItemsReceived\":false,\"allQuantitiesConfirmed\":false,"
+                                + "\"allQualityAccepted\":false,\"note\":\"尚未到貨，尚未清點\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("ORDERED"))
+                .andExpect(jsonPath("$.orderedProgress").value("RECEIVING_INSPECTION"))
+                .andExpect(jsonPath("$.receivingInspection.allItemsReceived").value(false))
+                .andExpect(jsonPath("$.receivingInspection.note").value("尚未到貨，尚未清點"));
+
+        assertThat(quantity(material)).isEqualByComparingTo("25");
+        assertThat(transactionCount(order.getId())).isZero();
+        assertThat(jdbcTemplate.queryForObject("SELECT status FROM purchase_orders WHERE id = ?", String.class,
+                order.getId())).isEqualTo("ORDERED");
+
+        mockMvc.perform(get("/api/v1/purchase-orders/{id}", order.getId()).header("Authorization", bearer(admin)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.receivingInspection.note").value("尚未到貨，尚未清點"));
+
+        for (boolean[] result : List.of(new boolean[] {false, true, true}, new boolean[] {true, false, true},
+                new boolean[] {true, true, false})) {
+            recordInspection(admin, order.getId(), result[0], result[1], result[2], "驗收異常").andExpect(status().isOk());
+            receive(admin, order.getId()).andExpect(status().isConflict())
+                    .andExpect(jsonPath("$.code").value("RECEIVING_INSPECTION_INCOMPLETE"));
+        }
+        recordInspection(admin, order.getId(), true, true, true, "").andExpect(status().isOk())
+                .andExpect(jsonPath("$.receivingInspection.allItemsReceived").value(true))
+                .andExpect(jsonPath("$.receivingInspection.allQuantitiesConfirmed").value(true))
+                .andExpect(jsonPath("$.receivingInspection.allQualityAccepted").value(true))
+                .andExpect(jsonPath("$.receivingInspection.inspectedBy").value(admin.getId()));
+
+        receive(admin, order.getId()).andExpect(status().isOk()).andExpect(jsonPath("$.status").value("RECEIVED"));
+        assertThat(quantity(material)).isEqualByComparingTo("30");
+        assertThat(transactionCount(order.getId())).isEqualTo(1);
+        mockMvc.perform(post("/api/v1/purchase-orders/{id}/confirm-payment", order.getId())
+                        .header("Authorization", bearer(admin)))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("RECEIVED"))
+                .andExpect(jsonPath("$.paymentConfirmed").value(true))
+                .andExpect(jsonPath("$.paymentConfirmedBy").value(admin.getId()))
+                .andExpect(jsonPath("$.paymentConfirmedAt").value(clock.instant().toString()));
+        mockMvc.perform(post("/api/v1/purchase-orders/{id}/confirm-payment", order.getId())
+                        .header("Authorization", bearer(admin)))
+                .andExpect(status().isConflict()).andExpect(jsonPath("$.code").value("INVALID_PO_STATUS_TRANSITION"));
+        mockMvc.perform(post("/api/v1/purchase-orders/{id}/revoke-payment-confirmation", order.getId())
+                        .header("Authorization", bearer(admin)))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("RECEIVED"))
+                .andExpect(jsonPath("$.paymentConfirmed").value(false))
+                .andExpect(jsonPath("$.paymentConfirmedBy").doesNotExist())
+                .andExpect(jsonPath("$.paymentConfirmedAt").doesNotExist());
+        mockMvc.perform(post("/api/v1/purchase-orders/{id}/revoke-payment-confirmation", order.getId())
+                        .header("Authorization", bearer(admin)))
+                .andExpect(status().isConflict()).andExpect(jsonPath("$.code").value("INVALID_PO_STATUS_TRANSITION"));
+        assertThat(quantity(material)).isEqualByComparingTo("30");
+        assertThat(transactionCount(order.getId())).isEqualTo(1);
+    }
+
+    @Test
     void adminCanReceiveButOtherRolesAndAnonymousCannot() throws Exception {
         PurchaseOrder adminOrder = orderedOrder(Map.of(material("ADMIN", "0"), "2"));
+        prepareAcceptedInspection(admin, adminOrder.getId());
         receive(admin, adminOrder.getId()).andExpect(status().isOk())
                 .andExpect(jsonPath("$.receivedBy").value(admin.getId()));
 
@@ -160,6 +233,62 @@ class PurchaseOrderReceivingIntegrationTests extends AbstractIntegrationTest {
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.code").value("UNAUTHENTICATED"));
         assertUnreceived(anonymous.getId());
+    }
+
+    @Test
+    void inspectionAndPaymentCommandsRejectAnonymousAndWarehouseUsersWithoutMutation() throws Exception {
+        PurchaseOrder inspectionOrder = orderedOrder(Map.of(material("INSPECTION-AUTH", "20"), "3"));
+        var beginPath = "/api/v1/purchase-orders/" + inspectionOrder.getId() + "/begin-receiving-inspection";
+        var recordPath = "/api/v1/purchase-orders/" + inspectionOrder.getId() + "/receiving-inspection";
+        mockMvc.perform(post(beginPath)).andExpect(status().isUnauthorized());
+        mockMvc.perform(put(recordPath).contentType(MediaType.APPLICATION_JSON)
+                .content("{\"allItemsReceived\":true,\"allQuantitiesConfirmed\":true,"
+                        + "\"allQualityAccepted\":true,\"note\":null}"))
+                .andExpect(status().isUnauthorized());
+        mockMvc.perform(post(beginPath).header("Authorization", bearer(warehouse)))
+                .andExpect(status().isForbidden());
+        mockMvc.perform(put(recordPath).header("Authorization", bearer(warehouse))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"allItemsReceived\":true,\"allQuantitiesConfirmed\":true,"
+                        + "\"allQualityAccepted\":true,\"note\":null}"))
+                .andExpect(status().isForbidden());
+        Map<String, Object> unchangedInspection = jdbcTemplate.queryForMap(
+                "SELECT status, ordered_progress, inspection_all_items_received, inspected_at "
+                        + "FROM purchase_orders WHERE id = ?", inspectionOrder.getId());
+        assertThat(unchangedInspection.get("status")).isEqualTo("ORDERED");
+        assertThat(unchangedInspection.get("ordered_progress")).isEqualTo("FOLLOW_UP");
+        assertThat(unchangedInspection.get("inspection_all_items_received")).isEqualTo(false);
+        assertThat(unchangedInspection.get("inspected_at")).isNull();
+
+        Material unpaidMaterial = material("PAYMENT-AUTH", "30");
+        PurchaseOrder unpaid = orderedOrder(Map.of(unpaidMaterial, "4"));
+        prepareAcceptedInspection(admin, unpaid.getId());
+        receive(admin, unpaid.getId()).andExpect(status().isOk());
+        mockMvc.perform(post("/api/v1/purchase-orders/{id}/confirm-payment", unpaid.getId()))
+                .andExpect(status().isUnauthorized());
+        mockMvc.perform(post("/api/v1/purchase-orders/{id}/confirm-payment", unpaid.getId())
+                .header("Authorization", bearer(warehouse))).andExpect(status().isForbidden());
+        assertThat(jdbcTemplate.queryForObject(
+                "SELECT payment_confirmed_at FROM purchase_orders WHERE id = ?", Object.class, unpaid.getId()))
+                .isNull();
+
+        Material paidMaterial = material("REVOKE-AUTH", "40");
+        PurchaseOrder paid = orderedOrder(Map.of(paidMaterial, "5"));
+        prepareAcceptedInspection(admin, paid.getId());
+        receive(admin, paid.getId()).andExpect(status().isOk());
+        mockMvc.perform(post("/api/v1/purchase-orders/{id}/confirm-payment", paid.getId())
+                .header("Authorization", bearer(admin))).andExpect(status().isOk());
+        mockMvc.perform(post("/api/v1/purchase-orders/{id}/revoke-payment-confirmation", paid.getId()))
+                .andExpect(status().isUnauthorized());
+        mockMvc.perform(post("/api/v1/purchase-orders/{id}/revoke-payment-confirmation", paid.getId())
+                .header("Authorization", bearer(warehouse))).andExpect(status().isForbidden());
+        assertThat(jdbcTemplate.queryForObject(
+                "SELECT payment_confirmed_at FROM purchase_orders WHERE id = ?", Object.class, paid.getId()))
+                .isNotNull();
+        assertThat(quantity(unpaidMaterial)).isEqualByComparingTo("34");
+        assertThat(quantity(paidMaterial)).isEqualByComparingTo("45");
+        assertThat(transactionCount(unpaid.getId())).isEqualTo(1);
+        assertThat(transactionCount(paid.getId())).isEqualTo(1);
     }
 
     @Test
@@ -180,6 +309,7 @@ class PurchaseOrderReceivingIntegrationTests extends AbstractIntegrationTest {
 
         Material material = material("DUP", "50");
         PurchaseOrder order = orderedOrder(Map.of(material, "7"));
+        prepareAcceptedInspection(admin, order.getId());
         receive(warehouse, order.getId()).andExpect(status().isOk());
         receive(warehouse, order.getId()).andExpect(status().isConflict())
                 .andExpect(jsonPath("$.code").value("DUPLICATE_RECEIVING"));
@@ -195,6 +325,7 @@ class PurchaseOrderReceivingIntegrationTests extends AbstractIntegrationTest {
         inventoryRepository.flush();
         PurchaseOrder missingInventory = orderedOrderWithoutCreatingInventory(
                 Map.of(present, "10", missing, "20"));
+        prepareAcceptedInspection(admin, missingInventory.getId());
 
         receive(warehouse, missingInventory.getId()).andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value("INVENTORY_NOT_FOUND"));
@@ -204,6 +335,7 @@ class PurchaseOrderReceivingIntegrationTests extends AbstractIntegrationTest {
 
         Material noItemsMaterial = material("EMPTY", "10");
         PurchaseOrder noItems = orderedOrder(Map.of(noItemsMaterial, "1"));
+        prepareAcceptedInspection(admin, noItems.getId());
         jdbcTemplate.update("DELETE FROM purchase_order_items WHERE purchase_order_id = ?", noItems.getId());
         receive(warehouse, noItems.getId()).andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"));
@@ -211,6 +343,7 @@ class PurchaseOrderReceivingIntegrationTests extends AbstractIntegrationTest {
 
         Material invalidMaterial = material("INVALID", "10");
         PurchaseOrder invalid = orderedOrder(Map.of(invalidMaterial, "1"));
+        prepareAcceptedInspection(admin, invalid.getId());
         jdbcTemplate.execute("ALTER TABLE purchase_order_items DROP CHECK chk_purchase_order_items_quantity");
         try {
             jdbcTemplate.update("UPDATE purchase_order_items SET quantity = 0 WHERE purchase_order_id = ?", invalid.getId());
@@ -232,6 +365,7 @@ class PurchaseOrderReceivingIntegrationTests extends AbstractIntegrationTest {
         Material second = material("ROLL-B", "200");
         Material third = material("ROLL-C", "300");
         PurchaseOrder order = orderedOrder(quantities(first, "10", second, "20", third, "30"));
+        prepareAcceptedInspection(admin, order.getId());
         jdbcTemplate.execute("ALTER TABLE stock_transactions ADD CONSTRAINT chk_sp612_third_failure "
                 + "CHECK (material_id <> " + third.getId() + ")");
         try {
@@ -309,6 +443,21 @@ class PurchaseOrderReceivingIntegrationTests extends AbstractIntegrationTest {
                 .header("Authorization", bearer(actor)));
     }
 
+    private void prepareAcceptedInspection(User actor, long purchaseOrderId) throws Exception {
+        mockMvc.perform(post("/api/v1/purchase-orders/{id}/begin-receiving-inspection", purchaseOrderId)
+                        .header("Authorization", bearer(actor)))
+                .andExpect(status().isOk());
+        recordInspection(actor, purchaseOrderId, true, true, true, "").andExpect(status().isOk());
+    }
+
+    private ResultActions recordInspection(User actor, long purchaseOrderId, boolean arrived,
+            boolean quantitiesConfirmed, boolean qualityAccepted, String note) throws Exception {
+        return mockMvc.perform(put("/api/v1/purchase-orders/{id}/receiving-inspection", purchaseOrderId)
+                .header("Authorization", bearer(actor)).contentType(MediaType.APPLICATION_JSON)
+                .content("{\"allItemsReceived\":" + arrived + ",\"allQuantitiesConfirmed\":" + quantitiesConfirmed
+                        + ",\"allQualityAccepted\":" + qualityAccepted + ",\"note\":\"" + note + "\"}"));
+    }
+
     private ResultActions receiveCancel(User actor, long purchaseOrderId, String reason) throws Exception {
         return mockMvc.perform(post("/api/v1/purchase-orders/{id}/cancel", purchaseOrderId)
                 .header("Authorization", bearer(actor)).contentType(MediaType.APPLICATION_JSON)
@@ -350,8 +499,8 @@ class PurchaseOrderReceivingIntegrationTests extends AbstractIntegrationTest {
 
     private void assertReceivingContract(JsonNode response) {
         assertThat(fieldNames(response)).containsExactlyInAnyOrder("id", "poNumber", "supplierId", "supplierCode",
-                "supplierName", "status", "expectedDeliveryDate", "isOverdue", "items", "orderedAt", "receivedBy",
-                "receivedByUsername", "receivedByDisplayName", "receivedAt");
+                "supplierName", "status", "orderedProgress", "receivingInspection", "expectedDeliveryDate", "isOverdue",
+                "items", "orderedAt", "receivedBy", "receivedByUsername", "receivedByDisplayName", "receivedAt");
         response.path("items").forEach(item -> assertThat(fieldNames(item)).containsExactlyInAnyOrder("id", "materialId",
                 "materialCode", "materialName", "quantity", "unit"));
     }

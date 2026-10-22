@@ -1,7 +1,9 @@
 package com.supplypilot.integration;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.math.BigDecimal;
 import java.time.Clock;
@@ -40,8 +42,10 @@ import com.supplypilot.user.domain.UserRole;
 import com.supplypilot.user.repository.UserRepository;
 
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.RepeatedTest;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers;
 import org.springframework.test.web.servlet.MockMvc;
@@ -94,7 +98,9 @@ class PurchaseOrderConcurrentReceivingIntegrationTests extends AbstractIntegrati
         Material third = material("C", "300");
         Map<Material, String> receivedQuantities = quantities(first, "10", second, "20", third, "30");
         PurchaseOrder order = orderedOrder(receivedQuantities);
-        long purchaseOrderVersionBefore = order.getVersion();
+        prepareAcceptedInspection(admin, order.getId());
+        long purchaseOrderVersionBefore = jdbcTemplate.queryForObject(
+                "SELECT version FROM purchase_orders WHERE id = ?", Long.class, order.getId());
         Map<Long, Long> inventoryVersionsBefore = inventoryVersions(receivedQuantities.keySet());
         int stockTransactionsBefore = transactionCount(order.getId());
 
@@ -170,8 +176,39 @@ class PurchaseOrderConcurrentReceivingIntegrationTests extends AbstractIntegrati
         assertThat(transactionCount(order.getId())).isEqualTo(stockTransactionsBefore + receivedQuantities.size());
     }
 
+    @Test
+    void concurrentPaymentConfirmationsAndRevocationsSerializeWithoutChangingReceipt() throws Exception {
+        Material material = material("PAYMENT", "100");
+        PurchaseOrder order = orderedOrder(Map.of(material, "10"));
+        prepareAcceptedInspection(admin, order.getId());
+        receive(admin, order.getId());
+        long receivedInventoryVersion = inventoryVersion(material);
+        int receivedTransactions = transactionCount(order.getId());
+
+        List<MvcResult> confirmations = runTwoConcurrentPaymentActions(order.getId(), "confirm-payment");
+        assertThat(confirmations.stream().map(result -> result.getResponse().getStatus()))
+                .containsExactlyInAnyOrder(200, 409);
+        Map<String, Object> paid = jdbcTemplate.queryForMap("SELECT status, payment_confirmed_at, "
+                + "payment_confirmed_by_user_id_snapshot FROM purchase_orders WHERE id = ?", order.getId());
+        assertThat(paid.get("status")).isEqualTo("RECEIVED");
+        assertThat(paid.get("payment_confirmed_at")).isNotNull();
+        assertThat(((Number) paid.get("payment_confirmed_by_user_id_snapshot")).longValue()).isEqualTo(admin.getId());
+
+        List<MvcResult> revocations = runTwoConcurrentPaymentActions(order.getId(), "revoke-payment-confirmation");
+        assertThat(revocations.stream().map(result -> result.getResponse().getStatus()))
+                .containsExactlyInAnyOrder(200, 409);
+        Map<String, Object> revoked = jdbcTemplate.queryForMap("SELECT status, payment_confirmed_at, "
+                + "payment_confirmed_by_user_id_snapshot FROM purchase_orders WHERE id = ?", order.getId());
+        assertThat(revoked.get("status")).isEqualTo("RECEIVED");
+        assertThat(revoked.get("payment_confirmed_at")).isNull();
+        assertThat(revoked.get("payment_confirmed_by_user_id_snapshot")).isNull();
+        assertThat(quantity(material)).isEqualByComparingTo("110");
+        assertThat(inventoryVersion(material)).isEqualTo(receivedInventoryVersion);
+        assertThat(transactionCount(order.getId())).isEqualTo(receivedTransactions);
+    }
+
     @RepeatedTest(3)
-    void concurrentCancellationAndReceivingCannotBothCommitOrPartiallyUpdateInventory() throws Exception {
+    void concurrentCancellationAndInspectionTransitionCannotBothCommitAndReceivingRemainsAtomic() throws Exception {
         Material first = material("CR-A", "100");
         Material second = material("CR-B", "200");
         Material third = material("CR-C", "300");
@@ -184,27 +221,28 @@ class PurchaseOrderConcurrentReceivingIntegrationTests extends AbstractIntegrati
         CountDownLatch ready = new CountDownLatch(2);
         CountDownLatch start = new CountDownLatch(1);
         MvcResult cancelResult;
-        MvcResult receiveResult;
+        MvcResult inspectionResult;
         try {
             Future<MvcResult> cancellation = executor.submit(() -> cancelTogether(order.getId(), ready, start));
-            Future<MvcResult> receiving = executor.submit(() -> receiveTogether(firstWarehouseUser, order.getId(), ready, start));
+            Future<MvcResult> inspection = executor.submit(() -> beginInspectionTogether(order.getId(), ready, start));
             assertThat(ready.await(FUTURE_TIMEOUT_SECONDS, TimeUnit.SECONDS)).isTrue();
             start.countDown();
             cancelResult = cancellation.get(FUTURE_TIMEOUT_SECONDS, TimeUnit.SECONDS);
-            receiveResult = receiving.get(FUTURE_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+            inspectionResult = inspection.get(FUTURE_TIMEOUT_SECONDS, TimeUnit.SECONDS);
         } finally {
             start.countDown();
             executor.shutdownNow();
             assertThat(executor.awaitTermination(5, TimeUnit.SECONDS)).isTrue();
         }
 
-        assertThat(List.of(cancelResult.getResponse().getStatus(), receiveResult.getResponse().getStatus()))
+        assertThat(List.of(cancelResult.getResponse().getStatus(), inspectionResult.getResponse().getStatus()))
                 .containsExactlyInAnyOrder(200, 409);
         String finalStatus = jdbcTemplate.queryForObject("SELECT status FROM purchase_orders WHERE id = ?",
                 String.class, order.getId());
-        assertThat(finalStatus).isIn("CANCELLED", "RECEIVED");
+        assertThat(finalStatus).isIn("CANCELLED", "ORDERED");
         if (finalStatus.equals("CANCELLED")) {
             assertThat(cancelResult.getResponse().getStatus()).isEqualTo(200);
+            assertThat(inspectionResult.getResponse().getStatus()).isEqualTo(409);
             assertThat(quantity(first)).isEqualByComparingTo("100");
             assertThat(quantity(second)).isEqualByComparingTo("200");
             assertThat(quantity(third)).isEqualByComparingTo("300");
@@ -212,13 +250,78 @@ class PurchaseOrderConcurrentReceivingIntegrationTests extends AbstractIntegrati
             orderedItems.keySet().forEach(material -> assertThat(inventoryVersion(material))
                     .isEqualTo(versionsBefore.get(material.getId())));
         } else {
-            assertThat(receiveResult.getResponse().getStatus()).isEqualTo(200);
+            assertThat(cancelResult.getResponse().getStatus()).isEqualTo(409);
+            assertThat(inspectionResult.getResponse().getStatus()).isEqualTo(200);
+            assertThat(quantity(first)).isEqualByComparingTo("100");
+            assertThat(quantity(second)).isEqualByComparingTo("200");
+            assertThat(quantity(third)).isEqualByComparingTo("300");
+            assertThat(transactionCount(order.getId())).isEqualTo(transactionsBefore);
+            prepareAcceptedInspection(admin, order.getId(), false);
+            assertThat(receive(admin, order.getId()).getResponse().getStatus()).isEqualTo(200);
             assertThat(quantity(first)).isEqualByComparingTo("110");
             assertThat(quantity(second)).isEqualByComparingTo("220");
             assertThat(quantity(third)).isEqualByComparingTo("330");
             assertThat(transactionCount(order.getId())).isEqualTo(transactionsBefore + orderedItems.size());
-            orderedItems.keySet().forEach(material -> assertThat(inventoryVersion(material))
-                    .isEqualTo(versionsBefore.get(material.getId()) + 1));
+        }
+    }
+
+    @RepeatedTest(3)
+    void concurrentInspectionUpdatesAndReceivingSerializeWithoutReceivingAgainstRejectedInspection() throws Exception {
+        Material first = material("INSPECT-RECEIVE-A", "100");
+        PurchaseOrder uninspected = orderedOrder(Map.of(first, "10"));
+        beginInspectionTogetherNow(admin, uninspected.getId());
+        long firstVersion = inventoryVersion(first);
+        int firstTransactions = transactionCount(uninspected.getId());
+
+        List<MvcResult> acceptanceRace = runInspectionAndReceiveTogether(
+                uninspected.getId(), true, true, true);
+        assertThat(acceptanceRace.get(0).getResponse().getStatus()).isEqualTo(200);
+        assertThat(acceptanceRace.get(1).getResponse().getStatus()).isIn(200, 409);
+        String firstStatus = jdbcTemplate.queryForObject(
+                "SELECT status FROM purchase_orders WHERE id = ?", String.class, uninspected.getId());
+        if (firstStatus.equals("RECEIVED")) {
+            assertThat(acceptanceRace.get(1).getResponse().getStatus()).isEqualTo(200);
+            assertThat(quantity(first)).isEqualByComparingTo("110");
+            assertThat(inventoryVersion(first)).isEqualTo(firstVersion + 1);
+            assertThat(transactionCount(uninspected.getId())).isEqualTo(firstTransactions + 1);
+        } else {
+            assertThat(firstStatus).isEqualTo("ORDERED");
+            assertThat(acceptanceRace.get(1).getResponse().getStatus()).isEqualTo(409);
+            assertThat(quantity(first)).isEqualByComparingTo("100");
+            assertThat(inventoryVersion(first)).isEqualTo(firstVersion);
+            assertThat(transactionCount(uninspected.getId())).isEqualTo(firstTransactions);
+            assertThat(jdbcTemplate.queryForObject(
+                    "SELECT inspection_all_quality_accepted FROM purchase_orders WHERE id = ?",
+                    Boolean.class, uninspected.getId())).isTrue();
+        }
+
+        Material second = material("INSPECT-RECEIVE-B", "200");
+        PurchaseOrder accepted = orderedOrder(Map.of(second, "5"));
+        prepareAcceptedInspection(admin, accepted.getId());
+        long secondVersion = inventoryVersion(second);
+        int secondTransactions = transactionCount(accepted.getId());
+        List<MvcResult> rejectedInspectionRace = runInspectionAndReceiveTogether(
+                accepted.getId(), false, true, true);
+        assertThat(rejectedInspectionRace.stream().map(result -> result.getResponse().getStatus()))
+                .containsExactlyInAnyOrder(200, 409);
+        String secondStatus = jdbcTemplate.queryForObject(
+                "SELECT status FROM purchase_orders WHERE id = ?", String.class, accepted.getId());
+        if (secondStatus.equals("RECEIVED")) {
+            assertThat(rejectedInspectionRace.get(1).getResponse().getStatus()).isEqualTo(200);
+            assertThat(rejectedInspectionRace.get(0).getResponse().getStatus()).isEqualTo(409);
+            assertThat(quantity(second)).isEqualByComparingTo("205");
+            assertThat(inventoryVersion(second)).isEqualTo(secondVersion + 1);
+            assertThat(transactionCount(accepted.getId())).isEqualTo(secondTransactions + 1);
+        } else {
+            assertThat(secondStatus).isEqualTo("ORDERED");
+            assertThat(rejectedInspectionRace.get(1).getResponse().getStatus()).isEqualTo(409);
+            assertThat(rejectedInspectionRace.get(0).getResponse().getStatus()).isEqualTo(200);
+            assertThat(quantity(second)).isEqualByComparingTo("200");
+            assertThat(inventoryVersion(second)).isEqualTo(secondVersion);
+            assertThat(transactionCount(accepted.getId())).isEqualTo(secondTransactions);
+            assertThat(jdbcTemplate.queryForObject(
+                    "SELECT inspection_all_items_received FROM purchase_orders WHERE id = ?",
+                    Boolean.class, accepted.getId())).isFalse();
         }
     }
 
@@ -333,6 +436,91 @@ class PurchaseOrderConcurrentReceivingIntegrationTests extends AbstractIntegrati
         ready.countDown();
         assertThat(start.await(FUTURE_TIMEOUT_SECONDS, TimeUnit.SECONDS)).isTrue();
         return receive(actor, purchaseOrderId);
+    }
+
+    private MvcResult beginInspectionTogether(long purchaseOrderId, CountDownLatch ready, CountDownLatch start)
+            throws Exception {
+        ready.countDown();
+        assertThat(start.await(FUTURE_TIMEOUT_SECONDS, TimeUnit.SECONDS)).isTrue();
+        return mockMvc.perform(post("/api/v1/purchase-orders/{id}/begin-receiving-inspection", purchaseOrderId)
+                .header("Authorization", bearer(admin))).andReturn();
+    }
+
+    private void beginInspectionTogetherNow(User actor, long purchaseOrderId) throws Exception {
+        mockMvc.perform(post("/api/v1/purchase-orders/{id}/begin-receiving-inspection", purchaseOrderId)
+                .header("Authorization", bearer(actor))).andExpect(status().isOk());
+    }
+
+    private List<MvcResult> runInspectionAndReceiveTogether(long purchaseOrderId, boolean allItemsReceived,
+            boolean allQuantitiesConfirmed, boolean allQualityAccepted) throws Exception {
+        ExecutorService executor = Executors.newFixedThreadPool(2);
+        CountDownLatch ready = new CountDownLatch(2);
+        CountDownLatch start = new CountDownLatch(1);
+        try {
+            Future<MvcResult> inspection = executor.submit(() -> inspectionTogether(
+                    purchaseOrderId, allItemsReceived, allQuantitiesConfirmed, allQualityAccepted, ready, start));
+            Future<MvcResult> receiving = executor.submit(() -> receiveTogether(admin, purchaseOrderId, ready, start));
+            assertThat(ready.await(FUTURE_TIMEOUT_SECONDS, TimeUnit.SECONDS)).isTrue();
+            start.countDown();
+            return List.of(inspection.get(FUTURE_TIMEOUT_SECONDS, TimeUnit.SECONDS),
+                    receiving.get(FUTURE_TIMEOUT_SECONDS, TimeUnit.SECONDS));
+        } finally {
+            start.countDown();
+            executor.shutdownNow();
+            assertThat(executor.awaitTermination(5, TimeUnit.SECONDS)).isTrue();
+        }
+    }
+
+    private MvcResult inspectionTogether(long purchaseOrderId, boolean allItemsReceived,
+            boolean allQuantitiesConfirmed, boolean allQualityAccepted, CountDownLatch ready, CountDownLatch start)
+            throws Exception {
+        ready.countDown();
+        assertThat(start.await(FUTURE_TIMEOUT_SECONDS, TimeUnit.SECONDS)).isTrue();
+        String request = "{\"allItemsReceived\":" + allItemsReceived + ",\"allQuantitiesConfirmed\":"
+                + allQuantitiesConfirmed + ",\"allQualityAccepted\":" + allQualityAccepted + ",\"note\":null}";
+        return mockMvc.perform(put("/api/v1/purchase-orders/{id}/receiving-inspection", purchaseOrderId)
+                .header("Authorization", bearer(admin)).contentType(MediaType.APPLICATION_JSON).content(request))
+                .andReturn();
+    }
+
+    private void prepareAcceptedInspection(User actor, long purchaseOrderId) throws Exception {
+        prepareAcceptedInspection(actor, purchaseOrderId, true);
+    }
+
+    private void prepareAcceptedInspection(User actor, long purchaseOrderId, boolean begin) throws Exception {
+        if (begin) mockMvc.perform(post("/api/v1/purchase-orders/{id}/begin-receiving-inspection", purchaseOrderId)
+                        .header("Authorization", bearer(actor))).andExpect(status().isOk());
+        mockMvc.perform(put("/api/v1/purchase-orders/{id}/receiving-inspection", purchaseOrderId)
+                        .header("Authorization", bearer(actor)).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"allItemsReceived\":true,\"allQuantitiesConfirmed\":true,"
+                                + "\"allQualityAccepted\":true,\"note\":null}"))
+                .andExpect(status().isOk());
+    }
+
+    private List<MvcResult> runTwoConcurrentPaymentActions(long purchaseOrderId, String action) throws Exception {
+        ExecutorService executor = Executors.newFixedThreadPool(2);
+        CountDownLatch ready = new CountDownLatch(2);
+        CountDownLatch start = new CountDownLatch(1);
+        try {
+            Future<MvcResult> first = executor.submit(() -> paymentTogether(purchaseOrderId, action, ready, start));
+            Future<MvcResult> second = executor.submit(() -> paymentTogether(purchaseOrderId, action, ready, start));
+            assertThat(ready.await(FUTURE_TIMEOUT_SECONDS, TimeUnit.SECONDS)).isTrue();
+            start.countDown();
+            return List.of(first.get(FUTURE_TIMEOUT_SECONDS, TimeUnit.SECONDS),
+                    second.get(FUTURE_TIMEOUT_SECONDS, TimeUnit.SECONDS));
+        } finally {
+            start.countDown();
+            executor.shutdownNow();
+            assertThat(executor.awaitTermination(5, TimeUnit.SECONDS)).isTrue();
+        }
+    }
+
+    private MvcResult paymentTogether(long purchaseOrderId, String action, CountDownLatch ready, CountDownLatch start)
+            throws Exception {
+        ready.countDown();
+        assertThat(start.await(FUTURE_TIMEOUT_SECONDS, TimeUnit.SECONDS)).isTrue();
+        return mockMvc.perform(post("/api/v1/purchase-orders/{id}/{action}", purchaseOrderId, action)
+                .header("Authorization", bearer(admin))).andReturn();
     }
 
     private MvcResult cancelTogether(long purchaseOrderId, CountDownLatch ready, CountDownLatch start) throws Exception {

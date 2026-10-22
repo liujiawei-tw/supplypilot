@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Alert, Button, Descriptions, Form, Input, Modal, Select, Space, Table, Tag, Typography, message } from 'antd';
 import { Link, useParams } from 'react-router-dom';
-import { approvePurchaseOrder, assignPurchaseOrder, beginReceivingInspection, cancelPurchaseOrder, claimPurchaseOrder, getPurchaseOrder, markPurchaseOrderOrdered, rejectPurchaseOrder, updatePurchaseOrderDraft, updateSupplierPromisedDeliveryDate, type CreatePurchaseOrderRequest, type PurchaseOrderItemResponse, type PurchaseOrderResponse, type UpdatePurchaseOrderRequest } from '../../api/purchaseOrder';
+import { approvePurchaseOrder, assignPurchaseOrder, beginReceivingInspection, cancelPurchaseOrder, claimPurchaseOrder, confirmPurchaseOrderPayment, getPurchaseOrder, markPurchaseOrderOrdered, rejectPurchaseOrder, revokePurchaseOrderPaymentConfirmation, updatePurchaseOrderDraft, updateSupplierPromisedDeliveryDate, type CreatePurchaseOrderRequest, type PurchaseOrderItemResponse, type PurchaseOrderResponse, type UpdatePurchaseOrderRequest } from '../../api/purchaseOrder';
 import { listAssignableUsers, type AssignableUser } from '../../api/users';
 import { requiresMutationVerification, toApiError } from '../../api/apiError';
 import { can } from '../../auth/permissions';
@@ -14,7 +14,9 @@ import PurchaseOrderForm from './PurchaseOrderForm';
 import { formatTimestamp, statusColors } from './purchaseOrderUi';
 import { displayLabel } from '../../utils/displayLabels';
 
-type ActionName = 'edit' | 'approve' | 'reject' | 'order' | 'cancel' | 'receiving' | 'promise';
+const emptyReceivingInspection = { allItemsReceived: false, allQuantitiesConfirmed: false, allQualityAccepted: false, note: null };
+
+type ActionName = 'edit' | 'approve' | 'reject' | 'order' | 'cancel' | 'receiving' | 'promise' | 'confirm-payment' | 'revoke-payment';
 type VerificationState = 'required' | 'checking' | 'failed' | 'verified';
 
 export default function PurchaseOrderDetailPage() {
@@ -96,6 +98,7 @@ export default function PurchaseOrderDetailPage() {
 
   if (loading && !po) return <LoadingState tip="正在載入採購單…" />;
   if (error || !po) return <ErrorState title="採購單載入失敗" error={error ?? undefined} onRetry={() => void load()} />;
+  const receivingInspection = po.receivingInspection ?? emptyReceivingInspection;
   const canEdit = !!user && can(user.role, 'purchaseOrderEdit') && po.status === 'DRAFT';
   const canDecide = !!user && can(user.role, 'purchaseOrderApproveReject') && po.status === 'DRAFT';
   const canOrder = !!user && can(user.role, 'purchaseOrderOrder') && po.status === 'APPROVED';
@@ -106,13 +109,15 @@ export default function PurchaseOrderDetailPage() {
   const canUpdatePromise = !!user && can(user.role, 'purchaseOrderEdit')
     && (po.status === 'APPROVED' || po.status === 'ORDERED');
   const canViewTransactions = !!user && can(user.role, 'stockTransactions');
+  const canConfirmPayment = user?.role === 'ADMIN' && po.status === 'RECEIVED' && !po.paymentConfirmed;
+  const canRevokePayment = user?.role === 'ADMIN' && po.status === 'RECEIVED' && po.paymentConfirmed;
 
   const items = po.items.map((item) => ({ key: item.id, ...item }));
   return <Space orientation="vertical" size="large" style={{ width: '100%' }}>
     {contextHolder}
     <Space style={{ width: '100%', justifyContent: 'space-between' }} wrap>
       <div><Link to="/purchase-orders">← 採購單管理</Link><Typography.Title level={2} style={{ margin: '8px 0 0' }}>{po.poNumber}</Typography.Title></div>
-      <Space wrap>{!po.assignedTo && <Button aria-label={`Claim ${po.poNumber}`} loading={submitting} disabled={verificationRequired} onClick={() => Modal.confirm({ title: '認領此採購單？', content: '確認將目前登入的帳號設為負責人。', onOk: () => updateOwner('claim') })}>認領</Button>}<Select aria-label="指派採購單負責人" size="small" placeholder="指派負責人" style={{ width: 170 }} value={po.assignedTo ?? undefined} disabled={submitting || verificationRequired} options={assignableUsers.map((candidate) => ({ value: candidate.id, label: candidate.displayName }))} onChange={(value: number) => Modal.confirm({ title: '變更採購單負責人？', content: `將負責人指派給 ${assignableUsers.find((candidate) => candidate.id === value)?.displayName ?? '所選帳號'}。`, onOk: () => updateOwner(value) })} />{canEdit && <Button disabled={verificationRequired} onClick={() => { if (!verificationRequired) { setActive('edit'); setActionError(null); } }}>編輯草稿</Button>}{canUpdatePromise && <Button disabled={submitting || verificationRequired} onClick={() => { setSupplierPromisedDeliveryDate(po.supplierPromisedDeliveryDate ?? ''); setActionError(null); setActive('promise'); }}>更新供應商承諾交期</Button>}{canDecide && <><Button type="primary" disabled={!po.expectedDeliveryDate || verificationRequired} title={!po.expectedDeliveryDate ? '請先編輯草稿並補齊交期' : undefined} onClick={() => setActive('approve')}>核准</Button><Button danger disabled={verificationRequired} onClick={() => setActive('reject')}>駁回</Button></>}{canOrder && <Button type="primary" disabled={!po.expectedDeliveryDate || verificationRequired} onClick={() => setActive('order')}>標記為已下單</Button>}{canBeginReceiving && <Button disabled={submitting || verificationRequired} onClick={() => Modal.confirm({ title: '移入到貨驗收階段？', content: '進入到貨驗收後，採購單不可再取消。', onOk: () => void perform('receiving', () => beginReceivingInspection(po.id)) })}>開始到貨驗收</Button>}{canCancel && <Button danger disabled={submitting || verificationRequired} onClick={() => { setCancelReason(''); setActive('cancel'); }}>取消採購單</Button>}{canViewTransactions && <Link to={`/inventory?tab=stock-transactions&purchaseOrderId=${po.id}`}>庫存異動</Link>}</Space>
+      <Space wrap>{!po.assignedTo && <Button aria-label={`Claim ${po.poNumber}`} loading={submitting} disabled={verificationRequired} onClick={() => Modal.confirm({ title: '認領此採購單？', content: '確認將目前登入的帳號設為負責人。', onOk: () => updateOwner('claim') })}>認領</Button>}<Select aria-label="指派採購單負責人" size="small" placeholder="指派負責人" style={{ width: 170 }} value={po.assignedTo ?? undefined} disabled={submitting || verificationRequired} options={assignableUsers.map((candidate) => ({ value: candidate.id, label: candidate.displayName }))} onChange={(value: number) => Modal.confirm({ title: '變更採購單負責人？', content: `將負責人指派給 ${assignableUsers.find((candidate) => candidate.id === value)?.displayName ?? '所選帳號'}。`, onOk: () => updateOwner(value) })} />{canEdit && <Button disabled={verificationRequired} onClick={() => { if (!verificationRequired) { setActive('edit'); setActionError(null); } }}>編輯草稿</Button>}{canUpdatePromise && <Button disabled={submitting || verificationRequired} onClick={() => { setSupplierPromisedDeliveryDate(po.supplierPromisedDeliveryDate ?? ''); setActionError(null); setActive('promise'); }}>更新供應商承諾交期</Button>}{canDecide && <><Button type="primary" disabled={!po.expectedDeliveryDate || verificationRequired} title={!po.expectedDeliveryDate ? '請先編輯草稿並補齊交期' : undefined} onClick={() => setActive('approve')}>核准</Button><Button danger disabled={verificationRequired} onClick={() => setActive('reject')}>駁回</Button></>}{canOrder && <Button type="primary" disabled={!po.expectedDeliveryDate || verificationRequired} onClick={() => setActive('order')}>標記為已下單</Button>}{canBeginReceiving && <Button loading={submitting} disabled={submitting || verificationRequired} onClick={() => Modal.confirm({ title: '移入到貨驗收階段？', content: '進入到貨驗收後，採購單不可再取消。', onOk: () => perform('receiving', () => beginReceivingInspection(po.id)) })}>開始到貨驗收</Button>}{canConfirmPayment && <Button type="primary" loading={submitting} disabled={submitting || verificationRequired} onClick={() => Modal.confirm({ title: '確認已完成付款？', content: '僅記錄人工付款確認，不會執行付款或變更庫存。', okText: '確認已付款', onOk: () => perform('confirm-payment', () => confirmPurchaseOrderPayment(po.id)) })}>標記已付款</Button>}{canRevokePayment && <Button loading={submitting} disabled={submitting || verificationRequired} onClick={() => Modal.confirm({ title: '撤銷付款確認？', content: '採購單會回到請款核銷中；已完成的收貨與庫存異動不變。', okText: '撤銷確認', onOk: () => perform('revoke-payment', () => revokePurchaseOrderPaymentConfirmation(po.id)) })}>撤銷付款確認</Button>}{canCancel && <Button danger disabled={submitting || verificationRequired} onClick={() => { setCancelReason(''); setActive('cancel'); }}>取消採購單</Button>}{canViewTransactions && <Link to={`/inventory?tab=stock-transactions&purchaseOrderId=${po.id}`}>庫存異動</Link>}</Space>
     </Space>
     {!po.expectedDeliveryDate && canDecide && <Alert type="warning" showIcon title="此草稿尚未設定交期，無法核准。請先編輯草稿補齊。" />}
     {verificationState && <VerificationRequiredAlert
@@ -136,6 +141,9 @@ export default function PurchaseOrderDetailPage() {
       { key: 'ordered-progress', label: '下單階段', children: displayLabel(po.orderedProgress) },
       { key: 'ordered', label: '下單資訊', children: po.orderedBy ? `${po.orderedByDisplayName} (#${po.orderedBy}) · ${formatTimestamp(po.orderedAt)}` : '—' },
       { key: 'received', label: '收貨資訊', children: po.receivedBy ? `${po.receivedByDisplayName} (#${po.receivedBy}) · ${formatTimestamp(po.receivedAt)}` : '—' },
+      { key: 'inspection', label: '到貨驗收', children: `${receivingInspection.allItemsReceived ? '整筆到貨' : '尚未確認整筆到貨'}；${receivingInspection.allQuantitiesConfirmed ? '數量已確認' : '數量未確認'}；${receivingInspection.allQualityAccepted ? '品質合格' : '品質未合格'}` },
+      { key: 'inspection-note', label: '驗收備註', children: receivingInspection.note ?? '—' },
+      { key: 'payment', label: '付款確認', children: po.paymentConfirmed ? `${po.paymentConfirmedByDisplayName ?? po.paymentConfirmedByUsername} · ${formatTimestamp(po.paymentConfirmedAt)}` : '尚未確認付款' },
       { key: 'updated', label: '更新時間', children: formatTimestamp(po.updatedAt) },
     ]} />
     <Typography.Title level={4}>品項</Typography.Title>

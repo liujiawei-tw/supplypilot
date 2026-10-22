@@ -1323,3 +1323,7 @@ Approve、Reject、Mark Ordered、Begin Receiving Inspection、Cancel、Receive 
 ## V2-203 供應商承諾交期授權
 
 更新 `supplierPromisedDeliveryDate` 的專用 API 由 Service `@PreAuthorize` 驗證採購業務權限，並在同一交易取得 PO `PESSIMISTIC_WRITE` 列鎖後檢查 APPROVED／ORDERED 狀態。Request 只接受日期或明確 `null`；不接受狀態、期望日或操作者欄位。前端按鈕不構成授權邊界。每次更新透過同一 PO 列序列化並保留 JPA `@Version`，不寫交期歷史或對外通知。
+
+## V2-204 收貨驗收與付款確認授權
+
+開始驗收、保存驗收確認、正式整筆收貨、確認付款與撤銷確認皆由 Service `@PreAuthorize` 保護；前端是否顯示按鈕不構成授權。驗收 request 僅接受整筆到貨、全數量確認、全品質合格及備註，不接受 PO status、Stage、操作者或時間。Backend 從當前登入帳號與 Clock 產生驗收/收貨/付款稽核資料；收貨另要求 `ORDERED + RECEIVING_INSPECTION` 和三項確認全真。每個命令在交易內取得同一 PO `PESSIMISTIC_WRITE` 列鎖，避免驗收/收貨、付款確認/撤銷及重複寫入競態。未登入/未授權仍是 401/403；非法狀態或重複命令回 409。付款確認不觸發金流、銀行、財會或通知整合。

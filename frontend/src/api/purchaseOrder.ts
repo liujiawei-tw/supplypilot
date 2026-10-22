@@ -6,6 +6,10 @@ import { decimalResponseConfig } from './decimalJson';
 export type DecimalValue = string | number;
 export type PurchaseOrderStatus = 'DRAFT' | 'APPROVED' | 'ORDERED' | 'RECEIVED' | 'REJECTED' | 'CANCELLED';
 export type OrderedProgress = 'FOLLOW_UP' | 'RECEIVING_INSPECTION' | 'LEGACY_UNKNOWN';
+export interface ReceivingInspectionResponse {
+  allItemsReceived: boolean; allQuantitiesConfirmed: boolean; allQualityAccepted: boolean; note: string | null;
+  inspectedBy: number | null; inspectedByDisplayName: string | null; inspectedByUsername: string | null; inspectedAt: string | null;
+}
 
 export interface CreatePurchaseOrderItemRequest {
   materialId: number;
@@ -28,6 +32,9 @@ export interface PurchaseOrderItemResponse {
 export interface PurchaseOrderResponse {
   id: number; poNumber: string; supplierId: number; supplierCode: string; supplierName: string; status: PurchaseOrderStatus; orderedProgress: OrderedProgress | null;
   expectedDeliveryDate: string | null; supplierPromisedDeliveryDate: string | null;
+  receivingInspection: ReceivingInspectionResponse;
+  paymentConfirmed: boolean; paymentConfirmedBy: number | null; paymentConfirmedByDisplayName: string | null;
+  paymentConfirmedByUsername: string | null; paymentConfirmedAt: string | null;
   items: PurchaseOrderItemResponse[]; createdBy: number | null; createdByDisplayName: string;
   createdByUsername: string | null; assignedTo: number | null; assignedToDisplayName: string | null; assignedToUsername: string | null;
   createdAt: string; approvedBy: number | null; approvedByDisplayName: string | null; approvedAt: string | null;
@@ -70,6 +77,17 @@ export async function cancelPurchaseOrder(id: number, reason: string): Promise<P
 }
 export async function beginReceivingInspection(id: number): Promise<PurchaseOrderResponse> {
   return (await axiosClient.post<PurchaseOrderResponse>(`/purchase-orders/${id}/begin-receiving-inspection`, undefined, decimalResponseConfig)).data;
+}
+export async function recordReceivingInspection(id: number, request: {
+  allItemsReceived: boolean; allQuantitiesConfirmed: boolean; allQualityAccepted: boolean; note: string | null;
+}): Promise<PurchaseOrderResponse> {
+  return (await axiosClient.put<PurchaseOrderResponse>(`/purchase-orders/${id}/receiving-inspection`, request, decimalResponseConfig)).data;
+}
+export async function confirmPurchaseOrderPayment(id: number): Promise<PurchaseOrderResponse> {
+  return (await axiosClient.post<PurchaseOrderResponse>(`/purchase-orders/${id}/confirm-payment`, undefined, decimalResponseConfig)).data;
+}
+export async function revokePurchaseOrderPaymentConfirmation(id: number): Promise<PurchaseOrderResponse> {
+  return (await axiosClient.post<PurchaseOrderResponse>(`/purchase-orders/${id}/revoke-payment-confirmation`, undefined, decimalResponseConfig)).data;
 }
 export async function markPurchaseOrderOrdered(id: number): Promise<PurchaseOrderResponse> {
   return (await axiosClient.post<PurchaseOrderResponse>(`/purchase-orders/${id}/order`, undefined, decimalResponseConfig)).data;

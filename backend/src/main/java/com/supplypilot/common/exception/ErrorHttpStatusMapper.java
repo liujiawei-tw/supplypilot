@@ -29,6 +29,7 @@ final class ErrorHttpStatusMapper {
                     PURCHASE_ORDER_ALREADY_ASSIGNED,
                     INVALID_PO_STATUS,
                     INVALID_PO_STATUS_TRANSITION,
+                    RECEIVING_INSPECTION_INCOMPLETE,
                     DUPLICATE_RECEIVING,
                     INVENTORY_IMPORT_NOT_VALIDATED,
                     INVENTORY_IMPORT_ALREADY_CONFIRMED,

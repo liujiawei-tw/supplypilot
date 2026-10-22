@@ -272,8 +272,8 @@ class ReceivingPurchaseOrderControllerIntegrationTests extends AbstractIntegrati
 
     private void assertReceivingContract(JsonNode response) {
         assertThat(fieldNames(response)).containsExactlyInAnyOrder("id", "poNumber", "supplierId", "supplierCode",
-                "supplierName", "status", "expectedDeliveryDate", "isOverdue", "items", "orderedAt", "receivedBy",
-                "receivedByUsername", "receivedByDisplayName", "receivedAt");
+                "supplierName", "status", "orderedProgress", "receivingInspection", "expectedDeliveryDate", "isOverdue",
+                "items", "orderedAt", "receivedBy", "receivedByUsername", "receivedByDisplayName", "receivedAt");
         assertThat(fieldNames(response.path("items").get(0))).containsExactlyInAnyOrder("id", "materialId", "materialCode",
                 "materialName", "quantity", "unit");
     }
@@ -294,7 +294,11 @@ class ReceivingPurchaseOrderControllerIntegrationTests extends AbstractIntegrati
         order.addItem(PurchaseOrderItem.create(material, BigDecimal.ONE, BigDecimal.TEN, orderedAt));
         order.approve(admin, orderedAt);
         order.markOrdered(buyer, orderedAt);
-        if (received) order.receive(warehouse, orderedAt);
+        if (received) {
+            order.beginReceivingInspection(orderedAt.plusSeconds(1));
+            order.recordReceivingInspection(true, true, true, null, warehouse, orderedAt.plusSeconds(2));
+            order.receive(warehouse, orderedAt.plusSeconds(3));
+        }
         PurchaseOrder persisted = purchaseOrderRepository.saveAndFlush(order);
         persisted.assignDisplayPoNumber("PO-615-" + persisted.getId());
         return purchaseOrderRepository.saveAndFlush(persisted);

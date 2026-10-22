@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { AxiosResponse, InternalAxiosRequestConfig } from 'axios';
 import { axiosClient } from '../src/api/axiosClient';
-import { approvePurchaseOrder, listPurchaseOrders, markPurchaseOrderOrdered, rejectPurchaseOrder, updatePurchaseOrderDraft, updateSupplierPromisedDeliveryDate } from '../src/api/purchaseOrder';
+import { approvePurchaseOrder, beginReceivingInspection, confirmPurchaseOrderPayment, listPurchaseOrders, markPurchaseOrderOrdered, recordReceivingInspection, rejectPurchaseOrder, revokePurchaseOrderPaymentConfirmation, updatePurchaseOrderDraft, updateSupplierPromisedDeliveryDate } from '../src/api/purchaseOrder';
 import { getReceivingPurchaseOrder, listReceivingPurchaseOrders, receivePurchaseOrder } from '../src/api/receiving';
 import { getStockTransaction, listStockTransactions } from '../src/api/stockTransaction';
 import { parseDecimalJson } from '../src/api/decimalJson';
@@ -103,6 +103,30 @@ describe('SP-805 API contracts', () => {
     ]);
     expect(requests[0].params.status).toBe('ORDERED');
     expect(requests[2].data).toBeUndefined();
+  });
+
+  it('uses separate action endpoints for inspection, full receive, and manual payment confirmation', async () => {
+    const requests: InternalAxiosRequestConfig[] = [];
+    axiosClient.defaults.adapter = vi.fn(async (config) => { requests.push(config); return response(config); });
+    await beginReceivingInspection(11);
+    await recordReceivingInspection(11, { allItemsReceived: false, allQuantitiesConfirmed: false,
+      allQualityAccepted: false, note: '短收' });
+    await receivePurchaseOrder(11);
+    await confirmPurchaseOrderPayment(11);
+    await revokePurchaseOrderPaymentConfirmation(11);
+    expect(requests.map(({ method, url }) => ({ method, url }))).toEqual([
+      { method: 'post', url: '/purchase-orders/11/begin-receiving-inspection' },
+      { method: 'put', url: '/purchase-orders/11/receiving-inspection' },
+      { method: 'post', url: '/purchase-orders/11/receive' },
+      { method: 'post', url: '/purchase-orders/11/confirm-payment' },
+      { method: 'post', url: '/purchase-orders/11/revoke-payment-confirmation' },
+    ]);
+    expect(JSON.parse(requests[1].data as string)).toEqual({ allItemsReceived: false,
+      allQuantitiesConfirmed: false, allQualityAccepted: false, note: '短收' });
+    expect(requests[0].data).toBeUndefined();
+    expect(requests[2].data).toBeUndefined();
+    expect(requests[3].data).toBeUndefined();
+    expect(requests[4].data).toBeUndefined();
   });
 
   it('supports the read-only stock transaction list and detail contract', async () => {

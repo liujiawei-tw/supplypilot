@@ -14,14 +14,19 @@ const warehouse: AuthenticatedUser = { id: 4, username: 'warehouse', displayName
 
 const draftPo = {
   id: 42, poNumber: 'PO-000042', supplierId: 7, supplierCode: 'SUP-007', supplierName: 'Supplier', status: 'DRAFT',
+  orderedProgress: null,
   expectedDeliveryDate: '2026-10-20', supplierPromisedDeliveryDate: null, items: [{ id: 1, materialId: 8, materialCode: 'MAT-008', materialName: 'Steel', quantity: '50', unit: 'KG', unitPrice: '10', total: '500', recommendationId: null, supplierRecommendationResultId: null, supplierOverride: false, quantityOverride: false, supplierOverrideReason: null, quantityOverrideReason: null }],
+  receivingInspection: { allItemsReceived: false, allQuantitiesConfirmed: false, allQualityAccepted: false, note: null, inspectedBy: null, inspectedByDisplayName: null, inspectedByUsername: null, inspectedAt: null },
   createdBy: 2, createdByDisplayName: 'Buyer', createdAt: '2026-10-01T00:00:00Z', approvedBy: null, approvedByDisplayName: null, approvedAt: null,
   rejectReason: null, rejectedBy: null, rejectedByDisplayName: null, rejectedAt: null, orderedBy: null, orderedByDisplayName: null, orderedAt: null,
-  receivedBy: null, receivedByDisplayName: null, receivedAt: null, isOverdue: false, updatedAt: '2026-10-01T00:00:00Z',
+  receivedBy: null, receivedByDisplayName: null, receivedAt: null, paymentConfirmed: false, paymentConfirmedBy: null,
+  paymentConfirmedByDisplayName: null, paymentConfirmedByUsername: null, paymentConfirmedAt: null,
+  isOverdue: false, updatedAt: '2026-10-01T00:00:00Z',
 };
 const approvedPo = { ...draftPo, status: 'APPROVED', approvedBy: 1, approvedByDisplayName: 'Admin', approvedAt: '2026-10-02T00:00:00Z' };
 const receivingPo = {
-  id: 42, poNumber: 'PO-000042', supplierId: 7, supplierCode: 'SUP-007', supplierName: 'Supplier', status: 'ORDERED', expectedDeliveryDate: '2026-10-20', isOverdue: false,
+  id: 42, poNumber: 'PO-000042', supplierId: 7, supplierCode: 'SUP-007', supplierName: 'Supplier', status: 'ORDERED', orderedProgress: 'RECEIVING_INSPECTION', expectedDeliveryDate: '2026-10-20', isOverdue: false,
+  receivingInspection: { allItemsReceived: true, allQuantitiesConfirmed: true, allQualityAccepted: true, note: null, inspectedBy: 1, inspectedByDisplayName: 'Admin', inspectedByUsername: 'admin', inspectedAt: '2026-10-01T00:00:00Z' },
   items: [{ id: 1, materialId: 8, materialCode: 'MAT-008', materialName: 'Steel', quantity: '50', unit: 'KG' }], orderedAt: '2026-10-02T00:00:00Z',
   receivedBy: null, receivedByDisplayName: null, receivedAt: null,
 };

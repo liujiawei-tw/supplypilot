@@ -23,6 +23,7 @@ public enum ErrorCode {
     PO_NOT_EDITABLE("Purchase order is not editable in its current status."),
     INVALID_PO_STATUS("Purchase order must be ORDERED before receiving."),
     INVALID_PO_STATUS_TRANSITION("Purchase order status transition is not allowed."),
+    RECEIVING_INSPECTION_INCOMPLETE("Purchase order requires full quantity and quality acceptance before receiving."),
     DUPLICATE_RECEIVING("Purchase order has already been received."),
 
     VALIDATION_FAILED("Request validation failed."),

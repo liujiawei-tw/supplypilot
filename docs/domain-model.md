@@ -1939,3 +1939,11 @@ PO 與 PO item 原有正式 Entity/Schema 已支援直接建立 `DRAFT`、nullab
 V2 `PurchaseOrderStatus` 增加終態 `CANCELLED`。`cancelReason`、`cancelledAt`、`cancelledBy` 與非 FK 的 user ID/username/displayName 快照同交易寫入；刪除操作人時 FK 可置空，快照仍供歷史明細讀取。取消不刪除/重建 PO、供應商、品項或交易資料。
 
 V25 新增 nullable `ordered_progress`：新標記下單寫入 `FOLLOW_UP`；明確進入到貨驗收後寫入 `RECEIVING_INSPECTION`；舊 ORDERED 記錄回填 `LEGACY_UNKNOWN`，因 V1 沒有保存能判斷第 5/6 欄的事件。資料庫 CHECK 保證該欄只有 status=ORDERED 時有值；其他狀態必須為 NULL。只有 APPROVED 或 ORDERED + FOLLOW_UP 可取消；RECEIVING_INSPECTION/LEGACY_UNKNOWN 皆拒絕。完整八階段及狀態映射仍由 #142 負責。
+
+## V2-204 收貨驗收與目前付款確認
+
+V27 在 `purchase_orders` 增加三個預設 `FALSE` 的目前驗收事實欄位（整筆到貨、全品項數量確認、全品質合格）、目前 `inspection_note`、最後驗收者/時間與非 FK 操作者快照。驗收紀錄只可在 `ORDERED + RECEIVING_INSPECTION` 更新；短收、未到貨或品質異常可保留任一旗標為 false 及備註，但不得入庫。只有三旗標全真且有驗收操作者/時間後才允許整筆收貨。收貨後保留最後驗收資料供明細查詢；不新增逐次驗收歷史表。
+
+付款目前狀態由 nullable `payment_confirmed_at` 是否存在推導。確認時保存付款確認者 FK、使用者 ID/username/displayName 快照與 Instant；撤銷時清除這些目前狀態欄位，不保留額外付款歷史。V27 的資料庫 CHECK 禁止非 RECEIVED PO 被標記已付款，且付款時間與操作者快照必須同時完整或同時為空。既有 RECEIVED PO 保持未確認付款；不以舊資料推測付款狀態。付款狀態不改 `PurchaseOrderStatus.RECEIVED`、Inventory 或 StockTransaction。
+
+第 5/6 欄仍由既有 `OrderedProgress` 最小契約表示；收貨後從正式 `RECEIVED` 加上付款時間推導目前位置為第 7/8 欄。此 Issue 不加入完整 Stage 欄位、遷移或一般轉換引擎，留給 #142。
