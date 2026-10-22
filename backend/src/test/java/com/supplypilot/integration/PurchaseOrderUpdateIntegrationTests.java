@@ -1,9 +1,11 @@
 package com.supplypilot.integration;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.nullValue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -134,6 +136,125 @@ class PurchaseOrderUpdateIntegrationTests extends AbstractIntegrationTest {
                 Long.class, id)).isEqualTo(2L);
         assertThat(jdbcTemplate.queryForObject(
                 "SELECT version FROM purchase_orders WHERE id = ?", Long.class, id)).isGreaterThanOrEqualTo(4L);
+    }
+
+    @Test
+    void updatesSupplierPromiseIndependentlyAfterApprovalAndOrderingWithoutClearingOverdue() throws Exception {
+        Supplier supplier = supplier();
+        Material material = material();
+        supplies(supplier, material);
+        User staff = user(UserRole.PROCUREMENT_STAFF);
+        User manager = user(UserRole.PROCUREMENT_MANAGER);
+        MvcResult created = mockMvc.perform(post("/api/v1/purchase-orders")
+                        .header("Authorization", bearer(staff))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"supplierId\":" + supplier.getId() + ",\"expectedDeliveryDate\":\""
+                                + LocalDate.now(clock).minusDays(1) + "\",\"items\":["
+                                + manualItem(material, "2", "10") + "]}"))
+                .andExpect(status().isCreated()).andReturn();
+        long id = createdId(created);
+
+        mockMvc.perform(post("/api/v1/purchase-orders/{id}/approve", id)
+                        .header("Authorization", bearer(manager)))
+                .andExpect(status().isOk());
+        update(staff, id, "{\"expectedDeliveryDate\":\"2026-11-01\"}")
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("PO_NOT_EDITABLE"));
+
+        updatePromise(staff, id, "\"supplierPromisedDeliveryDate\":\"2026-10-25\"")
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.expectedDeliveryDate").value(LocalDate.now(clock).minusDays(1).toString()))
+                .andExpect(jsonPath("$.supplierPromisedDeliveryDate").value("2026-10-25"))
+                .andExpect(jsonPath("$.isOverdue").value(false));
+
+        assertThat(jdbcTemplate.queryForObject(
+                "SELECT expected_delivery_date FROM purchase_orders WHERE id = ?", LocalDate.class, id))
+                .isEqualTo(LocalDate.now(clock).minusDays(1));
+        assertThat(jdbcTemplate.queryForObject(
+                "SELECT supplier_promised_delivery_date FROM purchase_orders WHERE id = ?", LocalDate.class, id))
+                .isEqualTo(LocalDate.of(2026, 10, 25));
+
+        mockMvc.perform(post("/api/v1/purchase-orders/{id}/order", id)
+                        .header("Authorization", bearer(staff)))
+                .andExpect(status().isOk());
+        updatePromise(staff, id, "\"supplierPromisedDeliveryDate\":\"2026-11-05\"")
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.expectedDeliveryDate").value(LocalDate.now(clock).minusDays(1).toString()))
+                .andExpect(jsonPath("$.supplierPromisedDeliveryDate").value("2026-11-05"))
+                .andExpect(jsonPath("$.isOverdue").value(true));
+
+        updatePromise(staff, id, "\"supplierPromisedDeliveryDate\":null")
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.supplierPromisedDeliveryDate").value(nullValue()))
+                .andExpect(jsonPath("$.expectedDeliveryDate").value(LocalDate.now(clock).minusDays(1).toString()))
+                .andExpect(jsonPath("$.isOverdue").value(true));
+        assertThat(jdbcTemplate.queryForObject(
+                "SELECT supplier_promised_delivery_date FROM purchase_orders WHERE id = ?", LocalDate.class, id))
+                .isNull();
+    }
+
+    @Test
+    void restrictsSupplierPromiseMutationByAuthenticationAndLifecycle() throws Exception {
+        Supplier supplier = supplier();
+        Material material = material();
+        supplies(supplier, material);
+        User staff = user(UserRole.PROCUREMENT_STAFF);
+        User planner = user(UserRole.PRODUCTION_PLANNER);
+        long draftId = createdId(create(staff, supplier, manualItem(material, "2", "10")).andReturn());
+
+        mockMvc.perform(put("/api/v1/purchase-orders/{id}/supplier-promised-delivery-date", draftId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"supplierPromisedDeliveryDate\":\"2026-10-25\"}"))
+                .andExpect(status().isUnauthorized());
+        updatePromise(planner, draftId, "\"supplierPromisedDeliveryDate\":\"2026-10-25\"")
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("ACCESS_DENIED"));
+        updatePromise(staff, draftId, "\"supplierPromisedDeliveryDate\":\"2026-10-25\"")
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("INVALID_PO_STATUS_TRANSITION"));
+        updatePromise(staff, draftId, "\"anotherDate\":\"2026-10-25\"")
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void concurrentPromiseUpdatesSerializeOnThePurchaseOrderRow() throws Exception {
+        Supplier supplier = supplier();
+        Material material = material();
+        supplies(supplier, material);
+        User staff = user(UserRole.PROCUREMENT_STAFF);
+        User manager = user(UserRole.PROCUREMENT_MANAGER);
+        long id = createdId(create(staff, supplier, manualItem(material, "2", "10")).andReturn());
+        update(staff, id, "{\"expectedDeliveryDate\":\"2026-10-30\"}").andExpect(status().isOk());
+        mockMvc.perform(post("/api/v1/purchase-orders/{id}/approve", id)
+                        .header("Authorization", bearer(manager)))
+                .andExpect(status().isOk());
+
+        CountDownLatch ready = new CountDownLatch(2);
+        CountDownLatch start = new CountDownLatch(1);
+        try (var executor = Executors.newFixedThreadPool(2)) {
+            var first = executor.submit(() -> {
+                ready.countDown();
+                start.await();
+                return updatePromise(staff, id, "\"supplierPromisedDeliveryDate\":\"2026-11-01\"").andReturn();
+            });
+            var second = executor.submit(() -> {
+                ready.countDown();
+                start.await();
+                return updatePromise(staff, id, "\"supplierPromisedDeliveryDate\":\"2026-11-02\"").andReturn();
+            });
+
+            assertThat(ready.await(10, TimeUnit.SECONDS)).isTrue();
+            start.countDown();
+            assertThat(first.get(30, TimeUnit.SECONDS).getResponse().getStatus()).isEqualTo(200);
+            assertThat(second.get(30, TimeUnit.SECONDS).getResponse().getStatus()).isEqualTo(200);
+        }
+
+        assertThat(jdbcTemplate.queryForObject(
+                "SELECT expected_delivery_date FROM purchase_orders WHERE id = ?", LocalDate.class, id))
+                .isEqualTo(LocalDate.of(2026, 10, 30));
+        assertThat(jdbcTemplate.queryForObject(
+                "SELECT supplier_promised_delivery_date FROM purchase_orders WHERE id = ?", LocalDate.class, id))
+                .isIn(LocalDate.of(2026, 11, 1), LocalDate.of(2026, 11, 2));
     }
 
     @Test
@@ -363,6 +484,13 @@ class PurchaseOrderUpdateIntegrationTests extends AbstractIntegrationTest {
         return mockMvc.perform(patch("/api/v1/purchase-orders/{id}", id)
                 .header("Authorization", bearer(user))
                 .contentType(MediaType.APPLICATION_JSON).content(body));
+    }
+
+    private org.springframework.test.web.servlet.ResultActions updatePromise(User user, long id, String fields) throws Exception {
+        return mockMvc.perform(put("/api/v1/purchase-orders/{id}/supplier-promised-delivery-date", id)
+                .header("Authorization", bearer(user))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{" + fields + "}"));
     }
 
     private long createdId(MvcResult result) throws Exception {

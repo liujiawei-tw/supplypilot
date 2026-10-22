@@ -13,7 +13,7 @@ const warehouse: AuthenticatedUser = { id: 4, username: 'warehouse', displayName
 const admin: AuthenticatedUser = { id: 1, username: 'admin', displayName: 'Admin', role: 'ADMIN' };
 const po = {
   id: 42, poNumber: 'PO-000042', supplierId: 7, supplierCode: 'SUP-007', supplierName: 'Supplier', status: 'DRAFT',
-  expectedDeliveryDate: null, items: [{ id: 1, materialId: 8, materialCode: 'MAT-008', materialName: 'Steel', quantity: '999999999999999.1234000', unit: 'KG', unitPrice: '0.0000001234500', total: '123.456789', recommendationId: 91, supplierRecommendationResultId: 101, supplierOverride: true, quantityOverride: true, supplierOverrideReason: 'Capacity', quantityOverrideReason: 'Demand changed' }],
+  expectedDeliveryDate: null, supplierPromisedDeliveryDate: null, items: [{ id: 1, materialId: 8, materialCode: 'MAT-008', materialName: 'Steel', quantity: '999999999999999.1234000', unit: 'KG', unitPrice: '0.0000001234500', total: '123.456789', recommendationId: 91, supplierRecommendationResultId: 101, supplierOverride: true, quantityOverride: true, supplierOverrideReason: 'Capacity', quantityOverrideReason: 'Demand changed' }],
   createdBy: 2, createdByDisplayName: 'Buyer', createdAt: '2026-10-01T00:00:00Z', approvedBy: null, approvedByDisplayName: null, approvedAt: null, rejectReason: null, rejectedBy: null, rejectedByDisplayName: null, rejectedAt: null, orderedBy: null, orderedByDisplayName: null, orderedAt: null, receivedBy: null, receivedByDisplayName: null, receivedAt: null, isOverdue: false, updatedAt: '2026-10-01T00:00:00Z',
 };
 const receiving = {
@@ -31,6 +31,31 @@ async function open(path: string) { localStorage.setItem(TOKEN_STORAGE_KEY, 'val
 beforeEach(() => { localStorage.clear(); });
 
 describe('SP-805 PO lifecycle UI', () => {
+  it('shows both delivery dates and updates the supplier promise without changing the expected date', async () => {
+    const requests: InternalAxiosRequestConfig[] = [];
+    const approved = { ...po, status: 'APPROVED', expectedDeliveryDate: '2026-10-30', supplierPromisedDeliveryDate: null };
+    const updated = { ...approved, supplierPromisedDeliveryDate: '2026-11-05' };
+    axiosClient.defaults.adapter = vi.fn(async (config) => {
+      requests.push(config);
+      if (config.url === '/auth/me') return response(config, admin);
+      if (config.url === '/users/assignable') return response(config, []);
+      if (config.url === '/purchase-orders/42' && config.method === 'get') return response(config, approved);
+      if (config.url === '/purchase-orders/42/supplier-promised-delivery-date') return response(config, updated);
+      throw new Error(`Unexpected ${config.method} ${config.url}`);
+    });
+
+    await open('/purchase-orders/42'); const user = userEvent.setup();
+    expect(await screen.findByText('2026-10-30')).toBeTruthy();
+    expect(screen.getByText('尚未提供')).toBeTruthy();
+    await user.click(screen.getByRole('button', { name: '更新供應商承諾交期' }));
+    fireEvent.change(within(screen.getByRole('dialog')).getByLabelText('供應商承諾交期'), { target: { value: '2026-11-05' } });
+    await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: '確認更新' }));
+    expect(await screen.findByText('2026-11-05')).toBeTruthy();
+    expect(screen.getByText('2026-10-30')).toBeTruthy();
+    expect(JSON.parse((requests.find(({ url, method }) => url?.endsWith('/supplier-promised-delivery-date') && method === 'put')?.data) as string))
+      .toEqual({ supplierPromisedDeliveryDate: '2026-11-05' });
+  });
+
   it('cancels an eligible PO only after a required reason and explicit warning confirmation', async () => {
     const requests: InternalAxiosRequestConfig[] = [];
     const approved = { ...po, status: 'APPROVED', expectedDeliveryDate: '2026-10-30', orderedProgress: null,

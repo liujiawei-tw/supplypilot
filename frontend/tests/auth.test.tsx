@@ -17,7 +17,7 @@ const identities: Record<'business' | 'manager', AuthenticatedUser> = {
 
 const purchaseOrder = {
   id: 42, poNumber: 'PO-000042', supplierId: 7, supplierCode: 'SUP-007', supplierName: 'Supplier', status: 'DRAFT',
-  expectedDeliveryDate: null, items: [], createdBy: 2, createdByDisplayName: 'Buyer', createdAt: '2026-10-01T00:00:00Z',
+  expectedDeliveryDate: null, supplierPromisedDeliveryDate: null, items: [], createdBy: 2, createdByDisplayName: 'Buyer', createdAt: '2026-10-01T00:00:00Z',
   approvedBy: null, approvedByDisplayName: null, approvedAt: null, rejectReason: null, rejectedBy: null,
   rejectedByDisplayName: null, rejectedAt: null, orderedBy: null, orderedByDisplayName: null, orderedAt: null,
   receivedBy: null, receivedByDisplayName: null, receivedAt: null, isOverdue: false, updatedAt: '2026-10-01T00:00:00Z',

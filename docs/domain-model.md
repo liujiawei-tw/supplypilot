@@ -1928,6 +1928,12 @@ PO 與 PO item 原有正式 Entity/Schema 已支援直接建立 `DRAFT`、nullab
 
 建立或更換供應商/品項仍要求 ACTIVE Supplier、ACTIVE Material 與 ACTIVE SupplierMaterial 關聯。SupplierMaterial 是現行供應主檔的有效供應關係，V2-201 沒有核准移除此 Domain 驗證；手動草稿可輸入暫估單價，不使用該主檔價格作為 PO 單價。
 
+## V2-203：兩種獨立交期
+
+`PurchaseOrder.expectedDeliveryDate` 是公司期望到貨日：DRAFT 可設定或清除，核准後保留不變。`PurchaseOrder.supplierPromisedDeliveryDate` 是供應商目前承諾日，nullable 且獨立持久化；`NULL` 表示目前沒有已知承諾，不推導為期望日期。只有 APPROVED／ORDERED 可以透過專用業務命令更新；更新接受明確的 null 以清除承諾，並更新 PO `updatedAt`。
+
+逾期仍依 `ORDERED && currentDate.isAfter(expectedDeliveryDate)` 動態計算。`ClockConfiguration` 使用 `Asia/Taipei`，因此 UTC 午夜前後按台灣日曆日期比較；兩種交期都是 `LocalDate`，不轉為 Instant。承諾日變更不影響正式狀態、期望日或收貨交易。
+
 ## V2-202 PO 終止稽核與 ORDERED 進度保護
 
 V2 `PurchaseOrderStatus` 增加終態 `CANCELLED`。`cancelReason`、`cancelledAt`、`cancelledBy` 與非 FK 的 user ID/username/displayName 快照同交易寫入；刪除操作人時 FK 可置空，快照仍供歷史明細讀取。取消不刪除/重建 PO、供應商、品項或交易資料。

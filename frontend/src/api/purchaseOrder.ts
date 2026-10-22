@@ -27,7 +27,8 @@ export interface PurchaseOrderItemResponse {
 }
 export interface PurchaseOrderResponse {
   id: number; poNumber: string; supplierId: number; supplierCode: string; supplierName: string; status: PurchaseOrderStatus; orderedProgress: OrderedProgress | null;
-  expectedDeliveryDate: string | null; items: PurchaseOrderItemResponse[]; createdBy: number | null; createdByDisplayName: string;
+  expectedDeliveryDate: string | null; supplierPromisedDeliveryDate: string | null;
+  items: PurchaseOrderItemResponse[]; createdBy: number | null; createdByDisplayName: string;
   createdByUsername: string | null; assignedTo: number | null; assignedToDisplayName: string | null; assignedToUsername: string | null;
   createdAt: string; approvedBy: number | null; approvedByDisplayName: string | null; approvedAt: string | null;
   approvedByUsername: string | null;
@@ -54,6 +55,9 @@ export async function createPurchaseOrderDraft(request: CreatePurchaseOrderReque
 }
 export async function updatePurchaseOrderDraft(id: number, request: UpdatePurchaseOrderRequest): Promise<PurchaseOrderResponse> {
   return (await axiosClient.patch<PurchaseOrderResponse>(`/purchase-orders/${id}`, request, decimalResponseConfig)).data;
+}
+export async function updateSupplierPromisedDeliveryDate(id: number, supplierPromisedDeliveryDate: string | null): Promise<PurchaseOrderResponse> {
+  return (await axiosClient.put<PurchaseOrderResponse>(`/purchase-orders/${id}/supplier-promised-delivery-date`, { supplierPromisedDeliveryDate }, decimalResponseConfig)).data;
 }
 export async function approvePurchaseOrder(id: number): Promise<PurchaseOrderResponse> {
   return (await axiosClient.post<PurchaseOrderResponse>(`/purchase-orders/${id}/approve`, undefined, decimalResponseConfig)).data;

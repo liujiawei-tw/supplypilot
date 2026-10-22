@@ -6,6 +6,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.Instant;
+import java.time.Clock;
+import java.time.ZoneId;
 import java.util.List;
 
 import com.supplypilot.common.exception.BusinessException;
@@ -291,6 +293,45 @@ class PurchaseOrderTests {
         assertThat(approved.isOverdue(TestDataConstants.TEST_TODAY)).isFalse();
         ReflectionTestUtils.setField(yesterday, "status", PurchaseOrderStatus.RECEIVED);
         assertThat(yesterday.isOverdue(TestDataConstants.TEST_TODAY)).isFalse();
+    }
+
+    @Test void supplierPromiseChangesIndependentlyAndOverdueUsesTaipeiCalendarDate() {
+        LocalDate expectedDate = LocalDate.of(2026, 10, 7);
+        PurchaseOrder order = approvedOrderWithDate(expectedDate);
+        order.updateSupplierPromisedDeliveryDate(LocalDate.of(2026, 10, 30), TestDataConstants.TEST_INSTANT);
+
+        assertThat(order.getExpectedDeliveryDate()).isEqualTo(expectedDate);
+        assertThat(order.getSupplierPromisedDeliveryDate()).isEqualTo(LocalDate.of(2026, 10, 30));
+
+        order.markOrdered(user, TestDataConstants.TEST_INSTANT.plusSeconds(30));
+        order.updateSupplierPromisedDeliveryDate(LocalDate.of(2026, 11, 5), TestDataConstants.TEST_INSTANT.plusSeconds(60));
+        Clock taipeiClock = Clock.fixed(Instant.parse("2026-10-07T16:00:00Z"), ZoneId.of("Asia/Taipei"));
+        assertThat(LocalDate.now(taipeiClock)).isEqualTo(LocalDate.of(2026, 10, 8));
+        assertThat(order.isOverdue(LocalDate.now(taipeiClock))).isTrue();
+
+        order.updateSupplierPromisedDeliveryDate(null, TestDataConstants.TEST_INSTANT.plusSeconds(90));
+        assertThat(order.getSupplierPromisedDeliveryDate()).isNull();
+        assertThat(order.getExpectedDeliveryDate()).isEqualTo(expectedDate);
+        assertThat(order.isOverdue(LocalDate.now(taipeiClock))).isTrue();
+    }
+
+    @Test void supplierPromiseMayOnlyChangeAfterApprovalAndBeforeReceipt() {
+        PurchaseOrder draft = draftWithItem();
+        assertThatThrownBy(() -> draft.updateSupplierPromisedDeliveryDate(
+                LocalDate.of(2026, 10, 30), TestDataConstants.TEST_INSTANT.plusSeconds(1)))
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCode").isEqualTo(ErrorCode.INVALID_PO_STATUS_TRANSITION);
+
+        PurchaseOrder rejected = draftWithItem();
+        ReflectionTestUtils.setField(rejected, "status", PurchaseOrderStatus.REJECTED);
+        assertThatThrownBy(() -> rejected.updateSupplierPromisedDeliveryDate(
+                LocalDate.of(2026, 10, 30), TestDataConstants.TEST_INSTANT.plusSeconds(1)))
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCode").isEqualTo(ErrorCode.INVALID_PO_STATUS_TRANSITION);
+
+        PurchaseOrder approved = approvedOrderWithDate(TestDataConstants.TEST_TODAY);
+        approved.updateSupplierPromisedDeliveryDate(null, TestDataConstants.TEST_INSTANT.plusSeconds(1));
+        assertThat(approved.getSupplierPromisedDeliveryDate()).isNull();
     }
 
     @Test void receivesOnlyOrderedPurchaseOrderWithBackendAuditAndPreservesPriorData() {

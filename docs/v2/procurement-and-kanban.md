@@ -59,6 +59,7 @@
 | supplierPromisedDeliveryDate | 供應商最新承諾交期 | 獨立保存；APPROVED、ORDERED 可更新；不可覆蓋期望到貨日 |
 
 - 逾期旗標仍使用 Backend 的 ORDERED + 當天晚於 expectedDeliveryDate 判定；**承諾交期修改不可抹去逾期事實**。
+- `supplierPromisedDeliveryDate = NULL` 表示尚無目前供應商承諾；不得當成 expectedDeliveryDate 的別名或備援值。
 - 不新增完整承諾交期變動歷史或自動提醒；空值不自動假設等於期望日。
 
 ## 6. 採購列表與畫面

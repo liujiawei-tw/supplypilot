@@ -1319,3 +1319,7 @@ Demand 的 create/update/cancel Service 僅允許舊 V1 `PRODUCTION_PLANNER` 相
 V2 採購業務命令（含駁回/取消）由 `ADMIN` 執行；Service 授權為最終防線。Request 僅接受必填取消原因，不接受 Client 操作者 ID、username、displayName、時間、狀態或 Stage。`CurrentUserProvider` 與 Backend Clock 產生取消 audit；獨立非 FK 快照支援人員永久刪除後查閱歷史。
 
 Approve、Reject、Mark Ordered、Begin Receiving Inspection、Cancel、Receive 對同一 PO 共用 `PESSIMISTIC_WRITE` 列鎖與交易；收貨在鎖住 PO 後才依序寫 Inventory/StockTransaction。失敗時全數 rollback。Cancellation 不呼叫供應商、不產生外部通知，不寫庫存交易。
+
+## V2-203 供應商承諾交期授權
+
+更新 `supplierPromisedDeliveryDate` 的專用 API 由 Service `@PreAuthorize` 驗證採購業務權限，並在同一交易取得 PO `PESSIMISTIC_WRITE` 列鎖後檢查 APPROVED／ORDERED 狀態。Request 只接受日期或明確 `null`；不接受狀態、期望日或操作者欄位。前端按鈕不構成授權邊界。每次更新透過同一 PO 列序列化並保留 JPA `@Version`，不寫交期歷史或對外通知。

@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { AxiosResponse, InternalAxiosRequestConfig } from 'axios';
 import { axiosClient } from '../src/api/axiosClient';
-import { approvePurchaseOrder, listPurchaseOrders, markPurchaseOrderOrdered, rejectPurchaseOrder, updatePurchaseOrderDraft } from '../src/api/purchaseOrder';
+import { approvePurchaseOrder, listPurchaseOrders, markPurchaseOrderOrdered, rejectPurchaseOrder, updatePurchaseOrderDraft, updateSupplierPromisedDeliveryDate } from '../src/api/purchaseOrder';
 import { getReceivingPurchaseOrder, listReceivingPurchaseOrders, receivePurchaseOrder } from '../src/api/receiving';
 import { getStockTransaction, listStockTransactions } from '../src/api/stockTransaction';
 import { parseDecimalJson } from '../src/api/decimalJson';
@@ -66,6 +66,19 @@ describe('SP-805 API contracts', () => {
     axiosClient.defaults.adapter = vi.fn(async (config) => { request = config; return response(config); });
     await updatePurchaseOrderDraft(9, { items: [{ materialId: 3, quantity: '999999999999999.1234000', unitPrice: '0.0000001234500', recommendationId: 91, supplierRecommendationResultId: 101, supplierOverrideReason: 'Capacity', quantityOverrideReason: 'Demand changed' }] });
     expect(JSON.parse(request.data as string)).toEqual({ items: [{ materialId: 3, quantity: '999999999999999.1234000', unitPrice: '0.0000001234500', recommendationId: 91, supplierRecommendationResultId: 101, supplierOverrideReason: 'Capacity', quantityOverrideReason: 'Demand changed' }] });
+  });
+
+  it('updates or explicitly clears the supplier promise through its dedicated endpoint', async () => {
+    const requests: InternalAxiosRequestConfig[] = [];
+    axiosClient.defaults.adapter = vi.fn(async (config) => { requests.push(config); return response(config); });
+    await updateSupplierPromisedDeliveryDate(9, '2026-11-05');
+    await updateSupplierPromisedDeliveryDate(9, null);
+    expect(requests.map(({ method, url }) => ({ method, url }))).toEqual([
+      { method: 'put', url: '/purchase-orders/9/supplier-promised-delivery-date' },
+      { method: 'put', url: '/purchase-orders/9/supplier-promised-delivery-date' },
+    ]);
+    expect(JSON.parse(requests[0].data as string)).toEqual({ supplierPromisedDeliveryDate: '2026-11-05' });
+    expect(JSON.parse(requests[1].data as string)).toEqual({ supplierPromisedDeliveryDate: null });
   });
 
   it('sends lifecycle action payloads exactly as defined', async () => {
