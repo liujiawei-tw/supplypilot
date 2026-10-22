@@ -169,3 +169,20 @@ GPT Relay 沿用同一 Conversation URL 審查確切 Head 947e49c41d113c6a0f0a9f
 | 完整 Orchestrator 模組／完整本機 CI Gate | 本輪未執行；完整本機 Gate 仍因 SP-806 208/210 與缺少 Python 3.12 而 **BLOCKED / NOT RUN** |
 | GPT review／PR | `617058da…` 的 verdict 為 **CHANGES REQUIRED**；P1-17／P2-01 修正尚待新 SHA 複審，無整體 Final PASS，沒有建立 PR 或 Merge |
 | 暫停範圍 | GitHub Actions 使用者暫停；#160、#142、#143 保持暫停 |
+
+## 第八輪 GPT Review 與 P1-18 修正（2026-10-23）
+
+沿用同一 GPT Relay 對話，GPT 審查確切 Head `cbd9d34abb151184b94a3beeeeb011a2428b12a9`，核對 GitHub 遠端 branch HEAD 相符、base `main` 為 `9240d6aeeba2361476a0454ac965a214769638a0`、Issue #162 Open、ahead 12／behind 0。GPT 確認 P1-17、P2-01 已修正，並再次核准此 SHA 的 Manifest／Runner 子項；整體 verdict 仍是 **CHANGES REQUIRED**。
+
+新阻擋 finding **P1-18**：`can_open_pr()` 驗證 state 中的 reviewed Head、Gate、契約、main 與依賴，但未重新查詢即時 `origin/<feature-branch>`。若遠端分支已前進，仍可能在 PR 建立前錯誤放行舊 SHA。完整 GPT 回覆保存於 [GPT Review cbd9d34](issue-162-gpt-review-cbd9d34-2026-10-23.md)。
+
+同一 #162 分支已在 `can_open_pr()` 加入唯讀 `_verify_local_remote_feature_head(record)` 查核，必須本機分支、遠端分支、Persisted/Reviewed HEAD 全部一致；查詢失敗或 SHA 漂移都 fail closed。新增負向測試模擬遠端 Feature Branch 前進至 SHA B，確保 SHA A 的完整 Gate／Final Pass 不會取得 PR Gate 放行；同步更新 state-machine 文件。
+
+| 驗證 | 結果 |
+| --- | --- |
+| 最終 PR Gate 精準回歸＋GateTests | **PASS**：6/6，4.757 秒 |
+| 完整 StateTests | 前一個來源 SHA `cbd9d34`：**PASS** 54/54，103.080 秒；之後只改 `can_open_pr()` 遠端 Feature HEAD 一項，已由本輪精準回歸覆蓋 |
+| Python compileall／git diff --check | **PASS** |
+| 完整 Orchestrator／完整本機 CI 等價 Gate | 本輪未執行；完整 Gate 仍因 SP-806 歷史 Vitest 208/210 與缺少 Python 3.12 而 **BLOCKED / NOT RUN** |
+| GPT／PR | `cbd9d34…` 整體 **CHANGES REQUIRED**，P1-18 尚待新 SHA 複審；沒有 Final PASS、沒有 PR、沒有 Merge |
+| 暫停範圍 | GitHub Actions 使用者暫停；#160、#142、#143 保持暫停 |

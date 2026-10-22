@@ -614,6 +614,13 @@ class StateTests(unittest.TestCase):
             with patch.object(orch, "_verified_remote_main_sha", return_value=self._state_base_sha):
                 self.assertTrue(orch.can_open_pr(path, 9, self._state_head)[0])
             with patch.object(orch, "_verified_remote_main_sha", return_value=self._state_base_sha), \
+                    patch.object(orch, "_verify_local_remote_feature_head", return_value={
+                        "branch": self._state_branch, "local_sha": self._state_head,
+                        "remote_sha": "b" * 40}):
+                allowed, reason = orch.can_open_pr(path, 9, self._state_head)
+            self.assertFalse(allowed)
+            self.assertIn("feature branch HEAD", reason)
+            with patch.object(orch, "_verified_remote_main_sha", return_value=self._state_base_sha), \
                     self.assertRaisesRegex(orch.PolicyError, "standalone Closes"):
                 orch.state_transition(path, 9, "PR_OPEN", {
                     "base": "main", "head_sha": self._state_head, "url": "https://github.com/example/pr/999",

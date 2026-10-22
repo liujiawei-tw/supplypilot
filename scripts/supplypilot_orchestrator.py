@@ -373,6 +373,14 @@ def can_open_pr(state_path: Path, issue_number: int, current_head: str) -> tuple
         return False, str(exc)
     if remote_main != state.get("main_sha"):
         return False, "origin/main advanced; synchronize main and rerun the full delivery gate."
+    try:
+        feature = _verify_local_remote_feature_head(record)
+    except PolicyError as exc:
+        return False, str(exc)
+    if (feature.get("branch") != record.get("branch")
+            or feature.get("local_sha") != current_head
+            or feature.get("remote_sha") != current_head):
+        return False, "Local and remote feature branch HEAD must still match the reviewed SHA."
     return True, "PR gate satisfied for exact HEAD."
 
 
