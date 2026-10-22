@@ -692,9 +692,35 @@ class StateTests(unittest.TestCase):
             self.assertFalse(orch._has_full_gate_manifest_pass(
                 f"Reviewed SHA: sha\n{marker}\nFINAL PASS\n"))
         self.assertFalse(orch._has_full_gate_manifest_pass(
-            "Reviewed SHA: sha\nFULL_GATE_MANIFEST_REVIEW: PASS\nCHANGES REQUIRED\n"))
+            "Reviewed SHA: sha\nFULL_GATE_MANIFEST_REVIEW: PASS\n"
+            "FULL_GATE_MANIFEST_REVIEW: BLOCKED\n"))
 
-    def test_full_gate_trust_rejects_changes_required_review_verdict(self):
+    def test_manifest_verdict_is_independent_from_overall_review_verdict(self):
+        reviewed_sha = "a" * 40
+        review = (f"Reviewed SHA: {reviewed_sha}\n"
+                  "Reviewed scripts/supplypilot_full_gate.py\n"
+                  "FULL_GATE_MANIFEST_REVIEW: PASS\nOverall verdict: BLOCKED\n")
+        self.assertTrue(orch._has_full_gate_manifest_pass(review))
+        self.assertFalse(orch._has_positive_final_verdict(review, reviewed_sha))
+
+    def test_full_gate_trust_requires_unquoted_exact_sha_and_manifest_lines(self):
+        with tempfile.TemporaryDirectory() as temp:
+            path = self._make_state(temp)
+            state = orch.read_json(path)
+            state["issues"]["9"]["head_sha"] = self._state_head
+            orch.atomic_write_json(path, state)
+            evidence = Path(temp) / "quoted-review.txt"
+            evidence.write_text(
+                f"> Reviewed SHA: {self._state_head}\n"
+                "> Reviewed scripts/supplypilot_full_gate.py\n"
+                "FULL_GATE_MANIFEST_REVIEW: PASS\nOverall verdict: BLOCKED\n",
+                encoding="utf-8")
+            with self.assertRaisesRegex(orch.PolicyError, "explicitly identify this SHA"):
+                orch.state_trust_full_gate_manifest(
+                    path, 9, self._state_head,
+                    "https://chatgpt.com/g/review/c/conversation", evidence, "reviewer")
+
+    def test_full_gate_trust_accepts_manifest_pass_while_overall_review_needs_changes(self):
         with tempfile.TemporaryDirectory() as temp:
             path = self._make_state(temp)
             state = orch.read_json(path)
@@ -703,14 +729,71 @@ class StateTests(unittest.TestCase):
             evidence = Path(temp) / "changes-required-review.txt"
             evidence.write_text(
                 f"Reviewed SHA: {self._state_head}\nReviewed scripts/supplypilot_full_gate.py\n"
-                "The review request mentions FULL_GATE_MANIFEST_REVIEW: PASS.\n"
-                "FULL_GATE_MANIFEST_REVIEW: PASS\nCHANGES REQUIRED\n",
+                "FULL_GATE_MANIFEST_REVIEW: PASS\nOverall verdict: CHANGES REQUIRED\n",
                 encoding="utf-8")
-            with patch.object(orch.sys.stdin, "isatty", return_value=True):
-                with self.assertRaisesRegex(orch.PolicyError, "FULL_GATE_MANIFEST_REVIEW: PASS"):
-                    orch.state_trust_full_gate_manifest(
-                        path, 9, self._state_head,
-                        "https://chatgpt.com/g/review/c/conversation", evidence, "reviewer")
+            manifest = Path(temp) / "scripts" / "supplypilot_full_gate.py"
+            runner = Path(temp) / "scripts" / "supplypilot_orchestrator.py"
+            digest = hashlib.sha256(manifest.read_bytes()).hexdigest()
+            runner_digest = hashlib.sha256(runner.read_bytes()).hexdigest()
+            with patch.object(orch.sys.stdin, "isatty", return_value=True), \
+                    patch("builtins.input", return_value=f"TRUST FULL GATE {digest} {runner_digest}"):
+                orch.state_trust_full_gate_manifest(
+                    path, 9, self._state_head,
+                    "https://chatgpt.com/g/review/c/conversation", evidence, "reviewer")
+            updated = orch.read_json(path)
+            trusted = updated["issues"]["9"]["trusted_full_gate_manifest"]
+            self.assertTrue(orch._trusted_full_gate_manifest_valid(trusted, Path(temp), self._state_head))
+            self.assertEqual("BLOCKED_DEPENDENCY", updated["issues"]["9"]["implementation_state"])
+            self.assertFalse(orch._has_positive_final_verdict(evidence.read_text(), self._state_head))
+
+    def test_changes_required_can_resume_existing_feature_head(self):
+        with tempfile.TemporaryDirectory() as temp:
+            path = self._make_state(temp)
+            orch.state_transition(path, 9, "READY_TO_CODE", self._ready_evidence())
+            orch.state_transition(path, 9, "IMPLEMENTING", {"authorized_issue": 9})
+            source = Path(temp) / "src" / "a.py"
+            source.write_text("VALUE = 2\n", encoding="utf-8")
+            self._git(Path(temp), "add", "src/a.py")
+            self._git(Path(temp), "commit", "-m", "feature implementation")
+            feature_sha = self._git(Path(temp), "rev-parse", "HEAD")
+            self._git(Path(temp), "push", "origin", "codex/issue-9-example")
+            orch.state_set_head(path, 9, feature_sha, feature_sha, feature_sha)
+            state = orch.read_json(path)
+            state["issues"]["9"]["implementation_state"] = "WAITING_GPT_REVIEW"
+            orch.atomic_write_json(path, state)
+            orch.state_transition(path, 9, "CHANGES_REQUIRED", {
+                "review_status": "CHANGES_REQUIRED", "reviewed_sha": feature_sha,
+            })
+            with patch.object(orch, "_verified_remote_main_sha", return_value=self._state_base_sha):
+                orch.state_transition(path, 9, "IMPLEMENTING", {"authorized_issue": 9})
+            record = orch.read_json(path)["issues"]["9"]
+            self.assertEqual("IMPLEMENTING", record["implementation_state"])
+            self.assertEqual(feature_sha, record["events"][-1]["evidence"]["worktree_head"])
+
+    def test_changes_required_resume_rejects_unrecorded_feature_head(self):
+        with tempfile.TemporaryDirectory() as temp:
+            path = self._make_state(temp)
+            orch.state_transition(path, 9, "READY_TO_CODE", self._ready_evidence())
+            orch.state_transition(path, 9, "IMPLEMENTING", {"authorized_issue": 9})
+            source = Path(temp) / "src" / "a.py"
+            source.write_text("VALUE = 2\n", encoding="utf-8")
+            self._git(Path(temp), "add", "src/a.py")
+            self._git(Path(temp), "commit", "-m", "feature implementation")
+            feature_sha = self._git(Path(temp), "rev-parse", "HEAD")
+            self._git(Path(temp), "push", "origin", "codex/issue-9-example")
+            orch.state_set_head(path, 9, feature_sha, feature_sha, feature_sha)
+            state = orch.read_json(path)
+            state["issues"]["9"]["implementation_state"] = "WAITING_GPT_REVIEW"
+            orch.atomic_write_json(path, state)
+            orch.state_transition(path, 9, "CHANGES_REQUIRED", {
+                "review_status": "CHANGES_REQUIRED", "reviewed_sha": feature_sha,
+            })
+            source.write_text("VALUE = 3\n", encoding="utf-8")
+            self._git(Path(temp), "add", "src/a.py")
+            self._git(Path(temp), "commit", "-m", "unrecorded feature update")
+            with patch.object(orch, "_verified_remote_main_sha", return_value=self._state_base_sha):
+                with self.assertRaisesRegex(orch.PolicyError, "registered feature branch at its recorded clean HEAD"):
+                    orch.state_transition(path, 9, "IMPLEMENTING", {"authorized_issue": 9})
 
     def test_full_gate_pending_requires_feature_worktree_to_contain_verified_main(self):
         with tempfile.TemporaryDirectory() as temp:

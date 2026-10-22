@@ -544,7 +544,8 @@ for _state in STATE_VALUES - {"MERGED", "FAILED"}:
     TRANSITIONS[_state] = TRANSITIONS.get(_state, set()) | {"BLOCKED_ENVIRONMENT", "FAILED"}
 
 
-def _verify_code_gate(state: dict[str, Any], record: dict[str, Any]) -> dict[str, Any]:
+def _verify_code_gate(state: dict[str, Any], record: dict[str, Any], *,
+                      allow_existing_feature_head: bool = False) -> dict[str, Any]:
     number = record.get("number")
     main_sha = state.get("main_sha")
     worktree_value = record.get("worktree")
@@ -561,8 +562,11 @@ def _verify_code_gate(state: dict[str, Any], record: dict[str, Any]) -> dict[str
         raise PolicyError("Code Gate requires a current, verified contract version.")
 
     snapshot = capture_worktree(root)
-    if (snapshot["branch"] != record.get("branch") or snapshot["head"] != main_sha
+    expected_head = record.get("head_sha") if allow_existing_feature_head else main_sha
+    if (snapshot["branch"] != record.get("branch") or snapshot["head"] != expected_head
             or not snapshot["clean"]):
+        if allow_existing_feature_head:
+            raise PolicyError("Code Gate resume requires the registered feature branch at its recorded clean HEAD.")
         raise PolicyError("Code Gate requires the registered dedicated branch at current main with a clean worktree.")
     _verify_feature_contains_main({**record, "head_sha": snapshot["head"]}, main_sha)
 
@@ -709,12 +713,11 @@ def _trusted_full_gate_manifest_valid(trusted: Any, root: Path, current_head: st
 
 def _has_full_gate_manifest_pass(content: str) -> bool:
     lines = _review_lines(content)
-    verdicts = [re.sub(r"^Verdict:\s*", "", line, flags=re.IGNORECASE).upper()
+    verdicts = [re.sub(r"^FULL_GATE_MANIFEST_REVIEW:\s*", "", line, flags=re.IGNORECASE).upper()
                 for line in lines
-                if re.fullmatch(r"(?:Verdict:\s*)?(?:FINAL PASS|CHANGES REQUIRED|NO FINAL PASS|BLOCKED)",
+                if re.fullmatch(r"FULL_GATE_MANIFEST_REVIEW:\s*(?:PASS|CHANGES REQUIRED|BLOCKED|FAIL)",
                                 line, re.IGNORECASE)]
-    return any(line == "FULL_GATE_MANIFEST_REVIEW: PASS" for line in lines) and bool(verdicts) \
-        and verdicts[-1] == "FINAL PASS"
+    return bool(verdicts) and verdicts[-1] == "PASS"
 
 
 def atomic_write_json(path: Path, value: dict[str, Any]) -> None:
@@ -1027,7 +1030,9 @@ def _transition_record(record: dict[str, Any], target: str,
                 or evidence.get("branch") != record.get("branch")
                 or evidence.get("worktree") != record.get("worktree")
                 or evidence.get("worktree_clean") is not True
-                or evidence.get("worktree_head") != record.get("base_sha")):
+                or evidence.get("worktree_head") != (head if current in {
+                    "CHANGES_REQUIRED", "TARGETED_VERIFIED", "BLOCKED_ENVIRONMENT"
+                } else record.get("base_sha"))):
             raise PolicyError(f"{target} requires independently verified branch and worktree.")
     elif target in {"TARGETED_VERIFIED", "FULL_GATE_VERIFIED"}:
         if evidence.get("status") != "PASS" or not head or evidence.get("sha") != head:
@@ -1121,7 +1126,14 @@ def state_transition(path: Path, number: int, target: str, evidence: dict[str, A
             if evidence.get("authorized_issue") != number:
                 raise PolicyError(f"{target} requires explicit authorization for this Issue.")
             verified = dict(evidence)
-            verified.update(_verify_code_gate(state, record))
+            reentry = record.get("implementation_state") in {
+                "CHANGES_REQUIRED", "TARGETED_VERIFIED", "BLOCKED_ENVIRONMENT"
+            }
+            if reentry:
+                code_gate = _verify_code_gate(state, record, allow_existing_feature_head=True)
+            else:
+                code_gate = _verify_code_gate(state, record)
+            verified.update(code_gate)
         else:
             verified = evidence
         _state_transition_locked(path, state, record, number, target, verified)
@@ -1195,12 +1207,18 @@ def state_trust_full_gate_manifest(path: Path, number: int, reviewed_sha: str,
         evidence_sha256 = hashlib.sha256(resolved_evidence.read_bytes()).hexdigest()
     except OSError as exc:
         raise PolicyError("Independent review evidence must exist and be readable as UTF-8.") from exc
+    review_lines = _review_lines(content)
+    has_exact_sha = any(re.fullmatch(rf"Reviewed SHA:\s*{re.escape(reviewed_sha)}", line,
+                                     re.IGNORECASE) for line in review_lines)
+    has_manifest_reference = any(re.fullmatch(
+        r"Reviewed(?: file)? scripts/supplypilot_full_gate\.py", line, re.IGNORECASE)
+        for line in review_lines)
     parsed = urllib.parse.urlparse(conversation_url)
     if (parsed.scheme != "https" or parsed.netloc.casefold() != "chatgpt.com" or "/c/" not in parsed.path
-            or reviewed_sha not in content or "supplypilot_full_gate.py" not in content
+            or not has_exact_sha or not has_manifest_reference
             or not _has_full_gate_manifest_pass(content)):
         raise PolicyError(
-            "Review evidence must identify this SHA and Full Gate manifest and explicitly report "
+            "Review evidence must explicitly identify this SHA and Full Gate manifest and report "
             "FULL_GATE_MANIFEST_REVIEW: PASS in the ChatGPT conversation.")
     manifest_sha256 = hashlib.sha256(manifest.read_bytes()).hexdigest()
     runner = (worktree / "scripts" / "supplypilot_orchestrator.py").resolve(strict=True)

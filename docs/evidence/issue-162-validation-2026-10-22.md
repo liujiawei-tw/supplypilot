@@ -103,3 +103,22 @@ Orchestrator 測試分組執行合計 **78/78 PASS**（State 38 + Graph/Gate/Res
 | #160、#142、#143 | 維持暫停；此輪未修改、測試、Resume 或清除其工作樹 |
 
 本輪仍在 Issue #162 Feature Branch；實作尚待 commit/push 及核對 local／remote Head。GPT Relay 將沿用已核對的同一 Conversation URL 重新審查最終 Head。此輪尚未取得新 GPT verdict、Final Pass 或 PR；不得建立 PR。Merge 仍由使用者決定。
+
+## 第五輪 GPT Review P1-13／P1-14 修正（2026-10-23）
+
+GPT 對 `8fa5b99727d7ad8550498ff7c86388e72f8f29b8` 的實際判定為 **CHANGES REQUIRED**。本輪只處理該 Review 新增的兩項 P1：
+
+- P1-13：將首次 `READY_TO_CODE → IMPLEMENTING` 的 main-base Code Gate，與既有 Issue 的重新進入區分。從 `CHANGES_REQUIRED`、`TARGETED_VERIFIED` 或 `BLOCKED_ENVIRONMENT` Resume 時，仍核對 `origin/main`、登記分支、記錄中的 feature HEAD、乾淨工作樹、main ancestry、契約、依賴、活動 owner 與 Issue 授權，但允許 feature HEAD 已領先 main；未記錄的新 HEAD 會拒絕。
+- P1-14：Full Gate manifest 信任只依賴獨立、明確的 `FULL_GATE_MANIFEST_REVIEW: PASS` 子項 verdict，不要求整份 GPT review 已 `FINAL PASS`。SHA、manifest 識別行與 verdict 均須出現在非 Markdown 引用／程式碼區塊的正文；overall `BLOCKED`／`CHANGES REQUIRED` 仍不會被判成 Final Pass，也不會直接推進 Issue 狀態。
+
+| 驗證 | 結果 |
+| --- | --- |
+| P1-13／P1-14 精準 StateTests | **PASS**：8/8，14.549 秒；輸出：[P1-13／P1-14 精準回歸](issue-162-p1-13-p1-14-state-regression-2026-10-23.log) |
+| 完整 Orchestrator `StateTests` 類別 | **PASS**：49/49，95.908 秒；同一證據檔記錄完整命令及結果 |
+| Python `compileall` | **PASS**：Orchestrator 與測試模組 |
+| `git diff --check` | **PASS**：無 whitespace errors |
+| 本機完整 CI 等價 Gate | **BLOCKED / NOT RUN**：已知 SP-806 Vitest 失敗及主機 Python 3.12 缺失未解；本輪沒有執行完整 Gate |
+| GitHub Actions／PR／Merge | Actions 維持使用者暫停；尚無 GPT 新 verdict，未建立 PR、未 Merge |
+| #160、#142、#143 | 維持暫停；本輪未修改、測試或 Resume |
+
+本輪程式與測試修改已完成，待 commit/push 並核對 local／remote Head SHA 後，沿用使用者已核對的同一 GPT Relay Conversation URL 發起正式 review。完整 Gate 尚未通過，因此不得宣稱可建立 PR。
