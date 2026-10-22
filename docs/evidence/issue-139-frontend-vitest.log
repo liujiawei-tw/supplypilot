@@ -1986,4 +1986,3 @@ Warning: [antd: Space] `direction` is deprecated. Please use `orientation` inste
 [2m      Tests [22m [1m[32m205 passed[39m[22m[90m (205)[39m
 [2m   Start at [22m 01:33:35
 [2m   Duration [22m 2170.88s[2m (transform 5.88s, setup 67.31s, import 943.21s, tests 892.66s, environment 237.73s)[22m
-
