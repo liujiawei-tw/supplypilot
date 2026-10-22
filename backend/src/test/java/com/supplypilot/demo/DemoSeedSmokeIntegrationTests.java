@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -309,6 +310,15 @@ class DemoSeedSmokeIntegrationTests {
         mockMvc.perform(post("/api/v1/purchase-orders/{id}/order", purchaseOrderId)
                         .header("Authorization", bearer(admin)))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("ORDERED"));
+
+        mockMvc.perform(post("/api/v1/purchase-orders/{id}/begin-receiving-inspection", purchaseOrderId)
+                        .header("Authorization", bearer(admin)))
+                .andExpect(status().isOk());
+        mockMvc.perform(put("/api/v1/purchase-orders/{id}/receiving-inspection", purchaseOrderId)
+                        .header("Authorization", bearer(admin)).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"allItemsReceived\":true,\"allQuantitiesConfirmed\":true,"
+                                + "\"allQualityAccepted\":true,\"note\":\"demo smoke fixture\"}"))
+                .andExpect(status().isOk());
 
         BigDecimal before = inventories.findByMaterialId(material.getId()).orElseThrow().getQuantity();
         mockMvc.perform(post("/api/v1/purchase-orders/{id}/receive", purchaseOrderId)

@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -42,6 +43,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.http.MediaType;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
@@ -304,6 +306,14 @@ class StockTransactionControllerIntegrationTests extends AbstractIntegrationTest
         PurchaseOrder persisted = purchaseOrderRepository.saveAndFlush(order);
         persisted.assignDisplayPoNumber("PO-402-" + persisted.getId());
         purchaseOrderRepository.saveAndFlush(persisted);
+        mockMvc.perform(post("/api/v1/purchase-orders/{id}/begin-receiving-inspection", persisted.getId())
+                        .header("Authorization", bearer(admin)))
+                .andExpect(status().isOk());
+        mockMvc.perform(put("/api/v1/purchase-orders/{id}/receiving-inspection", persisted.getId())
+                        .header("Authorization", bearer(admin)).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"allItemsReceived\":true,\"allQuantitiesConfirmed\":true,"
+                                + "\"allQualityAccepted\":true,\"note\":\"stock transaction fixture\"}"))
+                .andExpect(status().isOk());
         mockMvc.perform(post("/api/v1/purchase-orders/{id}/receive", persisted.getId())
                         .header("Authorization", bearer(receiver))).andExpect(status().isOk());
         return purchaseOrderRepository.findById(persisted.getId()).orElseThrow();
