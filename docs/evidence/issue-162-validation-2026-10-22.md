@@ -45,3 +45,19 @@
 - 這次失敗位於目前使用者正在處理的 #160 覆蓋範圍。真實 Issue #160 的驗收／WIP 未改動；本 Issue 只按 `AGENTS.md` 執行完整套件與隔離診斷，並保留證據。
 - 本次沒有執行真實 Browser、Gemini Provider、AWS、Production deploy 或 Demo reset；Issue #162 不要求執行這些端到端項目。
 - 未執行 GitHub Actions，故沒有 GitHub CI PASS。
+
+## 第二輪 P1-06～P1-08 精準修正（2026-10-23）
+
+本輪只修改 #162 Orchestrator、其單元測試，以及 SupplyPilot Implement-Spec Skill 的 Gate／狀態機說明。P1-06 將 Targeted Gate 限定為單一測試檔／指定 unittest module，按 runner 選擇 frontend、backend 或 repository root 的執行目錄，驗證實際測試數並保存命令、CWD、時間、輸出及前後工作樹快照。P1-07 以短暫 State Lock 建立 Gate reservation、在鎖外執行驗證，完成後重核 reservation token 與 context；中斷需確認 owner 已停止並人工 recovery，Recovery 不會自動清除共用高負載鎖。P1-08 記錄使用者明確授權的 provisional dependency contract 來源與指紋，只有來源契約未漂移才可恢復編碼；依賴未合併前仍不能通過 Full Gate。
+
+| 驗證 | 結果 |
+| --- | --- |
+| Orchestrator `StateTests` | **PASS**：38 tests，77.576 秒；涵蓋 Gate reservation 併發／中斷／context 漂移、實際執行計數、runner/CWD 約束、已合併依賴的正常 Resume、provisional contract 漂移與恢復條件。輸出：[State regression log](issue-162-p1-06-p1-08-state-regression-2026-10-23.log) |
+| Orchestrator `GraphTests`、`GateTests` 與 ResourceTests（除 linked-worktree 測試） | **PASS**：39 tests，0.232 秒。輸出：[Graph/resource regression log](issue-162-p1-06-p1-08-graph-resource-regression-2026-10-23.log) |
+| ResourceTests linked-worktree lock 測試（隔離執行） | **PASS**：1 test，0.920 秒。輸出：[Linked-worktree log](issue-162-p1-06-p1-08-linked-worktree-regression-2026-10-23.log) |
+| 兩個修正 fixture 的精準複測 | **PASS**：2 tests，2.302 秒；已納入上述完整 StateTests 通過結果。輸出：[Focused fixes log](issue-162-p1-06-p1-08-focused-fixes-2026-10-23.log) |
+| P1-06 真實單檔 smoke | **PASS**：`npm test -- tests/displayLabels.test.ts`，在 `frontend/` 執行；Node 24.15.0、npm 11.12.1、1 個檔案／2 個測試通過。輸出：[Targeted smoke log](issue-162-p1-06-targeted-smoke-2026-10-23.log) |
+| Skill format validator 與只讀 Skill Load smoke | **PASS**：`quick_validate.py` 回報 `Skill is valid!`；Codex CLI 只讀載入 `supplypilot-implement-spec` v1.0，確認未合併前只有唯讀規劃／dry run 邊界。輸出：[Skill Load smoke log](issue-162-p1-06-p1-08-skill-load-smoke-2026-10-23.log) |
+| Python compile 與 `git diff --check` | **PASS**：本輪最後一次檢查成功；僅有 Git LF/CRLF 提示 |
+
+Orchestrator 測試分組執行合計 **78/78 PASS**（State 38 + Graph/Gate/Resource 39 + 隔離 linked-worktree 1）；未以單一 unittest 進程執行整套，linked-worktree 測試隔離執行。上述為精準 Orchestrator regression，不是本機完整 CI 等價 Gate。完整前端 Vitest 的既有失敗與 Python 3.12 缺失仍維持前述 **FAIL / NOT RUN** 狀態；未重跑完整前端套件，也未執行或更動 GitHub Actions。GPT Relay 對話網址已核對為使用者提供的同一對話，但瀏覽器當時顯示驗證／CAPTCHA，尚未提交本輪 review 請求，因此 **Relay review 尚未執行、沒有 Final Pass**。Matt Pocock Standards／Spec 內部預檢完成；Spec 測試覆蓋建議已補測並複查，Standards 僅留兩項非阻擋維護性觀察。本輪 commit/push 待完成。

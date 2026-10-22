@@ -1,0 +1,6 @@
+test_linked_worktrees_resolve_to_the_same_default_lock_directory (scripts.tests.test_supplypilot_orchestrator.ResourceTests.test_linked_worktrees_resolve_to_the_same_default_lock_directory) ... ok
+
+----------------------------------------------------------------------
+Ran 1 test in 0.920s
+
+OK

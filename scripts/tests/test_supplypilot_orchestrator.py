@@ -5,6 +5,7 @@ import sys
 import tempfile
 import contextlib
 import hashlib
+import threading
 import unittest
 from pathlib import Path
 from unittest.mock import Mock, patch
@@ -364,7 +365,13 @@ class StateTests(unittest.TestCase):
         self._git(worktree, "config", "user.email", "test@example.com")
         (worktree / "src").mkdir()
         (worktree / "src" / "a.py").write_text("VALUE = 1\n", encoding="utf-8")
-        self._git(worktree, "add", "src/a.py")
+        (worktree / "scripts" / "tests").mkdir(parents=True)
+        (worktree / "scripts" / "tests" / "__init__.py").write_text("", encoding="utf-8")
+        (worktree / "frontend").mkdir()
+        (worktree / "frontend" / "package.json").write_text('{"scripts":{"test":"vitest run"}}', encoding="utf-8")
+        (worktree / "backend").mkdir()
+        (worktree / "backend" / "pom.xml").write_text("<project />", encoding="utf-8")
+        self._git(worktree, "add", "src/a.py", "scripts/tests/__init__.py", "frontend/package.json", "backend/pom.xml")
         self._git(worktree, "commit", "-m", "base")
         self._state_head = self._git(worktree, "rev-parse", "HEAD")
         self._state_remote = worktree.parent / f"{worktree.name}-origin.git"
@@ -453,7 +460,8 @@ class StateTests(unittest.TestCase):
             full_evidence = {"status": "PASS", "sha": self._state_head, **self._artifact(
                 temp, "full-gate.log", "full gate passed")}
             full_evidence["command"] = ["supplypilot-full-gate"]
-            with patch.object(orch, "_execute_full_gate", return_value=Mock(returncode=0, stdout="full gate passed")):
+            with patch.object(orch, "_verified_remote_main_sha", return_value=self._state_base_sha), \
+                    patch.object(orch, "_execute_full_gate", return_value=Mock(returncode=0, stdout="full gate passed")):
                 orch.state_transition(path, 9, "FULL_GATE_VERIFIED", full_evidence)
             with patch.object(orch, "_verify_local_remote_feature_head", return_value={
                 "branch": self._state_branch, "local_sha": self._state_head, "remote_sha": "b" * 40
@@ -707,6 +715,148 @@ class StateTests(unittest.TestCase):
             run.assert_not_called()
             self.assertEqual("NOT_RUN", orch.read_json(path)["issues"]["9"]["verification"]["status"])
 
+    def test_gate_executes_outside_state_lock_and_preserves_concurrent_issue_update(self):
+        with tempfile.TemporaryDirectory() as temp:
+            path = self._make_state(temp)
+            orch.state_transition(path, 9, "READY_TO_CODE", self._ready_evidence())
+            orch.state_transition(path, 9, "IMPLEMENTING", {})
+            orch.state_set_head(path, 9, self._state_head, self._state_head, self._state_head)
+            state = orch.read_json(path)
+            state["issues"]["10"] = {"number": 10, "implementation_state": "READY_TO_CODE",
+                                      "events": []}
+            orch.atomic_write_json(path, state)
+            started, release = threading.Event(), threading.Event()
+            outcomes = []
+
+            def slow_gate(*_args, **_kwargs):
+                started.set()
+                if not release.wait(5):
+                    raise AssertionError("test did not release the isolated Gate runner")
+                return Mock(returncode=0, stdout="Ran 1 test in 0.01s\nOK")
+
+            evidence = {"sha": self._state_head,
+                        "command": ["python", "-m", "unittest", "scripts.tests.test_example"]}
+            with patch.object(orch, "_execute_gate_command", side_effect=slow_gate):
+                worker = threading.Thread(target=lambda: self._capture_exception(
+                    outcomes, orch.state_transition, path, 9, "TARGETED_VERIFIED", evidence))
+                worker.start()
+                self.assertTrue(started.wait(5), "Gate runner never started")
+                with self.assertRaisesRegex(orch.PolicyError, "active Gate reservation"):
+                    orch.state_transition(path, 9, "TARGETED_VERIFIED", evidence)
+                orch.state_transition(path, 10, "IMPLEMENTING", {})
+                self.assertEqual("IMPLEMENTING", orch.read_json(path)["issues"]["10"]["implementation_state"])
+                release.set()
+                worker.join(5)
+                self.assertFalse(worker.is_alive())
+            self.assertEqual([], outcomes)
+            state = orch.read_json(path)
+            self.assertEqual("IMPLEMENTING", state["issues"]["10"]["implementation_state"])
+            self.assertEqual("TARGETED_VERIFIED", state["issues"]["9"]["verification"]["status"])
+            self.assertEqual("COMMITTED", state["issues"]["9"]["gate_reservation"]["status"])
+
+    @staticmethod
+    def _capture_exception(output, function, *args):
+        try:
+            function(*args)
+        except BaseException as exc:
+            output.append(exc)
+
+    def test_interrupted_gate_requires_explicit_manual_recovery_without_pass_or_lock_cleanup(self):
+        with tempfile.TemporaryDirectory() as temp:
+            path = self._make_state(temp)
+            orch.state_transition(path, 9, "READY_TO_CODE", self._ready_evidence())
+            orch.state_transition(path, 9, "IMPLEMENTING", {})
+            orch.state_set_head(path, 9, self._state_head, self._state_head, self._state_head)
+            evidence = {"sha": self._state_head,
+                        "command": ["python", "-m", "unittest", "scripts.tests.test_example"]}
+            with patch.object(orch, "_execute_gate_command", side_effect=KeyboardInterrupt):
+                with self.assertRaises(KeyboardInterrupt):
+                    orch.state_transition(path, 9, "TARGETED_VERIFIED", evidence)
+            state = orch.read_json(path)
+            reservation = state["issues"]["9"]["gate_reservation"]
+            self.assertEqual("RUNNING", reservation["status"])
+            self.assertEqual("NOT_RUN", state["issues"]["9"]["verification"]["status"])
+            lock = Path(temp) / "locks" / "high-load.lock"
+            lock.mkdir(parents=True)
+            (lock / "owner.json").write_text('{"resource":"vitest"}', encoding="utf-8")
+            with self.assertRaisesRegex(orch.PolicyError, "owner-stopped"):
+                orch.state_gate_recover(path, 9, reservation["token"], False, "stopped")
+            with self.assertRaisesRegex(orch.PolicyError, "token"):
+                orch.state_gate_recover(path, 9, "wrong-token", True, "confirmed stopped")
+            orch.state_gate_recover(path, 9, reservation["token"], True, "owner process confirmed stopped")
+            state = orch.read_json(path)
+            self.assertEqual("ABORTED", state["issues"]["9"]["gate_reservation"]["status"])
+            self.assertEqual("NOT_RUN", state["issues"]["9"]["verification"]["status"])
+            self.assertTrue((lock / "owner.json").is_file())
+
+    def test_gate_context_change_during_execution_stales_result_without_lost_update(self):
+        with tempfile.TemporaryDirectory() as temp:
+            path = self._make_state(temp)
+            orch.state_transition(path, 9, "READY_TO_CODE", self._ready_evidence())
+            orch.state_transition(path, 9, "IMPLEMENTING", {})
+            orch.state_set_head(path, 9, self._state_head, self._state_head, self._state_head)
+            state = orch.read_json(path)
+            state["issues"]["9"]["dependencies"] = [10]
+            state["issues"]["10"] = {"number": 10, "implementation_state": "IMPLEMENTING",
+                                      "branch": "codex/issue-10-upstream", "head_sha": "a" * 40,
+                                      "merge": {"status": "PENDING"}}
+            orch.atomic_write_json(path, state)
+            started, release = threading.Event(), threading.Event()
+            outcomes = []
+
+            def slow_gate(*_args, **_kwargs):
+                started.set()
+                release.wait(5)
+                return Mock(returncode=0, stdout="Ran 1 test in 0.01s\nOK")
+
+            evidence = {"sha": self._state_head,
+                        "command": ["python", "-m", "unittest", "scripts.tests.test_example"]}
+            with patch.object(orch, "_execute_gate_command", side_effect=slow_gate):
+                worker = threading.Thread(target=lambda: self._capture_exception(
+                    outcomes, orch.state_transition, path, 9, "TARGETED_VERIFIED", evidence))
+                worker.start()
+                self.assertTrue(started.wait(5))
+                with orch.state_lock(path):
+                    changed = orch.read_json(path)
+                    changed["issues"]["10"]["head_sha"] = "b" * 40
+                    orch.atomic_write_json(path, changed)
+                release.set()
+                worker.join(5)
+                self.assertFalse(worker.is_alive())
+            self.assertEqual(1, len(outcomes))
+            self.assertIsInstance(outcomes[0], orch.PolicyError)
+            self.assertIn("stale", str(outcomes[0]).lower())
+            state = orch.read_json(path)
+            self.assertEqual("IMPLEMENTING", state["issues"]["9"]["implementation_state"])
+            self.assertEqual("NOT_RUN", state["issues"]["9"]["verification"]["status"])
+            self.assertEqual("STALE", state["issues"]["9"]["gate_reservation"]["status"])
+            self.assertEqual("b" * 40, state["issues"]["10"]["head_sha"])
+
+    def test_worktree_change_during_gate_keeps_transcript_and_never_records_pass(self):
+        with tempfile.TemporaryDirectory() as temp:
+            path = self._make_state(temp)
+            orch.state_transition(path, 9, "READY_TO_CODE", self._ready_evidence())
+            orch.state_transition(path, 9, "IMPLEMENTING", {})
+            orch.state_set_head(path, 9, self._state_head, self._state_head, self._state_head)
+            evidence = {"sha": self._state_head,
+                        "command": ["python", "-m", "unittest", "scripts.tests.test_example"]}
+            evidence_dir = path.parent / "evidence"
+            existing_logs = set(evidence_dir.glob("issue-9-targeted_verified-*.log"))
+
+            def mutate_then_pass(*_args, **_kwargs):
+                (Path(temp) / "src" / "a.py").write_text("VALUE = 999\n", encoding="utf-8")
+                return Mock(returncode=0, stdout="Ran 1 test in 0.01s\nOK")
+
+            with patch.object(orch, "_execute_gate_command", side_effect=mutate_then_pass):
+                with self.assertRaisesRegex(orch.PolicyError, "worktree changed during execution"):
+                    orch.state_transition(path, 9, "TARGETED_VERIFIED", evidence)
+            state = orch.read_json(path)
+            self.assertEqual("NOT_RUN", state["issues"]["9"]["verification"]["status"])
+            self.assertEqual("STALE", state["issues"]["9"]["gate_reservation"]["status"])
+            logs = set(evidence_dir.glob("issue-9-targeted_verified-*.log")) - existing_logs
+            self.assertEqual(1, len(logs))
+            self.assertIn('"exit_code": 0', next(iter(logs)).read_text(encoding="utf-8"))
+
     def test_gate_command_allowlist_rejects_partial_full_gate_and_arbitrary_compose_run(self):
         self.assertTrue(orch._gate_command_supported(["python", "-m", "unittest", "suite"]))
         self.assertFalse(orch._gate_command_supported(["python", "-m", "unittest", "-h"]))
@@ -714,7 +864,10 @@ class StateTests(unittest.TestCase):
         self.assertFalse(orch._gate_command_supported(["python", "-m", "pytest", "tests", "--collect-only"]))
         self.assertFalse(orch._gate_command_supported(["npm", "run", "lint"]))
         self.assertFalse(orch._gate_command_supported(["npm", "run", "build"]))
+        self.assertFalse(orch._gate_command_supported(["npm", "test"]))
         self.assertFalse(orch._gate_command_supported(["npm", "test", "--", "--passWithNoTests"]))
+        self.assertFalse(orch._gate_command_supported(["npm", "test", "--", "../outside.test.tsx"]))
+        self.assertFalse(orch._gate_command_supported(["npm", "test", "--", "tests/a.test.tsx", "--passWithNoTests"]))
         self.assertFalse(orch._gate_command_supported(["docker", "compose", "config", "--quiet"]))
         self.assertFalse(orch._gate_command_supported(["docker", "build", "--file", "Dockerfile", "."]))
         self.assertFalse(orch._gate_command_supported(
@@ -737,6 +890,71 @@ class StateTests(unittest.TestCase):
                         ["docker", "compose", "config", "--quiet"], ["python", "-m", "unittest"]):
             self.assertFalse(orch._gate_command_supported(partial, "FULL_GATE_VERIFIED"))
 
+    def test_targeted_gate_contract_selects_frontend_backend_and_python_roots(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp) / "repo"
+            frontend = root / "frontend"
+            backend = root / "backend"
+            frontend_tests = frontend / "tests"
+            (frontend_tests).mkdir(parents=True)
+            backend.mkdir(parents=True)
+            (root / "scripts" / "tests").mkdir(parents=True)
+            (frontend / "package.json").write_text('{"scripts":{"test":"vitest run"}}', encoding="utf-8")
+            (backend / "pom.xml").write_text("<project />", encoding="utf-8")
+            (frontend_tests / "smoke.test.tsx").write_text("", encoding="utf-8")
+            wrapper = backend / ("mvnw.cmd" if os.name == "nt" else "mvnw")
+            wrapper.write_text("@echo off\n" if os.name == "nt" else "#!/bin/sh\n", encoding="utf-8")
+            install = Path(temp) / "node-install"
+            install.mkdir()
+            npm_name = "npm.cmd" if os.name == "nt" else "npm"
+            trusted_npm = install / npm_name
+            trusted_npm.write_text("@echo off\n" if os.name == "nt" else "#!/bin/sh\n", encoding="utf-8")
+            if os.name != "nt":
+                trusted_npm.chmod(0o755)
+                wrapper.chmod(0o755)
+            npm_command = ["npm", "test", "--", "tests/smoke.test.tsx"]
+            maven_command = ["mvnw", "test", "-Dtest=ExampleTest"]
+            python_command = ["python", "-m", "unittest", "scripts.tests.test_example"]
+            with patch.dict(os.environ, {"PATH": str(install), "PATHEXT": ".COM;.EXE;.BAT;.CMD"}):
+                self.assertTrue(orch._gate_command_supported(npm_command, worktree=root))
+                self.assertEqual(frontend.resolve(), orch._gate_working_directory(npm_command, root))
+            self.assertTrue(orch._gate_command_supported(maven_command, worktree=root))
+            self.assertEqual(backend.resolve(), orch._gate_working_directory(maven_command, root))
+            self.assertTrue(orch._gate_command_supported(python_command, worktree=root))
+            self.assertEqual(root.resolve(), orch._gate_working_directory(python_command, root))
+            self.assertFalse(orch._gate_command_supported(npm_command, worktree=frontend))
+            self.assertFalse(orch._gate_command_supported(
+                ["npm", "test", "--", "tests/../../outside.test.tsx"], worktree=root))
+            self.assertFalse(orch._gate_command_supported(
+                ["mvnw", "test", "-Dtest=ExampleTest", "-DskipTests"], worktree=root))
+            self.assertFalse(orch._gate_command_supported(
+                ["mvnw", "test", "-Dtest=ExampleTest;echo"], worktree=root))
+            with patch.object(orch, "_run_captured", return_value=Mock(returncode=0, stdout="Ran 1 test")) as run:
+                orch._execute_gate_command(python_command, root)
+                self.assertEqual(root.resolve(), run.call_args.args[1])
+            with patch.dict(os.environ, {"PATH": str(install), "PATHEXT": ".COM;.EXE;.BAT;.CMD"}), \
+                    patch.object(orch, "_run_captured", return_value=Mock(returncode=0, stdout="1 passed")) as run:
+                orch._execute_gate_command(npm_command, root, issue=9, state_dir=Path(temp) / "state")
+                self.assertEqual(frontend.resolve(), run.call_args.args[1])
+            with patch.object(orch, "_run_captured", return_value=Mock(returncode=0, stdout="Tests run: 1")) as run:
+                orch._execute_gate_command(maven_command, root, issue=9, state_dir=Path(temp) / "state")
+                self.assertEqual(backend.resolve(), run.call_args.args[1])
+
+    def test_targeted_gate_requires_a_nonzero_executed_test_count(self):
+        self.assertTrue(orch._verification_output_contains_test_run(
+            ["npm", "test", "--", "tests/one.test.ts"], "Tests 1 passed (1)"))
+        self.assertFalse(orch._verification_output_contains_test_run(
+            ["npm", "test", "--", "tests/one.test.ts"], "No test files found"))
+        self.assertFalse(orch._verification_output_contains_test_run(
+            ["npm", "test", "--", "tests/one.test.ts"], "Tests 0 passed (0)"))
+        self.assertTrue(orch._verification_output_contains_test_run(
+            ["python", "-m", "unittest", "scripts.tests.test_example"], "Ran 1 test in 0.01s\nOK"))
+        self.assertFalse(orch._verification_output_contains_test_run(
+            ["python", "-m", "unittest", "scripts.tests.test_example"], "Ran 0 tests in 0.00s\nOK"))
+        self.assertFalse(orch._verification_output_contains_test_run(
+            ["mvnw", "test", "-Dtest=ExampleTest"],
+            "Tests run: 1, Failures: 0, Errors: 0, Skipped: 1"))
+
     def test_gate_command_allowlist_rejects_untrusted_runner_paths(self):
         with tempfile.TemporaryDirectory() as temp:
             sandbox = Path(temp)
@@ -754,6 +972,9 @@ class StateTests(unittest.TestCase):
                 [str(fake_maven), "verify"], worktree=Path(temp)))
             fake_root_npm.write_text("@echo off\necho Tests 1 passed (1)\n", encoding="utf-8")
             fake_npm.parent.mkdir()
+            (worktree / "frontend" / "package.json").write_text('{"scripts":{"test":"vitest run"}}', encoding="utf-8")
+            (worktree / "frontend" / "tests").mkdir()
+            (worktree / "frontend" / "tests" / "smoke.test.ts").write_text("", encoding="utf-8")
             fake_npm.write_text("@echo off\necho Tests 1 passed (1)\n", encoding="utf-8")
             trusted_npm.parent.mkdir()
             trusted_npm.write_text("@echo off\necho trusted npm\n", encoding="utf-8")
@@ -766,8 +987,11 @@ class StateTests(unittest.TestCase):
                     patch.object(orch.Path, "cwd", return_value=worktree):
                 self.assertFalse(orch._gate_command_supported([str(fake_npm), "test"], worktree=worktree))
                 self.assertFalse(orch._gate_command_supported([str(fake_root_npm), "test"], worktree=worktree))
-                self.assertTrue(orch._gate_command_supported(["npm", "test"], worktree=worktree))
-                self.assertTrue(orch._gate_command_supported([str(trusted_npm), "test"], worktree=worktree))
+                self.assertFalse(orch._gate_command_supported(["npm", "test"], worktree=worktree))
+                self.assertTrue(orch._gate_command_supported(
+                    ["npm", "test", "--", "tests/smoke.test.ts"], worktree=worktree))
+                self.assertTrue(orch._gate_command_supported(
+                    [str(trusted_npm), "test", "--", "tests/smoke.test.ts"], worktree=worktree))
                 self.assertEqual(str(trusted_npm.resolve()), orch._trusted_npm_runner("npm", worktree))
                 self.assertEqual(str(trusted_npm.resolve()), orch._trusted_path_runner("npm", worktree))
 
@@ -862,14 +1086,19 @@ class StateTests(unittest.TestCase):
 
     def test_targeted_npm_runner_uses_shared_high_load_lock(self):
         with tempfile.TemporaryDirectory() as temp:
-            state_dir = Path(temp) / "shared"
+            root = Path(temp)
+            frontend = root / "frontend"
+            (frontend / "tests").mkdir(parents=True)
+            (frontend / "package.json").write_text('{"scripts":{"test":"vitest run"}}', encoding="utf-8")
+            (frontend / "tests" / "smoke.test.ts").write_text("", encoding="utf-8")
+            state_dir = root / "shared"
             lock_dir = state_dir / "locks" / "high-load.lock"
             def assert_locked(*args, **kwargs):
                 self.assertTrue(lock_dir.is_dir())
                 return Mock(returncode=0, stdout="Tests 2 passed (2)")
             with patch.object(orch, "shared_state_dir", return_value=state_dir), \
                     patch.object(orch, "_run_captured", side_effect=assert_locked):
-                result = orch._execute_gate_command(["npm", "test"], Path(temp), 162)
+                result = orch._execute_gate_command(["npm", "test", "--", "tests/smoke.test.ts"], root, 162)
             self.assertEqual(0, result.returncode)
             self.assertFalse(lock_dir.exists())
 
@@ -907,7 +1136,10 @@ class StateTests(unittest.TestCase):
         self._git(worktree, "config", "user.name", "Test User")
         self._git(worktree, "config", "user.email", "test@example.com")
         (worktree / "tracked.txt").write_text("base\n", encoding="utf-8")
+        (worktree / "scripts" / "tests").mkdir(parents=True)
+        (worktree / "scripts" / "tests" / "__init__.py").write_text("", encoding="utf-8")
         self._git(worktree, "add", "tracked.txt")
+        self._git(worktree, "add", "scripts/tests/__init__.py")
         self._git(worktree, "commit", "-m", "base")
         return worktree
 
@@ -915,6 +1147,147 @@ class StateTests(unittest.TestCase):
         return {"number": number, "dependencies": [], "base_sha": self._git(worktree, "rev-parse", "HEAD"),
                 "branch": f"codex/issue-{number}-existing", "worktree": str(worktree),
                 "contract_version": "v1", "owned_files": ["tracked.txt"]}
+
+    def _provisional_resume_fixture(self, temp, include_contract=True):
+        root = Path(temp)
+        upstream_root = root / "upstream"
+        downstream_root = root / "downstream"
+        upstream_root.mkdir()
+        downstream_root.mkdir()
+        upstream = self._existing_worktree(upstream_root)
+        self._git(upstream, "branch", "-m", "codex/issue-41-source")
+        upstream_sha = self._git(upstream, "rev-parse", "HEAD")
+        downstream = self._existing_worktree(downstream_root)
+        base_sha = self._git(downstream, "rev-parse", "HEAD")
+        state_path = root / "state.json"
+        with patch.object(orch, "_verified_remote_main_sha", return_value=base_sha):
+            orch.state_init(state_path, base_sha)
+        orch.state_register(state_path, {
+            "number": 41, "dependencies": [], "base_sha": base_sha,
+            "branch": "codex/issue-41-source", "worktree": str(upstream),
+            "head_sha": upstream_sha, "contract_version": "v1",
+            "owned_files": ["tracked.txt"], "implementation_state": "IMPLEMENTING",
+        })
+        upstream_state = orch.read_json(state_path)
+        upstream_state["issues"]["41"]["implementation_state"] = "IMPLEMENTING"
+        upstream_state["issues"]["41"]["head_sha"] = upstream_sha
+        orch.atomic_write_json(state_path, upstream_state)
+        (downstream / "tracked.txt").write_text("preserve provisional WIP\n", encoding="utf-8")
+        (downstream / "untracked.txt").write_text("preserve untracked WIP\n", encoding="utf-8")
+        record = self._adoption_record(downstream)
+        record["dependencies"] = [41]
+        if include_contract:
+            record["provisional_contract"] = {
+                "user_authorized": True,
+                "sources": [{"issue": 41, "branch": "codex/issue-41-source",
+                             "commit_sha": upstream_sha, "contract_version": "v1",
+                             "contract": "upstream exports field x as a string",
+                             "verification_state": "NOT_RUN"}],
+            }
+        orch.state_adopt(state_path, record, 42)
+        fingerprint = orch.read_json(state_path)["issues"]["42"]["wip_adoption"]["fingerprint"]
+        return state_path, upstream, downstream, upstream_sha, base_sha, fingerprint
+
+    def test_provisional_resume_records_source_contract_and_preserves_only_code_gate(self):
+        with tempfile.TemporaryDirectory() as temp:
+            path, _upstream, downstream, upstream_sha, base_sha, fingerprint = self._provisional_resume_fixture(temp)
+            with patch.object(orch, "_verified_remote_main_sha", return_value=base_sha):
+                orch.state_resume(path, 42, 42, fingerprint, code_gate_pass=True)
+            state = orch.read_json(path)
+            record = state["issues"]["42"]
+            resume = record["wip_adoption"]["resume_evidence"]
+            self.assertEqual("PROVISIONAL", resume["mode"])
+            self.assertTrue(resume["user_authorized"])
+            self.assertEqual(42, resume["authorized_issue"])
+            self.assertTrue(resume["code_gate_pass"])
+            self.assertEqual([41], resume["unmet_dependencies"])
+            self.assertEqual(upstream_sha, resume["source_issues"][0]["commit_sha"])
+            self.assertEqual("codex/issue-41-source", resume["source_issues"][0]["branch"])
+            self.assertEqual("v1", resume["source_issues"][0]["contract_version"])
+            self.assertEqual(hashlib.sha256(b"upstream exports field x as a string").hexdigest(),
+                             resume["source_issues"][0]["contract_sha256"])
+            self.assertEqual("NOT_RUN", record["verification"]["status"])
+            self.assertEqual("preserve provisional WIP\n", (downstream / "tracked.txt").read_text(encoding="utf-8"))
+            self.assertEqual("preserve untracked WIP\n", (downstream / "untracked.txt").read_text(encoding="utf-8"))
+            record["head_sha"] = record["wip_adoption"]["head"]
+            orch.atomic_write_json(path, state)
+            with patch.object(orch, "_verified_remote_main_sha", return_value=base_sha), \
+                    patch.object(orch, "_verify_feature_base", return_value={}):
+                with self.assertRaisesRegex(orch.PolicyError, "not verified MERGED"):
+                    orch.state_transition(path, 42, "FULL_GATE_PENDING", {})
+
+    def test_merged_dependencies_allow_general_resume_without_provisional_contract(self):
+        with tempfile.TemporaryDirectory() as temp:
+            path, _upstream, _downstream, _source_sha, base_sha, fingerprint = self._provisional_resume_fixture(temp)
+            state = orch.read_json(path)
+            source = state["issues"]["41"]
+            source["implementation_state"] = "MERGED"
+            source["merge"] = {"status": "MERGED", "merge_commit_sha": "f" * 40,
+                               "issue_closed": True}
+            orch.atomic_write_json(path, state)
+            with patch.object(orch, "_verified_remote_main_sha", return_value=base_sha):
+                orch.state_resume(path, 42, 42, fingerprint, code_gate_pass=True)
+            resumed = orch.read_json(path)["issues"]["42"]
+            evidence = resumed["wip_adoption"]["resume_evidence"]
+            self.assertEqual("GENERAL", evidence["mode"])
+            self.assertEqual([], evidence["unmet_dependencies"])
+            self.assertEqual([], evidence["source_issues"])
+            self.assertEqual("IMPLEMENTING", resumed["implementation_state"])
+
+    def test_provisional_resume_rejects_changed_source_commit_and_missing_contract(self):
+        with tempfile.TemporaryDirectory() as temp:
+            path, upstream, _downstream, _source_sha, base_sha, fingerprint = self._provisional_resume_fixture(temp)
+            (upstream / "tracked.txt").write_text("changed source\n", encoding="utf-8")
+            self._git(upstream, "add", "tracked.txt")
+            self._git(upstream, "commit", "-m", "source contract changed")
+            with patch.object(orch, "_verified_remote_main_sha", return_value=base_sha):
+                with self.assertRaisesRegex(orch.PolicyError, "commit changed"):
+                    orch.state_resume(path, 42, 42, fingerprint, code_gate_pass=True)
+            self.assertEqual("BLOCKED_DEPENDENCY", orch.read_json(path)["issues"]["42"]["implementation_state"])
+
+        with tempfile.TemporaryDirectory() as temp:
+            path, upstream, _downstream, _source_sha, base_sha, fingerprint = self._provisional_resume_fixture(temp)
+            state = orch.read_json(path)
+            source = state["issues"]["42"]["provisional_contract"]["sources"][0]
+            source["worktree_state"] = orch.capture_worktree(upstream)["fingerprint"]
+            orch.atomic_write_json(path, state)
+            (upstream / "tracked.txt").write_text("uncommitted upstream WIP\n", encoding="utf-8")
+            with patch.object(orch, "_verified_remote_main_sha", return_value=base_sha):
+                with self.assertRaisesRegex(orch.PolicyError, "WIP fingerprint changed"):
+                    orch.state_resume(path, 42, 42, fingerprint, code_gate_pass=True)
+            self.assertEqual("BLOCKED_DEPENDENCY", orch.read_json(path)["issues"]["42"]["implementation_state"])
+
+        with tempfile.TemporaryDirectory() as temp:
+            path, _upstream, _downstream, _source_sha, base_sha, fingerprint = self._provisional_resume_fixture(temp)
+            state = orch.read_json(path)
+            state["issues"]["41"]["contract_version"] = "v2"
+            orch.atomic_write_json(path, state)
+            with patch.object(orch, "_verified_remote_main_sha", return_value=base_sha):
+                with self.assertRaisesRegex(orch.PolicyError, "contract version changed"):
+                    orch.state_resume(path, 42, 42, fingerprint, code_gate_pass=True)
+            self.assertEqual("BLOCKED_DEPENDENCY", orch.read_json(path)["issues"]["42"]["implementation_state"])
+
+        with tempfile.TemporaryDirectory() as temp:
+            path, _upstream, _downstream, _source_sha, base_sha, fingerprint = self._provisional_resume_fixture(
+                temp, include_contract=False)
+            with patch.object(orch, "_verified_remote_main_sha", return_value=base_sha):
+                with self.assertRaisesRegex(orch.PolicyError, "explicit, complete provisional"):
+                    orch.state_resume(path, 42, 42, fingerprint, code_gate_pass=True)
+            self.assertEqual("BLOCKED_DEPENDENCY", orch.read_json(path)["issues"]["42"]["implementation_state"])
+
+    def test_provisional_resume_rejects_contract_content_changed_after_authorization(self):
+        with tempfile.TemporaryDirectory() as temp:
+            path, _upstream, _downstream, _source_sha, base_sha, fingerprint = self._provisional_resume_fixture(temp)
+            with patch.object(orch, "_verified_remote_main_sha", return_value=base_sha):
+                orch.state_resume(path, 42, 42, fingerprint, code_gate_pass=True)
+            state = orch.read_json(path)
+            record = state["issues"]["42"]
+            record["provisional_contract"]["sources"][0]["contract"] = (
+                "upstream exports field x as an integer")
+            orch.atomic_write_json(path, state)
+            changed = orch.read_json(path)
+            with self.assertRaisesRegex(orch.PolicyError, "contract/WIP changed"):
+                orch._validate_resumed_provisional_contract(changed, changed["issues"]["42"])
 
     def test_clean_existing_worktree_can_be_adopted_without_claiming_test_pass(self):
         with tempfile.TemporaryDirectory() as temp:

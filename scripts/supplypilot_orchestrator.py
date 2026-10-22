@@ -106,6 +106,89 @@ def _provisional_authorized(row: dict[str, Any], unmet: list[int]) -> bool:
     return True
 
 
+def _provisional_resume_sources(state: dict[str, Any], record: dict[str, Any],
+                                unmet: list[int]) -> list[dict[str, Any]]:
+    contract = record.get("provisional_contract")
+    if not _provisional_authorized(record, unmet) or not isinstance(contract, dict):
+        raise PolicyError("Unmerged dependencies require an explicit, complete provisional Code Gate contract.")
+    by_number = {source["issue"]: source for source in contract["sources"]
+                 if isinstance(source, dict) and isinstance(source.get("issue"), int)}
+    verified_sources = []
+    for dependency in unmet:
+        source = by_number.get(dependency)
+        if not isinstance(source, dict):
+            raise PolicyError(f"Provisional source Issue #{dependency} is missing from the contract.")
+        upstream = state.get("issues", {}).get(str(dependency))
+        if not isinstance(upstream, dict):
+            raise PolicyError(f"Provisional source Issue #{dependency} is missing from state.")
+        branch = source["branch"]
+        if branch != upstream.get("branch"):
+            raise PolicyError(f"Provisional source Issue #{dependency} branch changed; re-authorize the contract.")
+        upstream_verification = upstream.get("verification", {})
+        verification_state = (upstream_verification.get("status")
+                              if isinstance(upstream_verification, dict) else None)
+        verification_state = verification_state or upstream.get("implementation_state")
+        if source["verification_state"] != verification_state:
+            raise PolicyError(f"Provisional source Issue #{dependency} verification state changed.")
+        if source["contract_version"] != upstream.get("contract_version"):
+            raise PolicyError(f"Provisional source Issue #{dependency} contract version changed.")
+        source_worktree = upstream.get("worktree")
+        if not isinstance(source_worktree, str):
+            raise PolicyError(f"Provisional source Issue #{dependency} worktree is missing.")
+        source_root = Path(source_worktree).resolve(strict=True)
+        snapshot = capture_worktree(source_root)
+        if snapshot["branch"] != branch:
+            raise PolicyError(f"Provisional source Issue #{dependency} actual branch changed.")
+        source_sha = source.get("commit_sha")
+        source_wip = source.get("worktree_state")
+        adoption = upstream.get("wip_adoption", {})
+        recorded_sha = upstream.get("head_sha") or (
+            adoption.get("head") if isinstance(adoption, dict) else None)
+        if source_sha:
+            if (not re.fullmatch(r"[0-9a-fA-F]{40}", source_sha)
+                    or source_sha != snapshot["head"] or source_sha != recorded_sha):
+                raise PolicyError(f"Provisional source Issue #{dependency} commit changed; re-authorize the contract.")
+            if not snapshot["clean"] and not source_wip:
+                raise PolicyError(f"Provisional source Issue #{dependency} has unrecorded WIP; adopt and fingerprint it.")
+        if source_wip:
+            if source_wip != snapshot["fingerprint"]:
+                raise PolicyError(f"Provisional source Issue #{dependency} WIP fingerprint changed; re-adopt and re-authorize.")
+        if not source_sha and not source_wip:
+            raise PolicyError(f"Provisional source Issue #{dependency} needs a commit SHA or WIP fingerprint.")
+        content = source["contract"]
+        verified_sources.append({
+            "source_issue": dependency,
+            "branch": branch,
+            "commit_sha": source_sha or None,
+            "worktree_fingerprint": source_wip or None,
+            "contract_version": source["contract_version"],
+            "contract": content,
+            "contract_sha256": hashlib.sha256(content.encode("utf-8")).hexdigest(),
+            "verification_state": source["verification_state"],
+        })
+    return verified_sources
+
+
+def _validate_resumed_provisional_contract(state: dict[str, Any], record: dict[str, Any]) -> None:
+    adoption = record.get("wip_adoption", {})
+    resume = adoption.get("resume_evidence", {}) if isinstance(adoption, dict) else {}
+    if not isinstance(resume, dict) or resume.get("mode") != "PROVISIONAL":
+        return
+    unmet = []
+    for dependency in record.get("dependencies", []):
+        upstream = state.get("issues", {}).get(str(dependency))
+        merge = upstream.get("merge", {}) if isinstance(upstream, dict) else {}
+        if (not isinstance(upstream, dict) or upstream.get("implementation_state") != "MERGED"
+                or not isinstance(merge, dict) or merge.get("status") != "MERGED"):
+            unmet.append(dependency)
+    if not unmet:
+        return
+    sources = _provisional_resume_sources(state, record, unmet)
+    expected = resume.get("source_issues")
+    if sources != expected or resume.get("unmet_dependencies") != unmet:
+        raise PolicyError("Provisional source contract/WIP changed since Resume; re-adopt and re-authorize.")
+
+
 def _normalize_owned_path(value: str) -> str:
     raw = value.replace("\\", "/").strip()
     windows = PureWindowsPath(value)
@@ -623,6 +706,9 @@ def state_adopt(path: Path, record: dict[str, Any], authorized_issue: int) -> No
         if not existing:
             _state_register(path, record)
             return
+        reservation = existing.get("gate_reservation")
+        if isinstance(reservation, dict) and reservation.get("status") == "RUNNING":
+            raise PolicyError("Cannot re-adopt WIP while this Issue has an active Gate reservation.")
         if existing.get("branch") != first["branch"] or Path(existing.get("worktree", "")).resolve() != worktree:
             raise PolicyError("Existing Issue record points to a different branch or worktree.")
         previous = existing.get("wip_adoption")
@@ -655,6 +741,9 @@ def state_resume(path: Path, number: int, authorized_issue: int, fingerprint: st
         adoption = record.get("wip_adoption") if record else None
         if not record or not isinstance(adoption, dict):
             raise PolicyError(f"Issue #{number} has no adopted worktree snapshot.")
+        reservation = record.get("gate_reservation")
+        if isinstance(reservation, dict) and reservation.get("status") == "RUNNING":
+            raise PolicyError("Cannot resume an Issue while a Gate reservation is active.")
         if authorized_issue != number or adoption.get("authorized_issue") != number:
             raise PolicyError("Resume requires explicit authorization for the same Issue number.")
         if code_gate_pass is not True:
@@ -671,16 +760,35 @@ def state_resume(path: Path, number: int, authorized_issue: int, fingerprint: st
         if _verified_remote_main_sha() != state.get("main_sha"):
             raise PolicyError("origin/main advanced since the recorded base; synchronize main before resuming.")
         _verify_feature_contains_main({**record, "head_sha": adoption.get("head")}, state["main_sha"])
+        unmet = []
         for dependency in record.get("dependencies", []):
             dependency_record = state.get("issues", {}).get(str(dependency))
-            if not dependency_record or dependency_record.get("implementation_state") != "MERGED":
-                raise PolicyError(f"Dependency #{dependency} is not verified MERGED; resume is blocked.")
+            merge = dependency_record.get("merge", {}) if isinstance(dependency_record, dict) else {}
+            if (not dependency_record or dependency_record.get("implementation_state") != "MERGED"
+                    or not isinstance(merge, dict) or merge.get("status") != "MERGED"):
+                unmet.append(dependency)
+        if unmet:
+            provisional_sources = _provisional_resume_sources(state, record, unmet)
+            resume_mode = "PROVISIONAL"
+        else:
+            provisional_sources = []
+            resume_mode = "GENERAL"
         adoption["status"] = "RESUMED"
         adoption["resumed_at"] = dt.datetime.now(dt.timezone.utc).isoformat()
+        adoption["resume_evidence"] = {
+            "mode": resume_mode,
+            "user_authorized": True,
+            "authorized_issue": authorized_issue,
+            "code_gate_pass": True,
+            "fingerprint": fingerprint,
+            "source_issues": provisional_sources,
+            "unmet_dependencies": unmet,
+            "resumed_at": adoption["resumed_at"],
+        }
         record["implementation_state"] = "IMPLEMENTING"
         event = {"issue": number, "from": "BLOCKED_DEPENDENCY", "to": "IMPLEMENTING",
                  "type": "WIP_RESUMED", "at": dt.datetime.now(dt.timezone.utc).isoformat(),
-                 "evidence": {"fingerprint": fingerprint, "authorized_issue": authorized_issue}}
+                 "evidence": adoption["resume_evidence"]}
         record.setdefault("events", []).append(event)
         state.setdefault("events", []).append(event)
         atomic_write_json(path, state)
@@ -752,30 +860,185 @@ def _transition_record(record: dict[str, Any], target: str,
 
 
 def state_transition(path: Path, number: int, target: str, evidence: dict[str, Any]) -> None:
+    if target in {"TARGETED_VERIFIED", "FULL_GATE_VERIFIED"}:
+        _state_transition_with_gate(path, number, target, evidence)
+        return
     with state_lock(path):
         state = read_json(path)
         record = state.get("issues", {}).get(str(number))
         if not record:
             raise PolicyError(f"Issue #{number} has no registered state record.")
+        reservation = record.get("gate_reservation")
+        if isinstance(reservation, dict) and reservation.get("status") == "RUNNING":
+            raise PolicyError(f"Issue #{number} has an active Gate reservation; wait or use confirmed recovery.")
         if target == "MERGED":
             verified = _verify_github_merge(record)
         elif target == "FULL_GATE_PENDING":
             base_proof = _verify_feature_base(record, state["main_sha"])
-            missing_dependencies = [dep for dep in record.get("dependencies", [])
-                                   if state.get("issues", {}).get(str(dep), {}).get("implementation_state") != "MERGED"]
+            missing_dependencies = []
+            for dependency in record.get("dependencies", []):
+                dependency_record = state.get("issues", {}).get(str(dependency))
+                merge = dependency_record.get("merge", {}) if isinstance(dependency_record, dict) else {}
+                if (not isinstance(dependency_record, dict)
+                        or dependency_record.get("implementation_state") != "MERGED"
+                        or not isinstance(merge, dict) or merge.get("status") != "MERGED"):
+                    missing_dependencies.append(dependency)
             if missing_dependencies:
                 raise PolicyError(f"Dependencies are not verified MERGED: {missing_dependencies}.")
             verified = dict(evidence)
             verified.update(base_proof)
             verified.update({"dependencies_merged": True, "current_main_sha": state["main_sha"]})
-        elif target in {"TARGETED_VERIFIED", "FULL_GATE_VERIFIED"}:
-            verified = _verify_gate_artifacts(record, evidence, path.parent / "evidence", target)
         elif target == "WAITING_GPT_REVIEW":
             verified = dict(evidence)
             verified.update(_verify_local_remote_feature_head(record))
         else:
             verified = evidence
         _state_transition_locked(path, state, record, number, target, verified)
+
+
+def _gate_context_sha(state: dict[str, Any], record: dict[str, Any]) -> str:
+    dependencies = {}
+    for dependency in record.get("dependencies", []):
+        source = state.get("issues", {}).get(str(dependency), {})
+        verification = source.get("verification", {}) if isinstance(source, dict) else {}
+        adoption = source.get("wip_adoption", {}) if isinstance(source, dict) else {}
+        dependencies[str(dependency)] = {
+            "implementation_state": source.get("implementation_state"),
+            "branch": source.get("branch"),
+            "head_sha": source.get("head_sha"),
+            "merge": source.get("merge"),
+            "contract_version": source.get("contract_version"),
+            "verified_contract_version": source.get("verified_contract_version"),
+            "contract_verified": source.get("contract_verified"),
+            "verification": verification,
+            "wip_fingerprint": adoption.get("fingerprint") if isinstance(adoption, dict) else None,
+        }
+    snapshot = {
+        "main_sha": state.get("main_sha"),
+        "base_sha": record.get("base_sha"),
+        "contract_version": record.get("contract_version"),
+        "verified_contract_version": record.get("verified_contract_version"),
+        "contract_verified": record.get("contract_verified"),
+        "dependencies": dependencies,
+        "provisional_contract": record.get("provisional_contract"),
+        "resume_evidence": (record.get("wip_adoption", {}).get("resume_evidence")
+                            if isinstance(record.get("wip_adoption"), dict) else None),
+    }
+    encoded = json.dumps(snapshot, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(encoded.encode("utf-8")).hexdigest()
+
+
+def _state_transition_with_gate(path: Path, number: int, target: str,
+                                evidence: dict[str, Any]) -> None:
+    token = uuid.uuid4().hex
+    with state_lock(path):
+        state = read_json(path)
+        record = state.get("issues", {}).get(str(number))
+        if not isinstance(record, dict):
+            raise PolicyError(f"Issue #{number} has no registered state record.")
+        previous = record.get("implementation_state")
+        if target not in TRANSITIONS.get(previous, set()):
+            raise PolicyError(f"Illegal state transition: {previous} -> {target}.")
+        current = record.get("gate_reservation")
+        if isinstance(current, dict) and current.get("status") == "RUNNING":
+            raise PolicyError(f"Issue #{number} already has an active Gate reservation.")
+        if evidence.get("sha") != record.get("head_sha") or not record.get("head_sha"):
+            raise PolicyError("Verification command must target the exact current HEAD.")
+        worktree_value = record.get("worktree")
+        if not isinstance(worktree_value, str):
+            raise PolicyError("Verification requires the registered Issue worktree.")
+        root = Path(worktree_value).resolve(strict=True)
+        branch, head, dirty = _verification_worktree_snapshot(root)
+        if branch != record.get("branch") or head != record.get("head_sha") or dirty:
+            raise PolicyError("Gate reservation requires the registered branch/HEAD and a clean worktree.")
+        command = evidence.get("command")
+        if not _gate_command_supported(command, target, root):
+            raise PolicyError("Verification requires an approved command and trusted runner for this gate.")
+        _validate_resumed_provisional_contract(state, record)
+        context_sha = _gate_context_sha(state, record)
+        reservation = {
+            "token": token, "issue": number, "sha": head, "gate_type": target,
+            "branch": branch, "worktree": str(root), "status": "RUNNING",
+            "owner_pid": os.getpid(), "owner_host": socket.gethostname(),
+            "started_at": dt.datetime.now(dt.timezone.utc).isoformat(),
+            "command": command, "context_sha256": context_sha,
+            "worktree_before": {"branch": branch, "head_sha": head, "dirty": False},
+        }
+        record["gate_reservation"] = reservation
+        event = {"issue": number, "type": "GATE_RESERVED", "gate_token": token,
+                 "at": reservation["started_at"],
+                 "evidence": {key: value for key, value in reservation.items() if key != "token"}}
+        record.setdefault("events", []).append(event)
+        state.setdefault("events", []).append(event)
+        atomic_write_json(path, state)
+
+    try:
+        verified = _verify_gate_artifacts(record, evidence, path.parent / "evidence", target)
+    except Exception as exc:
+        _finish_gate_reservation(path, number, token, target, None, str(exc))
+        raise
+
+    try:
+        remote_main = _verified_remote_main_sha() if target == "FULL_GATE_VERIFIED" else None
+    except Exception as exc:
+        _finish_gate_reservation(path, number, token, target, None, str(exc))
+        raise
+    with state_lock(path):
+        state = read_json(path)
+        current = state.get("issues", {}).get(str(number))
+        if not isinstance(current, dict):
+            raise PolicyError("Reserved Issue record disappeared during Gate execution.")
+        active = current.get("gate_reservation")
+        if not isinstance(active, dict) or active.get("token") != token or active.get("status") != "RUNNING":
+            raise PolicyError("Gate reservation token is no longer active; result was not committed.")
+        branch_after, head_after, dirty_after = _verification_worktree_snapshot(root)
+        stale_reasons = []
+        if current.get("branch") != branch or current.get("worktree") != str(root):
+            stale_reasons.append("Issue branch/worktree identity changed")
+        if current.get("head_sha") != head or branch_after != branch or head_after != head or dirty_after:
+            stale_reasons.append("Issue branch/HEAD/worktree changed during Gate")
+        if _gate_context_sha(state, current) != context_sha:
+            stale_reasons.append("main/dependency/contract Gate context changed during execution")
+        try:
+            _validate_resumed_provisional_contract(state, current)
+        except PolicyError as exc:
+            stale_reasons.append(str(exc))
+        if target == "FULL_GATE_VERIFIED" and remote_main != state.get("main_sha"):
+            stale_reasons.append("origin/main advanced or differs from the recorded main SHA")
+        if target not in TRANSITIONS.get(current.get("implementation_state"), set()):
+            stale_reasons.append("Issue state no longer permits this Gate result")
+        if stale_reasons:
+            _finish_gate_reservation_locked(path, state, current, token, "STALE", "; ".join(stale_reasons))
+            raise PolicyError("Gate result is stale and was not recorded as PASS: " + "; ".join(stale_reasons))
+        active.update({"status": "COMMITTED", "ended_at": dt.datetime.now(dt.timezone.utc).isoformat(),
+                       "result": verified})
+        _state_transition_locked(path, state, current, number, target, verified)
+
+
+def _finish_gate_reservation(path: Path, number: int, token: str, target: str,
+                             result: dict[str, Any] | None, reason: str) -> None:
+    with state_lock(path):
+        state = read_json(path)
+        record = state.get("issues", {}).get(str(number))
+        if isinstance(record, dict):
+            stale = any(marker in reason.casefold() for marker in (
+                "changed during execution", "branch/head/worktree changed", "context changed"))
+            _finish_gate_reservation_locked(path, state, record, token,
+                                            "STALE" if stale else "FAILED", reason)
+
+
+def _finish_gate_reservation_locked(path: Path, state: dict[str, Any], record: dict[str, Any],
+                                    token: str, status: str, reason: str) -> None:
+    reservation = record.get("gate_reservation")
+    if not isinstance(reservation, dict) or reservation.get("token") != token:
+        return
+    reservation.update({"status": status, "ended_at": dt.datetime.now(dt.timezone.utc).isoformat(),
+                        "failure_reason": reason})
+    event = {"issue": record.get("number"), "type": f"GATE_{status}", "gate_token": token,
+             "at": reservation["ended_at"], "evidence": {"reason": reason}}
+    record.setdefault("events", []).append(event)
+    state.setdefault("events", []).append(event)
+    atomic_write_json(path, state)
 
 
 def _state_transition_locked(path: Path, state: dict[str, Any], record: dict[str, Any],
@@ -886,30 +1149,46 @@ def _gate_command_supported(command: Any, target: str = "TARGETED_VERIFIED",
     if executable in {"python", "python.exe", "python3", "python3.exe", "py", "py.exe"}:
         if not is_bare_executable and Path(command[0]).resolve() != Path(sys.executable).resolve():
             return False
-        if len(args) < 3 or args[0] != "-m" or args[1] not in {"unittest", "pytest"}:
+        if len(args) < 3 or args[0] != "-m" or args[1] != "unittest":
             return False
-        test_args = args[2:]
-        if args[1] == "unittest":
-            test_args = [item for item in test_args if item in {"-v", "--verbose"}]
-            # Require explicit test module names; help, discovery with no target,
-            # and option-only invocations cannot attest a targeted test run.
-            targets = [item for item in args[2:] if item not in {"-v", "--verbose"}]
-            return bool(targets) and all(not item.startswith("-") for item in targets)
-        allowed_options = {"-v", "-q"}
-        targets = [item for item in test_args if item not in allowed_options]
-        return bool(targets) and all(not item.startswith("-") for item in targets)
+        targets = [item for item in args[2:] if item not in {"-v", "--verbose"}]
+        if not targets or any(not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)*", item)
+                              for item in targets):
+            return False
+        return worktree is None or _gate_working_directory(command, worktree) is not None
     if executable in {"npm", "npm.cmd", "npm.exe"}:
         trusted_npm = _trusted_npm_runner(executable, worktree)
         if not trusted_npm or (not is_bare_executable and Path(command[0]).resolve() != Path(trusted_npm).resolve()):
             return False
-        return args in (["test"], ["run", "test"])
+        if len(args) != 3 or args[:2] != ["test", "--"]:
+            return False
+        relative = PurePosixPath(args[2].replace("\\", "/"))
+        if (relative.is_absolute() or ".." in relative.parts or not relative.parts
+                or relative.parts[0] != "tests" or not relative.name.endswith((".test.ts", ".test.tsx", ".test.js", ".test.jsx"))
+                or any(re.search(r"[%!&|<>^()]", part) for part in relative.parts)):
+            return False
+        if worktree is None:
+            return True
+        frontend = (worktree.resolve() / "frontend").resolve()
+        candidate = (frontend / Path(*relative.parts)).resolve()
+        try:
+            if os.path.commonpath((str(frontend), str(candidate))) != str(frontend):
+                return False
+        except ValueError:
+            return False
+        return candidate.is_file() and _gate_working_directory(command, worktree) == frontend
     if executable in {"mvn", "mvn.cmd", "mvnw", "mvnw.cmd"}:
         unsafe_properties = {
             "skiptests", "maven.test.skip", "skipits", "skipsurefiretests", "skipfailsafetests",
             "maven.test.failure.ignore", "surefire.test.failure.ignore", "testfailureignore",
         }
-        has_test_goal = any(arg in {"test", "verify"} for arg in args)
-        if not has_test_goal or any(arg.casefold() in {"--fail-never", "-fn"} for arg in args):
+        if not args or args[0] != "test" or any(arg.casefold() in {"--fail-never", "-fn"} for arg in args):
+            return False
+        test_properties = [arg[7:] for arg in args[1:] if arg.startswith("-Dtest=")]
+        allowed = {"-B", "--no-transfer-progress"}
+        other_args = [arg for arg in args[1:] if arg not in allowed and not arg.startswith("-Dtest=")]
+        if (len(test_properties) != 1 or other_args
+                or not re.fullmatch(r"[A-Za-z0-9_.$,*?]+(?:#[A-Za-z0-9_]+)?", test_properties[0])):
             return False
         for index, arg in enumerate(args):
             property_arg = None
@@ -931,18 +1210,45 @@ def _gate_command_supported(command: Any, target: str = "TARGETED_VERIFIED",
         else:
             wrapper = Path(command[0]) if Path(command[0]).is_absolute() else root / command[0]
         allowed_wrappers = {(root / "backend" / name).resolve() for name in ("mvnw", "mvnw.cmd")}
-        return wrapper.resolve() in allowed_wrappers
+        return wrapper.resolve() in allowed_wrappers and _gate_working_directory(command, worktree) == (root / "backend").resolve()
     return False
+
+
+def _gate_working_directory(command: list[str], repository: Path) -> Path | None:
+    """Select the repository module directory from the validated test runner."""
+    root = repository.resolve()
+    executable = Path(command[0].replace("\\", "/")).name.casefold()
+    if executable in {"npm", "npm.cmd", "npm.exe"}:
+        expected, marker = root / "frontend", root / "frontend" / "package.json"
+    elif executable in {"mvn", "mvn.cmd", "mvnw", "mvnw.cmd"}:
+        expected, marker = root / "backend", root / "backend" / "pom.xml"
+    else:
+        expected, marker = root, root / "scripts" / "tests"
+    try:
+        resolved_marker = marker.resolve(strict=True)
+        resolved_expected = expected.resolve(strict=True)
+        if os.path.commonpath((str(root), str(resolved_marker))) != str(root):
+            return None
+        if os.path.commonpath((str(root), str(resolved_expected))) != str(root):
+            return None
+        if not resolved_expected.is_dir():
+            return None
+        return resolved_expected
+    except OSError:
+        return None
 
 
 def _execute_gate_command(command: list[str], worktree: Path, issue: int | None = None,
                           state_dir: Path | None = None) -> subprocess.CompletedProcess[str]:
+    cwd = _gate_working_directory(command, worktree)
+    if cwd is None:
+        raise PolicyError("Targeted Gate worktree is not a repository root with the expected module layout.")
     resource_kind = _targeted_resource_kind(command)
     if resource_kind and issue is not None:
         lock_root = state_dir if state_dir is not None else shared_state_dir()
         with _resource_lock(resource_kind, issue, command, lock_root):
-            return _run_captured(command, worktree)
-    return _run_captured(command, worktree)
+            return _run_captured(command, cwd)
+    return _run_captured(command, cwd)
 
 
 def _run_captured(command: list[str], worktree: Path) -> subprocess.CompletedProcess[str]:
@@ -1080,11 +1386,16 @@ def _verify_gate_artifacts(record: dict[str, Any], evidence: dict[str, Any],
         raise PolicyError("Verification worktree branch/HEAD does not match the registered Issue HEAD.")
     if dirty:
         raise PolicyError("Verification requires a clean worktree at the committed HEAD.")
+    prepared_command = ([sys.executable, str(root / "scripts" / "supplypilot_full_gate.py")]
+                        if target == "FULL_GATE_VERIFIED" else _prepare_gate_command(command, root))
+    run_cwd = root if target == "FULL_GATE_VERIFIED" else _gate_working_directory(command, root)
+    if run_cwd is None:
+        raise PolicyError("Targeted Gate worktree is not a repository root with the expected module layout.")
+    started_at = dt.datetime.now(dt.timezone.utc).isoformat()
     try:
         if target == "FULL_GATE_VERIFIED":
             result = _execute_full_gate(root, int(record["number"]), shared_state_dir())
         else:
-            prepared_command = _prepare_gate_command(command, root)
             result = _execute_gate_command(prepared_command, root, int(record["number"]), shared_state_dir())
     except OSError as exc:
         raise PolicyError("Could not execute the approved verification command.") from exc
@@ -1093,7 +1404,9 @@ def _verify_gate_artifacts(record: dict[str, Any], evidence: dict[str, Any],
     artifact.parent.mkdir(parents=True, exist_ok=True)
     transcript = json.dumps({"issue": record["number"], "gate": target, "sha": actual_head,
                              "branch": branch, "command": command,
-                             "executed_command": prepared_command if target != "FULL_GATE_VERIFIED" else [sys.executable, str(root / "scripts" / "supplypilot_full_gate.py")],
+                             "executed_command": prepared_command,
+                             "cwd": str(run_cwd), "started_at": started_at,
+                             "ended_at": dt.datetime.now(dt.timezone.utc).isoformat(),
                              "worktree_after": {"branch": after_branch, "head_sha": after_head,
                                                 "dirty": after_dirty},
                              "exit_code": result.returncode,
@@ -1223,6 +1536,9 @@ def _state_set_head(path: Path, number: int, sha: str, local_sha: str, remote_sh
     record = state.get("issues", {}).get(str(number))
     if not record:
         raise PolicyError(f"Issue #{number} has no registered state record.")
+    reservation = record.get("gate_reservation")
+    if isinstance(reservation, dict) and reservation.get("status") == "RUNNING":
+        raise PolicyError("Cannot update HEAD while this Issue has an active Gate reservation.")
     current = record.get("implementation_state")
     if current in {"PR_OPEN", "MERGED"}:
         raise PolicyError("Resolve the existing PR state explicitly before recording a new head.")
@@ -1246,6 +1562,28 @@ def _state_set_head(path: Path, number: int, sha: str, local_sha: str, remote_sh
     record.setdefault("events", []).append(event)
     state.setdefault("events", []).append(event)
     atomic_write_json(path, state)
+
+
+def state_gate_recover(path: Path, number: int, token: str,
+                       owner_stopped: bool, reason: str) -> None:
+    if owner_stopped is not True or not reason.strip():
+        raise PolicyError("Gate recovery requires explicit owner-stopped confirmation and a reason.")
+    with state_lock(path):
+        state = read_json(path)
+        record = state.get("issues", {}).get(str(number))
+        reservation = record.get("gate_reservation") if isinstance(record, dict) else None
+        if not isinstance(reservation, dict) or reservation.get("status") != "RUNNING":
+            raise PolicyError(f"Issue #{number} has no interrupted Gate reservation to recover.")
+        if reservation.get("token") != token:
+            raise PolicyError("Gate recovery token does not match the active reservation.")
+        reservation.update({"status": "ABORTED", "ended_at": dt.datetime.now(dt.timezone.utc).isoformat(),
+                            "recovery_reason": reason.strip(), "owner_stopped_confirmed": True})
+        event = {"issue": number, "type": "GATE_ABORTED", "gate_token": token,
+                 "at": reservation["ended_at"],
+                 "evidence": {"reason": reason.strip(), "owner_stopped_confirmed": True}}
+        record.setdefault("events", []).append(event)
+        state.setdefault("events", []).append(event)
+        atomic_write_json(path, state)
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -1291,6 +1629,12 @@ def main(argv: list[str] | None = None) -> int:
     resume.add_argument("--authorized-issue", type=int, required=True)
     resume.add_argument("--fingerprint", required=True)
     resume.add_argument("--code-gate-pass", action="store_true", required=True)
+    recover_gate = state_sub.add_parser("gate-recover")
+    recover_gate.add_argument("path")
+    recover_gate.add_argument("--issue", type=int, required=True)
+    recover_gate.add_argument("--token", required=True)
+    recover_gate.add_argument("--owner-stopped", action="store_true", required=True)
+    recover_gate.add_argument("--reason", required=True)
     res = sub.add_parser("resource")
     res_sub = res.add_subparsers(dest="resource_command", required=True)
     status = res_sub.add_parser("status")
@@ -1328,6 +1672,8 @@ def main(argv: list[str] | None = None) -> int:
             state_adopt(Path(args.path), read_json(args.record), args.authorized_issue)
         elif args.command == "state" and args.state_command == "resume":
             state_resume(Path(args.path), args.issue, args.authorized_issue, args.fingerprint, args.code_gate_pass)
+        elif args.command == "state" and args.state_command == "gate-recover":
+            state_gate_recover(Path(args.path), args.issue, args.token, args.owner_stopped, args.reason)
         elif args.command == "resource" and args.resource_command == "status":
             state_dir = _resource_state_dir(args.state_dir)
             print(json.dumps(resource_status(state_dir), indent=2))
