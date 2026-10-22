@@ -63,3 +63,22 @@
 | Python compile 與 `git diff --check` | **PASS**：本輪最後一次檢查成功；僅有 Git LF/CRLF 提示 |
 
 Orchestrator 測試分組執行合計 **78/78 PASS**（State 38 + Graph/Gate/Resource 39 + 隔離 linked-worktree 1）；未以單一 unittest 進程執行整套，linked-worktree 測試隔離執行。上述為精準 Orchestrator regression，不是本機完整 CI 等價 Gate。完整前端 Vitest 的既有失敗與 Python 3.12 缺失仍維持前述 **FAIL / NOT RUN** 狀態；未重跑完整前端套件，也未執行或更動 GitHub Actions。GPT Relay 對話網址已核對為使用者提供的同一對話，但瀏覽器當時顯示驗證／CAPTCHA，尚未提交本輪 review 請求，因此 **Relay review 尚未執行、沒有 Final Pass**。Matt Pocock Standards／Spec 內部預檢完成；Spec 測試覆蓋建議已補測並複查，Standards 僅留兩項非阻擋維護性觀察。本輪 commit/push 待完成。
+
+## 第三輪 GPT Findings 修正與 Review Handoff（2026-10-23）
+
+本輪沿用同一 Feature Branch，修正 GPT 對 `ac6e8f2d12afce069b2108ddcc717b07575c0771` 提出的 P1-09～P1-12：舊 main-base WIP 可唯讀採用但在整合前無法 Resume；`READY_TO_CODE` 由 Orchestrator 重新核實即時 Main／依賴／工作樹／owner；GPT Final Pass 不再接受呼叫端 JSON 聲稱而要求綁定 SHA 的人工 TTY attestation；Full Gate runner manifest 必須在執行前已有 review trust baseline，並於執行前後核對內容 digest。內部 Spec 預檢又發現 trust baseline 曾只要求證據提到 manifest，可能把非正向審查當成信任依據。追加修正為證據必須有獨立完整一行 `FULL_GATE_MANIFEST_REVIEW: PASS`；基線建立與後續有效性檢查共用精確行驗證，引用該字串或只有 `CHANGES REQUIRED` 的負向案例會拒絕。同步更新 GPT Handoff、State Machine 與 Testing Policy。
+
+| 驗證 | 結果 |
+| --- | --- |
+| Orchestrator 完整單元測試檔（程式碼 SHA `d4bad48cc5f5137482e5383f545a92cf65824fe9`，追加 marker 修正前） | **PASS**：68 tests，27.549 秒；完整輸出見 [Orchestrator P1 regression log](issue-162-orchestrator-p1-regression-2026-10-23.log) |
+| Full Gate trust 正向、SHA/digest tamper、CHANGES REQUIRED/引用 marker 負向精準測試（程式碼 SHA `38eaec4`） | **PASS**：2 tests；`StateTests.test_full_gate_trust_requires_interactive_review_record_and_detects_tampering` 與 `StateTests.test_full_gate_trust_rejects_changes_required_review_verdict` |
+| Python compile | **PASS**：`python -m compileall -q scripts/supplypilot_orchestrator.py scripts/tests/test_supplypilot_orchestrator.py` |
+| `git diff --check` | **PASS**：無 whitespace error；Git 顯示 LF/CRLF 轉換提示 |
+| Matt Pocock Standards／Spec 內部預檢 | **PASS，非 GPT Review**：無 documented standards breach；Spec 確認 marker 缺口已修正；保留大型 Orchestrator 模組的維護性觀察 |
+| Python 版本 | `3.13.5`；本機環境未符合完整 CI 等價 Gate 指定的 Python `3.12` |
+| Skill validator | **NOT RUN**：本輪沒有找到可用的 repo validator 指令；本次 Skill 修改只涉及參考文件 |
+| 本機完整 CI 等價 Gate | **BLOCKED / NOT RUN on SHA `38eaec4`**：既有完整驗收紀錄中的 Frontend Vitest 失敗（SP-806，208/210）及 Python 3.12 缺口仍未解決；不修改暫停中的 #160，也不把精準回歸當作完整 Gate PASS |
+| GitHub Actions | **PAUSED BY USER / NOT USED AS GATE**；本輪未啟動或修改 Workflow |
+| #160、#142、#143 | 維持暫停；本輪未修改、測試、Resume 或清除其工作樹 |
+
+本輪本機分支曾確認 `d4bad48cc5f5137482e5383f545a92cf65824fe9`，遠端仍在 `ac6e8f2d12afce069b2108ddcc717b07575c0771`，`main` 為 `9240d6aeeba2361476a0454ac965a214769638a0`。追加 P1-12 修正 commit 為 `38eaec4`；本證據文件更新後須以最終提交再次核對 Local／Remote Head SHA。GPT Relay 正式 Review 尚未送出；尚無新的 GPT verdict、PR 或 Final Pass。
