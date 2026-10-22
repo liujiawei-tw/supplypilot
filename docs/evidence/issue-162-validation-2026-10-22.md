@@ -37,7 +37,7 @@
 
 本次只在 Issue #162 工作樹修正：活動／採用中的 Issue 對檔案與目錄路徑的排他 owner；Full Gate、GPT handoff 與 release frontier 的階段及 SHA 條件；`origin/main` 的實際 SHA 同步與舊證據失效；#142／#143／#160 現有未提交 WIP 的兩階段採用／恢復；以及 Vitest、Maven、Docker 共用的互斥高負載鎖；固定 Full Gate manifest 與測試命令白名單防止單一命令、skip/collect-only/help 或 failure-ignore 假冒通過；Full Gate 以過濾 PATH 解析 Java/Node/npm/Docker 絕對 runner，並在測試後重核工作樹 branch/HEAD/dirty，防止執行期間變動被登記為 PASS。測例不改寫 #142／#143／#160，也沒有執行它們的測試。
 
-本次精準驗證執行環境為 Python 3.13.5；Workflow 指定的 Python 3.12 未安裝。最新 68 測例（27.549 秒）是在 Issue #162 分支原 HEAD `c2629218d00d9049cc356740514f719fdca0e648` 上、套用本次未提交修改後執行；本次程式碼 commit SHA 將於提交後補入此證據文件。Windows Codex CLI 0.163.0-alpha.11 以唯讀模式載入最新 Skill，確認名稱、v1.0 標題及未合併時只允許唯讀規劃與 Dry Run；沒有執行其跨 Issue 工作流。
+本次精準驗證執行環境為 Python 3.13.5；Workflow 指定的 Python 3.12 未安裝。最新 68 測例（27.549 秒）是在 Issue #162 分支原 HEAD `c2629218d00d9049cc356740514f719fdca0e648` 上、套用本次修正後執行；相同程式碼已提交為 `61549c1d9c900824e622f211248c2a126ed14273`。Windows Codex CLI 0.163.0-alpha.11 以唯讀模式載入最新 Skill，確認名稱、v1.0 標題及未合併時只允許唯讀規劃與 Dry Run；沒有執行其跨 Issue 工作流。
 
 ## 判定與限制
 
