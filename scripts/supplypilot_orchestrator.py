@@ -364,7 +364,40 @@ def can_open_pr(state_path: Path, issue_number: int, current_head: str) -> tuple
         return False, "An interactive external GPT review attestation is required."
     if record.get("head_sha") != current_head:
         return False, "Recorded HEAD does not match current HEAD."
+    failure = _release_gate_failure(state, record, current_head)
+    if failure:
+        return False, failure
+    try:
+        remote_main = _verified_remote_main_sha()
+    except PolicyError as exc:
+        return False, str(exc)
+    if remote_main != state.get("main_sha"):
+        return False, "origin/main advanced; synchronize main and rerun the full delivery gate."
     return True, "PR gate satisfied for exact HEAD."
+
+
+def _release_gate_failure(state: dict[str, Any], record: dict[str, Any], current_head: str) -> str | None:
+    """Return why a recorded Full Gate can no longer authorize a GPT release."""
+    main_sha = state.get("main_sha")
+    if not isinstance(main_sha, str) or record.get("base_sha") != main_sha:
+        return "Issue base is stale relative to the recorded main; rerun integration and the full delivery gate."
+    if record.get("head_sha") != current_head:
+        return "Full Gate HEAD does not match the reviewed current HEAD."
+    if not _record_contract_verified(record):
+        return "Persisted Issue contract is not verified at its current version."
+    verification = record.get("verification")
+    if (not isinstance(verification, dict) or verification.get("status") != "FULL_GATE_VERIFIED"
+            or verification.get("sha") != current_head
+            or not _verification_artifacts_valid(verification.get("evidence"))):
+        return "Full Gate verification is stale, incomplete, or does not match current HEAD."
+    for dependency in record.get("dependencies", []):
+        dependency_record = state.get("issues", {}).get(str(dependency))
+        merge = dependency_record.get("merge", {}) if isinstance(dependency_record, dict) else None
+        if (not isinstance(dependency_record, dict)
+                or dependency_record.get("implementation_state") != "MERGED"
+                or not isinstance(merge, dict) or merge.get("status") != "MERGED"):
+            return f"Dependency #{dependency} is not verified MERGED."
+    return None
 
 
 def _verification_artifacts_valid(artifacts: Any) -> bool:
@@ -1027,7 +1060,8 @@ def state_resume(path: Path, number: int, authorized_issue: int, fingerprint: st
 
 
 def _transition_record(record: dict[str, Any], target: str,
-                       evidence: dict[str, Any], main_sha: str) -> None:
+                       evidence: dict[str, Any], main_sha: str,
+                       state: dict[str, Any]) -> None:
     current = record.get("implementation_state")
     if target not in STATE_VALUES:
         raise PolicyError(f"Unknown state {target}.")
@@ -1064,6 +1098,8 @@ def _transition_record(record: dict[str, Any], target: str,
             raise PolicyError("GPT handoff requires a passed internal preflight.")
         if record.get("verification", {}).get("status") != "FULL_GATE_VERIFIED" or record.get("verification", {}).get("sha") != head:
             raise PolicyError("GPT handoff requires the full delivery gate for the current HEAD.")
+        record["internal_review"] = "PASS"
+        record["handoff"] = {"local_sha": head, "remote_sha": head}
     elif target in {"CHANGES_REQUIRED", "GPT_FINAL_PASS"}:
         required_review = "CHANGES_REQUIRED" if target == "CHANGES_REQUIRED" else "FINAL_PASS"
         if evidence.get("review_status") != required_review or not head or evidence.get("reviewed_sha") != head:
@@ -1071,6 +1107,10 @@ def _transition_record(record: dict[str, Any], target: str,
         if target == "GPT_FINAL_PASS" and not _gpt_review_attestation_valid(
                 evidence.get("attestation"), head):
             raise PolicyError("GPT_FINAL_PASS requires a verified interactive external-review attestation.")
+        if target == "GPT_FINAL_PASS":
+            failure = _release_gate_failure(state, record, head)
+            if failure:
+                raise PolicyError(f"GPT_FINAL_PASS requires a current Full Gate: {failure}")
         record["gpt_review"] = {"status": required_review, "reviewed_sha": head,
                                 "evidence": evidence.get("url"),
                                 "attestation": evidence.get("attestation")}
@@ -1082,6 +1122,11 @@ def _transition_record(record: dict[str, Any], target: str,
                 or gpt_review.get("reviewed_sha") != head
                 or not _gpt_review_attestation_valid(gpt_review.get("attestation"), head)):
             raise PolicyError("PR_OPEN requires GPT FINAL PASS for the current HEAD.")
+        if evidence.get("verified_github_pr") is not True:
+            raise PolicyError("PR_OPEN requires live GitHub verification of the exact open PR.")
+        failure = _release_gate_failure(state, record, head)
+        if failure:
+            raise PolicyError(f"PR_OPEN requires a current Full Gate: {failure}")
         if evidence.get("base") != "main" or evidence.get("head_sha") != head:
             raise PolicyError("PR_OPEN requires base main and PR head SHA equal to reviewed HEAD.")
         if not evidence.get("url") or not any(line.strip() == expected for line in description.splitlines()):
@@ -1132,6 +1177,11 @@ def state_transition(path: Path, number: int, target: str, evidence: dict[str, A
         elif target == "WAITING_GPT_REVIEW":
             verified = dict(evidence)
             verified.update(_verify_local_remote_feature_head(record))
+        elif target == "PR_OPEN":
+            if _verified_remote_main_sha() != state.get("main_sha"):
+                raise PolicyError("origin/main advanced; synchronize main and rerun the full delivery gate.")
+            verified = dict(evidence)
+            verified.update(_verify_github_pr(record, evidence, number))
         elif target in {"READY_TO_CODE", "IMPLEMENTING"}:
             if evidence.get("authorized_issue") != number:
                 raise PolicyError(f"{target} requires explicit authorization for this Issue.")
@@ -1155,10 +1205,16 @@ def state_attest_gpt_review(path: Path, number: int, review_status: str, reviewe
         raise PolicyError("Only an exact GPT FINAL PASS can be attested for release.")
     if not confirmed_by.strip():
         raise PolicyError("A human reviewer identity is required for the Final Pass attestation.")
-    before = read_json(path).get("issues", {}).get(str(number))
+    before_state = read_json(path)
+    before = before_state.get("issues", {}).get(str(number))
     if (not isinstance(before, dict) or before.get("implementation_state") != "WAITING_GPT_REVIEW"
             or reviewed_sha != before.get("head_sha")):
         raise PolicyError("Final Pass attestation requires the current SHA of an Issue waiting for GPT review.")
+    failure = _release_gate_failure(before_state, before, reviewed_sha)
+    if failure:
+        raise PolicyError(f"Final Pass attestation requires a current Full Gate: {failure}")
+    if _verified_remote_main_sha() != before_state.get("main_sha"):
+        raise PolicyError("origin/main advanced; synchronize main and rerun the full delivery gate.")
     if not sys.stdin.isatty():
         raise PolicyError("GPT Final Pass attestation requires an interactive human terminal.")
     try:
@@ -1191,6 +1247,11 @@ def state_attest_gpt_review(path: Path, number: int, review_status: str, reviewe
             raise PolicyError("GPT Final Pass attestation requires an Issue waiting for GPT review.")
         if reviewed_sha != record.get("head_sha"):
             raise PolicyError("GPT review SHA does not match the current Issue HEAD.")
+        failure = _release_gate_failure(state, record, reviewed_sha)
+        if failure:
+            raise PolicyError(f"Final Pass attestation requires a current Full Gate: {failure}")
+        if _verified_remote_main_sha() != state.get("main_sha"):
+            raise PolicyError("origin/main advanced; synchronize main and rerun the full delivery gate.")
         evidence = {"review_status": "FINAL_PASS", "reviewed_sha": reviewed_sha,
                     "url": conversation_url, "attestation": attestation}
         _state_transition_locked(path, state, record, number, "GPT_FINAL_PASS", evidence)
@@ -1422,7 +1483,7 @@ def _finish_gate_reservation_locked(path: Path, state: dict[str, Any], record: d
 def _state_transition_locked(path: Path, state: dict[str, Any], record: dict[str, Any],
                              number: int, target: str, evidence: dict[str, Any]) -> None:
     previous = record["implementation_state"]
-    _transition_record(record, target, evidence, state["main_sha"])
+    _transition_record(record, target, evidence, state["main_sha"], state)
     event = {"issue": number, "from": previous, "to": target,
              "at": dt.datetime.now(dt.timezone.utc).isoformat(), "evidence": evidence}
     record.setdefault("events", []).append(event)
@@ -1888,6 +1949,33 @@ def _verify_github_merge(record: dict[str, Any]) -> dict[str, Any]:
             "pr_url": f"https://github.com/{repo}/pull/{pr_number}"}
 
 
+def _verify_github_pr(record: dict[str, Any], evidence: dict[str, Any], issue: int) -> dict[str, Any]:
+    pr_number = evidence.get("number")
+    url = evidence.get("url")
+    description = evidence.get("description")
+    expected_close = f"Closes #{issue}"
+    repo = _repository_slug()
+    expected_url = f"https://github.com/{repo}/pull/{pr_number}"
+    if (not isinstance(pr_number, int) or pr_number <= 0
+            or url not in {expected_url, expected_url + "/"}
+            or not isinstance(description, str)
+            or not any(line.strip() == expected_close for line in description.splitlines())):
+        raise PolicyError(f"PR_OPEN requires a GitHub URL and standalone {expected_close} line.")
+    pr = _run_gh_json(["gh", "pr", "view", str(pr_number), "--repo", repo,
+                       "--json", "state,mergedAt,baseRefName,headRefName,headRefOid,body,url"])
+    body = pr.get("body")
+    if (pr.get("state") != "OPEN" or pr.get("mergedAt")
+            or pr.get("baseRefName") != "main"
+            or pr.get("headRefName") != record.get("branch")
+            or pr.get("headRefOid") != record.get("head_sha")
+            or not isinstance(body, str)
+            or not any(line.strip() == expected_close for line in body.splitlines())
+            or pr.get("url") not in {expected_url, expected_url + "/"}):
+        raise PolicyError("GitHub does not confirm an open PR for this repository, main base, Issue, and exact HEAD.")
+    return {"verified_github_pr": True, "number": pr_number, "url": expected_url,
+            "base": "main", "head_sha": record.get("head_sha"), "github_state": "OPEN"}
+
+
 def _apply_main_sync(state: dict[str, Any], number: int, evidence: dict[str, Any]) -> None:
     old_sha, new_sha = state.get("main_sha"), evidence["main_sha"]
     if old_sha == new_sha:
@@ -1918,6 +2006,8 @@ def _apply_main_sync(state: dict[str, Any], number: int, evidence: dict[str, Any
             review["status"] = "STALE"
             review["stale_reason"] = f"dependency #{number} merged; main advanced to {new_sha}"
         record["contract_verified"] = False
+        if record.get("implementation_state") in {"WAITING_GPT_REVIEW", "GPT_FINAL_PASS"}:
+            record["implementation_state"] = "CHANGES_REQUIRED"
     state["main_sha"] = new_sha
     event = {"type": "MAIN_SYNCED", "issue": number, "old_main_sha": old_sha,
              "new_main_sha": new_sha, "merge_commit": evidence["merge_commit"],

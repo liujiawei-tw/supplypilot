@@ -148,3 +148,24 @@ GPT Relay 沿用同一 Conversation URL 審查確切 Head 947e49c41d113c6a0f0a9f
 | GitHub Actions／其他暫停 Issue | Actions 由使用者暫停；#160、#142、#143 維持暫停，未修改、測試或 Resume |
 
 本輪程式修正與文件同步完成後仍須在同一 feature branch Commit／Push、核對新 local／remote Head SHA，並透過同一 GPT Relay 對話重新審查。不得將精準回歸、資源測試部分結果或 manifest 子項信任等同完整 Gate／整體 Final Pass。
+
+## 第七輪 GPT Review 與 P1-17／P2-01 修正（2026-10-23）
+
+沿用同一 GPT Relay Conversation URL，GPT 獨立核對 Issue #162 的 `617058da2a7d4316fda336a94c111dfcf40d12fa`：GitHub 遠端 Feature HEAD 完全相符、base `main` 為 `9240d6aeeba2361476a0454ac965a214769638a0`、Issue Open、ahead 11／behind 0、28 個檔案變更。GPT 明確指出受限 shell 當時無法取得本機 `git status`，因此不宣稱該 SHA 工作樹乾淨；之後 Codex 以獲准讀取方式核實 worktree 為 clean 且 local／remote SHA 相同。
+
+整體 verdict：**CHANGES REQUIRED**。GPT 確認 P1-15、P1-16、P1-12B 已修正，並對該 SHA 的 Full Gate Manifest 子項給出獨立 **PASS**；這不代表完整 Gate 或整體 Final PASS。新 finding：
+
+- **P1-17**：main 前進後舊 Full Gate 已標記 STALE、契約已失效，但 Issue 仍可留在 `WAITING_GPT_REVIEW` 並通過 Final Pass attestation／PR gate。
+- **P2-01**：`PR_OPEN` 原先只檢查使用者提供的 URL/Base/Head/Closes 行，沒有向 GitHub 即時核實 PR 確實存在且 Open。
+
+同一 #162 分支已完成修正：main Sync 使尚未終止 Issue 的 `WAITING_GPT_REVIEW`／`GPT_FINAL_PASS` 回到 `CHANGES_REQUIRED`；Final Pass attestation 和 PR Gate 重新核對持久化 Full Gate 證據、SHA、base/main、契約與依賴，並確認即時 `origin/main`；`PR_OPEN` 以 GitHub CLI 唯讀核對 Repository、Open 狀態、main base、Head branch/SHA、URL 及獨立 `Closes #Issue`。同步更新 state-machine 文件。完整 GPT 回覆保存於 [GPT Review 617058da](issue-162-gpt-review-617058da-2026-10-23.md)。
+
+| 驗證 | 結果 |
+| --- | --- |
+| P1-17／P2-01 最終精準回歸 | **PASS**：3/3，6.040 秒 |
+| 完整 StateTests 最終版本 | **PASS**：54/54，103.080 秒 |
+| GateTests 最終版本 | **PASS**：5/5，0.018 秒 |
+| Python compileall／git diff --check | **PASS** |
+| 完整 Orchestrator 模組／完整本機 CI Gate | 本輪未執行；完整本機 Gate 仍因 SP-806 208/210 與缺少 Python 3.12 而 **BLOCKED / NOT RUN** |
+| GPT review／PR | `617058da…` 的 verdict 為 **CHANGES REQUIRED**；P1-17／P2-01 修正尚待新 SHA 複審，無整體 Final PASS，沒有建立 PR 或 Merge |
+| 暫停範圍 | GitHub Actions 使用者暫停；#160、#142、#143 保持暫停 |

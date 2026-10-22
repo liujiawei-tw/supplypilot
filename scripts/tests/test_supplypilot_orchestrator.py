@@ -606,21 +606,28 @@ class StateTests(unittest.TestCase):
             review_evidence.write_text(f"FINAL PASS\nReviewed SHA: {self._state_head}\n", encoding="utf-8")
             confirmation = orch.GPT_REVIEW_CONFIRMATION_PREFIX + self._state_head
             with patch.object(orch.sys.stdin, "isatty", return_value=True), \
+                    patch.object(orch, "_verified_remote_main_sha", return_value=self._state_base_sha), \
                     patch("builtins.input", return_value=confirmation):
                 orch.state_attest_gpt_review(
                     path, 9, "FINAL_PASS", self._state_head,
                     "https://chatgpt.com/g/g-review/c/conversation", review_evidence, "test reviewer")
-            self.assertTrue(orch.can_open_pr(
-                path, 9, self._state_head)[0])
-            with self.assertRaisesRegex(orch.PolicyError, "standalone Closes"):
+            with patch.object(orch, "_verified_remote_main_sha", return_value=self._state_base_sha):
+                self.assertTrue(orch.can_open_pr(path, 9, self._state_head)[0])
+            with patch.object(orch, "_verified_remote_main_sha", return_value=self._state_base_sha), \
+                    self.assertRaisesRegex(orch.PolicyError, "standalone Closes"):
                 orch.state_transition(path, 9, "PR_OPEN", {
                     "base": "main", "head_sha": self._state_head, "url": "https://github.com/example/pr/999",
                     "description": "Closes #9 thanks"
                 })
-            orch.state_transition(path, 9, "PR_OPEN", {
-                "base": "main", "head_sha": self._state_head, "url": "https://github.com/example/pr/999",
-                "number": 999, "description": "Summary\n\nCloses #9"
-            })
+            with patch.object(orch, "_verified_remote_main_sha", return_value=self._state_base_sha), \
+                    patch.object(orch, "_verify_github_pr", return_value={
+                        "verified_github_pr": True, "number": 999,
+                        "url": "https://github.com/example/pr/999", "base": "main",
+                        "head_sha": self._state_head, "github_state": "OPEN"}):
+                orch.state_transition(path, 9, "PR_OPEN", {
+                    "base": "main", "head_sha": self._state_head, "url": "https://github.com/example/pr/999",
+                    "number": 999, "description": "Summary\n\nCloses #9"
+                })
             failed_merge_calls = [
                 Mock(stdout="https://github.com/liujiawei-tw/supplypilot.git"),
                 Mock(stdout=json.dumps({"state": "CLOSED", "mergedAt": "2026-10-22T00:00:00Z",
@@ -897,6 +904,92 @@ class StateTests(unittest.TestCase):
             self.assertEqual("old-head", downstream["gpt_review"]["reviewed_sha"])
             self.assertFalse(downstream["contract_verified"])
             self.assertEqual([10], result["events"][-1]["affected_issues"])
+
+    def test_main_sync_during_gpt_review_blocks_final_pass_and_pr_gate(self):
+        with tempfile.TemporaryDirectory() as temp:
+            path = self._make_state(temp)
+            full_gate_log = Path(temp) / "full-gate.log"
+            full_gate_log.write_text("FULL GATE PASS\n", encoding="utf-8")
+            state = orch.read_json(path)
+            issue = state["issues"]["9"]
+            issue.update({
+                "implementation_state": "WAITING_GPT_REVIEW",
+                "head_sha": self._state_head,
+                "internal_review": "PASS",
+                "handoff": {"local_sha": self._state_head, "remote_sha": self._state_head},
+                "verification": {"status": "FULL_GATE_VERIFIED", "sha": self._state_head,
+                                 "evidence": [{"path": str(full_gate_log.resolve()),
+                                               "sha256": hashlib.sha256(full_gate_log.read_bytes()).hexdigest()}]},
+            })
+            state["issues"]["10"] = {
+                "number": 10, "dependencies": [], "base_sha": self._state_base_sha,
+                "implementation_state": "MERGED", "merge": {"status": "MERGED", "merge_commit": "a" * 40},
+            }
+            orch.atomic_write_json(path, state)
+
+            with patch.object(orch, "_verify_github_merge", return_value={
+                    "verified_github": True, "pr": 100, "issue": 10,
+                    "merge_commit": "a" * 40, "main_sha": "c" * 40}):
+                orch.state_sync_main(path, 10)
+
+            stale = orch.read_json(path)
+            issue = stale["issues"]["9"]
+            self.assertEqual("CHANGES_REQUIRED", issue["implementation_state"])
+            self.assertEqual("STALE", issue["verification"]["status"])
+            self.assertFalse(issue["contract_verified"])
+            self.assertFalse(orch.can_open_pr(path, 9, self._state_head)[0])
+
+            # Even if stale persisted state is manually restored to the old handoff
+            # status, attestation must independently reject its invalidated gate.
+            issue["implementation_state"] = "WAITING_GPT_REVIEW"
+            orch.atomic_write_json(path, stale)
+            review_evidence = Path(temp) / "review.txt"
+            review_evidence.write_text(f"FINAL PASS\nReviewed SHA: {self._state_head}\n", encoding="utf-8")
+            with self.assertRaisesRegex(orch.PolicyError, "current Full Gate"):
+                orch.state_attest_gpt_review(
+                    path, 9, "FINAL_PASS", self._state_head,
+                    "https://chatgpt.com/g/g-review/c/conversation", review_evidence, "test reviewer")
+
+            attestation = {
+                "reviewed_sha": self._state_head,
+                "conversation_url": "https://chatgpt.com/g/g-review/c/conversation",
+                "evidence_path": str(review_evidence.resolve()),
+                "evidence_sha256": hashlib.sha256(review_evidence.read_bytes()).hexdigest(),
+                "confirmed_by": "test reviewer",
+                "confirmation": orch.GPT_REVIEW_CONFIRMATION_PREFIX + self._state_head,
+                "confirmed_at": "2026-10-23T00:00:00Z",
+            }
+            issue["implementation_state"] = "GPT_FINAL_PASS"
+            issue["gpt_review"] = {"status": "FINAL_PASS", "reviewed_sha": self._state_head,
+                                   "attestation": attestation}
+            orch.atomic_write_json(path, stale)
+            self.assertFalse(orch.can_open_pr(path, 9, self._state_head)[0])
+
+    def test_github_pr_open_verification_requires_exact_open_pr(self):
+        record = {"number": 9, "branch": "codex/issue-9-example", "head_sha": "a" * 40}
+        evidence = {"number": 99, "url": "https://github.com/liujiawei-tw/supplypilot/pull/99",
+                    "description": "Summary\n\nCloses #9"}
+        pr = {"state": "OPEN", "mergedAt": None, "baseRefName": "main",
+              "headRefName": record["branch"], "headRefOid": record["head_sha"],
+              "body": "Summary\n\nCloses #9", "url": evidence["url"]}
+        with patch.object(orch, "_repository_slug", return_value="liujiawei-tw/supplypilot"), \
+                patch.object(orch, "_run_gh_json", return_value=pr) as gh:
+            result = orch._verify_github_pr(record, evidence, 9)
+        self.assertTrue(result["verified_github_pr"])
+        self.assertEqual(99, result["number"])
+        gh.assert_called_once()
+
+        for changed in (
+            {**pr, "state": "CLOSED"},
+            {**pr, "baseRefName": "feature"},
+            {**pr, "headRefOid": "d" * 40},
+            {**pr, "body": "Summary\nCloses #90"},
+        ):
+            with self.subTest(changed=changed), \
+                    patch.object(orch, "_repository_slug", return_value="liujiawei-tw/supplypilot"), \
+                    patch.object(orch, "_run_gh_json", return_value=changed):
+                with self.assertRaisesRegex(orch.PolicyError, "does not confirm an open PR"):
+                    orch._verify_github_pr(record, evidence, 9)
 
     def test_two_verified_merges_advance_main_and_allow_new_baseline_registration(self):
         with tempfile.TemporaryDirectory() as temp:
