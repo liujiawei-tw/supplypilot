@@ -438,7 +438,7 @@ class PurchaseOrderUpdateIntegrationTests extends AbstractIntegrationTest {
                 + ",\"quantity\":2,\"unitPrice\":10,\"recommendedSupplierIdSnapshot\":999}]}")
                 .andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("VALIDATION_FAILED"));
 
-        jdbcTemplate.update("UPDATE purchase_orders SET status = 'APPROVED' WHERE id = ?", id);
+        jdbcTemplate.update("UPDATE purchase_orders SET status = 'APPROVED', stage = 'APPROVED_PENDING_ORDER' WHERE id = ?", id);
         update(staff, id, "{\"expectedDeliveryDate\":\"2026-11-01\"}")
                 .andExpect(status().isConflict()).andExpect(jsonPath("$.code").value("PO_NOT_EDITABLE"));
     }

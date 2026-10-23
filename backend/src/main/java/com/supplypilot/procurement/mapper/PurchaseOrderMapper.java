@@ -24,6 +24,7 @@ public class PurchaseOrderMapper {
         return new PurchaseOrderResponse(
                 purchaseOrder.getId(), purchaseOrder.getPoNumber(), purchaseOrder.getSupplier().getId(),
                 purchaseOrder.getSupplier().getCode(), purchaseOrder.getSupplier().getName(), purchaseOrder.getStatus(),
+                purchaseOrder.getStage(),
                 purchaseOrder.getOrderedProgress(),
                 purchaseOrder.getExpectedDeliveryDate(), purchaseOrder.getSupplierPromisedDeliveryDate(),
                 receivingInspection(purchaseOrder), purchaseOrder.isPaymentConfirmed(),

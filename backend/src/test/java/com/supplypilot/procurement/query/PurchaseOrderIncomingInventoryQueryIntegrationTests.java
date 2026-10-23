@@ -133,10 +133,17 @@ class PurchaseOrderIncomingInventoryQueryIntegrationTests extends AbstractIntegr
 
         jdbcTemplate.update("""
                 INSERT INTO purchase_orders
-                    (po_number, supplier_id, status, ordered_progress, expected_delivery_date,
+                    (po_number, supplier_id, status, stage, ordered_progress, expected_delivery_date,
                      created_by, created_at, updated_at, version)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """, poNumber, supplier.getId(), status.name(),
+                switch (status) {
+                    case DRAFT -> "NEW_REQUEST";
+                    case APPROVED -> "APPROVED_PENDING_ORDER";
+                    case ORDERED -> "ORDER_FOLLOW_UP";
+                    case RECEIVED -> "PAYMENT_RECONCILIATION";
+                    case REJECTED, CANCELLED -> null;
+                },
                 status == PurchaseOrderStatus.ORDERED ? "FOLLOW_UP" : null,
                 expectedDeliveryDate, createdBy.getId(), now, now, 0L);
         Long purchaseOrderId = jdbcTemplate.queryForObject(

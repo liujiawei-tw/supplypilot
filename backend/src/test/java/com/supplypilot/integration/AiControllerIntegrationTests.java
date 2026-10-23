@@ -150,6 +150,8 @@ class AiControllerIntegrationTests extends AbstractIntegrationTest {
         PurchaseOrder order = PurchaseOrder.create(supplier, LocalDate.of(2026, 10, 20), staff, clock.instant());
         order.assignPendingPoNumber("PO-AI-" + suffix());
         order.addItem(PurchaseOrderItem.create(material, new BigDecimal("12"), new BigDecimal("3"), clock.instant()));
+        order.advanceFromNewRequest(clock.instant());
+        order.advanceFromSourcing(clock.instant());
         order.approve(staff, clock.instant());
         order.markOrdered(staff, clock.instant());
         purchaseOrders.saveAndFlush(order);
@@ -171,6 +173,8 @@ class AiControllerIntegrationTests extends AbstractIntegrationTest {
         PurchaseOrder order = PurchaseOrder.create(supplier, LocalDate.of(2026, 10, 20), staff, clock.instant());
         order.assignPendingPoNumber("PO-AI-" + suffix());
         order.addItem(PurchaseOrderItem.create(material, new BigDecimal("12"), new BigDecimal("3"), clock.instant()));
+        order.advanceFromNewRequest(clock.instant());
+        order.advanceFromSourcing(clock.instant());
         order.approve(staff, clock.instant());
         order.markOrdered(staff, clock.instant());
         purchaseOrders.saveAndFlush(order);

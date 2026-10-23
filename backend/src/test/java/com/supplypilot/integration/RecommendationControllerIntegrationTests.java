@@ -298,7 +298,7 @@ class RecommendationControllerIntegrationTests extends AbstractIntegrationTest {
         Supplier supplier = supplier("INCOMING", "80", "80");
         String number = "PO-REC-" + suffix();
         java.sql.Timestamp now = java.sql.Timestamp.from(clock.instant());
-        jdbcTemplate.update("INSERT INTO purchase_orders (po_number, supplier_id, status, ordered_progress, expected_delivery_date, created_by, created_at, updated_at, version) VALUES (?, ?, 'ORDERED', 'FOLLOW_UP', ?, ?, ?, ?, 0)",
+        jdbcTemplate.update("INSERT INTO purchase_orders (po_number, supplier_id, status, stage, ordered_progress, expected_delivery_date, created_by, created_at, updated_at, version) VALUES (?, ?, 'ORDERED', 'ORDER_FOLLOW_UP', 'FOLLOW_UP', ?, ?, ?, ?, 0)",
                 number, supplier.getId(), deliveryDate, user.getId(), now, now);
         Long poId = jdbcTemplate.queryForObject("SELECT id FROM purchase_orders WHERE po_number = ?", Long.class, number);
         jdbcTemplate.update("INSERT INTO purchase_order_items (purchase_order_id, material_id, quantity, unit_price, unit, created_at) VALUES (?, ?, ?, 0, 'KG', ?)",

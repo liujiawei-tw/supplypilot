@@ -2525,3 +2525,11 @@ PO 狀態命令（核准、駁回、下單、開始驗收、取消、收貨）�
 `POST /api/v1/purchase-orders/{id}/confirm-payment` 只接受 `RECEIVED` 且尚未確認付款的 PO；`POST /api/v1/purchase-orders/{id}/revoke-payment-confirmation` 只接受 `RECEIVED` 且目前已有付款確認的 PO。兩者無 request body，操作者與時間由登入帳號及 Backend Clock 取得。一般採購單回應包含 `paymentConfirmed`、付款確認者快照與 `paymentConfirmedAt`；倉庫專用白名單回應不包含付款狀態或付款操作者資料。確認或撤銷均不改 PO `RECEIVED`、Inventory、StockTransaction；重複或錯誤狀態回 `409 INVALID_PO_STATUS_TRANSITION`。V27 將既有 PO 預設為未驗收、未付款，不將舊 ORDERED／RECEIVED 資料推測成新狀態。
 
 所有驗收、收貨、付款確認與撤銷均由 Service `@PreAuthorize` 保護，並先取得 PO `PESSIMISTIC_WRITE` 列鎖；Request 不接受 Client 狀態、操作者 ID 或時間。未登入為 401，角色不足為 403，非法 body 為 400。未知寫入結果時 Client 需重新查詢 Backend 狀態，不自動重送。
+
+## V2-205：持久化 Kanban Stage 與受控轉移
+
+一般 `PurchaseOrderResponse` 新增 nullable `stage`，值為 `NEW_REQUEST`、`SOURCING`、`APPROVAL`、`APPROVED_PENDING_ORDER`、`ORDER_FOLLOW_UP`、`RECEIVING_INSPECTION`、`PAYMENT_RECONCILIATION`、`COMPLETED`。Stage 代表目前看板欄位，`status` 仍是正式採購單狀態；終止 PO 與無法判定舊階段的資料回傳 `stage: null`，不得當作活動看板卡片。
+
+`POST /api/v1/purchase-orders/{id}/begin-sourcing` 僅允許 Stage 1→2；`POST /api/v1/purchase-orders/{id}/submit-for-approval` 僅允許 Stage 2→3。兩者都無 Request Body，呼叫動作固定，不接受 Client Stage 或 PO Status；重複或並發送出相同動作時，後續請求因 Stage 前置條件已變而回 `409 INVALID_PO_STATUS_TRANSITION`。Stage 3→4 使用既有核准 API，4→5 使用下單 API，5→6 使用開始驗收 API，6→7 使用整筆收貨 API，7→8 與 8→7 分別使用付款確認及撤銷 API。其他跳關、倒退、錯誤 status/stage 組合均回 `409 INVALID_PO_STATUS_TRANSITION`（收貨條件不完整仍依既有錯誤契約）。`ORDERED + LEGACY_UNKNOWN + stage=NULL` 不推測歷史欄位；僅 ADMIN 可呼叫既有 `POST /api/v1/purchase-orders/{id}/begin-receiving-inspection`，明確將其 disposition 到 Stage 6，原子更新 `orderedProgress` 與 `stage`，且不改庫存或交易。非 ADMIN 為 403，重複處置或其他不符合狀態的命令為 409。Stage 前進僅允許 `PROCUREMENT_STAFF`、`PROCUREMENT_MANAGER`、`ADMIN`，並透過 `@Transactional` 與 `findByIdForUpdate()` 序列化；狀態與 Stage 僅由 Aggregate 命令更新。
+
+V28 Migration 將 DRAFT、APPROVED、已知 OrderedProgress 與明確付款事實映射到對應 Stage；ORDERED + `LEGACY_UNKNOWN` 保持 NULL，避免猜測歷史第 5/6 欄位置。此類資料從活動 Stage 集合排除，直到 ADMIN 使用 `begin-receiving-inspection` 明確將其處置進 Stage 6；不接受任意 Stage 輸入。一般 PO GET／List 回應會保存並提供目前 `stage`，重讀後仍以 Backend 為準。Stage 不接受 PATCH 欄位，任何直接修改 PO `status` 的請求亦不在 API 契約中。

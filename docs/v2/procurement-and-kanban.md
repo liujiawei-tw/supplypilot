@@ -25,6 +25,7 @@
 | 8 | 已完成／封存結案 | RECEIVED | 7→8 人工確認付款完成 |
 
 - Stage 是獨立的目前進度欄位，**不是**任意改寫 PO.status；後端必須保證兩者相容。
+- 遷移時 `ORDERED + LEGACY_UNKNOWN` 先以 `stage: null` 排除於八欄；只有 ADMIN 經 `begin-receiving-inspection` 明確選擇第 6 欄後，才成為 `RECEIVING_INSPECTION`。這不推測舊資料原先在哪一欄。
 - 每次只前進一階，不允許跳關或倒退。**唯一例外：8→7 撤銷付款確認**，不能撤銷入庫或改回 ORDERED。
 - 拖曳或按鈕均須經確認再呼叫受控 Backend 業務命令；API 失敗時卡片回復原位。不得由前端自行 PATCH 正式 PO.status。
 - 只保留目前階段，**不新增逐次看板移動歷史表**；既有 PO 業務稽核、交易紀錄不因此取消。

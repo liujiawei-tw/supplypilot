@@ -1946,4 +1946,6 @@ V27 在 `purchase_orders` 增加三個預設 `FALSE` 的目前驗收事實欄位
 
 付款目前狀態由 nullable `payment_confirmed_at` 是否存在推導。確認時保存付款確認者 FK、使用者 ID/username/displayName 快照與 Instant；撤銷時清除這些目前狀態欄位，不保留額外付款歷史。V27 的資料庫 CHECK 禁止非 RECEIVED PO 被標記已付款，且付款時間與操作者快照必須同時完整或同時為空。既有 RECEIVED PO 保持未確認付款；不以舊資料推測付款狀態。付款狀態不改 `PurchaseOrderStatus.RECEIVED`、Inventory 或 StockTransaction。
 
-第 5/6 欄仍由既有 `OrderedProgress` 最小契約表示；收貨後從正式 `RECEIVED` 加上付款時間推導目前位置為第 7/8 欄。此 Issue 不加入完整 Stage 欄位、遷移或一般轉換引擎，留給 #142。
+V2-205 新增獨立 `PurchaseOrderStage` 與 nullable `purchase_orders.stage`。Stage 1～3 對應 DRAFT、4 對應 APPROVED、5～6 對應 ORDERED、7～8 對應 RECEIVED；REJECTED/CANCELLED 的 Stage 為 NULL。Stage 與 status 由同一 PurchaseOrder Aggregate 命令同步變更，並由 V28 CHECK constraint 限定相容組合。新 PO 從 `NEW_REQUEST` 開始；只有 1→2、2→3 可使用受控 Stage 前進命令，核准、下單、驗收收貨、付款確認/撤銷仍由原業務命令完成轉移。所有變更沿用 PO 列鎖、`@Version` 與既有 Service Transaction。
+
+V28 對舊 PO 採可由既有欄位證明的映射：所有 DRAFT 從 Stage 1 開始；APPROVED 為 Stage 4；ORDERED + FOLLOW_UP 為 Stage 5；ORDERED + RECEIVING_INSPECTION 為 Stage 6；RECEIVED 依目前付款確認事實分別為 Stage 7/8；REJECTED/CANCELLED 不進活動看板。ORDERED + LEGACY_UNKNOWN 的 Stage 保持 NULL，因舊資料不能證明它位於第 5 或第 6 欄，且不進活動八欄。ADMIN 可使用既有 `begin-receiving-inspection` 受控命令明確將該筆 PO 作為第 6 欄處置；同一 Aggregate 交易將 `ordered_progress` 與 Stage 設為 `RECEIVING_INSPECTION`，不回填或宣稱其歷史上曾位於第 5/6 欄，也不改 Inventory/StockTransaction。之後仍須完成一般驗收流程才可收貨。Stage 只保存目前位置，不另建移動歷史。

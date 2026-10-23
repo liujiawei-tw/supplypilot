@@ -292,6 +292,8 @@ class ReceivingPurchaseOrderControllerIntegrationTests extends AbstractIntegrati
         PurchaseOrder order = PurchaseOrder.create(supplier, expectedDeliveryDate, buyer, orderedAt);
         order.assignPendingPoNumber("P-" + suffix());
         order.addItem(PurchaseOrderItem.create(material, BigDecimal.ONE, BigDecimal.TEN, orderedAt));
+        order.advanceFromNewRequest(orderedAt.plusSeconds(1));
+        order.advanceFromSourcing(orderedAt.plusSeconds(2));
         order.approve(admin, orderedAt);
         order.markOrdered(buyer, orderedAt);
         if (received) {
@@ -308,7 +310,11 @@ class ReceivingPurchaseOrderControllerIntegrationTests extends AbstractIntegrati
         PurchaseOrder order = PurchaseOrder.create(supplier, LocalDate.now(clock).plusDays(1), buyer, clock.instant());
         order.assignPendingPoNumber("P-" + suffix());
         order.addItem(PurchaseOrderItem.create(material, BigDecimal.ONE, BigDecimal.TEN, clock.instant()));
-        if (status == PurchaseOrderStatus.APPROVED) order.approve(admin, clock.instant());
+        if (status == PurchaseOrderStatus.APPROVED) {
+            order.advanceFromNewRequest(clock.instant());
+            order.advanceFromSourcing(clock.instant());
+            order.approve(admin, clock.instant());
+        }
         if (status == PurchaseOrderStatus.REJECTED) order.reject("Not required", admin, clock.instant());
         return purchaseOrderRepository.saveAndFlush(order);
     }
@@ -317,6 +323,8 @@ class ReceivingPurchaseOrderControllerIntegrationTests extends AbstractIntegrati
         PurchaseOrder order = PurchaseOrder.create(supplier, expectedDeliveryDate, buyer, orderedAt);
         order.assignPendingPoNumber("P-" + suffix());
         materials.forEach(material -> order.addItem(PurchaseOrderItem.create(material, BigDecimal.ONE, BigDecimal.TEN, orderedAt)));
+        order.advanceFromNewRequest(orderedAt.plusSeconds(1));
+        order.advanceFromSourcing(orderedAt.plusSeconds(2));
         order.approve(admin, orderedAt);
         order.markOrdered(buyer, orderedAt);
         PurchaseOrder persisted = purchaseOrderRepository.saveAndFlush(order);
