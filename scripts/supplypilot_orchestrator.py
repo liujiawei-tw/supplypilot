@@ -5,7 +5,10 @@ from __future__ import annotations
 
 import argparse
 import contextlib
+import copy
 import datetime as dt
+import difflib
+import getpass
 import json
 import os
 import shlex
@@ -17,6 +20,8 @@ import uuid
 import hashlib
 import re
 import urllib.parse
+import urllib.error
+import urllib.request
 from pathlib import Path, PurePosixPath, PureWindowsPath
 from typing import Any, Iterator
 
@@ -28,6 +33,13 @@ ACTIVE_STATES = {"READY_TO_CODE", "IMPLEMENTING", "TARGETED_VERIFIED", "ISSUE_GA
                  "GPT_FINAL_PASS", "PR_OPEN", "BLOCKED_ENVIRONMENT"}
 TERMINAL = {"MERGED", "FAILED"}
 VALID_GPT = {"NOT_REVIEWED", "CHANGES_REQUIRED", "FINAL_PASS"}
+STATE_RECOVERY_ISSUE = 162
+STATE_RECOVERY_PR = 165
+STATE_RECOVERY_BASE_SHA = "18d68a453fd18c26d064bdd1362c3834e2cc0e48"
+STATE_RECOVERY_HEAD_SHA = "b322a5e751c035f4ad5543f67c1ae23e3a1202ae"
+STATE_RECOVERY_BRANCH = "codex/issue-162-supplypilot-multi-agent-orchestrator"
+STATE_RECOVERY_MERGE_SHA = "58b9abfee070c45da20a6d60f52658287feb3d28"
+STATE_RECOVERY_CONFIRMATION = "RECOVER ISSUE #162 FROM PR #165"
 
 
 class PolicyError(ValueError):
@@ -2485,6 +2497,56 @@ def _run_gh_json(command: list[str]) -> dict[str, Any]:
     return value
 
 
+def _github_api_get(path: str) -> dict[str, Any]:
+    """Read GitHub facts using HTTPS and the current Git credential when needed."""
+    repo = _repository_slug()
+    url = f"https://api.github.com/repos/{urllib.parse.quote(repo, safe='/')}{path}"
+    headers = {
+        "Accept": "application/vnd.github+json",
+        "User-Agent": "supplypilot-orchestrator-state-recovery",
+        "X-GitHub-Api-Version": "2022-11-28",
+    }
+    try:
+        request = urllib.request.Request(url, headers=headers)
+        with urllib.request.urlopen(request, timeout=20) as response:
+            raw = response.read()
+    except urllib.error.HTTPError as exc:
+        if exc.code not in {401, 403, 404}:
+            raise PolicyError(f"GitHub API returned HTTP {exc.code} for {path}.") from exc
+        credential_input = f"protocol=https\nhost=github.com\npath={repo}\n\n"
+        credential_env = os.environ.copy()
+        credential_env["GCM_INTERACTIVE"] = "never"
+        credential_env["GIT_TERMINAL_PROMPT"] = "0"
+        try:
+            credential = subprocess.run(
+                ["git", "credential", "fill"], input=credential_input,
+                stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True,
+                encoding="utf-8", errors="replace", env=credential_env, check=False,
+            )
+        except OSError as helper_error:
+            raise PolicyError("GitHub API requires authentication and Git credentials are unavailable.") from helper_error
+        fields = dict(line.split("=", 1) for line in credential.stdout.splitlines() if "=" in line)
+        token = fields.get("password")
+        if credential.returncode != 0 or not isinstance(token, str) or not token:
+            raise PolicyError("GitHub API requires authentication and Git credentials are unavailable.")
+        authenticated_headers = {**headers, "Authorization": f"Bearer {token}"}
+        try:
+            authenticated = urllib.request.Request(url, headers=authenticated_headers)
+            with urllib.request.urlopen(authenticated, timeout=20) as response:
+                raw = response.read()
+        except (OSError, urllib.error.URLError) as authenticated_error:
+            raise PolicyError(f"Cannot independently verify authenticated GitHub API evidence for {path}.") from authenticated_error
+    except (OSError, urllib.error.URLError) as exc:
+        raise PolicyError(f"Cannot independently verify GitHub API evidence for {path}.") from exc
+    try:
+        value = json.loads(raw.decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise PolicyError(f"GitHub API returned invalid JSON for {path}.") from exc
+    if not isinstance(value, dict):
+        raise PolicyError(f"GitHub API returned unexpected evidence for {path}.")
+    return value
+
+
 def _verify_github_merge(record: dict[str, Any]) -> dict[str, Any]:
     issue = record.get("number")
     pr_number = record.get("pr", {}).get("number") if isinstance(record.get("pr"), dict) else None
@@ -2588,6 +2650,285 @@ def _apply_main_sync(state: dict[str, Any], number: int, evidence: dict[str, Any
              "affected_issues": sorted(affected - {number}),
              "at": dt.datetime.now(dt.timezone.utc).isoformat()}
     state.setdefault("events", []).append(event)
+
+
+def _recovery_json_bytes(value: dict[str, Any]) -> bytes:
+    serialized = json.dumps(value, ensure_ascii=False, indent=2) + "\n"
+    return serialized.replace("\n", os.linesep).encode("utf-8")
+
+
+def _recovery_json_sha256(value: dict[str, Any]) -> str:
+    canonical = json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
+
+def _verified_state_recovery_facts(state: dict[str, Any], issue: int, pr_number: int) -> dict[str, Any]:
+    if issue != STATE_RECOVERY_ISSUE or pr_number != STATE_RECOVERY_PR:
+        raise PolicyError("This one-time recovery can only recover Issue #162 from PR #165.")
+    prior = state.get("issues", {}).get(str(STATE_RECOVERY_ISSUE))
+    if (state.get("main_sha") == STATE_RECOVERY_MERGE_SHA
+            or isinstance(prior, dict) and prior.get("implementation_state") == "MERGED"):
+        raise PolicyError("Issue #162 merge state is already reconciled.")
+
+    repo = _repository_slug()
+    pr = _github_api_get(f"/pulls/{pr_number}")
+    gh_issue = _github_api_get(f"/issues/{issue}")
+    main = _github_api_get("/branches/main")
+    base = pr.get("base") if isinstance(pr.get("base"), dict) else {}
+    head = pr.get("head") if isinstance(pr.get("head"), dict) else {}
+    base_repo = base.get("repo") if isinstance(base.get("repo"), dict) else {}
+    head_repo = head.get("repo") if isinstance(head.get("repo"), dict) else {}
+    main_commit = main.get("commit") if isinstance(main.get("commit"), dict) else {}
+    current_main_sha = main_commit.get("sha")
+    merge_sha = pr.get("merge_commit_sha")
+
+    if pr.get("number") != STATE_RECOVERY_PR or pr.get("state") != "closed" \
+            or not isinstance(pr.get("merged_at"), str) or not pr["merged_at"]:
+        raise PolicyError("GitHub does not confirm merged PR #165.")
+    if (base.get("ref") != "main" or base_repo.get("full_name", "").casefold() != repo.casefold()
+            or head_repo.get("full_name", "").casefold() != repo.casefold()):
+        raise PolicyError("PR #165 repository or base branch does not match this repository's main.")
+    if (base.get("sha") != STATE_RECOVERY_BASE_SHA or state.get("main_sha") != STATE_RECOVERY_BASE_SHA):
+        raise PolicyError("PR #165 base SHA and the recorded State main SHA must match the known pre-merge main.")
+    if head.get("ref") != STATE_RECOVERY_BRANCH or head.get("sha") != STATE_RECOVERY_HEAD_SHA:
+        raise PolicyError("PR #165 feature branch or feature HEAD does not match the verified #162 record.")
+    if (not isinstance(merge_sha, str) or not re.fullmatch(r"[0-9a-fA-F]{40}", merge_sha)
+            or merge_sha.casefold() != STATE_RECOVERY_MERGE_SHA.casefold()):
+        raise PolicyError("PR #165 merge commit does not match the verified #162 merge SHA.")
+    if gh_issue.get("number") != STATE_RECOVERY_ISSUE or gh_issue.get("state") != "closed":
+        raise PolicyError("GitHub does not confirm Issue #162 is closed.")
+    if (main.get("name") != "main" or not isinstance(current_main_sha, str)
+            or not re.fullmatch(r"[0-9a-fA-F]{40}", current_main_sha)):
+        raise PolicyError("GitHub API did not return a valid current main commit.")
+    body = pr.get("body")
+    if not isinstance(body, str) or not any(line.strip() == "Closes #162" for line in body.splitlines()):
+        raise PolicyError("PR #165 must contain a standalone Closes #162 line.")
+
+    compare_ref = urllib.parse.quote(f"{merge_sha}...{current_main_sha}", safe=".")
+    compare = _github_api_get(f"/compare/{compare_ref}")
+    merge_base = compare.get("merge_base_commit") if isinstance(compare.get("merge_base_commit"), dict) else {}
+    ahead_by = compare.get("ahead_by")
+    if (compare.get("status") not in {"ahead", "identical"}
+            or merge_base.get("sha", "").casefold() != merge_sha.casefold()
+            or not isinstance(ahead_by, int) or ahead_by < 0):
+        raise PolicyError("PR #165 merge commit is not an ancestor of current GitHub main.")
+
+    api_payloads = {"pull_request": pr, "issue": gh_issue, "main": main, "comparison": compare}
+    return {
+        "repository": repo, "issue": issue, "pr": pr_number,
+        "pr_url": pr.get("html_url") or f"https://github.com/{repo}/pull/{pr_number}",
+        "base_sha": base["sha"], "head_branch": head["ref"], "head_sha": head["sha"],
+        "merge_commit": merge_sha, "main_sha": current_main_sha,
+        "main_relation": compare.get("status"), "main_ahead_by": ahead_by,
+        "api_payload_sha256": {name: _recovery_json_sha256(payload)
+                                for name, payload in api_payloads.items()},
+    }
+
+
+def _verify_recovery_worktree(record: dict[str, Any]) -> dict[str, Any]:
+    adoption = record.get("wip_adoption") if isinstance(record.get("wip_adoption"), dict) else {}
+    if (record.get("worktree") is None or record.get("branch") != STATE_RECOVERY_BRANCH
+            or record.get("head_sha") != STATE_RECOVERY_HEAD_SHA
+            or adoption.get("status") != "RESUMED"
+            or adoption.get("branch") != STATE_RECOVERY_BRANCH
+            or adoption.get("head") != STATE_RECOVERY_HEAD_SHA
+            or adoption.get("clean") is not True
+            or not isinstance(adoption.get("fingerprint"), str)):
+        raise PolicyError("#162 ownership cannot be released without its original clean WIP fingerprint.")
+    first = capture_worktree(Path(record["worktree"]))
+    second = capture_worktree(Path(record["worktree"]))
+    if (first != second or first.get("branch") != STATE_RECOVERY_BRANCH
+            or first.get("head") != STATE_RECOVERY_HEAD_SHA or first.get("clean") is not True
+            or first.get("fingerprint") != adoption.get("fingerprint")):
+        raise PolicyError("#162 worktree changed or is inaccessible; refusing ownership release.")
+    return first
+
+
+def _verify_state_recovery_preconditions(state: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]:
+    if state.get("main_sha") == STATE_RECOVERY_MERGE_SHA:
+        raise PolicyError("Issue #162 merge state is already reconciled.")
+    if state.get("main_sha") != STATE_RECOVERY_BASE_SHA:
+        raise PolicyError("State main SHA changed from the expected pre-merge base; refusing one-time recovery.")
+    record = state.get("issues", {}).get(str(STATE_RECOVERY_ISSUE))
+    if not isinstance(record, dict):
+        raise PolicyError("Issue #162 has no stale State row to reconcile.")
+    if (record.get("implementation_state") != "FULL_GATE_PENDING"
+            or record.get("base_sha") != STATE_RECOVERY_BASE_SHA
+            or record.get("branch") != STATE_RECOVERY_BRANCH
+            or record.get("head_sha") != STATE_RECOVERY_HEAD_SHA
+            or record.get("pr", {}).get("number") is not None
+            or record.get("merge", {}).get("status") != "UNMERGED"):
+        if record.get("implementation_state") == "MERGED":
+            raise PolicyError("Issue #162 merge state is already reconciled.")
+        raise PolicyError("Issue #162 State row no longer matches the one-time recovery preconditions.")
+    if record.get("issue_gate") is not None:
+        raise PolicyError("Issue #162 has Issue Gate evidence; recovery will not rewrite Gate history.")
+    if record.get("verification", {}).get("status") != "NOT_RUN" \
+            or record.get("gpt_review", {}).get("status") != "NOT_REVIEWED":
+        raise PolicyError("Issue #162 verification or review history changed; recovery will not rewrite it.")
+    active_gates = [key for key, row in state.get("issues", {}).items()
+                    if isinstance(row, dict)
+                    and isinstance(row.get("gate_reservation"), dict)
+                    and row["gate_reservation"].get("status") == "RUNNING"]
+    if active_gates:
+        raise PolicyError(f"An active Gate reservation exists for Issues {active_gates}; refusing recovery.")
+    if (not isinstance(record.get("owned_files"), list) or not record["owned_files"]
+            or any(not isinstance(path, str) or not path.strip() for path in record["owned_files"])):
+        raise PolicyError("#162 file ownership is missing or invalid; refusing ownership release.")
+    _verify_no_active_file_owner_conflict(state, record)
+    snapshot = _verify_recovery_worktree(record)
+    return record, snapshot
+
+
+def _write_new_recovery_file(path: Path, content: bytes) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        descriptor = os.open(str(path), os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+    except FileExistsError as exc:
+        raise PolicyError(f"Recovery output already exists; refusing to overwrite: {path}") from exc
+    with os.fdopen(descriptor, "wb") as output:
+        output.write(content)
+        output.flush()
+        os.fsync(output.fileno())
+
+
+def _state_recovery_candidate(state: dict[str, Any], record: dict[str, Any], facts: dict[str, Any],
+                              before_sha256: str, backup_sha256: str, backup_path: Path,
+                              operator: str, recorded_at: str) -> dict[str, Any]:
+    candidate = copy.deepcopy(state)
+    issue = candidate["issues"][str(STATE_RECOVERY_ISSUE)]
+    issue["implementation_state"] = "MERGED"
+    issue["pr"] = {"status": "MERGED", "number": STATE_RECOVERY_PR,
+                   "head_sha": facts["head_sha"], "url": facts["pr_url"]}
+    issue["merge"] = {
+        "status": "MERGED", "merge_commit": facts["merge_commit"],
+        "main_sha": facts["main_sha"], "verified_at": recorded_at,
+        "verification_source": "github_rest_api",
+    }
+    issue["ownership_state"] = "RELEASED"
+    issue["ownership_release"] = {
+        "issue": STATE_RECOVERY_ISSUE, "released_at": recorded_at,
+        "released_by": operator, "reason": "merged PR #165 verified against GitHub; exact #162 WIP fingerprint is unchanged",
+    }
+    recovery_event = {
+        "issue": STATE_RECOVERY_ISSUE, "type": "STATE_RECOVERED_MERGED", "at": recorded_at,
+        "evidence": {
+            "recovery_scope": "ONE_TIME_ISSUE_162_PR_165",
+            "repository": facts["repository"], "pr": STATE_RECOVERY_PR,
+            "head_branch": facts["head_branch"], "head_sha": facts["head_sha"],
+            "merge_commit": facts["merge_commit"], "main_sha": facts["main_sha"],
+            "previous_main_sha": state["main_sha"], "main_relation": facts["main_relation"],
+            "main_ahead_by": facts["main_ahead_by"],
+            "api_payload_sha256": facts["api_payload_sha256"],
+            "verification_source": "github_rest_api", "operator": operator,
+            "host": socket.gethostname(), "recorded_at": recorded_at,
+            "state_before_sha256": before_sha256,
+            "backup_path": str(backup_path.resolve()), "backup_sha256": backup_sha256,
+            "issue_gate": "NOT_VERIFIED", "release_gate": "NOT_RUN",
+            "wip_fingerprint": issue["wip_adoption"]["fingerprint"],
+            "ownership_state": "RELEASED",
+        },
+    }
+    issue.setdefault("events", []).append(recovery_event)
+    candidate.setdefault("events", []).append(recovery_event)
+    _apply_main_sync(candidate, STATE_RECOVERY_ISSUE, {
+        "main_sha": facts["main_sha"], "merge_commit": facts["merge_commit"],
+    })
+    return candidate
+
+
+def state_recover_merged(path: Path, issue: int, pr_number: int, *, backup_path: Path,
+                         manifest_path: Path, apply: bool = False,
+                         confirmation: str | None = None) -> dict[str, Any]:
+    """Preview or apply the single #162/#165 stale-state reconciliation."""
+    if issue != STATE_RECOVERY_ISSUE or pr_number != STATE_RECOVERY_PR:
+        raise PolicyError("This one-time recovery can only recover Issue #162 from PR #165.")
+    if apply and confirmation != STATE_RECOVERY_CONFIRMATION:
+        raise PolicyError(f"State write requires the exact confirmation phrase: {STATE_RECOVERY_CONFIRMATION}")
+    state_path = path.resolve(strict=True)
+    backup_path = backup_path.resolve(strict=False)
+    manifest_path = manifest_path.resolve(strict=False)
+    if state_path in {backup_path, manifest_path} or backup_path == manifest_path:
+        raise PolicyError("State, backup, and manifest paths must be different.")
+    if backup_path.exists() or manifest_path.exists():
+        raise PolicyError("Recovery backup or manifest already exists; refusing to overwrite.")
+
+    operator = getpass.getuser() or "unknown"
+    recorded_at = dt.datetime.now(dt.timezone.utc).isoformat()
+
+    def prepare(before_bytes: bytes, state: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any], bytes]:
+        before_sha256 = hashlib.sha256(before_bytes).hexdigest()
+        backup_sha256 = hashlib.sha256(before_bytes).hexdigest()
+        record, _ = _verify_state_recovery_preconditions(state)
+        candidate = _state_recovery_candidate(
+            state, record, facts, before_sha256, backup_sha256, backup_path, operator, recorded_at)
+        after_bytes = _recovery_json_bytes(candidate)
+        diff = "".join(difflib.unified_diff(
+            before_bytes.decode("utf-8").splitlines(keepends=True),
+            after_bytes.decode("utf-8").splitlines(keepends=True),
+            fromfile=str(state_path), tofile=f"{state_path} (recovery preview)"))
+        diff_sha256 = hashlib.sha256(diff.encode("utf-8")).hexdigest()
+        affected = next((event.get("affected_issues", []) for event in reversed(candidate.get("events", []))
+                         if isinstance(event, dict) and event.get("type") == "MAIN_SYNCED"), [])
+        summary = {
+            "status": "APPLIED" if apply else "DRY_RUN",
+            "issue": STATE_RECOVERY_ISSUE, "pr": STATE_RECOVERY_PR,
+            "before_state_sha256": before_sha256,
+            "after_state_sha256": hashlib.sha256(after_bytes).hexdigest(),
+            "backup_path": str(backup_path), "backup_sha256": backup_sha256,
+            "manifest_path": str(manifest_path), "diff_sha256": diff_sha256,
+            "proposed_main_sha": facts["main_sha"], "proposed_issue_state": "MERGED",
+            "proposed_ownership_state": "RELEASED", "issue_gate": "NOT_VERIFIED",
+            "release_gate": "NOT_RUN", "affected_issues": [str(number) for number in affected],
+            "operator": operator, "recorded_at": recorded_at,
+            "verified_github_facts": facts, "diff_unified": diff,
+        }
+        manifest = {
+            "schema_version": 1, "type": "SUPPLYPILOT_STATE_RECOVERY_PREVIEW",
+            "status": "PREPARED" if apply else "PREVIEW_ONLY",
+            "state_path": str(state_path), "backup_path": str(backup_path),
+            "backup_sha256": backup_sha256, "before_state_sha256": before_sha256,
+            "after_state_sha256": summary["after_state_sha256"], "diff_sha256": diff_sha256,
+            "diff_unified": diff, "verified_github_facts": facts,
+            "operator": operator, "recorded_at": recorded_at,
+            "issue_gate": "NOT_VERIFIED", "release_gate": "NOT_RUN",
+        }
+        return candidate, {"summary": summary, "manifest": manifest}, after_bytes
+
+    if apply:
+        with state_lock(state_path):
+            before_bytes = state_path.read_bytes()
+            state = json.loads(before_bytes.decode("utf-8-sig"))
+            if not isinstance(state, dict):
+                raise PolicyError("State file must contain a JSON object.")
+            facts = _verified_state_recovery_facts(state, issue, pr_number)
+            candidate, prepared, after_bytes = prepare(before_bytes, state)
+            _write_new_recovery_file(backup_path, before_bytes)
+            _write_new_recovery_file(manifest_path, _recovery_json_bytes(prepared["manifest"]))
+            atomic_write_json(state_path, candidate)
+            actual_sha256 = hashlib.sha256(state_path.read_bytes()).hexdigest()
+            if actual_sha256 != prepared["summary"]["after_state_sha256"]:
+                raise PolicyError("State write completed with an unexpected SHA-256; inspect recovery manifest.")
+            prepared["manifest"]["status"] = "COMMITTED"
+            prepared["manifest"]["state_after_sha256"] = actual_sha256
+            atomic_write_json(manifest_path, prepared["manifest"])
+            prepared["summary"]["status"] = "APPLIED"
+            return prepared["summary"]
+
+    lock_path = Path(str(state_path) + ".lock")
+    if lock_path.exists():
+        raise PolicyError("State is locked; dry-run refuses to inspect during a state update.")
+    before_bytes = state_path.read_bytes()
+    state = json.loads(before_bytes.decode("utf-8-sig"))
+    if not isinstance(state, dict):
+        raise PolicyError("State file must contain a JSON object.")
+    facts = _verified_state_recovery_facts(state, issue, pr_number)
+    _, prepared, after_bytes = prepare(before_bytes, state)
+    if state_path.read_bytes() != before_bytes or lock_path.exists():
+        raise PolicyError("State changed during dry-run; no recovery output was written.")
+    _write_new_recovery_file(backup_path, before_bytes)
+    _write_new_recovery_file(manifest_path, _recovery_json_bytes(prepared["manifest"]))
+    return prepared["summary"]
 
 
 def state_sync_main(path: Path, number: int) -> None:
@@ -2701,6 +3042,16 @@ def main(argv: list[str] | None = None) -> int:
     sync_main = state_sub.add_parser("sync-main")
     sync_main.add_argument("path")
     sync_main.add_argument("--issue", type=int, required=True)
+    recover_merged = state_sub.add_parser(
+        "recover-merged", help="one-time GitHub-verified recovery for Issue #162 / PR #165")
+    recover_merged.add_argument("path")
+    recover_merged.add_argument("--issue", type=int, default=STATE_RECOVERY_ISSUE)
+    recover_merged.add_argument("--pr", type=int, default=STATE_RECOVERY_PR)
+    recover_mode = recover_merged.add_mutually_exclusive_group()
+    recover_mode.add_argument("--dry-run", action="store_true", help="preview only (the default)")
+    recover_mode.add_argument("--apply", action="store_true", help="write after interactive confirmation")
+    recover_merged.add_argument("--backup-out", required=True)
+    recover_merged.add_argument("--manifest-out", required=True)
     adopt = state_sub.add_parser("adopt")
     adopt.add_argument("path")
     adopt.add_argument("record")
@@ -2765,6 +3116,17 @@ def main(argv: list[str] | None = None) -> int:
             print(json.dumps(read_json(args.path), ensure_ascii=False, indent=2))
         elif args.command == "state" and args.state_command == "sync-main":
             state_sync_main(Path(args.path), args.issue)
+        elif args.command == "state" and args.state_command == "recover-merged":
+            confirmation = None
+            if args.apply:
+                if not sys.stdin.isatty():
+                    raise PolicyError("State recovery apply requires an interactive terminal.")
+                confirmation = input(f"Type {STATE_RECOVERY_CONFIRMATION!r} to write the verified recovery: ")
+            result = state_recover_merged(
+                Path(args.path), args.issue, args.pr,
+                backup_path=Path(args.backup_out), manifest_path=Path(args.manifest_out),
+                apply=args.apply, confirmation=confirmation)
+            print(json.dumps(result, ensure_ascii=False, indent=2))
         elif args.command == "state" and args.state_command == "adopt":
             state_adopt(Path(args.path), read_json(args.record), args.authorized_issue)
         elif args.command == "state" and args.state_command == "resume":
