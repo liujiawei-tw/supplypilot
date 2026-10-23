@@ -863,6 +863,89 @@ class StateTests(unittest.TestCase):
             self.assertEqual([["mvnw.cmd", "test", "-Dtest=UserServiceTests"]], plan["required_commands"])
             self.assertIn("mapped Backend tests: UserServiceTests", plan["required_tests"])
 
+    def test_issue_gate_maps_materials_page_to_its_ui_and_api_tests(self):
+        with tempfile.TemporaryDirectory() as temp:
+            path = self._make_state(temp)
+            orch.state_transition(path, 9, "READY_TO_CODE", self._ready_evidence())
+            orch.state_transition(path, 9, "IMPLEMENTING", {"authorized_issue": 9})
+            head = self._commit_impact_paths(path, {
+                "frontend/src/pages/Materials/MaterialsPage.tsx": "export default function MaterialsPage() {}\n"
+            })
+            plan = orch._issue_gate_impact_plan(Path(self._state_worktree), self._state_base_sha, head)
+            self.assertEqual([["npm", "test", "--", "tests/masterData.test.tsx", "tests/masterDataApi.test.ts"],
+                              ["npm", "run", "lint"], ["npm", "run", "build"]], plan["required_commands"])
+            self.assertNotIn("complete Frontend Vitest suite", " ".join(plan["required_tests"]))
+
+    def test_issue_gate_maps_documents_page_and_keeps_e2e_release_pending(self):
+        with tempfile.TemporaryDirectory() as temp:
+            path = self._make_state(temp)
+            orch.state_transition(path, 9, "READY_TO_CODE", self._ready_evidence())
+            orch.state_transition(path, 9, "IMPLEMENTING", {"authorized_issue": 9})
+            head = self._commit_impact_paths(path, {
+                "frontend/src/pages/Documents/DocumentsPage.tsx": "export default function DocumentsPage() {}\n"
+            })
+            plan = orch._issue_gate_impact_plan(Path(self._state_worktree), self._state_base_sha, head)
+            self.assertIn(["npm", "test", "--", "tests/semanticIndexApi.test.ts",
+                           "tests/semanticOperationsPanel.test.tsx", "tests/sp806.test.tsx",
+                           "tests/sp806Api.test.ts"], plan["required_commands"])
+            self.assertNotIn("browser_rag_gemini_e2e", plan["not_applicable"])
+            self.assertIn("browser_rag_gemini_e2e", plan["release_pending"])
+
+    def test_issue_gate_maps_purchase_order_page_to_sp805_and_api_tests(self):
+        with tempfile.TemporaryDirectory() as temp:
+            path = self._make_state(temp)
+            orch.state_transition(path, 9, "READY_TO_CODE", self._ready_evidence())
+            orch.state_transition(path, 9, "IMPLEMENTING", {"authorized_issue": 9})
+            head = self._commit_impact_paths(path, {
+                "frontend/src/pages/PurchaseOrders/PurchaseOrdersPage.tsx": "export default function PurchaseOrdersPage() {}\n"
+            })
+            plan = orch._issue_gate_impact_plan(Path(self._state_worktree), self._state_base_sha, head)
+            self.assertIn(["npm", "test", "--", "tests/purchaseOrderApi.test.ts",
+                           "tests/sp805.test.tsx", "tests/sp805Api.test.ts"], plan["required_commands"])
+            self.assertNotIn("complete Frontend Vitest suite", " ".join(plan["required_tests"]))
+
+    def test_issue_gate_expands_unknown_or_shared_frontend_source_to_full_suite(self):
+        for changed_path in ("frontend/src/components/Widget.tsx", "frontend/src/api/material.ts"):
+            with self.subTest(path=changed_path), tempfile.TemporaryDirectory() as temp:
+                path = self._make_state(temp)
+                orch.state_transition(path, 9, "READY_TO_CODE", self._ready_evidence())
+                orch.state_transition(path, 9, "IMPLEMENTING", {"authorized_issue": 9})
+                head = self._commit_impact_paths(path, {changed_path: "export const Widget = () => null;\n"})
+                plan = orch._issue_gate_impact_plan(Path(self._state_worktree), self._state_base_sha, head)
+                self.assertIn(["npm", "test"], plan["required_commands"])
+                self.assertIn("complete Frontend Vitest suite", " ".join(plan["required_tests"]))
+
+    def test_issue_gate_backend_runtime_config_is_not_docker_or_e2e_not_applicable(self):
+        with tempfile.TemporaryDirectory() as temp:
+            path = self._make_state(temp)
+            orch.state_transition(path, 9, "READY_TO_CODE", self._ready_evidence())
+            orch.state_transition(path, 9, "IMPLEMENTING", {"authorized_issue": 9})
+            head = self._commit_impact_paths(path, {
+                "backend/src/main/resources/application-prod.yml": "spring:\n  profiles: prod\n"
+            })
+            plan = orch._issue_gate_impact_plan(Path(self._state_worktree), self._state_base_sha, head)
+            self.assertIn(["mvnw.cmd", "test"], plan["required_commands"])
+            self.assertIn(["npm", "test"], plan["required_commands"])
+            self.assertNotIn("compose_docker", plan["not_applicable"])
+            self.assertNotIn("browser_rag_gemini_e2e", plan["not_applicable"])
+            self.assertIn("compose_docker", plan["release_pending"])
+            self.assertIn("backend_runtime_configuration", plan["release_pending"])
+            self.assertIn("browser_rag_gemini_e2e", plan["release_pending"])
+
+    def test_verification_test_count_uses_vitest_cases_and_avoids_ambiguous_maven_totals(self):
+        self.assertEqual(213, orch._verification_test_count(
+            ["npm", "test"], "Test Files 24 passed (24)\nTests 213 passed (213)\n"))
+        self.assertIsNone(orch._verification_test_count(["npm", "test"], "Test Files 24 passed (24)\n"))
+        maven = ("Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.1 s -- in ATest\n"
+                 "Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.1 s -- in BTest\n"
+                 "Tests run: 5, Failures: 0, Errors: 0, Skipped: 0\n")
+        self.assertEqual(5, orch._verification_test_count(["mvnw.cmd", "test"], maven))
+        self.assertIsNone(orch._verification_test_count(
+            ["mvnw.cmd", "test"], "Tests run: 2, Failures: 0, Errors: 0, Skipped: 0\n"
+            "Tests run: 2, Failures: 0, Errors: 0, Skipped: 0\n"))
+        self.assertEqual(2, orch._verification_test_count(
+            ["python", "-m", "unittest", "scripts.tests.example"], "Ran 2 tests in 0.01s\nOK\n"))
+
     def test_issue_gate_maps_frontend_only_and_runs_frontend_lint_and_build(self):
         with tempfile.TemporaryDirectory() as temp:
             path = self._make_state(temp)
@@ -908,6 +991,19 @@ class StateTests(unittest.TestCase):
             self.assertNotIn("frontend_vitest", plan["not_applicable"])
             self.assertNotIn("backend_maven", plan["not_applicable"])
 
+    def test_issue_gate_backend_service_uses_conservative_backend_suite(self):
+        with tempfile.TemporaryDirectory() as temp:
+            path = self._make_state(temp)
+            orch.state_transition(path, 9, "READY_TO_CODE", self._ready_evidence())
+            orch.state_transition(path, 9, "IMPLEMENTING", {"authorized_issue": 9})
+            head = self._commit_impact_paths(path, {
+                "backend/src/main/java/com/supplypilot/document/service/DocumentService.java": "class DocumentService {}\n"
+            })
+            plan = orch._issue_gate_impact_plan(Path(self._state_worktree), self._state_base_sha, head)
+            self.assertIn(["mvnw.cmd", "test"], plan["required_commands"])
+            self.assertNotIn(["npm", "test"], plan["required_commands"])
+            self.assertIn("frontend_vitest", plan["not_applicable"])
+
     def test_issue_gate_rejects_unmapped_path(self):
         with tempfile.TemporaryDirectory() as temp:
             path = self._make_state(temp)
@@ -916,6 +1012,18 @@ class StateTests(unittest.TestCase):
             head = self._commit_impact_paths(path, {"mystery/runtime.py": "VALUE = 1\n"})
             with self.assertRaisesRegex(orch.PolicyError, "impact is not mapped"):
                 orch._issue_gate_impact_plan(Path(self._state_worktree), self._state_base_sha, head)
+
+    def test_issue_gate_deployment_only_changes_are_blocked_with_release_pending_reason(self):
+        for changed_path in ("compose.dev.yml", "docker/backend/entrypoint.sh", "Dockerfile"):
+            with self.subTest(path=changed_path), tempfile.TemporaryDirectory() as temp:
+                path = self._make_state(temp)
+                orch.state_transition(path, 9, "READY_TO_CODE", self._ready_evidence())
+                orch.state_transition(path, 9, "IMPLEMENTING", {"authorized_issue": 9})
+                head = self._commit_impact_paths(path, {changed_path: "# deployment change\n"})
+                with self.assertRaisesRegex(
+                    orch.PolicyError, "Issue Gate BLOCKED.*RELEASE_PENDING"
+                ):
+                    orch._issue_gate_impact_plan(Path(self._state_worktree), self._state_base_sha, head)
 
     def test_issue_gate_runs_every_required_command_and_refuses_partial_pass(self):
         with tempfile.TemporaryDirectory() as temp:
@@ -953,6 +1061,30 @@ class StateTests(unittest.TestCase):
             self.assertEqual([head, head, head], [item["sha"] for item in impact["actual_results"]])
             self.assertEqual([3, None, None], [item["test_count"] for item in impact["actual_results"]])
             self.assertTrue(all(item["artifact"]["sha256"] for item in impact["actual_results"]))
+
+    def test_issue_gate_revalidation_rejects_tampered_release_pending_evidence(self):
+        with tempfile.TemporaryDirectory() as temp:
+            path = self._make_state(temp)
+            orch.state_transition(path, 9, "READY_TO_CODE", self._ready_evidence())
+            orch.state_transition(path, 9, "IMPLEMENTING", {"authorized_issue": 9})
+            head = self._commit_impact_paths(path, {
+                "frontend/vite.config.ts": "export default {};\n"
+            })
+            outputs = [Mock(returncode=0, stdout="Tests 2 passed (2)"),
+                       Mock(returncode=0, stdout="lint complete"),
+                       Mock(returncode=0, stdout="build complete")]
+            with patch.object(orch, "_execute_gate_command", side_effect=outputs):
+                orch.state_transition(path, 9, "ISSUE_GATE_VERIFIED", {"sha": head})
+            state = orch.read_json(path)
+            record = state["issues"]["9"]
+            self.assertIn("browser_rag_gemini_e2e", record["issue_gate"]["impact"]["release_pending"])
+            self.assertIsNone(orch._issue_gate_failure(state, record, head))
+            record["issue_gate"]["impact"]["release_pending"] = {}
+            orch.atomic_write_json(path, state)
+            changed = orch.read_json(path)
+            failure = orch._issue_gate_failure(changed, changed["issues"]["9"], head)
+            self.assertIsNotNone(failure)
+            self.assertIn("impact plan differs from the current committed diff", failure)
 
     def test_state_init_rejects_unverified_or_arbitrary_main_sha(self):
         with tempfile.TemporaryDirectory() as temp:

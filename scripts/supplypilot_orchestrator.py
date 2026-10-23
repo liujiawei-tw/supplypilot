@@ -460,7 +460,7 @@ def _issue_gate_failure(state: dict[str, Any], record: dict[str, Any], current_h
         return f"Issue Gate impact plan cannot be revalidated: {exc}"
     if any(impact.get(key) != current_plan.get(key) for key in (
             "base_sha", "head_sha", "changed_paths", "behaviors", "required_tests",
-            "required_commands", "not_applicable")):
+            "required_commands", "not_applicable", "release_pending")):
         return "Issue Gate impact plan differs from the current committed diff."
     return None
 
@@ -1955,6 +1955,19 @@ def _safe_frontend_test_path(value: str) -> bool:
             and not any(re.search(r"[%!&|<>^()]", part) for part in relative.parts))
 
 
+# Only page entry points with direct UI/API coverage are mapped narrowly.
+_FRONTEND_PAGE_TESTS = {
+    "frontend/src/pages/Materials/MaterialsPage.tsx": (
+        "frontend/tests/masterData.test.tsx", "frontend/tests/masterDataApi.test.ts"),
+    "frontend/src/pages/Documents/DocumentsPage.tsx": (
+        "frontend/tests/sp806.test.tsx", "frontend/tests/sp806Api.test.ts",
+        "frontend/tests/semanticOperationsPanel.test.tsx", "frontend/tests/semanticIndexApi.test.ts"),
+    "frontend/src/pages/PurchaseOrders/PurchaseOrdersPage.tsx": (
+        "frontend/tests/sp805.test.tsx", "frontend/tests/sp805Api.test.ts",
+        "frontend/tests/purchaseOrderApi.test.ts"),
+}
+
+
 def _issue_gate_impact_plan(root: Path, base_sha: Any, head_sha: Any) -> dict[str, Any]:
     """Build a conservative fixed-command test plan from the committed change paths."""
     if not isinstance(base_sha, str) or not isinstance(head_sha, str) or not base_sha or not head_sha:
@@ -1981,8 +1994,10 @@ def _issue_gate_impact_plan(root: Path, base_sha: Any, head_sha: Any) -> dict[st
                      "backend/src/main/resources/", "backend/pom.xml")
     frontend_roots = ("frontend/src/", "frontend/tests/", "frontend/package.json",
                       "frontend/vite.config.", "frontend/vitest.config.", "frontend/tsconfig")
+    deployment_prefixes = ("compose", "docker/", "Dockerfile", "backend/Dockerfile", "frontend/Dockerfile")
     backend_paths: list[str] = []
     frontend_paths: list[str] = []
+    deployment_paths: list[str] = []
     docs_paths: list[str] = []
     affects_orchestrator = False
     cross_module = False
@@ -2015,6 +2030,8 @@ def _issue_gate_impact_plan(root: Path, base_sha: Any, head_sha: Any) -> dict[st
                     or re.search(r"(api.?client|axios|auth|router|route|request|response)",
                                  filename)):
                 cross_module = True
+        elif path.startswith(deployment_prefixes):
+            deployment_paths.append(path)
         else:
             unknown.append(path)
     if unknown:
@@ -2074,20 +2091,26 @@ def _issue_gate_impact_plan(root: Path, base_sha: Any, head_sha: Any) -> dict[st
                           "required_tests": [backend_tests]})
 
     if frontend_paths:
-        selected_tests = [path for path in frontend_paths if path.startswith("frontend/tests/")
-                          and path.endswith((".test.ts", ".test.tsx", ".test.js", ".test.jsx"))]
+        selected_tests = {
+            path for path in frontend_paths
+            if path.startswith("frontend/tests/")
+            and path.endswith((".test.ts", ".test.tsx", ".test.js", ".test.jsx"))
+        }
         source_changes = [path for path in frontend_paths if path.startswith("frontend/src/")]
+        for path in source_changes:
+            selected_tests.update(_FRONTEND_PAGE_TESTS.get(path, ()))
         frontend_build_changes = [path for path in frontend_paths if path.startswith((
             "frontend/src/", "frontend/package.json", "frontend/vite.config.", "frontend/vitest.config.",
             "frontend/tsconfig"))]
-        if source_changes:
-            selected_tests = []
-        if selected_tests and not cross_module:
-            frontend_command = ["npm", "test", "--", *[path.removeprefix("frontend/") for path in selected_tests]]
-            frontend_tests = "changed Frontend tests: " + ", ".join(selected_tests)
+        has_unmapped_source = any(path not in _FRONTEND_PAGE_TESTS for path in source_changes)
+        if selected_tests and not cross_module and not has_unmapped_source:
+            ordered_tests = sorted(selected_tests)
+            frontend_command = ["npm", "test", "--",
+                                *[path.removeprefix("frontend/") for path in ordered_tests]]
+            frontend_tests = "mapped Frontend tests: " + ", ".join(ordered_tests)
         else:
             frontend_command = ["npm", "test"]
-            frontend_tests = "complete Frontend Vitest suite (conservative UI/shared dependency coverage)"
+            frontend_tests = "complete Frontend Vitest suite (unmapped, shared or cross-module dependency)"
         commands.append(frontend_command)
         if frontend_build_changes or cross_module:
             commands.extend([["npm", "run", "lint"], ["npm", "run", "build"]])
@@ -2108,21 +2131,46 @@ def _issue_gate_impact_plan(root: Path, base_sha: Any, head_sha: Any) -> dict[st
                           "required_tests": ["complete Frontend Vitest suite", "Frontend lint", "Frontend production build"]})
 
     if not commands:
+        if deployment_paths:
+            raise PolicyError(
+                "Issue Gate BLOCKED: deployment-only changes have no approved Issue Gate runner; "
+                "Docker/Compose validation is RELEASE_PENDING for the Release Gate: "
+                + ", ".join(deployment_paths)
+            )
         raise PolicyError("This change has no mapped executable Issue Gate suite; fail closed until its behavior is mapped.")
 
     if not frontend_paths and not cross_module:
         not_applicable["frontend_vitest"] = "Diff contains no Frontend source, tests, API client, or shared UI contract paths."
     if not backend_paths and not cross_module:
         not_applicable["backend_maven"] = "Diff contains no Backend implementation, test, schema, transaction, authorization, or API contract paths."
-    if not any(path.startswith(("compose", "docker/", "Dockerfile", "backend/Dockerfile", "frontend/Dockerfile"))
-               for path in paths):
-        not_applicable["compose_docker"] = "Diff contains no Compose, Dockerfile, image, or deployment configuration."
-    if not any(token in " ".join(paths).casefold() for token in ("browser", "rag", "gemini")):
-        not_applicable["browser_rag_gemini_e2e"] = "Diff contains no Browser flow, RAG, Gemini, or external data boundary."
+    release_pending: dict[str, str] = {}
+    backend_runtime_paths = [path for path in backend_paths
+                             if path.startswith(("backend/src/main/", "backend/pom.xml"))]
+    frontend_runtime_paths = [path for path in frontend_paths if not path.startswith("frontend/tests/")]
+    runtime_changes = bool(backend_runtime_paths or frontend_runtime_paths or deployment_paths)
+    backend_configuration = [path for path in backend_paths
+                             if path.startswith("backend/src/main/resources/")
+                             and Path(path).suffix.casefold() in {".yml", ".yaml", ".properties"}]
+    if backend_configuration:
+        release_pending["backend_runtime_configuration"] = (
+            "Backend runtime configuration requires Release Candidate profile and deployment validation: "
+            + ", ".join(backend_configuration))
+    if runtime_changes:
+        release_pending["compose_docker"] = (
+            "Application or deployment inputs changed; Docker/Compose image validation remains required at Release Gate.")
+        release_pending["browser_rag_gemini_e2e"] = (
+            "Application behavior may affect Browser, Documents/RAG, provider configuration or API boundaries; "
+            "run the delivery-scope E2E at Release Gate.")
+    else:
+        not_applicable["compose_docker"] = (
+            "Diff contains no application runtime, Dockerfile, Compose, image or deployment input.")
+        not_applicable["browser_rag_gemini_e2e"] = (
+            "Diff contains no application behavior, Browser flow, Documents/RAG, provider or API boundary change.")
     return {"base_sha": base_sha, "head_sha": head_sha, "changed_paths": paths,
             "behaviors": behaviors,
             "required_tests": [test for behavior in behaviors for test in behavior["required_tests"]],
-            "required_commands": commands, "not_applicable": not_applicable}
+            "required_commands": commands, "not_applicable": not_applicable,
+            "release_pending": release_pending}
 
 
 def _verification_output_contains_test_run(command: list[str], output: str,
@@ -2158,17 +2206,26 @@ def _verification_test_count(command: list[str], output: str) -> int | None:
         match = re.search(r"Ran\s+([1-9]\d*)\s+tests?", output, re.IGNORECASE)
         return int(match.group(1)) if match else None
     if executable in {"npm", "npm.cmd", "npm.exe"} and args and args[0] == "test":
-        counts = [int(value) for value in re.findall(r"\b(\d+)\s+(?:tests?\s+)?(?:passed|xfailed|xpassed)\b",
-                                                     output, re.IGNORECASE)]
-        if counts:
-            return sum(counts)
-        match = re.search(r"\bTests?\s+(\d+)\s+passed\b", output, re.IGNORECASE)
-        return int(match.group(1)) if match else None
+        # Vitest's Tests summary is the case count; Test Files is not.
+        summaries = re.findall(r"^\s*Tests\s+(\d+)\s+passed\b",
+                               output, re.IGNORECASE | re.MULTILINE)
+        return int(summaries[-1]) if summaries else None
     if executable in {"mvn", "mvn.cmd", "mvnw", "mvnw.cmd"}:
-        summaries = re.findall(
+        pattern = re.compile(
             r"Tests run:\s*(\d+),\s*Failures:\s*\d+,\s*Errors:\s*\d+,\s*Skipped:\s*\d+",
-            output, re.IGNORECASE)
-        return sum(int(item[0]) for item in summaries) if summaries else None
+            re.IGNORECASE)
+        summaries = []
+        for match in pattern.finditer(output):
+            line_start = output.rfind("\n", 0, match.start()) + 1
+            line_end = output.find("\n", match.end())
+            if line_end < 0:
+                line_end = len(output)
+            line = output[line_start:line_end]
+            summaries.append((int(match.group(1)), line))
+        detailed = [count for count, row in summaries if re.search(r"\s-- in\s+\S+", row)]
+        if detailed:
+            return sum(detailed)
+        return summaries[0][0] if len(summaries) == 1 else None
     return None
 
 
