@@ -1,17 +1,12 @@
 package com.supplypilot.document.rag;
 
-import java.text.Normalizer;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
-import java.util.TreeSet;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import com.supplypilot.common.exception.BusinessException;
 import com.supplypilot.common.exception.ErrorCode;
@@ -28,8 +23,6 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class DocumentRetrievalService {
 
-    private static final Pattern IDENTIFIER = Pattern.compile(
-            "(?i)(?<![\\p{L}\\p{N}])[A-Z0-9]+(?:[-_/][A-Z0-9]+)+(?![\\p{L}\\p{N}])");
     private static final int LIMIT = 5;
     private final DocumentChunkRepository chunks;
     private final EmbeddingProvider embeddings;
@@ -54,6 +47,9 @@ public class DocumentRetrievalService {
         }
 
         Set<String> identifiers = identifiers(question);
+        Set<String> supplierIdentifiers = identifiers.stream()
+                .filter(identifier -> identifier.startsWith("SUP-")).collect(java.util.stream.Collectors.toSet());
+        Set<String> requestedMaterialIdentifiers = extractMaterialIdentifiers(identifiers);
         List<RetrievedChunk> result = new ArrayList<>();
         for (List<DocumentChunk> source : byDocument.values()) {
             source.sort(Comparator.comparingInt(DocumentChunk::getChunkIndex));
@@ -62,17 +58,15 @@ public class DocumentRetrievalService {
             String sourceHash = SemanticBackfillService.sourceHash(source);
             OutboundDocumentPolicy.Decision decision = policy.inspect(document, originalChunks, sourceHash);
             if (!"APPROVED".equals(decision.status()) || decision.safeChunks().size() != source.size()) continue;
+            if (!isSupplierDocumentCandidate(document, supplierIdentifiers, decision.safeChunks())) continue;
 
-            double metadataScore = metadataTokenScore(question, metadata(document));
             for (int index = 0; index < source.size(); index++) {
                 DocumentChunk original = source.get(index);
                 String safeContent = decision.safeChunks().get(index);
                 if (safeContent == null || safeContent.isBlank()) continue;
+                if (hasConflictingMaterialIdentifier(safeContent, requestedMaterialIdentifiers)) continue;
                 double contentScore = cosine(queryEmbedding, EmbeddingCodec.decode(original.getEmbedding()));
-                double score = Math.max(contentScore, metadataScore * 0.8);
-                if (containsIdentifier(safeContent, identifiers) || containsIdentifier(metadata(document), identifiers)) {
-                    score = 1.0;
-                }
+                double score = Math.max(contentScore, tokenScore(question, safeContent));
                 if (score <= 0) continue;
                 DocumentChunk safe = safeContent.equals(original.getContent()) ? original
                         : DocumentChunk.create(document, original.getChunkIndex(), original.getStartOffset(),
@@ -103,34 +97,40 @@ public class DocumentRetrievalService {
         }
     }
 
-    private String metadata(DocumentMetadata document) {
-        var supplier = document.getSupplier();
-        return String.join(" ", List.of(
-                document.getTitle() == null ? "" : document.getTitle(),
-                document.getVersion() == null ? "" : document.getVersion(),
-                document.getDocumentType() == null ? "" : document.getDocumentType().name(),
-                supplier == null || supplier.getName() == null ? "" : supplier.getName(),
-                supplier == null || supplier.getCode() == null ? "" : supplier.getCode()));
+    private boolean isSupplierDocumentCandidate(DocumentMetadata document, Set<String> supplierIdentifiers,
+                                                List<String> safeChunks) {
+        if (supplierIdentifiers.isEmpty()) return true;
+        Set<String> metadataSupplierIdentifiers = document.getSupplier() == null
+                || document.getSupplier().getCode() == null
+                ? Set.of() : IdentifierMatcher.find(document.getSupplier().getCode()).stream()
+                .filter(identifier -> identifier.startsWith("SUP-")).collect(java.util.stream.Collectors.toSet());
+        // Metadata admits the document as a candidate; chunk relevance and evidence remain content-only.
+        if (!metadataSupplierIdentifiers.isEmpty()) return metadataSupplierIdentifiers.containsAll(supplierIdentifiers);
+        return safeChunks.stream().anyMatch(content -> IdentifierMatcher.containsAll(content, supplierIdentifiers));
     }
 
-    private double metadataTokenScore(String question, String metadata) {
+    private boolean hasConflictingMaterialIdentifier(String content, Set<String> materialIdentifiers) {
+        if (materialIdentifiers.isEmpty()) return false;
+        Set<String> contentMaterials = extractMaterialIdentifiers(IdentifierMatcher.find(content));
+        return !contentMaterials.isEmpty()
+                && materialIdentifiers.stream().noneMatch(contentMaterials::contains);
+    }
+
+    private double tokenScore(String question, String content) {
         Set<String> queryTokens = new HashSet<>(LocalLexicalEmbeddingProvider.tokens(question));
         if (queryTokens.isEmpty()) return 0;
-        Set<String> metadataTokens = new HashSet<>(LocalLexicalEmbeddingProvider.tokens(metadata));
-        long matchingTokens = queryTokens.stream().filter(metadataTokens::contains).count();
+        Set<String> contentTokens = new HashSet<>(LocalLexicalEmbeddingProvider.tokens(content));
+        long matchingTokens = queryTokens.stream().filter(contentTokens::contains).count();
         return (double) matchingTokens / queryTokens.size();
     }
 
     private Set<String> identifiers(String text) {
-        Set<String> result = new TreeSet<>();
-        Matcher matcher = IDENTIFIER.matcher(Normalizer.normalize(text, Normalizer.Form.NFKC));
-        while (matcher.find()) result.add(matcher.group().toLowerCase(Locale.ROOT));
-        return result;
+        return IdentifierMatcher.find(text);
     }
 
-    private boolean containsIdentifier(String value, Set<String> identifiers) {
-        String normalized = Normalizer.normalize(value, Normalizer.Form.NFKC).toLowerCase(Locale.ROOT);
-        return identifiers.stream().anyMatch(normalized::contains);
+    private Set<String> extractMaterialIdentifiers(Set<String> identifiers) {
+        return identifiers.stream().filter(identifier -> identifier.startsWith("MAT-")
+                || identifier.startsWith("MATERIAL-")).collect(java.util.stream.Collectors.toSet());
     }
 
     private double cosine(List<Double> left, List<Double> right) {
