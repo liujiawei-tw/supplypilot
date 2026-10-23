@@ -20,6 +20,14 @@ import type { ApiErrorResponse, PageResponse } from '../../types/api';
 const statuses = ['DRAFT', 'APPROVED', 'ORDERED', 'RECEIVED', 'REJECTED', 'CANCELLED'] as const;
 const sortable = new Set(['id', 'poNumber', 'status', 'expectedDeliveryDate', 'createdAt', 'updatedAt', 'orderedAt']);
 type PurchaseOrderViewMode = 'kanban' | 'list';
+type PurchaseOrderBoardResult = {
+  query: PurchaseOrderQuery;
+  retry: number;
+} & (
+  | { state: 'ready'; snapshot: PurchaseOrderStageBoardSnapshot }
+  | { state: 'incomplete'; reason: string }
+  | { state: 'error'; error: ApiErrorResponse }
+);
 
 function initialViewMode(): PurchaseOrderViewMode {
   const isMobile = typeof window !== 'undefined'
@@ -36,10 +44,7 @@ export default function PurchaseOrdersPage() {
   const [error, setError] = useState<ApiErrorResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<PurchaseOrderViewMode>(initialViewMode);
-  const [boardState, setBoardState] = useState<'loading' | 'error' | 'incomplete' | 'ready'>('loading');
-  const [boardSnapshot, setBoardSnapshot] = useState<PurchaseOrderStageBoardSnapshot | null>(null);
-  const [boardError, setBoardError] = useState<ApiErrorResponse | null>(null);
-  const [boardReason, setBoardReason] = useState<string | undefined>();
+  const [boardResult, setBoardResult] = useState<PurchaseOrderBoardResult | null>(null);
   const [boardRetry, setBoardRetry] = useState(0);
   const [query, setQuery] = useState<PurchaseOrderQuery>({ page: 0, size: 20, sort: 'createdAt,desc' });
   const [createOpen, setCreateOpen] = useState(false);
@@ -75,25 +80,18 @@ export default function PurchaseOrdersPage() {
     }
 
     const current = ++boardRequestId.current;
-    setBoardState('loading');
-    setBoardSnapshot(null);
-    setBoardError(null);
-    setBoardReason(undefined);
     void purchaseOrderStageGateway.readCompleteBoard(query)
       .then((result) => {
         if (current !== boardRequestId.current) return;
         if (result.kind === 'ready') {
-          setBoardSnapshot(result.snapshot);
-          setBoardState('ready');
+          setBoardResult({ query, retry: boardRetry, state: 'ready', snapshot: result.snapshot });
         } else {
-          setBoardReason(result.reason);
-          setBoardState('incomplete');
+          setBoardResult({ query, retry: boardRetry, state: 'incomplete', reason: result.reason });
         }
       })
       .catch((cause) => {
         if (current !== boardRequestId.current) return;
-        setBoardError(toApiError(cause));
-        setBoardState('error');
+        setBoardResult({ query, retry: boardRetry, state: 'error', error: toApiError(cause) });
       });
 
     return () => {
@@ -101,6 +99,13 @@ export default function PurchaseOrdersPage() {
     };
   }, [boardRetry, query, viewMode]);
   useEffect(() => { void listAssignableUsers().then(setAssignableUsers).catch(() => setAssignableUsers([])); }, []);
+
+  const currentBoardResult = boardResult?.query === query && boardResult.retry === boardRetry ? boardResult : null;
+  const boardState = currentBoardResult?.state ?? 'loading';
+  const boardSnapshot = currentBoardResult?.state === 'ready' ? currentBoardResult.snapshot : null;
+  const boardError = currentBoardResult?.state === 'error' ? currentBoardResult.error : null;
+  const boardReason = currentBoardResult?.state === 'incomplete' ? currentBoardResult.reason : undefined;
+  const boardViewKey = JSON.stringify([query, boardRetry, boardState]);
 
   const changeOwner = async (po: PurchaseOrderResponse, value: number | 'claim') => {
     if (ownerSubmittingRef.current || ownerVerificationId !== null) return;
@@ -180,7 +185,11 @@ export default function PurchaseOrdersPage() {
         aria-label="採購單檢視模式"
         value={viewMode}
         options={[{ label: '看板', value: 'kanban' }, { label: '列表', value: 'list' }]}
-        onChange={(value) => setViewMode(value as PurchaseOrderViewMode)}
+        onChange={(value) => {
+          const nextMode = value as PurchaseOrderViewMode;
+          if (nextMode === 'kanban' && viewMode !== 'kanban') setBoardRetry((current) => current + 1);
+          setViewMode(nextMode);
+        }}
       />
     </div>
     {viewMode === 'list' && error && <ErrorState title="採購單清單載入失敗" error={error} onRetry={() => void load()} />}
@@ -195,12 +204,14 @@ export default function PurchaseOrdersPage() {
     {viewMode === 'list' && ownerError && <ErrorState title={ownerVerificationId !== null ? '負責人操作結果待查核' : '負責人操作失敗'} error={ownerError} operation="mutation" />}
 
     {viewMode === 'kanban' ? <PurchaseOrderKanban
+      key={boardViewKey}
       state={boardState}
       snapshot={boardSnapshot}
       gateway={purchaseOrderStageGateway}
       error={boardError}
       reason={boardReason}
       onRetry={() => setBoardRetry((current) => current + 1)}
+      onRefresh={() => setBoardRetry((current) => current + 1)}
     /> : <Table rowKey="id" columns={columns} dataSource={data?.content ?? []} loading={loading}
       locale={{ emptyText: <EmptyState simple description="沒有符合條件的 Purchase Order" /> }}
       scroll={{ x: true }}

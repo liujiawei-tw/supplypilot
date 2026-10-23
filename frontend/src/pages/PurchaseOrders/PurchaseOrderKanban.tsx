@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { Alert, Badge, Button, Card, Empty, Modal, Space, Tag, Typography } from 'antd';
 import { Link, useNavigate } from 'react-router-dom';
 import type { ApiErrorResponse } from '../../types/api';
@@ -33,6 +33,7 @@ interface PurchaseOrderKanbanProps {
   error?: ApiErrorResponse | Error | null;
   reason?: string;
   onRetry?: () => void;
+  onRefresh?: () => void;
 }
 
 function stageLabel(stage: PurchaseOrderStage | null): string {
@@ -78,7 +79,7 @@ function confirmationDescription(transition: PurchaseOrderStageTransition): stri
   }
 }
 
-export default function PurchaseOrderKanban({ state, snapshot, gateway, error, reason, onRetry }: PurchaseOrderKanbanProps) {
+export default function PurchaseOrderKanban({ state, snapshot, gateway, error, reason, onRetry, onRefresh }: PurchaseOrderKanbanProps) {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [items, setItems] = useState<PurchaseOrderResponse[]>(snapshot?.purchaseOrders ?? []);
@@ -92,10 +93,6 @@ export default function PurchaseOrderKanban({ state, snapshot, gateway, error, r
   const [verificationState, setVerificationState] = useState<'required' | 'checking' | 'failed' | 'verified' | null>(null);
   const [verificationError, setVerificationError] = useState<ApiErrorResponse | null>(null);
   const [announcement, setAnnouncement] = useState('');
-
-  useEffect(() => {
-    if (snapshot) setItems(snapshot.purchaseOrders);
-  }, [snapshot]);
 
   const canUse = (po: PurchaseOrderResponse, transition: PurchaseOrderStageTransition) =>
     !!user
@@ -129,6 +126,7 @@ export default function PurchaseOrderKanban({ state, snapshot, gateway, error, r
       setItems((current) => current.map((item) => item.id === latest.id ? latest : item));
       setPending(null);
       setAnnouncement(`${latest.poNumber} 已重新查詢後端狀態：${stageLabel(latest.stage)}。`);
+      onRefresh?.();
     } catch (cause) {
       const committedReadFailure = cause instanceof PurchaseOrderStageCommittedReadError;
       const errorForDisplay = committedReadFailure ? toApiError(cause.originalError) : toApiError(cause);
@@ -162,6 +160,7 @@ export default function PurchaseOrderKanban({ state, snapshot, gateway, error, r
       setVerificationState('verified');
       setOperationError(null);
       setAnnouncement(`已重新查詢 ${latest.poNumber}：${stageLabel(latest.stage)}。請重新審閱後再開始新的操作。`);
+      onRefresh?.();
     } catch (cause) {
       setVerificationState('failed');
       setVerificationError(toApiError(cause));
