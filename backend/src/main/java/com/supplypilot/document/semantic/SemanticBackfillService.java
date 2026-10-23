@@ -93,7 +93,7 @@ public class SemanticBackfillService {
         }
     }
 
-    static String sourceHash(List<DocumentChunk> chunks) {
+    public static String sourceHash(List<DocumentChunk> chunks) {
         try {
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
             for (DocumentChunk chunk : chunks) {

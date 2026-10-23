@@ -64,11 +64,28 @@ public class OutboundDocumentPolicy {
                 || LONG_NUMBER.matcher(text).find() || DOCUMENT_PERSONAL_CONTEXT.matcher(text).find())) {
             return new Decision("REQUIRES_REVIEW", "SENSITIVE_BUSINESS_OR_CREDENTIAL_DATA", List.of());
         }
-        List<String> safe = chunks.stream().map(text -> EMAIL.matcher(text).replaceAll("[EMAIL_REDACTED]"))
-                .map(text -> TAIWAN_ID.matcher(text).replaceAll("[ID_REDACTED]"))
-                .map(text -> PHONE.matcher(text).replaceAll("[PHONE_REDACTED]"))
+        List<String> safe = chunks.stream().map(text -> redactAtSameOffsets(text, EMAIL, "[EMAIL]"))
+                .map(text -> redactAtSameOffsets(text, TAIWAN_ID, "[ID]"))
+                .map(text -> redactAtSameOffsets(text, PHONE, "[PHONE]"))
                 .toList();
         return new Decision("APPROVED", null, safe);
+    }
+
+    private String redactAtSameOffsets(String text, Pattern pattern, String marker) {
+        var matcher = pattern.matcher(text);
+        StringBuilder sanitized = new StringBuilder(text.length());
+        int copiedUntil = 0;
+        while (matcher.find()) {
+            sanitized.append(text, copiedUntil, matcher.start());
+            int spanLength = matcher.end() - matcher.start();
+            if (spanLength >= marker.length()) {
+                sanitized.append(marker).append("*".repeat(spanLength - marker.length()));
+            } else {
+                sanitized.append("*".repeat(spanLength));
+            }
+            copiedUntil = matcher.end();
+        }
+        return sanitized.append(text, copiedUntil, text.length()).toString();
     }
 
     public String safeQuery(String question) {
@@ -78,8 +95,8 @@ public class OutboundDocumentPolicy {
             throw new BusinessException(ErrorCode.VALIDATION_FAILED);
         }
         return PHONE.matcher(TAIWAN_ID.matcher(EMAIL.matcher(question)
-                .replaceAll("[EMAIL_REDACTED]")).replaceAll("[ID_REDACTED]"))
-                .replaceAll("[PHONE_REDACTED]");
+                .replaceAll("[EMAIL]")).replaceAll("[ID]"))
+                .replaceAll("[PHONE]");
     }
 
     public record Decision(String status, String reason, List<String> safeChunks) {

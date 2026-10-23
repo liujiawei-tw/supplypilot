@@ -1,6 +1,7 @@
 package com.supplypilot.document.rag;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -18,25 +19,91 @@ import com.supplypilot.document.domain.DocumentChunk;
 import com.supplypilot.document.domain.DocumentMetadata;
 import com.supplypilot.document.domain.DocumentType;
 import com.supplypilot.document.dto.response.DocumentQueryStatus;
+import com.supplypilot.document.semantic.OutboundDocumentPolicy;
 import com.supplypilot.document.semantic.SemanticProperties;
-import com.supplypilot.document.semantic.SemanticRetrievalService;
+import com.supplypilot.common.exception.BusinessException;
+import com.supplypilot.common.exception.ErrorCode;
 import org.junit.jupiter.api.Test;
 
 class DocumentQueryServiceTests {
     private static final String QUESTION = "SUP-001 的 MAT-001 標準交期是多久？";
 
     @Test
+    void contactDataIsRedactedBeforeRetrievalAndAnswerProvider() {
+        String question = "SUP-001 的 jane@example.com MAT-001 標準交期是多久？";
+        String safeQuestion = "SUP-001 的 [EMAIL] MAT-001 標準交期是多久？";
+        HybridRetrievalService retrieval = mock(HybridRetrievalService.class);
+        AnswerProvider answers = mock(AnswerProvider.class);
+        RetrievedChunk supporting = chunk("SUP-001 的 MAT-001 標準交期為 ORDERED 後 5 個曆日。", 0.92, 9L);
+        when(retrieval.retrieve(safeQuestion)).thenReturn(List.of(supporting));
+        when(answers.answer(eq(safeQuestion), anyList())).thenReturn("標準交期為 ORDERED 後 5 個曆日。");
+        DocumentQueryService service = new DocumentQueryService(retrieval, new EvidenceValidator(), answers,
+                properties(true), new OutboundDocumentPolicy());
+
+        var result = service.query(question);
+
+        assertThat(result.status()).isEqualTo(DocumentQueryStatus.ANSWERED);
+        verify(retrieval).retrieve(safeQuestion);
+        verify(answers).answer(eq(safeQuestion), anyList());
+    }
+
+    @Test
+    void secretBearingQuestionIsRejectedBeforeRetrievalOrAnswerProvider() {
+        HybridRetrievalService retrieval = mock(HybridRetrievalService.class);
+        AnswerProvider answers = mock(AnswerProvider.class);
+        DocumentQueryService service = new DocumentQueryService(retrieval, new EvidenceValidator(), answers,
+                properties(true), new OutboundDocumentPolicy());
+
+        assertThatThrownBy(() -> service.query("API key: secret-value，請查 SUP-001 合約"))
+                .isInstanceOfSatisfying(BusinessException.class, exception ->
+                        assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.VALIDATION_FAILED));
+
+        org.mockito.Mockito.verifyNoInteractions(retrieval, answers);
+    }
+
+    @Test
+    void emptyRetrievalReturnsInsufficientEvidenceWithoutCallingAnswerProvider() {
+        HybridRetrievalService retrieval = mock(HybridRetrievalService.class);
+        AnswerProvider answers = mock(AnswerProvider.class);
+        when(retrieval.retrieve(QUESTION)).thenReturn(List.of());
+        DocumentQueryService service = new DocumentQueryService(retrieval, new EvidenceValidator(), answers,
+                properties(true), new OutboundDocumentPolicy());
+
+        var result = service.query(QUESTION);
+
+        assertThat(result.status()).isEqualTo(DocumentQueryStatus.INSUFFICIENT_EVIDENCE);
+        assertThat(result.answer()).isNull();
+        assertThat(result.sources()).isEmpty();
+        verify(answers, never()).answer(eq(QUESTION), anyList());
+    }
+
+    @Test
+    void provider503IsMappedToUnavailableAfterValidatedEvidence() {
+        HybridRetrievalService retrieval = mock(HybridRetrievalService.class);
+        AnswerProvider answers = mock(AnswerProvider.class);
+        RetrievedChunk supporting = chunk("SUP-001 的 MAT-001 標準交期為 ORDERED 後 5 個曆日。", 0.92, 10L);
+        when(retrieval.retrieve(QUESTION)).thenReturn(List.of(supporting));
+        when(answers.answer(eq(QUESTION), anyList())).thenThrow(new IllegalStateException("503 Service Unavailable"));
+        DocumentQueryService service = new DocumentQueryService(retrieval, new EvidenceValidator(), answers,
+                properties(true), new OutboundDocumentPolicy());
+
+        assertThatThrownBy(() -> service.query(QUESTION))
+                .isInstanceOfSatisfying(BusinessException.class, exception ->
+                        assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.AI_PROVIDER_UNAVAILABLE));
+    }
+
+    @Test
     void semanticScoreIsOnlyCandidateRankingAndIrrelevantCandidatesAreDropped() {
-        SemanticRetrievalService semantic = mock(SemanticRetrievalService.class);
+        HybridRetrievalService retrieval = mock(HybridRetrievalService.class);
         AnswerProvider answers = mock(AnswerProvider.class);
         RetrievedChunk unrelated = chunk("SUP-001 的報價自開立日起 30 個曆日內有效。", 0.96, 1L);
         RetrievedChunk supporting = chunk("前言😀 English 中文混合。\nSUP-001 supplies MAT-001\n"
                 + "MAT-001 標準交期為 ORDERED 後 5 個曆日。\n文件尾端。", 0.72, 2L);
-        when(semantic.retrieve(QUESTION)).thenReturn(List.of(unrelated, supporting));
+        when(retrieval.retrieve(QUESTION)).thenReturn(List.of(unrelated, supporting));
         when(answers.answer(eq(QUESTION), anyList())).thenReturn(
                 "MAT-001 標準交期為 ORDERED 後 5 個曆日。");
-        DocumentQueryService service = new DocumentQueryService(null, new EvidenceValidator(), answers,
-                semantic, properties(true));
+        DocumentQueryService service = new DocumentQueryService(retrieval, new EvidenceValidator(), answers,
+                properties(true), new OutboundDocumentPolicy());
 
         var result = service.query(QUESTION);
 
@@ -53,12 +120,12 @@ class DocumentQueryServiceTests {
 
     @Test
     void highSimilarityWithoutTopicalSupportReturnsInsufficientEvidence() {
-        SemanticRetrievalService semantic = mock(SemanticRetrievalService.class);
+        HybridRetrievalService retrieval = mock(HybridRetrievalService.class);
         AnswerProvider answers = mock(AnswerProvider.class);
         RetrievedChunk unrelated = chunk("SUP-001 的報價自開立日起 30 個曆日內有效。", 0.99, 1L);
-        when(semantic.retrieve("這些文件是否規定冷凍海運的保險費率？")).thenReturn(List.of(unrelated));
-        DocumentQueryService service = new DocumentQueryService(null, new EvidenceValidator(), answers,
-                semantic, properties(true));
+        when(retrieval.retrieve("這些文件是否規定冷凍海運的保險費率？")).thenReturn(List.of(unrelated));
+        DocumentQueryService service = new DocumentQueryService(retrieval, new EvidenceValidator(), answers,
+                properties(true), new OutboundDocumentPolicy());
 
         var result = service.query("這些文件是否規定冷凍海運的保險費率？");
 
@@ -100,11 +167,12 @@ class DocumentQueryServiceTests {
     void realQualitySourceReturnsCompleteAnswerAndKeepsFullChunkCitation() throws IOException {
         String question = "品質要求中哪些狀況需要隔離批次？";
         String sourceText = Files.readString(Path.of("..", "samples", "documents", "quality-requirement-v1.txt"));
-        SemanticRetrievalService semantic = mock(SemanticRetrievalService.class);
+        HybridRetrievalService retrieval = mock(HybridRetrievalService.class);
         RetrievedChunk source = chunk(sourceText, 0.92, 5L);
-        when(semantic.retrieve(question)).thenReturn(List.of(source));
-        DocumentQueryService service = new DocumentQueryService(null, new EvidenceValidator(),
-                new ExtractiveAnswerProvider(new EvidenceValidator()), semantic, properties(true));
+        when(retrieval.retrieve(question)).thenReturn(List.of(source));
+        DocumentQueryService service = new DocumentQueryService(retrieval, new EvidenceValidator(),
+                new ExtractiveAnswerProvider(new EvidenceValidator()), properties(true),
+                new OutboundDocumentPolicy());
 
         var result = service.query(question);
 
@@ -122,13 +190,13 @@ class DocumentQueryServiceTests {
     }
 
     private void assertInsufficientConditionList(String question, String content) {
-        SemanticRetrievalService semantic = mock(SemanticRetrievalService.class);
+        HybridRetrievalService retrieval = mock(HybridRetrievalService.class);
         AnswerProvider answers = mock(AnswerProvider.class);
         RetrievedChunk retrieved = chunk(content, 0.99, 3L);
-        when(semantic.retrieve(question)).thenReturn(List.of(retrieved));
+        when(retrieval.retrieve(question)).thenReturn(List.of(retrieved));
         when(answers.answer(eq(question), anyList())).thenReturn("異常批次須隔離。");
-        DocumentQueryService service = new DocumentQueryService(null, new EvidenceValidator(), answers,
-                semantic, properties(true));
+        DocumentQueryService service = new DocumentQueryService(retrieval, new EvidenceValidator(), answers,
+                properties(true), new OutboundDocumentPolicy());
 
         var result = service.query(question);
 
@@ -139,15 +207,15 @@ class DocumentQueryServiceTests {
     }
 
     private void assertConditionAnswer(String question, String content, String expected, String unrelated) {
-        SemanticRetrievalService semantic = mock(SemanticRetrievalService.class);
+        HybridRetrievalService retrieval = mock(HybridRetrievalService.class);
         AnswerProvider answers = mock(AnswerProvider.class);
         RetrievedChunk retrieved = chunk(content, 0.97, 4L);
-        when(semantic.retrieve(question)).thenReturn(List.of(retrieved));
+        when(retrieval.retrieve(question)).thenReturn(List.of(retrieved));
         when(answers.answer(eq(question), anyList())).thenAnswer(invocation ->
                 new ExtractiveAnswerProvider(new EvidenceValidator()).answer(
                         question, invocation.getArgument(1)));
-        DocumentQueryService service = new DocumentQueryService(null, new EvidenceValidator(), answers,
-                semantic, properties(true));
+        DocumentQueryService service = new DocumentQueryService(retrieval, new EvidenceValidator(), answers,
+                properties(true), new OutboundDocumentPolicy());
 
         var result = service.query(question);
 

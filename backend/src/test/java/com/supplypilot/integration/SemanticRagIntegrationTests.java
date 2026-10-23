@@ -121,8 +121,8 @@ class SemanticRagIntegrationTests extends AbstractIntegrationTest {
                 .andExpect(jsonPath("$.requiresReview").value(1));
         assertThat(model.inputs).hasSize(1);
         assertThat(model.tasks).containsExactly(GoogleGenAiTextEmbeddingOptions.TaskType.RETRIEVAL_DOCUMENT);
-        assertThat(model.inputs.getFirst()).contains("[EMAIL_REDACTED]")
-                .contains("[PHONE_REDACTED]", "[ID_REDACTED]")
+        assertThat(model.inputs.getFirst()).contains("[EMAIL]")
+                .contains("[PHONE]", "[ID]")
                 .doesNotContain("alice@example.com", "+886912345678", "A123456789",
                         "secret-value", "Supplier contract");
         assertThat(store.state(reviewId, "v1").status()).isEqualTo("REQUIRES_REVIEW");
@@ -141,7 +141,9 @@ class SemanticRagIntegrationTests extends AbstractIntegrationTest {
                 .andExpect(jsonPath("$.sources[0].version").value("v1"))
                 .andExpect(jsonPath("$.sources[0].startOffset").value(0))
                 .andExpect(jsonPath("$.sources[0].excerpt").value(org.hamcrest.Matchers.containsString(
-                        "Forklift capacity is 500 kilograms. Contact [EMAIL_REDACTED], [PHONE_REDACTED], [ID_REDACTED].")))
+                        "Forklift capacity is 500 kilograms. Contact [EMAIL]")))
+                .andExpect(jsonPath("$.sources[0].excerpt").value(org.hamcrest.Matchers.containsString("[PHONE]")))
+                .andExpect(jsonPath("$.sources[0].excerpt").value(org.hamcrest.Matchers.containsString("[ID]")))
                 .andExpect(jsonPath("$.sources[0].excerpt").value(
                         org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("alice@example.com"))));
         assertThat(model.tasks).contains(GoogleGenAiTextEmbeddingOptions.TaskType.RETRIEVAL_QUERY);
@@ -318,7 +320,7 @@ class SemanticRagIntegrationTests extends AbstractIntegrationTest {
         query(admin, "單價 NT$1200 是多少？").andExpect(status().isBadRequest());
         assertThat(model.inputs).containsExactlyElementsOf(questions);
         query(admin, "供應商 alice@example.com 的報價期限？").andExpect(status().isOk());
-        assertThat(model.inputs.getLast()).contains("[EMAIL_REDACTED]")
+        assertThat(model.inputs.getLast()).contains("[EMAIL]")
                 .doesNotContain("alice@example.com");
     }
 
