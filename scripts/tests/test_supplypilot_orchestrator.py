@@ -462,9 +462,10 @@ class StateTests(unittest.TestCase):
         (worktree / "frontend" / "package.json").write_text('{"scripts":{"test":"vitest run"}}', encoding="utf-8")
         (worktree / "backend").mkdir()
         (worktree / "backend" / "pom.xml").write_text("<project />", encoding="utf-8")
+        (worktree / "backend" / "mvnw.cmd").write_text("@echo off\r\n", encoding="utf-8")
         self._git(worktree, "add", "src/a.py", "scripts/tests/__init__.py",
                   "scripts/supplypilot_full_gate.py", "scripts/supplypilot_orchestrator.py",
-                  "frontend/package.json", "backend/pom.xml")
+                  "frontend/package.json", "backend/pom.xml", "backend/mvnw.cmd")
         self._git(worktree, "commit", "-m", "base")
         self._state_head = self._git(worktree, "rev-parse", "HEAD")
         self._state_remote = worktree.parent / f"{worktree.name}-origin.git"
@@ -550,6 +551,19 @@ class StateTests(unittest.TestCase):
         orch.state_set_head(path, 9, head, head, head)
         return head
 
+    def _commit_impact_paths(self, path, files):
+        root = Path(self._state_worktree)
+        for relative, content in files.items():
+            target = root / Path(*relative.split("/"))
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_text(content, encoding="utf-8")
+        self._git(root, "add", *files.keys())
+        self._git(root, "commit", "-m", "exercise impact mapping")
+        head = self._git(root, "rev-parse", "HEAD")
+        self._git(root, "push", "origin", "codex/issue-9-example")
+        orch.state_set_head(path, 9, head, head, head)
+        return head
+
     def test_head_change_invalidates_old_verification_and_review(self):
         with tempfile.TemporaryDirectory() as temp:
             path = self._make_state(temp)
@@ -610,7 +624,7 @@ class StateTests(unittest.TestCase):
                 with patch.object(orch, "_execute_gate_command") as runner:
                     expected = "Issue base is stale" if reason == "stale_base" else "Dependency #8 is not verified MERGED"
                     with self.assertRaisesRegex(orch.PolicyError, expected):
-                        orch.state_transition(path, 9, "ISSUE_GATE_VERIFIED", {"sha": head, "command": command})
+                        orch.state_transition(path, 9, "ISSUE_GATE_VERIFIED", {"sha": head})
                     runner.assert_not_called()
                 current = orch.read_json(path)["issues"]["9"]
                 self.assertEqual("IMPLEMENTING", current["implementation_state"])
@@ -624,15 +638,15 @@ class StateTests(unittest.TestCase):
             head = self._commit_issue_gate_change(path)
             root = Path(self._state_worktree)
             with patch.object(orch, "_execute_gate_command") as runner:
-                with self.assertRaisesRegex(orch.PolicyError, "does not match the required tests"):
+                with self.assertRaisesRegex(orch.PolicyError, "cannot be caller-selected"):
                     orch.state_transition(path, 9, "ISSUE_GATE_VERIFIED", {
                         "sha": head, "command": [sys.executable, "-m", "unittest", "scripts.tests.test_compose_config"]
                     })
                 runner.assert_not_called()
-            unknown = root / "frontend" / "src" / "unmapped.tsx"
+            unknown = root / "mystery" / "runtime.py"
             unknown.parent.mkdir(parents=True, exist_ok=True)
             unknown.write_text("export const Value = 1;\n", encoding="utf-8")
-            self._git(root, "add", "frontend/src/unmapped.tsx")
+            self._git(root, "add", "mystery/runtime.py")
             self._git(root, "commit", "-m", "add unmapped impact")
             new_head = self._git(root, "rev-parse", "HEAD")
             self._git(root, "push", "origin", "codex/issue-9-example")
@@ -652,8 +666,8 @@ class StateTests(unittest.TestCase):
             for output in ("OK\n", "Ran 97 tests in 1.0s\nOK (skipped=1)\n"):
                 with self.subTest(output=output), \
                         patch.object(orch, "_execute_gate_command", return_value=Mock(returncode=0, stdout=output)):
-                    with self.assertRaisesRegex(orch.PolicyError, "without a nonzero test count"):
-                        orch.state_transition(path, 9, "ISSUE_GATE_VERIFIED", {"sha": head, "command": command})
+                    with self.assertRaisesRegex(orch.PolicyError, "did not pass"):
+                        orch.state_transition(path, 9, "ISSUE_GATE_VERIFIED", {"sha": head})
             record = orch.read_json(path)["issues"]["9"]
             self.assertEqual("IMPLEMENTING", record["implementation_state"])
             self.assertIsNone(record["issue_gate"])
@@ -671,7 +685,7 @@ class StateTests(unittest.TestCase):
                     patch.object(orch, "_execute_gate_command",
                                  return_value=Mock(returncode=0, stdout="Ran 97 tests in 1.0s\nOK")):
                 with self.assertRaisesRegex(orch.PolicyError, "Gate result is stale"):
-                    orch.state_transition(path, 9, "ISSUE_GATE_VERIFIED", {"sha": head, "command": command})
+                    orch.state_transition(path, 9, "ISSUE_GATE_VERIFIED", {"sha": head})
             record = orch.read_json(path)["issues"]["9"]
             self.assertEqual("IMPLEMENTING", record["implementation_state"])
             self.assertIsNone(record["issue_gate"])
@@ -727,13 +741,14 @@ class StateTests(unittest.TestCase):
             orch.atomic_write_json(path, state)
             with patch.object(orch, "_execute_gate_command", return_value=Mock(returncode=0, stdout="Ran 97 tests in 1.0s\nOK")):
                 orch.state_transition(path, 9, "ISSUE_GATE_VERIFIED", {
-                    "sha": self._state_head, "command": issue_gate_command,
+                    "sha": self._state_head,
                     "status": "FAIL", "exit_code": 9, "artifacts": [{"path": "caller.log", "sha256": "fake"}]
                 })
             record = orch.read_json(path)["issues"]["9"]
             self.assertEqual("ISSUE_GATE_VERIFIED", record["issue_gate"]["status"])
             self.assertEqual(["scripts.tests.test_supplypilot_orchestrator (complete module)"],
                              record["issue_gate"]["impact"]["required_tests"])
+
             self.assertEqual(0, record["issue_gate"]["impact"]["actual_result"]["exit_code"])
             self.assertEqual("FULL_GATE_VERIFIED", record["verification"]["status"])
             self.assertEqual([release_artifact], record["verification"]["evidence"])
@@ -820,6 +835,124 @@ class StateTests(unittest.TestCase):
                 })
             self.assertEqual("MERGED", orch.read_json(path)["issues"]["9"]["implementation_state"])
             self.assertEqual("b" * 40, orch.read_json(path)["main_sha"])
+
+    def test_issue_gate_runs_complete_backend_suite_for_backend_source_and_reports_frontend_not_applicable(self):
+        with tempfile.TemporaryDirectory() as temp:
+            path = self._make_state(temp)
+            orch.state_transition(path, 9, "READY_TO_CODE", self._ready_evidence())
+            orch.state_transition(path, 9, "IMPLEMENTING", {"authorized_issue": 9})
+            head = self._commit_impact_paths(path, {
+                "backend/src/main/java/com/supplypilot/user/service/UserService.java": "class UserService {}\n",
+                "backend/src/test/java/com/supplypilot/user/service/UserServiceTests.java": "class UserServiceTests {}\n",
+            })
+            plan = orch._issue_gate_impact_plan(Path(self._state_worktree), self._state_base_sha, head)
+            self.assertEqual([["mvnw.cmd", "test"]], plan["required_commands"])
+            self.assertTrue(any("complete Backend Maven test suite" in test
+                                for test in plan["required_tests"]))
+            self.assertIn("Frontend", plan["not_applicable"]["frontend_vitest"])
+
+    def test_issue_gate_maps_backend_test_only_change_to_named_test(self):
+        with tempfile.TemporaryDirectory() as temp:
+            path = self._make_state(temp)
+            orch.state_transition(path, 9, "READY_TO_CODE", self._ready_evidence())
+            orch.state_transition(path, 9, "IMPLEMENTING", {"authorized_issue": 9})
+            head = self._commit_impact_paths(path, {
+                "backend/src/test/java/com/supplypilot/user/service/UserServiceTests.java": "class UserServiceTests {}\n",
+            })
+            plan = orch._issue_gate_impact_plan(Path(self._state_worktree), self._state_base_sha, head)
+            self.assertEqual([["mvnw.cmd", "test", "-Dtest=UserServiceTests"]], plan["required_commands"])
+            self.assertIn("mapped Backend tests: UserServiceTests", plan["required_tests"])
+
+    def test_issue_gate_maps_frontend_only_and_runs_frontend_lint_and_build(self):
+        with tempfile.TemporaryDirectory() as temp:
+            path = self._make_state(temp)
+            orch.state_transition(path, 9, "READY_TO_CODE", self._ready_evidence())
+            orch.state_transition(path, 9, "IMPLEMENTING", {"authorized_issue": 9})
+            head = self._commit_impact_paths(path, {"frontend/src/components/Widget.tsx": "export const Widget = () => null;\n"})
+            plan = orch._issue_gate_impact_plan(Path(self._state_worktree), self._state_base_sha, head)
+            self.assertEqual([["npm", "test"], ["npm", "run", "lint"], ["npm", "run", "build"]],
+                             plan["required_commands"])
+            self.assertIn("complete Frontend Vitest suite", " ".join(plan["required_tests"]))
+            self.assertIn("Backend", plan["not_applicable"]["backend_maven"])
+
+    def test_issue_gate_frontend_api_types_require_backend_compatibility_tests(self):
+        changed_paths = (
+            "frontend/src/types/api.ts",
+            "frontend/src/types.ts",
+            "frontend/src/apiTypes.ts",
+        )
+        for changed_path in changed_paths:
+            with self.subTest(path=changed_path), tempfile.TemporaryDirectory() as temp:
+                path = self._make_state(temp)
+                orch.state_transition(path, 9, "READY_TO_CODE", self._ready_evidence())
+                orch.state_transition(path, 9, "IMPLEMENTING", {"authorized_issue": 9})
+                head = self._commit_impact_paths(path, {changed_path: "export type User = { id: string };\n"})
+                plan = orch._issue_gate_impact_plan(Path(self._state_worktree), self._state_base_sha, head)
+                self.assertIn(["mvnw.cmd", "test"], plan["required_commands"])
+                self.assertIn(["npm", "test"], plan["required_commands"])
+                self.assertNotIn("backend_maven", plan["not_applicable"])
+
+    def test_issue_gate_expands_backend_contract_change_to_both_suites(self):
+        with tempfile.TemporaryDirectory() as temp:
+            path = self._make_state(temp)
+            orch.state_transition(path, 9, "READY_TO_CODE", self._ready_evidence())
+            orch.state_transition(path, 9, "IMPLEMENTING", {"authorized_issue": 9})
+            head = self._commit_impact_paths(path, {
+                "backend/src/main/java/com/supplypilot/user/controller/UserController.java": "class UserController {}\n",
+            })
+            plan = orch._issue_gate_impact_plan(Path(self._state_worktree), self._state_base_sha, head)
+            self.assertEqual(["mvnw.cmd", "test"], plan["required_commands"][0])
+            self.assertEqual(["npm", "test"], plan["required_commands"][1])
+            self.assertEqual(["npm", "run", "lint"], plan["required_commands"][2])
+            self.assertEqual(["npm", "run", "build"], plan["required_commands"][3])
+            self.assertNotIn("frontend_vitest", plan["not_applicable"])
+            self.assertNotIn("backend_maven", plan["not_applicable"])
+
+    def test_issue_gate_rejects_unmapped_path(self):
+        with tempfile.TemporaryDirectory() as temp:
+            path = self._make_state(temp)
+            orch.state_transition(path, 9, "READY_TO_CODE", self._ready_evidence())
+            orch.state_transition(path, 9, "IMPLEMENTING", {"authorized_issue": 9})
+            head = self._commit_impact_paths(path, {"mystery/runtime.py": "VALUE = 1\n"})
+            with self.assertRaisesRegex(orch.PolicyError, "impact is not mapped"):
+                orch._issue_gate_impact_plan(Path(self._state_worktree), self._state_base_sha, head)
+
+    def test_issue_gate_runs_every_required_command_and_refuses_partial_pass(self):
+        with tempfile.TemporaryDirectory() as temp:
+            path = self._make_state(temp)
+            orch.state_transition(path, 9, "READY_TO_CODE", self._ready_evidence())
+            orch.state_transition(path, 9, "IMPLEMENTING", {"authorized_issue": 9})
+            head = self._commit_impact_paths(path, {"frontend/src/components/Widget.tsx": "export const Widget = () => null;\n"})
+            outputs = [Mock(returncode=0, stdout="Tests 3 passed\n"),
+                       Mock(returncode=1, stdout="lint failed\n"),
+                       Mock(returncode=0, stdout="build complete\n")]
+            with patch.object(orch, "_execute_gate_command", side_effect=outputs) as runner:
+                with self.assertRaisesRegex(orch.PolicyError, "did not pass"):
+                    orch.state_transition(path, 9, "ISSUE_GATE_VERIFIED", {"sha": head})
+            self.assertEqual(3, runner.call_count)
+            record = orch.read_json(path)["issues"]["9"]
+            self.assertEqual("IMPLEMENTING", record["implementation_state"])
+            self.assertIsNone(record["issue_gate"])
+            self.assertEqual("FAILED", record["gate_reservation"]["status"])
+            self.assertIn("did not pass", record["gate_reservation"]["failure_reason"])
+
+    def test_issue_gate_records_every_passed_command_on_one_head(self):
+        with tempfile.TemporaryDirectory() as temp:
+            path = self._make_state(temp)
+            orch.state_transition(path, 9, "READY_TO_CODE", self._ready_evidence())
+            orch.state_transition(path, 9, "IMPLEMENTING", {"authorized_issue": 9})
+            head = self._commit_impact_paths(path, {"frontend/src/components/Widget.tsx": "export const Widget = () => null;\n"})
+            outputs = [Mock(returncode=0, stdout="Tests 3 passed\n"),
+                       Mock(returncode=0, stdout="lint complete\n"),
+                       Mock(returncode=0, stdout="build complete\n")]
+            with patch.object(orch, "_execute_gate_command", side_effect=outputs) as runner:
+                orch.state_transition(path, 9, "ISSUE_GATE_VERIFIED", {"sha": head})
+            self.assertEqual(3, runner.call_count)
+            impact = orch.read_json(path)["issues"]["9"]["issue_gate"]["impact"]
+            self.assertEqual(["PASS", "PASS", "PASS"], [item["status"] for item in impact["actual_results"]])
+            self.assertEqual([head, head, head], [item["sha"] for item in impact["actual_results"]])
+            self.assertEqual([3, None, None], [item["test_count"] for item in impact["actual_results"]])
+            self.assertTrue(all(item["artifact"]["sha256"] for item in impact["actual_results"]))
 
     def test_state_init_rejects_unverified_or_arbitrary_main_sha(self):
         with tempfile.TemporaryDirectory() as temp:

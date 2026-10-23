@@ -1484,7 +1484,10 @@ def _state_transition_with_gate(path: Path, number: int, target: str,
         if branch != record.get("branch") or head != record.get("head_sha") or dirty:
             raise PolicyError("Gate reservation requires the registered branch/HEAD and a clean worktree.")
         command = evidence.get("command")
-        if not _gate_command_supported(command, target, root):
+        if target == "ISSUE_GATE_VERIFIED":
+            if "command" in evidence or "commands" in evidence:
+                raise PolicyError("Issue Gate commands are derived from the committed diff and cannot be caller-selected.")
+        elif not _gate_command_supported(command, target, root):
             raise PolicyError("Verification requires an approved command and trusted runner for this gate.")
         impact = None
         if target == "ISSUE_GATE_VERIFIED":
@@ -1492,8 +1495,6 @@ def _state_transition_with_gate(path: Path, number: int, target: str,
             if prerequisite_failure:
                 raise PolicyError(f"Issue Gate prerequisites are not satisfied: {prerequisite_failure}")
             impact = _issue_gate_impact_plan(root, record.get("base_sha"), head)
-            if command != impact["required_commands"][0]:
-                raise PolicyError("Issue Gate command does not match the required tests derived from the committed diff.")
         if remote_main_before is not None and remote_main_before != state.get("main_sha"):
             raise PolicyError("Code Gate is stale because origin/main advanced before verification.")
         _validate_resumed_provisional_contract(state, record)
@@ -1503,7 +1504,9 @@ def _state_transition_with_gate(path: Path, number: int, target: str,
             "branch": branch, "worktree": str(root), "status": "RUNNING",
             "owner_pid": os.getpid(), "owner_host": socket.gethostname(),
             "started_at": dt.datetime.now(dt.timezone.utc).isoformat(),
-            "command": command, "context_sha256": context_sha,
+            "command": command,
+            "required_commands": impact["required_commands"] if impact is not None else None,
+            "context_sha256": context_sha,
             "worktree_before": {"branch": branch, "head_sha": head, "dirty": False},
         }
         if remote_main_before is not None:
@@ -1754,35 +1757,49 @@ def _gate_command_supported(command: Any, target: str = "TARGETED_VERIFIED",
         trusted_npm = _trusted_npm_runner(executable, worktree)
         if not trusted_npm or (not is_bare_executable and Path(command[0]).resolve() != Path(trusted_npm).resolve()):
             return False
-        if len(args) != 3 or args[:2] != ["test", "--"]:
-            return False
-        relative = PurePosixPath(args[2].replace("\\", "/"))
-        if (relative.is_absolute() or ".." in relative.parts or not relative.parts
-                or relative.parts[0] != "tests" or not relative.name.endswith((".test.ts", ".test.tsx", ".test.js", ".test.jsx"))
-                or any(re.search(r"[%!&|<>^()]", part) for part in relative.parts)):
+        if (args == ["test"] or args in (["run", "lint"], ["run", "build"])):
+            if target != "ISSUE_GATE_VERIFIED":
+                return False
+            return worktree is None or _gate_working_directory(command, worktree) == (worktree.resolve() / "frontend").resolve()
+        if len(args) < 3 or args[:2] != ["test", "--"]:
             return False
         if worktree is None:
-            return True
+            return all(_safe_frontend_test_path(item) for item in args[2:])
         frontend = (worktree.resolve() / "frontend").resolve()
-        candidate = (frontend / Path(*relative.parts)).resolve()
-        try:
-            if os.path.commonpath((str(frontend), str(candidate))) != str(frontend):
-                return False
-        except ValueError:
+        if _gate_working_directory(command, worktree) != frontend:
             return False
-        return candidate.is_file() and _gate_working_directory(command, worktree) == frontend
+        for item in args[2:]:
+            if not _safe_frontend_test_path(item):
+                return False
+            candidate = (frontend / Path(*PurePosixPath(item.replace("\\", "/")).parts)).resolve()
+            try:
+                if os.path.commonpath((str(frontend), str(candidate))) != str(frontend) or not candidate.is_file():
+                    return False
+            except ValueError:
+                return False
+        return True
     if executable in {"mvn", "mvn.cmd", "mvnw", "mvnw.cmd"}:
         unsafe_properties = {
             "skiptests", "maven.test.skip", "skipits", "skipsurefiretests", "skipfailsafetests",
             "maven.test.failure.ignore", "surefire.test.failure.ignore", "testfailureignore",
         }
-        if not args or args[0] != "test" or any(arg.casefold() in {"--fail-never", "-fn"} for arg in args):
+        if not args or args[0] not in {"test", "verify"} \
+                or any(arg.casefold() in {"--fail-never", "-fn"} for arg in args):
             return False
         test_properties = [arg[7:] for arg in args[1:] if arg.startswith("-Dtest=")]
+        integration_properties = [arg[10:] for arg in args[1:] if arg.startswith("-Dit.test=")]
         allowed = {"-B", "--no-transfer-progress"}
-        other_args = [arg for arg in args[1:] if arg not in allowed and not arg.startswith("-Dtest=")]
-        if (len(test_properties) != 1 or other_args
-                or not re.fullmatch(r"[A-Za-z0-9_.$,*?]+(?:#[A-Za-z0-9_]+)?", test_properties[0])):
+        other_args = [arg for arg in args[1:] if arg not in allowed
+                      and not arg.startswith(("-Dtest=", "-Dit.test="))]
+        if other_args or len(test_properties) > 1 or len(integration_properties) > 1:
+            return False
+        if (test_properties and not re.fullmatch(r"[A-Za-z0-9_.$,*?]+(?:#[A-Za-z0-9_]+)?", test_properties[0])) \
+                or (integration_properties and not re.fullmatch(r"[A-Za-z0-9_.$,*?]+(?:#[A-Za-z0-9_]+)?",
+                                                                integration_properties[0])):
+            return False
+        if not test_properties and not integration_properties and target != "ISSUE_GATE_VERIFIED":
+            return False
+        if args[0] == "test" and integration_properties:
             return False
         for index, arg in enumerate(args):
             property_arg = None
@@ -1930,8 +1947,16 @@ def _verification_worktree_snapshot(root: Path) -> tuple[str, str, bool]:
     return branch, head, dirty
 
 
+def _safe_frontend_test_path(value: str) -> bool:
+    relative = PurePosixPath(value.replace("\\", "/"))
+    return (not relative.is_absolute() and ".." not in relative.parts and bool(relative.parts)
+            and relative.parts[0] == "tests"
+            and relative.name.endswith((".test.ts", ".test.tsx", ".test.js", ".test.jsx"))
+            and not any(re.search(r"[%!&|<>^()]", part) for part in relative.parts))
+
+
 def _issue_gate_impact_plan(root: Path, base_sha: Any, head_sha: Any) -> dict[str, Any]:
-    """Derive the minimum known Issue #162 suite from the committed diff; unknown paths fail closed."""
+    """Build a conservative fixed-command test plan from the committed change paths."""
     if not isinstance(base_sha, str) or not isinstance(head_sha, str) or not base_sha or not head_sha:
         raise PolicyError("Issue Gate impact analysis requires the verified base and current HEAD SHA.")
     try:
@@ -1952,15 +1977,44 @@ def _issue_gate_impact_plan(root: Path, base_sha: Any, head_sha: Any) -> dict[st
         "scripts/tests/test_supplypilot_orchestrator.py",
     }
     known_docs = {"AGENTS.md", "docs/v2/matt-pocock-codex-gpt-handoff.md"}
-    unknown = []
+    backend_roots = ("backend/src/main/java/", "backend/src/test/java/",
+                     "backend/src/main/resources/", "backend/pom.xml")
+    frontend_roots = ("frontend/src/", "frontend/tests/", "frontend/package.json",
+                      "frontend/vite.config.", "frontend/vitest.config.", "frontend/tsconfig")
+    backend_paths: list[str] = []
+    frontend_paths: list[str] = []
+    docs_paths: list[str] = []
     affects_orchestrator = False
+    cross_module = False
+    unknown: list[str] = []
     for path in paths:
+        lower = path.casefold()
         if path in orchestrator_paths:
             affects_orchestrator = True
-        elif path in known_docs or path.startswith(".agents/skills/supplypilot-implement-spec/"):
-            continue
-        elif re.fullmatch(r"docs/evidence/issue-162-[A-Za-z0-9_.-]+", path):
-            continue
+        elif path in known_docs or path.startswith(".agents/skills/supplypilot-implement-spec/") \
+                or re.fullmatch(r"docs/evidence/issue-162-[A-Za-z0-9_.-]+", path):
+            docs_paths.append(path)
+        elif path.startswith(backend_roots):
+            backend_paths.append(path)
+            if (path.startswith("backend/src/main/resources/")
+                    or any(token in lower for token in ("/controller/", "/dto/", "/entity/", "/api/", "/security/",
+                                                       "/auth/", "/migration/", "/schema/", "/transaction/",
+                                                       "/inventory/", "/purchaseorder/", "/purchase-order/",
+                                                       "/common/", "/exception/", "/sensitive/", "/outbound/"))
+                    or re.search(r"(controller|request|response|dto|entity|schema|migration|security|auth|exception|error)\w*\.java$", lower)
+                    or path.endswith("pom.xml")):
+                cross_module = True
+        elif path.startswith(frontend_roots):
+            frontend_paths.append(path)
+            frontend_parts = PurePosixPath(lower).parts
+            filename = PurePosixPath(lower).name
+            if (any(token in frontend_parts for token in ("api", "auth", "router", "routes", "types", "dto",
+                                                          "contracts", "schemas"))
+                    or re.search(r"(^|[._-])(api|dto|schema|contract)([._-]|$)", filename)
+                    or re.search(r"api.?types?|types?\.(?:ts|tsx|js|jsx|d\.ts)$", filename)
+                    or re.search(r"(api.?client|axios|auth|router|route|request|response)",
+                                 filename)):
+                cross_module = True
         else:
             unknown.append(path)
     if unknown:
@@ -1968,31 +2022,112 @@ def _issue_gate_impact_plan(root: Path, base_sha: Any, head_sha: Any) -> dict[st
             "Issue Gate impact is not mapped for changed paths; expand and verify the affected suite before proceeding: "
             + ", ".join(unknown)
         )
-    if not affects_orchestrator:
-        raise PolicyError("This change has no mapped executable Issue Gate suite; verify its affected behavior before review.")
-    return {
-        "base_sha": base_sha,
-        "head_sha": head_sha,
-        "changed_paths": paths,
-        "behaviors": [{
-            "change": [path for path in paths if path in orchestrator_paths],
-            "affected_behavior": "Orchestrator graph, gate execution/trust, state invalidation, resource and worktree contracts",
-            "required_tests": "scripts.tests.test_supplypilot_orchestrator (complete module)",
-        }],
-        "required_tests": ["scripts.tests.test_supplypilot_orchestrator (complete module)"],
-        "required_commands": [[sys.executable, "-m", "unittest", "scripts.tests.test_supplypilot_orchestrator", "-v"]],
-        "not_applicable": {
-            "frontend_vitest": "No frontend files, UI, or API/DTO contracts changed in this diff.",
-            "backend_maven": "No backend, database schema, transaction, authorization, or API implementation files changed.",
-            "compose_docker": "No Compose, Dockerfile, image, dependency, or deployment configuration changed.",
-            "browser_rag_gemini_e2e": "No browser flow, RAG, Gemini, or external data boundary changed.",
-        },
-    }
+
+    commands: list[list[str]] = []
+    behaviors: list[dict[str, Any]] = []
+    not_applicable: dict[str, str] = {}
+    if affects_orchestrator:
+        command = [sys.executable, "-m", "unittest", "scripts.tests.test_supplypilot_orchestrator", "-v"]
+        commands.append(command)
+        behaviors.append({"change": [path for path in paths if path in orchestrator_paths],
+                          "affected_behavior": "Orchestrator graph, gate execution/trust, state invalidation, resource and worktree contracts",
+                          "required_tests": ["scripts.tests.test_supplypilot_orchestrator (complete module)"]})
+
+    if backend_paths:
+        classes: set[str] = set()
+        integration_classes: set[str] = set()
+        can_map_all = True
+        backend_source_changes = [path for path in backend_paths
+                                  if path.startswith("backend/src/main/java/") and path.endswith(".java")]
+        for path in backend_paths:
+            if path.startswith("backend/src/test/java/"):
+                test_file = root / Path(*PurePosixPath(path).parts)
+                if test_file.suffix == ".java":
+                    classes.add(test_file.stem)
+                else:
+                    can_map_all = False
+            elif path.startswith("backend/src/main/java/") and path.endswith(".java"):
+                # A sibling test name cannot prove that indirect consumers,
+                # transaction behavior, or shared contracts are covered.
+                # The project has no reliable source-to-test dependency map,
+                # so production changes run the complete Backend test suite.
+                continue
+            else:
+                can_map_all = False
+        if cross_module or backend_source_changes or not can_map_all or (not classes and not integration_classes):
+            backend_command = ["mvnw.cmd", "test"]
+            backend_tests = "complete Backend Maven test suite (conservative contract/security/dependency coverage)"
+            backend_behavior = "Backend behavior and API/DTO/schema or shared dependency contracts"
+            commands.append(backend_command)
+        else:
+            if classes and integration_classes:
+                backend_command = ["mvnw.cmd", "verify", "-Dtest=" + ",".join(sorted(classes)),
+                                   "-Dit.test=" + ",".join(sorted(integration_classes))]
+            elif integration_classes:
+                backend_command = ["mvnw.cmd", "verify", "-Dit.test=" + ",".join(sorted(integration_classes))]
+            else:
+                backend_command = ["mvnw.cmd", "test", "-Dtest=" + ",".join(sorted(classes))]
+            commands.append(backend_command)
+            backend_tests = "mapped Backend tests: " + ", ".join(sorted(classes | integration_classes))
+            backend_behavior = "Backend implementation and matching Unit/Integration tests"
+        behaviors.append({"change": backend_paths, "affected_behavior": backend_behavior,
+                          "required_tests": [backend_tests]})
+
+    if frontend_paths:
+        selected_tests = [path for path in frontend_paths if path.startswith("frontend/tests/")
+                          and path.endswith((".test.ts", ".test.tsx", ".test.js", ".test.jsx"))]
+        source_changes = [path for path in frontend_paths if path.startswith("frontend/src/")]
+        frontend_build_changes = [path for path in frontend_paths if path.startswith((
+            "frontend/src/", "frontend/package.json", "frontend/vite.config.", "frontend/vitest.config.",
+            "frontend/tsconfig"))]
+        if source_changes:
+            selected_tests = []
+        if selected_tests and not cross_module:
+            frontend_command = ["npm", "test", "--", *[path.removeprefix("frontend/") for path in selected_tests]]
+            frontend_tests = "changed Frontend tests: " + ", ".join(selected_tests)
+        else:
+            frontend_command = ["npm", "test"]
+            frontend_tests = "complete Frontend Vitest suite (conservative UI/shared dependency coverage)"
+        commands.append(frontend_command)
+        if frontend_build_changes or cross_module:
+            commands.extend([["npm", "run", "lint"], ["npm", "run", "build"]])
+        behaviors.append({"change": frontend_paths,
+                          "affected_behavior": "Frontend pages, components, API client and shared UI dependencies",
+                          "required_tests": [frontend_tests] + (["Frontend lint", "Frontend production build"]
+                                                                   if frontend_build_changes or cross_module else [])})
+
+    if cross_module and not backend_paths:
+        commands.append(["mvnw.cmd", "test"])
+        behaviors.append({"change": frontend_paths,
+                          "affected_behavior": "Shared Frontend contract, auth, router or global configuration with Backend compatibility risk",
+                          "required_tests": ["complete Backend Maven test suite"]})
+    if cross_module and not frontend_paths:
+        commands.extend([["npm", "test"], ["npm", "run", "lint"], ["npm", "run", "build"]])
+        behaviors.append({"change": backend_paths,
+                          "affected_behavior": "Backend API/DTO/schema/security contract consumed by Frontend",
+                          "required_tests": ["complete Frontend Vitest suite", "Frontend lint", "Frontend production build"]})
+
+    if not commands:
+        raise PolicyError("This change has no mapped executable Issue Gate suite; fail closed until its behavior is mapped.")
+
+    if not frontend_paths and not cross_module:
+        not_applicable["frontend_vitest"] = "Diff contains no Frontend source, tests, API client, or shared UI contract paths."
+    if not backend_paths and not cross_module:
+        not_applicable["backend_maven"] = "Diff contains no Backend implementation, test, schema, transaction, authorization, or API contract paths."
+    if not any(path.startswith(("compose", "docker/", "Dockerfile", "backend/Dockerfile", "frontend/Dockerfile"))
+               for path in paths):
+        not_applicable["compose_docker"] = "Diff contains no Compose, Dockerfile, image, or deployment configuration."
+    if not any(token in " ".join(paths).casefold() for token in ("browser", "rag", "gemini")):
+        not_applicable["browser_rag_gemini_e2e"] = "Diff contains no Browser flow, RAG, Gemini, or external data boundary."
+    return {"base_sha": base_sha, "head_sha": head_sha, "changed_paths": paths,
+            "behaviors": behaviors,
+            "required_tests": [test for behavior in behaviors for test in behavior["required_tests"]],
+            "required_commands": commands, "not_applicable": not_applicable}
 
 
 def _verification_output_contains_test_run(command: list[str], output: str,
                                           *, reject_skips: bool = False) -> bool:
-    if reject_skips and re.search(r"\b(?:skipped\s*[=:]?\s*[1-9]\d*|[1-9]\d*\s+skipped)\b",
+    if reject_skips and re.search(r"\b(?:skipped\s*[=:]?\s*[1-9]\d*|[1-9]\d*\s+skipped|Skipped:\s*[1-9]\d*)\b",
                                   output, re.IGNORECASE):
         return False
     executable = Path(command[0].replace("\\", "/")).name.casefold()
@@ -2016,6 +2151,27 @@ def _verification_output_contains_test_run(command: list[str], output: str,
     return False
 
 
+def _verification_test_count(command: list[str], output: str) -> int | None:
+    executable = Path(command[0].replace("\\", "/")).name.casefold()
+    args = command[1:]
+    if executable in {"python", "python.exe", "python3", "python3.exe", "py", "py.exe"}:
+        match = re.search(r"Ran\s+([1-9]\d*)\s+tests?", output, re.IGNORECASE)
+        return int(match.group(1)) if match else None
+    if executable in {"npm", "npm.cmd", "npm.exe"} and args and args[0] == "test":
+        counts = [int(value) for value in re.findall(r"\b(\d+)\s+(?:tests?\s+)?(?:passed|xfailed|xpassed)\b",
+                                                     output, re.IGNORECASE)]
+        if counts:
+            return sum(counts)
+        match = re.search(r"\bTests?\s+(\d+)\s+passed\b", output, re.IGNORECASE)
+        return int(match.group(1)) if match else None
+    if executable in {"mvn", "mvn.cmd", "mvnw", "mvnw.cmd"}:
+        summaries = re.findall(
+            r"Tests run:\s*(\d+),\s*Failures:\s*\d+,\s*Errors:\s*\d+,\s*Skipped:\s*\d+",
+            output, re.IGNORECASE)
+        return sum(int(item[0]) for item in summaries) if summaries else None
+    return None
+
+
 def _output_has_executed_test_count(output: str) -> bool:
     return (any(int(count) > 0 for count in re.findall(
         r"\b(\d+)\s+(?:tests?\s+)?(?:passed|xfailed|xpassed)\b", output, re.IGNORECASE))
@@ -2037,13 +2193,20 @@ def _verify_gate_artifacts(record: dict[str, Any], evidence: dict[str, Any],
     if not isinstance(worktree_value, str):
         raise PolicyError("Verification requires the registered Issue worktree.")
     root = Path(worktree_value).resolve(strict=True)
-    command = evidence.get("command")
-    if not _gate_command_supported(command, target, root):
-        raise PolicyError("Verification requires an approved command and trusted runner for this gate; arbitrary or partial commands are rejected.")
     impact = _issue_gate_impact_plan(root, record.get("base_sha"), record.get("head_sha")) \
         if target == "ISSUE_GATE_VERIFIED" else None
-    if target == "ISSUE_GATE_VERIFIED" and command != impact["required_commands"][0]:
-        raise PolicyError("Issue Gate command does not match the required tests derived from the committed diff.")
+    if target == "ISSUE_GATE_VERIFIED":
+        if "command" in evidence or "commands" in evidence:
+            raise PolicyError("Issue Gate commands are derived from the committed diff and cannot be caller-selected.")
+        commands = impact["required_commands"]
+        for planned_command in commands:
+            if not _gate_command_supported(planned_command, target, root):
+                raise PolicyError("Impact plan contains a command without an approved trusted runner.")
+    else:
+        command = evidence.get("command")
+        if not _gate_command_supported(command, target, root):
+            raise PolicyError("Verification requires an approved command and trusted runner for this gate; arbitrary or partial commands are rejected.")
+        commands = [command]
     branch, actual_head, dirty = _verification_worktree_snapshot(root)
     if branch != record.get("branch") or actual_head != record.get("head_sha"):
         raise PolicyError("Verification worktree branch/HEAD does not match the registered Issue HEAD.")
@@ -2056,51 +2219,92 @@ def _verify_gate_artifacts(record: dict[str, Any], evidence: dict[str, Any],
             raise PolicyError("Full Gate manifest has no independent, human-confirmed trust baseline.")
         manifest_sha256 = trusted_manifest["sha256"].lower()
         prepared_command = [sys.executable, str(manifest_path)]
-    else:
-        prepared_command = _prepare_gate_command(command, root)
-    run_cwd = root if target == "FULL_GATE_VERIFIED" else _gate_working_directory(command, root)
-    if run_cwd is None:
-        raise PolicyError("Targeted Gate worktree is not a repository root with the expected module layout.")
     started_at = dt.datetime.now(dt.timezone.utc).isoformat()
-    try:
-        if target == "FULL_GATE_VERIFIED":
-            result = _execute_full_gate(
-                root, int(record["number"]), shared_state_dir(), manifest_sha256,
-                trusted_manifest["runner_sha256"].lower())
-        else:
-            result = _execute_gate_command(prepared_command, root, int(record["number"]), shared_state_dir())
-    except OSError as exc:
-        raise PolicyError("Could not execute the approved verification command.") from exc
-    after_branch, after_head, after_dirty = _verification_worktree_snapshot(root)
-    artifact = evidence_dir / f"issue-{record['number']}-{target.lower()}-{actual_head}-{uuid.uuid4().hex}.log"
-    artifact.parent.mkdir(parents=True, exist_ok=True)
-    transcript = json.dumps({"issue": record["number"], "gate": target, "sha": actual_head,
-                             "branch": branch, "command": command,
-                             "executed_command": prepared_command,
-                             "cwd": str(run_cwd), "started_at": started_at,
-                             "ended_at": dt.datetime.now(dt.timezone.utc).isoformat(),
-                             "worktree_after": {"branch": after_branch, "head_sha": after_head,
-                                                "dirty": after_dirty},
-                             "impact_plan": impact,
-                             "manifest_sha256": manifest_sha256,
-                             "exit_code": result.returncode,
-                             "output": result.stdout}, ensure_ascii=False, indent=2)
-    artifact.write_text(transcript, encoding="utf-8")
-    artifact_evidence = {"path": str(artifact.resolve()),
+    command_results = []
+    artifact_evidence = []
+    failures = []
+    for planned_command in commands:
+        run_cwd = root if target == "FULL_GATE_VERIFIED" else _gate_working_directory(planned_command, root)
+        if run_cwd is None:
+            raise PolicyError("Targeted Gate worktree is not a repository root with the expected module layout.")
+        prepared_command = (_prepare_gate_command(planned_command, root)
+                            if target != "FULL_GATE_VERIFIED" else prepared_command)
+        command_started = dt.datetime.now(dt.timezone.utc).isoformat()
+        try:
+            if target == "FULL_GATE_VERIFIED":
+                result = _execute_full_gate(
+                    root, int(record["number"]), shared_state_dir(), manifest_sha256,
+                    trusted_manifest["runner_sha256"].lower())
+            else:
+                result = _execute_gate_command(prepared_command, root, int(record["number"]), shared_state_dir())
+            exit_code, output = result.returncode, result.stdout
+        except OSError as exc:
+            exit_code, output = 127, f"Could not start approved command: {exc}"
+        command_after = _verification_worktree_snapshot(root)
+        is_test_command = (Path(planned_command[0].replace("\\", "/")).name.casefold()
+                           in {"python", "python.exe", "python3", "python3.exe", "py", "py.exe",
+                               "npm", "npm.cmd", "npm.exe", "mvn", "mvn.cmd", "mvnw", "mvnw.cmd"}
+                           and not (Path(planned_command[0].replace("\\", "/")).name.casefold()
+                                    in {"npm", "npm.cmd", "npm.exe"}
+                                    and planned_command[1:2] == ["run"]))
+        test_count = _verification_test_count(planned_command, output) if is_test_command else None
+        passed = exit_code == 0 and (not is_test_command or
+                                     (test_count is not None and test_count > 0
+                                      and _verification_output_contains_test_run(
+                                          planned_command, output, reject_skips=target == "ISSUE_GATE_VERIFIED")))
+        command_result = {"command": planned_command, "executed_command": prepared_command,
+                          "cwd": str(run_cwd), "sha": actual_head,
+                          "started_at": command_started,
+                          "ended_at": dt.datetime.now(dt.timezone.utc).isoformat(),
+                          "worktree_after": {"branch": command_after[0], "head_sha": command_after[1],
+                                             "dirty": command_after[2]},
+                          "status": "PASS" if passed else ("FAIL" if exit_code != 0 else "BLOCKED"),
+                          "exit_code": exit_code, "test_count": test_count, "output": output}
+        artifact = evidence_dir / f"issue-{record['number']}-{target.lower()}-{actual_head}-{uuid.uuid4().hex}.log"
+        artifact.parent.mkdir(parents=True, exist_ok=True)
+        artifact.write_text(json.dumps({"issue": record["number"], "gate": target,
+                                        "branch": branch, **command_result}, ensure_ascii=False, indent=2),
+                            encoding="utf-8")
+        artifact_item = {"path": str(artifact.resolve()),
                          "sha256": hashlib.sha256(artifact.read_bytes()).hexdigest()}
-    if result.returncode != 0:
-        raise PolicyError(f"Verification command failed with exit code {result.returncode}; evidence={artifact}.")
+        command_result["artifact"] = artifact_item
+        command_results.append(command_result)
+        artifact_evidence.append(artifact_item)
+        if not passed:
+            failure = (f"failed with exit code {exit_code}" if exit_code != 0 else
+                       f"{command_result['status']} with no verified executed test count")
+            failures.append(f"{planned_command!r}: {failure}, tests={test_count}")
+    after_branch, after_head, after_dirty = _verification_worktree_snapshot(root)
+    if target == "FULL_GATE_VERIFIED":
+        artifact = evidence_dir / f"issue-{record['number']}-{target.lower()}-{actual_head}-{uuid.uuid4().hex}.log"
+        artifact.parent.mkdir(parents=True, exist_ok=True)
+        artifact.write_text(json.dumps({"issue": record["number"], "gate": target, "sha": actual_head,
+                                        "branch": branch, "command": command,
+                                        "executed_command": prepared_command, "started_at": started_at,
+                                        "ended_at": dt.datetime.now(dt.timezone.utc).isoformat(),
+                                        "worktree_after": {"branch": after_branch, "head_sha": after_head,
+                                                           "dirty": after_dirty},
+                                        "manifest_sha256": manifest_sha256,
+                                        "command_results": command_results}, ensure_ascii=False, indent=2),
+                            encoding="utf-8")
+        artifact_evidence = [{"path": str(artifact.resolve()),
+                              "sha256": hashlib.sha256(artifact.read_bytes()).hexdigest()}]
     if after_branch != branch or after_head != actual_head or after_dirty:
-        raise PolicyError(f"Verification worktree changed during execution; refusing to record PASS; evidence={artifact}.")
-    if target in {"TARGETED_VERIFIED", "ISSUE_GATE_VERIFIED"} \
-            and not _verification_output_contains_test_run(
-                command, result.stdout, reject_skips=target == "ISSUE_GATE_VERIFIED"):
-        raise PolicyError(f"Verification command reported success without a nonzero test count; evidence={artifact}.")
-    verified = {"status": "PASS", "sha": actual_head, "command": command,
-                "exit_code": result.returncode, "artifacts": [artifact_evidence]}
+        raise PolicyError("Verification worktree changed during execution; refusing to record PASS; evidence="
+                          + ", ".join(item["path"] for item in artifact_evidence) + ".")
+    if failures:
+        raise PolicyError("Required verification command(s) did not pass; evidence="
+                          + ", ".join(item["path"] for item in artifact_evidence)
+                          + "; " + "; ".join(failures))
+    if target == "TARGETED_VERIFIED" and not _verification_output_contains_test_run(command, output):
+        raise PolicyError(f"Verification command reported success without a nonzero test count; evidence={artifact_evidence}.")
+    verified = {"status": "PASS", "sha": actual_head,
+                "command": command if target != "ISSUE_GATE_VERIFIED" else None,
+                "exit_code": 0, "artifacts": artifact_evidence}
     if impact is not None:
-        impact["actual_result"] = {"status": "PASS", "exit_code": result.returncode,
-                                   "artifact": artifact_evidence}
+        impact["actual_results"] = command_results
+        impact["actual_result"] = {"status": "PASS", "exit_code": 0,
+                                   "artifacts": artifact_evidence}
         verified["impact"] = impact
     return verified
 
