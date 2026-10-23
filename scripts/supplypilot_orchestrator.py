@@ -1980,7 +1980,10 @@ def _frontend_page_imports(root: Path, revision: str, path: str) -> tuple[str, .
         return None
     # Vite's glob imports resolve dependencies from a pattern rather than a
     # static module specifier, so a page using import.meta is not safely mapped.
-    if re.search(r"\bimport\s*\.\s*meta\b", source):
+    if re.search(
+            r"\bimport(?:(?:\s+)|(?:/\*.*?\*/)|(?://[^\r\n]*(?:\r?\n|$)))*\."
+            r"(?:(?:\s+)|(?:/\*.*?\*/)|(?://[^\r\n]*(?:\r?\n|$)))*meta\b",
+            source, re.DOTALL):
         return None
     dynamic_calls = re.finditer(
         r"\b(?:import|require)\b(?:\s|/\*.*?\*/|//[^\r\n]*(?:\r?\n|$))*\(([^)]*)\)",
@@ -2000,8 +2003,8 @@ def _frontend_page_imports(root: Path, revision: str, path: str) -> tuple[str, .
     return tuple(sorted({module for match in modules for module in match if module}))
 
 
-def _frontend_gate_scripts(root: Path, revision: str) -> tuple[str, str, str] | None:
-    """Read the test/lint/build scripts whose output is trusted by the Issue Gate."""
+def _frontend_gate_scripts(root: Path, revision: str) -> tuple[str, ...] | None:
+    """Read Issue Gate scripts and npm lifecycle hooks whose output is trusted."""
     try:
         source = subprocess.run(
             ["git", "-C", str(root), "show", f"{revision}:frontend/package.json"],
@@ -2014,10 +2017,14 @@ def _frontend_gate_scripts(root: Path, revision: str) -> tuple[str, str, str] | 
     scripts = manifest.get("scripts") if isinstance(manifest, dict) else None
     if not isinstance(scripts, dict):
         return None
-    required = tuple(scripts.get(name) for name in ("test", "lint", "build"))
-    if any(not isinstance(value, str) or not value.strip() for value in required):
+    required = ("test", "lint", "build")
+    lifecycle = ("pretest", "posttest", "prelint", "postlint", "prebuild", "postbuild")
+    if any(not isinstance(scripts.get(name), str) or not scripts[name].strip() for name in required):
         return None
-    return required  # type: ignore[return-value]
+    values = tuple(scripts.get(name, "") for name in (*required, *lifecycle))
+    if any(not isinstance(value, str) for value in values):
+        return None
+    return values
 
 
 def _issue_gate_impact_plan(root: Path, base_sha: Any, head_sha: Any) -> dict[str, Any]:

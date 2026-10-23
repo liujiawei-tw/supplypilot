@@ -909,6 +909,7 @@ class StateTests(unittest.TestCase):
             "import(`./${componentName}`);",
             "require(componentPath);",
             "const modules = import.meta.glob('../../components/**/*.tsx');",
+            "const modules = import /* comment */ . meta.glob('../../components/**/*.tsx');",
         )
         for expression in dependency_expressions:
             with self.subTest(expression=expression), tempfile.TemporaryDirectory() as temp:
@@ -923,18 +924,22 @@ class StateTests(unittest.TestCase):
                 self.assertIn("complete Frontend Vitest suite", " ".join(plan["required_tests"]))
 
     def test_issue_gate_blocks_changed_frontend_verification_scripts(self):
-        with tempfile.TemporaryDirectory() as temp:
-            path = self._make_state(temp)
-            orch.state_transition(path, 9, "READY_TO_CODE", self._ready_evidence())
-            orch.state_transition(path, 9, "IMPLEMENTING", {"authorized_issue": 9})
-            head = self._commit_impact_paths(path, {
-                "frontend/package.json": (
-                    '{"scripts":{"test":"echo Tests 2 passed",'
-                    '"lint":"oxlint src","build":"vite build"}}'
-                )
-            })
-            with self.assertRaisesRegex(orch.PolicyError, "test/lint/build scripts changed or could not be verified"):
-                orch._issue_gate_impact_plan(Path(self._state_worktree), self._state_base_sha, head)
+        changed_packages = (
+            '{"scripts":{"test":"echo Tests 2 passed",'
+            '"lint":"oxlint src","build":"vite build"}}',
+            '{"scripts":{"test":"vitest run","pretest":"node replace-test-runner.js",'
+            '"lint":"oxlint src","build":"vite build"}}',
+        )
+        for changed_package in changed_packages:
+            with self.subTest(package=changed_package), tempfile.TemporaryDirectory() as temp:
+                path = self._make_state(temp)
+                orch.state_transition(path, 9, "READY_TO_CODE", self._ready_evidence())
+                orch.state_transition(path, 9, "IMPLEMENTING", {"authorized_issue": 9})
+                head = self._commit_impact_paths(path, {"frontend/package.json": changed_package})
+                with self.assertRaisesRegex(
+                    orch.PolicyError, "test/lint/build scripts changed or could not be verified"
+                ):
+                    orch._issue_gate_impact_plan(Path(self._state_worktree), self._state_base_sha, head)
 
     def test_issue_gate_maps_documents_page_and_keeps_e2e_release_pending(self):
         with tempfile.TemporaryDirectory() as temp:
