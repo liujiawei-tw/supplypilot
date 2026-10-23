@@ -1,0 +1,29 @@
+
+> frontend@0.0.0 test
+> vitest run --reporter=verbose tests/demandInventory.test.tsx -t keeps Procurement Manager read-only while rendering Demand data
+
+
+ RUN  v4.1.11 C:/Users/z0976/OneDrive/桌面/dev-side/supplypilot/.worktrees/issue-160-frontend-vitest-performance/frontend
+
+stderr | tests/demandInventory.test.tsx > SP-802 Demand UI > keeps Procurement Manager read-only while rendering Demand data
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+ ↓ tests/demandInventory.test.tsx > SP-802 Demand UI > does not mount Demand queries for an unauthorized role
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+ ✓ tests/demandInventory.test.tsx > SP-802 Demand UI > keeps Procurement Manager read-only while rendering Demand data 4489ms
+ ↓ tests/demandInventory.test.tsx > SP-802 Demand UI > allows a failed Material detail lookup to be retried explicitly
+ ↓ tests/demandInventory.test.tsx > SP-802 Demand UI > shows create fields, edits with explicit note clearing, confirms cancel and refetches
+ ↓ tests/demandInventory.test.tsx > SP-802 Inventory UI > validates adjustment decimal boundaries without Number conversion
+ ↓ tests/demandInventory.test.tsx > SP-802 Inventory UI > enforces the tab matrix for PRODUCTION_PLANNER
+ ↓ tests/demandInventory.test.tsx > SP-802 Inventory UI > enforces the tab matrix for PROCUREMENT_STAFF
+ ↓ tests/demandInventory.test.tsx > SP-802 Inventory UI > enforces the tab matrix for PROCUREMENT_MANAGER
+ ↓ tests/demandInventory.test.tsx > SP-802 Inventory UI > enforces the tab matrix for WAREHOUSE_STAFF
+ ↓ tests/demandInventory.test.tsx > SP-802 Inventory UI > enforces the tab matrix for ADMIN
+ ↓ tests/demandInventory.test.tsx > SP-802 Inventory UI > shows detail and allows Warehouse to submit a signed adjustment exactly once before refetch
+ ↓ tests/demandInventory.test.tsx > SP-802 Inventory UI > keeps adjustment input and marks a 409 result unknown without retrying
+
+ Test Files  1 passed (1)
+      Tests  1 passed | 11 skipped (12)
+   Start at  20:38:20
+   Duration  12.39s (transform 1.34s, setup 240ms, import 6.65s, tests 4.49s, environment 786ms)
+

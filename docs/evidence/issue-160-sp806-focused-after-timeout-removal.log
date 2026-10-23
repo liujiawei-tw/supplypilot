@@ -1,0 +1,159 @@
+
+> frontend@0.0.0 test
+> vitest run --reporter=verbose tests/sp806.test.tsx -t ignores a delayed ingestion verification response|reviews a multi-item backend snapshot|locks the old Proposal after AI_PROPOSAL_ALREADY_CONFIRMED|locks the old Proposal after AI_PROPOSAL_EXPIRED
+
+
+ RUN  v4.1.11 C:/Users/z0976/OneDrive/桌面/dev-side/supplypilot/.worktrees/issue-160-frontend-vitest-performance/frontend
+
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+stderr | tests/sp806.test.tsx > SP-806 Document Management UI > ignores a delayed ingestion verification response after switching documents
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+ ↓ tests/sp806.test.tsx > SP-806 Document Management UI > exposes Semantic operations only to ADMIN on the existing Documents route
+ ↓ tests/sp806.test.tsx > SP-806 Document Management UI > exposes Semantic operations only to ADMIN on the existing Documents route
+ ↓ tests/sp806.test.tsx > SP-806 Document Management UI > exposes Semantic operations only to ADMIN on the existing Documents route
+ ↓ tests/sp806.test.tsx > SP-806 Document Management UI > exposes Semantic operations only to ADMIN on the existing Documents route
+ ↓ tests/sp806.test.tsx > SP-806 Document Management UI > confirms outbound approval and renders the actual 後端 Review result
+ ↓ tests/sp806.test.tsx > SP-806 Document Management UI > keeps a deep-linked #21 from overwriting a fast #22 switch and reviews only the current document
+ ↓ tests/sp806.test.tsx > SP-806 Document Management UI > ignores a delayed title response after switching documents
+ ↓ tests/sp806.test.tsx > SP-806 Document Management UI > ignores a delayed archive response after switching documents
+ ↓ tests/sp806.test.tsx > SP-806 Document Management UI > ignores a delayed ingestion response after switching documents
+stderr | tests/sp806.test.tsx > SP-806 Document Management UI > ignores a delayed ingestion verification response after switching documents
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+stderr | tests/sp806.test.tsx > SP-806 Document Management UI > ignores a delayed ingestion verification response after switching documents
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+stderr | tests/sp806.test.tsx > SP-806 Document Management UI > ignores a delayed ingestion verification response after switching documents
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+stderr | tests/sp806.test.tsx > SP-806 Document Management UI > ignores a delayed ingestion verification response after switching documents
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+stderr | tests/sp806.test.tsx > SP-806 Document Management UI > ignores a delayed ingestion verification response after switching documents
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+stderr | tests/sp806.test.tsx > SP-806 Document Management UI > ignores a delayed ingestion verification response after switching documents
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+stderr | tests/sp806.test.tsx > SP-806 Document Management UI > ignores a delayed ingestion verification response after switching documents
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+stderr | tests/sp806.test.tsx > SP-806 Document Management UI > ignores a delayed ingestion verification response after switching documents
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+
+stderr | tests/sp806.test.tsx > SP-806 Document Management UI > ignores a delayed ingestion verification response after switching documents
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+
+stderr | tests/sp806.test.tsx > SP-806 Document Management UI > ignores a delayed ingestion verification response after switching documents
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+stderr | tests/sp806.test.tsx > SP-806 Document Management UI > ignores a delayed ingestion verification response after switching documents
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+stderr | tests/sp806.test.tsx > SP-806 Document Management UI > ignores a delayed ingestion verification response after switching documents
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+stderr | tests/sp806.test.tsx > SP-806 Global AI 助理 > reviews a multi-item backend snapshot and sends one token-based Confirm with no ordinary PO create call
+Warning: [antd: List] The `List` component is deprecated and will be removed in the next major version. If you're using version 6.6.0 or later, please use `Listy` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+Warning: [antd: List] The `List` component is deprecated and will be removed in the next major version. If you're using version 6.6.0 or later, please use `Listy` instead.
+
+ ✓ tests/sp806.test.tsx > SP-806 Document Management UI > ignores a delayed ingestion verification response after switching documents 13117ms
+ ↓ tests/sp806.test.tsx > SP-806 Document Management UI > refreshes the same deep-linked document and closes without reloading it
+ ↓ tests/sp806.test.tsx > SP-806 Document Management UI > marks saved Gate 稽核 responses historical after document upload, ingestion and outbound approval or exclusion
+ ↓ tests/sp806.test.tsx > SP-806 Document Management UI > shows backend status, hides storagePath, and performs one explicitly confirmed ingestion followed by refresh
+ ↓ tests/sp806.test.tsx > SP-806 Document Management UI > locks an unknown or 409 ingestion result until the official document GET succeeds, without a resend
+ ↓ tests/sp806.test.tsx > SP-806 Document Management UI > validates document file extension, browser content type, and empty content
+ ↓ tests/sp806.test.tsx > SP-806 Document Management UI > submits one upload on rapid clicks and locks an unknown upload instead of guessing its result
+ ↓ tests/sp806.test.tsx > SP-806 Document Management UI > gives manager read-only Documents without upload, edit, or ingestion controls
+ ↓ tests/sp806.test.tsx > SP-806 Document Management UI > does not call any Document or AI endpoint for warehouse role
+ ↓ tests/sp806.test.tsx > SP-806 Global AI 助理 > keeps the route unchanged, renders verified query sources, and gives manager no Proposal tab
+ ↓ tests/sp806.test.tsx > SP-806 Global AI 助理 > isolates AI 503 so navigation stays usable and the drawer can close
+stderr | tests/sp806.test.tsx > SP-806 Global AI 助理 > reviews a multi-item backend snapshot and sends one token-based Confirm with no ordinary PO create call
+Warning: [antd: List] The `List` component is deprecated and will be removed in the next major version. If you're using version 6.6.0 or later, please use `Listy` instead.
+
+Could not parse CSS stylesheet
+Could not parse CSS stylesheet
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+stderr | tests/sp806.test.tsx > SP-806 Global AI 助理 > reviews a multi-item backend snapshot and sends one token-based Confirm with no ordinary PO create call
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+stderr | tests/sp806.test.tsx > SP-806 Global AI 助理 > locks the old Proposal after AI_PROPOSAL_ALREADY_CONFIRMED
+Warning: [antd: List] The `List` component is deprecated and will be removed in the next major version. If you're using version 6.6.0 or later, please use `Listy` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+Warning: [antd: List] The `List` component is deprecated and will be removed in the next major version. If you're using version 6.6.0 or later, please use `Listy` instead.
+
+ ✓ tests/sp806.test.tsx > SP-806 Global AI 助理 > reviews a multi-item backend snapshot and sends one token-based Confirm with no ordinary PO create call 28587ms
+ ↓ tests/sp806.test.tsx > SP-806 Global AI 助理 > shows clarification without Confirm and locks unknown Confirm results without resending
+stderr | tests/sp806.test.tsx > SP-806 Global AI 助理 > locks the old Proposal after AI_PROPOSAL_ALREADY_CONFIRMED
+Warning: [antd: List] The `List` component is deprecated and will be removed in the next major version. If you're using version 6.6.0 or later, please use `Listy` instead.
+
+Could not parse CSS stylesheet
+Could not parse CSS stylesheet
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+stderr | tests/sp806.test.tsx > SP-806 Global AI 助理 > locks the old Proposal after AI_PROPOSAL_ALREADY_CONFIRMED
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+stderr | tests/sp806.test.tsx > SP-806 Global AI 助理 > locks the old Proposal after AI_PROPOSAL_EXPIRED
+Warning: [antd: List] The `List` component is deprecated and will be removed in the next major version. If you're using version 6.6.0 or later, please use `Listy` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+Warning: [antd: List] The `List` component is deprecated and will be removed in the next major version. If you're using version 6.6.0 or later, please use `Listy` instead.
+
+ ✓ tests/sp806.test.tsx > SP-806 Global AI 助理 > locks the old Proposal after AI_PROPOSAL_ALREADY_CONFIRMED 22227ms
+stderr | tests/sp806.test.tsx > SP-806 Global AI 助理 > locks the old Proposal after AI_PROPOSAL_EXPIRED
+Warning: [antd: List] The `List` component is deprecated and will be removed in the next major version. If you're using version 6.6.0 or later, please use `Listy` instead.
+
+Could not parse CSS stylesheet
+Could not parse CSS stylesheet
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+stderr | tests/sp806.test.tsx > SP-806 Global AI 助理 > locks the old Proposal after AI_PROPOSAL_EXPIRED
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+ ✓ tests/sp806.test.tsx > SP-806 Global AI 助理 > locks the old Proposal after AI_PROPOSAL_EXPIRED 27379ms
+ ↓ tests/sp806.test.tsx > SP-806 Global AI 助理 > fails closed when Proposal expiresAt is invalid without calling Confirm
+
+ Test Files  1 passed (1)
+      Tests  4 passed | 21 skipped (25)
+   Start at  20:40:27
+   Duration  101.14s (transform 1.43s, setup 503ms, import 7.03s, tests 91.32s, environment 1.57s)
+

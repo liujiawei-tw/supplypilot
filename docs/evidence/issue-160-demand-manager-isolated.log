@@ -1,0 +1,6 @@
+
+> frontend@0.0.0 test
+> vitest run --reporter=verbose tests/demandInventory.test.tsx -t keeps Procurement Manager read-only while rendering Demand data
+
+'vitest' is not recognized as an internal or external command,
+operable program or batch file.
