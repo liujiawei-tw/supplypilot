@@ -4,9 +4,11 @@ import subprocess
 import sys
 import tempfile
 import contextlib
+import io
 import hashlib
 import threading
 import unittest
+import urllib.error
 from pathlib import Path
 from unittest.mock import Mock, patch
 
@@ -2499,6 +2501,325 @@ class StateTests(unittest.TestCase):
             orch.state_adopt(path, self._adoption_record(worktree), 42)
             with self.assertRaisesRegex(orch.PolicyError, "already has this state/fingerprint"):
                 orch.state_adopt(path, self._adoption_record(worktree), 42)
+
+
+class StateRecoveryTests(unittest.TestCase):
+    old_main = "18d68a453fd18c26d064bdd1362c3834e2cc0e48"
+    current_main = "58b9abfee070c45da20a6d60f52658287feb3d28"
+    feature_head = "b322a5e751c035f4ad5543f67c1ae23e3a1202ae"
+    branch = "codex/issue-162-supplypilot-multi-agent-orchestrator"
+    fingerprint = "48cc4cdbd3289c891ddbde82216fbf8bf36beec83b03023af7850a526c87ea5b"
+
+    def test_github_api_uses_existing_git_credential_after_private_repo_404(self):
+        class Response:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *_):
+                return False
+
+            def read(self):
+                return b'{"number":165}'
+
+        missing_auth = urllib.error.HTTPError(
+            "https://api.github.com/repos/liujiawei-tw/supplypilot/pulls/165",
+            404, "Not Found", None, io.BytesIO(b""))
+        credential = Mock(returncode=0,
+                          stdout="protocol=https\nhost=github.com\nusername=x-access-token\n"
+                                 "password=test-token-value\n")
+        with patch.object(orch, "_repository_slug", return_value="liujiawei-tw/supplypilot"), \
+                patch.object(orch.subprocess, "run", return_value=credential) as get_credential, \
+                patch.object(orch.urllib.request, "urlopen", side_effect=[missing_auth, Response()]) as urlopen:
+            result = orch._github_api_get("/pulls/165")
+
+        self.assertEqual({"number": 165}, result)
+        self.assertEqual(2, urlopen.call_count)
+        authenticated_request = urlopen.call_args_list[1].args[0]
+        self.assertEqual("Bearer test-token-value", authenticated_request.get_header("Authorization"))
+        self.assertEqual(["git", "credential", "fill"], get_credential.call_args.args[0])
+        self.assertEqual("never", get_credential.call_args.kwargs["env"]["GCM_INTERACTIVE"])
+
+    def _state(self, root):
+        state_path = Path(root) / "issue-state.json"
+        state = {
+            "schema_version": 1,
+            "main_sha": self.old_main,
+            "issues": {
+                "162": {
+                    "number": 162, "dependencies": [], "base_sha": self.old_main,
+                    "head_sha": self.feature_head, "branch": self.branch,
+                    "worktree": "C:/worktrees/issue-162", "contract_version": "v1.0",
+                    "contract_verified": True, "owned_files": ["AGENTS.md", "scripts/tool.py"],
+                    "implementation_state": "FULL_GATE_PENDING", "base_status": "CURRENT",
+                    "gate_reservation": {"status": "ABORTED"},
+                    "wip_adoption": {"status": "RESUMED", "fingerprint": self.fingerprint,
+                                      "branch": self.branch, "head": self.feature_head, "clean": True},
+                    "verification": {"status": "NOT_RUN", "sha": None, "evidence": []},
+                    "issue_gate": None, "gpt_review": {"status": "NOT_REVIEWED", "reviewed_sha": None},
+                    "trusted_full_gate_manifest": None,
+                    "pr": {"status": "NONE", "number": None, "head_sha": None},
+                    "merge": {"status": "UNMERGED", "merge_commit": None},
+                    "events": [],
+                },
+                "142": {
+                    "number": 142, "dependencies": [138, 139, 140, 141, 160],
+                    "base_sha": "9240d6aeeba2361476a0454ac965a214769638a0",
+                    "head_sha": "9240d6aeeba2361476a0454ac965a214769638a0",
+                    "branch": "codex/issue-142-v2-205", "worktree": "C:/worktrees/issue-142",
+                    "owned_files": ["backend/src/po"], "implementation_state": "BLOCKED_DEPENDENCY",
+                    "base_status": "STALE_BASE", "contract_verified": False,
+                    "wip_adoption": {"status": "ADOPTED_PENDING_RESUME", "fingerprint": "142-fingerprint"},
+                    "verification": {"status": "NOT_RUN", "sha": None, "evidence": []},
+                    "issue_gate": None, "gpt_review": {"status": "NOT_REVIEWED", "reviewed_sha": None},
+                },
+                "143": {
+                    "number": 143, "dependencies": [141, 142],
+                    "base_sha": "9240d6aeeba2361476a0454ac965a214769638a0",
+                    "head_sha": "9240d6aeeba2361476a0454ac965a214769638a0",
+                    "branch": "codex/issue-143-v2-206", "worktree": "C:/worktrees/issue-143",
+                    "owned_files": ["frontend/src/po"], "implementation_state": "BLOCKED_DEPENDENCY",
+                    "base_status": "STALE_BASE", "contract_verified": False,
+                    "wip_adoption": {"status": "ADOPTED_PENDING_RESUME", "fingerprint": "143-fingerprint"},
+                    "verification": {"status": "NOT_RUN", "sha": None, "evidence": []},
+                    "issue_gate": None, "gpt_review": {"status": "NOT_REVIEWED", "reviewed_sha": None},
+                },
+            },
+            "events": [],
+        }
+        state_path.write_text(json.dumps(state, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        return state_path
+
+    def _github_facts(self, **overrides):
+        pr = {
+            "number": 165, "state": "closed", "merged_at": "2026-10-23T10:12:00Z",
+            "base": {"ref": "main", "sha": self.old_main,
+                     "repo": {"full_name": "liujiawei-tw/supplypilot"}},
+            "head": {"ref": self.branch, "sha": self.feature_head,
+                     "repo": {"full_name": "liujiawei-tw/supplypilot"}},
+            "body": "Recovery PR\n\nCloses #162", "merge_commit_sha": self.current_main,
+            "html_url": "https://github.com/liujiawei-tw/supplypilot/pull/165",
+        }
+        issue = {"number": 162, "state": "closed", "state_reason": "completed"}
+        main = {"name": "main", "commit": {"sha": self.current_main}}
+        compare = {"status": "identical", "ahead_by": 0,
+                   "merge_base_commit": {"sha": self.current_main}}
+        facts = {"/pulls/165": pr, "/issues/162": issue, "/branches/main": main}
+        facts.update(overrides)
+        facts["compare"] = compare
+        return facts
+
+    def _run_recovery(self, state_path, root, facts=None, **kwargs):
+        api_facts = facts if facts is not None else self._github_facts()
+        assert_lock = kwargs.pop("assert_lock", False)
+        def get_json(path):
+            if assert_lock:
+                self.assertTrue(Path(str(state_path) + ".lock").is_dir())
+            if path.startswith("/compare/"):
+                return api_facts["compare"]
+            if path not in api_facts:
+                raise orch.PolicyError("GitHub API evidence is unavailable.")
+            return api_facts[path]
+
+        snapshot = {"branch": self.branch, "head": self.feature_head, "clean": True,
+                    "fingerprint": self.fingerprint}
+        with patch.object(orch, "_repository_slug", return_value="liujiawei-tw/supplypilot"), \
+                patch.object(orch, "_github_api_get", side_effect=get_json), \
+                patch.object(orch, "capture_worktree", return_value=snapshot), \
+                patch.object(orch, "_main_diff_changes_contract_surface", return_value=False):
+            return orch.state_recover_merged(
+                state_path, 162, 165,
+                backup_path=Path(root) / "issue-state.backup.json",
+                manifest_path=Path(root) / "recovery-manifest.json",
+                **kwargs,
+            )
+
+    def test_verified_recovery_dry_run_creates_backup_and_preview_without_writing_state(self):
+        with tempfile.TemporaryDirectory() as temp:
+            state_path = self._state(temp)
+            before = state_path.read_bytes()
+            preview = self._run_recovery(state_path, temp)
+
+            self.assertEqual(before, state_path.read_bytes())
+            self.assertEqual(before, (Path(temp) / "issue-state.backup.json").read_bytes())
+            self.assertEqual(hashlib.sha256(before).hexdigest(), preview["before_state_sha256"])
+            self.assertEqual(self.current_main, preview["proposed_main_sha"])
+            self.assertEqual("MERGED", preview["proposed_issue_state"])
+            self.assertEqual("RELEASED", preview["proposed_ownership_state"])
+            self.assertEqual("NOT_VERIFIED", preview["issue_gate"])
+            self.assertEqual("NOT_RUN", preview["release_gate"])
+            self.assertEqual({"142", "143"}, set(preview["affected_issues"]))
+            self.assertIn("diff_unified", preview)
+            self.assertTrue((Path(temp) / "recovery-manifest.json").is_file())
+
+    def test_verified_apply_releases_only_issue_162_and_preserves_gate_evidence(self):
+        with tempfile.TemporaryDirectory() as temp:
+            state_path = self._state(temp)
+            confirmation = "RECOVER ISSUE #162 FROM PR #165"
+            self._run_recovery(state_path, temp, apply=True, confirmation=confirmation, assert_lock=True)
+            state = orch.read_json(state_path)
+            issue_162 = state["issues"]["162"]
+            self.assertEqual(self.current_main, state["main_sha"])
+            self.assertEqual("MERGED", issue_162["implementation_state"])
+            self.assertEqual("MERGED", issue_162["pr"]["status"])
+            self.assertEqual(165, issue_162["pr"]["number"])
+            self.assertEqual("MERGED", issue_162["merge"]["status"])
+            self.assertEqual("RELEASED", issue_162["ownership_state"])
+            self.assertEqual(self.fingerprint, issue_162["wip_adoption"]["fingerprint"])
+            self.assertEqual("NOT_RUN", issue_162["verification"]["status"])
+            self.assertIsNone(issue_162["issue_gate"])
+            self.assertEqual("NOT_REVIEWED", issue_162["gpt_review"]["status"])
+            self.assertEqual("BLOCKED_DEPENDENCY", state["issues"]["142"]["implementation_state"])
+            self.assertEqual("BLOCKED_DEPENDENCY", state["issues"]["143"]["implementation_state"])
+            self.assertEqual("9240d6aeeba2361476a0454ac965a214769638a0", state["issues"]["142"]["base_sha"])
+            self.assertEqual("9240d6aeeba2361476a0454ac965a214769638a0", state["issues"]["143"]["base_sha"])
+            event = next(e for e in state["events"] if e["type"] == "STATE_RECOVERED_MERGED")
+            self.assertEqual("NOT_VERIFIED", event["evidence"]["issue_gate"])
+            self.assertEqual("NOT_RUN", event["evidence"]["release_gate"])
+            self.assertTrue(event["evidence"]["backup_sha256"])
+            self.assertTrue(event["evidence"]["operator"])
+            backup = Path(temp) / "issue-state.backup.json"
+            manifest = json.loads((Path(temp) / "recovery-manifest.json").read_text(encoding="utf-8"))
+            self.assertTrue(backup.is_file())
+            self.assertEqual(hashlib.sha256(backup.read_bytes()).hexdigest(), event["evidence"]["backup_sha256"])
+            self.assertEqual("COMMITTED", manifest["status"])
+            self.assertEqual(hashlib.sha256(state_path.read_bytes()).hexdigest(), manifest["state_after_sha256"])
+            self.assertTrue(manifest["diff_unified"])
+
+    def test_recovery_rejects_wrong_pr_before_querying_github(self):
+        with tempfile.TemporaryDirectory() as temp:
+            state_path = self._state(temp)
+            with patch.object(orch, "_github_api_get") as query:
+                with self.assertRaisesRegex(orch.PolicyError, "only recover Issue #162 from PR #165"):
+                    orch.state_recover_merged(state_path, 162, 164,
+                        backup_path=Path(temp) / "backup.json",
+                        manifest_path=Path(temp) / "manifest.json")
+            query.assert_not_called()
+
+    def test_recovery_rejects_wrong_feature_sha(self):
+        with tempfile.TemporaryDirectory() as temp:
+            state_path = self._state(temp)
+            facts = self._github_facts()
+            facts["/pulls/165"]["head"]["sha"] = "f" * 40
+            with self.assertRaisesRegex(orch.PolicyError, "feature HEAD"):
+                self._run_recovery(state_path, temp, facts)
+            self.assertEqual(self.old_main, orch.read_json(state_path)["main_sha"])
+
+    def test_recovery_rejects_wrong_repository_or_base(self):
+        with tempfile.TemporaryDirectory() as temp:
+            state_path = self._state(temp)
+            facts = self._github_facts()
+            facts["/pulls/165"]["head"]["repo"]["full_name"] = "attacker/supplypilot"
+            with self.assertRaisesRegex(orch.PolicyError, "repository or base branch"):
+                self._run_recovery(state_path, temp, facts)
+        with tempfile.TemporaryDirectory() as temp:
+            state_path = self._state(temp)
+            facts = self._github_facts()
+            facts["/pulls/165"]["base"]["sha"] = "f" * 40
+            with self.assertRaisesRegex(orch.PolicyError, "base SHA"):
+                self._run_recovery(state_path, temp, facts)
+
+    def test_recovery_rejects_unmerged_pull_request(self):
+        with tempfile.TemporaryDirectory() as temp:
+            state_path = self._state(temp)
+            facts = self._github_facts()
+            facts["/pulls/165"]["merged_at"] = None
+            with self.assertRaisesRegex(orch.PolicyError, "merged PR #165"):
+                self._run_recovery(state_path, temp, facts)
+
+    def test_recovery_rejects_remote_main_that_does_not_contain_merge_commit(self):
+        with tempfile.TemporaryDirectory() as temp:
+            state_path = self._state(temp)
+            facts = self._github_facts()
+            facts["compare"] = {"status": "diverged", "ahead_by": 0,
+                                "merge_base_commit": {"sha": "a" * 40}}
+            with self.assertRaisesRegex(orch.PolicyError, "not an ancestor of current GitHub main"):
+                self._run_recovery(state_path, temp, facts)
+
+    def test_recovery_rejects_missing_github_api_evidence(self):
+        with tempfile.TemporaryDirectory() as temp:
+            state_path = self._state(temp)
+            with self.assertRaisesRegex(orch.PolicyError, "GitHub API evidence is unavailable"):
+                self._run_recovery(state_path, temp, {})
+            self.assertEqual(self.old_main, orch.read_json(state_path)["main_sha"])
+
+    def test_recovery_rejects_active_other_owner_of_recovery_files(self):
+        with tempfile.TemporaryDirectory() as temp:
+            state_path = self._state(temp)
+            state = orch.read_json(state_path)
+            state["issues"]["163"] = {
+                "number": 163, "owned_files": ["AGENTS.md"],
+                "implementation_state": "IMPLEMENTING",
+                "ownership_state": "OWNED",
+            }
+            orch.atomic_write_json(state_path, state)
+            with self.assertRaisesRegex(orch.PolicyError, "active Issue #163"):
+                self._run_recovery(state_path, temp)
+
+    def test_recovery_rejects_any_running_gate_reservation(self):
+        with tempfile.TemporaryDirectory() as temp:
+            state_path = self._state(temp)
+            state = orch.read_json(state_path)
+            state["issues"]["142"]["gate_reservation"] = {"status": "RUNNING"}
+            orch.atomic_write_json(state_path, state)
+            with self.assertRaisesRegex(orch.PolicyError, "active Gate reservation"):
+                self._run_recovery(state_path, temp)
+
+    def test_recovery_rejects_repeated_merge_reconciliation(self):
+        with tempfile.TemporaryDirectory() as temp:
+            state_path = self._state(temp)
+            state = orch.read_json(state_path)
+            issue = state["issues"]["162"]
+            issue["implementation_state"] = "MERGED"
+            issue["pr"] = {"status": "MERGED", "number": 165, "head_sha": self.feature_head}
+            issue["merge"] = {"status": "MERGED", "merge_commit": self.current_main}
+            state["main_sha"] = self.current_main
+            orch.atomic_write_json(state_path, state)
+            with self.assertRaisesRegex(orch.PolicyError, "already reconciled"):
+                self._run_recovery(state_path, temp)
+
+    def test_recovery_apply_requires_explicit_confirmation(self):
+        with tempfile.TemporaryDirectory() as temp:
+            state_path = self._state(temp)
+            before = state_path.read_bytes()
+            with self.assertRaisesRegex(orch.PolicyError, "confirmation phrase"):
+                self._run_recovery(state_path, temp, apply=True)
+            self.assertEqual(before, state_path.read_bytes())
+            self.assertFalse((Path(temp) / "issue-state.backup.json").exists())
+
+    def test_recovery_dry_run_refuses_existing_state_lock(self):
+        with tempfile.TemporaryDirectory() as temp:
+            state_path = self._state(temp)
+            Path(str(state_path) + ".lock").mkdir()
+            with self.assertRaisesRegex(orch.PolicyError, "State is locked"):
+                self._run_recovery(state_path, temp)
+
+    def test_recovery_cli_defaults_to_dry_run_and_emits_reviewable_preview(self):
+        with tempfile.TemporaryDirectory() as temp:
+            state_path = self._state(temp)
+            before = state_path.read_bytes()
+            backup = Path(temp) / "cli-backup.json"
+            manifest = Path(temp) / "cli-manifest.json"
+            api_facts = self._github_facts()
+
+            def get_json(path):
+                return api_facts["compare"] if path.startswith("/compare/") else api_facts[path]
+
+            output = io.StringIO()
+            snapshot = {"branch": self.branch, "head": self.feature_head, "clean": True,
+                        "fingerprint": self.fingerprint}
+            with patch.object(orch, "_repository_slug", return_value="liujiawei-tw/supplypilot"), \
+                    patch.object(orch, "_github_api_get", side_effect=get_json), \
+                    patch.object(orch, "capture_worktree", return_value=snapshot), \
+                    patch.object(orch, "_main_diff_changes_contract_surface", return_value=False), \
+                    contextlib.redirect_stdout(output):
+                result = orch.main(["state", "recover-merged", str(state_path), "--issue", "162", "--pr", "165",
+                                    "--backup-out", str(backup), "--manifest-out", str(manifest)])
+
+            self.assertEqual(0, result)
+            self.assertEqual(before, state_path.read_bytes())
+            self.assertEqual("DRY_RUN", json.loads(output.getvalue())["status"])
+            self.assertTrue(backup.is_file())
+            self.assertTrue(manifest.is_file())
 
 
 if __name__ == "__main__":
