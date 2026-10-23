@@ -1,0 +1,47 @@
+SupplyPilot Issue #162 — P1-17 / P2-01 regression evidence
+Date: 2026-10-23
+Source branch: codex/issue-162-supplypilot-multi-agent-orchestrator
+Source HEAD before these changes: 617058da2a7d4316fda336a94c111dfcf40d12fa
+
+Focused regression command:
+python -m unittest -v scripts.tests.test_supplypilot_orchestrator.StateTests.test_gpt_final_pass_and_pr_require_exact_sha_and_closes_line scripts.tests.test_supplypilot_orchestrator.StateTests.test_main_sync_during_gpt_review_blocks_final_pass_and_pr_gate scripts.tests.test_supplypilot_orchestrator.StateTests.test_github_pr_open_verification_requires_exact_open_pr scripts.tests.test_supplypilot_orchestrator.GateTests
+Result before final signature tightening: PASS — 8 tests in 5.950s.
+
+Final focused regression after the last source edit:
+python -m unittest -v scripts.tests.test_supplypilot_orchestrator.StateTests.test_gpt_final_pass_and_pr_require_exact_sha_and_closes_line scripts.tests.test_supplypilot_orchestrator.StateTests.test_main_sync_during_gpt_review_blocks_final_pass_and_pr_gate scripts.tests.test_supplypilot_orchestrator.StateTests.test_github_pr_open_verification_requires_exact_open_pr
+Result: PASS — 3 tests in 6.040s.
+
+Complete affected state-machine class:
+python -m unittest -v scripts.tests.test_supplypilot_orchestrator.StateTests
+Result before final signature tightening: PASS — 54 tests in 102.475s.
+
+Final complete affected state-machine class after the last source edit:
+python -m unittest -v scripts.tests.test_supplypilot_orchestrator.StateTests
+Result: PASS — 54 tests in 103.080s.
+
+Final exact-SHA parsing gate tests after the last source edit:
+python -m unittest -v scripts.tests.test_supplypilot_orchestrator.GateTests
+Result: PASS — 5 tests in 0.018s.
+
+Additional regression coverage:
+- Main sync marks a waiting GPT review stale, invalidates its contract, and moves it to CHANGES_REQUIRED.
+- Final Pass attestation rejects stale Full Gate evidence, even if stale state is manually restored to WAITING_GPT_REVIEW.
+- PR eligibility remains closed for a stale verification record, including a syntactically valid Final Pass attestation.
+- PR_OPEN verification accepts only a GitHub PR confirmed OPEN for this repository, main base, expected head branch/SHA, and standalone Closes #Issue body line.
+- Existing exact-SHA Final Pass to PR_OPEN happy path remains covered with GitHub API and remote main responses mocked.
+
+Checks after source/test edits:
+- python -m compileall -q scripts/supplypilot_orchestrator.py scripts/tests/test_supplypilot_orchestrator.py: PASS.
+- git diff --check: PASS.
+
+Development test iterations before the final passing runs:
+- First focused attempt exposed two test-fixture errors (merge fixture SHA mismatch and assertions inserted in the wrong test scope); both were corrected.
+- Second attempt exposed a missing remote-main mock in the existing happy-path fixture; corrected and rerun.
+- Final focused run and full StateTests class passed as recorded above.
+
+Not run:
+- Full Orchestrator module was not rerun; its previous single-run attempt was INTERRUPTED / NOT PASS in ResourceTests linked-worktree git init. The isolated linked-worktree test had passed previously.
+- Full local CI-equivalent Gate remains BLOCKED / NOT RUN because of existing SP-806 frontend Vitest 208/210 evidence and unavailable Python 3.12.
+- GitHub Actions remain paused by the user.
+
+No test was skipped, deleted, loosened, or retried with a raised timeout.

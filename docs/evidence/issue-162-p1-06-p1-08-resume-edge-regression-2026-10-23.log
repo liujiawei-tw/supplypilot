@@ -1,0 +1,7 @@
+test_merged_dependencies_allow_general_resume_without_provisional_contract (scripts.tests.test_supplypilot_orchestrator.StateTests.test_merged_dependencies_allow_general_resume_without_provisional_contract) ... ok
+test_provisional_resume_rejects_contract_content_changed_after_authorization (scripts.tests.test_supplypilot_orchestrator.StateTests.test_provisional_resume_rejects_contract_content_changed_after_authorization) ... ok
+
+----------------------------------------------------------------------
+Ran 2 tests in 6.829s
+
+OK

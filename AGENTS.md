@@ -2,6 +2,14 @@
 
 本檔案適用於此儲存庫內所有 Codex 工作階段及子目錄。開始工作時請先遵守本檔案，並同時遵守目前 Issue、專案規格與使用者的明確指示。
 
+## Issue #162 提案：受控跨 Issue 平行（隨 PR 合併後生效）
+
+本節與本分支的 supplypilot-implement-spec Skill 為 Issue #162 的未合併提案。Issue #162 PR 合併至 main 前，main 上現行 AGENTS.md 與原有單 Issue 序列規則仍為全專案權威；本提案不能用來啟動其他 Issue 的平行實作。
+
+合併後，只有在使用者列出授權 Issue 集合、Orchestrator 驗證依賴圖及 Code Gate，並為每張 Issue 核實獨立 Worktree/Branch、檔案所有權及共享測試資源時，才可平行開發。Code Gate 可按使用者明確授權記錄 provisional contract；每張 Issue 的 GPT Review／PR 前執行依實際影響範圍選測的 Issue Gate。完整 Release Gate 保留給整合後 Release Candidate，不由 Issue Gate PASS 推導，也不作一般 Issue PR 前置。每張 Issue 獨立測試、Commit/Push、GPT Review、PR 和使用者 Merge。完整規範見 .agents/skills/supplypilot-implement-spec/ 與 docs/v2/matt-pocock-codex-gpt-handoff.md。
+
+Planner 的 `ready_frontier` 只代表 Code Ready；Issue Gate Eligible／Verified、Release Gate Verified、GPT Handoff Ready 與確切 SHA 的 GPT Final PASS 分層輸出。`gpt_handoff_frontier` 要求新的 SHA 綁定 Issue Gate；舊 Full Gate 或 Targeted 記錄不會自動升級為 Issue Gate。`release_frontier` 僅包含已取得 GPT Final PASS 的 Issue，不表示整合 Release Gate 通過。Full Gate manifest／runner 仍須獨立信任核對、執行前後 SHA-256 驗證。Active file owner 的目錄/檔案重疊會阻擋新派工；existing WIP 必須先唯讀 Adopt，再經 Code Gate、指紋、依賴、base 與使用者授權核對才可 Resume。高負載完整驗證共用一個互斥資源鎖；異常中止保留鎖供診斷。Merge/Main SHA 只能由 GitHub PR/Issue 狀態與即時 `origin/main` 核實後推進；下游舊證據標為 STALE 並保留歷史，不自動覆寫 Worktree。
+
 ## V2 的 Matt Pocock Skills 協作定位（強制）
 
 > 詳細契約與新對話對接：[docs/v2/matt-pocock-codex-gpt-handoff.md](docs/v2/matt-pocock-codex-gpt-handoff.md)。**Skills 是 Codex 的工程方法庫，不是第三位 Agent，也不覆蓋本檔、Issue 或 V2 規格。** 本節只決定使用邊界，不代表 Skills 已安裝或通過測試。
@@ -9,8 +17,8 @@
 - **Matt Skills 最小相容設定：** GitHub Issue Tracker 使用 [docs/agents/issue-tracker.md](docs/agents/issue-tracker.md)；領域文件導覽使用 [docs/agents/domain.md](docs/agents/domain.md)。這兩份已採既有規則設定，**不需要為使用這些設定自行執行會寫入檔案／Labels 的完整 setup**；若上游版本另有必要要求，先只讀核對並回報差異。
 
 1. **角色不變：** 使用者決定需求及 Merge；Codex 以 Matt Pocock 的 `implement`／`tdd`／`diagnosing-bugs` 輔助單一 Issue 的程式實作與驗證，`code-review` 僅作 Codex 內部預檢；GPT 仍須針對已 Push 的確切 Head SHA **獨立審查** Spec／Standards／Security／Transaction／Tests，GPT Final PASS 後才建立 PR。
-2. **單 Issue 流程優先：** 沿用單 Issue／單 Feature Branch／單 PR、前一張已 Merge／Closed 才實作下一張。**禁止直接執行原版 `implement-spec` 跨 Issue 子 Agent／Integration Branch／自動 Merge／Draft PR 行為**；同一 Issue 的唯讀調查或測試設計子 Agent 可協助，但不得順便修改其他 Issue。
-3. **適用方法：** 已核定 Issue 與測試契約優先；測試可先由既有 Acceptance Criteria 決定範圍，若真正缺少業務規則或測試邊界才提請確認。使用 TDD 不能取代必要整合／併發／安全測試；除錯須有實際重現訊號。精準測試與交付時完整 Gate 沿用下方原規定。
+2. **跨 Issue 平行須經 Orchestrator Gate：** 使用者授權的 Issue 集合，在 Issue DAG、依賴、Code/Issue Gate、獨立 Worktree/Branch、檔案 owner 與測試資源均經 SupplyPilot Orchestrator 核實後，可平行實作不同 Issue；不符合者維持 BLOCKED。Release Gate 僅在整合 Release Candidate 執行。每張仍是單 Issue／單 Feature Branch／單 PR，沒有跨 Issue Integration Branch 或程式碼合併。禁止直接套用原版 implement-spec 的 auto-merger、Draft PR、自動關票或清理行為。
+3. **適用方法：** 已核定 Issue 與測試契約優先；測試可先由既有 Acceptance Criteria 決定範圍，若真正缺少業務規則或測試邊界才提請確認。使用 TDD 不能取代必要整合／併發／安全測試；除錯須有實際重現訊號。每張 Issue 執行影響範圍 Issue Gate；完整 Release Gate 沿用下方原規定並在整合後候選版本執行。
 4. **衝突處理：** 第三方 Skill 的 setup、triage、auto-PR、auto-merge、全域重構、額外 Ticket 或更改 AGENTS／GitHub／CI 等動作，若無當次授權與 Issue Scope，一律不得執行；先指出衝突再按本專案的 ADR／規格程序處理。
 5. **安裝與交接分離：** 本文件不是 Windows Codex CLI 的安裝證據；不得自行執行第三方安裝／更新或宣稱新 GPT 對話已載入本機 Skills。新對話先核實本協作文件是否已合併 main、實際安裝狀態，以及正確的 Issue／Branch／SHA，再開始工作。
 6. **不可降低既有 Gate：** Matt Skill 的內部 Review、Mock、文件檢查不可宣稱等於 GPT Final PASS、GitHub CI、真實 Gemini／Browser／AWS PASS。未執行或受阻明確標示 `NOT RUN`／`BLOCKED`，安全及交易要求不變。
@@ -21,13 +29,13 @@
 
 ### 開始任何 V2 Issue 前的必讀與查核
 
-1. 先閱讀本檔、[V2 需求總綱](docs/v2/README.md)、[V1→V2 差異與 Issue 對照](docs/v2/migration-and-issue-map.md)，再閱讀**本次唯一要實作的 Issue**與其對應的 V2 專題文件；須讀取最新 main 的實際程式與 API/DB/測試契約，不得只看設計 Markdown 直接猜測實作狀態。
+1. 先閱讀本檔、[V2 需求總綱](docs/v2/README.md)、[V1→V2 差異與 Issue 對照](docs/v2/migration-and-issue-map.md)，再閱讀**分派給此實作者的 Issue**與其 V2 專題文件；須讀取該 Issue Worktree 基底上的實際程式與 API/DB/測試契約，不得只看設計 Markdown 直接猜測實作狀態。
 2. **規格優先順序：** 使用者針對目前工作明確指示及已核定的 Scope → 當前 Issue 的驗收條件與相依 → `docs/v2/` 中適用的已確認 V2 需求 → 未被 V2 覆蓋的 V1 安全／交易／錯誤／測試契約。若 Issue、規格或程式間有實質衝突，先指出檔案/條文並依 ADR/規格修正程序解決，**不得默默猜測或自行擴 Scope**。
-3. 先確認當前 V2 Issue 的前置依賴／前置 PR 已合併，再依此 Issue 單獨修改程式、Flyway、測試及其直接相關文件；不能因同時發現另一張 V2 Issue 尚未實作，就在同一 PR 順便完成。
+3. 依 Orchestrator 的 Code Gate 與 Issue Gate 確認依賴及單 Issue PR 前驗收。正式交付前必要前置 Issue/PR 必須已 Merge/Closed；provisional contract 只在使用者明確授權時允許先寫程式，不能算 Issue Gate 或 Release Gate PASS。完整 Release Gate 僅對整合後 Release Candidate 執行。每個 Feature Branch 只修改其 Issue 範圍，不把其他 Issue 變更合進本分支。
 4. **V2 的已確認刪減需求必須遵守：** Demand 與自動 Recommendation/Ranking 不屬於 V2 新主流程；不得重新加入已取消的文件級 ACL、PDF 頁碼、合約比較、供應商自動排名、PO 匯出、通知中心等功能。V1 舊文檔的描述不能覆蓋新版的 Scope。
 5. **不能降低安全／交易要求：** V2 帳號簡化不代表人員管理可無授權開放；RAG Hybrid Search 不能繞過敏感資料出站限制；Kanban 操作不能略過後端 PO/Inventory 交易；失敗與併發仍須驗證。V1 測試 PASS 不等於 V2 變更已驗收。
 6. **進度與驗收：** 應以 GitHub Issues、實際已合併 PR、當次 Build/Test/E2E 證據為準；未執行須明確標示 `NOT RUN`／`BLOCKED`，不得將 Fake Provider、單純文件變更或靜態檢查宣稱為真實 Gemini／Browser／AWS PASS。
-7. **交付順序：** V2 Issues 逐張實作、驗證及合併 → 本機測試與標準 Docker + 真實 Browser/Gemini/RAG E2E → AWS Demo [#133](https://github.com/liujiawei-tw/supplypilot/issues/133) → 最終展示影片。**AWS 公開 Demo 共用帳號角色、上傳/出站審核/人員管理權限，要到部署階段才決策；不得擅自延用 V1 `PROCUREMENT_MANAGER` 方案或公開高權限 `admin`。**
+7. **交付順序：** V2 Issues 依經核實的依賴與 Ready Frontier 實作；每張 Issue 獨立 Gate、Review 及 Merge → 本機測試與標準 Docker + 真實 Browser/Gemini/RAG E2E → AWS Demo [#133](https://github.com/liujiawei-tw/supplypilot/issues/133) → 最終展示影片。**AWS 公開 Demo 共用帳號角色、上傳/出站審核/人員管理權限，要到部署階段才決策；不得擅自延用 V1 `PROCUREMENT_MANAGER` 方案或公開高權限 `admin`。**
 8. 完成任何 V2 Issue 時，同步更新**受影響**的 API、Domain/ERD、Security、Frontend、RAG Runbook、測試或 README 相關說明；保留 V1 歷史測試與驗收紀錄，不得改寫舊結果假裝新版通過。
 
 **本章只補充 V2 專案背景及規格引用；下方繁體中文 PR、單 Issue／Branch、Codex→GPT Review、Final PASS 才建立 PR、由使用者親自 Merge 的原有強制規則全部持續有效。**
@@ -66,11 +74,11 @@
 
 ## 既定交付流程
 
-- 一次僅實作一張 GitHub Issue，嚴格遵守 Issue Scope 與相關規格。
+- 每張 GitHub Issue 獨立遵守 Scope、Feature Branch、Worktree、測試、Commit/Push、GPT Review 與 PR；不同 Issue 只有在 Issue #162 Orchestrator 的依賴、隔離與資源 Gate 通過後才可平行。
 - Codex 負責實作、修正及回報驗證證據；GPT 負責獨立 Code Review。
 - **只有在 GPT 確認 Final PASS 後，才可建立 PR；預設由 GPT 負責建立與回讀核對 PR，Codex 不自行建立 PR**（除非使用者對特定任務明確另有授權）。
 - **不得自行 Merge PR，也不得自行將 Issue 視為完成。** PR Merge 由使用者確認執行。
-- PR 合併並確認相關 Issue Closed 後，才開始下一張 Issue。
+- 下游 Issue 的 Issue Gate 必須等前置 PR Merge 且 Issue Closed；彼此獨立且已授權的 Issue 可按 Ready Frontier 同時進入 Code Gate。整合 Release Candidate 的 Release Gate 另行執行。
 
 ## Codex Commit / Push → GPT Review 交接流程（強制）
 

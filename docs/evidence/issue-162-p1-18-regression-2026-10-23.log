@@ -1,0 +1,21 @@
+SupplyPilot Issue #162 — P1-18 regression evidence
+Date: 2026-10-23
+Source branch: codex/issue-162-supplypilot-multi-agent-orchestrator
+Source HEAD before these changes: cbd9d34abb151184b94a3beeeeb011a2428b12a9
+
+Focused regression command:
+python -m unittest -v scripts.tests.test_supplypilot_orchestrator.StateTests.test_gpt_final_pass_and_pr_require_exact_sha_and_closes_line scripts.tests.test_supplypilot_orchestrator.GateTests
+Result: PASS — 6 tests in 4.757s.
+
+The release-path regression now verifies both:
+- A live feature ref matching the reviewed local and persisted Head still permits the PR gate.
+- A live feature ref advanced to a different SHA rejects can_open_pr, even though Full Gate and Final Pass evidence still match the prior SHA.
+
+The five GateTests passed in this run. The full StateTests class passed 54/54 in 103.080s on the immediately preceding source SHA cbd9d34; after that run, the only code change was the remote feature ref equality check inside can_open_pr, covered by the focused state test above.
+
+Checks after edits:
+- python -m compileall -q scripts/supplypilot_orchestrator.py scripts/tests/test_supplypilot_orchestrator.py: PASS.
+- git diff --check: PASS.
+
+Not run:
+- Full Orchestrator module and full local CI-equivalent Gate were not rerun. The latter remains BLOCKED / NOT RUN due the recorded SP-806 frontend Vitest 208/210 evidence and unavailable host Python 3.12. GitHub Actions remain user-paused.

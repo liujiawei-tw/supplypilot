@@ -1,0 +1,18 @@
+{
+  "main_sha": "9240d6aeeba2361476a0454ac965a214769638a0",
+  "captured_at": "2026-10-22",
+  "issues": [
+    {"number": 135, "dependencies": [], "merged": true, "closed": true, "base_sha": "9240d6aeeba2361476a0454ac965a214769638a0", "contract_verified": true, "implementation_state": "MERGED", "owned_files": []},
+    {"number": 136, "dependencies": [135], "merged": true, "closed": true, "base_sha": "9240d6aeeba2361476a0454ac965a214769638a0", "contract_verified": true, "implementation_state": "MERGED", "owned_files": []},
+    {"number": 138, "dependencies": [135, 136], "merged": true, "closed": true, "base_sha": "9240d6aeeba2361476a0454ac965a214769638a0", "contract_verified": true, "implementation_state": "MERGED", "owned_files": []},
+    {"number": 139, "dependencies": [138], "merged": true, "closed": true, "base_sha": "9240d6aeeba2361476a0454ac965a214769638a0", "contract_verified": true, "implementation_state": "MERGED", "owned_files": []},
+    {"number": 140, "dependencies": [138], "merged": true, "closed": true, "base_sha": "9240d6aeeba2361476a0454ac965a214769638a0", "contract_verified": true, "implementation_state": "MERGED", "owned_files": []},
+    {"number": 141, "dependencies": [138, 139, 140], "merged": true, "closed": true, "base_sha": "9240d6aeeba2361476a0454ac965a214769638a0", "contract_verified": true, "implementation_state": "MERGED", "owned_files": []},
+    {"number": 160, "dependencies": [141], "merged": false, "closed": false, "base_sha": "9240d6aeeba2361476a0454ac965a214769638a0", "contract_verified": false, "implementation_state": "IMPLEMENTING", "owned_files": ["frontend/tests/", "frontend/vitest.config.ts", "docs/evidence/issue-160-*"]},
+    {"number": 142, "dependencies": [138, 139, 140, 141, 160], "merged": false, "closed": false, "base_sha": "9240d6aeeba2361476a0454ac965a214769638a0", "contract_verified": false, "implementation_state": "IMPLEMENTING", "owned_files": ["backend/src/main/java/com/supplypilot/procurement/", "backend/src/main/resources/db/migration/V28__add_purchase_order_stage.sql"]},
+    {"number": 143, "dependencies": [141, 142], "merged": false, "closed": false, "base_sha": "9240d6aeeba2361476a0454ac965a214769638a0", "contract_verified": false, "implementation_state": "IMPLEMENTING", "owned_files": ["frontend/src/"]},
+    {"number": 145, "dependencies": [135, 136], "merged": false, "closed": false, "base_sha": "9240d6aeeba2361476a0454ac965a214769638a0", "contract_verified": false, "implementation_state": "NOT_STARTED", "owned_files": ["backend/src/main/java/com/supplypilot/rag/"]},
+    {"number": 146, "dependencies": [145], "merged": false, "closed": false, "base_sha": "9240d6aeeba2361476a0454ac965a214769638a0", "contract_verified": false, "implementation_state": "NOT_STARTED", "owned_files": ["backend/src/main/java/com/supplypilot/rag/indexing/"]},
+    {"number": 147, "dependencies": [146], "merged": false, "closed": false, "base_sha": "9240d6aeeba2361476a0454ac965a214769638a0", "contract_verified": false, "implementation_state": "NOT_STARTED", "owned_files": ["backend/src/main/java/com/supplypilot/demo/"]}
+  ]
+}

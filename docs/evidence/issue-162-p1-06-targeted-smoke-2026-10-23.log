@@ -1,0 +1,24 @@
+{
+  "date": "2026-10-23",
+  "command": [
+    "npm",
+    "test",
+    "--",
+    "tests/displayLabels.test.ts"
+  ],
+  "executed_command": [
+    "C:\\Program Files\\nodejs\\npm.cmd",
+    "test",
+    "--",
+    "tests/displayLabels.test.ts"
+  ],
+  "cwd": "frontend/",
+  "started_at": "2026-10-23T01:06:04.238097+08:00",
+  "ended_at": "2026-10-23T01:06:47.096732+08:00",
+  "exit_code": 0,
+  "python": "3.13.5 | packaged by Anaconda, Inc. | (main, Jun 12 2025, 16:37:03) [MSC v.1929 64 bit (AMD64)]",
+  "platform": "Windows-11-10.0.26200-SP0",
+  "node": "v24.15.0",
+  "npm": "11.12.1",
+  "output": "\n> frontend@0.0.0 test\n> vitest run tests/displayLabels.test.ts\n\n\n RUN  v4.1.11 <issue-worktree>/frontend\n\n\n Test Files  1 passed (1)\n      Tests  2 passed (2)\n   Start at  01:06:16\n   Duration  30.08s (transform 106ms, setup 7.23s, import 34ms, tests 10ms, environment 21.75s)\n\nnpm notice\nnpm notice New major version of npm available! 11.12.1 -> 12.2.1\nnpm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.1\nnpm notice To update run: npm install -g npm@12.2.1\nnpm notice\n"
+}
