@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Alert, Button, Descriptions, Input, Modal, Select, Space, Table, Tag, Typography, message } from 'antd';
+import { Alert, Button, Descriptions, Input, Modal, Segmented, Select, Space, Table, Tag, Typography, message } from 'antd';
 import type { TableProps } from 'antd';
 import { Link } from 'react-router-dom';
 import { assignPurchaseOrder, claimPurchaseOrder, createPurchaseOrderDraft, getPurchaseOrder, listPurchaseOrders, type CreatePurchaseOrderRequest, type PurchaseOrderQuery, type PurchaseOrderResponse, type UpdatePurchaseOrderRequest } from '../../api/purchaseOrder';
+import { purchaseOrderStageGateway, type PurchaseOrderStageBoardSnapshot } from '../../api/purchaseOrderStage';
 import { listAssignableUsers, type AssignableUser } from '../../api/users';
 import { requiresMutationVerification, toApiError } from '../../api/apiError';
 import { can } from '../../auth/permissions';
@@ -11,12 +12,21 @@ import EmptyState from '../../components/EmptyState';
 import ErrorState from '../../components/ErrorState';
 import VerificationRequiredAlert from '../../components/VerificationRequiredAlert';
 import PurchaseOrderForm from './PurchaseOrderForm';
-import { formatTimestamp, isUnknownMutation, statusColors } from './purchaseOrderUi';
+import PurchaseOrderKanban from './PurchaseOrderKanban';
+import { defaultPurchaseOrderViewMode, formatPurchaseOrderDate, formatTimestamp, isUnknownMutation, statusColors } from './purchaseOrderUi';
 import { displayLabel } from '../../utils/displayLabels';
 import type { ApiErrorResponse, PageResponse } from '../../types/api';
 
 const statuses = ['DRAFT', 'APPROVED', 'ORDERED', 'RECEIVED', 'REJECTED', 'CANCELLED'] as const;
 const sortable = new Set(['id', 'poNumber', 'status', 'expectedDeliveryDate', 'createdAt', 'updatedAt', 'orderedAt']);
+type PurchaseOrderViewMode = 'kanban' | 'list';
+
+function initialViewMode(): PurchaseOrderViewMode {
+  const isMobile = typeof window !== 'undefined'
+    && typeof window.matchMedia === 'function'
+    && window.matchMedia('(max-width: 767px)').matches;
+  return defaultPurchaseOrderViewMode(isMobile);
+}
 
 export default function PurchaseOrdersPage() {
   const { user } = useAuth();
@@ -25,6 +35,12 @@ export default function PurchaseOrdersPage() {
   const [assignableUsers, setAssignableUsers] = useState<AssignableUser[]>([]);
   const [error, setError] = useState<ApiErrorResponse | null>(null);
   const [loading, setLoading] = useState(true);
+  const [viewMode, setViewMode] = useState<PurchaseOrderViewMode>(initialViewMode);
+  const [boardState, setBoardState] = useState<'loading' | 'error' | 'incomplete' | 'ready'>('loading');
+  const [boardSnapshot, setBoardSnapshot] = useState<PurchaseOrderStageBoardSnapshot | null>(null);
+  const [boardError, setBoardError] = useState<ApiErrorResponse | null>(null);
+  const [boardReason, setBoardReason] = useState<string | undefined>();
+  const [boardRetry, setBoardRetry] = useState(0);
   const [query, setQuery] = useState<PurchaseOrderQuery>({ page: 0, size: 20, sort: 'createdAt,desc' });
   const [createOpen, setCreateOpen] = useState(false);
   const [pending, setPending] = useState<CreatePurchaseOrderRequest | null>(null);
@@ -39,6 +55,7 @@ export default function PurchaseOrdersPage() {
   const [ownerVerificationState, setOwnerVerificationState] = useState<'required' | 'checking' | 'failed' | 'verified' | null>(null);
   const [ownerVerificationError, setOwnerVerificationError] = useState<ApiErrorResponse | null>(null);
   const requestId = useRef(0);
+  const boardRequestId = useRef(0);
 
   const load = useCallback(async () => {
     const current = ++requestId.current; setLoading(true); setError(null);
@@ -46,7 +63,43 @@ export default function PurchaseOrdersPage() {
     catch (requestError) { if (current === requestId.current) setError(toApiError(requestError)); }
     finally { if (current === requestId.current) setLoading(false); }
   }, [query]);
-  useEffect(() => { const timer = window.setTimeout(() => void load(), 0); return () => window.clearTimeout(timer); }, [load]);
+  useEffect(() => {
+    if (viewMode !== 'list') return;
+    const timer = window.setTimeout(() => void load(), 0);
+    return () => window.clearTimeout(timer);
+  }, [load, viewMode]);
+  useEffect(() => {
+    if (viewMode !== 'kanban') {
+      boardRequestId.current += 1;
+      return;
+    }
+
+    const current = ++boardRequestId.current;
+    setBoardState('loading');
+    setBoardSnapshot(null);
+    setBoardError(null);
+    setBoardReason(undefined);
+    void purchaseOrderStageGateway.readCompleteBoard(query)
+      .then((result) => {
+        if (current !== boardRequestId.current) return;
+        if (result.kind === 'ready') {
+          setBoardSnapshot(result.snapshot);
+          setBoardState('ready');
+        } else {
+          setBoardReason(result.reason);
+          setBoardState('incomplete');
+        }
+      })
+      .catch((cause) => {
+        if (current !== boardRequestId.current) return;
+        setBoardError(toApiError(cause));
+        setBoardState('error');
+      });
+
+    return () => {
+      if (current === boardRequestId.current) boardRequestId.current += 1;
+    };
+  }, [boardRetry, query, viewMode]);
   useEffect(() => { void listAssignableUsers().then(setAssignableUsers).catch(() => setAssignableUsers([])); }, []);
 
   const changeOwner = async (po: PurchaseOrderResponse, value: number | 'claim') => {
@@ -91,27 +144,27 @@ export default function PurchaseOrdersPage() {
   };
 
   const columns: TableProps<PurchaseOrderResponse>['columns'] = [
-    { title: '採購單編號', dataIndex: 'poNumber', sorter: true },
+    { title: '採購單編號', dataIndex: 'poNumber', sorter: true, sortOrder: query.sort?.startsWith('poNumber,') ? (query.sort.endsWith(',asc') ? 'ascend' : 'descend') : null },
     { title: '供應商', render: (_, row) => `${row.supplierCode} — ${row.supplierName}` },
-    { title: '目前負責人', render: (_, row) => <Space wrap>
+    { title: '目前負責人', responsive: ['md'], render: (_, row) => <Space wrap>
       <span>{row.assignedToDisplayName ?? '未指派'}</span>
       {!row.assignedTo && <Button aria-label={`Claim ${row.poNumber}`} size="small" loading={ownerSubmitting} disabled={ownerVerificationId !== null} onClick={() => Modal.confirm({ title: '認領此採購單？', content: `確認將目前登入帳號設為 ${row.poNumber} 的負責人。`, onOk: () => changeOwner(row, 'claim') })}>認領</Button>}
       <Select aria-label={`${row.poNumber} 指派負責人`} size="small" placeholder="指派" style={{ width: 140 }} value={row.assignedTo ?? undefined} disabled={ownerSubmitting || ownerVerificationId !== null}
         options={assignableUsers.map((item) => ({ value: item.id, label: item.displayName }))}
         onChange={(value: number) => Modal.confirm({ title: '變更採購單負責人？', content: `確認將 ${row.poNumber} 指派給 ${assignableUsers.find((item) => item.id === value)?.displayName ?? '所選帳號'}。`, onOk: () => changeOwner(row, value) })} />
     </Space> },
-    { title: '狀態', dataIndex: 'status', sorter: true, render: (value) => <Tag color={statusColors[value as PurchaseOrderResponse['status']]}>{displayLabel(value)}</Tag> },
-    { title: '預計交期', dataIndex: 'expectedDeliveryDate', sorter: true, render: (value, row) => <Space>{value ?? '—'}{row.isOverdue && <Tag color="red">已逾期</Tag>}</Space> },
-    { title: '供應商承諾交期', dataIndex: 'supplierPromisedDeliveryDate', render: (value) => value ?? '—' },
-    { title: '建立時間', dataIndex: 'createdAt', sorter: true, render: formatTimestamp },
-    { title: '下單時間', dataIndex: 'orderedAt', sorter: true, render: formatTimestamp },
+    { title: '狀態', dataIndex: 'status', sorter: true, responsive: ['md'], sortOrder: query.sort?.startsWith('status,') ? (query.sort.endsWith(',asc') ? 'ascend' : 'descend') : null, render: (value) => <Tag color={statusColors[value as PurchaseOrderResponse['status']]}>{displayLabel(value)}</Tag> },
+    { title: '預計交期', dataIndex: 'expectedDeliveryDate', sorter: true, sortOrder: query.sort?.startsWith('expectedDeliveryDate,') ? (query.sort.endsWith(',asc') ? 'ascend' : 'descend') : null, render: (value, row) => <Space>{formatPurchaseOrderDate(value)}{row.isOverdue && <Tag color="red">已逾期</Tag>}</Space> },
+    { title: '供應商承諾交期', dataIndex: 'supplierPromisedDeliveryDate', responsive: ['md'], render: formatPurchaseOrderDate },
+    { title: '建立時間', dataIndex: 'createdAt', sorter: true, responsive: ['md'], sortOrder: query.sort?.startsWith('createdAt,') ? (query.sort.endsWith(',asc') ? 'ascend' : 'descend') : null, render: formatTimestamp },
+    { title: '下單時間', dataIndex: 'orderedAt', sorter: true, responsive: ['md'], sortOrder: query.sort?.startsWith('orderedAt,') ? (query.sort.endsWith(',asc') ? 'ascend' : 'descend') : null, render: formatTimestamp },
     { title: '操作', render: (_, row) => <Link to={`/purchase-orders/${row.id}`}>檢視</Link> },
   ];
 
   const setFilter = (key: keyof PurchaseOrderQuery, value: unknown) => setQuery((current) => ({ ...current, [key]: value || undefined, page: 0 }));
   return <Space orientation="vertical" size="large" style={{ width: '100%' }}>
     {contextHolder}
-    <Space style={{ width: '100%', justifyContent: 'space-between' }}><div><Typography.Title level={2} style={{ marginBottom: 0 }}>採購單管理</Typography.Title><Typography.Text type="secondary">查詢採購單流程與稽核紀錄</Typography.Text></div>{user && can(user.role, 'purchaseOrderCreate') && <Button type="primary" onClick={() => { setCreateOpen(true); setCreateError(null); }}>建立手動草稿</Button>}</Space>
+    <Space wrap style={{ width: '100%', justifyContent: 'space-between' }}><div><Typography.Title level={2} style={{ marginBottom: 0 }}>採購單管理</Typography.Title><Typography.Text type="secondary">查詢採購單流程與稽核紀錄</Typography.Text></div>{user && can(user.role, 'purchaseOrderCreate') && <Button type="primary" onClick={() => { setCreateOpen(true); setCreateError(null); }}>建立手動草稿</Button>}</Space>
     <Space wrap>
       <Select allowClear placeholder="狀態" style={{ width: 150 }} options={statuses.map((value) => ({ value, label: displayLabel(value) }))} onChange={(value) => setFilter('status', value)} />
       <Input aria-label="供應商編號篩選" placeholder="供應商編號" style={{ width: 130 }} onChange={(event) => setFilter('supplierId', Number(event.target.value) || undefined)} />
@@ -122,18 +175,33 @@ export default function PurchaseOrdersPage() {
       <Input aria-label="預計交期迄日" type="date" onChange={(event) => setFilter('expectedDeliveryTo', event.target.value)} />
       <Select allowClear placeholder="逾期狀態" style={{ width: 140 }} options={[{ value: true, label: '只看逾期' }, { value: false, label: '排除逾期' }]} onChange={(value) => setQuery((current) => ({ ...current, overdue: value, page: 0 }))} />
     </Space>
-    {error && <ErrorState title="採購單清單載入失敗" error={error} onRetry={() => void load()} />}
-    {ownerVerificationState && <VerificationRequiredAlert
+    <div className="purchase-orders__view-switch" aria-label="採購單檢視模式">
+      <Segmented
+        aria-label="採購單檢視模式"
+        value={viewMode}
+        options={[{ label: '看板', value: 'kanban' }, { label: '列表', value: 'list' }]}
+        onChange={(value) => setViewMode(value as PurchaseOrderViewMode)}
+      />
+    </div>
+    {viewMode === 'list' && error && <ErrorState title="採購單清單載入失敗" error={error} onRetry={() => void load()} />}
+    {viewMode === 'list' && ownerVerificationState && <VerificationRequiredAlert
       state={ownerVerificationState}
       title={ownerVerificationState === 'verified' ? '已取得最新採購單狀態' : ownerVerificationState === 'failed' ? '結果尚未確認，負責人操作維持鎖定' : '負責人操作結果待查核'}
       message={ownerVerificationState === 'verified' ? '畫面已更新為後端最新資料。請重新審閱後，再次明確確認認領或指派。' : '操作遇到 409、伺服器錯誤或連線結果不明。系統不會自動重送；請先查詢後端真實狀態。'}
       onVerify={ownerVerificationId !== null ? () => void verifyOwnerState() : undefined}
       verifyText="重新查詢採購單"
     />}
-    {ownerVerificationError && <ErrorState title="採購單狀態查核失敗" error={ownerVerificationError} onRetry={() => void verifyOwnerState()} retryText="重新查核" />}
-    {ownerError && <ErrorState title={ownerVerificationId !== null ? '負責人操作結果待查核' : '負責人操作失敗'} error={ownerError} operation="mutation" />}
+    {viewMode === 'list' && ownerVerificationError && <ErrorState title="採購單狀態查核失敗" error={ownerVerificationError} onRetry={() => void verifyOwnerState()} retryText="重新查核" />}
+    {viewMode === 'list' && ownerError && <ErrorState title={ownerVerificationId !== null ? '負責人操作結果待查核' : '負責人操作失敗'} error={ownerError} operation="mutation" />}
 
-    <Table rowKey="id" columns={columns} dataSource={data?.content ?? []} loading={loading}
+    {viewMode === 'kanban' ? <PurchaseOrderKanban
+      state={boardState}
+      snapshot={boardSnapshot}
+      gateway={purchaseOrderStageGateway}
+      error={boardError}
+      reason={boardReason}
+      onRetry={() => setBoardRetry((current) => current + 1)}
+    /> : <Table rowKey="id" columns={columns} dataSource={data?.content ?? []} loading={loading}
       locale={{ emptyText: <EmptyState simple description="沒有符合條件的 Purchase Order" /> }}
       scroll={{ x: true }}
       pagination={{ current: (data?.page ?? 0) + 1, pageSize: data?.size ?? query.size, total: data?.totalElements ?? 0, showSizeChanger: true }}
@@ -141,7 +209,7 @@ export default function PurchaseOrdersPage() {
         const selected = Array.isArray(sorter) ? sorter[0] : sorter;
         const field = typeof selected?.field === 'string' && sortable.has(selected.field) ? selected.field : undefined;
         setQuery((current) => ({ ...current, page: (pagination.current ?? 1) - 1, size: pagination.pageSize ?? 20, ...(field && selected.order ? { sort: `${field},${selected.order === 'ascend' ? 'asc' : 'desc'}` } : {}) }));
-      }} />
+      }} />}
     <Modal width={900} title="建立手動採購單草稿" open={createOpen} footer={null} destroyOnHidden onCancel={() => { if (!submittingRef.current) setCreateOpen(false); }}>
       {createUnknown && <Alert type="warning" showIcon title="建立結果不明，已鎖定再次送出" description="請由採購單清單人工核實是否已建立；建立 API 沒有可安全使用的唯一查核鍵，本頁不會自動重送。重新載入頁面後才可重新操作。" />}
       {createError && <ErrorState title={createUnknown ? '採購單草稿建立結果待確認' : '採購單草稿建立失敗'} error={createError} />}
