@@ -1978,6 +1978,10 @@ def _frontend_page_imports(root: Path, revision: str, path: str) -> tuple[str, .
         ).stdout
     except (OSError, subprocess.CalledProcessError):
         return None
+    # Vite's glob imports resolve dependencies from a pattern rather than a
+    # static module specifier, so a page using import.meta is not safely mapped.
+    if re.search(r"\bimport\s*\.\s*meta\b", source):
+        return None
     dynamic_calls = re.finditer(
         r"\b(?:import|require)\b(?:\s|/\*.*?\*/|//[^\r\n]*(?:\r?\n|$))*\(([^)]*)\)",
         source, re.DOTALL,
@@ -1994,6 +1998,26 @@ def _frontend_page_imports(root: Path, revision: str, path: str) -> tuple[str, .
         source, re.MULTILINE,
     )
     return tuple(sorted({module for match in modules for module in match if module}))
+
+
+def _frontend_gate_scripts(root: Path, revision: str) -> tuple[str, str, str] | None:
+    """Read the test/lint/build scripts whose output is trusted by the Issue Gate."""
+    try:
+        source = subprocess.run(
+            ["git", "-C", str(root), "show", f"{revision}:frontend/package.json"],
+            check=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+            text=True, encoding="utf-8", errors="replace",
+        ).stdout
+        manifest = json.loads(source)
+    except (OSError, subprocess.CalledProcessError, json.JSONDecodeError):
+        return None
+    scripts = manifest.get("scripts") if isinstance(manifest, dict) else None
+    if not isinstance(scripts, dict):
+        return None
+    required = tuple(scripts.get(name) for name in ("test", "lint", "build"))
+    if any(not isinstance(value, str) or not value.strip() for value in required):
+        return None
+    return required  # type: ignore[return-value]
 
 
 def _issue_gate_impact_plan(root: Path, base_sha: Any, head_sha: Any) -> dict[str, Any]:
@@ -2068,6 +2092,15 @@ def _issue_gate_impact_plan(root: Path, base_sha: Any, head_sha: Any) -> dict[st
             "Issue Gate impact is not mapped for changed paths; expand and verify the affected suite before proceeding: "
             + ", ".join(unknown)
         )
+
+    if "frontend/package.json" in frontend_paths:
+        base_scripts = _frontend_gate_scripts(root, base_sha)
+        head_scripts = _frontend_gate_scripts(root, head_sha)
+        if base_scripts is None or head_scripts is None or base_scripts != head_scripts:
+            raise PolicyError(
+                "Issue Gate BLOCKED: frontend/package.json test/lint/build scripts changed or could not be verified; "
+                "the approved npm commands cannot be trusted for this diff."
+            )
 
     commands: list[list[str]] = []
     behaviors: list[dict[str, Any]] = []

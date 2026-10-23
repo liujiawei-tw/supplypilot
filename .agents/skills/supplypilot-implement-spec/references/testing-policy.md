@@ -4,7 +4,7 @@
 
 ## Issue Gate 選測
 
-任何 Dockerfile、Compose 或 `docker/` 部署設定變更目前都沒有核准的可信 Issue Gate runner，因此 Issue Gate 一律 `BLOCKED`，並記錄 Docker／Compose 驗證為 `RELEASE_PENDING`；即使同一 Diff 的其他應用程式測試通過，也不可略過部署 Gate 或將 Release Gate 待驗視為 Issue Gate PASS。已映射頁面若 base 與 HEAD 的 import／export 模組依賴不同或無法讀取，須擴大至完整 Vitest；依賴簽章一致時才可使用該頁面的精準測試映射。
+任何 Dockerfile、Compose 或 `docker/` 部署設定變更目前都沒有核准的可信 Issue Gate runner，因此 Issue Gate 一律 `BLOCKED`，並記錄 Docker／Compose 驗證為 `RELEASE_PENDING`；即使同一 Diff 的其他應用程式測試通過，也不可略過部署 Gate 或將 Release Gate 待驗視為 Issue Gate PASS。已映射頁面若 base 與 HEAD 的 import／export 模組依賴不同、無法讀取或使用 `import.meta` 動態依賴，須擴大至完整 Vitest；依賴簽章一致時才可使用該頁面的精準測試映射。修改 `frontend/package.json` 時，base 與 HEAD 的 `test`／`lint`／`build` 腳本必須可讀且完全一致；否則 Issue Gate `BLOCKED`，避免以腳本輸出偽造驗證結果。
 
 Orchestrator 以登記的 base SHA 與目前乾淨 HEAD 計算完整 Git Diff，沿用固定 impact 對照列出：`變更 → 受影響行為／依賴 → 必要測試／Build／Lint → 實際結果`。對未影響項目保存 `NOT_APPLICABLE` 和具體理由。選測須納入直接／間接依賴、共用元件、API／DTO／Schema、授權、交易、併發及配置風險；沒有可靠映射的路徑 fail closed，不能由呼叫端自行宣稱無關或 PASS。
 
