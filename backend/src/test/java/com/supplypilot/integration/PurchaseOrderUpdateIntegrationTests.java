@@ -117,6 +117,7 @@ class PurchaseOrderUpdateIntegrationTests extends AbstractIntegrationTest {
                 .andExpect(jsonPath("$.createdBy").value(createdBy))
                 .andExpect(jsonPath("$.createdAt").value(createdAt));
         User manager = user(UserRole.PROCUREMENT_MANAGER);
+        advanceToApprovalLane(manager, id);
         mockMvc.perform(post("/api/v1/purchase-orders/{id}/approve", id)
                         .header("Authorization", bearer(manager)))
                 .andExpect(status().isBadRequest())
@@ -154,6 +155,7 @@ class PurchaseOrderUpdateIntegrationTests extends AbstractIntegrationTest {
                 .andExpect(status().isCreated()).andReturn();
         long id = createdId(created);
 
+        advanceToApprovalLane(manager, id);
         mockMvc.perform(post("/api/v1/purchase-orders/{id}/approve", id)
                         .header("Authorization", bearer(manager)))
                 .andExpect(status().isOk());
@@ -225,6 +227,7 @@ class PurchaseOrderUpdateIntegrationTests extends AbstractIntegrationTest {
         User manager = user(UserRole.PROCUREMENT_MANAGER);
         long id = createdId(create(staff, supplier, manualItem(material, "2", "10")).andReturn());
         update(staff, id, "{\"expectedDeliveryDate\":\"2026-10-30\"}").andExpect(status().isOk());
+        advanceToApprovalLane(manager, id);
         mockMvc.perform(post("/api/v1/purchase-orders/{id}/approve", id)
                         .header("Authorization", bearer(manager)))
                 .andExpect(status().isOk());
@@ -374,6 +377,7 @@ class PurchaseOrderUpdateIntegrationTests extends AbstractIntegrationTest {
         long id = createdId(create(staff, supplier, manualItem(material, "2", "10")).andReturn());
         update(staff, id, "{\"expectedDeliveryDate\":\"2026-10-30\"}")
                 .andExpect(status().isOk());
+        advanceToApprovalLane(manager, id);
 
         CountDownLatch ready = new CountDownLatch(2);
         CountDownLatch start = new CountDownLatch(1);
@@ -491,6 +495,15 @@ class PurchaseOrderUpdateIntegrationTests extends AbstractIntegrationTest {
                 .header("Authorization", bearer(user))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{" + fields + "}"));
+    }
+
+    private void advanceToApprovalLane(User user, long id) throws Exception {
+        mockMvc.perform(post("/api/v1/purchase-orders/{id}/begin-sourcing", id)
+                        .header("Authorization", bearer(user)))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.stage").value("SOURCING"));
+        mockMvc.perform(post("/api/v1/purchase-orders/{id}/submit-for-approval", id)
+                        .header("Authorization", bearer(user)))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.stage").value("APPROVAL"));
     }
 
     private long createdId(MvcResult result) throws Exception {

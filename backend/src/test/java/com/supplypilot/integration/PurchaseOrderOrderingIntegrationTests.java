@@ -246,6 +246,12 @@ class PurchaseOrderOrderingIntegrationTests extends AbstractIntegrationTest {
 
     private long approved(LocalDate date, Material... materials) throws Exception {
         long id = draft(date, materials);
+        mockMvc.perform(post("/api/v1/purchase-orders/{id}/begin-sourcing", id)
+                        .header("Authorization", bearer(manager)))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.stage").value("SOURCING"));
+        mockMvc.perform(post("/api/v1/purchase-orders/{id}/submit-for-approval", id)
+                        .header("Authorization", bearer(manager)))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.stage").value("APPROVAL"));
         mockMvc.perform(post("/api/v1/purchase-orders/{id}/approve", id)
                         .header("Authorization", bearer(manager)))
                 .andExpect(status().isOk());

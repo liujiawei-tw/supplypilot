@@ -134,15 +134,19 @@ class PurchaseOrderLifecycleIntegrationTests extends AbstractIntegrationTest {
     void missingDateApprovalLeavesPersistedDraftUntouchedThenPatchAllowsApprovalAndOrdering() throws Exception {
         User manager = user(UserRole.PROCUREMENT_MANAGER);
         long id = draftId();
+        advanceToApprovalLane(manager, id);
         var before = jdbcTemplate.queryForMap(
-                "SELECT status, approved_by, approved_at, updated_at, version FROM purchase_orders WHERE id = ?", id);
+                "SELECT status, stage, approved_by, approved_at, updated_at, version FROM purchase_orders WHERE id = ?", id);
 
-        approve(manager, id, null).andExpect(status().isBadRequest())
+        mockMvc.perform(post("/api/v1/purchase-orders/{id}/approve", id)
+                        .header("Authorization", bearer(manager)))
+                .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("EXPECTED_DELIVERY_DATE_REQUIRED"));
         var after = jdbcTemplate.queryForMap(
-                "SELECT status, approved_by, approved_at, updated_at, version FROM purchase_orders WHERE id = ?", id);
+                "SELECT status, stage, approved_by, approved_at, updated_at, version FROM purchase_orders WHERE id = ?", id);
         assertThat(after).isEqualTo(before);
         assertThat(after.get("status")).isEqualTo("DRAFT");
+        assertThat(after.get("stage")).isEqualTo("APPROVAL");
         assertThat(after.get("approved_by")).isNull();
         assertThat(after.get("approved_at")).isNull();
 
@@ -150,7 +154,9 @@ class PurchaseOrderLifecycleIntegrationTests extends AbstractIntegrationTest {
                         .header("Authorization", bearer(staff)).contentType(MediaType.APPLICATION_JSON)
                         .content("{\"expectedDeliveryDate\":\"2026-10-30\"}"))
                 .andExpect(status().isOk());
-        approve(manager, id, null).andExpect(status().isOk())
+        mockMvc.perform(post("/api/v1/purchase-orders/{id}/approve", id)
+                        .header("Authorization", bearer(manager)))
+                .andExpect(status().isOk())
                 .andExpect(jsonPath("$.approvedBy").value(manager.getId()));
         mockMvc.perform(post("/api/v1/purchase-orders/{id}/order", id)
                         .header("Authorization", bearer(staff)))
@@ -552,6 +558,15 @@ class PurchaseOrderLifecycleIntegrationTests extends AbstractIntegrationTest {
         var request = post("/api/v1/purchase-orders/{id}/approve", id).header("Authorization", bearer(user));
         if (body != null) request.contentType(MediaType.APPLICATION_JSON).content(body);
         return mockMvc.perform(request);
+    }
+
+    private void advanceToApprovalLane(User user, long id) throws Exception {
+        mockMvc.perform(post("/api/v1/purchase-orders/{id}/begin-sourcing", id)
+                        .header("Authorization", bearer(user)))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.stage").value("SOURCING"));
+        mockMvc.perform(post("/api/v1/purchase-orders/{id}/submit-for-approval", id)
+                        .header("Authorization", bearer(user)))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.stage").value("APPROVAL"));
     }
 
     private org.springframework.test.web.servlet.ResultActions reject(User user, long id, String body) throws Exception {
