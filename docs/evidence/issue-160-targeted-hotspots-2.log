@@ -1,0 +1,26 @@
+
+> frontend@0.0.0 test
+> vitest run --reporter=verbose tests/demandInventory.test.tsx tests/sp806.test.tsx -t keeps adjustment input and marks a 409 result unknown without retrying|reviews a multi-item backend snapshot
+
+
+ RUN  v4.1.11 C:/Users/z0976/OneDrive/桌面/dev-side/supplypilot/.worktrees/issue-160-frontend-vitest-performance/frontend
+
+
+⎯⎯⎯⎯⎯⎯ Failed Suites 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/demandInventory.test.tsx [ tests/demandInventory.test.tsx ]
+Error: EPERM: operation not permitted, rename 'C:\Users\z0976\AppData\Local\Packages\sandbox.{8bf4d2a5-33ff-434e-a3fa-0430be2220aa}\AC\Temp\zLS0ZKL_gHSZuKPTnT7Bf\client\.tmp-1792661233717-6pk1o40bnd' -> 'C:\Users\z0976\AppData\Local\Packages\sandbox.{8bf4d2a5-33ff-434e-a3fa-0430be2220aa}\AC\Temp\zLS0ZKL_gHSZuKPTnT7Bf\client\64e29fdbd3dde5f3581c90092e6ff808acb4f3ec'
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  tests/sp806.test.tsx [ tests/sp806.test.tsx ]
+Error: EPERM: operation not permitted, rename 'C:\Users\z0976\AppData\Local\Packages\sandbox.{8bf4d2a5-33ff-434e-a3fa-0430be2220aa}\AC\Temp\zLS0ZKL_gHSZuKPTnT7Bf\client\.tmp-1792661231862-9rkfwpc7sx8' -> 'C:\Users\z0976\AppData\Local\Packages\sandbox.{8bf4d2a5-33ff-434e-a3fa-0430be2220aa}\AC\Temp\zLS0ZKL_gHSZuKPTnT7Bf\client\64e29fdbd3dde5f3581c90092e6ff808acb4f3ec'
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  2 failed (2)
+      Tests  no tests
+   Start at  17:27:09
+   Duration  3.81s (transform 0ms, setup 0ms, import 0ms, tests 0ms, environment 3.02s)
+
+EXIT_CODE=1
+ELAPSED_SECONDS=7.52

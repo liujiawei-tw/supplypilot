@@ -1,0 +1,28 @@
+SupplyPilot Issue #162 — P1-15 / P1-16 / Runner Digest Regression
+Date: 2026-10-23
+
+Focused regression command:
+python -m unittest -v scripts.tests.test_supplypilot_orchestrator.GateTests.test_final_pass_attestation_rejects_negative_or_quoted_verdict scripts.tests.test_supplypilot_orchestrator.GateTests.test_final_pass_requires_one_consistent_unquoted_exact_reviewed_sha scripts.tests.test_supplypilot_orchestrator.StateTests.test_resume_requires_persisted_current_contract_verification scripts.tests.test_supplypilot_orchestrator.StateTests.test_full_gate_pending_rejects_unverified_persisted_contract_despite_caller_claim scripts.tests.test_supplypilot_orchestrator.StateTests.test_provisional_resume_records_source_contract_and_preserves_only_code_gate scripts.tests.test_supplypilot_orchestrator.StateTests.test_full_gate_execution_holds_shared_high_load_lock scripts.tests.test_supplypilot_orchestrator.StateTests.test_full_gate_refuses_manifest_changed_after_human_review scripts.tests.test_supplypilot_orchestrator.StateTests.test_full_gate_detects_runner_changed_during_execution
+Result: PASS — 8 tests in 9.581s.
+
+Complete affected classes:
+- python -m unittest -v scripts.tests.test_supplypilot_orchestrator.StateTests
+  PASS — 52 tests in 101.045s.
+- python -m unittest -v scripts.tests.test_supplypilot_orchestrator.GateTests
+  PASS — 5 tests in 0.036s.
+
+Full Orchestrator module:
+- python -m unittest -v scripts.tests.test_supplypilot_orchestrator
+  INTERRUPTED / NOT PASS — KeyboardInterrupt at ResourceTests.test_linked_worktrees_resolve_to_the_same_default_lock_directory while running git init -b main.
+- python -m unittest -v scripts.tests.test_supplypilot_orchestrator.ResourceTests
+  INTERRUPTED / NOT PASS — same KeyboardInterrupt at linked-worktree test after five earlier ResourceTests passed.
+- Isolated linked-worktree test:
+  PASS — 1 test in 0.649s.
+- Five remaining ResourceTests after the interruption printed 5/5 ok and Ran 5 tests ... OK, but the command runner returned exit code 1 on both attempts. Record as INDETERMINATE rather than PASS.
+
+Other checks:
+- python -m compileall -q scripts/supplypilot_orchestrator.py scripts/tests/test_supplypilot_orchestrator.py: PASS.
+- git diff --check: PASS.
+- Full local CI-equivalent Gate: BLOCKED / NOT RUN. Known external blockers remain SP-806 (208/210 historical frontend tests) and host Python 3.12 unavailable. GitHub Actions remains user-paused.
+
+No tests were skipped, deleted, loosened, or had timeouts raised.

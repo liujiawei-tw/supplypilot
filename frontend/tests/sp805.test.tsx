@@ -76,6 +76,7 @@ describe('SP-805 PO lifecycle UI', () => {
     });
 
     await open('/purchase-orders/42'); const user = userEvent.setup();
+    await screen.findByText('PO-000042');
     await user.click(await screen.findByRole('button', { name: '取消採購單' }));
     const dialog = within(await screen.findByRole('dialog'));
     expect(dialog.getByText('系統內取消不代表供應商同意。此採購單取消後不可恢復。')).toBeTruthy();
@@ -240,6 +241,7 @@ describe('SP-805 PO lifecycle UI', () => {
       throw new Error(`Unexpected ${config.method} ${config.url}`);
     });
     await open('/purchase-orders/42'); const user = userEvent.setup();
+    await screen.findByText('PO-000042');
     await user.click(await screen.findByRole('button', { name: '編輯草稿' }));
     expect(await screen.findByText(`SUP-120 — ${selectedSupplier.name}`)).toBeTruthy();
     expect(screen.getByText(`MAT-101 — ${selectedMaterial.name} (KG)`)).toBeTruthy();
@@ -277,6 +279,7 @@ describe('SP-805 PO lifecycle UI', () => {
       throw new Error(`Unexpected ${config.url}`);
     });
     await open('/purchase-orders/42'); const user = userEvent.setup();
+    await screen.findByText('PO-000042');
     await user.click(await screen.findByRole('button', { name: '編輯草稿' }));
     fireEvent.change(await screen.findByLabelText('採購單預計交期'), { target: { value: '2026-10-10' } });
     await user.click(screen.getByRole('button', { name: '檢視草稿修改' }));
@@ -358,6 +361,7 @@ describe('SP-805 receiving and stock security boundaries', () => {
       throw new Error(`Unexpected ${config.method} ${config.url}`);
     });
     await open('/receiving/purchase-orders/42'); const user = userEvent.setup();
+    await screen.findByText('PO-000042');
     await user.click(await screen.findByRole('button', { name: '填寫／更新驗收結果' }));
     fireEvent.change(within(activeDialog()).getByLabelText('驗收異常備註'), { target: { value: '短收 2 箱，等待補貨' } });
     await user.click(within(activeDialog()).getByRole('button', { name: '儲存驗收紀錄' }));
@@ -441,6 +445,7 @@ describe('SP-805 PO ownership mutation verification', () => {
       throw new Error(`Unexpected ${config.method} ${config.url}`);
     });
     await open('/purchase-orders/42'); const user = userEvent.setup();
+    await screen.findByText('PO-000042');
     await user.click(await screen.findByRole('button', { name: 'Claim PO-000042' }));
     const dialog = activeDialog();
     await user.click(within(dialog).getAllByRole('button').at(-1)!);

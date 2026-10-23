@@ -1,0 +1,22 @@
+SupplyPilot Issue #162 — P1-13 / P1-14 State Regression
+Date: 2026-10-23
+Command: python -m unittest -v scripts.tests.test_supplypilot_orchestrator.StateTests
+Result: PASS — 49 tests in 95.908s
+
+Focused regressions before the complete StateTests run:
+Command: python -m unittest -v scripts.tests.test_supplypilot_orchestrator.StateTests.test_changes_required_can_resume_existing_feature_head scripts.tests.test_supplypilot_orchestrator.StateTests.test_changes_required_resume_rejects_unrecorded_feature_head scripts.tests.test_supplypilot_orchestrator.StateTests.test_manifest_verdict_is_independent_from_overall_review_verdict scripts.tests.test_supplypilot_orchestrator.StateTests.test_full_gate_trust_requires_unquoted_exact_sha_and_manifest_lines scripts.tests.test_supplypilot_orchestrator.StateTests.test_full_gate_trust_accepts_manifest_pass_while_overall_review_needs_changes scripts.tests.test_supplypilot_orchestrator.StateTests.test_full_gate_marker_rejects_fenced_and_quoted_examples scripts.tests.test_supplypilot_orchestrator.StateTests.test_full_gate_trust_requires_interactive_review_record_and_detects_tampering scripts.tests.test_supplypilot_orchestrator.StateTests.test_ready_to_code_recomputes_dependencies_ownership_and_worktree
+Result: PASS — 8 tests in 14.549s
+
+Coverage includes:
+- CHANGES_REQUIRED resume on a recorded feature HEAD different from main.
+- Reject resume if the actual feature HEAD differs from the recorded HEAD.
+- Preserve current-main, contract, dependency, owner conflict, branch and clean-worktree checks.
+- Accept an explicit Full Gate manifest verdict independently from the overall review verdict.
+- Keep overall FINAL PASS detection false when the overall review is BLOCKED or CHANGES REQUIRED.
+- Require exact SHA and manifest identification on non-quoted, non-fenced review lines.
+- Reject quoted/fenced manifest verdict examples and detect manifest/runner tampering.
+
+The earlier full StateTests invocation failed once because a mocked Code Gate callback did not accept the new optional keyword argument. The call path was adjusted to pass that argument only for existing-feature re-entry. The complete StateTests command was rerun afterward and passed 49/49.
+
+Additional checks after the source/test edits: Python compileall PASS; git diff --check PASS.
+This is targeted Orchestrator regression evidence, not a Full Gate or complete local CI-equivalent PASS.

@@ -1,0 +1,29 @@
+
+> frontend@0.0.0 test
+> vitest run --reporter=verbose tests/demandInventory.test.tsx -t allows a failed Material detail lookup to be retried explicitly|shows create fields, edits with explicit note clearing, confirms cancel and refetches
+
+
+ RUN  v4.1.11 C:/Users/z0976/OneDrive/桌面/dev-side/supplypilot/.worktrees/issue-160-frontend-vitest-performance/frontend
+
+ ↓ tests/demandInventory.test.tsx > SP-802 Demand UI > does not mount Demand queries for an unauthorized role
+ ↓ tests/demandInventory.test.tsx > SP-802 Demand UI > keeps Procurement Manager read-only while rendering Demand data
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+ ✓ tests/demandInventory.test.tsx > SP-802 Demand UI > allows a failed Material detail lookup to be retried explicitly 9639ms
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+ ✓ tests/demandInventory.test.tsx > SP-802 Demand UI > shows create fields, edits with explicit note clearing, confirms cancel and refetches 35336ms
+ ↓ tests/demandInventory.test.tsx > SP-802 Inventory UI > validates adjustment decimal boundaries without Number conversion
+ ↓ tests/demandInventory.test.tsx > SP-802 Inventory UI > enforces the tab matrix for PRODUCTION_PLANNER
+ ↓ tests/demandInventory.test.tsx > SP-802 Inventory UI > enforces the tab matrix for PROCUREMENT_STAFF
+ ↓ tests/demandInventory.test.tsx > SP-802 Inventory UI > enforces the tab matrix for PROCUREMENT_MANAGER
+ ↓ tests/demandInventory.test.tsx > SP-802 Inventory UI > enforces the tab matrix for WAREHOUSE_STAFF
+ ↓ tests/demandInventory.test.tsx > SP-802 Inventory UI > enforces the tab matrix for ADMIN
+ ↓ tests/demandInventory.test.tsx > SP-802 Inventory UI > shows detail and allows Warehouse to submit a signed adjustment exactly once before refetch
+ ↓ tests/demandInventory.test.tsx > SP-802 Inventory UI > keeps adjustment input and marks a 409 result unknown without retrying
+
+ Test Files  1 passed (1)
+      Tests  2 passed | 10 skipped (12)
+   Start at  20:44:48
+   Duration  54.01s (transform 1.70s, setup 228ms, import 7.39s, tests 44.98s, environment 985ms)
+
