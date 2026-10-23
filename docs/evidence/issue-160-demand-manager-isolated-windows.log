@@ -1,0 +1,20 @@
+
+> frontend@0.0.0 test
+> vitest run --reporter=verbose tests/demandInventory.test.tsx -t keeps Procurement Manager read-only while rendering Demand data
+
+
+ RUN  v4.1.11 C:/Users/z0976/OneDrive/桌面/dev-side/supplypilot/.worktrees/issue-160-frontend-vitest-performance/frontend
+
+
+⎯⎯⎯⎯⎯⎯ Failed Suites 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/demandInventory.test.tsx [ tests/demandInventory.test.tsx ]
+Error: EPERM: operation not permitted, rename 'C:\Users\z0976\AppData\Local\Packages\sandbox.{2394ceae-60b1-4ac8-ae0d-da7a685af17e}\AC\Temp\o-8W-jqkZ_RDqhQdq5RNU\client\.tmp-1792672369600-ey6bkuwahjv' -> 'C:\Users\z0976\AppData\Local\Packages\sandbox.{2394ceae-60b1-4ac8-ae0d-da7a685af17e}\AC\Temp\o-8W-jqkZ_RDqhQdq5RNU\client\64e29fdbd3dde5f3581c90092e6ff808acb4f3ec'
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  no tests
+   Start at  20:32:47
+   Duration  2.10s (transform 0ms, setup 0ms, import 0ms, tests 0ms, environment 1.71s)
+

@@ -1,0 +1,34 @@
+v24.22.1
+
+> frontend@0.0.0 test
+> vitest run --reporter=verbose tests/demandInventory.test.tsx -t keeps Procurement Manager read-only while rendering Demand data|allows a failed Material detail lookup to be retried explicitly|shows create fields, edits with explicit note clearing, confirms cancel and refetches
+
+
+[1m[30m[46m RUN [49m[39m[22m [36mv4.1.11 [39m[90m/work[39m
+
+stderr | tests/demandInventory.test.tsx > SP-802 Demand UI > keeps Procurement Manager read-only while rendering Demand data
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+ [2m[90m↓[39m[22m tests/demandInventory.test.tsx[2m > [22mSP-802 Demand UI[2m > [22mdoes not mount Demand queries for an unauthorized role
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+ [32m✓[39m tests/demandInventory.test.tsx[2m > [22mSP-802 Demand UI[2m > [22mkeeps Procurement Manager read-only while rendering Demand data[33m 6637[2mms[22m[39m
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+ [32m✓[39m tests/demandInventory.test.tsx[2m > [22mSP-802 Demand UI[2m > [22mallows a failed Material detail lookup to be retried explicitly[33m 7886[2mms[22m[39m
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+ [32m✓[39m tests/demandInventory.test.tsx[2m > [22mSP-802 Demand UI[2m > [22mshows create fields, edits with explicit note clearing, confirms cancel and refetches[33m 27708[2mms[22m[39m
+ [2m[90m↓[39m[22m tests/demandInventory.test.tsx[2m > [22mSP-802 Inventory UI[2m > [22mvalidates adjustment decimal boundaries without Number conversion
+ [2m[90m↓[39m[22m tests/demandInventory.test.tsx[2m > [22mSP-802 Inventory UI[2m > [22menforces the tab matrix for PRODUCTION_PLANNER
+ [2m[90m↓[39m[22m tests/demandInventory.test.tsx[2m > [22mSP-802 Inventory UI[2m > [22menforces the tab matrix for PROCUREMENT_STAFF
+ [2m[90m↓[39m[22m tests/demandInventory.test.tsx[2m > [22mSP-802 Inventory UI[2m > [22menforces the tab matrix for PROCUREMENT_MANAGER
+ [2m[90m↓[39m[22m tests/demandInventory.test.tsx[2m > [22mSP-802 Inventory UI[2m > [22menforces the tab matrix for WAREHOUSE_STAFF
+ [2m[90m↓[39m[22m tests/demandInventory.test.tsx[2m > [22mSP-802 Inventory UI[2m > [22menforces the tab matrix for ADMIN
+ [2m[90m↓[39m[22m tests/demandInventory.test.tsx[2m > [22mSP-802 Inventory UI[2m > [22mshows detail and allows Warehouse to submit a signed adjustment exactly once before refetch
+ [2m[90m↓[39m[22m tests/demandInventory.test.tsx[2m > [22mSP-802 Inventory UI[2m > [22mkeeps adjustment input and marks a 409 result unknown without retrying
+
+[2m Test Files [22m [1m[32m1 passed[39m[22m[90m (1)[39m
+[2m      Tests [22m [1m[32m3 passed[39m[22m[2m | [22m[33m9 skipped[39m[90m (12)[39m
+[2m   Start at [22m 12:50:20
+[2m   Duration [22m 49.53s[2m (transform 4.62s, setup 166ms, import 6.45s, tests 42.23s, environment 517ms)[22m
+

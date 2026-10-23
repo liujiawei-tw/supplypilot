@@ -1,0 +1,36 @@
+
+> frontend@0.0.0 test
+> vitest run --reporter=verbose
+
+
+ RUN  v4.1.11 C:/Users/z0976/OneDrive/桌面/dev-side/supplypilot/.worktrees/issue-160-frontend-vitest-performance/frontend
+
+stderr | tests/recommendation.test.tsx > SP-804 role-aware routes > allows PROCUREMENT_STAFF to open the create workstation
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+stderr | tests/recommendation.test.tsx > SP-804 role-aware routes > allows PROCUREMENT_MANAGER to open the create workstation
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+ ✓ tests/recommendation.test.tsx > SP-804 role-aware routes > allows PROCUREMENT_STAFF to open the create workstation 831ms
+stderr | tests/recommendation.test.tsx > SP-804 role-aware routes > allows V2 ADMIN to read a historical recommendation without exposing ranking or draft actions
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+ ✓ tests/recommendation.test.tsx > SP-804 role-aware routes > allows PROCUREMENT_MANAGER to open the create workstation 216ms
+stderr | tests/recommendation.test.tsx > SP-804 role-aware routes > allows V2 ADMIN to read a historical recommendation without exposing ranking or draft actions
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+ ✓ tests/recommendation.test.tsx > SP-804 role-aware routes > allows V2 ADMIN to read a historical recommendation without exposing ranking or draft actions 2010ms
+ ✓ tests/recommendation.test.tsx > SP-804 role-aware routes > blocks PRODUCTION_PLANNER from create but allows known-ID detail without a create API call 207ms
+stderr | tests/recommendation.test.tsx > SP-804 Recommendation rendering > renders PURCHASE_NOT_REQUIRED using backend snapshot values
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+ ✓ tests/recommendation.test.tsx > SP-804 role-aware routes > blocks WAREHOUSE_STAFF from create but allows known-ID detail without a create API call 247ms
+stderr | tests/recommendation.test.tsx > SP-804 Recommendation rendering > renders SUPPLIER_RECOMMENDED using backend snapshot values
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+ ✓ tests/recommendation.test.tsx > SP-804 Recommendation rendering > renders PURCHASE_NOT_REQUIRED using backend snapshot values 2071ms
+stderr | tests/recommendation.test.tsx > SP-804 Recommendation rendering > renders NO_QUALIFIED_SUPPLIER using backend snapshot values
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+ ✓ tests/recommendation.test.tsx > SP-804 Recommendation rendering > renders SUPPLIER_RECOMMENDED using backend snapshot values 2081ms
+Not implemented: Window's getComputedStyle() method: with pseudo-elements

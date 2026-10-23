@@ -131,7 +131,7 @@ describe('SP-806 Document Management UI', () => {
     });
     await open('/documents'); const user = userEvent.setup();
     await screen.findByText('Semantic 索引管理');
-    await user.click(screen.getByRole('button', { name: '#21' }));
+    await user.click(await screen.findByRole('button', { name: '#21' }));
     const drawer = documentDrawer();
     await within(drawer).findByText('Quote 21');
 
@@ -182,10 +182,10 @@ describe('SP-806 Document Management UI', () => {
     });
     await open('/documents'); const user = userEvent.setup();
     await screen.findByText('Semantic 索引管理');
-    await user.click(screen.getByRole('button', { name: '#21' }));
+    await user.click(await screen.findByRole('button', { name: '#21' }));
     const drawer = documentDrawer();
     await within(drawer).findByText('Quote 21');
-    await user.click(within(drawer).getByRole('button', { name: '開始文件解析與索引' }));
+    await user.click(await within(drawer).findByRole('button', { name: '開始文件解析與索引' }));
     await user.click(within(latestDialog()).getByRole('button', { name: '確認開始' }));
     await within(drawer).findByText('索引結果不明，已鎖定重送');
     const verificationButtons = within(drawer).getAllByRole('button', { name: '查核真實文件狀態' });
@@ -225,15 +225,23 @@ describe('SP-806 Document Management UI', () => {
     await waitFor(() => expect(documentDrawer().className).not.toContain('ant-drawer-open'));
   });
 
-  it('marks saved Gate 稽核 responses historical after document upload, ingestion and outbound approval or exclusion', async () => {
+  it.each([
+    ['upload', 'upload'] as const,
+    ['ingestion', 'ingestion'] as const,
+    ['outbound approval', 'approve'] as const,
+    ['outbound exclusion', 'exclude'] as const,
+  ])('marks saved Gate 稽核 responses historical after %s', async (_label, operation) => {
     let auditId = 90;
     const requests: InternalAxiosRequestConfig[] = [];
+    const document = operation === 'ingestion'
+      ? documentProcessing
+      : { ...documentProcessing, status: 'READY' };
     axiosClient.defaults.adapter = vi.fn(async (config) => {
       requests.push(config);
       if (config.url === '/auth/me') return response(config, { id: 1, username: 'admin', displayName: 'Admin', role: 'ADMIN' });
-      if (config.url === '/documents' && config.method === 'get') return response(config, page([documentProcessing]));
-      if (config.url === '/documents/21' && config.method === 'get') return response(config, documentProcessing);
-      if (config.url === '/documents/21/ingestions') return response(config, { ...documentProcessing, status: 'READY' });
+      if (config.url === '/documents' && config.method === 'get') return response(config, page([document]));
+      if (config.url === '/documents/21' && config.method === 'get') return response(config, document);
+      if (config.url === '/documents/21/ingestions') return response(config, { ...document, status: 'READY' });
       if (config.url === '/documents' && config.method === 'post') return response(config, { ...documentProcessing, id: 22, title: 'New quote' });
       if (config.url === '/semantic-index/gate-audit') return response(config, { passed: true, generationKey: 'gen', modelId: 'model', dimensions: 768, ready: 1, skipped: 0, failed: 0, requiresReview: 0, pending: 0, findings: [], auditId: auditId++ });
       if (config.url === '/semantic-index/documents/21/approve-outbound') return response(config, { documentId: 21, version: 'v1', sourceHash: 'hash', approvedBy: 1, status: 'APPROVED', reason: null });
@@ -249,38 +257,35 @@ describe('SP-806 Document Management UI', () => {
     };
 
     await saveAudit();
-    await user.click(screen.getByRole('button', { name: /上傳文件/ }));
-    const uploadDialog = latestDialog();
-    fireEvent.mouseDown(within(uploadDialog).getByLabelText('上傳文件類型'));
-    await user.click(await screen.findByText('報價單', { selector: '.ant-select-item-option-content' }));
-    await user.type(within(uploadDialog).getByLabelText('文件標題'), 'New quote');
-    await user.type(within(uploadDialog).getByLabelText('文件版本'), 'v1');
-    await user.upload(within(uploadDialog).getByLabelText('上傳檔案'), new File(['quote'], 'quote.txt', { type: 'text/plain' }));
-    await user.click(within(uploadDialog).getByRole('button', { name: /上\s*傳/ }));
-    await screen.findByText('歷史 Gate 稽核回應（已過期）');
-
-    await saveAudit();
-    await user.click(screen.getByRole('button', { name: '#21' }));
-    const drawer = documentDrawer();
-    await within(drawer).findByRole('button', { name: '開始文件解析與索引' });
-    await user.click(within(drawer).getByRole('button', { name: '開始文件解析與索引' }));
-    await user.click(within(latestDialog()).getByRole('button', { name: '確認開始' }));
-    expect(await within(drawer).findByText('已就緒')).toBeTruthy();
-    await screen.findByText('歷史 Gate 稽核回應（已過期）');
-
-    await saveAudit();
-    await user.click(within(drawer).getByRole('button', { name: '核准出站' }));
-    await user.click(within(latestDialog()).getByRole('button', { name: '確認核准出站' }));
-    await within(drawer).findByText('本次審核回應：已核准');
-    await screen.findByText('歷史 Gate 稽核回應（已過期）');
-
-    await saveAudit();
-    await user.click(within(drawer).getByRole('button', { name: '排除出站' }));
-    await user.click(within(latestDialog()).getByRole('button', { name: '確認排除出站' }));
-    await within(drawer).findByText('本次審核回應：已略過');
+    if (operation === 'upload') {
+      await user.click(screen.getByRole('button', { name: /上傳文件/ }));
+      const uploadDialog = latestDialog();
+      fireEvent.mouseDown(within(uploadDialog).getByLabelText('上傳文件類型'));
+      await user.click(await screen.findByText('報價單', { selector: '.ant-select-item-option-content' }));
+      await user.type(within(uploadDialog).getByLabelText('文件標題'), 'New quote');
+      await user.type(within(uploadDialog).getByLabelText('文件版本'), 'v1');
+      await user.upload(within(uploadDialog).getByLabelText('上傳檔案'), new File(['quote'], 'quote.txt', { type: 'text/plain' }));
+      await user.click(within(uploadDialog).getByRole('button', { name: /上\s*傳/ }));
+      expect(requests.filter(({ url, method }) => url === '/documents' && method === 'post')).toHaveLength(1);
+    } else {
+      await user.click(await screen.findByRole('button', { name: '#21' }));
+      const drawer = documentDrawer();
+      if (operation === 'ingestion') {
+        await user.click(await within(drawer).findByRole('button', { name: '開始文件解析與索引' }));
+        await user.click(within(latestDialog()).getByRole('button', { name: '確認開始' }));
+        expect(await within(drawer).findByText('已就緒')).toBeTruthy();
+      } else if (operation === 'approve') {
+        await user.click(await within(drawer).findByRole('button', { name: '核准出站' }));
+        await user.click(within(latestDialog()).getByRole('button', { name: '確認核准出站' }));
+        await within(drawer).findByText('本次審核回應：已核准');
+      } else {
+        await user.click(await within(drawer).findByRole('button', { name: '排除出站' }));
+        await user.click(within(latestDialog()).getByRole('button', { name: '確認排除出站' }));
+        await within(drawer).findByText('本次審核回應：已略過');
+      }
+    }
     expect(await screen.findByText('歷史 Gate 稽核回應（已過期）')).toBeTruthy();
-    expect(requests.filter(({ url, method }) => url === '/documents' && method === 'post')).toHaveLength(1);
-  }, 120_000);
+  });
 
   it('shows backend status, hides storagePath, and performs one explicitly confirmed ingestion followed by refresh', async () => {
     const requests: InternalAxiosRequestConfig[] = [];
@@ -390,6 +395,7 @@ describe('SP-806 Document Management UI', () => {
       throw new Error(`Unexpected ${config.url}`);
     });
     await open('/documents'); const user = userEvent.setup();
+    await screen.findByRole('heading', { name: '文件管理' });
     expect(await screen.findByText('Supplier quote')).toBeTruthy();
     expect(screen.queryByRole('button', { name: /上傳文件/ })).toBeNull();
     await user.click(screen.getByRole('button', { name: '#21' }));
@@ -469,27 +475,28 @@ describe('SP-806 Global AI 助理', () => {
     });
     await open('/dashboard'); const user = userEvent.setup();
     await user.click(await screen.findByRole('button', { name: /AI 助理/ }));
-    await user.click(screen.getByRole('tab', { name: '採購草稿提案' }));
-    fireEvent.change(screen.getByLabelText('AI 草稿供應商編號'), { target: { value: '12' } });
-    fireEvent.change(screen.getByLabelText('AI 草稿預計交期'), { target: { value: '2099-10-20' } });
-    fireEvent.change(screen.getByLabelText('AI 草稿品項 1 物料編號'), { target: { value: '7' } });
-    fireEvent.change(screen.getByLabelText('AI 草稿品項 1 數量'), { target: { value: '999999999999999.1234000' } });
-    fireEvent.change(screen.getByLabelText('AI 草稿品項 1 單價'), { target: { value: '0.0000001234500' } });
-    await user.click(screen.getByRole('button', { name: /新增品項/ }));
-    fireEvent.change(screen.getByLabelText('AI 草稿品項 2 物料編號'), { target: { value: '8' } });
-    fireEvent.change(screen.getByLabelText('AI 草稿品項 2 數量'), { target: { value: '2.0000' } });
-    fireEvent.change(screen.getByLabelText('AI 草稿品項 2 單價'), { target: { value: '50.0000' } });
-    await user.click(screen.getByRole('button', { name: '產生提案供審閱' }));
-    expect(await screen.findByText('後端提案快照')).toBeTruthy();
-    expect(screen.getByText('999999999999999.1234000')).toBeTruthy();
+    const drawer = aiAssistantDrawer();
+    await user.click(within(drawer).getByRole('tab', { name: '採購草稿提案' }));
+    fireEvent.change(within(drawer).getByLabelText('AI 草稿供應商編號'), { target: { value: '12' } });
+    fireEvent.change(within(drawer).getByLabelText('AI 草稿預計交期'), { target: { value: '2099-10-20' } });
+    fireEvent.change(within(drawer).getByLabelText('AI 草稿品項 1 物料編號'), { target: { value: '7' } });
+    fireEvent.change(within(drawer).getByLabelText('AI 草稿品項 1 數量'), { target: { value: '999999999999999.1234000' } });
+    fireEvent.change(within(drawer).getByLabelText('AI 草稿品項 1 單價'), { target: { value: '0.0000001234500' } });
+    await user.click(within(drawer).getByRole('button', { name: /新增品項/ }));
+    fireEvent.change(within(drawer).getByLabelText('AI 草稿品項 2 物料編號'), { target: { value: '8' } });
+    fireEvent.change(within(drawer).getByLabelText('AI 草稿品項 2 數量'), { target: { value: '2.0000' } });
+    fireEvent.change(within(drawer).getByLabelText('AI 草稿品項 2 單價'), { target: { value: '50.0000' } });
+    await user.click(within(drawer).getByRole('button', { name: '產生提案供審閱' }));
+    expect(await within(drawer).findByText('後端提案快照')).toBeTruthy();
+    expect(within(drawer).getByText('999999999999999.1234000')).toBeTruthy();
     expect(screen.queryByText('server-secret-token')).toBeNull();
     expect(requests.filter(({ url, method }) => url === '/purchase-orders' && method?.toUpperCase() === 'POST')).toHaveLength(0);
-    await user.click(screen.getByRole('button', { name: '審閱並確認草稿' }));
+    await user.click(within(drawer).getByRole('button', { name: '審閱並確認草稿' }));
     const confirm = within(latestDialog()).getByRole('button', { name: '確認建立草稿' });
     fireEvent.click(confirm); fireEvent.click(confirm);
     await waitFor(() => expect(requests.filter(({ url }) => url === '/ai/purchase-draft-proposals/proposal-1/confirm')).toHaveLength(1));
     finishConfirm();
-    expect(await screen.findByText(/採購單 PO-000042 已建立/)).toBeTruthy();
+    expect(await within(drawer).findByText(/採購單 PO-000042 已建立/)).toBeTruthy();
     const confirmRequest = requests.find(({ url }) => url === '/ai/purchase-draft-proposals/proposal-1/confirm')!;
     expect(JSON.parse(confirmRequest.data as string)).toEqual({ confirmationToken: 'server-secret-token', draft: backendDraft });
     expect(requests.filter(({ url, method }) => url === '/purchase-orders' && method?.toUpperCase() === 'POST')).toHaveLength(0);

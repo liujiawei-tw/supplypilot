@@ -1,0 +1,308 @@
+v24.22.1
+
+added 212 packages, and audited 213 packages in 16s
+
+35 packages are looking for funding
+  run `npm fund` for details
+
+2 moderate severity vulnerabilities
+
+To address all issues, run:
+  npm audit fix
+
+Run `npm audit` for details.
+npm notice
+npm notice New major version of npm available! 11.19.1 -> 12.2.1
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.1
+npm notice To update run: npm install -g npm@12.2.1
+npm notice
+
+> frontend@0.0.0 test
+> vitest run --reporter=verbose tests/demandInventory.test.tsx -t keeps Procurement Manager read-only while rendering Demand data|allows a failed Material detail lookup to be retried explicitly|shows create fields, edits with explicit note clearing, confirms cancel and refetches
+
+
+[1m[30m[46m RUN [49m[39m[22m [36mv4.1.11 [39m[90m/work[39m
+
+stderr | tests/demandInventory.test.tsx > SP-802 Demand UI > keeps Procurement Manager read-only while rendering Demand data
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+ [2m[90m↓[39m[22m tests/demandInventory.test.tsx[2m > [22mSP-802 Demand UI[2m > [22mdoes not mount Demand queries for an unauthorized role
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+ [32m✓[39m tests/demandInventory.test.tsx[2m > [22mSP-802 Demand UI[2m > [22mkeeps Procurement Manager read-only while rendering Demand data[33m 5130[2mms[22m[39m
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+ [31m×[39m tests/demandInventory.test.tsx[2m > [22mSP-802 Demand UI[2m > [22mallows a failed Material detail lookup to be retried explicitly[33m 1050[2mms[22m[39m
+[31m   → requests is not defined
+
+Ignored nodes: comments, script, style
+[36m<html>[31m
+  [36m<head />[31m
+  [36m<body>[31m
+    [36m<div>[31m
+      [36m<div[31m
+        [33mclass[31m=[32m"ant-layout ant-layout-has-sider css-dev-only-do-not-override-oc1rc0 css-var-_r_s_"[31m
+        [33mstyle[31m=[32m"min-height: 100vh;"[31m
+      [36m>[31m
+        [36m<aside[31m
+          [33mclass[31m=[32m"ant-layout-sider ant-layout-sider-dark css-dev-only-do-not-override-oc1rc0 css-var-_r_s_"[31m
+          [33mstyle[31m=[32m"flex: 0 0 200px; max-width: 200px; min-width: 200px; width: 200px;"[31m
+        [36m>[31m
+          [36m<div[31m
+            [33mclass[31m=[32m"ant-layout-sider-children"[31m
+          [36m>[31m
+            [36m<div[31m
+              [33mstyle[31m=[32m"padding: 16px; text-align: center;"[31m
+            [36m>[31m
+              [36m<h4[31m
+                [33mclass[31m=[32m"ant-typography css-dev-only-do-not-override-oc1rc0 css-var-_r_s_"[31m
+                [33mstyle[31m=[32m"color: rgb(255, 255, 255); margin: 0px;"[31m
+              [36m>[31m
+                [0mSupplyPilot[0m
+              [36m</h4>[31m
+              [36m<span[31m
+                [33mclass[31m=[32m"ant-typography css-dev-only-do-not-override-oc1rc0 css-var-_r_s_"[31m
+                [33mstyle[31m=[32m"color: rgb(140, 140, 140); font-size: 11px; display: block; margin-top: 4px;"[31m
+              [36m>[31m
+                [0m採購決策平台[0m
+              [36m</span>[31m
+            [36m</div>[31m
+            [36m<ul[31m
+              [33mclass[31m=[32m"ant-menu ant-menu-root ant-menu-inline ant-menu-dark css-dev-only-do-not-override-oc1rc0 css-var-_r_s_ ant-menu-css-var"[31m
+              [33mdata-menu-list[31m=[32m"true"[31m
+              [33mrole[31m=[32m"menu"[31m
+              [33mtabindex[31m=[32m"0"[31m
+            [36m>[31m
+              [36m<li[31m
+                [33mclass[31m=[32m"ant-menu-item ant-menu-item-selected"[31m
+                [33mdata-menu-id[31m=[32m"rc-menu-uuid-test-id-/dashboard"[31m
+                [33mrole[31m=[32m"menuitem"[31m
+                [33mstyle[31m=[32m"padding-left: 24px;"[31m
+                [33mtabindex[31m=[32m"-1"[31m
+              [36m>[31m
+                [36m<span[31m
+                  [33maria-label[31m=[32m"dashboard"[31m
+                  [33mclass[31m=[32m"anticon anticon-dashboard ant-menu-item-icon"[31m
+                  [33mrole[31m=[32m"img"[31m
+                [36m>[31m
+                  [36m<svg[31m
+                    [33maria-hidden[31m=[32m"true"[31m
+                    [33mdata-icon[31m=[32m"dashboard"[31m
+                    [33mfill[31m=[32m"currentColor"[31m
+                    [33mfocusable[31m=[32m"false"[31m
+                    [33mheight[31m=[32m"1em"[31m
+                    [33mviewBox[31m=[32m"64 64 896 896"[31m
+                    [33mwidth[31m=[32m"1em"[31m
+                  [36m>[31m
+                    [36m<path[31m
+                      [33md[31m=[32m"M924.8 385.6a446.7 446.7 0 00-96-142.4 446.7 446.7 0 00-142.4-96C631.1 123.8 572.5 112 512 112s-119.1 11.8-174.4 35.2a446.7 446.7 0 00-142.4 96 446.7 446.7 0 00-96 142.4C75.8 440.9 64 499.5 64 560c0 132.7 58.3 257.7 159.9 343.1l1.7 1.4c5.8 4.8 13.1 7.5 20.6 7.5h531.7c7.5 0 14.8-2.7 20.6-7.5l1.7-1.4C901.7 817.7 960 692.7 960 560c0-60.5-11.9-119.1-35.2-174.4zM761.4 836H262.6A371.12 371.12 0 01140 560c0-99.4 38.7-192.8 109-263 70.3-70.3 163.7-109 263-109 99.4 0 192.8 38.7 263 109 70.3 70.3 109 163.7 109 263 0 105.6-44.5 205.5-122.6 276zM623.5 421.5a8.03 8.03 0 00-11.3 0L527.7 506c-18.7-5-39.4-.2-54.1 14.5a55.95 55.95 0 000 79.2 55.95 55.95 0 0079.2 0 55.87 55.87 0 0014.5-54.1l84.5-84.5c3.1-3.1 3.1-8.2 0-11.3l-28.3-28.3zM490 320h44c4.4 0 8-3.6 8-8v-80c0-4.4-3.6-8-8-8h-44c-4.4 0-8 3.6-8 8v80c0 4.4 3.6 8 8 8zm260 218v44c0 4.4 3.6 8 8 8h80c4.4 0 8-3.6 8-8v-44c0-4.4-3.6-8-8-8h-80c-4.4 0-8 3.6-8 8zm12.7-197.2l-31.1-31.1a8.03 8.03 0 00-11.3 0l-56.6 56.6a8.03 8.03 0 000 11.3l31.1 31.1c3.1 3.1 8.2 3.1 11.3 0l56.6-56.6c3.1-3.1 3.1-8.2 0-11.3zm-458.6-31.1a8.03 8.03 0 00-11.3 0l-31.1 31.1a8.03 8.03 0 000 11.3l56.6 56.6c3.1 3.1 8.2 3.1 11.3 0l31.1-31.1c3.1-3.1 3.1-8.2 0-11.3l-56.6-56.6zM262 530h-80c-4.4 0-8 3.6-8 8v44c0 4.4 3.6 8 8 8h80c4.4 0 8-3.6 8-8v-44c0-4.4-3.6-8-8-8z"[31m
+                    [36m/>[31m
+                  [36m</svg>[31m
+                [36m</span>[31m
+                [36m<span[31m
+                  [33mclass[31m=[32m"ant-menu-title-content"[31m
+                [36m>[31m
+                  [0m儀表板[0m
+                [36m</span>[31m
+              [36m</li>[31m
+              [36m<li[31m
+                [33mclass[31m=[32m"ant-menu-submenu ant-menu-submenu-inline"[31m
+                [33mrole[31m=[32m"none"[31m
+              [36m>[31m
+                [36m<div[31m
+                  [33maria-controls[31m=[32m"rc-menu-uuid-test-id-主檔管理-popup"[31m
+                  [33maria-expanded[31m=[32m"false"[31m
+                  [33maria-haspopup[31m=[32m"true"[31m
+                  [33mclass[31m=[32m"ant-menu-submenu-title"[31m
+                  [33mdata-menu-id[31m=[32m"rc-menu-uuid-test-id-主檔管理"[31m
+                  [33mrole[31m=[32m"menuitem"[31m
+                  [33mstyle[31m=[32m"padding-left: 24px;"[31m
+                  [33mtabindex[31m=[32m"-1"[31m
+                [36m>[31m
+                  [36m<span[31m
+                    [33mclass[31m=[32m"ant-menu-title-content"[31m
+                  [36m>[31m
+                    [0m主檔管理[0m
+                  [36m</span>[31m
+                  [36m<i[31m
+                    [33mclass[31m=[32m"ant-menu-submenu-arrow"[31m
+                  [36m/>[31m
+                [36m</div>[31m
+              [36m</li>[31m
+              [36m<li[31m
+                [33mclass[31m=[32m"ant-menu-submenu ant-menu-submenu-inline"[31m
+                [33mrole[31m=[32m"none"[31m
+              [36m>[31m
+                [36m<div[31m
+                  [33maria-controls[31m=[32m"rc-menu-uuid-test-id-需求與庫存-popup"[31m
+                  [33maria-expanded[31m=[32m"false"[31m
+                  [33maria-haspopup[31m=[32m"true"[31m
+                  [33mclass[31m=[32m"ant-menu-submenu-title"[31m
+                  [33mdata-menu-id[31m=[32m"rc-menu-uuid-test-id-需求與庫存"[31m
+                  [33mrole[31m=[32m"menuitem"[31m
+                  [33mstyle[31m=[32m"padding-left: 24px;"[31m
+                  [33mtabindex[31m=[32m"-1"[31m
+                [36m>[31m
+                  [36m<span[31m
+                    [33mclass[31m=[32m"ant-menu-title-content"[31m
+                  [36m>[31m
+                    [0m需求與庫存[0m
+                  [36m</span>[31m
+                  [36m<i[31m
+                    [33mclass[31m=[32m"ant-menu-submenu-arrow"[31m
+                  [36m/>[31m
+                [36m</div>[31m
+              [36m</li>...[39m
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+ [32m✓[39m tests/demandInventory.test.tsx[2m > [22mSP-802 Demand UI[2m > [22mshows create fields, edits with explicit note clearing, confirms cancel and refetches[33m 28076[2mms[22m[39m
+ [2m[90m↓[39m[22m tests/demandInventory.test.tsx[2m > [22mSP-802 Inventory UI[2m > [22mvalidates adjustment decimal boundaries without Number conversion
+ [2m[90m↓[39m[22m tests/demandInventory.test.tsx[2m > [22mSP-802 Inventory UI[2m > [22menforces the tab matrix for PRODUCTION_PLANNER
+ [2m[90m↓[39m[22m tests/demandInventory.test.tsx[2m > [22mSP-802 Inventory UI[2m > [22menforces the tab matrix for PROCUREMENT_STAFF
+ [2m[90m↓[39m[22m tests/demandInventory.test.tsx[2m > [22mSP-802 Inventory UI[2m > [22menforces the tab matrix for PROCUREMENT_MANAGER
+ [2m[90m↓[39m[22m tests/demandInventory.test.tsx[2m > [22mSP-802 Inventory UI[2m > [22menforces the tab matrix for WAREHOUSE_STAFF
+ [2m[90m↓[39m[22m tests/demandInventory.test.tsx[2m > [22mSP-802 Inventory UI[2m > [22menforces the tab matrix for ADMIN
+ [2m[90m↓[39m[22m tests/demandInventory.test.tsx[2m > [22mSP-802 Inventory UI[2m > [22mshows detail and allows Warehouse to submit a signed adjustment exactly once before refetch
+ [2m[90m↓[39m[22m tests/demandInventory.test.tsx[2m > [22mSP-802 Inventory UI[2m > [22mkeeps adjustment input and marks a 409 result unknown without retrying
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/demandInventory.test.tsx > SP-802 Demand UI > allows a failed Material detail lookup to be retried explicitly
+ReferenceError: requests is not defined
+
+Ignored nodes: comments, script, style
+<html>
+  <head />
+  <body>
+    <div>
+      <div
+        class="ant-layout ant-layout-has-sider css-dev-only-do-not-override-oc1rc0 css-var-_r_s_"
+        style="min-height: 100vh;"
+      >
+        <aside
+          class="ant-layout-sider ant-layout-sider-dark css-dev-only-do-not-override-oc1rc0 css-var-_r_s_"
+          style="flex: 0 0 200px; max-width: 200px; min-width: 200px; width: 200px;"
+        >
+          <div
+            class="ant-layout-sider-children"
+          >
+            <div
+              style="padding: 16px; text-align: center;"
+            >
+              <h4
+                class="ant-typography css-dev-only-do-not-override-oc1rc0 css-var-_r_s_"
+                style="color: rgb(255, 255, 255); margin: 0px;"
+              >
+                SupplyPilot
+              </h4>
+              <span
+                class="ant-typography css-dev-only-do-not-override-oc1rc0 css-var-_r_s_"
+                style="color: rgb(140, 140, 140); font-size: 11px; display: block; margin-top: 4px;"
+              >
+                採購決策平台
+              </span>
+            </div>
+            <ul
+              class="ant-menu ant-menu-root ant-menu-inline ant-menu-dark css-dev-only-do-not-override-oc1rc0 css-var-_r_s_ ant-menu-css-var"
+              data-menu-list="true"
+              role="menu"
+              tabindex="0"
+            >
+              <li
+                class="ant-menu-item ant-menu-item-selected"
+                data-menu-id="rc-menu-uuid-test-id-/dashboard"
+                role="menuitem"
+                style="padding-left: 24px;"
+                tabindex="-1"
+              >
+                <span
+                  aria-label="dashboard"
+                  class="anticon anticon-dashboard ant-menu-item-icon"
+                  role="img"
+                >
+                  <svg
+                    aria-hidden="true"
+                    data-icon="dashboard"
+                    fill="currentColor"
+                    focusable="false"
+                    height="1em"
+                    viewBox="64 64 896 896"
+                    width="1em"
+                  >
+                    <path
+                      d="M924.8 385.6a446.7 446.7 0 00-96-142.4 446.7 446.7 0 00-142.4-96C631.1 123.8 572.5 112 512 112s-119.1 11.8-174.4 35.2a446.7 446.7 0 00-142.4 96 446.7 446.7 0 00-96 142.4C75.8 440.9 64 499.5 64 560c0 132.7 58.3 257.7 159.9 343.1l1.7 1.4c5.8 4.8 13.1 7.5 20.6 7.5h531.7c7.5 0 14.8-2.7 20.6-7.5l1.7-1.4C901.7 817.7 960 692.7 960 560c0-60.5-11.9-119.1-35.2-174.4zM761.4 836H262.6A371.12 371.12 0 01140 560c0-99.4 38.7-192.8 109-263 70.3-70.3 163.7-109 263-109 99.4 0 192.8 38.7 263 109 70.3 70.3 109 163.7 109 263 0 105.6-44.5 205.5-122.6 276zM623.5 421.5a8.03 8.03 0 00-11.3 0L527.7 506c-18.7-5-39.4-.2-54.1 14.5a55.95 55.95 0 000 79.2 55.95 55.95 0 0079.2 0 55.87 55.87 0 0014.5-54.1l84.5-84.5c3.1-3.1 3.1-8.2 0-11.3l-28.3-28.3zM490 320h44c4.4 0 8-3.6 8-8v-80c0-4.4-3.6-8-8-8h-44c-4.4 0-8 3.6-8 8v80c0 4.4 3.6 8 8 8zm260 218v44c0 4.4 3.6 8 8 8h80c4.4 0 8-3.6 8-8v-44c0-4.4-3.6-8-8-8h-80c-4.4 0-8 3.6-8 8zm12.7-197.2l-31.1-31.1a8.03 8.03 0 00-11.3 0l-56.6 56.6a8.03 8.03 0 000 11.3l31.1 31.1c3.1 3.1 8.2 3.1 11.3 0l56.6-56.6c3.1-3.1 3.1-8.2 0-11.3zm-458.6-31.1a8.03 8.03 0 00-11.3 0l-31.1 31.1a8.03 8.03 0 000 11.3l56.6 56.6c3.1 3.1 8.2 3.1 11.3 0l31.1-31.1c3.1-3.1 3.1-8.2 0-11.3l-56.6-56.6zM262 530h-80c-4.4 0-8 3.6-8 8v44c0 4.4 3.6 8 8 8h80c4.4 0 8-3.6 8-8v-44c0-4.4-3.6-8-8-8z"
+                    />
+                  </svg>
+                </span>
+                <span
+                  class="ant-menu-title-content"
+                >
+                  儀表板
+                </span>
+              </li>
+              <li
+                class="ant-menu-submenu ant-menu-submenu-inline"
+                role="none"
+              >
+                <div
+                  aria-controls="rc-menu-uuid-test-id-主檔管理-popup"
+                  aria-expanded="false"
+                  aria-haspopup="true"
+                  class="ant-menu-submenu-title"
+                  data-menu-id="rc-menu-uuid-test-id-主檔管理"
+                  role="menuitem"
+                  style="padding-left: 24px;"
+                  tabindex="-1"
+                >
+                  <span
+                    class="ant-menu-title-content"
+                  >
+                    主檔管理
+                  </span>
+                  <i
+                    class="ant-menu-submenu-arrow"
+                  />
+                </div>
+              </li>
+              <li
+                class="ant-menu-submenu ant-menu-submenu-inline"
+                role="none"
+              >
+                <div
+                  aria-controls="rc-menu-uuid-test-id-需求與庫存-popup"
+                  aria-expanded="false"
+                  aria-haspopup="true"
+                  class="ant-menu-submenu-title"
+                  data-menu-id="rc-menu-uuid-test-id-需求與庫存"
+                  role="menuitem"
+                  style="padding-left: 24px;"
+                  tabindex="-1"
+                >
+                  <span
+                    class="ant-menu-title-content"
+                  >
+                    需求與庫存
+                  </span>
+                  <i
+                    class="ant-menu-submenu-arrow"
+                  />
+                </div>
+              </li>...
+ ❯ tests/demandInventory.test.tsx:83:32
+     81|     });
+     82|     await open('/demands');
+     83|     await waitFor(() => expect(requests.some(({ url }) => url === '/de…
+       |                                ^
+     84|     await screen.findByRole('row', { name: /物料 #1/ });
+     85|     await waitFor(() => expect(requests.some(({ url }) => url === '/ma…
+ ❯ runWithExpensiveErrorDiagnosticsDisabled node_modules/@testing-library/dom/dist/config.js:47:12
+ ❯ checkCallback node_modules/@testing-library/dom/dist/wait-for.js:124:77
+ ❯ Timeout.checkRealTimersCallback node_modules/@testing-library/dom/dist/wait-for.js:118:16
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+[2m Test Files [22m [1m[31m1 failed[39m[22m[90m (1)[39m
+[2m      Tests [22m [1m[31m1 failed[39m[22m[2m | [22m[1m[32m2 passed[39m[22m[2m | [22m[33m9 skipped[39m[90m (12)[39m
+[2m   Start at [22m 12:48:50
+[2m   Duration [22m 42.48s[2m (transform 4.92s, setup 212ms, import 7.18s, tests 34.26s, environment 631ms)[22m
+

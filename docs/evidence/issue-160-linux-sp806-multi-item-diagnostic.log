@@ -1,0 +1,62 @@
+
+> frontend@0.0.0 test
+> vitest run --maxWorkers=1 tests/sp806.test.tsx -t reviews a multi-item backend snapshot
+
+
+[1m[30m[46m RUN [49m[39m[22m [36mv4.1.11 [39m[90m/work[39m
+
+[90mstdout[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Global AI 助理[2m > [22m[2mreviews a multi-item backend snapshot and sends one token-based Confirm with no ordinary PO create call
+[22m[39m[sp806-diag] 1792674376007 start
+
+[90mstdout[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Global AI 助理[2m > [22m[2mreviews a multi-item backend snapshot and sends one token-based Confirm with no ordinary PO create call
+[22m[39m[sp806-diag] 1792674376245 dashboard-open
+
+stderr | tests/sp806.test.tsx > SP-806 Global AI 助理 > reviews a multi-item backend snapshot and sends one token-based Confirm with no ordinary PO create call
+Warning: [antd: List] The `List` component is deprecated and will be removed in the next major version. If you're using version 6.6.0 or later, please use `Listy` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+Warning: [antd: List] The `List` component is deprecated and will be removed in the next major version. If you're using version 6.6.0 or later, please use `Listy` instead.
+
+stderr | tests/sp806.test.tsx > SP-806 Global AI 助理 > reviews a multi-item backend snapshot and sends one token-based Confirm with no ordinary PO create call
+Warning: [antd: List] The `List` component is deprecated and will be removed in the next major version. If you're using version 6.6.0 or later, please use `Listy` instead.
+
+Could not parse CSS stylesheet
+Could not parse CSS stylesheet
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+stderr | tests/sp806.test.tsx > SP-806 Global AI 助理 > reviews a multi-item backend snapshot and sends one token-based Confirm with no ordinary PO create call
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+[90mstdout[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Global AI 助理[2m > [22m[2mreviews a multi-item backend snapshot and sends one token-based Confirm with no ordinary PO create call
+[22m[39m[sp806-diag] 1792674377846 assistant-open
+
+[90mstdout[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Global AI 助理[2m > [22m[2mreviews a multi-item backend snapshot and sends one token-based Confirm with no ordinary PO create call
+[22m[39m[sp806-diag] 1792674378767 proposal-tab
+
+[90mstdout[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Global AI 助理[2m > [22m[2mreviews a multi-item backend snapshot and sends one token-based Confirm with no ordinary PO create call
+[22m[39m[sp806-diag] 1792674385321 fields-entered
+
+[90mstdout[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Global AI 助理[2m > [22m[2mreviews a multi-item backend snapshot and sends one token-based Confirm with no ordinary PO create call
+[22m[39m[sp806-diag] 1792674393139 generate-clicked
+
+[90mstdout[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Global AI 助理[2m > [22m[2mreviews a multi-item backend snapshot and sends one token-based Confirm with no ordinary PO create call
+[22m[39m[sp806-diag] 1792674393149 snapshot-visible
+
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+[90mstdout[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Global AI 助理[2m > [22m[2mreviews a multi-item backend snapshot and sends one token-based Confirm with no ordinary PO create call
+[22m[39m[sp806-diag] 1792674396368 review-clicked
+[sp806-diag] 1792674396984 confirm-clicked
+
+[90mstdout[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Global AI 助理[2m > [22m[2mreviews a multi-item backend snapshot and sends one token-based Confirm with no ordinary PO create call
+[22m[39m[sp806-diag] 1792674397013 request-seen
+[sp806-diag] 1792674397013 response-finished
+
+[90mstdout[2m | tests/sp806.test.tsx[2m > [22m[2mSP-806 Global AI 助理[2m > [22m[2mreviews a multi-item backend snapshot and sends one token-based Confirm with no ordinary PO create call
+[22m[39m[sp806-diag] 1792674397234 success-visible
+
+ [32m✓[39m tests/sp806.test.tsx [2m([22m[2m25 tests[22m[2m | [22m[33m24 skipped[39m[2m)[22m[33m 21258[2mms[22m[39m
+     [33m[2m✓[22m[39m reviews a multi-item backend snapshot and sends one token-based Confirm with no ordinary PO create call [33m 21254[2mms[22m[39m
+
+[2m Test Files [22m [1m[32m1 passed[39m[22m[90m (1)[39m
+[2m      Tests [22m [1m[32m1 passed[39m[22m[2m | [22m[33m24 skipped[39m[90m (25)[39m
+[2m   Start at [22m 13:06:08
+[2m   Duration [22m 28.99s[2m (transform 4.88s, setup 155ms, import 6.91s, tests 21.26s, environment 481ms)[22m
+
