@@ -56,7 +56,10 @@ describe('SP-802 Demand UI', () => {
       throw new Error(`Unexpected request ${config.url}`);
     });
     await open('/demands');
-    expect(await screen.findByRole('row', { name: /MAT-001 — Steel/ }, { timeout: 5_000 })).toBeTruthy();
+    await waitFor(() => expect(requests).toContain('/demands'));
+    await screen.findByRole('row', { name: /物料 #1/ });
+    await waitFor(() => expect(requests).toContain('/materials/1'));
+    expect(await screen.findByRole('row', { name: /MAT-001 — Steel/ })).toBeTruthy();
     expect(screen.queryByRole('button', { name: '新增需求' })).toBeNull();
     expect(screen.queryByRole('button', { name: '編輯' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Cancel' })).toBeNull();
@@ -77,7 +80,7 @@ describe('SP-802 Demand UI', () => {
       throw new Error(`Unexpected request ${config.url}`);
     });
     await open('/demands');
-    expect(await screen.findByRole('row', { name: /物料 #1/ }, { timeout: 5_000 })).toBeTruthy();
+    expect(await screen.findByRole('row', { name: /物料 #1/ })).toBeTruthy();
     const retry = await screen.findByRole('button', { name: '重新載入物料資訊' });
     expect(materialDetailCalls).toBe(1);
     await userEvent.setup().click(retry);
@@ -104,7 +107,10 @@ describe('SP-802 Demand UI', () => {
       throw new Error(`Unexpected request ${config.method} ${config.url}`);
     });
     await open('/demands');
-    expect(await screen.findByRole('row', { name: /MAT-001 — Steel/ }, { timeout: 5_000 })).toBeTruthy();
+    await waitFor(() => expect(requests.some(({ url }) => url === '/demands')).toBe(true));
+    await screen.findByRole('row', { name: /物料 #1/ });
+    await waitFor(() => expect(requests.some(({ url }) => url === '/materials/1')).toBe(true));
+    expect(await screen.findByRole('row', { name: /MAT-001 — Steel/ })).toBeTruthy();
     const user = userEvent.setup();
 
     await user.click(screen.getByRole('button', { name: /新增需求/ }));

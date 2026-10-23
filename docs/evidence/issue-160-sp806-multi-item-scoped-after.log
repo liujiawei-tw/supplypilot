@@ -1,0 +1,20 @@
+
+> frontend@0.0.0 test
+> vitest run --reporter=verbose --maxWorkers=1 tests/sp806.test.tsx -t reviews a multi-item backend snapshot
+
+
+ RUN  v4.1.11 C:/Users/z0976/OneDrive/桌面/dev-side/supplypilot/.worktrees/issue-160-frontend-vitest-performance/frontend
+
+
+⎯⎯⎯⎯⎯⎯ Failed Suites 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/sp806.test.tsx [ tests/sp806.test.tsx ]
+Error: EPERM: operation not permitted, rename 'C:\Users\z0976\AppData\Local\Packages\sandbox.{d9bb04aa-44e7-4966-a7b3-b7ce49f895e0}\AC\Temp\NUC0poACNkz4i1IGn1-8d\client\.tmp-1792720903225-qc2679y0ls8' -> 'C:\Users\z0976\AppData\Local\Packages\sandbox.{d9bb04aa-44e7-4966-a7b3-b7ce49f895e0}\AC\Temp\NUC0poACNkz4i1IGn1-8d\client\64e29fdbd3dde5f3581c90092e6ff808acb4f3ec'
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  no tests
+   Start at  10:01:26
+   Duration  16.96s (transform 0ms, setup 0ms, import 0ms, tests 0ms, environment 15.92s)
+

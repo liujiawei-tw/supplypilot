@@ -1,0 +1,108 @@
+
+> frontend@0.0.0 test
+> vitest run --maxWorkers=1 tests/sp806.test.tsx -t locks an unknown or 409 ingestion result|reviews a multi-item backend snapshot
+
+
+[1m[30m[46m RUN [49m[39m[22m [36mv4.1.11 [39m[90m/work[39m
+
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+stderr | tests/sp806.test.tsx > SP-806 Document Management UI > locks an unknown or 409 ingestion result until the official document GET succeeds, without a resend
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+stderr | tests/sp806.test.tsx > SP-806 Document Management UI > locks an unknown or 409 ingestion result until the official document GET succeeds, without a resend
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+stderr | tests/sp806.test.tsx > SP-806 Document Management UI > locks an unknown or 409 ingestion result until the official document GET succeeds, without a resend
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+stderr | tests/sp806.test.tsx > SP-806 Document Management UI > locks an unknown or 409 ingestion result until the official document GET succeeds, without a resend
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+stderr | tests/sp806.test.tsx > SP-806 Document Management UI > locks an unknown or 409 ingestion result until the official document GET succeeds, without a resend
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+stderr | tests/sp806.test.tsx > SP-806 Document Management UI > locks an unknown or 409 ingestion result until the official document GET succeeds, without a resend
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+stderr | tests/sp806.test.tsx > SP-806 Document Management UI > locks an unknown or 409 ingestion result until the official document GET succeeds, without a resend
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+stderr | tests/sp806.test.tsx > SP-806 Document Management UI > locks an unknown or 409 ingestion result until the official document GET succeeds, without a resend
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+stderr | tests/sp806.test.tsx > SP-806 Document Management UI > locks an unknown or 409 ingestion result until the official document GET succeeds, without a resend
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+stderr | tests/sp806.test.tsx > SP-806 Document Management UI > locks an unknown or 409 ingestion result until the official document GET succeeds, without a resend
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+stderr | tests/sp806.test.tsx > SP-806 Document Management UI > locks an unknown or 409 ingestion result until the official document GET succeeds, without a resend
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+stderr | tests/sp806.test.tsx > SP-806 Global AI 助理 > reviews a multi-item backend snapshot and sends one token-based Confirm with no ordinary PO create call
+Warning: [antd: List] The `List` component is deprecated and will be removed in the next major version. If you're using version 6.6.0 or later, please use `Listy` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+Warning: [antd: List] The `List` component is deprecated and will be removed in the next major version. If you're using version 6.6.0 or later, please use `Listy` instead.
+
+stderr | tests/sp806.test.tsx > SP-806 Global AI 助理 > reviews a multi-item backend snapshot and sends one token-based Confirm with no ordinary PO create call
+Warning: [antd: List] The `List` component is deprecated and will be removed in the next major version. If you're using version 6.6.0 or later, please use `Listy` instead.
+
+Could not parse CSS stylesheet
+Could not parse CSS stylesheet
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+stderr | tests/sp806.test.tsx > SP-806 Global AI 助理 > reviews a multi-item backend snapshot and sends one token-based Confirm with no ordinary PO create call
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+ [31m❯[39m tests/sp806.test.tsx [2m([22m[2m25 tests[22m[2m | [22m[31m1 failed[39m[2m | [22m[33m23 skipped[39m[2m)[22m[33m 53735[2mms[22m[39m
+     [2m[90m↓[39m[22m exposes Semantic operations only to ADMIN on the existing Documents route
+     [2m[90m↓[39m[22m exposes Semantic operations only to ADMIN on the existing Documents route
+     [2m[90m↓[39m[22m exposes Semantic operations only to ADMIN on the existing Documents route
+     [2m[90m↓[39m[22m exposes Semantic operations only to ADMIN on the existing Documents route
+     [2m[90m↓[39m[22m confirms outbound approval and renders the actual 後端 Review result
+     [2m[90m↓[39m[22m keeps a deep-linked #21 from overwriting a fast #22 switch and reviews only the current document
+     [2m[90m↓[39m[22m ignores a delayed title response after switching documents
+     [2m[90m↓[39m[22m ignores a delayed archive response after switching documents
+     [2m[90m↓[39m[22m ignores a delayed ingestion response after switching documents
+     [2m[90m↓[39m[22m ignores a delayed ingestion verification response after switching documents
+     [2m[90m↓[39m[22m refreshes the same deep-linked document and closes without reloading it
+     [2m[90m↓[39m[22m marks saved Gate 稽核 responses historical after document upload, ingestion and outbound approval or exclusion
+     [2m[90m↓[39m[22m shows backend status, hides storagePath, and performs one explicitly confirmed ingestion followed by refresh
+     [33m[2m✓[22m[39m locks an unknown or 409 ingestion result until the official document GET succeeds, without a resend [33m 20873[2mms[22m[39m
+     [2m[90m↓[39m[22m validates document file extension, browser content type, and empty content
+     [2m[90m↓[39m[22m submits one upload on rapid clicks and locks an unknown upload instead of guessing its result
+     [2m[90m↓[39m[22m gives manager read-only Documents without upload, edit, or ingestion controls
+     [2m[90m↓[39m[22m does not call any Document or AI endpoint for warehouse role
+     [2m[90m↓[39m[22m keeps the route unchanged, renders verified query sources, and gives manager no Proposal tab
+     [2m[90m↓[39m[22m isolates AI 503 so navigation stays usable and the drawer can close
+[31m     [31m×[31m reviews a multi-item backend snapshot and sends one token-based Confirm with no ordinary PO create call[39m[33m 32857[2mms[22m[39m
+     [2m[90m↓[39m[22m shows clarification without Confirm and locks unknown Confirm results without resending
+     [2m[90m↓[39m[22m locks the old Proposal after AI_PROPOSAL_ALREADY_CONFIRMED
+     [2m[90m↓[39m[22m locks the old Proposal after AI_PROPOSAL_EXPIRED
+     [2m[90m↓[39m[22m fails closed when Proposal expiresAt is invalid without calling Confirm
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/sp806.test.tsx > SP-806 Global AI 助理 > reviews a multi-item backend snapshot and sends one token-based Confirm with no ordinary PO create call
+Error: Test timed out in 30000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+ ❯ tests/sp806.test.tsx:455:3
+    453|   }, 30_000);
+    454|
+    455|   it('reviews a multi-item backend snapshot and sends one token-based …
+       |   ^
+    456|     const requests: InternalAxiosRequestConfig[] = [];
+    457|     let finishConfirm!: () => void;
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+[2m Test Files [22m [1m[31m1 failed[39m[22m[90m (1)[39m
+[2m      Tests [22m [1m[31m1 failed[39m[22m[2m | [22m[1m[32m1 passed[39m[22m[2m | [22m[33m23 skipped[39m[90m (25)[39m
+[2m   Start at [22m 13:04:36
+[2m   Duration [22m 61.20s[2m (transform 4.32s, setup 145ms, import 5.96s, tests 53.73s, environment 479ms)[22m
+

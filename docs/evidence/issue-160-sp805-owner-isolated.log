@@ -1,0 +1,39 @@
+
+> frontend@0.0.0 test
+> vitest run --reporter=verbose tests/sp805.test.tsx -t locks detail owner changes after a conflict until the PO is explicitly refetched
+
+
+ RUN  v4.1.11 C:/Users/z0976/OneDrive/桌面/dev-side/supplypilot/.worktrees/issue-160-frontend-vitest-performance/frontend
+
+stderr | tests/sp805.test.tsx > SP-805 PO ownership mutation verification > locks detail owner changes after a conflict until the PO is explicitly refetched
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+ ↓ tests/sp805.test.tsx > SP-805 PO lifecycle UI > shows both delivery dates and updates the supplier promise without changing the expected date
+ ↓ tests/sp805.test.tsx > SP-805 PO lifecycle UI > cancels an eligible PO only after a required reason and explicit warning confirmation
+ ↓ tests/sp805.test.tsx > SP-805 PO lifecycle UI > does not retry after a conflict and requires querying the actual PO state
+ ↓ tests/sp805.test.tsx > SP-805 PO lifecycle UI > moves an ordered PO into receiving inspection and removes its cancellation action
+ ↓ tests/sp805.test.tsx > SP-805 PO lifecycle UI > preserves integer, decimal, and scientific BigDecimal tokens from an API response through UI rendering
+ ↓ tests/sp805.test.tsx > SP-805 PO lifecycle UI > creates a Manual DRAFT with exact decimal strings after explicit confirmation
+ ↓ tests/sp805.test.tsx > SP-805 PO lifecycle UI > creates a DRAFT with the exact IDs of page-6 master records and does not confuse duplicate names
+ ↓ tests/sp805.test.tsx > SP-805 PO lifecycle UI > restores off-page master labels in edit and preserves recommendation evidence and price snapshot
+ ↓ tests/sp805.test.tsx > SP-805 PO lifecycle UI > keeps linked recommendation evidence while filling delivery date, approving, and marking ordered
+ ↓ tests/sp805.test.tsx > SP-805 PO lifecycle UI > uses role plus domain state guards and blocks approval when a DRAFT has no delivery date
+ ↓ tests/sp805.test.tsx > SP-805 PO lifecycle UI > requires a non-blank reject reason before enabling the confirmed request
+ ↓ tests/sp805.test.tsx > SP-805 PO lifecycle UI > confirms the move into receiving inspection without issuing a receive command
+ ↓ tests/sp805.test.tsx > SP-805 receiving and stock security boundaries > saves abnormal inspection notes and keeps whole receiving disabled until all three confirmations are true
+ ↓ tests/sp805.test.tsx > SP-805 receiving and stock security boundaries > loads warehouse detail only from the restricted endpoint and sends one Full Receive POST
+ ↓ tests/sp805.test.tsx > SP-805 receiving and stock security boundaries > locks a 409 receive result until an explicit restricted refetch and never auto-retries
+ ↓ tests/sp805.test.tsx > SP-805 receiving and stock security boundaries > handles a receiving timeout by refetching RECEIVED without automatically resending
+ ↓ tests/sp805.test.tsx > SP-805 receiving and stock security boundaries > shows PO text but no procurement deep link to warehouse stock readers
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+stderr | tests/sp805.test.tsx > SP-805 PO ownership mutation verification > locks detail owner changes after a conflict until the PO is explicitly refetched
+Warning: [antd: Modal] Static function can not consume context like dynamic theme. Please use 'App' component instead.
+
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+ ✓ tests/sp805.test.tsx > SP-805 PO ownership mutation verification > locks detail owner changes after a conflict until the PO is explicitly refetched 3877ms
+
+ Test Files  1 passed (1)
+      Tests  1 passed | 17 skipped (18)
+   Start at  16:04:36
+   Duration  9.92s (transform 1.04s, setup 200ms, import 4.90s, tests 3.88s, environment 743ms)
+

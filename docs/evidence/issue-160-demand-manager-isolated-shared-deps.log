@@ -1,0 +1,31 @@
+
+ RUN  v4.1.11 C:/Users/z0976/OneDrive/桌面/dev-side/supplypilot/.worktrees/issue-160-frontend-vitest-performance/frontend
+
+
+⎯⎯⎯⎯⎯⎯ Failed Suites 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/demandInventory.test.tsx [ tests/demandInventory.test.tsx ]
+Error: Failed to resolve import "@testing-library/react" from "../.worktrees/issue-160-frontend-vitest-performance/frontend/tests/setup.ts". Does the file exist?
+  Plugin: vite:import-analysis
+  File: C:/Users/z0976/OneDrive/桌面/dev-side/supplypilot/.worktrees/issue-160-frontend-vitest-performance/frontend/tests/setup.ts:2:24
+  1  |  import { afterEach, beforeAll, vi } from "vitest";
+  2  |  import { cleanup } from "@testing-library/react";
+     |                           ^
+  3  |  beforeAll(() => {
+  4  |  	globalThis.ResizeObserver = class {
+ ❯ TransformPluginContext._formatLog ../../../../../../%E6%A1%8C%E9%9D%A2/dev-side/supplypilot/frontend/node_modules/vite/dist/node/chunks/node.js:8766:39
+
+ Test Files  1 failed (1)
+      Tests  no tests
+   Start at  20:31:14
+   Duration  15.91s (transform 0ms, setup 0ms, import 0ms, tests 0ms, environment 15.01s)
+
+ ❯ TransformPluginContext.error ../../../../../../%E6%A1%8C%E9%9D%A2/dev-side/supplypilot/frontend/node_modules/vite/dist/node/chunks/node.js:8763:14
+ ❯ normalizeUrl ../../../../../../%E6%A1%8C%E9%9D%A2/dev-side/supplypilot/frontend/node_modules/vite/dist/node/chunks/node.js:26632:18
+ ❯ ../../../../../../%E6%A1%8C%E9%9D%A2/dev-side/supplypilot/frontend/node_modules/vite/dist/node/chunks/node.js:26702:30
+ ❯ TransformPluginContext.transform ../../../../../../%E6%A1%8C%E9%9D%A2/dev-side/supplypilot/frontend/node_modules/vite/dist/node/chunks/node.js:26668:4
+ ❯ EnvironmentPluginContainer.transform ../../../../../../%E6%A1%8C%E9%9D%A2/dev-side/supplypilot/frontend/node_modules/vite/dist/node/chunks/node.js:8545:14
+ ❯ loadAndTransform ../../../../../../%E6%A1%8C%E9%9D%A2/dev-side/supplypilot/frontend/node_modules/vite/dist/node/chunks/node.js:20184:26
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
