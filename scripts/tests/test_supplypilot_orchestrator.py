@@ -221,24 +221,25 @@ class GraphTests(unittest.TestCase):
 
     def test_final_pass_frontier_requires_exact_reviewed_head(self):
         with tempfile.TemporaryDirectory() as temp:
+            reviewed_sha = "a" * 40
             evidence_file = Path(temp) / "review.txt"
-            evidence_file.write_text("FINAL PASS\nReviewed SHA: head-1\n", encoding="utf-8")
+            evidence_file.write_text(f"FINAL PASS\nReviewed SHA: {reviewed_sha}\n", encoding="utf-8")
             evidence_sha = hashlib.sha256(evidence_file.read_bytes()).hexdigest()
             attestation = {
-                "reviewed_sha": "head-1", "conversation_url": "https://chatgpt.com/g/g-review/c/conversation",
+                "reviewed_sha": reviewed_sha, "conversation_url": "https://chatgpt.com/g/g-review/c/conversation",
                 "evidence_path": str(evidence_file), "evidence_sha256": evidence_sha,
-                "confirmed_by": "reviewer", "confirmation": orch.GPT_REVIEW_CONFIRMATION_PREFIX + "head-1",
+                "confirmed_by": "reviewer", "confirmation": orch.GPT_REVIEW_CONFIRMATION_PREFIX + reviewed_sha,
                 "confirmed_at": "2026-10-23T00:00:00Z",
             }
-            issue = row(1, implementation_state="GPT_FINAL_PASS", head_sha="head-1",
-                        verification={"status": "FULL_GATE_VERIFIED", "sha": "head-1",
+            issue = row(1, implementation_state="GPT_FINAL_PASS", head_sha=reviewed_sha,
+                        verification={"status": "FULL_GATE_VERIFIED", "sha": reviewed_sha,
                                       "evidence": self._verified_artifact()},
-                        internal_review="PASS", handoff={"local_sha": "head-1", "remote_sha": "head-1"},
-                        gpt_review={"status": "FINAL_PASS", "reviewed_sha": "head-1"})
+                        internal_review="PASS", handoff={"local_sha": reviewed_sha, "remote_sha": reviewed_sha},
+                        gpt_review={"status": "FINAL_PASS", "reviewed_sha": reviewed_sha})
             self.assertEqual([], orch.plan_graph({"main_sha": "main-a", "issues": [issue]})["release_frontier"])
             issue["gpt_review"]["attestation"] = attestation
             self.assertEqual([1], orch.plan_graph({"main_sha": "main-a", "issues": [issue]})["release_frontier"])
-            issue["gpt_review"]["reviewed_sha"] = "old-head"
+            issue["gpt_review"]["reviewed_sha"] = "b" * 40
             self.assertEqual([], orch.plan_graph({"main_sha": "main-a", "issues": [issue]})["release_frontier"])
 
 
