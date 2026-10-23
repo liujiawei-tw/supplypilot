@@ -1,6 +1,7 @@
 package com.supplypilot.integration;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
@@ -43,6 +44,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.UncategorizedSQLException;
 import org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
@@ -444,6 +446,45 @@ class PurchaseOrderReceivingIntegrationTests extends AbstractIntegrationTest {
         assertThat(jdbcTemplate.queryForObject(
                 "SELECT stage FROM purchase_orders WHERE id = ?", String.class, order.getId()))
                 .isEqualTo("RECEIVING_INSPECTION");
+    }
+
+    @Test
+    void databaseRejectsCompletedStageWithoutPaymentConfirmation() throws Exception {
+        Material material = material("UNPAID-COMPLETED", "0");
+        PurchaseOrder order = orderedOrder(Map.of(material, "1"));
+        prepareAcceptedInspection(admin, order.getId());
+        receive(admin, order.getId()).andExpect(status().isOk());
+
+        assertThat(jdbcTemplate.queryForObject(
+                "SELECT payment_confirmed_at FROM purchase_orders WHERE id = ?", Object.class, order.getId()))
+                .isNull();
+        assertThatThrownBy(() -> jdbcTemplate.update(
+                "UPDATE purchase_orders SET stage = 'COMPLETED' WHERE id = ?", order.getId()))
+                .isInstanceOf(UncategorizedSQLException.class);
+        assertThat(jdbcTemplate.queryForObject(
+                "SELECT stage FROM purchase_orders WHERE id = ?", String.class, order.getId()))
+                .isEqualTo("PAYMENT_RECONCILIATION");
+    }
+
+    @Test
+    void databaseRejectsPaymentReconciliationStageAfterPaymentConfirmation() throws Exception {
+        Material material = material("PAID-RECONCILIATION", "0");
+        PurchaseOrder order = orderedOrder(Map.of(material, "1"));
+        prepareAcceptedInspection(admin, order.getId());
+        receive(admin, order.getId()).andExpect(status().isOk());
+        mockMvc.perform(post("/api/v1/purchase-orders/{id}/confirm-payment", order.getId())
+                        .header("Authorization", bearer(admin)))
+                .andExpect(status().isOk());
+
+        assertThat(jdbcTemplate.queryForObject(
+                "SELECT payment_confirmed_at FROM purchase_orders WHERE id = ?", Object.class, order.getId()))
+                .isNotNull();
+        assertThatThrownBy(() -> jdbcTemplate.update(
+                "UPDATE purchase_orders SET stage = 'PAYMENT_RECONCILIATION' WHERE id = ?", order.getId()))
+                .isInstanceOf(UncategorizedSQLException.class);
+        assertThat(jdbcTemplate.queryForObject(
+                "SELECT stage FROM purchase_orders WHERE id = ?", String.class, order.getId()))
+                .isEqualTo("COMPLETED");
     }
 
     @Test
