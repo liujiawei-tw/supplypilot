@@ -23,8 +23,8 @@ from typing import Any, Iterator
 RESOURCES = ("vitest", "maven", "docker")
 HIGH_LOAD_GROUP = "high-load"
 GPT_REVIEW_CONFIRMATION_PREFIX = "CONFIRM GPT FINAL PASS "
-ACTIVE_STATES = {"READY_TO_CODE", "IMPLEMENTING", "TARGETED_VERIFIED", "WAITING_DEPENDENCIES",
-                 "FULL_GATE_PENDING", "FULL_GATE_VERIFIED", "WAITING_GPT_REVIEW", "CHANGES_REQUIRED",
+ACTIVE_STATES = {"READY_TO_CODE", "IMPLEMENTING", "TARGETED_VERIFIED", "ISSUE_GATE_VERIFIED",
+                 "WAITING_DEPENDENCIES", "FULL_GATE_PENDING", "FULL_GATE_VERIFIED", "WAITING_GPT_REVIEW", "CHANGES_REQUIRED",
                  "GPT_FINAL_PASS", "PR_OPEN", "BLOCKED_ENVIRONMENT"}
 TERMINAL = {"MERGED", "FAILED"}
 VALID_GPT = {"NOT_REVIEWED", "CHANGES_REQUIRED", "FINAL_PASS"}
@@ -260,9 +260,29 @@ def plan_graph(graph: dict[str, Any]) -> dict[str, Any]:
         verified_artifacts = _verification_artifacts_valid(
             verification.get("evidence", []) if isinstance(verification, dict) else []
         )
+        issue_gate = row.get("issue_gate")
+        issue_impact = issue_gate.get("impact", {}) if isinstance(issue_gate, dict) else {}
+        issue_result = issue_impact.get("actual_result", {}) if isinstance(issue_impact, dict) else {}
+        issue_gate_verified = (
+            row.get("implementation_state") in {
+                "ISSUE_GATE_VERIFIED", "FULL_GATE_VERIFIED", "WAITING_GPT_REVIEW", "CHANGES_REQUIRED", "GPT_FINAL_PASS", "PR_OPEN"
+            }
+            and isinstance(head, str) and bool(head)
+            and isinstance(row.get("issue_gate"), dict)
+            and row["issue_gate"].get("status") == "ISSUE_GATE_VERIFIED"
+            and row["issue_gate"].get("sha") == head
+            and _verification_artifacts_valid(row["issue_gate"].get("evidence", []))
+            and isinstance(issue_impact, dict)
+            and issue_impact.get("base_sha") == row.get("base_sha")
+            and issue_impact.get("head_sha") == head
+            and isinstance(issue_impact.get("required_tests"), list) and bool(issue_impact["required_tests"])
+            and isinstance(issue_result, dict) and issue_result.get("status") == "PASS"
+            and issue_result.get("exit_code") == 0
+            and not unmet and not provisional and row.get("base_sha") == main_sha and contract_current
+        )
         full_gate_verified = (
             row.get("implementation_state") in {
-                "FULL_GATE_VERIFIED", "WAITING_GPT_REVIEW", "CHANGES_REQUIRED", "GPT_FINAL_PASS", "PR_OPEN"
+                "ISSUE_GATE_VERIFIED", "FULL_GATE_VERIFIED", "WAITING_GPT_REVIEW", "CHANGES_REQUIRED", "GPT_FINAL_PASS", "PR_OPEN"
             }
             and isinstance(head, str) and bool(head)
             and isinstance(verification, dict)
@@ -270,6 +290,13 @@ def plan_graph(graph: dict[str, Any]) -> dict[str, Any]:
             and verification.get("sha") == head
             and verified_artifacts
             and not unmet and not provisional and row.get("base_sha") == main_sha and contract_current
+        )
+        eligible_for_issue_gate = (
+            row.get("implementation_state") in {
+                "IMPLEMENTING", "TARGETED_VERIFIED", "WAITING_DEPENDENCIES", "FULL_GATE_PENDING", "FULL_GATE_VERIFIED"
+            }
+            and not unmet and not provisional and row.get("base_sha") == main_sha
+            and contract_current and isinstance(head, str) and bool(head)
         )
         eligible_for_full_gate = (
             row.get("implementation_state") in {"TARGETED_VERIFIED", "WAITING_DEPENDENCIES", "FULL_GATE_PENDING"}
@@ -280,14 +307,14 @@ def plan_graph(graph: dict[str, Any]) -> dict[str, Any]:
         )
         handoff = row.get("handoff", {})
         ready_for_gpt_handoff = (
-            full_gate_verified and row.get("implementation_state") == "WAITING_GPT_REVIEW"
+            issue_gate_verified and row.get("implementation_state") == "WAITING_GPT_REVIEW"
             and row.get("internal_review") == "PASS"
             and isinstance(handoff, dict) and handoff.get("local_sha") == head
             and handoff.get("remote_sha") == head
         )
         gpt_review = row.get("gpt_review", {})
         gpt_final_pass = (
-            full_gate_verified and row.get("implementation_state") == "GPT_FINAL_PASS"
+            issue_gate_verified and row.get("implementation_state") == "GPT_FINAL_PASS"
             and row.get("internal_review") == "PASS"
             and isinstance(handoff, dict) and handoff.get("local_sha") == head
             and handoff.get("remote_sha") == head
@@ -297,8 +324,11 @@ def plan_graph(graph: dict[str, Any]) -> dict[str, Any]:
         )
         result[number] = {
             "code_ready": code_ready,
+            "eligible_for_issue_gate": eligible_for_issue_gate,
+            "issue_gate_verified": issue_gate_verified,
             "eligible_for_full_gate": eligible_for_full_gate,
             "full_gate_verified": full_gate_verified,
+            "release_gate_verified": full_gate_verified,
             "ready_for_gpt_handoff": ready_for_gpt_handoff,
             "gpt_final_pass": gpt_final_pass,
             "provisional": provisional,
@@ -339,10 +369,14 @@ def plan_graph(graph: dict[str, Any]) -> dict[str, Any]:
     for number in blocked_candidates:
         result[number]["code_ready"] = False
     ready = sorted(n for n in candidates if result[n]["code_ready"])
+    release_gate_verified_frontier = sorted(n for n, item in result.items() if item["full_gate_verified"])
     return {"main_sha": main_sha, "issues": {str(n): result[n] for n in sorted(result)},
             "ready_frontier": ready,
+            "issue_gate_eligible_frontier": sorted(n for n, item in result.items() if item["eligible_for_issue_gate"]),
+            "release_gate_eligible_frontier": sorted(n for n, item in result.items() if item["eligible_for_full_gate"]),
+            "release_gate_verified_frontier": release_gate_verified_frontier,
             "full_gate_eligible_frontier": sorted(n for n, item in result.items() if item["eligible_for_full_gate"]),
-            "full_gate_verified_frontier": sorted(n for n, item in result.items() if item["full_gate_verified"]),
+            "full_gate_verified_frontier": release_gate_verified_frontier,
             "gpt_handoff_frontier": sorted(n for n, item in result.items() if item["ready_for_gpt_handoff"]),
             "release_frontier": sorted(n for n, item in result.items() if item["gpt_final_pass"])}
 
@@ -364,7 +398,7 @@ def can_open_pr(state_path: Path, issue_number: int, current_head: str) -> tuple
         return False, "An interactive external GPT review attestation is required."
     if record.get("head_sha") != current_head:
         return False, "Recorded HEAD does not match current HEAD."
-    failure = _release_gate_failure(state, record, current_head)
+    failure = _issue_gate_failure(state, record, current_head)
     if failure:
         return False, failure
     try:
@@ -372,7 +406,7 @@ def can_open_pr(state_path: Path, issue_number: int, current_head: str) -> tuple
     except PolicyError as exc:
         return False, str(exc)
     if remote_main != state.get("main_sha"):
-        return False, "origin/main advanced; synchronize main and rerun the full delivery gate."
+        return False, "origin/main advanced; synchronize main and rerun the Issue Gate."
     try:
         feature = _verify_local_remote_feature_head(record)
     except PolicyError as exc:
@@ -384,20 +418,14 @@ def can_open_pr(state_path: Path, issue_number: int, current_head: str) -> tuple
     return True, "PR gate satisfied for exact HEAD."
 
 
-def _release_gate_failure(state: dict[str, Any], record: dict[str, Any], current_head: str) -> str | None:
-    """Return why a recorded Full Gate can no longer authorize a GPT release."""
+def _issue_gate_context_failure(state: dict[str, Any], record: dict[str, Any]) -> str | None:
+    """Require current integration, verified contract, and merged dependencies for Issue Gate."""
     main_sha = state.get("main_sha")
-    if not isinstance(main_sha, str) or record.get("base_sha") != main_sha:
-        return "Issue base is stale relative to the recorded main; rerun integration and the full delivery gate."
-    if record.get("head_sha") != current_head:
-        return "Full Gate HEAD does not match the reviewed current HEAD."
+    if (not isinstance(main_sha, str) or record.get("base_sha") != main_sha
+            or record.get("base_status", "CURRENT") != "CURRENT"):
+        return "Issue base is stale relative to the recorded main; rerun integration and the Issue Gate."
     if not _record_contract_verified(record):
         return "Persisted Issue contract is not verified at its current version."
-    verification = record.get("verification")
-    if (not isinstance(verification, dict) or verification.get("status") != "FULL_GATE_VERIFIED"
-            or verification.get("sha") != current_head
-            or not _verification_artifacts_valid(verification.get("evidence"))):
-        return "Full Gate verification is stale, incomplete, or does not match current HEAD."
     for dependency in record.get("dependencies", []):
         dependency_record = state.get("issues", {}).get(str(dependency))
         merge = dependency_record.get("merge", {}) if isinstance(dependency_record, dict) else None
@@ -405,6 +433,35 @@ def _release_gate_failure(state: dict[str, Any], record: dict[str, Any], current
                 or dependency_record.get("implementation_state") != "MERGED"
                 or not isinstance(merge, dict) or merge.get("status") != "MERGED"):
             return f"Dependency #{dependency} is not verified MERGED."
+    return None
+
+
+def _issue_gate_failure(state: dict[str, Any], record: dict[str, Any], current_head: str) -> str | None:
+    """Return why a recorded impact-based Issue Gate can no longer authorize review."""
+    context_failure = _issue_gate_context_failure(state, record)
+    if context_failure:
+        return context_failure
+    if record.get("head_sha") != current_head:
+        return "Issue Gate HEAD does not match the reviewed current HEAD."
+    verification = record.get("issue_gate")
+    if (not isinstance(verification, dict) or verification.get("status") != "ISSUE_GATE_VERIFIED"
+            or verification.get("sha") != current_head
+            or not _verification_artifacts_valid(verification.get("evidence"))):
+        return "Issue Gate verification is missing, stale, incomplete, or does not match current HEAD."
+    impact = verification.get("impact")
+    actual = impact.get("actual_result") if isinstance(impact, dict) else None
+    if (not isinstance(actual, dict) or actual.get("status") != "PASS" or actual.get("exit_code") != 0
+            or not isinstance(impact.get("required_tests"), list) or not impact["required_tests"]):
+        return "Issue Gate is missing its runner-derived required-test plan or successful execution result."
+    try:
+        root = Path(record["worktree"]).resolve(strict=True)
+        current_plan = _issue_gate_impact_plan(root, record.get("base_sha"), current_head)
+    except (KeyError, OSError, PolicyError) as exc:
+        return f"Issue Gate impact plan cannot be revalidated: {exc}"
+    if any(impact.get(key) != current_plan.get(key) for key in (
+            "base_sha", "head_sha", "changed_paths", "behaviors", "required_tests",
+            "required_commands", "not_applicable")):
+        return "Issue Gate impact plan differs from the current committed diff."
     return None
 
 
@@ -560,7 +617,7 @@ def _resource_lock(kind: str, issue: int, argv: list[str], state_dir: Path):
 
 
 STATE_VALUES = {
-    "BLOCKED_DEPENDENCY", "READY_TO_CODE", "IMPLEMENTING", "TARGETED_VERIFIED",
+    "BLOCKED_DEPENDENCY", "READY_TO_CODE", "IMPLEMENTING", "TARGETED_VERIFIED", "ISSUE_GATE_VERIFIED",
     "WAITING_DEPENDENCIES", "FULL_GATE_PENDING", "FULL_GATE_VERIFIED",
     "WAITING_GPT_REVIEW", "CHANGES_REQUIRED", "GPT_FINAL_PASS", "PR_OPEN",
     "MERGED", "BLOCKED_ENVIRONMENT", "FAILED",
@@ -568,13 +625,14 @@ STATE_VALUES = {
 TRANSITIONS = {
     "BLOCKED_DEPENDENCY": {"READY_TO_CODE"},
     "READY_TO_CODE": {"IMPLEMENTING"},
-    "IMPLEMENTING": {"TARGETED_VERIFIED", "WAITING_DEPENDENCIES"},
-    "TARGETED_VERIFIED": {"IMPLEMENTING", "WAITING_DEPENDENCIES", "FULL_GATE_PENDING"},
+    "IMPLEMENTING": {"TARGETED_VERIFIED", "ISSUE_GATE_VERIFIED", "WAITING_DEPENDENCIES"},
+    "TARGETED_VERIFIED": {"IMPLEMENTING", "ISSUE_GATE_VERIFIED", "WAITING_DEPENDENCIES", "FULL_GATE_PENDING"},
+    "ISSUE_GATE_VERIFIED": {"IMPLEMENTING", "WAITING_GPT_REVIEW", "FULL_GATE_PENDING"},
     "WAITING_DEPENDENCIES": {"FULL_GATE_PENDING"},
-    "FULL_GATE_PENDING": {"FULL_GATE_VERIFIED"},
-    "FULL_GATE_VERIFIED": {"WAITING_GPT_REVIEW"},
+    "FULL_GATE_PENDING": {"IMPLEMENTING", "FULL_GATE_VERIFIED", "ISSUE_GATE_VERIFIED"},
+    "FULL_GATE_VERIFIED": {"ISSUE_GATE_VERIFIED", "WAITING_GPT_REVIEW"},
     "WAITING_GPT_REVIEW": {"CHANGES_REQUIRED", "GPT_FINAL_PASS"},
-    "CHANGES_REQUIRED": {"IMPLEMENTING"},
+    "CHANGES_REQUIRED": {"IMPLEMENTING", "FULL_GATE_PENDING"},
     "GPT_FINAL_PASS": {"PR_OPEN"},
     "PR_OPEN": {"MERGED"},
     "BLOCKED_ENVIRONMENT": {"READY_TO_CODE", "IMPLEMENTING", "FULL_GATE_PENDING"},
@@ -859,6 +917,7 @@ def _state_register(path: Path, record: dict[str, Any], *, allow_stale_base: boo
         "base_status": base_status,
         "implementation_state": "BLOCKED_DEPENDENCY",
         "verification": {"status": "NOT_RUN", "sha": None, "evidence": []},
+        "issue_gate": None,
         "gpt_review": {"status": "NOT_REVIEWED", "reviewed_sha": None},
         "trusted_full_gate_manifest": None,
         "pr": {"status": "NONE", "number": None, "head_sha": None},
@@ -993,6 +1052,7 @@ def state_adopt(path: Path, record: dict[str, Any], authorized_issue: int) -> No
         existing["base_status"] = record["base_status"]
         existing["implementation_state"] = "BLOCKED_DEPENDENCY"
         existing["verification"] = {"status": "NOT_RUN", "sha": None, "evidence": []}
+        existing["issue_gate"] = None
         existing["gpt_review"] = {"status": "NOT_REVIEWED", "reviewed_sha": None}
         existing["trusted_full_gate_manifest"] = None
         event = {"issue": number, "type": "WIP_READOPTED", "at": dt.datetime.now(dt.timezone.utc).isoformat(),
@@ -1085,27 +1145,40 @@ def _transition_record(record: dict[str, Any], target: str,
                 or evidence.get("worktree") != record.get("worktree")
                 or evidence.get("worktree_clean") is not True
                 or evidence.get("worktree_head") != (head if current in {
-                    "CHANGES_REQUIRED", "TARGETED_VERIFIED", "BLOCKED_ENVIRONMENT"
+                    "CHANGES_REQUIRED", "FULL_GATE_PENDING", "TARGETED_VERIFIED",
+                    "ISSUE_GATE_VERIFIED", "BLOCKED_ENVIRONMENT"
                 } else record.get("base_sha"))):
             raise PolicyError(f"{target} requires independently verified branch and worktree.")
-    elif target in {"TARGETED_VERIFIED", "FULL_GATE_VERIFIED"}:
+    elif target in {"TARGETED_VERIFIED", "FULL_GATE_VERIFIED", "ISSUE_GATE_VERIFIED"}:
         if evidence.get("status") != "PASS" or not head or evidence.get("sha") != head:
             raise PolicyError(f"{target} requires PASS evidence for the exact current head_sha.")
-        record["verification"] = {"status": target, "sha": head,
-                                  "evidence": evidence.get("artifacts", [])}
+        if target == "ISSUE_GATE_VERIFIED":
+            impact = evidence.get("impact")
+            if not isinstance(impact, dict) or not impact.get("required_tests"):
+                raise PolicyError("ISSUE_GATE_VERIFIED requires a runner-derived impact plan and executed tests.")
+            record["issue_gate"] = {"status": target, "sha": head,
+                                    "evidence": evidence.get("artifacts", []), "impact": impact}
+        else:
+            record["verification"] = {"status": target, "sha": head,
+                                      "evidence": evidence.get("artifacts", [])}
     elif target == "FULL_GATE_PENDING":
         if evidence.get("dependencies_merged") is not True:
             raise PolicyError("FULL_GATE_PENDING requires verified merged/closed dependencies.")
         if evidence.get("current_main_sha") != main_sha or not _record_contract_verified(record):
             raise PolicyError("FULL_GATE_PENDING requires current main and verified API/schema contracts.")
+        verified_head = evidence.get("verified_worktree_head")
+        if not isinstance(verified_head, str) or not re.fullmatch(r"[0-9a-fA-F]{40}", verified_head):
+            raise PolicyError("FULL_GATE_PENDING requires the independently verified feature HEAD.")
+        record["head_sha"] = verified_head
         record["base_sha"] = main_sha
     elif target == "WAITING_GPT_REVIEW":
         if not head or not (evidence.get("local_sha") == evidence.get("remote_sha") == head):
             raise PolicyError("GPT handoff requires local, remote, and current HEAD SHA equality.")
         if evidence.get("internal_review") != "PASS":
             raise PolicyError("GPT handoff requires a passed internal preflight.")
-        if record.get("verification", {}).get("status") != "FULL_GATE_VERIFIED" or record.get("verification", {}).get("sha") != head:
-            raise PolicyError("GPT handoff requires the full delivery gate for the current HEAD.")
+        failure = _issue_gate_failure(state, record, head or "")
+        if failure:
+            raise PolicyError(f"GPT handoff requires a current Issue Gate: {failure}")
         record["internal_review"] = "PASS"
         record["handoff"] = {"local_sha": head, "remote_sha": head}
     elif target in {"CHANGES_REQUIRED", "GPT_FINAL_PASS"}:
@@ -1116,9 +1189,9 @@ def _transition_record(record: dict[str, Any], target: str,
                 evidence.get("attestation"), head):
             raise PolicyError("GPT_FINAL_PASS requires a verified interactive external-review attestation.")
         if target == "GPT_FINAL_PASS":
-            failure = _release_gate_failure(state, record, head)
+            failure = _issue_gate_failure(state, record, head)
             if failure:
-                raise PolicyError(f"GPT_FINAL_PASS requires a current Full Gate: {failure}")
+                raise PolicyError(f"GPT_FINAL_PASS requires a current Issue Gate: {failure}")
         record["gpt_review"] = {"status": required_review, "reviewed_sha": head,
                                 "evidence": evidence.get("url"),
                                 "attestation": evidence.get("attestation")}
@@ -1132,9 +1205,9 @@ def _transition_record(record: dict[str, Any], target: str,
             raise PolicyError("PR_OPEN requires GPT FINAL PASS for the current HEAD.")
         if evidence.get("verified_github_pr") is not True:
             raise PolicyError("PR_OPEN requires live GitHub verification of the exact open PR.")
-        failure = _release_gate_failure(state, record, head)
+        failure = _issue_gate_failure(state, record, head)
         if failure:
-            raise PolicyError(f"PR_OPEN requires a current Full Gate: {failure}")
+            raise PolicyError(f"PR_OPEN requires a current Issue Gate: {failure}")
         if evidence.get("base") != "main" or evidence.get("head_sha") != head:
             raise PolicyError("PR_OPEN requires base main and PR head SHA equal to reviewed HEAD.")
         if not evidence.get("url") or not any(line.strip() == expected for line in description.splitlines()):
@@ -1154,7 +1227,7 @@ def _transition_record(record: dict[str, Any], target: str,
 def state_transition(path: Path, number: int, target: str, evidence: dict[str, Any]) -> None:
     if target == "GPT_FINAL_PASS":
         raise PolicyError("GPT_FINAL_PASS cannot be set from Evidence JSON; use the interactive review-attest command.")
-    if target in {"TARGETED_VERIFIED", "FULL_GATE_VERIFIED"}:
+    if target in {"TARGETED_VERIFIED", "FULL_GATE_VERIFIED", "ISSUE_GATE_VERIFIED"}:
         _state_transition_with_gate(path, number, target, evidence)
         return
     with state_lock(path):
@@ -1183,11 +1256,13 @@ def state_transition(path: Path, number: int, target: str, evidence: dict[str, A
             verified.update(base_proof)
             verified.update({"dependencies_merged": True, "current_main_sha": state["main_sha"]})
         elif target == "WAITING_GPT_REVIEW":
+            if _verified_remote_main_sha(record.get("worktree")) != state.get("main_sha"):
+                raise PolicyError("origin/main advanced; synchronize main and rerun the Issue Gate.")
             verified = dict(evidence)
             verified.update(_verify_local_remote_feature_head(record))
         elif target == "PR_OPEN":
             if _verified_remote_main_sha() != state.get("main_sha"):
-                raise PolicyError("origin/main advanced; synchronize main and rerun the full delivery gate.")
+                raise PolicyError("origin/main advanced; synchronize main and rerun the Issue Gate.")
             verified = dict(evidence)
             verified.update(_verify_github_pr(record, evidence, number))
         elif target in {"READY_TO_CODE", "IMPLEMENTING"}:
@@ -1195,7 +1270,7 @@ def state_transition(path: Path, number: int, target: str, evidence: dict[str, A
                 raise PolicyError(f"{target} requires explicit authorization for this Issue.")
             verified = dict(evidence)
             reentry = record.get("implementation_state") in {
-                "CHANGES_REQUIRED", "TARGETED_VERIFIED", "BLOCKED_ENVIRONMENT"
+                "CHANGES_REQUIRED", "FULL_GATE_PENDING", "TARGETED_VERIFIED", "BLOCKED_ENVIRONMENT"
             }
             if reentry:
                 code_gate = _verify_code_gate(state, record, allow_existing_feature_head=True)
@@ -1218,11 +1293,14 @@ def state_attest_gpt_review(path: Path, number: int, review_status: str, reviewe
     if (not isinstance(before, dict) or before.get("implementation_state") != "WAITING_GPT_REVIEW"
             or reviewed_sha != before.get("head_sha")):
         raise PolicyError("Final Pass attestation requires the current SHA of an Issue waiting for GPT review.")
-    failure = _release_gate_failure(before_state, before, reviewed_sha)
+    failure = _issue_gate_failure(before_state, before, reviewed_sha)
     if failure:
-        raise PolicyError(f"Final Pass attestation requires a current Full Gate: {failure}")
+        raise PolicyError(f"Final Pass attestation requires a current Issue Gate: {failure}")
+    remote_feature = _verify_local_remote_feature_head(before)
+    if remote_feature.get("local_sha") != reviewed_sha or remote_feature.get("remote_sha") != reviewed_sha:
+        raise PolicyError("GPT Final Pass attestation requires local and remote feature HEAD to match the reviewed SHA.")
     if _verified_remote_main_sha() != before_state.get("main_sha"):
-        raise PolicyError("origin/main advanced; synchronize main and rerun the full delivery gate.")
+        raise PolicyError("origin/main advanced; synchronize main and rerun the Issue Gate.")
     if not sys.stdin.isatty():
         raise PolicyError("GPT Final Pass attestation requires an interactive human terminal.")
     try:
@@ -1255,11 +1333,14 @@ def state_attest_gpt_review(path: Path, number: int, review_status: str, reviewe
             raise PolicyError("GPT Final Pass attestation requires an Issue waiting for GPT review.")
         if reviewed_sha != record.get("head_sha"):
             raise PolicyError("GPT review SHA does not match the current Issue HEAD.")
-        failure = _release_gate_failure(state, record, reviewed_sha)
+        remote_feature = _verify_local_remote_feature_head(record)
+        if remote_feature.get("local_sha") != reviewed_sha or remote_feature.get("remote_sha") != reviewed_sha:
+            raise PolicyError("GPT Final Pass attestation requires local and remote feature HEAD to match the reviewed SHA.")
+        failure = _issue_gate_failure(state, record, reviewed_sha)
         if failure:
-            raise PolicyError(f"Final Pass attestation requires a current Full Gate: {failure}")
+            raise PolicyError(f"Final Pass attestation requires a current Issue Gate: {failure}")
         if _verified_remote_main_sha() != state.get("main_sha"):
-            raise PolicyError("origin/main advanced; synchronize main and rerun the full delivery gate.")
+            raise PolicyError("origin/main advanced; synchronize main and rerun the Issue Gate.")
         evidence = {"review_status": "FINAL_PASS", "reviewed_sha": reviewed_sha,
                     "url": conversation_url, "attestation": attestation}
         _state_transition_locked(path, state, record, number, "GPT_FINAL_PASS", evidence)
@@ -1364,6 +1445,7 @@ def _gate_context_sha(state: dict[str, Any], record: dict[str, Any]) -> str:
         "contract_verified": record.get("contract_verified"),
         "dependencies": dependencies,
         "provisional_contract": record.get("provisional_contract"),
+        "issue_gate": record.get("issue_gate"),
         "trusted_full_gate_manifest": record.get("trusted_full_gate_manifest"),
         "resume_evidence": (record.get("wip_adoption", {}).get("resume_evidence")
                             if isinstance(record.get("wip_adoption"), dict) else None),
@@ -1375,6 +1457,12 @@ def _gate_context_sha(state: dict[str, Any], record: dict[str, Any]) -> str:
 def _state_transition_with_gate(path: Path, number: int, target: str,
                                 evidence: dict[str, Any]) -> None:
     token = uuid.uuid4().hex
+    remote_main_before = None
+    if target in {"FULL_GATE_VERIFIED", "ISSUE_GATE_VERIFIED"}:
+        snapshot = read_json(path).get("issues", {}).get(str(number))
+        if not isinstance(snapshot, dict) or not isinstance(snapshot.get("worktree"), str):
+            raise PolicyError(f"Issue #{number} has no registered worktree for live main verification.")
+        remote_main_before = _verified_remote_main_sha(snapshot["worktree"])
     with state_lock(path):
         state = read_json(path)
         record = state.get("issues", {}).get(str(number))
@@ -1398,6 +1486,16 @@ def _state_transition_with_gate(path: Path, number: int, target: str,
         command = evidence.get("command")
         if not _gate_command_supported(command, target, root):
             raise PolicyError("Verification requires an approved command and trusted runner for this gate.")
+        impact = None
+        if target == "ISSUE_GATE_VERIFIED":
+            prerequisite_failure = _issue_gate_context_failure(state, record)
+            if prerequisite_failure:
+                raise PolicyError(f"Issue Gate prerequisites are not satisfied: {prerequisite_failure}")
+            impact = _issue_gate_impact_plan(root, record.get("base_sha"), head)
+            if command != impact["required_commands"][0]:
+                raise PolicyError("Issue Gate command does not match the required tests derived from the committed diff.")
+        if remote_main_before is not None and remote_main_before != state.get("main_sha"):
+            raise PolicyError("Code Gate is stale because origin/main advanced before verification.")
         _validate_resumed_provisional_contract(state, record)
         context_sha = _gate_context_sha(state, record)
         reservation = {
@@ -1408,6 +1506,10 @@ def _state_transition_with_gate(path: Path, number: int, target: str,
             "command": command, "context_sha256": context_sha,
             "worktree_before": {"branch": branch, "head_sha": head, "dirty": False},
         }
+        if remote_main_before is not None:
+            reservation["origin_main_sha"] = remote_main_before
+        if impact is not None:
+            reservation["impact_plan"] = impact
         record["gate_reservation"] = reservation
         event = {"issue": number, "type": "GATE_RESERVED", "gate_token": token,
                  "at": reservation["started_at"],
@@ -1426,7 +1528,8 @@ def _state_transition_with_gate(path: Path, number: int, target: str,
         raise
 
     try:
-        remote_main = _verified_remote_main_sha() if target == "FULL_GATE_VERIFIED" else None
+        remote_main = (_verified_remote_main_sha(root)
+                       if target in {"FULL_GATE_VERIFIED", "ISSUE_GATE_VERIFIED"} else None)
     except Exception as exc:
         _finish_gate_reservation(path, number, token, target, None, str(exc))
         raise
@@ -1450,7 +1553,11 @@ def _state_transition_with_gate(path: Path, number: int, target: str,
             _validate_resumed_provisional_contract(state, current)
         except PolicyError as exc:
             stale_reasons.append(str(exc))
-        if target == "FULL_GATE_VERIFIED" and remote_main != state.get("main_sha"):
+        if target == "ISSUE_GATE_VERIFIED":
+            prerequisite_failure = _issue_gate_context_failure(state, current)
+            if prerequisite_failure:
+                stale_reasons.append(prerequisite_failure)
+        if target in {"FULL_GATE_VERIFIED", "ISSUE_GATE_VERIFIED"} and remote_main != state.get("main_sha"):
             stale_reasons.append("origin/main advanced or differs from the recorded main SHA")
         if target not in TRANSITIONS.get(current.get("implementation_state"), set()):
             stale_reasons.append("Issue state no longer permits this Gate result")
@@ -1512,6 +1619,37 @@ def _repository_slug() -> str:
     return match.group(1)
 
 
+def _main_diff_changes_contract_surface(old_sha: str, new_sha: str,
+                                       worktree: str | Path | None = None) -> bool:
+    try:
+        command = ["git"]
+        if worktree is not None:
+            command.extend(["-C", str(worktree)])
+        command.extend(["diff", "--no-renames", "--name-status", old_sha, new_sha])
+        result = subprocess.run(command, check=True, stdout=subprocess.PIPE,
+                                stderr=subprocess.STDOUT, text=True,
+                                encoding="utf-8", errors="replace")
+    except (OSError, subprocess.CalledProcessError):
+        return True
+    contract_markers = {
+        "api", "apis", "dto", "schema", "schemas", "migration", "migrations",
+        "openapi", "graphql", "proto", "contract", "contracts", "entity", "entities",
+        "data", "format",
+    }
+    for line in result.stdout.splitlines():
+        fields = line.split("\t")
+        for raw_path in fields[1:]:
+            path = raw_path.replace("\\", "/").casefold()
+            parts = [part for part in path.split("/") if part]
+            filename_tokens = set(re.split(r"[^a-z0-9]+", Path(parts[-1]).stem)) if parts else set()
+            if (any(part in contract_markers for part in parts)
+                    or bool(filename_tokens & contract_markers)
+                    or (len(parts) > 1 and parts[0] in {"backend", "frontend"} and parts[1] == "src")
+                    or path.endswith((".sql", ".graphql", ".proto"))):
+                return True
+    return False
+
+
 def _verified_remote_main_sha(worktree: str | Path | None = None) -> str:
     try:
         command = ["git"]
@@ -1560,13 +1698,18 @@ def _verify_feature_base(record: dict[str, Any], main_sha: str) -> dict[str, Any
             or not isinstance(expected_head, str):
         raise PolicyError("Full Gate requires recorded branch, worktree, and committed HEAD.")
     snapshot = capture_worktree(Path(worktree_value))
-    if snapshot["branch"] != expected_branch or snapshot["head"] != expected_head:
+    allow_updated_head = record.get("implementation_state") == "CHANGES_REQUIRED"
+    if snapshot["branch"] != expected_branch or (snapshot["head"] != expected_head and not allow_updated_head):
         raise PolicyError("Full Gate worktree branch/HEAD differs from the registered Issue branch/HEAD.")
     if not snapshot["clean"]:
         raise PolicyError("Full Gate requires a clean committed worktree; uncommitted WIP is not verified.")
-    if _verified_remote_main_sha() != main_sha:
+    if allow_updated_head:
+        feature = _verify_local_remote_feature_head(record)
+        if feature["local_sha"] != feature["remote_sha"] or feature["local_sha"] != snapshot["head"]:
+            raise PolicyError("Full Gate requires the integrated feature HEAD to match origin exactly.")
+    if _verified_remote_main_sha(worktree_value) != main_sha:
         raise PolicyError("State main_sha no longer matches the verified origin/main SHA.")
-    _verify_feature_contains_main(record, main_sha)
+    _verify_feature_contains_main({**record, "head_sha": snapshot["head"]}, main_sha)
     return {"verified_worktree_branch": snapshot["branch"], "verified_worktree_head": snapshot["head"],
             "verified_base_main_sha": main_sha}
 
@@ -1787,7 +1930,71 @@ def _verification_worktree_snapshot(root: Path) -> tuple[str, str, bool]:
     return branch, head, dirty
 
 
-def _verification_output_contains_test_run(command: list[str], output: str) -> bool:
+def _issue_gate_impact_plan(root: Path, base_sha: Any, head_sha: Any) -> dict[str, Any]:
+    """Derive the minimum known Issue #162 suite from the committed diff; unknown paths fail closed."""
+    if not isinstance(base_sha, str) or not isinstance(head_sha, str) or not base_sha or not head_sha:
+        raise PolicyError("Issue Gate impact analysis requires the verified base and current HEAD SHA.")
+    try:
+        changed = subprocess.run(
+            ["git", "-C", str(root), "diff", "--name-only", "--no-renames", f"{base_sha}...{head_sha}"],
+            check=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+            text=True, encoding="utf-8", errors="replace",
+        ).stdout.splitlines()
+    except (OSError, subprocess.CalledProcessError) as exc:
+        raise PolicyError("Could not derive changed paths for the Issue Gate impact plan.") from exc
+    paths = sorted(path.replace("\\", "/") for path in changed if path.strip())
+    if not paths:
+        raise PolicyError("Issue Gate cannot pass with an empty base-to-HEAD diff.")
+
+    orchestrator_paths = {
+        "scripts/supplypilot_orchestrator.py",
+        "scripts/supplypilot_full_gate.py",
+        "scripts/tests/test_supplypilot_orchestrator.py",
+    }
+    known_docs = {"AGENTS.md", "docs/v2/matt-pocock-codex-gpt-handoff.md"}
+    unknown = []
+    affects_orchestrator = False
+    for path in paths:
+        if path in orchestrator_paths:
+            affects_orchestrator = True
+        elif path in known_docs or path.startswith(".agents/skills/supplypilot-implement-spec/"):
+            continue
+        elif re.fullmatch(r"docs/evidence/issue-162-[A-Za-z0-9_.-]+", path):
+            continue
+        else:
+            unknown.append(path)
+    if unknown:
+        raise PolicyError(
+            "Issue Gate impact is not mapped for changed paths; expand and verify the affected suite before proceeding: "
+            + ", ".join(unknown)
+        )
+    if not affects_orchestrator:
+        raise PolicyError("This change has no mapped executable Issue Gate suite; verify its affected behavior before review.")
+    return {
+        "base_sha": base_sha,
+        "head_sha": head_sha,
+        "changed_paths": paths,
+        "behaviors": [{
+            "change": [path for path in paths if path in orchestrator_paths],
+            "affected_behavior": "Orchestrator graph, gate execution/trust, state invalidation, resource and worktree contracts",
+            "required_tests": "scripts.tests.test_supplypilot_orchestrator (complete module)",
+        }],
+        "required_tests": ["scripts.tests.test_supplypilot_orchestrator (complete module)"],
+        "required_commands": [[sys.executable, "-m", "unittest", "scripts.tests.test_supplypilot_orchestrator", "-v"]],
+        "not_applicable": {
+            "frontend_vitest": "No frontend files, UI, or API/DTO contracts changed in this diff.",
+            "backend_maven": "No backend, database schema, transaction, authorization, or API implementation files changed.",
+            "compose_docker": "No Compose, Dockerfile, image, dependency, or deployment configuration changed.",
+            "browser_rag_gemini_e2e": "No browser flow, RAG, Gemini, or external data boundary changed.",
+        },
+    }
+
+
+def _verification_output_contains_test_run(command: list[str], output: str,
+                                          *, reject_skips: bool = False) -> bool:
+    if reject_skips and re.search(r"\b(?:skipped\s*[=:]?\s*[1-9]\d*|[1-9]\d*\s+skipped)\b",
+                                  output, re.IGNORECASE):
+        return False
     executable = Path(command[0].replace("\\", "/")).name.casefold()
     args = command[1:]
     if executable in {"python", "python.exe", "python3", "python3.exe", "py", "py.exe"}:
@@ -1833,6 +2040,10 @@ def _verify_gate_artifacts(record: dict[str, Any], evidence: dict[str, Any],
     command = evidence.get("command")
     if not _gate_command_supported(command, target, root):
         raise PolicyError("Verification requires an approved command and trusted runner for this gate; arbitrary or partial commands are rejected.")
+    impact = _issue_gate_impact_plan(root, record.get("base_sha"), record.get("head_sha")) \
+        if target == "ISSUE_GATE_VERIFIED" else None
+    if target == "ISSUE_GATE_VERIFIED" and command != impact["required_commands"][0]:
+        raise PolicyError("Issue Gate command does not match the required tests derived from the committed diff.")
     branch, actual_head, dirty = _verification_worktree_snapshot(root)
     if branch != record.get("branch") or actual_head != record.get("head_sha"):
         raise PolicyError("Verification worktree branch/HEAD does not match the registered Issue HEAD.")
@@ -1870,6 +2081,7 @@ def _verify_gate_artifacts(record: dict[str, Any], evidence: dict[str, Any],
                              "ended_at": dt.datetime.now(dt.timezone.utc).isoformat(),
                              "worktree_after": {"branch": after_branch, "head_sha": after_head,
                                                 "dirty": after_dirty},
+                             "impact_plan": impact,
                              "manifest_sha256": manifest_sha256,
                              "exit_code": result.returncode,
                              "output": result.stdout}, ensure_ascii=False, indent=2)
@@ -1880,10 +2092,17 @@ def _verify_gate_artifacts(record: dict[str, Any], evidence: dict[str, Any],
         raise PolicyError(f"Verification command failed with exit code {result.returncode}; evidence={artifact}.")
     if after_branch != branch or after_head != actual_head or after_dirty:
         raise PolicyError(f"Verification worktree changed during execution; refusing to record PASS; evidence={artifact}.")
-    if target == "TARGETED_VERIFIED" and not _verification_output_contains_test_run(command, result.stdout):
+    if target in {"TARGETED_VERIFIED", "ISSUE_GATE_VERIFIED"} \
+            and not _verification_output_contains_test_run(
+                command, result.stdout, reject_skips=target == "ISSUE_GATE_VERIFIED"):
         raise PolicyError(f"Verification command reported success without a nonzero test count; evidence={artifact}.")
-    return {"status": "PASS", "sha": actual_head, "command": command, "exit_code": result.returncode,
-            "artifacts": [artifact_evidence]}
+    verified = {"status": "PASS", "sha": actual_head, "command": command,
+                "exit_code": result.returncode, "artifacts": [artifact_evidence]}
+    if impact is not None:
+        impact["actual_result"] = {"status": "PASS", "exit_code": result.returncode,
+                                   "artifact": artifact_evidence}
+        verified["impact"] = impact
+    return verified
 
 
 def _execute_full_gate(root: Path, issue: int, state_dir: Path,
@@ -1990,6 +2209,9 @@ def _apply_main_sync(state: dict[str, Any], number: int, evidence: dict[str, Any
         return
     if not re.fullmatch(r"[0-9a-fA-F]{40}", new_sha):
         raise PolicyError("Only a verified full Git commit SHA can become main_sha.")
+    worktree = next((record.get("worktree") for record in state.get("issues", {}).values()
+                     if isinstance(record, dict) and isinstance(record.get("worktree"), str)), None)
+    contract_surface_changed = _main_diff_changes_contract_surface(old_sha, new_sha, worktree)
     affected: set[int] = {number}
     changed = True
     while changed:
@@ -2007,18 +2229,26 @@ def _apply_main_sync(state: dict[str, Any], number: int, evidence: dict[str, Any
         record = state["issues"][str(affected_number)]
         verification = record.get("verification", {})
         review = record.get("gpt_review", {})
+        issue_gate = record.get("issue_gate")
         if isinstance(verification, dict) and verification.get("status") not in {None, "NOT_RUN", "STALE"}:
             verification["status"] = "STALE"
             verification["stale_reason"] = f"dependency #{number} merged; main advanced to {new_sha}"
+        if isinstance(issue_gate, dict):
+            issue_gate["status"] = "STALE"
+            issue_gate["stale_reason"] = f"dependency #{number} merged; main advanced to {new_sha}"
         if isinstance(review, dict) and review.get("status") not in {None, "NOT_REVIEWED", "STALE"}:
             review["status"] = "STALE"
             review["stale_reason"] = f"dependency #{number} merged; main advanced to {new_sha}"
-        record["contract_verified"] = False
-        if record.get("implementation_state") in {"WAITING_GPT_REVIEW", "GPT_FINAL_PASS"}:
+        if contract_surface_changed:
+            record["contract_verified"] = False
+        if record.get("implementation_state") in {
+                "ISSUE_GATE_VERIFIED", "FULL_GATE_VERIFIED", "WAITING_GPT_REVIEW", "GPT_FINAL_PASS"
+        }:
             record["implementation_state"] = "CHANGES_REQUIRED"
     state["main_sha"] = new_sha
     event = {"type": "MAIN_SYNCED", "issue": number, "old_main_sha": old_sha,
              "new_main_sha": new_sha, "merge_commit": evidence["merge_commit"],
+             "contract_surface_changed": contract_surface_changed,
              "affected_issues": sorted(affected - {number}),
              "at": dt.datetime.now(dt.timezone.utc).isoformat()}
     state.setdefault("events", []).append(event)
@@ -2065,6 +2295,7 @@ def _state_set_head(path: Path, number: int, sha: str, local_sha: str, remote_sh
         raise PolicyError("Head SHA is unchanged.")
     record["head_sha"] = sha
     record["verification"] = {"status": "NOT_RUN", "sha": None, "evidence": []}
+    record["issue_gate"] = None
     record["gpt_review"] = {"status": "NOT_REVIEWED", "reviewed_sha": None,
                             "invalidated_reviewed_sha": record.get("gpt_review", {}).get("reviewed_sha")}
     record["trusted_full_gate_manifest"] = None

@@ -20,17 +20,19 @@ Dependencies are hard prerequisites from Issue bodies/confirmed decisions. Missi
 
 ## Code Gate
 
-An Issue is code-ready when all dependencies are verified merged and closed. Alternatively, a user-authorized provisional contract may allow implementation with each unmet dependency, but only with source issue, branch, commit/worktree state, contract/version, and evidence state recorded. A provisional implementation stays provisional and cannot satisfy downstream release gates.
+An Issue is code-ready when all dependencies are verified merged and closed. Alternatively, a user-authorized provisional contract may allow implementation with each unmet dependency, but only with source issue, branch, commit/worktree state, contract/version, and evidence state recorded. A provisional implementation stays provisional and cannot satisfy downstream Issue or Release Gates until every required dependency is verified merged and closed.
 
-The planner reports five distinct frontiers:
+The planner reports distinct frontiers:
 
 - `ready_frontier` is **Code Ready**: the Issue has not started, dependencies are merged/closed or a user-authorized provisional contract permits coding, and no active file owner overlaps.
-- `full_gate_eligible_frontier` is **Eligible for Full Gate**: the implementation has SHA-matched targeted evidence; all dependencies are merged/closed; `base_sha` matches current `main_sha`; and the API/schema contract is verified.
-- `full_gate_verified_frontier` is **Full Gate Verified**: the state is `FULL_GATE_VERIFIED` or later, full evidence matches the current `head_sha`, and dependencies, base, and contract remain current.
-- `gpt_handoff_frontier` is **Ready for GPT Handoff**: the full gate remains valid, internal review passed, and local/remote/recorded HEADs match.
-- `release_frontier` is **GPT Final PASS**: all prior gates remain valid and GPT's `FINAL_PASS` is for the exact current `head_sha`.
+- `issue_gate_eligible_frontier` is **Eligible for Issue Gate**: the Issue is implementing, has development targeted evidence, is at the dependency/main integration checkpoint, or has legacy Full Gate state requiring a fresh Issue Gate; all required dependencies are merged/closed; `base_sha` matches current `main_sha`; and the API/schema contract is verified.
+- `full_gate_eligible_frontier` is a Release Candidate planning aid only; targeted evidence and current dependencies/base/contract do not themselves mean a Release Gate ran.
+- `issue_gate_verified_frontier` is **Issue Gate Verified**: a new, runner-derived impact plan and actual SHA-matched required-test evidence exist; dependencies, base, and contract remain current.
+- `release_gate_verified_frontier` is **Release Gate Verified**: the state is `FULL_GATE_VERIFIED` or later, full evidence matches the current `head_sha`, and dependencies, base, and contract remain current. `full_gate_verified_frontier` remains a compatibility alias.
+- `gpt_handoff_frontier` is **Ready for GPT Handoff**: Issue Gate evidence remains valid, internal review passed, and local/remote/recorded HEADs match.
+- `release_frontier` is **Issue GPT Final PASS**: Issue Gate and GPT's `FINAL_PASS` remain valid for the exact current `head_sha`; this is not the integrated Release Gate.
 
-`NOT_STARTED`, `IMPLEMENTING`, targeted evidence, or contract correctness alone never means Release Ready. A changed HEAD, dependency merge, main SHA, or contract invalidates applicable downstream evidence and requires re-evaluation.
+`NOT_STARTED`, `IMPLEMENTING`, targeted evidence, or contract correctness alone never means GPT handoff ready. Issue Gate PASS never means Release Gate PASS. A changed HEAD, dependency merge, main SHA, or contract invalidates applicable downstream evidence and requires re-evaluation. A legacy state without an `issue_gate` record is not promoted automatically.
 
 The planner treats `READY_TO_CODE`, `IMPLEMENTING`, verification/review states, and explicit `ownership_state` values `OWNED`/`HELD` as file owners. Active rows must include `owned_files`; missing ownership is a fail-closed error. Paths are normalized for Windows separators and case, and parent/child paths overlap. Ownership is available again only after the prior row reaches `MERGED`/`FAILED` or explicitly releases it.
 

@@ -1,15 +1,29 @@
-# 測試與共享資源政策
+# Issue Gate、Release Gate 與共享資源政策
 
-依根目錄 AGENTS.md 執行。開發期間先跑受影響精準測試，交易、安全、schema 或跨模組風險時擴至相應整合測試。禁止刪減/skip 測試、放寬 assertions/timeouts、將 mock 結果當作真實 provider/browser/AWS gate。
+依根目錄 `AGENTS.md`、當前 Issue 與已核准 Scope 執行。每張 Issue 在 GPT Review／PR 前執行 impact-based Issue Gate；Release Candidate 才執行完整 Release Gate。兩種 Gate 分開保存與審查，Issue Gate PASS 不能推導 Release Gate PASS。
 
-預設並行上限：implementer 3；**Full Vitest、Maven Verify、Docker/Testcontainers、Docker Image Build 及其他已確認高負載完整驗證，共用一個 `high-load` 互斥鎖，同一時間最多一項**；共用高風險檔案同一 owner。精準輕量測試依已核實的資源需求分類。硬體及近期實測可支持更低限制；不得未驗證就提高上限。
+## Issue Gate 選測
 
-在高負載工作前以 `python scripts/supplypilot_orchestrator.py resource run <vitest|maven|docker> --issue <number> -- <command> [args...]` 取得鎖並執行命令；以 `resource status` 檢查持有者。鎖固定位於 `git rev-parse --git-common-dir` 下的 `supplypilot-orchestrator/`，確保所有 linked worktrees 共用同一組鎖；若使用 `--state-dir`，必須指向這個共同路徑，工具會拒絕工作樹各自的鎖目錄。Orchestrator 執行 npm/Vitest、Maven Targeted Gate 與 Full Gate 時也會自行取得相同鎖。Owner 紀錄保留資源類型、Issue、PID、Host、開始時間與命令。鎖正常結束後釋放；命令異常中止時保留診斷紀錄且不釋放鎖。若進程崩潰留下鎖，工具報告 stale 並拒絕自動回收，須由確認該持有者已停止的維護者手動處置。無法取得鎖時立即 BLOCKED，不無限重試，也不刪除 Docker volume 或停止其他服務。
+Orchestrator 以登記的 base SHA 與目前乾淨 HEAD 計算完整 Git Diff，沿用固定 impact 對照列出：`變更 → 受影響行為／依賴 → 必要測試／Build／Lint → 實際結果`。對未影響項目保存 `NOT_APPLICABLE` 和具體理由。選測須納入直接／間接依賴、共用元件、API／DTO／Schema、授權、交易、併發及配置風險；沒有可靠映射的路徑 fail closed，不能由呼叫端自行宣稱無關或 PASS。
 
-完整交付依 AGENTS.md 本機 Gate 範圍執行，保存命令、版本、原始 log、SHA 和 PASS/FAIL/BLOCKED/NOT RUN。GitHub Actions 是否可用以使用者現行設定和實際 run 為準；此 Skill 不啟動 workflow。
+目前 Issue #162 Orchestrator 的映射是：變更 `scripts/supplypilot_orchestrator.py`、`scripts/supplypilot_full_gate.py` 或 `scripts/tests/test_supplypilot_orchestrator.py` 時，執行完整 `scripts.tests.test_supplypilot_orchestrator` unittest module，涵蓋 Graph、Gate、State、Resource、Worktree 與 Full Gate 信任契約。同一變更中的本 Issue Skill／handoff／AGENTS 或 Issue 證據路徑可列為非執行程式，並記錄其不影響的測試為 `NOT_APPLICABLE`。若整個 Diff 只有文件或證據，且目前沒有對應的文件驗證 runner，Orchestrator 會因沒有可執行的必要測試而 fail closed；須先核實並加入適用的文件驗證，再通過 Issue Gate。其他尚未映射的程式路徑不可從此 mapping 排除測試；須先擴大並核實受影響 suite。
 
-`TARGETED_VERIFIED` 與 `FULL_GATE_VERIFIED` 不接受呼叫端聲稱的 PASS、退出碼或自備 log 雜湊。Targeted Gate 僅接受受限的測試命令與可信 runner：Python 由目前執行 Orchestrator 的 `sys.executable` 啟動並在 Repository Root 執行指定 unittest module；Maven 只用 Issue Worktree 的 `backend/mvnw`／`mvnw.cmd`，在 `backend/` 執行指定 `-Dtest=...`；npm 由安裝路徑解析，在 `frontend/` 只執行一個 `frontend/tests/` 下的 Vitest 檔案。工作目錄由 Repository Root 與 runner 類型決定，不接受呼叫端提供 CWD；路徑必須留在 Repository／模組內。拒絕任意 shell、路徑逃逸、`docker compose run`、pytest collect-only、Maven skip/failure-ignore 參數、lint、build 與 Compose config。Orchestrator 會確認命令成功輸出包含非零實際測試數，並拒絕全 skip、Failures 或 Errors；npm/Vitest 與 Maven targeted 命令在執行時取得共同 `high-load` 鎖。每次 Gate transcript 記錄原始與實際執行命令、實際 CWD、開始／結束時間、exit code、測試輸出與工作樹前後狀態。Full Gate 僅接受固定的 `supplypilot-full-gate` manifest，由 Orchestrator 在已登記 Issue Worktree 內執行 `scripts/supplypilot_full_gate.py`，依 AGENTS.md 順序跑完整 Backend、Frontend、Compose 與 Docker Image Gate，並先取得跨工作樹共用的 `high-load` 鎖。不得以單一測試、lint、build、config 或呼叫端自組命令標記 Full Gate 通過。Targeted 與 Full Gate 都要求工作樹 clean 且 HEAD 等於登記 SHA。成功或失敗輸出由 Orchestrator 寫入證據目錄、計算 SHA-256，再把實際結果與完整 log 路徑寫入狀態。
+`ISSUE_GATE_VERIFIED` 不接受呼叫端傳入的 PASS、退出碼、log、測試清單或 N/A 理由。Orchestrator 依真實 diff 產生 required command，並在登記的 Issue Worktree 實際執行；每個必要命令都必須 exit 0、輸出非零已執行案例且沒有 Failures/Errors/全數 Skip。只跑某個 Targeted Test 會保留為開發期 `TARGETED_VERIFIED`，不能推進 Issue Gate。任何必要檢查失敗、未執行、依賴不明、SHA／main／contract context 改變，都不得進 `ISSUE_GATE_VERIFIED`。
 
-Gate 狀態更新分成三段：短暫持有 State Lock 以核對前置並寫入 `RUNNING` reservation；在 State Lock 外執行測試但持續持有共用 `high-load` 資源鎖；測試後短暫重新取得 State Lock、重載狀態並核對 token、Issue、SHA、worktree、依賴、契約與 main context，只有仍相符且測試 PASS 才可提交 Gate 結果。意外中斷保留 `RUNNING` reservation，不自動重跑、清除 reservation 或回收高負載資源鎖。只有確認 owner 已停止並提供原因後，才可用 `state gate-recover` 將該 reservation 標記 `ABORTED`；資源鎖須另行人工診斷。
+Gate transcript 保存完整變更路徑、影響對照、命令、實際執行命令、CWD、開始／結束時間、退出碼、測試輸出、Worktree 前後狀態和 SHA-256。Planner／GPT review 可檢查該對照；不得只憑開發者聲稱某測試無關就自動通過。舊 state 沒有 `issue_gate` 證據者不得提升為新 Issue Gate PASS。
 
-`FULL_GATE_VERIFIED` 除固定命令白名單外，需有獨立 GPT Review 對確切 SHA 上 `scripts/supplypilot_full_gate.py` 的明確正向子項 verdict，使用獨立一行 `FULL_GATE_MANIFEST_REVIEW: PASS`，並經人類 reviewer 在互動 TTY 以 `state trust-full-gate` 保存 manifest/runner SHA-256 trust baseline、Review URL、證據檔 digest 與確認者。子項 verdict 不依賴整體 review 是否已 `FINAL PASS`；overall `CHANGES REQUIRED`／`BLOCKED` 仍維持阻擋，manifest trust 不會宣告整體 Review 或 Full Gate 通過。審查 SHA、manifest 識別行及子項 verdict 必須在非引用、非 code fence 正文。Full Gate 在執行前後都重算 manifest/runner digest；範本、Review 證據或 digest 變更時拒絕成功狀態。一般 Feature Branch Evidence JSON 不能自行登記或覆寫 baseline。
+## Release Gate
+
+既有 `scripts/supplypilot_full_gate.py` 保留為 Release Candidate 完整驗證工具，涵蓋 Backend Maven Verify、Linux Node 24 完整 Frontend Vitest、Frontend Lint／Build、Python／Compose、Docker Engine 與 Backend/Frontend Image Build，以及實際交付範圍所需 Browser／RAG／Gemini E2E。只在整合後 Release Candidate 執行；未執行或失敗項目分別標為 `NOT RUN`／`BLOCKED`／`FAIL`。不得把 Issue Gate、mock、靜態檢查或多個 Issue 單獨 PASS 拼成 Release Gate PASS。
+
+Full Gate 維持固定 `supplypilot-full-gate` command、Issue Worktree clean／精確 HEAD、獨立 GPT 對 manifest 的 `FULL_GATE_MANIFEST_REVIEW: PASS`、人類互動 trust baseline，以及 manifest／runner 執行前後 SHA-256 檢查。不得弱化或刪除此信任邊界。Release Gate 不屬每一張 Issue 的一般 GPT Review／PR 前置條件。
+
+## Runner 與共享資源
+
+不得刪減／skip 測試、放寬 assertions/timeouts、將 mock 結果當成真實 provider/browser/AWS gate。一般精準驗證只接受受限 runner：Python 由目前執行 Orchestrator 的 `sys.executable` 啟動；Maven 使用 Issue Worktree 的 `backend/mvnw`／`mvnw.cmd` 和核准測試選擇；npm 使用已解析安裝路徑，只能跑核准的測試檔。拒絕任意 shell、路徑逃逸、`docker compose run`、pytest collect-only、Maven skip/failure-ignore、lint/build/Compose config 冒充測試 Gate。CWD 由 Orchestrator 決定。
+
+預設並行上限 implementer 3。Full Vitest、Maven Verify、Docker/Testcontainers、Docker Image Build 等高負載完整驗證共用一個 `high-load` 互斥鎖；npm/Vitest 與 Maven targeted 命令也依既有 runner 規則取鎖。鎖位於 `git rev-parse --git-common-dir` 下的 `supplypilot-orchestrator/`，供 linked worktrees 共用。正常結束才釋放；異常中止保留診斷紀錄，不自動回收或停止其他服務。鎖不可取得時立即 BLOCKED，不無限重試。
+
+Gate 更新分三段：短暫 State Lock 建立 `RUNNING` reservation；在 State Lock 外執行測試、持有必要資源鎖；測試後重載 state，核對 reservation token、Issue、SHA、worktree、依賴、契約、main 與 impact context，只有仍相符且所有必要驗證通過才保存 Gate PASS。中斷不自動重跑或清除 reservation；確認 owner 已停止並提供原因後可用 `state gate-recover` 標記 `ABORTED`，資源鎖須另行人工診斷。
+
+每筆證據記錄 SHA、環境版本、命令、案例數、退出碼、log 路徑、結果與風險。相同 SHA／環境／範圍的有效證據不需無理由重跑；程式或影響範圍改變後重跑受影響驗證。GitHub Actions 是否使用遵從使用者最新指示；本 Skill 不啟動 workflow。
