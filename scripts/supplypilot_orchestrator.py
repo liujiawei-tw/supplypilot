@@ -1968,6 +1968,34 @@ _FRONTEND_PAGE_TESTS = {
 }
 
 
+def _frontend_page_imports(root: Path, revision: str, path: str) -> tuple[str, ...] | None:
+    """Return literal module references, or None when the page cannot be inspected."""
+    try:
+        source = subprocess.run(
+            ["git", "-C", str(root), "show", f"{revision}:{path}"],
+            check=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+            text=True, encoding="utf-8", errors="replace",
+        ).stdout
+    except (OSError, subprocess.CalledProcessError):
+        return None
+    dynamic_calls = re.finditer(
+        r"\b(?:import|require)\b(?:\s|/\*.*?\*/|//[^\r\n]*(?:\r?\n|$))*\(([^)]*)\)",
+        source, re.DOTALL,
+    )
+    for call in dynamic_calls:
+        if ("/*" in call.group(0) or "//" in call.group(0)
+                or not re.fullmatch(r"(['\"])[^'\"\\]*\1", call.group(1).strip())):
+            return None
+    modules = re.findall(
+        r"\bfrom\s*['\"]([^'\"]+)['\"]"
+        r"|^\s*import\s*['\"]([^'\"]+)['\"]"
+        r"|\bimport\s*\(\s*['\"]([^'\"]+)['\"]\s*\)"
+        r"|\brequire\s*\(\s*['\"]([^'\"]+)['\"]\s*\)",
+        source, re.MULTILINE,
+    )
+    return tuple(sorted({module for match in modules for module in match if module}))
+
+
 def _issue_gate_impact_plan(root: Path, base_sha: Any, head_sha: Any) -> dict[str, Any]:
     """Build a conservative fixed-command test plan from the committed change paths."""
     if not isinstance(base_sha, str) or not isinstance(head_sha, str) or not base_sha or not head_sha:
@@ -1994,7 +2022,8 @@ def _issue_gate_impact_plan(root: Path, base_sha: Any, head_sha: Any) -> dict[st
                      "backend/src/main/resources/", "backend/pom.xml")
     frontend_roots = ("frontend/src/", "frontend/tests/", "frontend/package.json",
                       "frontend/vite.config.", "frontend/vitest.config.", "frontend/tsconfig")
-    deployment_prefixes = ("compose", "docker/", "Dockerfile", "backend/Dockerfile", "frontend/Dockerfile")
+    deployment_prefixes = ("compose", "docker-compose", "docker/", "dockerfile",
+                           "backend/dockerfile", "frontend/dockerfile")
     backend_paths: list[str] = []
     frontend_paths: list[str] = []
     deployment_paths: list[str] = []
@@ -2030,7 +2059,7 @@ def _issue_gate_impact_plan(root: Path, base_sha: Any, head_sha: Any) -> dict[st
                     or re.search(r"(api.?client|axios|auth|router|route|request|response)",
                                  filename)):
                 cross_module = True
-        elif path.startswith(deployment_prefixes):
+        elif path.casefold().startswith(deployment_prefixes):
             deployment_paths.append(path)
         else:
             unknown.append(path)
@@ -2103,6 +2132,12 @@ def _issue_gate_impact_plan(root: Path, base_sha: Any, head_sha: Any) -> dict[st
             "frontend/src/", "frontend/package.json", "frontend/vite.config.", "frontend/vitest.config.",
             "frontend/tsconfig"))]
         has_unmapped_source = any(path not in _FRONTEND_PAGE_TESTS for path in source_changes)
+        for path in source_changes:
+            if path in _FRONTEND_PAGE_TESTS:
+                base_imports = _frontend_page_imports(root, base_sha, path)
+                head_imports = _frontend_page_imports(root, head_sha, path)
+                if base_imports is None or head_imports is None or base_imports != head_imports:
+                    has_unmapped_source = True
         if selected_tests and not cross_module and not has_unmapped_source:
             ordered_tests = sorted(selected_tests)
             frontend_command = ["npm", "test", "--",
@@ -2130,13 +2165,13 @@ def _issue_gate_impact_plan(root: Path, base_sha: Any, head_sha: Any) -> dict[st
                           "affected_behavior": "Backend API/DTO/schema/security contract consumed by Frontend",
                           "required_tests": ["complete Frontend Vitest suite", "Frontend lint", "Frontend production build"]})
 
+    if deployment_paths:
+        raise PolicyError(
+            "Issue Gate BLOCKED: deployment changes have no approved trusted Docker/Compose Issue Gate runner; "
+            "Docker/Compose validation is RELEASE_PENDING for the Release Gate: "
+            + ", ".join(deployment_paths)
+        )
     if not commands:
-        if deployment_paths:
-            raise PolicyError(
-                "Issue Gate BLOCKED: deployment-only changes have no approved Issue Gate runner; "
-                "Docker/Compose validation is RELEASE_PENDING for the Release Gate: "
-                + ", ".join(deployment_paths)
-            )
         raise PolicyError("This change has no mapped executable Issue Gate suite; fail closed until its behavior is mapped.")
 
     if not frontend_paths and not cross_module:

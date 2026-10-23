@@ -460,12 +460,19 @@ class StateTests(unittest.TestCase):
             "# isolated trusted full gate runner\n", encoding="utf-8")
         (worktree / "frontend").mkdir()
         (worktree / "frontend" / "package.json").write_text('{"scripts":{"test":"vitest run"}}', encoding="utf-8")
+        for page in ("Materials", "Documents", "PurchaseOrders"):
+            page_file = worktree / "frontend" / "src" / "pages" / page / f"{page}Page.tsx"
+            page_file.parent.mkdir(parents=True, exist_ok=True)
+            page_file.write_text(f"export default function {page}Page() {{ return null; }}\n", encoding="utf-8")
+        shared_component = worktree / "frontend" / "src" / "components" / "Widget.tsx"
+        shared_component.parent.mkdir(parents=True, exist_ok=True)
+        shared_component.write_text("export default function Widget() { return null; }\n", encoding="utf-8")
         (worktree / "backend").mkdir()
         (worktree / "backend" / "pom.xml").write_text("<project />", encoding="utf-8")
         (worktree / "backend" / "mvnw.cmd").write_text("@echo off\r\n", encoding="utf-8")
         self._git(worktree, "add", "src/a.py", "scripts/tests/__init__.py",
                   "scripts/supplypilot_full_gate.py", "scripts/supplypilot_orchestrator.py",
-                  "frontend/package.json", "backend/pom.xml", "backend/mvnw.cmd")
+                  "frontend/package.json", "frontend/src", "backend/pom.xml", "backend/mvnw.cmd")
         self._git(worktree, "commit", "-m", "base")
         self._state_head = self._git(worktree, "rev-parse", "HEAD")
         self._state_remote = worktree.parent / f"{worktree.name}-origin.git"
@@ -876,6 +883,42 @@ class StateTests(unittest.TestCase):
                               ["npm", "run", "lint"], ["npm", "run", "build"]], plan["required_commands"])
             self.assertNotIn("complete Frontend Vitest suite", " ".join(plan["required_tests"]))
 
+    def test_issue_gate_expands_mapped_page_when_its_import_dependencies_change(self):
+        with tempfile.TemporaryDirectory() as temp:
+            path = self._make_state(temp)
+            orch.state_transition(path, 9, "READY_TO_CODE", self._ready_evidence())
+            orch.state_transition(path, 9, "IMPLEMENTING", {"authorized_issue": 9})
+            head = self._commit_impact_paths(path, {
+                "frontend/src/pages/Materials/MaterialsPage.tsx": (
+                    "import Widget from '../../components/Widget';\n"
+                    "export default function MaterialsPage() { return <Widget />; }\n"
+                )
+            })
+            plan = orch._issue_gate_impact_plan(Path(self._state_worktree), self._state_base_sha, head)
+            self.assertIn(["npm", "test"], plan["required_commands"])
+            self.assertIn("complete Frontend Vitest suite", " ".join(plan["required_tests"]))
+
+    def test_issue_gate_expands_mapped_page_with_unresolved_dynamic_dependencies(self):
+        page = "frontend/src/pages/Materials/MaterialsPage.tsx"
+        dependency_expressions = (
+            "import(moduleName);",
+            "import /* lazy module */ ('./Widget');",
+            "import(/* lazy component */ './Widget');",
+            "import(`./${componentName}`);",
+            "require(componentPath);",
+        )
+        for expression in dependency_expressions:
+            with self.subTest(expression=expression), tempfile.TemporaryDirectory() as temp:
+                path = self._make_state(temp)
+                orch.state_transition(path, 9, "READY_TO_CODE", self._ready_evidence())
+                orch.state_transition(path, 9, "IMPLEMENTING", {"authorized_issue": 9})
+                head = self._commit_impact_paths(path, {
+                    page: f"{expression}\nexport default function MaterialsPage() {{ return null; }}\n"
+                })
+                plan = orch._issue_gate_impact_plan(Path(self._state_worktree), self._state_base_sha, head)
+                self.assertIn(["npm", "test"], plan["required_commands"])
+                self.assertIn("complete Frontend Vitest suite", " ".join(plan["required_tests"]))
+
     def test_issue_gate_maps_documents_page_and_keeps_e2e_release_pending(self):
         with tempfile.TemporaryDirectory() as temp:
             path = self._make_state(temp)
@@ -1014,7 +1057,8 @@ class StateTests(unittest.TestCase):
                 orch._issue_gate_impact_plan(Path(self._state_worktree), self._state_base_sha, head)
 
     def test_issue_gate_deployment_only_changes_are_blocked_with_release_pending_reason(self):
-        for changed_path in ("compose.dev.yml", "docker/backend/entrypoint.sh", "Dockerfile"):
+        for changed_path in ("compose.dev.yml", "docker-compose.yml", "docker-compose.yaml",
+                             "docker/backend/entrypoint.sh", "Dockerfile"):
             with self.subTest(path=changed_path), tempfile.TemporaryDirectory() as temp:
                 path = self._make_state(temp)
                 orch.state_transition(path, 9, "READY_TO_CODE", self._ready_evidence())
@@ -1024,6 +1068,22 @@ class StateTests(unittest.TestCase):
                     orch.PolicyError, "Issue Gate BLOCKED.*RELEASE_PENDING"
                 ):
                     orch._issue_gate_impact_plan(Path(self._state_worktree), self._state_base_sha, head)
+
+    def test_issue_gate_blocks_deployment_changes_even_with_passing_app_test_plan(self):
+        with tempfile.TemporaryDirectory() as temp:
+            path = self._make_state(temp)
+            orch.state_transition(path, 9, "READY_TO_CODE", self._ready_evidence())
+            orch.state_transition(path, 9, "IMPLEMENTING", {"authorized_issue": 9})
+            head = self._commit_impact_paths(path, {
+                "Dockerfile": "# image change\n",
+                "frontend/src/pages/Materials/MaterialsPage.tsx": (
+                    "export default function MaterialsPage() { return null; }\n"
+                ),
+            })
+            with self.assertRaisesRegex(
+                orch.PolicyError, "deployment changes have no approved trusted Docker/Compose Issue Gate runner"
+            ):
+                orch._issue_gate_impact_plan(Path(self._state_worktree), self._state_base_sha, head)
 
     def test_issue_gate_runs_every_required_command_and_refuses_partial_pass(self):
         with tempfile.TemporaryDirectory() as temp:
