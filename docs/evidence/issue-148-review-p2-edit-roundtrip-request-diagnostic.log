@@ -1,0 +1,17 @@
+
+> frontend@0.0.0 test
+> vitest run --reporter=verbose --testTimeout=60000 --testNamePattern=SupplierMaterial decimal strings tests/precisionEditRoundTrip.test.tsx
+
+
+ RUN  v4.1.11 C:/Users/z0976/.codex/worktrees/issue-148-v2-401/supplypilot/frontend
+
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+ ✓ tests/precisionEditRoundTrip.test.tsx > BigDecimal edit round trips > keeps SupplierMaterial decimal strings through edit, unrelated field change, and PATCH 9679ms
+ ↓ tests/precisionEditRoundTrip.test.tsx > BigDecimal edit round trips > keeps Material safetyStock exact through read, edit, unrelated field change, and PATCH
+
+ Test Files  1 passed (1)
+      Tests  1 passed | 1 skipped (2)
+   Start at  00:33:30
+   Duration  15.24s (transform 308ms, setup 215ms, import 4.37s, tests 9.68s, environment 750ms)
+

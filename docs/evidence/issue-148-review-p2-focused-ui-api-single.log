@@ -1,0 +1,2092 @@
+
+> frontend@0.0.0 test
+> vitest run --maxWorkers=1 --testTimeout=60000 --reporter=verbose tests/precisionEditRoundTrip.test.tsx tests/supplierMaterialPrecision.test.tsx tests/masterDataApi.test.ts tests/masterData.test.tsx tests/purchaseOrderApi.test.ts tests/sp805Api.test.ts
+
+
+ RUN  v4.1.11 C:/Users/z0976/.codex/worktrees/issue-148-v2-401/supplypilot/frontend
+
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+ ✓ tests/masterData.test.tsx > master data pages > shows loading, data and ADMIN actions on Materials 2890ms
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+ ✓ tests/masterData.test.tsx > master data pages > keeps Materials read-only for an authorized non-ADMIN role 1236ms
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+ × tests/masterData.test.tsx > master data pages > validates Material fields, creates once, then refetches 12870ms
+   → Unable to find an element with the text: /cannot be less than 0/i. This could be because the text is broken up by multiple elements. In this case, you can provide a function for your text matcher to make your matcher more flexible.
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div>[39m
+    [36m<div>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"ant-space css-dev-only-do-not-override-oc1rc0 ant-space-vertical ant-space-gap-row-large ant-space-gap-col-large css-var-root"[39m
+        [33mstyle[39m=[32m"width: 100%;"[39m
+      [36m>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"ant-space-item"[39m
+        [36m>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"ant-space css-dev-only-do-not-override-oc1rc0 ant-space-horizontal ant-space-align-center ant-space-gap-row-small ant-space-gap-col-small css-var-root"[39m
+            [33mstyle[39m=[32m"flex-wrap: wrap; width: 100%; justify-content: space-between;"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"ant-space-item"[39m
+            [36m>[39m
+              [36m<div>[39m
+                [36m<h2[39m
+                  [33mclass[39m=[32m"ant-typography css-dev-only-do-not-override-oc1rc0 css-var-root"[39m
+                  [33mstyle[39m=[32m"margin-bottom: 0px;"[39m
+                [36m>[39m
+                  [0m物料管理[0m
+                [36m</h2>[39m
+                [36m<span[39m
+                  [33mclass[39m=[32m"ant-typography ant-typography-secondary css-dev-only-do-not-override-oc1rc0 css-var-root"[39m
+                [36m>[39m
+                  [0m維護物料主檔與安全庫存[0m
+                [36m</span>[39m
+              [36m</div>[39m
+            [36m</div>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"ant-space-item"[39m
+            [36m>[39m
+              [36m<button[39m
+                [33mclass[39m=[32m"ant-btn css-dev-only-do-not-override-oc1rc0 css-var-root ant-btn-primary ant-btn-color-primary ant-btn-variant-solid"[39m
+                [33mtype[39m=[32m"button"[39m
+              [36m>[39m
+                [36m<span[39m
+                  [33mclass[39m=[32m"ant-btn-icon"[39m
+                [36m>[39m
+                  [36m<span[39m
+                    [33maria-label[39m=[32m"plus"[39m
+                    [33mclass[39m=[32m"anticon anticon-plus"[39m
+                    [33mrole[39m=[32m"img"[39m
+                  [36m>[39m
+                    [36m<svg[39m
+                      [33maria-hidden[39m=[32m"true"[39m
+                      [33mdata-icon[39m=[32m"plus"[39m
+                      [33mfill[39m=[32m"currentColor"[39m
+                      [33mfocusable[39m=[32m"false"[39m
+                      [33mheight[39m=[32m"1em"[39m
+                      [33mviewBox[39m=[32m"64 64 896 896"[39m
+                      [33mwidth[39m=[32m"1em"[39m
+                    [36m>[39m
+                      [36m<path[39m
+                        [33md[39m=[32m"M482 152h60q8 0 8 8v704q0 8-8 8h-60q-8 0-8-8V160q0-8 8-8z"[39m
+                      [36m/>[39m
+                      [36m<path[39m
+                        [33md[39m=[32m"M192 474h672q8 0 8 8v60q0 8-8 8H160q-8 0-8-8v-60q0-8 8-8z"[39m
+                      [36m/>[39m
+                    [36m</svg>[39m
+                  [36m</span>[39m
+                [36m</span>[39m
+                [36m<span>[39m
+                  [0m新增物料[0m
+                [36m</span>[39m
+              [36m</button>[39m
+            [36m</div>[39m
+          [36m</div>[39m
+        [36m</div>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"ant-space-item"[39m
+        [36m>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"ant-space css-dev-only-do-not-override-oc1rc0 ant-space-horizontal ant-space-align-center ant-space-gap-row-small ant-space-gap-col-small css-var-root"[39m
+            [33mstyle[39m=[32m"flex-wrap: wrap; max-width: 100%;"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"ant-space-item"[39m
+            [36m>[39m
+              [36m<span[39m
+                [33mclass[39m=[32m"ant-input-affix-wrapper css-dev-only-do-not-override-oc1rc0 ant-input-outlined css-var-root ant-input-css-var"[39m
+              [36m>[39m
+                [36m<input[39m
+                  [33maria-label[39m=[32m"物料代碼篩選"[39m
+                  [33mclass[39m=[32m"ant-input css-dev-only-do-not-override-oc1rc0"[39m
+                  [33mplaceholder[39m=[32m"物料代碼"[39m
+                  [33mtype[39m=[32m"text"[39m
+                  [33mvalue[39m=[32m""[39m
+                [36m/>[39m
+                [36m<span[39m
+                  [33mclass[39m=[32m"ant-input-suffix"[39m
+                [36m>[39m
+                  [36m<button[39m
+                    [33mclass[39m=[32m"ant-input-clear-icon ant-input-clear-icon-hidden"[39m
+                    [33mtype[39m=[32m"button"[39m
+                  [36m>[39m
+                    [36m<span[39m
+                      [33maria-label[39m=[32m"close-circle"[39m
+                      [33mclass[39m=[32m"anticon anticon-close-circle"[39m
+                      [33mrole[39m=[32m"img"[39m
+                    [36m>[39m
+                      [36m<svg[39m
+                        [33maria-hidden[39m=[32m"true"[39m
+                        [33mdata-icon[39m=[32m"close-circle"[39m
+                        [33mfill[39m=[32m"currentColor"[39m
+                        [33mfill-rule[39m=[32m"evenodd"[39m
+                        [33mfocusable[39m=[32m"false"[39m
+                        [33mheight[39m=[32m"1em"[39m
+                        [33mviewBox[39m=[32m"64 64 896 896"[39m
+                        [33mwidth[39m=[32m"1em"[39m
+                      [36m>[39m
+                        [36m<path[39m
+                          [33md[39m=[32m"M512 64c247.4 0 448 200.6 448 448S759.4 960 512 960 64 759.4 64 512 264.6 64 512 64zm127.98 274.82h-.04l-.08.06L512 466.75 384.14 338.88c-.04-.05-.06-.06-.08-.06a.12.12 0 00-.07 0c-.03 0-.05.01-.09.05l-45.02 45.02a.2.2 0 00-.05.09.12.12 0 000 .07v.02a.27.27 0 00.06.06L466.75 512 338.88 639.86c-.05.04-.06.06-.06.08a.12.12 0 000 .07c0 .03.01.05.05.09l45.02 45.02a.2.2 0 00.09.05.12.12 0 00.07 0c.02 0 .04-.01.08-.05L512 557.25l127.86 127.87c.04.04.06.05.08.05a.12.12 0 00.07 0c.03 0 .05-.01.09-.05l45.02-45.02a.2.2 0 00.05-.09.12.12 0 000-.07v-.02a.27.27 0 00-.05-.06L557.25 512l127.87-127.86c.04-.04.05-.06.05-.08a.12.12 0 000-.07c0-.03-.01-.05-.05-.09l-45.02-45.02a.2.2 0 00-.09-.05.12.12 0 00-.07 0z"[39m
+                        [36m/>[39m
+                      [36m</svg>[39m
+                    [36m</span>[39m
+                  [36m</button>[39m
+                [36m</span>[39m
+              [36m</span>[39m
+            [36m</div>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"ant-space-item"[39m
+            [36m>[39m
+              [36m<span[39m
+                [33mclass[39m=[32m"ant-input-affix-wrapper css-dev-only-do-not-override-oc1rc0 ant-input-outlined css-var-root ant-input-css-v...
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div>[39m
+    [36m<div>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"ant-space css-dev-only-do-not-override-oc1rc0 ant-space-vertical ant-space-gap-row-large ant-space-gap-col-large css-var-root"[39m
+        [33mstyle[39m=[32m"width: 100%;"[39m
+      [36m>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"ant-space-item"[39m
+        [36m>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"ant-space css-dev-only-do-not-override-oc1rc0 ant-space-horizontal ant-space-align-center ant-space-gap-row-small ant-space-gap-col-small css-var-root"[39m
+            [33mstyle[39m=[32m"flex-wrap: wrap; width: 100%; justify-content: space-between;"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"ant-space-item"[39m
+            [36m>[39m
+              [36m<div>[39m
+                [36m<h2[39m
+                  [33mclass[39m=[32m"ant-typography css-dev-only-do-not-override-oc1rc0 css-var-root"[39m
+                  [33mstyle[39m=[32m"margin-bottom: 0px;"[39m
+                [36m>[39m
+                  [0m物料管理[0m
+                [36m</h2>[39m
+                [36m<span[39m
+                  [33mclass[39m=[32m"ant-typography ant-typography-secondary css-dev-only-do-not-override-oc1rc0 css-var-root"[39m
+                [36m>[39m
+                  [0m維護物料主檔與安全庫存[0m
+                [36m</span>[39m
+              [36m</div>[39m
+            [36m</div>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"ant-space-item"[39m
+            [36m>[39m
+              [36m<button[39m
+                [33mclass[39m=[32m"ant-btn css-dev-only-do-not-override-oc1rc0 css-var-root ant-btn-primary ant-btn-color-primary ant-btn-variant-solid"[39m
+                [33mtype[39m=[32m"button"[39m
+              [36m>[39m
+                [36m<span[39m
+                  [33mclass[39m=[32m"ant-btn-icon"[39m
+                [36m>[39m
+                  [36m<span[39m
+                    [33maria-label[39m=[32m"plus"[39m
+                    [33mclass[39m=[32m"anticon anticon-plus"[39m
+                    [33mrole[39m=[32m"img"[39m
+                  [36m>[39m
+                    [36m<svg[39m
+                      [33maria-hidden[39m=[32m"true"[39m
+                      [33mdata-icon[39m=[32m"plus"[39m
+                      [33mfill[39m=[32m"currentColor"[39m
+                      [33mfocusable[39m=[32m"false"[39m
+                      [33mheight[39m=[32m"1em"[39m
+                      [33mviewBox[39m=[32m"64 64 896 896"[39m
+                      [33mwidth[39m=[32m"1em"[39m
+                    [36m>[39m
+                      [36m<path[39m
+                        [33md[39m=[32m"M482 152h60q8 0 8 8v704q0 8-8 8h-60q-8 0-8-8V160q0-8 8-8z"[39m
+                      [36m/>[39m
+                      [36m<path[39m
+                        [33md[39m=[32m"M192 474h672q8 0 8 8v60q0 8-8 8H160q-8 0-8-8v-60q0-8 8-8z"[39m
+                      [36m/>[39m
+                    [36m</svg>[39m
+                  [36m</span>[39m
+                [36m</span>[39m
+                [36m<span>[39m
+                  [0m新增物料[0m
+                [36m</span>[39m
+              [36m</button>[39m
+            [36m</div>[39m
+          [36m</div>[39m
+        [36m</div>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"ant-space-item"[39m
+        [36m>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"ant-space css-dev-only-do-not-override-oc1rc0 ant-space-horizontal ant-space-align-center ant-space-gap-row-small ant-space-gap-col-small css-var-root"[39m
+            [33mstyle[39m=[32m"flex-wrap: wrap; max-width: 100%;"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"ant-space-item"[39m
+            [36m>[39m
+              [36m<span[39m
+                [33mclass[39m=[32m"ant-input-affix-wrapper css-dev-only-do-not-override-oc1rc0 ant-input-outlined css-var-root ant-input-css-var"[39m
+              [36m>[39m
+                [36m<input[39m
+                  [33maria-label[39m=[32m"物料代碼篩選"[39m
+                  [33mclass[39m=[32m"ant-input css-dev-only-do-not-override-oc1rc0"[39m
+                  [33mplaceholder[39m=[32m"物料代碼"[39m
+                  [33mtype[39m=[32m"text"[39m
+                  [33mvalue[39m=[32m""[39m
+                [36m/>[39m
+                [36m<span[39m
+                  [33mclass[39m=[32m"ant-input-suffix"[39m
+                [36m>[39m
+                  [36m<button[39m
+                    [33mclass[39m=[32m"ant-input-clear-icon ant-input-clear-icon-hidden"[39m
+                    [33mtype[39m=[32m"button"[39m
+                  [36m>[39m
+                    [36m<span[39m
+                      [33maria-label[39m=[32m"close-circle"[39m
+                      [33mclass[39m=[32m"anticon anticon-close-circle"[39m
+                      [33mrole[39m=[32m"img"[39m
+                    [36m>[39m
+                      [36m<svg[39m
+                        [33maria-hidden[39m=[32m"true"[39m
+                        [33mdata-icon[39m=[32m"close-circle"[39m
+                        [33mfill[39m=[32m"currentColor"[39m
+                        [33mfill-rule[39m=[32m"evenodd"[39m
+                        [33mfocusable[39m=[32m"false"[39m
+                        [33mheight[39m=[32m"1em"[39m
+                        [33mviewBox[39m=[32m"64 64 896 896"[39m
+                        [33mwidth[39m=[32m"1em"[39m
+                      [36m>[39m
+                        [36m<path[39m
+                          [33md[39m=[32m"M512 64c247.4 0 448 200.6 448 448S759.4 960 512 960 64 759.4 64 512 264.6 64 512 64zm127.98 274.82h-.04l-.08.06L512 466.75 384.14 338.88c-.04-.05-.06-.06-.08-.06a.12.12 0 00-.07 0c-.03 0-.05.01-.09.05l-45.02 45.02a.2.2 0 00-.05.09.12.12 0 000 .07v.02a.27.27 0 00.06.06L466.75 512 338.88 639.86c-.05.04-.06.06-.06.08a.12.12 0 000 .07c0 .03.01.05.05.09l45.02 45.02a.2.2 0 00.09.05.12.12 0 00.07 0c.02 0 .04-.01.08-.05L512 557.25l127.86 127.87c.04.04.06.05.08.05a.12.12 0 00.07 0c.03 0 .05-.01.09-.05l45.02-45.02a.2.2 0 00.05-.09.12.12 0 000-.07v-.02a.27.27 0 00-.05-.06L557.25 512l127.87-127.86c.04-.04.05-.06.05-.08a.12.12 0 000-.07c0-.03-.01-.05-.05-.09l-45.02-45.02a.2.2 0 00-.09-.05.12.12 0 00-.07 0z"[39m
+                        [36m/>[39m
+                      [36m</svg>[39m
+                    [36m</span>[39m
+                  [36m</button>[39m
+                [36m</span>[39m
+              [36m</span>[39m
+            [36m</div>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"ant-space-item"[39m
+            [36m>[39m
+              [36m<span[39m
+                [33mclass[39m=[32m"ant-input-affix-wrapper css-dev-only-do-not-override-oc1rc0 ant-input-outlined css-var-root ant-input-css-v...
+ ✓ tests/masterData.test.tsx > master data pages > shows backend validation details and does not report a failed status update as success 6178ms
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+ ✓ tests/masterData.test.tsx > master data pages > keeps the Material create modal and values after a 409, then refetches only after retry succeeds 16050ms
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Could not parse CSS stylesheet
+Could not parse CSS stylesheet
+ ✓ tests/masterData.test.tsx > master data pages > shows Material edit validation errors inside the modal and keeps edited values 9860ms
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Could not parse CSS stylesheet
+Could not parse CSS stylesheet
+ ✓ tests/masterData.test.tsx > master data pages > shows Suppliers and SupplierMaterials as read-only tabs for procurement roles 3916ms
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Could not parse CSS stylesheet
+Could not parse CSS stylesheet
+ ✓ tests/masterData.test.tsx > master data pages > edits a Supplier without sending its immutable code and refetches 10326ms
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Could not parse CSS stylesheet
+Could not parse CSS stylesheet
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+ ✓ tests/masterData.test.tsx > master data pages > keeps Supplier create and edit values when backend submissions fail 31436ms
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+ × tests/masterData.test.tsx > master data pages > creates and edits SupplierMaterial through the UI without PATCHing immutable relationships or currency 62136ms
+   → Unable to find an accessible element with the role "spinbutton" and name "單價"
+
+Here are the accessible roles:
+
+  heading:
+
+  Name "供應商管理":
+  [36m<h2[39m
+    [33mclass[39m=[32m"ant-typography css-dev-only-do-not-override-oc1rc0 css-var-root"[39m
+    [33mstyle[39m=[32m"margin-bottom: 0px;"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  tablist:
+
+  Name "":
+  [36m<div[39m
+    [33maria-orientation[39m=[32m"horizontal"[39m
+    [33mclass[39m=[32m"ant-tabs-nav"[39m
+    [33mrole[39m=[32m"tablist"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  tab:
+
+  Name "供應商":
+  [36m<div[39m
+    [33maria-controls[39m=[32m"rc-tabs-test-panel-suppliers"[39m
+    [33maria-selected[39m=[32m"false"[39m
+    [33mclass[39m=[32m"ant-tabs-tab-btn"[39m
+    [33mid[39m=[32m"rc-tabs-test-tab-suppliers"[39m
+    [33mrole[39m=[32m"tab"[39m
+    [33mtabindex[39m=[32m"-1"[39m
+  [36m/>[39m
+
+  Name "供應商物料":
+  [36m<div[39m
+    [33maria-controls[39m=[32m"rc-tabs-test-panel-supplier-materials"[39m
+    [33maria-selected[39m=[32m"true"[39m
+    [33mclass[39m=[32m"ant-tabs-tab-btn"[39m
+    [33mid[39m=[32m"rc-tabs-test-tab-supplier-materials"[39m
+    [33mrole[39m=[32m"tab"[39m
+    [33mtabindex[39m=[32m"0"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  tabpanel:
+
+  Name "供應商物料":
+  [36m<div[39m
+    [33maria-hidden[39m=[32m"false"[39m
+    [33maria-labelledby[39m=[32m"rc-tabs-test-tab-supplier-materials"[39m
+    [33mclass[39m=[32m"ant-tabs-content ant-tabs-content-active"[39m
+    [33mid[39m=[32m"rc-tabs-test-panel-supplier-materials"[39m
+    [33mrole[39m=[32m"tabpanel"[39m
+    [33mtabindex[39m=[32m"0"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  combobox:
+
+  Name "選取供應商":
+  [36m<input[39m
+    [33maria-autocomplete[39m=[32m"list"[39m
+    [33maria-expanded[39m=[32m"false"[39m
+    [33maria-haspopup[39m=[32m"listbox"[39m
+    [33maria-label[39m=[32m"選取供應商"[39m
+    [33mautocomplete[39m=[32m"new-password"[39m
+    [33mclass[39m=[32m"ant-select-input"[39m
+    [33mid[39m=[32m"test-id"[39m
+    [33mrole[39m=[32m"combobox"[39m
+    [33mtype[39m=[32m"text"[39m
+    [33mvalue[39m=[32m""[39m
+  [36m/>[39m
+
+  Name "選取物料":
+  [36m<input[39m
+    [33maria-autocomplete[39m=[32m"list"[39m
+    [33maria-expanded[39m=[32m"false"[39m
+    [33maria-haspopup[39m=[32m"listbox"[39m
+    [33maria-label[39m=[32m"選取物料"[39m
+    [33mautocomplete[39m=[32m"new-password"[39m
+    [33mclass[39m=[32m"ant-select-input"[39m
+    [33mid[39m=[32m"test-id"[39m
+    [33mrole[39m=[32m"combobox"[39m
+    [33mtype[39m=[32m"text"[39m
+    [33mvalue[39m=[32m""[39m
+  [36m/>[39m
+
+  Name "供應商物料狀態篩選":
+  [36m<input[39m
+    [33maria-autocomplete[39m=[32m"list"[39m
+    [33maria-expanded[39m=[32m"false"[39m
+    [33maria-haspopup[39m=[32m"listbox"[39m
+    [33maria-label[39m=[32m"供應商物料狀態篩選"[39m
+    [33mautocomplete[39m=[32m"new-password"[39m
+    [33mclass[39m=[32m"ant-select-input"[39m
+    [33mid[39m=[32m"test-id"[39m
+    [33mreadonly[39m=[32m""[39m
+    [33mrole[39m=[32m"combobox"[39m
+    [33mtype[39m=[32m"text"[39m
+    [33mvalue[39m=[32m""[39m
+  [36m/>[39m
+
+  Name "Page Size":
+  [36m<input[39m
+    [33maria-autocomplete[39m=[32m"list"[39m
+    [33maria-expanded[39m=[32m"false"[39m
+    [33maria-haspopup[39m=[32m"listbox"[39m
+    [33maria-label[39m=[32m"Page Size"[39m
+    [33mautocomplete[39m=[32m"new-password"[39m
+    [33mclass[39m=[32m"ant-select-input"[39m
+    [33mid[39m=[32m"test-id"[39m
+    [33mrole[39m=[32m"combobox"[39m
+    [33mtype[39m=[32m"text"[39m
+    [33mvalue[39m=[32m""[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  img:
+
+  Name "down":
+  [36m<span[39m
+    [33maria-label[39m=[32m"down"[39m
+    [33mclass[39m=[32m"anticon anticon-down"[39m
+    [33mrole[39m=[32m"img"[39m
+  [36m/>[39m
+
+  Name "down":
+  [36m<span[39m
+    [33maria-label[39m=[32m"down"[39m
+    [33mclass[39m=[32m"anticon anticon-down"[39m
+    [33mrole[39m=[32m"img"[39m
+  [36m/>[39m
+
+  Name "down":
+  [36m<span[39m
+    [33maria-label[39m=[32m"down"[39m
+    [33mclass[39m=[32m"anticon anticon-down"[39m
+    [33mrole[39m=[32m"img"[39m
+  [36m/>[39m
+
+  Name "plus":
+  [36m<span[39m
+    [33maria-label[39m=[32m"plus"[39m
+    [33mclass[39m=[32m"anticon anticon-plus"[39m
+    [33mrole[39m=[32m"img"[39m
+  [36m/>[39m
+
+  Name "left":
+  [36m<span[39m
+    [33maria-label[39m=[32m"left"[39m
+    [33mclass[39m=[32m"anticon anticon-left"[39m
+    [33mrole[39m=[32m"img"[39m
+  [36m/>[39m
+
+  Name "right":
+  [36m<span[39m
+    [33maria-label[39m=[32m"right"[39m
+    [33mclass[39m=[32m"anticon anticon-right"[39m
+    [33mrole[39m=[32m"img"[39m
+  [36m/>[39m
+
+  Name "down":
+  [36m<span[39m
+    [33maria-label[39m=[32m"down"[39m
+    [33mclass[39m=[32m"anticon anticon-down"[39m
+    [33mrole[39m=[32m"img"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  code:
+
+  Name "":
+  [36m<code />[39m
+
+  Name "":
+  [36m<code />[39m
+
+  --------------------------------------------------
+  button:
+
+  Name "plus 新增供應商物料關聯":
+  [36m<button[39m
+    [33mclass[39m=[32m"ant-btn css-dev-only-do-not-override-oc1rc0 css-var-root ant-btn-primary ant-btn-color-primary ant-btn-variant-solid"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "編 輯":
+  [36m<button[39m
+    [33mclass[39m=[32m"ant-btn css-dev-only-do-not-override-oc1rc0 css-var-root ant-btn-default ant-btn-color-default ant-btn-variant-outlined ant-btn-sm"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "停 用":
+  [36m<button[39m
+    [33mclass[39m=[32m"ant-btn css-dev-only-do-not-override-oc1rc0 css-var-root ant-btn-default ant-btn-color-default ant-btn-variant-outlined ant-btn-sm"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "left":
+  [36m<button[39m
+    [33mclass[39m=[32m"ant-pagination-item-link"[39m
+    [33mdisabled[39m=[32m""[39m
+    [33mtabindex[39m=[32m"-1"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "right":
+  [36m<button[39m
+    [33mclass[39m=[32m"ant-pagination-item-link"[39m
+    [33mdisabled[39m=[32m""[39m
+    [33mtabindex[39m=[32m"-1"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  table:
+
+  Name "":
+  [36m<table[39m
+    [33mstyle[39m=[32m"width: max-content; min-width: 100%; table-layout: auto;"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  rowgroup:
+
+  Name "":
+  [36m<thead[39m
+    [33mclass[39m=[32m"ant-table-thead"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<tbody[39m
+    [33mclass[39m=[32m"ant-table-tbody"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  row:
+
+  Name "供應商 物料 單價 最低訂購量（MOQ） 包裝倍數 交期（天） 狀態 操作":
+  [36m<tr />[39m
+
+  Name "SUP-001 — Taiwan Foods MAT-001 — Milk TWD 80 100 L 25 L 14 啟用 編 輯 停 用":
+  [36m<tr[39m
+    [33mclass[39m=[32m"ant-table-row ant-table-row-level-0"[39m
+    [33mdata-row-key[39m=[32m"3"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  columnheader:
+
+  Name "供應商":
+  [36m<th[39m
+    [33mclass[39m=[32m"ant-table-cell"[39m
+    [33mscope[39m=[32m"col"[39m
+  [36m/>[39m
+
+  Name "物料":
+  [36m<th[39m
+    [33mclass[39m=[32m"ant-table-cell"[39m
+    [33mscope[39m=[32m"col"[39m
+  [36m/>[39m
+
+  Name "單價":
+  [36m<th[39m
+    [33maria-description[39m=[32m"sortable"[39m
+    [33maria-label[39m=[32m"單價"[39m
+    [33mclass[39m=[32m"ant-table-cell ant-table-column-has-sorters"[39m
+    [33mscope[39m=[32m"col"[39m
+    [33mtabindex[39m=[32m"0"[39m
+  [36m/>[39m
+
+  Name "最低訂購量（MOQ）":
+  [36m<th[39m
+    [33maria-description[39m=[32m"sortable"[39m
+    [33maria-label[39m=[32m"最低訂購量（MOQ）"[39m
+    [33mclass[39m=[32m"ant-table-cell ant-table-column-has-sorters"[39m
+    [33mscope[39m=[32m"col"[39m
+    [33mtabindex[39m=[32m"0"[39m
+  [36m/>[39m
+
+  Name "包裝倍數":
+  [36m<th[39m
+    [33maria-description[39m=[32m"sortable"[39m
+    [33maria-label[39m=[32m"包裝倍數"[39m
+    [33mclass[39m=[32m"ant-table-cell ant-table-column-has-sorters"[39m
+    [33mscope[39m=[32m"col"[39m
+    [33mtabindex[39m=[32m"0"[39m
+  [36m/>[39m
+
+  Name "交期（天）":
+  [36m<th[39m
+    [33maria-description[39m=[32m"sortable"[39m
+    [33maria-label[39m=[32m"交期（天）"[39m
+    [33mclass[39m=[32m"ant-table-cell ant-table-column-has-sorters"[39m
+    [33mscope[39m=[32m"col"[39m
+    [33mtabindex[39m=[32m"0"[39m
+  [36m/>[39m
+
+  Name "狀態":
+  [36m<th[39m
+    [33maria-description[39m=[32m"sortable"[39m
+    [33maria-label[39m=[32m"狀態"[39m
+    [33mclass[39m=[32m"ant-table-cell ant-table-column-has-sorters"[39m
+    [33mscope[39m=[32m"col"[39m
+    [33mtabindex[39m=[32m"0"[39m
+  [36m/>[39m
+
+  Name "操作":
+  [36m<th[39m
+    [33mclass[39m=[32m"ant-table-cell"[39m
+    [33mscope[39m=[32m"col"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  cell:
+
+  Name "SUP-001 — Taiwan Foods":
+  [36m<td[39m
+    [33mclass[39m=[32m"ant-table-cell ant-table-cell-row-hover"[39m
+  [36m/>[39m
+
+  Name "MAT-001 — Milk":
+  [36m<td[39m
+    [33mclass[39m=[32m"ant-table-cell ant-table-cell-row-hover"[39m
+  [36m/>[39m
+
+  Name "TWD 80":
+  [36m<td[39m
+    [33mclass[39m=[32m"ant-table-cell ant-table-cell-row-hover"[39m
+  [36m/>[39m
+
+  Name "100 L":
+  [36m<td[39m
+    [33mclass[39m=[32m"ant-table-cell ant-table-cell-row-hover"[39m
+  [36m/>[39m
+
+  Name "25 L":
+  [36m<td[39m
+    [33mclass[39m=[32m"ant-table-cell ant-table-cell-row-hover"[39m
+  [36m/>[39m
+
+  Name "14":
+  [36m<td[39m
+    [33mclass[39m=[32m"ant-table-cell ant-table-cell-row-hover"[39m
+  [36m/>[39m
+
+  Name "啟用":
+  [36m<td[39m
+    [33mclass[39m=[32m"ant-table-cell ant-table-cell-row-hover"[39m
+  [36m/>[39m
+
+  Name "編 輯 停 用":
+  [36m<td[39m
+    [33mclass[39m=[32m"ant-table-cell ant-table-cell-row-hover"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  list:
+
+  Name "":
+  [36m<ul[39m
+    [33mclass[39m=[32m"ant-pagination ant-table-pagination ant-table-pagination-end css-dev-only-do-not-override-oc1rc0 css-var-root"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  listitem:
+
+  Name "Previous Page":
+  [36m<li[39m
+    [33maria-disabled[39m=[32m"true"[39m
+    [33mclass[39m=[32m"ant-pagination-prev ant-pagination-disabled"[39m
+    [33mtitle[39m=[32m"Previous Page"[39m
+  [36m/>[39m
+
+  Name "1":
+  [36m<li[39m
+    [33mclass[39m=[32m"ant-pagination-item ant-pagination-item-1 ant-pagination-item-active"[39m
+    [33mtabindex[39m=[32m"0"[39m
+    [33mtitle[39m=[32m"1"[39m
+  [36m/>[39m
+
+  Name "Next Page":
+  [36m<li[39m
+    [33maria-disabled[39m=[32m"true"[39m
+    [33mclass[39m=[32m"ant-pagination-next ant-pagination-disabled"[39m
+    [33mtitle[39m=[32m"Next Page"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"ant-pagination-options"[39m
+  [36m/>[39m
+
+  --------------------------------------------------alert:
+
+  Name "":
+  [36m<div[39m
+    [33mclass[39m=[32m"ant-message-notice ant-message-notice-success"[39m
+    [33mdata-notification-index[39m=[32m"0"[39m
+    [33mrole[39m=[32m"alert"[39m
+    [33mstyle[39m=[32m"--notification-index: 0; --notification-y: 0px;"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  img:
+
+  Name "check-circle":
+  [36m<span[39m
+    [33maria-label[39m=[32m"check-circle"[39m
+    [33mclass[39m=[32m"anticon anticon-check-circle"[39m
+    [33mrole[39m=[32m"img"[39m
+  [36m/>[39m
+
+  --------------------------------------------------dialog:
+
+  Name "選取供應商":
+  [36m<div[39m
+    [33maria-labelledby[39m=[32m"test-id"[39m
+    [33maria-modal[39m=[32m"true"[39m
+    [33mclass[39m=[32m"ant-modal css-dev-only-do-not-override-oc1rc0 ant-zoom-appear ant-zoom-appear-prepare ant-zoom"[39m
+    [33mrole[39m=[32m"dialog"[39m
+    [33mstyle[39m=[32m"width: 520px;"[39m
+    [33mtabindex[39m=[32m"-1"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  button:
+
+  Name "Close":
+  [36m<button[39m
+    [33maria-label[39m=[32m"Close"[39m
+    [33mclass[39m=[32m"ant-modal-close"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "Increase Value":
+  [36m<span[39m
+    [33maria-disabled[39m=[32m"false"[39m
+    [33maria-label[39m=[32m"Increase Value"[39m
+    [33mclass[39m=[32m"ant-input-number-action ant-input-number-action-up"[39m
+    [33mrole[39m=[32m"button"[39m
+    [33munselectable[39m=[32m"on"[39m
+  [36m/>[39m
+
+  Name "Decrease Value":
+  [36m<span[39m
+    [33maria-disabled[39m=[32m"false"[39m
+    [33maria-label[39m=[32m"Decrease Value"[39m
+    [33mclass[39m=[32m"ant-input-number-action ant-input-number-action-down"[39m
+    [33mrole[39m=[32m"button"[39m
+    [33munselectable[39m=[32m"on"[39m
+  [36m/>[39m
+
+  Name "Cancel":
+  [36m<button[39m
+    [33mclass[39m=[32m"ant-btn css-dev-only-do-not-override-oc1rc0 css-var-root ant-btn-default ant-btn-color-default ant-btn-variant-outlined"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "OK":
+  [36m<button[39m
+    [33mclass[39m=[32m"ant-btn css-dev-only-do-not-override-oc1rc0 css-var-root ant-btn-primary ant-btn-color-primary ant-btn-variant-solid"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  img:
+
+  Name "close":
+  [36m<span[39m
+    [33maria-label[39m=[32m"close"[39m
+    [33mclass[39m=[32m"anticon anticon-close ant-modal-close-icon"[39m
+    [33mrole[39m=[32m"img"[39m
+  [36m/>[39m
+
+  Name "up":
+  [36m<span[39m
+    [33maria-label[39m=[32m"up"[39m
+    [33mclass[39m=[32m"anticon anticon-up"[39m
+    [33mrole[39m=[32m"img"[39m
+  [36m/>[39m
+
+  Name "down":
+  [36m<span[39m
+    [33maria-label[39m=[32m"down"[39m
+    [33mclass[39m=[32m"anticon anticon-down"[39m
+    [33mrole[39m=[32m"img"[39m
+  [36m/>[39m
+
+  Name "down":
+  [36m<span[39m
+    [33maria-label[39m=[32m"down"[39m
+    [33mclass[39m=[32m"anticon anticon-down"[39m
+    [33mrole[39m=[32m"img"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  textbox:
+
+  Name "":
+  [36m<input[39m
+    [33mclass[39m=[32m"ant-input ant-input-disabled css-dev-only-do-not-override-oc1rc0 ant-input-outlined css-var-root ant-input-css-var"[39m
+    [33mdisabled[39m=[32m""[39m
+    [33mtype[39m=[32m"text"[39m
+    [33mvalue[39m=[32m"SUP-001 — Taiwan Foods"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<input[39m
+    [33mclass[39m=[32m"ant-input ant-input-disabled css-dev-only-do-not-override-oc1rc0 ant-input-outlined css-var-root ant-input-css-var"[39m
+    [33mdisabled[39m=[32m""[39m
+    [33mtype[39m=[32m"text"[39m
+    [33mvalue[39m=[32m"MAT-001 — Milk"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<input[39m
+    [33mclass[39m=[32m"ant-input ant-input-disabled css-dev-only-do-not-override-oc1rc0 ant-input-outlined css-var-root ant-input-css-var"[39m
+    [33mdisabled[39m=[32m""[39m
+    [33mtype[39m=[32m"text"[39m
+    [33mvalue[39m=[32m"TWD"[39m
+  [36m/>[39m
+
+  Name "單價":
+  [36m<input[39m
+    [33maria-required[39m=[32m"true"[39m
+    [33mclass[39m=[32m"ant-input css-dev-only-do-not-override-oc1rc0 ant-input-outlined css-var-root ant-input-css-var"[39m
+    [33mid[39m=[32m"unitPrice"[39m
+    [33minputmode[39m=[32m"decimal"[39m
+    [33mtype[39m=[32m"text"[39m
+    [33mvalue[39m=[32m"80"[39m
+  [36m/>[39m
+
+  Name "最低訂購量（MOQ）":
+  [36m<input[39m
+    [33maria-required[39m=[32m"true"[39m
+    [33mclass[39m=[32m"ant-input css-dev-only-do-not-override-oc1rc0 ant-input-outlined css-var-root ant-input-css-var"[39m
+    [33mid[39m=[32m"moq"[39m
+    [33minputmode[39m=[32m"decimal"[39m
+    [33mtype[39m=[32m"text"[39m
+    [33mvalue[39m=[32m"100"[39m
+  [36m/>[39m
+
+  Name "包裝倍數":
+  [36m<input[39m
+    [33mclass[39m=[32m"ant-input css-dev-only-do-not-override-oc1rc0 ant-input-outlined css-var-root ant-input-css-var"[39m
+    [33mid[39m=[32m"packageMultiple"[39m
+    [33minputmode[39m=[32m"decimal"[39m
+    [33mtype[39m=[32m"text"[39m
+    [33mvalue[39m=[32m"25"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  spinbutton:
+
+  Name "交期（天）":
+  [36m<input[39m
+    [33maria-required[39m=[32m"true"[39m
+    [33maria-valuemin[39m=[32m"0"[39m
+    [33maria-valuenow[39m=[32m"14"[39m
+    [33mautocomplete[39m=[32m"off"[39m
+    [33mclass[39m=[32m"ant-input-number-input"[39m
+    [33mid[39m=[32m"leadTimeDays"[39m
+    [33mrole[39m=[32m"spinbutton"[39m
+    [33mstep[39m=[32m"1"[39m
+    [33mvalue[39m=[32m"14"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  combobox:
+
+  Name "狀態":
+  [36m<input[39m
+    [33maria-autocomplete[39m=[32m"list"[39m
+    [33maria-expanded[39m=[32m"false"[39m
+    [33maria-haspopup[39m=[32m"listbox"[39m
+    [33maria-required[39m=[32m"true"[39m
+    [33mautocomplete[39m=[32m"new-password"[39m
+    [33mclass[39m=[32m"ant-select-input"[39m
+    [33mid[39m=[32m"status"[39m
+    [33mreadonly[39m=[32m""[39m
+    [33mrole[39m=[32m"combobox"[39m
+    [33mtype[39m=[32m"text"[39m
+    [33mvalue[39m=[32m""[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div>[39m
+    [36m<div>[39m
+      [36m<h2[39m
+        [33mclass[39m=[32m"ant-typography css-dev-only-do-not-override-oc1rc0 css-var-root"[39m
+        [33mstyle[39m=[32m"margin-bottom: 0px;"[39m
+      [36m>[39m
+        [0m供應商管理[0m
+      [36m</h2>[39m
+      [36m<span[39m
+        [33mclass[39m=[32m"ant-typography ant-typography-secondary css-dev-only-do-not-override-oc1rc0 css-var-root"[39m
+      [36m>[39m
+        [0m供應商與供應物料關聯主檔[0m
+      [36m</span>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"ant-tabs ant-tabs-top css-dev-only-do-not-override-oc1rc0 css-var-root ant-tabs-css-var"[39m
+      [36m>[39m
+        [36m<div[39m
+          [33maria-orientation[39m=[32m"horizontal"[39m
+          [33mclass[39m=[32m"ant-tabs-nav"[39m
+          [33mrole[39m=[32m"tablist"[39m
+        [36m>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"ant-tabs-nav-wrap"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"ant-tabs-nav-list"[39m
+              [33mstyle[39m=[32m"transform: translate(0px, 0px);"[39m
+            [36m>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"ant-tabs-tab"[39m
+                [33mdata-node-key[39m=[32m"suppliers"[39m
+              [36m>[39m
+                [36m<div[39m
+                  [33maria-controls[39m=[32m"rc-tabs-test-panel-suppliers"[39m
+                  [33maria-selected[39m=[32m"false"[39m
+                  [33mclass[39m=[32m"ant-tabs-tab-btn"[39m
+                  [33mid[39m=[32m"rc-tabs-test-tab-suppliers"[39m
+                  [33mrole[39m=[32m"tab"[39m
+                  [33mtabindex[39m=[32m"-1"[39m
+                [36m>[39m
+                  [0m供應商[0m
+                [36m</div>[39m
+              [36m</div>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"ant-tabs-tab ant-tabs-tab-active"[39m
+                [33mdata-node-key[39m=[32m"supplier-materials"[39m
+              [36m>[39m
+                [36m<div[39m
+                  [33maria-controls[39m=[32m"rc-tabs-test-panel-supplier-materials"[39m
+                  [33maria-selected[39m=[32m"true"[39m
+                  [33mclass[39m=[32m"ant-tabs-tab-btn"[39m
+                  [33mid[39m=[32m"rc-tabs-test-tab-supplier-materials"[39m
+                  [33mrole[39m=[32m"tab"[39m
+                  [33mtabindex[39m=[32m"0"[39m
+                [36m>[39m
+                  [0m供應商物料[0m
+                [36m</div>[39m
+              [36m</div>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"ant-tabs-ink-bar ant-tabs-ink-bar-animated"[39m
+                [33mstyle[39m=[32m"width: 0px; left: 0px; transform: translateX(-50%);"[39m
+              [36m/>[39m
+            [36m</div>[39m
+          [36m</div>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"ant-tabs-nav-operations ant-tabs-nav-operations-hidden"[39m
+          [36m>[39m
+            [36m<button[39m
+              [33maria-controls[39m=[32m"rc-tabs-test-more-popup"[39m
+              [33maria-expanded[39m=[32m"false"[39m
+              [33maria-haspopup[39m=[32m"listbox"[39m
+              [33mclass[39m=[32m"ant-tabs-nav-more"[39m
+              [33mid[39m=[32m"rc-tabs-test-more"[39m
+              [33mstyle[39m=[32m"visibility: hidden; order: 1;"[39m
+              [33mtype[39m=[32m"button"[39m
+            [36m>[39m
+              [36m<span[39m
+                [33maria-label[39m=[32m"ellipsis"[39m
+                [33mclass[39m=[32m"anticon anticon-ellipsis"[39m
+                [33mrole[39m=[32m"img"[39m
+              [36m>[39m
+                [36m<svg[39m
+                  [33maria-hidden[39m=[32m"true"[39m
+                  [33mdata-icon[39m=[32m"ellipsis"[39m
+                  [33mfill[39m=[32m"currentColor"[39m
+                  [33mfocusable[39m=[32m"false"[39m
+                  [33mheight[39m=[32m"1em"[39m
+                  [33mviewBox[39m=[32m"64 64 896 896"[39m
+                  [33mwidth[39m=[32m"1em"[39m
+                [36m>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M176 511a56 56 0 10112 0 56 56 0 10-112 0zm280 0a56 56 0 10112 0 56 56 0 10-112 0zm280 0a56 56 0 10112 0 56 56 0 10-112 0z"[39m
+                  [36m/>[39m
+                [36m</svg>[39m
+              [36m</span>[39m
+            [36m</button>[39m
+          [36m</div>[39m
+        [36m</div>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"ant-tabs-body-holder"[39m
+        [36m>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"ant-tabs-body ant-tabs-body-top"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33maria-hidden[39m=[32m"false"[39m
+              [33maria-labelledby[39m=[32m"rc-tabs-test-tab-supplier-materials"[39m
+              [33mclass[39m=[32m"ant-tabs-content ant-tabs-content-active"[39m
+              [33mid[39m=[32m"rc-tabs-test-panel-supplier-materials"[39m
+              [33mrole[39m=[32m"tabpanel"[39m
+              [33mtabindex[39m=[32m"0"[39m
+            [36m>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"ant-space css-dev-only-do-not-override-oc1rc0 ant-space-vertical ant-space-gap-row-large ant-space-gap-col-large css-var-root"[39m
+                [33mstyle[39m=[32m"width: 100%;"[39m
+              [36m>[39m
+                [36m<div[39m
+                  [33mclass[39m=[32m"ant-space-item"[39m
+                [36m/>[39m
+                [36m<div[39m
+                  [33mclass[39m=[32m"ant-space-item"[39m
+                [36m>[39m
+                  [36m<div[39m
+                    [33mclass[39m=[32m"ant-space css-dev-only-do-not-override-oc1rc0 ant-space-horizontal ant-space-align-center ant-space-gap-row-small ant-space-gap-col-small css-var-root"[39m
+                    [33mstyle[39m=[32m"flex-wrap: wrap; width: 100%; justify-content: space-between;"[39m
+                  [36m>[39m
+                    [36m<div[39m
+                      [33mclass[39m=[32m"ant-space-item"[39m
+                    [36m>[39m
+                      [36m<div[39m
+                        [33mclass[39m=[32m"ant-space css-dev-only-do-not-override-oc1rc0 ant-space-horizontal ant-space-align-center ant-space-gap-row-small ant-space-gap-col-small css-var-root"[39m
+                        [33mstyle[39m=[32m"flex-wrap: wrap;"[39m
+                      [36m>[39m
+                        [36m<div[39m
+                          [33mclass[39m=[32m"ant-space-item"[39m
+                        [36m>[39m
+                          [36m<div[39m
+                            [33mstyle[39m=[32m"width: 240px;"[39m
+                          [36m>[39m
+                            [36m<div[39m
+                          ...
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+ ✓ tests/precisionEditRoundTrip.test.tsx > BigDecimal edit round trips > keeps SupplierMaterial decimal strings through edit, unrelated field change, and PATCH 11515ms
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+ ✓ tests/precisionEditRoundTrip.test.tsx > BigDecimal edit round trips > keeps Material safetyStock exact through read, edit, unrelated field change, and PATCH 9638ms
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+ ✓ tests/supplierMaterialPrecision.test.tsx > SupplierMaterial decimal rendering > keeps a DECIMAL(19,4) token exact from API JSON through the list formatter 1006ms
+ ✓ tests/sp805Api.test.ts > SP-805 API contracts > keeps PO actions as separate fine-grained permissions 2ms
+ ✓ tests/sp805Api.test.ts > SP-805 API contracts > parses formal BigDecimal fields by DTO type while retaining safe integer IDs and pagination numbers 2ms
+ ✓ tests/sp805Api.test.ts > SP-805 API contracts > covers PO, Receiving, and StockTransaction BigDecimal response fields 1ms
+ ✓ tests/sp805Api.test.ts > SP-805 API contracts > preserves Inventory and SupplierMaterial BigDecimal fields while keeping IDs and integer DTO fields numeric 1ms
+ ✓ tests/sp805Api.test.ts > SP-805 API contracts > rejects unsafe ordinary integer fields instead of silently rounding them 1ms
+ ✓ tests/sp805Api.test.ts > SP-805 API contracts > uses backend PO pagination filters and preserves PATCH omission versus explicit null 3ms
+ ✓ tests/sp805Api.test.ts > SP-805 API contracts > preserves BigDecimal strings and recommendation evidence when replacing a DRAFT item list 1ms
+ ✓ tests/sp805Api.test.ts > SP-805 API contracts > updates or explicitly clears the supplier promise through its dedicated endpoint 1ms
+ ✓ tests/sp805Api.test.ts > SP-805 API contracts > sends lifecycle action payloads exactly as defined 2ms
+ ✓ tests/sp805Api.test.ts > SP-805 API contracts > keeps warehouse reads on receiving endpoints while POST receive stays on purchase-orders 1ms
+ ✓ tests/sp805Api.test.ts > SP-805 API contracts > uses separate action endpoints for inspection, full receive, and manual payment confirmation 1ms
+ ✓ tests/sp805Api.test.ts > SP-805 API contracts > preserves PO and StockTransaction decimal tokens through API response transforms 1ms
+ ✓ tests/sp805Api.test.ts > SP-805 API contracts > supports the read-only stock transaction list and detail contract 1ms
+ ✓ tests/masterDataApi.test.ts > master data API contracts > passes database pagination, filtering and sorting to list endpoints 6ms
+ ✓ tests/masterDataApi.test.ts > master data API contracts > parses SupplierMaterial BigDecimal fields losslessly across response endpoints 4ms
+ ✓ tests/masterDataApi.test.ts > master data API contracts > sends only backend-supported PATCH fields 2ms
+ ✓ tests/masterDataApi.test.ts > master data API contracts > uses the exact SupplierMaterial create contract 1ms
+ ✓ tests/purchaseOrderApi.test.ts > SP-804 linked PO Draft API contract > posts only the formal create payload and preserves BigDecimal strings exactly 5ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/masterData.test.tsx > master data pages > validates Material fields, creates once, then refetches
+TestingLibraryElementError: Unable to find an element with the text: /cannot be less than 0/i. This could be because the text is broken up by multiple elements. In this case, you can provide a function for your text matcher to make your matcher more flexible.
+
+Ignored nodes: comments, script, style
+<body>
+  <div>
+    <div>
+      <div
+        class="ant-space css-dev-only-do-not-override-oc1rc0 ant-space-vertical ant-space-gap-row-large ant-space-gap-col-large css-var-root"
+        style="width: 100%;"
+      >
+        <div
+          class="ant-space-item"
+        >
+          <div
+            class="ant-space css-dev-only-do-not-override-oc1rc0 ant-space-horizontal ant-space-align-center ant-space-gap-row-small ant-space-gap-col-small css-var-root"
+            style="flex-wrap: wrap; width: 100%; justify-content: space-between;"
+          >
+            <div
+              class="ant-space-item"
+            >
+              <div>
+                <h2
+                  class="ant-typography css-dev-only-do-not-override-oc1rc0 css-var-root"
+                  style="margin-bottom: 0px;"
+                >
+                  物料管理
+                </h2>
+                <span
+                  class="ant-typography ant-typography-secondary css-dev-only-do-not-override-oc1rc0 css-var-root"
+                >
+                  維護物料主檔與安全庫存
+                </span>
+              </div>
+            </div>
+            <div
+              class="ant-space-item"
+            >
+              <button
+                class="ant-btn css-dev-only-do-not-override-oc1rc0 css-var-root ant-btn-primary ant-btn-color-primary ant-btn-variant-solid"
+                type="button"
+              >
+                <span
+                  class="ant-btn-icon"
+                >
+                  <span
+                    aria-label="plus"
+                    class="anticon anticon-plus"
+                    role="img"
+                  >
+                    <svg
+                      aria-hidden="true"
+                      data-icon="plus"
+                      fill="currentColor"
+                      focusable="false"
+                      height="1em"
+                      viewBox="64 64 896 896"
+                      width="1em"
+                    >
+                      <path
+                        d="M482 152h60q8 0 8 8v704q0 8-8 8h-60q-8 0-8-8V160q0-8 8-8z"
+                      />
+                      <path
+                        d="M192 474h672q8 0 8 8v60q0 8-8 8H160q-8 0-8-8v-60q0-8 8-8z"
+                      />
+                    </svg>
+                  </span>
+                </span>
+                <span>
+                  新增物料
+                </span>
+              </button>
+            </div>
+          </div>
+        </div>
+        <div
+          class="ant-space-item"
+        >
+          <div
+            class="ant-space css-dev-only-do-not-override-oc1rc0 ant-space-horizontal ant-space-align-center ant-space-gap-row-small ant-space-gap-col-small css-var-root"
+            style="flex-wrap: wrap; max-width: 100%;"
+          >
+            <div
+              class="ant-space-item"
+            >
+              <span
+                class="ant-input-affix-wrapper css-dev-only-do-not-override-oc1rc0 ant-input-outlined css-var-root ant-input-css-var"
+              >
+                <input
+                  aria-label="物料代碼篩選"
+                  class="ant-input css-dev-only-do-not-override-oc1rc0"
+                  placeholder="物料代碼"
+                  type="text"
+                  value=""
+                />
+                <span
+                  class="ant-input-suffix"
+                >
+                  <button
+                    class="ant-input-clear-icon ant-input-clear-icon-hidden"
+                    type="button"
+                  >
+                    <span
+                      aria-label="close-circle"
+                      class="anticon anticon-close-circle"
+                      role="img"
+                    >
+                      <svg
+                        aria-hidden="true"
+                        data-icon="close-circle"
+                        fill="currentColor"
+                        fill-rule="evenodd"
+                        focusable="false"
+                        height="1em"
+                        viewBox="64 64 896 896"
+                        width="1em"
+                      >
+                        <path
+                          d="M512 64c247.4 0 448 200.6 448 448S759.4 960 512 960 64 759.4 64 512 264.6 64 512 64zm127.98 274.82h-.04l-.08.06L512 466.75 384.14 338.88c-.04-.05-.06-.06-.08-.06a.12.12 0 00-.07 0c-.03 0-.05.01-.09.05l-45.02 45.02a.2.2 0 00-.05.09.12.12 0 000 .07v.02a.27.27 0 00.06.06L466.75 512 338.88 639.86c-.05.04-.06.06-.06.08a.12.12 0 000 .07c0 .03.01.05.05.09l45.02 45.02a.2.2 0 00.09.05.12.12 0 00.07 0c.02 0 .04-.01.08-.05L512 557.25l127.86 127.87c.04.04.06.05.08.05a.12.12 0 00.07 0c.03 0 .05-.01.09-.05l45.02-45.02a.2.2 0 00.05-.09.12.12 0 000-.07v-.02a.27.27 0 00-.05-.06L557.25 512l127.87-127.86c.04-.04.05-.06.05-.08a.12.12 0 000-.07c0-.03-.01-.05-.05-.09l-45.02-45.02a.2.2 0 00-.09-.05.12.12 0 00-.07 0z"
+                        />
+                      </svg>
+                    </span>
+                  </button>
+                </span>
+              </span>
+            </div>
+            <div
+              class="ant-space-item"
+            >
+              <span
+                class="ant-input-affix-wrapper css-dev-only-do-not-override-oc1rc0 ant-input-outlined css-var-root ant-input-css-v...
+
+Ignored nodes: comments, script, style
+<body>
+  <div>
+    <div>
+      <div
+        class="ant-space css-dev-only-do-not-override-oc1rc0 ant-space-vertical ant-space-gap-row-large ant-space-gap-col-large css-var-root"
+        style="width: 100%;"
+      >
+        <div
+          class="ant-space-item"
+        >
+          <div
+            class="ant-space css-dev-only-do-not-override-oc1rc0 ant-space-horizontal ant-space-align-center ant-space-gap-row-small ant-space-gap-col-small css-var-root"
+            style="flex-wrap: wrap; width: 100%; justify-content: space-between;"
+          >
+            <div
+              class="ant-space-item"
+            >
+              <div>
+                <h2
+                  class="ant-typography css-dev-only-do-not-override-oc1rc0 css-var-root"
+                  style="margin-bottom: 0px;"
+                >
+                  物料管理
+                </h2>
+                <span
+                  class="ant-typography ant-typography-secondary css-dev-only-do-not-override-oc1rc0 css-var-root"
+                >
+                  維護物料主檔與安全庫存
+                </span>
+              </div>
+            </div>
+            <div
+              class="ant-space-item"
+            >
+              <button
+                class="ant-btn css-dev-only-do-not-override-oc1rc0 css-var-root ant-btn-primary ant-btn-color-primary ant-btn-variant-solid"
+                type="button"
+              >
+                <span
+                  class="ant-btn-icon"
+                >
+                  <span
+                    aria-label="plus"
+                    class="anticon anticon-plus"
+                    role="img"
+                  >
+                    <svg
+                      aria-hidden="true"
+                      data-icon="plus"
+                      fill="currentColor"
+                      focusable="false"
+                      height="1em"
+                      viewBox="64 64 896 896"
+                      width="1em"
+                    >
+                      <path
+                        d="M482 152h60q8 0 8 8v704q0 8-8 8h-60q-8 0-8-8V160q0-8 8-8z"
+                      />
+                      <path
+                        d="M192 474h672q8 0 8 8v60q0 8-8 8H160q-8 0-8-8v-60q0-8 8-8z"
+                      />
+                    </svg>
+                  </span>
+                </span>
+                <span>
+                  新增物料
+                </span>
+              </button>
+            </div>
+          </div>
+        </div>
+        <div
+          class="ant-space-item"
+        >
+          <div
+            class="ant-space css-dev-only-do-not-override-oc1rc0 ant-space-horizontal ant-space-align-center ant-space-gap-row-small ant-space-gap-col-small css-var-root"
+            style="flex-wrap: wrap; max-width: 100%;"
+          >
+            <div
+              class="ant-space-item"
+            >
+              <span
+                class="ant-input-affix-wrapper css-dev-only-do-not-override-oc1rc0 ant-input-outlined css-var-root ant-input-css-var"
+              >
+                <input
+                  aria-label="物料代碼篩選"
+                  class="ant-input css-dev-only-do-not-override-oc1rc0"
+                  placeholder="物料代碼"
+                  type="text"
+                  value=""
+                />
+                <span
+                  class="ant-input-suffix"
+                >
+                  <button
+                    class="ant-input-clear-icon ant-input-clear-icon-hidden"
+                    type="button"
+                  >
+                    <span
+                      aria-label="close-circle"
+                      class="anticon anticon-close-circle"
+                      role="img"
+                    >
+                      <svg
+                        aria-hidden="true"
+                        data-icon="close-circle"
+                        fill="currentColor"
+                        fill-rule="evenodd"
+                        focusable="false"
+                        height="1em"
+                        viewBox="64 64 896 896"
+                        width="1em"
+                      >
+                        <path
+                          d="M512 64c247.4 0 448 200.6 448 448S759.4 960 512 960 64 759.4 64 512 264.6 64 512 64zm127.98 274.82h-.04l-.08.06L512 466.75 384.14 338.88c-.04-.05-.06-.06-.08-.06a.12.12 0 00-.07 0c-.03 0-.05.01-.09.05l-45.02 45.02a.2.2 0 00-.05.09.12.12 0 000 .07v.02a.27.27 0 00.06.06L466.75 512 338.88 639.86c-.05.04-.06.06-.06.08a.12.12 0 000 .07c0 .03.01.05.05.09l45.02 45.02a.2.2 0 00.09.05.12.12 0 00.07 0c.02 0 .04-.01.08-.05L512 557.25l127.86 127.87c.04.04.06.05.08.05a.12.12 0 00.07 0c.03 0 .05-.01.09-.05l45.02-45.02a.2.2 0 00.05-.09.12.12 0 000-.07v-.02a.27.27 0 00-.05-.06L557.25 512l127.87-127.86c.04-.04.05-.06.05-.08a.12.12 0 000-.07c0-.03-.01-.05-.05-.09l-45.02-45.02a.2.2 0 00-.09-.05.12.12 0 00-.07 0z"
+                        />
+                      </svg>
+                    </span>
+                  </button>
+                </span>
+              </span>
+            </div>
+            <div
+              class="ant-space-item"
+            >
+              <span
+                class="ant-input-affix-wrapper css-dev-only-do-not-override-oc1rc0 ant-input-outlined css-var-root ant-input-css-v...
+ ❯ waitForWrapper node_modules/@testing-library/dom/dist/wait-for.js:163:27
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:86:33
+ ❯ tests/masterData.test.tsx:75:25
+     73|     await user.click(screen.getByRole('button', { name: 'OK' }));
+     74|     expect(await screen.findByText(/cannot be longer than 50/i)).toBeT…
+     75|     expect(await screen.findByText(/cannot be less than 0/i)).toBeTrut…
+       |                         ^
+     76|     expect(requests.filter(({ method }) => method === 'post')).toHaveL…
+     77|     fireEvent.change(screen.getByRole('textbox', { name: '物料代碼' }), { …
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  tests/masterData.test.tsx > master data pages > creates and edits SupplierMaterial through the UI without PATCHing immutable relationships or currency
+TestingLibraryElementError: Unable to find an accessible element with the role "spinbutton" and name "單價"
+
+Here are the accessible roles:
+
+  heading:
+
+  Name "供應商管理":
+  <h2
+    class="ant-typography css-dev-only-do-not-override-oc1rc0 css-var-root"
+    style="margin-bottom: 0px;"
+  />
+
+  --------------------------------------------------
+  tablist:
+
+  Name "":
+  <div
+    aria-orientation="horizontal"
+    class="ant-tabs-nav"
+    role="tablist"
+  />
+
+  --------------------------------------------------
+  tab:
+
+  Name "供應商":
+  <div
+    aria-controls="rc-tabs-test-panel-suppliers"
+    aria-selected="false"
+    class="ant-tabs-tab-btn"
+    id="rc-tabs-test-tab-suppliers"
+    role="tab"
+    tabindex="-1"
+  />
+
+  Name "供應商物料":
+  <div
+    aria-controls="rc-tabs-test-panel-supplier-materials"
+    aria-selected="true"
+    class="ant-tabs-tab-btn"
+    id="rc-tabs-test-tab-supplier-materials"
+    role="tab"
+    tabindex="0"
+  />
+
+  --------------------------------------------------
+  tabpanel:
+
+  Name "供應商物料":
+  <div
+    aria-hidden="false"
+    aria-labelledby="rc-tabs-test-tab-supplier-materials"
+    class="ant-tabs-content ant-tabs-content-active"
+    id="rc-tabs-test-panel-supplier-materials"
+    role="tabpanel"
+    tabindex="0"
+  />
+
+  --------------------------------------------------
+  combobox:
+
+  Name "選取供應商":
+  <input
+    aria-autocomplete="list"
+    aria-expanded="false"
+    aria-haspopup="listbox"
+    aria-label="選取供應商"
+    autocomplete="new-password"
+    class="ant-select-input"
+    id="test-id"
+    role="combobox"
+    type="text"
+    value=""
+  />
+
+  Name "選取物料":
+  <input
+    aria-autocomplete="list"
+    aria-expanded="false"
+    aria-haspopup="listbox"
+    aria-label="選取物料"
+    autocomplete="new-password"
+    class="ant-select-input"
+    id="test-id"
+    role="combobox"
+    type="text"
+    value=""
+  />
+
+  Name "供應商物料狀態篩選":
+  <input
+    aria-autocomplete="list"
+    aria-expanded="false"
+    aria-haspopup="listbox"
+    aria-label="供應商物料狀態篩選"
+    autocomplete="new-password"
+    class="ant-select-input"
+    id="test-id"
+    readonly=""
+    role="combobox"
+    type="text"
+    value=""
+  />
+
+  Name "Page Size":
+  <input
+    aria-autocomplete="list"
+    aria-expanded="false"
+    aria-haspopup="listbox"
+    aria-label="Page Size"
+    autocomplete="new-password"
+    class="ant-select-input"
+    id="test-id"
+    role="combobox"
+    type="text"
+    value=""
+  />
+
+  --------------------------------------------------
+  img:
+
+  Name "down":
+  <span
+    aria-label="down"
+    class="anticon anticon-down"
+    role="img"
+  />
+
+  Name "down":
+  <span
+    aria-label="down"
+    class="anticon anticon-down"
+    role="img"
+  />
+
+  Name "down":
+  <span
+    aria-label="down"
+    class="anticon anticon-down"
+    role="img"
+  />
+
+  Name "plus":
+  <span
+    aria-label="plus"
+    class="anticon anticon-plus"
+    role="img"
+  />
+
+  Name "left":
+  <span
+    aria-label="left"
+    class="anticon anticon-left"
+    role="img"
+  />
+
+  Name "right":
+  <span
+    aria-label="right"
+    class="anticon anticon-right"
+    role="img"
+  />
+
+  Name "down":
+  <span
+    aria-label="down"
+    class="anticon anticon-down"
+    role="img"
+  />
+
+  --------------------------------------------------
+  code:
+
+  Name "":
+  <code />
+
+  Name "":
+  <code />
+
+  --------------------------------------------------
+  button:
+
+  Name "plus 新增供應商物料關聯":
+  <button
+    class="ant-btn css-dev-only-do-not-override-oc1rc0 css-var-root ant-btn-primary ant-btn-color-primary ant-btn-variant-solid"
+    type="button"
+  />
+
+  Name "編 輯":
+  <button
+    class="ant-btn css-dev-only-do-not-override-oc1rc0 css-var-root ant-btn-default ant-btn-color-default ant-btn-variant-outlined ant-btn-sm"
+    type="button"
+  />
+
+  Name "停 用":
+  <button
+    class="ant-btn css-dev-only-do-not-override-oc1rc0 css-var-root ant-btn-default ant-btn-color-default ant-btn-variant-outlined ant-btn-sm"
+    type="button"
+  />
+
+  Name "left":
+  <button
+    class="ant-pagination-item-link"
+    disabled=""
+    tabindex="-1"
+    type="button"
+  />
+
+  Name "right":
+  <button
+    class="ant-pagination-item-link"
+    disabled=""
+    tabindex="-1"
+    type="button"
+  />
+
+  --------------------------------------------------
+  table:
+
+  Name "":
+  <table
+    style="width: max-content; min-width: 100%; table-layout: auto;"
+  />
+
+  --------------------------------------------------
+  rowgroup:
+
+  Name "":
+  <thead
+    class="ant-table-thead"
+  />
+
+  Name "":
+  <tbody
+    class="ant-table-tbody"
+  />
+
+  --------------------------------------------------
+  row:
+
+  Name "供應商 物料 單價 最低訂購量（MOQ） 包裝倍數 交期（天） 狀態 操作":
+  <tr />
+
+  Name "SUP-001 — Taiwan Foods MAT-001 — Milk TWD 80 100 L 25 L 14 啟用 編 輯 停 用":
+  <tr
+    class="ant-table-row ant-table-row-level-0"
+    data-row-key="3"
+  />
+
+  --------------------------------------------------
+  columnheader:
+
+  Name "供應商":
+  <th
+    class="ant-table-cell"
+    scope="col"
+  />
+
+  Name "物料":
+  <th
+    class="ant-table-cell"
+    scope="col"
+  />
+
+  Name "單價":
+  <th
+    aria-description="sortable"
+    aria-label="單價"
+    class="ant-table-cell ant-table-column-has-sorters"
+    scope="col"
+    tabindex="0"
+  />
+
+  Name "最低訂購量（MOQ）":
+  <th
+    aria-description="sortable"
+    aria-label="最低訂購量（MOQ）"
+    class="ant-table-cell ant-table-column-has-sorters"
+    scope="col"
+    tabindex="0"
+  />
+
+  Name "包裝倍數":
+  <th
+    aria-description="sortable"
+    aria-label="包裝倍數"
+    class="ant-table-cell ant-table-column-has-sorters"
+    scope="col"
+    tabindex="0"
+  />
+
+  Name "交期（天）":
+  <th
+    aria-description="sortable"
+    aria-label="交期（天）"
+    class="ant-table-cell ant-table-column-has-sorters"
+    scope="col"
+    tabindex="0"
+  />
+
+  Name "狀態":
+  <th
+    aria-description="sortable"
+    aria-label="狀態"
+    class="ant-table-cell ant-table-column-has-sorters"
+    scope="col"
+    tabindex="0"
+  />
+
+  Name "操作":
+  <th
+    class="ant-table-cell"
+    scope="col"
+  />
+
+  --------------------------------------------------
+  cell:
+
+  Name "SUP-001 — Taiwan Foods":
+  <td
+    class="ant-table-cell ant-table-cell-row-hover"
+  />
+
+  Name "MAT-001 — Milk":
+  <td
+    class="ant-table-cell ant-table-cell-row-hover"
+  />
+
+  Name "TWD 80":
+  <td
+    class="ant-table-cell ant-table-cell-row-hover"
+  />
+
+  Name "100 L":
+  <td
+    class="ant-table-cell ant-table-cell-row-hover"
+  />
+
+  Name "25 L":
+  <td
+    class="ant-table-cell ant-table-cell-row-hover"
+  />
+
+  Name "14":
+  <td
+    class="ant-table-cell ant-table-cell-row-hover"
+  />
+
+  Name "啟用":
+  <td
+    class="ant-table-cell ant-table-cell-row-hover"
+  />
+
+  Name "編 輯 停 用":
+  <td
+    class="ant-table-cell ant-table-cell-row-hover"
+  />
+
+  --------------------------------------------------
+  list:
+
+  Name "":
+  <ul
+    class="ant-pagination ant-table-pagination ant-table-pagination-end css-dev-only-do-not-override-oc1rc0 css-var-root"
+  />
+
+  --------------------------------------------------
+  listitem:
+
+  Name "Previous Page":
+  <li
+    aria-disabled="true"
+    class="ant-pagination-prev ant-pagination-disabled"
+    title="Previous Page"
+  />
+
+  Name "1":
+  <li
+    class="ant-pagination-item ant-pagination-item-1 ant-pagination-item-active"
+    tabindex="0"
+    title="1"
+  />
+
+  Name "Next Page":
+  <li
+    aria-disabled="true"
+    class="ant-pagination-next ant-pagination-disabled"
+    title="Next Page"
+  />
+
+  Name "":
+  <li
+    class="ant-pagination-options"
+  />
+
+  --------------------------------------------------alert:
+
+  Name "":
+  <div
+    class="ant-message-notice ant-message-notice-success"
+    data-notification-index="0"
+    role="alert"
+    style="--notification-index: 0; --notification-y: 0px;"
+  />
+
+  --------------------------------------------------
+  img:
+
+  Name "check-circle":
+  <span
+    aria-label="check-circle"
+    class="anticon anticon-check-circle"
+    role="img"
+  />
+
+  --------------------------------------------------dialog:
+
+  Name "選取供應商":
+  <div
+    aria-labelledby="test-id"
+    aria-modal="true"
+    class="ant-modal css-dev-only-do-not-override-oc1rc0 ant-zoom-appear ant-zoom-appear-prepare ant-zoom"
+    role="dialog"
+    style="width: 520px;"
+    tabindex="-1"
+  />
+
+  --------------------------------------------------
+  button:
+
+  Name "Close":
+  <button
+    aria-label="Close"
+    class="ant-modal-close"
+    type="button"
+  />
+
+  Name "Increase Value":
+  <span
+    aria-disabled="false"
+    aria-label="Increase Value"
+    class="ant-input-number-action ant-input-number-action-up"
+    role="button"
+    unselectable="on"
+  />
+
+  Name "Decrease Value":
+  <span
+    aria-disabled="false"
+    aria-label="Decrease Value"
+    class="ant-input-number-action ant-input-number-action-down"
+    role="button"
+    unselectable="on"
+  />
+
+  Name "Cancel":
+  <button
+    class="ant-btn css-dev-only-do-not-override-oc1rc0 css-var-root ant-btn-default ant-btn-color-default ant-btn-variant-outlined"
+    type="button"
+  />
+
+  Name "OK":
+  <button
+    class="ant-btn css-dev-only-do-not-override-oc1rc0 css-var-root ant-btn-primary ant-btn-color-primary ant-btn-variant-solid"
+    type="button"
+  />
+
+  --------------------------------------------------
+  img:
+
+  Name "close":
+  <span
+    aria-label="close"
+    class="anticon anticon-close ant-modal-close-icon"
+    role="img"
+  />
+
+  Name "up":
+  <span
+    aria-label="up"
+    class="anticon anticon-up"
+    role="img"
+  />
+
+  Name "down":
+  <span
+    aria-label="down"
+    class="anticon anticon-down"
+    role="img"
+  />
+
+  Name "down":
+  <span
+    aria-label="down"
+    class="anticon anticon-down"
+    role="img"
+  />
+
+  --------------------------------------------------
+  textbox:
+
+  Name "":
+  <input
+    class="ant-input ant-input-disabled css-dev-only-do-not-override-oc1rc0 ant-input-outlined css-var-root ant-input-css-var"
+    disabled=""
+    type="text"
+    value="SUP-001 — Taiwan Foods"
+  />
+
+  Name "":
+  <input
+    class="ant-input ant-input-disabled css-dev-only-do-not-override-oc1rc0 ant-input-outlined css-var-root ant-input-css-var"
+    disabled=""
+    type="text"
+    value="MAT-001 — Milk"
+  />
+
+  Name "":
+  <input
+    class="ant-input ant-input-disabled css-dev-only-do-not-override-oc1rc0 ant-input-outlined css-var-root ant-input-css-var"
+    disabled=""
+    type="text"
+    value="TWD"
+  />
+
+  Name "單價":
+  <input
+    aria-required="true"
+    class="ant-input css-dev-only-do-not-override-oc1rc0 ant-input-outlined css-var-root ant-input-css-var"
+    id="unitPrice"
+    inputmode="decimal"
+    type="text"
+    value="80"
+  />
+
+  Name "最低訂購量（MOQ）":
+  <input
+    aria-required="true"
+    class="ant-input css-dev-only-do-not-override-oc1rc0 ant-input-outlined css-var-root ant-input-css-var"
+    id="moq"
+    inputmode="decimal"
+    type="text"
+    value="100"
+  />
+
+  Name "包裝倍數":
+  <input
+    class="ant-input css-dev-only-do-not-override-oc1rc0 ant-input-outlined css-var-root ant-input-css-var"
+    id="packageMultiple"
+    inputmode="decimal"
+    type="text"
+    value="25"
+  />
+
+  --------------------------------------------------
+  spinbutton:
+
+  Name "交期（天）":
+  <input
+    aria-required="true"
+    aria-valuemin="0"
+    aria-valuenow="14"
+    autocomplete="off"
+    class="ant-input-number-input"
+    id="leadTimeDays"
+    role="spinbutton"
+    step="1"
+    value="14"
+  />
+
+  --------------------------------------------------
+  combobox:
+
+  Name "狀態":
+  <input
+    aria-autocomplete="list"
+    aria-expanded="false"
+    aria-haspopup="listbox"
+    aria-required="true"
+    autocomplete="new-password"
+    class="ant-select-input"
+    id="status"
+    readonly=""
+    role="combobox"
+    type="text"
+    value=""
+  />
+
+  --------------------------------------------------
+
+Ignored nodes: comments, script, style
+<body>
+  <div>
+    <div>
+      <h2
+        class="ant-typography css-dev-only-do-not-override-oc1rc0 css-var-root"
+        style="margin-bottom: 0px;"
+      >
+        供應商管理
+      </h2>
+      <span
+        class="ant-typography ant-typography-secondary css-dev-only-do-not-override-oc1rc0 css-var-root"
+      >
+        供應商與供應物料關聯主檔
+      </span>
+      <div
+        class="ant-tabs ant-tabs-top css-dev-only-do-not-override-oc1rc0 css-var-root ant-tabs-css-var"
+      >
+        <div
+          aria-orientation="horizontal"
+          class="ant-tabs-nav"
+          role="tablist"
+        >
+          <div
+            class="ant-tabs-nav-wrap"
+          >
+            <div
+              class="ant-tabs-nav-list"
+              style="transform: translate(0px, 0px);"
+            >
+              <div
+                class="ant-tabs-tab"
+                data-node-key="suppliers"
+              >
+                <div
+                  aria-controls="rc-tabs-test-panel-suppliers"
+                  aria-selected="false"
+                  class="ant-tabs-tab-btn"
+                  id="rc-tabs-test-tab-suppliers"
+                  role="tab"
+                  tabindex="-1"
+                >
+                  供應商
+                </div>
+              </div>
+              <div
+                class="ant-tabs-tab ant-tabs-tab-active"
+                data-node-key="supplier-materials"
+              >
+                <div
+                  aria-controls="rc-tabs-test-panel-supplier-materials"
+                  aria-selected="true"
+                  class="ant-tabs-tab-btn"
+                  id="rc-tabs-test-tab-supplier-materials"
+                  role="tab"
+                  tabindex="0"
+                >
+                  供應商物料
+                </div>
+              </div>
+              <div
+                class="ant-tabs-ink-bar ant-tabs-ink-bar-animated"
+                style="width: 0px; left: 0px; transform: translateX(-50%);"
+              />
+            </div>
+          </div>
+          <div
+            class="ant-tabs-nav-operations ant-tabs-nav-operations-hidden"
+          >
+            <button
+              aria-controls="rc-tabs-test-more-popup"
+              aria-expanded="false"
+              aria-haspopup="listbox"
+              class="ant-tabs-nav-more"
+              id="rc-tabs-test-more"
+              style="visibility: hidden; order: 1;"
+              type="button"
+            >
+              <span
+                aria-label="ellipsis"
+                class="anticon anticon-ellipsis"
+                role="img"
+              >
+                <svg
+                  aria-hidden="true"
+                  data-icon="ellipsis"
+                  fill="currentColor"
+                  focusable="false"
+                  height="1em"
+                  viewBox="64 64 896 896"
+                  width="1em"
+                >
+                  <path
+                    d="M176 511a56 56 0 10112 0 56 56 0 10-112 0zm280 0a56 56 0 10112 0 56 56 0 10-112 0zm280 0a56 56 0 10112 0 56 56 0 10-112 0z"
+                  />
+                </svg>
+              </span>
+            </button>
+          </div>
+        </div>
+        <div
+          class="ant-tabs-body-holder"
+        >
+          <div
+            class="ant-tabs-body ant-tabs-body-top"
+          >
+            <div
+              aria-hidden="false"
+              aria-labelledby="rc-tabs-test-tab-supplier-materials"
+              class="ant-tabs-content ant-tabs-content-active"
+              id="rc-tabs-test-panel-supplier-materials"
+              role="tabpanel"
+              tabindex="0"
+            >
+              <div
+                class="ant-space css-dev-only-do-not-override-oc1rc0 ant-space-vertical ant-space-gap-row-large ant-space-gap-col-large css-var-root"
+                style="width: 100%;"
+              >
+                <div
+                  class="ant-space-item"
+                />
+                <div
+                  class="ant-space-item"
+                >
+                  <div
+                    class="ant-space css-dev-only-do-not-override-oc1rc0 ant-space-horizontal ant-space-align-center ant-space-gap-row-small ant-space-gap-col-small css-var-root"
+                    style="flex-wrap: wrap; width: 100%; justify-content: space-between;"
+                  >
+                    <div
+                      class="ant-space-item"
+                    >
+                      <div
+                        class="ant-space css-dev-only-do-not-override-oc1rc0 ant-space-horizontal ant-space-align-center ant-space-gap-row-small ant-space-gap-col-small css-var-root"
+                        style="flex-wrap: wrap;"
+                      >
+                        <div
+                          class="ant-space-item"
+                        >
+                          <div
+                            style="width: 240px;"
+                          >
+                            <div
+                          ...
+ ❯ Object.getElementError node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ tests/masterData.test.tsx:308:29
+    306|
+    307|     await user.click(screen.getByRole('button', { name: /編\s*輯/ }));
+    308|     fireEvent.change(screen.getByRole('spinbutton', { name: '單價' }), {…
+       |                             ^
+    309|     await user.click(screen.getByRole('button', { name: 'OK' }));
+    310|     await waitFor(() => expect(requests.filter(({ method }) => method …
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed | 5 passed (6)
+      Tests  2 failed | 29 passed (31)
+   Start at  00:34:14
+   Duration  200.21s (transform 535ms, setup 1.19s, import 13.33s, tests 179.11s, environment 5.06s)
+

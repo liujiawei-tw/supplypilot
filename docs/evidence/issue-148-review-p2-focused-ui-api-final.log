@@ -1,0 +1,77 @@
+
+> frontend@0.0.0 test
+> vitest run --maxWorkers=1 --testTimeout=60000 --reporter=verbose tests/precisionEditRoundTrip.test.tsx tests/supplierMaterialPrecision.test.tsx tests/masterDataApi.test.ts tests/masterData.test.tsx tests/purchaseOrderApi.test.ts tests/sp805Api.test.ts
+
+
+ RUN  v4.1.11 C:/Users/z0976/.codex/worktrees/issue-148-v2-401/supplypilot/frontend
+
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+ ✓ tests/precisionEditRoundTrip.test.tsx > BigDecimal edit round trips > keeps SupplierMaterial decimal strings through edit, unrelated field change, and PATCH 8679ms
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+ ✓ tests/precisionEditRoundTrip.test.tsx > BigDecimal edit round trips > keeps Material safetyStock exact through read, edit, unrelated field change, and PATCH 8738ms
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+ ✓ tests/masterData.test.tsx > master data pages > shows loading, data and ADMIN actions on Materials 2361ms
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+ ✓ tests/masterData.test.tsx > master data pages > keeps Materials read-only for an authorized non-ADMIN role 1065ms
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+ ✓ tests/masterData.test.tsx > master data pages > validates Material fields, creates once, then refetches 20128ms
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+ ✓ tests/masterData.test.tsx > master data pages > shows backend validation details and does not report a failed status update as success 5289ms
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+ ✓ tests/masterData.test.tsx > master data pages > keeps the Material create modal and values after a 409, then refetches only after retry succeeds 14816ms
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Could not parse CSS stylesheet
+Could not parse CSS stylesheet
+ ✓ tests/masterData.test.tsx > master data pages > shows Material edit validation errors inside the modal and keeps edited values 9099ms
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Could not parse CSS stylesheet
+Could not parse CSS stylesheet
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+ ✓ tests/masterData.test.tsx > master data pages > shows Suppliers and SupplierMaterials as read-only tabs for procurement roles 3559ms
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Could not parse CSS stylesheet
+Could not parse CSS stylesheet
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+ ✓ tests/masterData.test.tsx > master data pages > edits a Supplier without sending its immutable code and refetches 9217ms
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Could not parse CSS stylesheet
+Could not parse CSS stylesheet
+ ✓ tests/masterData.test.tsx > master data pages > keeps Supplier create and edit values when backend submissions fail 29638ms
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+ ✓ tests/masterData.test.tsx > master data pages > creates and edits SupplierMaterial through the UI without PATCHing immutable relationships or currency 47405ms
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+ ✓ tests/supplierMaterialPrecision.test.tsx > SupplierMaterial decimal rendering > keeps a DECIMAL(19,4) token exact from API JSON through the list formatter 1036ms
+ ✓ tests/sp805Api.test.ts > SP-805 API contracts > keeps PO actions as separate fine-grained permissions 2ms
+ ✓ tests/sp805Api.test.ts > SP-805 API contracts > parses formal BigDecimal fields by DTO type while retaining safe integer IDs and pagination numbers 2ms
+ ✓ tests/sp805Api.test.ts > SP-805 API contracts > covers PO, Receiving, and StockTransaction BigDecimal response fields 1ms
+ ✓ tests/sp805Api.test.ts > SP-805 API contracts > preserves Inventory and SupplierMaterial BigDecimal fields while keeping IDs and integer DTO fields numeric 0ms
+ ✓ tests/sp805Api.test.ts > SP-805 API contracts > rejects unsafe ordinary integer fields instead of silently rounding them 1ms
+ ✓ tests/sp805Api.test.ts > SP-805 API contracts > uses backend PO pagination filters and preserves PATCH omission versus explicit null 4ms
+ ✓ tests/sp805Api.test.ts > SP-805 API contracts > preserves BigDecimal strings and recommendation evidence when replacing a DRAFT item list 1ms
+ ✓ tests/sp805Api.test.ts > SP-805 API contracts > updates or explicitly clears the supplier promise through its dedicated endpoint 1ms
+ ✓ tests/sp805Api.test.ts > SP-805 API contracts > sends lifecycle action payloads exactly as defined 1ms
+ ✓ tests/sp805Api.test.ts > SP-805 API contracts > keeps warehouse reads on receiving endpoints while POST receive stays on purchase-orders 1ms
+ ✓ tests/sp805Api.test.ts > SP-805 API contracts > uses separate action endpoints for inspection, full receive, and manual payment confirmation 1ms
+ ✓ tests/sp805Api.test.ts > SP-805 API contracts > preserves PO and StockTransaction decimal tokens through API response transforms 1ms
+ ✓ tests/sp805Api.test.ts > SP-805 API contracts > supports the read-only stock transaction list and detail contract 1ms
+ ✓ tests/masterDataApi.test.ts > master data API contracts > passes database pagination, filtering and sorting to list endpoints 6ms
+ ✓ tests/masterDataApi.test.ts > master data API contracts > parses SupplierMaterial BigDecimal fields losslessly across response endpoints 4ms
+ ✓ tests/masterDataApi.test.ts > master data API contracts > sends only backend-supported PATCH fields 2ms
+ ✓ tests/masterDataApi.test.ts > master data API contracts > uses the exact SupplierMaterial create contract 1ms
+ ✓ tests/purchaseOrderApi.test.ts > SP-804 linked PO Draft API contract > posts only the formal create payload and preserves BigDecimal strings exactly 6ms
+
+ Test Files  6 passed (6)
+      Tests  31 passed (31)
+   Start at  00:42:37
+   Duration  182.12s (transform 503ms, setup 1.24s, import 13.34s, tests 161.08s, environment 5.05s)
+

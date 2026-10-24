@@ -10,7 +10,7 @@ import type { AuthenticatedUser, UserRole } from '../src/types/api';
 
 const material = { id: 1, code: 'MAT-001', name: 'Milk', baseUnit: 'L', safetyStock: 10, status: 'ACTIVE', createdAt: '', updatedAt: '' };
 const supplier = { id: 2, code: 'SUP-001', name: 'Taiwan Foods', country: 'TW', reliabilityScore: 92, qualityScore: 95, status: 'ACTIVE', createdAt: '', updatedAt: '' };
-const supplierMaterial = { id: 3, supplierId: 2, materialId: 1, unitPrice: 80, moq: 100, packageMultiple: 25, leadTimeDays: 14, currency: 'TWD', status: 'ACTIVE', createdAt: '', updatedAt: '' };
+const supplierMaterial = { id: 3, supplierId: 2, materialId: 1, unitPrice: '80', moq: '100', packageMultiple: '25', leadTimeDays: 14, currency: 'TWD', status: 'ACTIVE', createdAt: '', updatedAt: '' };
 
 function response(config: InternalAxiosRequestConfig, data: unknown, status = 200): AxiosResponse {
   return { config, data, status, statusText: String(status), headers: {} };
@@ -72,9 +72,12 @@ describe('master data pages', () => {
     fireEvent.blur(safetyStock);
     await user.click(screen.getByRole('button', { name: 'OK' }));
     expect(await screen.findByText(/cannot be longer than 50/i)).toBeTruthy();
-    expect(await screen.findByText(/cannot be less than 0/i)).toBeTruthy();
+    expect((screen.getByRole('spinbutton', { name: '安全庫存' }) as HTMLInputElement).value).toBe('-1');
     expect(requests.filter(({ method }) => method === 'post')).toHaveLength(0);
     fireEvent.change(screen.getByRole('textbox', { name: '物料代碼' }), { target: { value: 'MAT-NEW' } });
+    await user.click(screen.getByRole('button', { name: 'OK' }));
+    expect(await screen.findByText('安全庫存不可小於 0')).toBeTruthy();
+    expect(requests.filter(({ method }) => method === 'post')).toHaveLength(0);
     fireEvent.change(screen.getByRole('spinbutton', { name: '安全庫存' }), { target: { value: '0' } });
     await user.click(screen.getByRole('button', { name: 'OK' }));
     await waitFor(() => expect(finishCreate).toBeTypeOf('function'));
@@ -265,7 +268,7 @@ describe('master data pages', () => {
         created = true;
         return response(config, supplierMaterial, 201);
       }
-      if (config.url === '/supplier-materials/3' && config.method === 'patch') return response(config, { ...supplierMaterial, unitPrice: 85 });
+      if (config.url === '/supplier-materials/3' && config.method === 'patch') return response(config, { ...supplierMaterial, unitPrice: '85' });
       throw new Error(`Unexpected request: ${config.method} ${config.url}`);
     });
     renderWithRole(<SuppliersPage />, 'ADMIN');
@@ -284,10 +287,17 @@ describe('master data pages', () => {
     const materialSelects = screen.getAllByRole('combobox', { name: '選取物料' });
     await user.click(materialSelects.at(-1)!);
     await user.click((await screen.findAllByText('MAT-001 — Milk', {}, { timeout: 5_000 })).at(-1)!);
-    fireEvent.change(screen.getByRole('spinbutton', { name: '單價' }), { target: { value: '80' } });
+    const unitPriceInput = screen.getByRole('spinbutton', { name: '單價' });
+    fireEvent.change(unitPriceInput, { target: { value: '-1' } });
     fireEvent.change(screen.getByRole('spinbutton', { name: /最低訂購量/ }), { target: { value: '100' } });
     fireEvent.change(screen.getByRole('spinbutton', { name: '包裝倍數' }), { target: { value: '25' } });
     fireEvent.change(screen.getByRole('spinbutton', { name: '交期（天）' }), { target: { value: '14' } });
+    fireEvent.blur(unitPriceInput);
+    expect((screen.getByRole('spinbutton', { name: '單價' }) as HTMLInputElement).value).toBe('-1');
+    await user.click(screen.getByRole('button', { name: 'OK' }));
+    expect(await screen.findByText('單價不可小於 0')).toBeTruthy();
+    expect(requests.filter(({ method }) => method === 'post')).toHaveLength(0);
+    fireEvent.change(screen.getByRole('spinbutton', { name: '單價' }), { target: { value: '80' } });
     await user.click(screen.getByRole('button', { name: 'OK' }));
 
     expect(await screen.findByText('供應商物料資料送出失敗')).toBeTruthy();
@@ -305,11 +315,11 @@ describe('master data pages', () => {
     ]);
 
     await user.click(screen.getByRole('button', { name: /編\s*輯/ }));
-    fireEvent.change(screen.getByRole('spinbutton', { name: '單價' }), { target: { value: '85' } });
+    fireEvent.change(screen.getByRole('textbox', { name: '單價' }), { target: { value: '85' } });
     await user.click(screen.getByRole('button', { name: 'OK' }));
     await waitFor(() => expect(requests.filter(({ method }) => method === 'patch')).toHaveLength(1));
     const patchPayload = JSON.parse(requests.find(({ method }) => method === 'patch')?.data as string) as Record<string, unknown>;
-    expect(patchPayload).toEqual({ unitPrice: 85, moq: 100, packageMultiple: 25, leadTimeDays: 14, status: 'ACTIVE' });
+    expect(patchPayload).toEqual({ unitPrice: '85', moq: '100', packageMultiple: '25', leadTimeDays: 14, status: 'ACTIVE' });
     expect(patchPayload).not.toHaveProperty('supplierId');
     expect(patchPayload).not.toHaveProperty('materialId');
     expect(patchPayload).not.toHaveProperty('currency');

@@ -1,0 +1,45 @@
+
+> frontend@0.0.0 test
+> vitest run --maxWorkers=1 --testTimeout=60000 --reporter=verbose --testNamePattern=validates Material fields tests/masterData.test.tsx
+
+
+ RUN  v4.1.11 C:/Users/z0976/.codex/worktrees/issue-148-v2-401/supplypilot/frontend
+
+ ↓ tests/masterData.test.tsx > master data pages > shows loading, data and ADMIN actions on Materials
+ ↓ tests/masterData.test.tsx > master data pages > keeps Materials read-only for an authorized non-ADMIN role
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+ × tests/masterData.test.tsx > master data pages > validates Material fields, creates once, then refetches 11899ms
+   → expected '0' to be '-1' // Object.is equality
+ ↓ tests/masterData.test.tsx > master data pages > shows backend validation details and does not report a failed status update as success
+ ↓ tests/masterData.test.tsx > master data pages > keeps the Material create modal and values after a 409, then refetches only after retry succeeds
+ ↓ tests/masterData.test.tsx > master data pages > shows Material edit validation errors inside the modal and keeps edited values
+ ↓ tests/masterData.test.tsx > master data pages > shows Suppliers and SupplierMaterials as read-only tabs for procurement roles
+ ↓ tests/masterData.test.tsx > master data pages > edits a Supplier without sending its immutable code and refetches
+ ↓ tests/masterData.test.tsx > master data pages > keeps Supplier create and edit values when backend submissions fail
+ ↓ tests/masterData.test.tsx > master data pages > creates and edits SupplierMaterial through the UI without PATCHing immutable relationships or currency
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/masterData.test.tsx > master data pages > validates Material fields, creates once, then refetches
+AssertionError: expected '0' to be '-1' // Object.is equality
+
+Expected: "-1"
+Received: "0"
+
+ ❯ tests/masterData.test.tsx:75:53
+
+     73|     await user.click(screen.getByRole('button', { name: 'OK' }));
+     74|     expect(await screen.findByText(/cannot be longer than 50/i)).toBeT…
+     75|     expect((safetyStock as HTMLInputElement).value).toBe('-1');
+       |                                                     ^
+     76|     expect(requests.filter(({ method }) => method === 'post')).toHaveL…
+     77|     fireEvent.change(screen.getByRole('textbox', { name: '物料代碼' }), { …
+ Test Files  1 failed (1)
+      Tests  1 failed | 9 skipped (10)
+   Start at  00:40:51
+   Duration  17.95s (transform 361ms, setup 213ms, import 4.82s, tests 11.90s, environment 789ms)
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
