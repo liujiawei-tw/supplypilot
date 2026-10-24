@@ -44,7 +44,7 @@ Concurrency Correctness
 
 ## Codex 開發期間的驗證節奏
 
-依變更影響範圍執行精準測試；修改共用認證／授權、資料庫 Schema／交易或存在跨模組風險時，擴大到相關整合測試。完整回歸優先由 GitHub Actions 在交付的 Feature Branch Head SHA 執行。本機完整回歸集中於必要的交付驗證，不為微小修正無理由重跑相同套件。此流程不縮減 CI Gate 或安全、授權、交易、併發測試；程式變更後須重跑受影響驗證，並記錄結果對應的 SHA／工作樹版本。
+V2 一般 Issue 採「精準 CI + 必要整合／負向驗證 + GPT 獨立 Code Review」交付：依實際 Diff、直接及間接依賴執行受影響 Vitest／Maven、適用 Lint／Build 及 Issue 明訂的 Browser 驗收；涉及共用認證／授權、資料庫 Schema／交易、RAG 出站或併發時，必須擴大必要整合測試，不得把高風險必跑測試延後。每張 Issue 不必重跑完整 Maven verify／Vitest；所有規劃的 V2 Issues 整合後才執行完整 Backend／Frontend CI 與跨模組回歸。GitHub Actions 目前依使用者決定暫停作為 Gate（PAUSED BY USER / NOT USED AS GATE），本機只可標 LOCAL VERIFIED。舊完整套件失敗必須保留且逐項分診；只有足以證明不影響該 Issue，且必要精準測試／驗收通過時，才可標為 DEFERRED TO V2 INTEGRATION，不得把原 FAIL 改寫為 PASS。保留原始日誌及其適用 SHA，參照 AGENTS.md 最新政策。
 
 ---
 
@@ -937,57 +937,23 @@ critical business behavior
 
 # 40. CI Test Layers
 
-GitHub Actions：
+**V2 每張 Issue 的精準 CI：** 依變更範圍執行必要 Compile、Unit／Service／Repository／Security、受影響 Vitest、API 契約、Integration（必要時實際 MySQL／PostgreSQL pgvector Testcontainers）、Concurrency、Lint／Build，以及該 Issue 的 Browser／可及性驗收。必要範圍的測試須全部通過；保存 Tests／Failures／Errors／Skipped、Exit Code、Log、精確 SHA。GitHub Actions 暫停作為 Gate，僅可標 LOCAL VERIFIED。
 
-```text
-mvn test
-```
+**V2 全部規劃 Issues 合併並整合後：** 再執行完整 Maven verify、完整 Vitest／Lint／TypeScript／Frontend Production Build、相關 MySQL／PostgreSQL Migration、跨模組安全／交易／併發與必要 E2E，解決先前保留的全量測試失敗。真實 Gemini／AWS／正式部署驗收另依範圍安排，不冒稱尚未執行項目 PASS。
 
-跑：
-
-```text
-Unit Test
-Service Test
-Repository Test
-Security Test
-```
-
-Integration：
-
-```text
-mvn verify
-```
-
-跑：
-
-```text
-Testcontainers Integration Test
-Concurrency Test
-```
+原完整套件若已有 FAIL，保留原始失敗與逐項分診；只有可證明和本 Issue 無直接或間接關聯的失敗，才允許標記 DEFERRED TO V2 INTEGRATION。不足以排除本 Issue 風險的必要測試失敗仍阻擋交付。
 
 ---
 
 # 41. PR Merge Gate
 
-建議：
+1. Codex 實作並執行受影響開發期測試；Commit／Push 精確 HEAD。
+2. GPT 獨立 Code Review：0 Blocking Finding。
+3. Codex 執行該 SHA 的必要精準 CI、風險整合測試及當張 Issue 驗收。
+4. GPT 核實原始證據與已知風險，符合條件方核發 FINAL DELIVERY PASS，建立繁體中文 PR，獨立一行 Closes #Issue。
+5. 使用者手動 Merge；所有 V2 Issues 整合後再執行完整 CI 與正式部署驗收。
 
-```text
-Compile
-↓
-Unit Test
-↓
-Repository / Security Test
-↓
-Integration Test
-↓
-Build
-```
-
-全部綠：
-
-```text
-PR eligible to merge
-```
+**PR Gate PASS ≠ 完整 CI PASS ≠ GitHub Actions PASS ≠ Gemini／Browser／AWS 尚未執行部分 PASS。**
 
 ---
 
