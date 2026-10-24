@@ -1,0 +1,4 @@
+Flyway 12.4.0 ChecksumCalculator output
+backend/src/main/resources/db/migration/V31__add_purchase_order_item_currency_snapshot.sql flywayChecksum=-1035371520
+C:\Users\z0976\.codex\worktrees\issue-147-v2-303\supplypilot\backend\src\main\resources\db\migration\V31__demo_baseline_approval_events.sql flywayChecksum=-1468955155
+EXIT_CODE=0

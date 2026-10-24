@@ -98,3 +98,84 @@
 ## 修正摘要
 
 僅修正實測 Header 問題：AI 助理按鈕獲得明確 class、窄螢幕邊距調為 28px，Sider 在初次 render 即依 lg breakpoint collapsed。沒有改 PO 搜尋或 #144 共用 PO page 行為。
+## 原始完整 Vitest 37 個 failure 逐案分診
+
+原始 npm run test -- --reporter=verbose 結果仍保留為 **EXIT 1；29 files（22 passed／7 failed）；262 tests（225 passed／37 failed）**，原始 stdout/stderr 為 logs/vitest.txt。不改寫原始 FAIL。
+
+已知該完整 runner 與 precision Vitest 曾重疊執行，且 #144 Vitest 曾在途中啟動；後續七個失敗 suite 均以 --maxWorkers=1 在無前端測試併跑時逐檔重跑。下表逐列保留原始 37 個測試名稱和原始錯誤；除 Demand 409 案外，其餘 36 案在同一 #148 HEAD 的 clean serial suite rerun 均通過，且程式未因此修改，判定為原執行資源競爭／非重現，沒有重現產品回歸。各 suite 的原始 serial output 保留於 logs/triage-*.txt。
+
+| # | 原始失敗案例（raw test title） | 原始完整 runner 錯誤 | 單檔 serial rerun 結果／分類 |
+|---:|---|---|---|
+| 1 | SP-802 Inventory UI > shows detail and allows Warehouse to submit a signed adjustment exactly once before refetch | 30s timeout | PASS；demandInventory.test.tsx clean serial suite |
+| 2 | SP-802 Inventory UI > keeps adjustment input and marks a 409 result unknown without retrying | 找不到 調整庫存 按鈕 | FAIL；精確案例在 #148 branch 與 clean origin/main 均 30s timeout；同基線既有測試／環境失敗，不歸因於 #148。Branch serial log triage-demandInventory.txt；隔離案例 triage-demandInventory-409-isolated.txt；main 對照 triage-main-demandInventory-409.txt |
+| 3 | Issue #143 purchase-order page views > refreshes the current Kanban from backend after a successful draft create | 30s timeout | PASS；issue143PurchaseOrdersPage.test.tsx clean serial suite；另於 clean main 精確案例 PASS 1／1（4 skipped），triage-main-issue143-draft-create.txt |
+| 4 | Issue #143 purchase-order page views > does not refresh the Kanban or report success after a 403 draft-create failure | 30s timeout | PASS；PO clean serial suite |
+| 5 | Issue #143 purchase-order page views > does not refresh the Kanban or report success after a network error draft-create failure | 30s timeout | PASS；PO clean serial suite |
+| 6 | master data pages > validates Material fields, creates once, then refetches | 30s timeout | PASS；masterData.test.tsx clean serial suite |
+| 7 | master data pages > shows Material edit validation errors inside the modal and keeps edited values | 15s timeout | PASS；masterData clean serial suite |
+| 8 | master data pages > keeps Supplier create and edit values when backend submissions fail | 40s timeout | PASS；masterData clean serial suite |
+| 9 | master data pages > creates and edits SupplierMaterial through the UI without PATCHing immutable relationships or currency | 60s timeout | PASS；masterData clean serial suite |
+| 10 | SP-804 Recommendation create > validates required fields and date order before sending a request | 找不到驗證文字 期間起日不可晚於迄日 | PASS；recommendation.test.tsx clean serial suite |
+| 11 | SP-804 Recommendation to linked PO Draft > requires both override reasons and sends the selected result snapshot without decimal arithmetic | 30s timeout | PASS；recommendation clean serial suite |
+| 12 | SP-805 PO lifecycle UI > shows both delivery dates and updates the supplier promise without changing the expected date | 找不到日期文字 2026/10/30 | PASS；sp805.test.tsx clean serial suite |
+| 13 | SP-805 PO lifecycle UI > does not retry after a conflict and requires querying the actual PO state | 找不到 取消採購單 按鈕 | PASS；sp805 clean serial suite |
+| 14 | SP-805 PO lifecycle UI > moves an ordered PO into receiving inspection and removes its cancellation action | 找不到 取消採購單 按鈕 | PASS；sp805 clean serial suite |
+| 15 | SP-805 PO lifecycle UI > creates a Manual DRAFT with exact decimal strings after explicit confirmation | 30s timeout | PASS；sp805 clean serial suite |
+| 16 | SP-805 PO lifecycle UI > creates a DRAFT with the exact IDs of page-6 master records and does not confuse duplicate names | 30s timeout | PASS；sp805 clean serial suite |
+| 17 | SP-805 PO lifecycle UI > keeps linked recommendation evidence while filling delivery date, approving, and marking ordered | 30s timeout | PASS；sp805 clean serial suite |
+| 18 | SP-805 PO lifecycle UI > requires a non-blank reject reason before enabling the confirmed request | 找不到 /駁\s*回/ 按鈕 | PASS；sp805 clean serial suite |
+| 19 | SP-805 receiving and stock security boundaries > locks a 409 receive result until an explicit restricted refetch and never auto-retries | 找不到 確認整筆收貨 按鈕 | PASS；sp805 clean serial suite |
+| 20 | SP-805 receiving and stock security boundaries > handles a receiving timeout by refetching RECEIVED without automatically resending | 找不到 確認整筆收貨 按鈕 | PASS；sp805 clean serial suite |
+| 21 | SP-806 Document Management UI > confirms outbound approval and renders the actual 後端 Review result | 30s timeout | PASS；sp806.test.tsx clean serial suite |
+| 22 | SP-806 Document Management UI > ignores a delayed title response after switching documents | 30s timeout | PASS；sp806 clean serial suite |
+| 23 | SP-806 Document Management UI > ignores a delayed archive response after switching documents | 30s timeout | PASS；sp806 clean serial suite |
+| 24 | SP-806 Document Management UI > ignores a delayed ingestion response after switching documents | 30s timeout | PASS；sp806 clean serial suite |
+| 25 | SP-806 Document Management UI > ignores a delayed ingestion verification response after switching documents | 30s timeout | PASS；sp806 clean serial suite |
+| 26 | SP-806 Document Management UI > marks saved Gate 稽核 responses historical after upload | 30s timeout | PASS；sp806 clean serial suite |
+| 27 | SP-806 Document Management UI > marks saved Gate 稽核 responses historical after ingestion | 30s timeout | PASS；sp806 clean serial suite |
+| 28 | SP-806 Document Management UI > marks saved Gate 稽核 responses historical after outbound approval | 30s timeout | PASS；sp806 clean serial suite |
+| 29 | SP-806 Document Management UI > marks saved Gate 稽核 responses historical after outbound exclusion | 30s timeout | PASS；sp806 clean serial suite |
+| 30 | SP-806 Document Management UI > locks an unknown or 409 ingestion result until the official document GET succeeds, without a resend | 30s timeout | PASS；sp806 clean serial suite |
+| 31 | SP-806 Document Management UI > submits one upload on rapid clicks and locks an unknown upload instead of guessing its result | 30s timeout | PASS；sp806 clean serial suite |
+| 32 | SP-806 Global AI 助理 > reviews a multi-item backend snapshot and sends one token-based Confirm with no ordinary PO create call | 30s timeout | PASS；sp806 clean serial suite |
+| 33 | SP-806 Global AI 助理 > shows clarification without Confirm and locks unknown Confirm results without resending | 30s timeout | PASS；sp806 clean serial suite |
+| 34 | SP-806 Global AI 助理 > locks the old Proposal after AI_PROPOSAL_ALREADY_CONFIRMED | 30s timeout | PASS；sp806 clean serial suite |
+| 35 | SP-806 Global AI 助理 > locks the old Proposal after AI_PROPOSAL_EXPIRED | 30s timeout | PASS；sp806 clean serial suite |
+| 36 | SP-806 Global AI 助理 > fails closed when Proposal expiresAt is invalid without calling Confirm | 30s timeout | PASS；sp806 clean serial suite |
+| 37 | SP-807 receiving and import verification boundaries > verifies DUPLICATE_RECEIVING through restricted GET and reports RECEIVED without a resend | 找不到 確認整筆收貨 按鈕 | PASS；sp807.test.tsx clean serial suite |
+
+七個 clean serial suite 結果為：Demand 1／12 passed、1 failed；PO 5／5 passed；masterData 10／10 passed；recommendation 25／25 passed；SP-805 18／18 passed；SP-806 28／28 passed；SP-807 14／14 passed。Demand 409 精確案例在 main 的單案對照同樣於 30s timeout，尚保留 FAIL；完整 262-test runner 仍是 EXIT 1。以上完整 suite 結果依 V2 決策標示 **FAIL — DEFERRED TO V2 INTEGRATION**，不宣稱全套通過。未調高任何 timeout、未刪除／skip 測試、未放寬 assertion。
+
+frontend/src/pages/Inventory/InventoryPage.tsx 的 #148 diff 僅將庫存數量／時間格式化、使篩選換行、表格設內層橫向捲動並加 Drawer class；沒有改調整流程、按鈕或 409 處理。這與精確 409 案在 main 相同失敗相符。
+
+
+### 七個原始失敗 suite 的序列重跑命令與結果
+
+以下命令均在 frontend/ 執行，原始輸出留在 frontend/docs/evidence/issue-148-rwd/logs/：
+
+| Suite | 命令 | 結果／raw log |
+|---|---|---|
+| Demand | npm run test -- --reporter=verbose --maxWorkers=1 tests/demandInventory.test.tsx | EXIT 1；1 failed、11 passed；logs/triage-demandInventory.txt |
+| PO page | npm run test -- --reporter=verbose --maxWorkers=1 tests/issue143PurchaseOrdersPage.test.tsx | EXIT 0；5／5 passed；logs/triage-issue143PurchaseOrdersPage-serial-clean.txt |
+| Master Data | npm run test -- --reporter=verbose --maxWorkers=1 tests/masterData.test.tsx | EXIT 0；10／10 passed；logs/triage-masterData-serial.txt |
+| Recommendation | npm run test -- --reporter=verbose --maxWorkers=1 tests/recommendation.test.tsx | EXIT 0；25／25 passed；logs/triage-recommendation-serial.txt |
+| SP-805 | npm run test -- --reporter=verbose --maxWorkers=1 tests/sp805.test.tsx | EXIT 0；18／18 passed；logs/triage-sp805-serial.txt |
+| SP-806 | npm run test -- --reporter=verbose --maxWorkers=1 tests/sp806.test.tsx | EXIT 0；28／28 passed；logs/triage-sp806-serial.txt |
+| SP-807 | npm run test -- --reporter=verbose --maxWorkers=1 tests/sp807.test.tsx | EXIT 0；14／14 passed；logs/triage-sp807-serial.txt |
+
+Demand 精確比較在 clean main worktree 執行：npm run test -- --reporter=verbose --maxWorkers=1 --testNamePattern='keeps adjustment input and marks a 409 result unknown without retrying' tests/demandInventory.test.tsx，EXIT 1；1 failed、11 skipped，30s timeout，raw log logs/triage-main-demandInventory-409.txt。PO 成功草稿精確比較在 clean main worktree 執行：npm run test -- --reporter=verbose --maxWorkers=1 --testNamePattern='refreshes the current Kanban from backend after a successful draft create' tests/issue143PurchaseOrdersPage.test.tsx，EXIT 0；1 passed、4 skipped，raw log logs/triage-main-issue143-draft-create.txt。Clean main 的 SHA 為 9825612c6636c3543d42c3bcfcba015058b52acf。
+
+### PO currency API 與 MySQL migration 證據
+
+#148 相對 origin/main 的後端差異包含 PurchaseOrderItem currency snapshot、PurchaseOrderItemResponse 的 currency 欄位、mapper/service 將 SupplierMaterial 幣別放入 PO line 並在允許的草稿更新路徑刷新快照、Controller API response 契約測試，以及 Flyway migration V31。PO 建立 API 不接受使用者自行指定幣別；服務端以關聯 SupplierMaterial 的幣別為準。docs/api.md 已同步 response 欄位。
+
+精準後端命令：backend/mvnw.cmd -f backend/pom.xml -Dtest=PurchaseOrderControllerIntegrationTests,PurchaseOrderUpdateIntegrationTests,V31PurchaseOrderCurrencyMigrationIntegrationTests test。結果 EXIT 0；20 tests run，0 failures、0 errors、0 skipped。原始成功 log：docs/evidence/issue-148-maven-currency-tests-rerun.log。該 log 使用 Testcontainers MySQL 8.4；V31PurchaseOrderCurrencyMigrationIntegrationTests 從空資料庫先 migrate 到 V30、插入沒有 currency 欄位的歷史 PO item，再 upgrade 至 V31，驗證 TWD backfill、欄位 NOT NULL、check constraint 存在，並確認 USD update 被拒。Flyway log 顯示 v1–v30 fresh migration 成功、validate 31 migrations 成功，然後套用 V31 至 schema version 31。早期一次 compile 曾因 test import package 寫錯而 EXIT 1；已修正 import，以上為修正後成功 rerun，不是把原失敗改寫成成功。
+
+以 Flyway 12.4.0 ChecksumCalculator 對 migration resource 計算的 checksum，保留於 docs/evidence/issue-148-flyway-checksums.txt：
+
+| 分支檔案 | Version | Flyway checksum |
+|---|---:|---:|
+| #148 V31__add_purchase_order_item_currency_snapshot.sql | 31 | -1035371520 |
+| #147 V31__demo_baseline_approval_events.sql | 31 | -1468955155 |
+
+#148 分支自身的 migration version scan 沒有重複數字版本；#147 worktree 亦新增另一個 V31，兩檔 checksum 不同。這是跨分支版本衝突，不是同一版本的 checksum drift；合併時需協調 migration renumber/version order，不能原樣同時保留兩個 V31。此 Issue 分支未修改任何已建立的 migration 歷史。前端 triage 後的 acceptance 文件與 checksum log 是文件／證據變更；上述產品程式與依賴未變，後端測試證據適用於本次 source HEAD bee6efde3bbe40996b34b0993a75ed39c9b74933。
