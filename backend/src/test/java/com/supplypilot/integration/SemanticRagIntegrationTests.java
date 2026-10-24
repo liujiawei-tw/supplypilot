@@ -1,5 +1,6 @@
 package com.supplypilot.integration;
 
+import java.nio.charset.StandardCharsets;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.Timestamp;
@@ -50,10 +51,14 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Primary;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.http.MediaType;
+import org.springframework.web.client.RestClientResponseException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.test.web.servlet.MockMvc;
@@ -67,6 +72,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+@TestPropertySource(properties = "supplypilot.semantic.indexing.max-retry-delay=PT60S")
 @AutoConfigureMockMvc
 @Import(SemanticRagIntegrationTests.FakeConfiguration.class)
 class SemanticRagIntegrationTests extends AbstractIntegrationTest {
@@ -102,6 +108,10 @@ class SemanticRagIntegrationTests extends AbstractIntegrationTest {
         model.tasks.clear();
         model.transactionStates.clear();
         model.fail.set(false);
+        model.failure.set(null);
+        model.blockNext.set(false);
+        model.providerStarted = new CountDownLatch(0);
+        model.releaseProvider = new CountDownLatch(0);
         chunks.deleteAllInBatch();
         documents.deleteAllInBatch();
         store.ensureSchema();
@@ -308,15 +318,30 @@ class SemanticRagIntegrationTests extends AbstractIntegrationTest {
         long failingId = ready(admin, DocumentType.QUALITY_REQUIREMENT,
                 "Quality checks are performed daily.");
         approve(admin, failingId);
-        model.fail.set(true);
+        HttpHeaders retryHeaders = new HttpHeaders();
+        retryHeaders.set("Retry-After", "120");
+        model.failure.set(new RestClientResponseException("provider rate limit",
+                HttpStatusCode.valueOf(429), "Too Many Requests", retryHeaders,
+                "private provider body".getBytes(StandardCharsets.UTF_8), StandardCharsets.UTF_8));
         for (int attempt = 0; attempt < 4; attempt++) {
             assertThat(worker.processNext()).isTrue();
+            SemanticIndexJob retryJob = indexJobs.latest(10).stream()
+                    .filter(job -> job.documentId() == failingId).findFirst().orElseThrow();
+            if (attempt == 0) {
+                assertThat(retryJob.nextAttemptAt())
+                        .isAfterOrEqualTo(clock.instant().plusSeconds(120));
+            }
+            if (attempt < 3) {
+                assertThat(retryJob.status()).isEqualTo(SemanticIndexJobStatus.RETRY_WAIT);
+                jdbc.update("UPDATE semantic_index_jobs SET next_attempt_at = ? WHERE id = ?",
+                        Timestamp.from(clock.instant()), retryJob.id());
+            }
         }
         var failedJob = indexJobs.latest(10).stream().filter(job -> job.documentId() == failingId)
                 .findFirst().orElseThrow();
         assertThat(failedJob.status().name()).isEqualTo("FAILED");
         assertThat(failedJob.attempts()).isEqualTo(4);
-        assertThat(failedJob.failureCode()).isEqualTo("PROVIDER_UNAVAILABLE");
+        assertThat(failedJob.failureCode()).isEqualTo("PROVIDER_RATE_LIMITED");
 
         User manager = user(UserRole.PROCUREMENT_MANAGER);
         mvc.perform(get("/api/v1/semantic-index/jobs").header("Authorization", bearer(manager)))
@@ -326,6 +351,7 @@ class SemanticRagIntegrationTests extends AbstractIntegrationTest {
                 .andExpect(status().isForbidden());
 
         model.fail.set(false);
+        model.failure.set(null);
         mvc.perform(post("/api/v1/semantic-index/gate-audit").header("Authorization", bearer(admin)))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.passed").value(false));
         query(admin, "forklift capacity").andExpect(status().isOk())
@@ -344,6 +370,115 @@ class SemanticRagIntegrationTests extends AbstractIntegrationTest {
                     assertThat(job.retryCount()).isEqualTo(1);
                     assertThat(job.attempts()).isEqualTo(1);
                 });
+    }
+
+    @Test
+    void oldGenerationMarksCannotOverwriteNewerReadyPublication() {
+        long id = 841L;
+        List<Float> vector = new java.util.ArrayList<>(java.util.Collections.nCopies(768, 0f));
+        vector.set(0, 1f);
+        List<SemanticStore.SourceChunk> currentSource =
+                List.of(new SemanticStore.SourceChunk(0, 0, 6, "newer"));
+        assertThat(store.publish(id, "v1", "newer-hash", 2,
+                List.of(new SemanticStore.SafeChunk(0, 0, 6, "newer", vector)))).isTrue();
+
+        store.mark(id, "v1", "PROCESSING", null, "old-processing-hash", 1, 1);
+        store.mark(id, "v1", "FAILED", "PROVIDER_UNAVAILABLE", "old-failed-hash", 1, 1);
+
+        assertThat(store.state(id, "v1").status()).isEqualTo("READY");
+        assertThat(store.state(id, "v1").publicationGeneration()).isEqualTo(2);
+        assertThat(store.state(id, "v1").sourceHash()).isEqualTo("newer-hash");
+        assertThat(store.matchesSource(id, "v1", currentSource)).isTrue();
+    }
+
+    @Test
+    void sameGenerationProcessingMarkCannotReleaseReadyHashFence() {
+        long id = 842L;
+        List<Float> vector = new java.util.ArrayList<>(java.util.Collections.nCopies(768, 0f));
+        vector.set(0, 1f);
+        List<SemanticStore.SourceChunk> currentSource =
+                List.of(new SemanticStore.SourceChunk(0, 0, 6, "newer"));
+        assertThat(store.publish(id, "v1", "newer-hash", 2,
+                List.of(new SemanticStore.SafeChunk(0, 0, 6, "newer", vector)))).isTrue();
+
+        store.mark(id, "v1", "PROCESSING", null, "newer-hash", 1, 2);
+        assertThat(store.state(id, "v1").status()).isEqualTo("READY");
+        assertThat(store.publish(id, "v1", "newer-hash", 2,
+                List.of(new SemanticStore.SafeChunk(0, 0, 6, "newer", vector)))).isTrue();
+
+        store.mark(id, "v1", "PROCESSING", null, "stale-same-generation-hash", 1, 2);
+        assertThat(store.publish(id, "v1", "stale-same-generation-hash", 2,
+                List.of(new SemanticStore.SafeChunk(0, 0, 5, "stale", vector)))).isFalse();
+
+        assertThat(store.state(id, "v1").status()).isEqualTo("READY");
+        assertThat(store.state(id, "v1").publicationGeneration()).isEqualTo(2);
+        assertThat(store.state(id, "v1").sourceHash()).isEqualTo("newer-hash");
+        assertThat(store.matchesSource(id, "v1", currentSource)).isTrue();
+    }
+
+    @Test
+    void staleBackfillCannotReplaceNewerAsyncWorkerPublication() throws Exception {
+        User admin = user(UserRole.ADMIN);
+        String olderContent = "Forklift capacity is 500 kilograms.";
+        long documentId = ready(admin, DocumentType.PROCUREMENT_SOP, olderContent);
+        approve(admin, documentId);
+        long oldGeneration = documents.findById(documentId).orElseThrow().getSemanticIndexGeneration();
+
+        model.providerStarted = new CountDownLatch(1);
+        model.releaseProvider = new CountDownLatch(1);
+        model.blockNext.set(true);
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        try {
+            Future<Integer> oldBackfill = executor.submit(() -> mvc.perform(
+                            post("/api/v1/semantic-index/backfill")
+                                    .param("afterId", "0")
+                                    .param("limit", "100")
+                                    .header("Authorization", bearer(admin)))
+                    .andReturn().getResponse().getStatus());
+
+            assertThat(model.providerStarted.await(10, TimeUnit.SECONDS)).isTrue();
+
+            String newerContent = "Quality checks are performed daily.";
+            DocumentMetadata document = documents.findById(documentId).orElseThrow();
+            jdbc.update("DELETE FROM document_chunks WHERE document_id = ?", documentId);
+            String lexicalVector = new LocalLexicalEmbeddingProvider().embed(newerContent).stream()
+                    .map(String::valueOf).collect(Collectors.joining(","));
+            chunks.saveAndFlush(DocumentChunk.create(document, 0, 0, newerContent.length(), newerContent,
+                    lexicalVector, clock.instant()));
+            approve(admin, documentId);
+            long newGeneration = documents.findById(documentId).orElseThrow().getSemanticIndexGeneration();
+            assertThat(newGeneration).isGreaterThan(oldGeneration);
+
+            SemanticIndexJob oldClaim = indexJobs.claimNext(clock.instant(),
+                    clock.instant().plusSeconds(30), 4).orElseThrow();
+            assertThat(oldClaim.documentId()).isEqualTo(documentId);
+            assertThat(oldClaim.documentGeneration()).isEqualTo(oldGeneration);
+            assertThat(indexJobs.supersede(oldClaim.id(), oldClaim.attempts(),
+                    "SOURCE_GENERATION_ADVANCED", clock.instant())).isTrue();
+
+            assertThat(worker.processNext()).isTrue();
+            assertThat(store.state(documentId, "v1").status()).isEqualTo("READY");
+            assertThat(store.state(documentId, "v1").publicationGeneration()).isEqualTo(newGeneration);
+            assertThat(store.matchesSource(documentId, "v1", List.of(new SemanticStore.SourceChunk(
+                    0, 0, newerContent.length(), newerContent)))).isTrue();
+
+            model.releaseProvider.countDown();
+            assertThat(oldBackfill.get(15, TimeUnit.SECONDS)).isEqualTo(200);
+
+            assertThat(store.state(documentId, "v1").status()).isEqualTo("READY");
+            assertThat(store.state(documentId, "v1").publicationGeneration()).isEqualTo(newGeneration);
+            assertThat(store.state(documentId, "v1").sourceHash())
+                    .isEqualTo(indexJobs.latest(20).stream()
+                            .filter(job -> job.documentId() == documentId)
+                            .filter(job -> job.documentGeneration() == newGeneration)
+                            .findFirst().orElseThrow().sourceHash());
+            assertThat(store.matchesSource(documentId, "v1", List.of(new SemanticStore.SourceChunk(
+                    0, 0, newerContent.length(), newerContent)))).isTrue();
+        } finally {
+            model.releaseProvider.countDown();
+            executor.shutdownNow();
+            assertThat(executor.awaitTermination(5, TimeUnit.SECONDS)).isTrue();
+        }
     }
 
     @Test
@@ -405,8 +540,9 @@ class SemanticRagIntegrationTests extends AbstractIntegrationTest {
                 .andExpect(status().isOk()).andExpect(jsonPath("$.ready").value(1));
         assertThat(store.chunkCount(id, "v1")).isEqualTo(1);
         store.mark(id, "v1", "PROCESSING", null, store.state(id, "v1").sourceHash(), 1);
+        assertThat(store.state(id, "v1").status()).isEqualTo("READY");
         mvc.perform(post("/api/v1/semantic-index/gate-audit").header("Authorization", bearer(admin)))
-                .andExpect(status().isOk()).andExpect(jsonPath("$.passed").value(false));
+                .andExpect(status().isOk()).andExpect(jsonPath("$.passed").value(true));
         query(admin, "forklift lifting").andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("ANSWERED"));
         mvc.perform(post("/api/v1/semantic-index/backfill").header("Authorization", bearer(admin)))
@@ -709,11 +845,29 @@ class SemanticRagIntegrationTests extends AbstractIntegrationTest {
         final List<String> inputs = new CopyOnWriteArrayList<>();
         final List<GoogleGenAiTextEmbeddingOptions.TaskType> tasks = new CopyOnWriteArrayList<>();
         final AtomicBoolean fail = new AtomicBoolean();
+        final AtomicBoolean blockNext = new AtomicBoolean();
+        final java.util.concurrent.atomic.AtomicReference<RuntimeException> failure =
+                new java.util.concurrent.atomic.AtomicReference<>();
         final List<Boolean> transactionStates = new CopyOnWriteArrayList<>();
+        volatile CountDownLatch providerStarted = new CountDownLatch(0);
+        volatile CountDownLatch releaseProvider = new CountDownLatch(0);
 
         @Override
         public EmbeddingResponse call(EmbeddingRequest request) {
             transactionStates.add(TransactionSynchronizationManager.isActualTransactionActive());
+            if (blockNext.compareAndSet(true, false)) {
+                providerStarted.countDown();
+                try {
+                    if (!releaseProvider.await(12, TimeUnit.SECONDS)) {
+                        throw new IllegalStateException("fake provider latch timed out");
+                    }
+                } catch (InterruptedException exception) {
+                    Thread.currentThread().interrupt();
+                    throw new IllegalStateException("fake provider interrupted", exception);
+                }
+            }
+            RuntimeException configuredFailure = failure.get();
+            if (configuredFailure != null) throw configuredFailure;
             if (fail.get()) throw new IllegalStateException("fake provider unavailable");
             String content = request.getInstructions().getFirst();
             inputs.add(content);

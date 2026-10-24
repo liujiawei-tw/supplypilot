@@ -126,18 +126,25 @@ public class SemanticEmbeddingService {
     }
 
     static Duration retryAfter(String header) {
+        return retryAfter(header, Instant.now());
+    }
+
+    static Duration retryAfter(String header, Instant now) {
         if (header == null || header.isBlank()) return null;
-        try {
-            long seconds = Long.parseLong(header.trim());
-            return seconds < 0 ? null : Duration.ofSeconds(seconds);
-        } catch (NumberFormatException ignored) {
+        String value = header.trim();
+        if (value.matches("[0-9]+")) {
             try {
-                Instant retryAt = ZonedDateTime.parse(header, DateTimeFormatter.RFC_1123_DATE_TIME).toInstant();
-                Duration delay = Duration.between(Instant.now(), retryAt);
-                return delay.isNegative() ? Duration.ZERO : delay;
-            } catch (RuntimeException invalidDate) {
+                return Duration.ofSeconds(Long.parseLong(value));
+            } catch (ArithmeticException | NumberFormatException invalidSeconds) {
                 return null;
             }
+        }
+        try {
+            Instant retryAt = ZonedDateTime.parse(value, DateTimeFormatter.RFC_1123_DATE_TIME).toInstant();
+            Duration delay = Duration.between(now, retryAt);
+            return delay.isNegative() ? Duration.ZERO : delay;
+        } catch (RuntimeException invalidDate) {
+            return null;
         }
     }
 }

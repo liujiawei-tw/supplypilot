@@ -25,9 +25,6 @@ public record SemanticIndexingProperties(
 
     public Duration retryDelay(int attempt, Duration retryAfter) {
         if (attempt < 1) throw new IllegalArgumentException("Attempt must be positive");
-        if (retryAfter != null && !retryAfter.isNegative()) {
-            return retryAfter.compareTo(maxRetryDelay) > 0 ? maxRetryDelay : retryAfter;
-        }
         long multiplier = 1L << Math.min(attempt - 1, 30);
         Duration exponential;
         try {
@@ -35,6 +32,9 @@ public record SemanticIndexingProperties(
         } catch (ArithmeticException exception) {
             exponential = maxRetryDelay;
         }
-        return exponential.compareTo(maxRetryDelay) > 0 ? maxRetryDelay : exponential;
+        Duration cappedExponential = exponential.compareTo(maxRetryDelay) > 0
+                ? maxRetryDelay : exponential;
+        if (retryAfter == null || retryAfter.isNegative()) return cappedExponential;
+        return retryAfter.compareTo(cappedExponential) > 0 ? retryAfter : cappedExponential;
     }
 }

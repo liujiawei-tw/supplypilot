@@ -2,6 +2,9 @@ package com.supplypilot.document.semantic;
 
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.time.Instant;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 import com.supplypilot.common.exception.BusinessException;
@@ -61,6 +64,20 @@ class SemanticEmbeddingServiceTests {
         assertThat(SemanticEmbeddingService.retryAfter("3")).isEqualTo(Duration.ofSeconds(3));
         assertThat(SemanticEmbeddingService.retryAfter("-1")).isNull();
         assertThat(SemanticEmbeddingService.retryAfter("not-a-date")).isNull();
+        assertThat(SemanticEmbeddingService.retryAfter("9223372036854775807"))
+                .isEqualTo(Duration.ofSeconds(Long.MAX_VALUE));
+        assertThat(SemanticEmbeddingService.retryAfter("9223372036854775808")).isNull();
+    }
+
+    @Test
+    void parsesHttpDateRelativeToProvidedClockWithoutSchedulingEarly() {
+        Instant now = Instant.parse("2026-10-24T04:00:00Z");
+        Instant retryAt = now.plusSeconds(120);
+        String header = DateTimeFormatter.RFC_1123_DATE_TIME.format(retryAt.atZone(ZoneOffset.UTC));
+
+        assertThat(SemanticEmbeddingService.retryAfter(header, now)).isEqualTo(Duration.ofSeconds(120));
+        assertThat(SemanticEmbeddingService.retryAfter(header, retryAt.plusSeconds(5)))
+                .isEqualTo(Duration.ZERO);
     }
 
     private void assertProviderFailure(int status, String safeCode, boolean retryable, String retryAfter) {

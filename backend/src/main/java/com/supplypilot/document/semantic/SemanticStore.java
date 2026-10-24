@@ -105,6 +105,9 @@ public class SemanticStore {
                   failure_reason = EXCLUDED.failure_reason,
                   publication_generation = EXCLUDED.publication_generation,
                   attempts = semantic_document_indexes.attempts + 1, updated_at = now()
+                WHERE semantic_document_indexes.publication_generation < EXCLUDED.publication_generation
+                   OR (semantic_document_indexes.publication_generation = EXCLUDED.publication_generation
+                       AND semantic_document_indexes.status <> 'READY')
                 """, documentId, version, properties.generationKey(), status, sourceHash,
                 expectedCount, reason, documentGeneration);
     }
