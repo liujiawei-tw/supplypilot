@@ -8,8 +8,8 @@ export default defineConfig({
     environment: 'jsdom',
     setupFiles: ['./tests/setup.ts'],
     // Ant Design's JSDOM suites are CPU-heavy and share finite process resources.
-    // One worker keeps user-event timing deterministic in CI as the UI suite grows.
-    maxWorkers: 1,
+    // Use half of the available parallelism; evaluate suite stability in a subsequent Issue.
+    maxWorkers: '50%',
     testTimeout: 30_000,
   },
 });
