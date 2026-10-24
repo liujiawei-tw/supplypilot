@@ -3,6 +3,7 @@ import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event';
 import { AxiosError, type AxiosResponse, type InternalAxiosRequestConfig } from 'axios';
 import { axiosClient } from '../src/api/axiosClient';
+import { parseDecimalJson } from '../src/api/decimalJson';
 import { AuthContext, type AuthState } from '../src/auth/authContextValue';
 import MaterialsPage from '../src/pages/Materials/MaterialsPage';
 import SuppliersPage from '../src/pages/Suppliers/SuppliersPage';
@@ -66,19 +67,19 @@ describe('master data pages', () => {
     expect(screen.getByText('請輸入物料名稱')).toBeTruthy();
     fireEvent.change(screen.getByRole('textbox', { name: '物料代碼' }), { target: { value: 'X'.repeat(51) } });
     fireEvent.change(screen.getByRole('textbox', { name: '名稱' }), { target: { value: 'New material' } });
-    const safetyStock = screen.getByRole('spinbutton', { name: '安全庫存' });
+    const safetyStock = screen.getByRole('textbox', { name: '安全庫存' });
     await user.clear(safetyStock);
     await user.type(safetyStock, '-1');
     fireEvent.blur(safetyStock);
     await user.click(screen.getByRole('button', { name: 'OK' }));
     expect(await screen.findByText(/cannot be longer than 50/i)).toBeTruthy();
-    expect((screen.getByRole('spinbutton', { name: '安全庫存' }) as HTMLInputElement).value).toBe('-1');
+    expect((screen.getByRole('textbox', { name: '安全庫存' }) as HTMLInputElement).value).toBe('-1');
     expect(requests.filter(({ method }) => method === 'post')).toHaveLength(0);
     fireEvent.change(screen.getByRole('textbox', { name: '物料代碼' }), { target: { value: 'MAT-NEW' } });
     await user.click(screen.getByRole('button', { name: 'OK' }));
     expect(await screen.findByText('安全庫存不可小於 0')).toBeTruthy();
     expect(requests.filter(({ method }) => method === 'post')).toHaveLength(0);
-    fireEvent.change(screen.getByRole('spinbutton', { name: '安全庫存' }), { target: { value: '0' } });
+    fireEvent.change(screen.getByRole('textbox', { name: '安全庫存' }), { target: { value: '999999999999999.1234' } });
     await user.click(screen.getByRole('button', { name: 'OK' }));
     await waitFor(() => expect(finishCreate).toBeTypeOf('function'));
     expect(screen.getByRole('button', { name: /OK/ }).hasAttribute('disabled')).toBe(true);
@@ -86,7 +87,14 @@ describe('master data pages', () => {
     expect(requests.filter(({ method }) => method === 'post')).toHaveLength(1);
     await act(async () => finishCreate());
     await waitFor(() => expect(requests.filter(({ method }) => method === 'get')).toHaveLength(2));
-    expect(JSON.parse(requests.find(({ method }) => method === 'post')?.data as string)).toEqual({ code: 'MAT-NEW', name: 'New material', baseUnit: 'PCS', safetyStock: 0 });
+    const materialPost = requests.find(({ method }) => method === 'post');
+    expect(materialPost?.data).toContain('"safetyStock":999999999999999.1234');
+    expect(parseDecimalJson(materialPost?.data)).toEqual({
+      code: 'MAT-NEW',
+      name: 'New material',
+      baseUnit: 'PCS',
+      safetyStock: '999999999999999.1234',
+    });
   }, 30_000);
 
   it('shows backend validation details and does not report a failed status update as success', async () => {
@@ -250,6 +258,7 @@ describe('master data pages', () => {
 
   it('creates and edits SupplierMaterial through the UI without PATCHing immutable relationships or currency', async () => {
     const requests: InternalAxiosRequestConfig[] = [];
+    const decimalPayload = { unitPrice: '999999999999999.1234', moq: '0.0001', packageMultiple: '12.3400' };
     let created = false;
     let postAttempts = 0;
     axiosClient.defaults.adapter = vi.fn(async (config) => {
@@ -287,32 +296,43 @@ describe('master data pages', () => {
     const materialSelects = screen.getAllByRole('combobox', { name: '選取物料' });
     await user.click(materialSelects.at(-1)!);
     await user.click((await screen.findAllByText('MAT-001 — Milk', {}, { timeout: 5_000 })).at(-1)!);
-    const unitPriceInput = screen.getByRole('spinbutton', { name: '單價' });
+    const unitPriceInput = screen.getByRole('textbox', { name: '單價' });
+    const moqInput = screen.getByRole('textbox', { name: /最低訂購量/ });
+    const packageMultipleInput = screen.getByRole('textbox', { name: '包裝倍數' });
     fireEvent.change(unitPriceInput, { target: { value: '-1' } });
-    fireEvent.change(screen.getByRole('spinbutton', { name: /最低訂購量/ }), { target: { value: '100' } });
-    fireEvent.change(screen.getByRole('spinbutton', { name: '包裝倍數' }), { target: { value: '25' } });
+    fireEvent.change(moqInput, { target: { value: decimalPayload.moq } });
+    fireEvent.change(packageMultipleInput, { target: { value: decimalPayload.packageMultiple } });
     fireEvent.change(screen.getByRole('spinbutton', { name: '交期（天）' }), { target: { value: '14' } });
     fireEvent.blur(unitPriceInput);
-    expect((screen.getByRole('spinbutton', { name: '單價' }) as HTMLInputElement).value).toBe('-1');
+    expect((screen.getByRole('textbox', { name: '單價' }) as HTMLInputElement).value).toBe('-1');
     await user.click(screen.getByRole('button', { name: 'OK' }));
     expect(await screen.findByText('單價不可小於 0')).toBeTruthy();
     expect(requests.filter(({ method }) => method === 'post')).toHaveLength(0);
-    fireEvent.change(screen.getByRole('spinbutton', { name: '單價' }), { target: { value: '80' } });
+    fireEvent.change(unitPriceInput, { target: { value: decimalPayload.unitPrice } });
     await user.click(screen.getByRole('button', { name: 'OK' }));
 
     expect(await screen.findByText('供應商物料資料送出失敗')).toBeTruthy();
     expect(screen.getByText('VALIDATION_FAILED')).toBeTruthy();
     expect(screen.getByText('MOQ violates supplier rule')).toBeTruthy();
-    expect((screen.getByRole('spinbutton', { name: /最低訂購量/ }) as HTMLInputElement).value).toBe('100');
+    expect((screen.getByRole('textbox', { name: /最低訂購量/ }) as HTMLInputElement).value).toBe(decimalPayload.moq);
     expect(screen.queryByText('SupplierMaterial 已建立')).toBeNull();
     await user.click(screen.getByRole('button', { name: 'OK' }));
     expect(await screen.findByText('TWD 80')).toBeTruthy();
 
-    const postPayloads = requests.filter(({ method }) => method === 'post').map(({ data }) => JSON.parse(data as string));
-    expect(postPayloads).toEqual([
-      { supplierId: 2, materialId: 1, unitPrice: 80, moq: 100, packageMultiple: 25, leadTimeDays: 14, currency: 'TWD' },
-      { supplierId: 2, materialId: 1, unitPrice: 80, moq: 100, packageMultiple: 25, leadTimeDays: 14, currency: 'TWD' },
-    ]);
+    const postPayloads = requests.filter(({ method }) => method === 'post').map(({ data }) => data as string);
+    expect(postPayloads).toHaveLength(2);
+    for (const postPayload of postPayloads) {
+      expect(postPayload).toContain('"unitPrice":999999999999999.1234');
+      expect(postPayload).toContain('"moq":0.0001');
+      expect(postPayload).toContain('"packageMultiple":12.3400');
+      expect(parseDecimalJson(postPayload)).toEqual({
+        supplierId: 2,
+        materialId: 1,
+        ...decimalPayload,
+        leadTimeDays: 14,
+        currency: 'TWD',
+      });
+    }
 
     await user.click(screen.getByRole('button', { name: /編\s*輯/ }));
     fireEvent.change(screen.getByRole('textbox', { name: '單價' }), { target: { value: '85' } });

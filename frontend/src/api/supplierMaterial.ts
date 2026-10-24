@@ -1,6 +1,6 @@
 import axiosClient from './axiosClient';
 import type { PageResponse } from '../types/api';
-import { decimalResponseConfig, type DecimalValue } from './decimalJson';
+import { decimalRequestConfig, decimalResponseConfig, type DecimalValue } from './decimalJson';
 export type { DecimalValue } from './decimalJson';
 
 export type Currency = 'TWD';
@@ -52,7 +52,7 @@ export async function listSupplierMaterials(query: SupplierMaterialQuery): Promi
 }
 
 export async function createSupplierMaterial(request: CreateSupplierMaterialRequest): Promise<SupplierMaterialResponse> {
-  return (await axiosClient.post<SupplierMaterialResponse>('/supplier-materials', request, decimalResponseConfig)).data;
+  return (await axiosClient.post<SupplierMaterialResponse>('/supplier-materials', request, { ...decimalRequestConfig, ...decimalResponseConfig })).data;
 }
 
 export async function updateSupplierMaterial(id: number, request: UpdateSupplierMaterialRequest): Promise<SupplierMaterialResponse> {

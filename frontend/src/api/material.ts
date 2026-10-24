@@ -1,6 +1,6 @@
 import axiosClient from './axiosClient';
 import type { PageResponse } from '../types/api';
-import { decimalResponseConfig, type DecimalValue } from './decimalJson';
+import { decimalRequestConfig, decimalResponseConfig, type DecimalValue } from './decimalJson';
 
 export type BaseUnit = 'G' | 'KG' | 'ML' | 'L' | 'PCS';
 export type MaterialStatus = 'ACTIVE' | 'INACTIVE';
@@ -47,7 +47,7 @@ export async function getMaterial(id: number): Promise<MaterialResponse> {
 }
 
 export async function createMaterial(request: CreateMaterialRequest): Promise<MaterialResponse> {
-  return (await axiosClient.post<MaterialResponse>('/materials', request, decimalResponseConfig)).data;
+  return (await axiosClient.post<MaterialResponse>('/materials', request, { ...decimalRequestConfig, ...decimalResponseConfig })).data;
 }
 
 export async function updateMaterial(id: number, request: UpdateMaterialRequest): Promise<MaterialResponse> {

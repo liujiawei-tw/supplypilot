@@ -141,9 +141,9 @@ export default function SupplierMaterialList({ isAdmin }: { isAdmin: boolean }) 
           <Form.Item name="materialId" label="物料" rules={[{ required: true }]}><RelatedEntitySelect entity="material" onError={handleSubmitRelatedError} /></Form.Item>
           <Form.Item name="currency" label="幣別" rules={[{ required: true }]}><Select options={[{ value: 'TWD', label: 'TWD' }]} /></Form.Item>
         </>}
-        <Form.Item name="unitPrice" label="單價" rules={[{ required: true }, nonNegativeDecimalRule('單價不可小於 0')]}>{editing ? <Input inputMode="decimal" /> : <InputNumber style={{ width: '100%' }} />}</Form.Item>
-        <Form.Item name="moq" label="最低訂購量（MOQ）" rules={[{ required: true }, positiveDecimalRule('MOQ 必須大於 0')]}>{editing ? <Input inputMode="decimal" /> : <InputNumber style={{ width: '100%' }} />}</Form.Item>
-        <Form.Item name="packageMultiple" label="包裝倍數" rules={[positiveDecimalRule('包裝倍數必須大於 0')]}>{editing ? <Input inputMode="decimal" /> : <InputNumber style={{ width: '100%' }} />}</Form.Item>
+        <Form.Item name="unitPrice" label="單價" rules={[{ required: true }, nonNegativeDecimalRule('單價不可小於 0')]}><Input inputMode="decimal" /></Form.Item>
+        <Form.Item name="moq" label="最低訂購量（MOQ）" rules={[{ required: true }, positiveDecimalRule('MOQ 必須大於 0')]}><Input inputMode="decimal" /></Form.Item>
+        <Form.Item name="packageMultiple" label="包裝倍數" rules={[positiveDecimalRule('包裝倍數必須大於 0')]}><Input inputMode="decimal" /></Form.Item>
         <Form.Item name="leadTimeDays" label="交期（天）" rules={[{ required: true }, { type: 'integer', min: 0 }]}><InputNumber min={0} precision={0} style={{ width: '100%' }} /></Form.Item>
         {editing && <Form.Item name="status" label="狀態" rules={[{ required: true }]}><Select options={statuses.map((status) => ({ value: status, label: displayLabel(status) }))} /></Form.Item>}
         {!editing && <Typography.Text type="secondary">供應商、物料啟用狀態及重複關聯由 後端 最終驗證。</Typography.Text>}

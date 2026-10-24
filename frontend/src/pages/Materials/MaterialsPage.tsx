@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Button, Form, Input, InputNumber, message, Modal, Popconfirm, Select, Space, Table, Tag, Typography } from 'antd';
+import { Button, Form, Input, message, Modal, Popconfirm, Select, Space, Table, Tag, Typography } from 'antd';
 import type { TableProps } from 'antd';
 import { PlusOutlined } from '@ant-design/icons';
 import { createMaterial, listMaterials, updateMaterial, type BaseUnit, type CreateMaterialRequest, type MaterialResponse, type MaterialStatus, type UpdateMaterialRequest } from '../../api/material';
@@ -151,7 +151,7 @@ export default function MaterialsPage() {
         <Form.Item name="code" label="物料代碼" rules={[{ required: true, whitespace: true, message: '請輸入物料代碼' }, { max: 50 }]}><Input disabled={!!editing} /></Form.Item>
         <Form.Item name="name" label="名稱" rules={[{ required: true, whitespace: true, message: '請輸入物料名稱' }, { max: 100 }]}><Input /></Form.Item>
         <Form.Item name="baseUnit" label="基本單位" rules={[{ required: true, message: '請選擇基本單位' }]}><Select disabled={!!editing} options={units.map((unit) => ({ value: unit, label: unit }))} /></Form.Item>
-        <Form.Item name="safetyStock" label="安全庫存" rules={[{ required: true, message: '請輸入安全庫存' }, nonNegativeDecimalRule('安全庫存不可小於 0')]}>{editing ? <Input inputMode="decimal" /> : <InputNumber style={{ width: '100%' }} />}</Form.Item>
+        <Form.Item name="safetyStock" label="安全庫存" rules={[{ required: true, message: '請輸入安全庫存' }, nonNegativeDecimalRule('安全庫存不可小於 0')]}><Input inputMode="decimal" /></Form.Item>
         {editing && <Form.Item name="status" label="狀態" rules={[{ required: true }]}><Select options={statuses.map((status) => ({ value: status, label: displayLabel(status) }))} /></Form.Item>}
       </Form>
     </Modal>

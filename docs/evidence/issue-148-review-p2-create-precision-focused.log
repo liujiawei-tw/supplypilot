@@ -1,0 +1,59 @@
+COMMAND: npm run test -- --maxWorkers=1 --testTimeout=60000 --reporter=verbose tests/masterData.test.tsx tests/masterDataApi.test.ts
+WORKDIR: frontend
+DATE: 2026-10-25 Asia/Taipei
+
+> frontend@0.0.0 test
+> vitest run --maxWorkers=1 --testTimeout=60000 --reporter=verbose tests/masterData.test.tsx tests/masterDataApi.test.ts
+
+
+ RUN  v4.1.11 C:/Users/z0976/.codex/worktrees/issue-148-v2-401/supplypilot/frontend
+
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+ ✓ tests/masterData.test.tsx > master data pages > shows loading, data and ADMIN actions on Materials 2260ms
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+ ✓ tests/masterData.test.tsx > master data pages > keeps Materials read-only for an authorized non-ADMIN role 973ms
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+ ✓ tests/masterData.test.tsx > master data pages > validates Material fields, creates once, then refetches 16763ms
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+ ✓ tests/masterData.test.tsx > master data pages > shows backend validation details and does not report a failed status update as success 4423ms
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+ ✓ tests/masterData.test.tsx > master data pages > keeps the Material create modal and values after a 409, then refetches only after retry succeeds 12388ms
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Could not parse CSS stylesheet
+Could not parse CSS stylesheet
+ ✓ tests/masterData.test.tsx > master data pages > shows Material edit validation errors inside the modal and keeps edited values 7803ms
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Could not parse CSS stylesheet
+Could not parse CSS stylesheet
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+ ✓ tests/masterData.test.tsx > master data pages > shows Suppliers and SupplierMaterials as read-only tabs for procurement roles 3059ms
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Could not parse CSS stylesheet
+Could not parse CSS stylesheet
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+ ✓ tests/masterData.test.tsx > master data pages > edits a Supplier without sending its immutable code and refetches 8578ms
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Could not parse CSS stylesheet
+Could not parse CSS stylesheet
+ ✓ tests/masterData.test.tsx > master data pages > keeps Supplier create and edit values when backend submissions fail 27371ms
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+ ✓ tests/masterData.test.tsx > master data pages > creates and edits SupplierMaterial through the UI without PATCHing immutable relationships or currency 42188ms
+ ✓ tests/masterDataApi.test.ts > master data API contracts > passes database pagination, filtering and sorting to list endpoints 6ms
+ ✓ tests/masterDataApi.test.ts > master data API contracts > parses SupplierMaterial BigDecimal fields losslessly across response endpoints 4ms
+ ✓ tests/masterDataApi.test.ts > master data API contracts > sends only backend-supported PATCH fields 2ms
+ ✓ tests/masterDataApi.test.ts > master data API contracts > uses the exact SupplierMaterial create contract 1ms
+
+ Test Files  2 passed (2)
+      Tests  14 passed (14)
+   Start at  01:05:54
+   Duration  132.09s (transform 377ms, setup 362ms, import 4.04s, tests 125.83s, environment 1.44s)
+
+EXIT_CODE=0
