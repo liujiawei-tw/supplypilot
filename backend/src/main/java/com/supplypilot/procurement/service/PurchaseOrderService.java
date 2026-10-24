@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.Locale;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
@@ -146,17 +147,28 @@ public class PurchaseOrderService {
     @PreAuthorize("hasAnyRole('PROCUREMENT_STAFF', 'PROCUREMENT_MANAGER', 'ADMIN')")
     public PageResponse<PurchaseOrderResponse> list(
             PurchaseOrderStatus status, Long supplierId, Long materialId,
+            String poNumber, String supplierCode, String supplierName, String materialCode,
             LocalDate createdFrom, LocalDate createdTo,
             LocalDate expectedDeliveryFrom, LocalDate expectedDeliveryTo,
             Boolean overdue, Pageable pageable) {
         validateRange(createdFrom, createdTo);
         validateRange(expectedDeliveryFrom, expectedDeliveryTo);
+        String poNumberPattern = containsPattern(poNumber);
+        String supplierCodePattern = containsPattern(supplierCode);
+        String supplierNamePattern = containsPattern(supplierName);
+        String materialCodePattern = containsPattern(materialCode);
         LocalDate today = LocalDate.now(clock);
         ZoneId zone = clock.getZone();
         Specification<PurchaseOrder> specification = (root, query, builder) -> {
             List<Predicate> predicates = new ArrayList<>();
             if (status != null) predicates.add(builder.equal(root.get("status"), status));
             if (supplierId != null) predicates.add(builder.equal(root.get("supplier").get("id"), supplierId));
+            if (poNumberPattern != null) predicates.add(builder.like(
+                    builder.lower(root.get("poNumber")), poNumberPattern, '!'));
+            if (supplierCodePattern != null) predicates.add(builder.like(
+                    builder.lower(root.get("supplier").get("code")), supplierCodePattern, '!'));
+            if (supplierNamePattern != null) predicates.add(builder.like(
+                    builder.lower(root.get("supplier").get("name")), supplierNamePattern, '!'));
             if (createdFrom != null) predicates.add(builder.greaterThanOrEqualTo(
                     root.get("createdAt"), createdFrom.atStartOfDay(zone).toInstant()));
             if (createdTo != null) predicates.add(builder.lessThan(
@@ -165,12 +177,15 @@ public class PurchaseOrderService {
                     root.get("expectedDeliveryDate"), expectedDeliveryFrom));
             if (expectedDeliveryTo != null) predicates.add(builder.lessThanOrEqualTo(
                     root.get("expectedDeliveryDate"), expectedDeliveryTo));
-            if (materialId != null) {
+            if (materialId != null || materialCodePattern != null) {
                 Subquery<Long> itemExists = query.subquery(Long.class);
                 var item = itemExists.from(PurchaseOrderItem.class);
-                itemExists.select(builder.literal(1L)).where(
-                        builder.equal(item.get("purchaseOrder"), root),
-                        builder.equal(item.get("material").get("id"), materialId));
+                List<Predicate> itemPredicates = new ArrayList<>();
+                itemPredicates.add(builder.equal(item.get("purchaseOrder"), root));
+                if (materialId != null) itemPredicates.add(builder.equal(item.get("material").get("id"), materialId));
+                if (materialCodePattern != null) itemPredicates.add(builder.like(
+                        builder.lower(item.get("material").get("code")), materialCodePattern, '!'));
+                itemExists.select(builder.literal(1L)).where(builder.and(itemPredicates.toArray(Predicate[]::new)));
                 predicates.add(builder.exists(itemExists));
             }
             Predicate isOverdue = builder.and(
@@ -200,7 +215,7 @@ public class PurchaseOrderService {
                     .orElseThrow(() -> new BusinessException(ErrorCode.MATERIAL_NOT_FOUND))
                     .getId();
         }
-        return list(PurchaseOrderStatus.ORDERED, null, materialId,
+        return list(PurchaseOrderStatus.ORDERED, null, materialId, null, null, null, null,
                 null, null, null, null, null, pageable);
     }
 
@@ -377,6 +392,15 @@ public class PurchaseOrderService {
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
         purchaseOrder.assignTo(assignee, clock.instant());
         return purchaseOrderMapper.toResponse(purchaseOrderRepository.saveAndFlush(purchaseOrder));
+    }
+
+    private String containsPattern(String value) {
+        if (value == null || value.isBlank()) return null;
+        String escaped = value.trim().toLowerCase(Locale.ROOT)
+                .replace("!", "!!")
+                .replace("%", "!%")
+                .replace("_", "!_");
+        return "%" + escaped + "%";
     }
 
     private void validateRange(LocalDate from, LocalDate to) {

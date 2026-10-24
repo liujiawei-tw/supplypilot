@@ -1,0 +1,22 @@
+
+ RUN  v4.1.11 C:/Users/z0976/.codex/worktrees/issue-144-v2-207-rebase/supplypilot/frontend
+
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+ ✓ tests/issue143PurchaseOrdersPage.test.tsx > Issue #143 purchase-order page views > defaults to desktop Kanban and preserves the active filter across both views 5149ms
+ ✓ tests/issue143PurchaseOrdersPage.test.tsx > Issue #143 purchase-order page views > opens the mobile page in List mode while retaining backend purchase-order data 1916ms
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+ ✓ tests/issue143PurchaseOrdersPage.test.tsx > Issue #143 purchase-order page views > refreshes the current Kanban from backend after a successful draft create 24868ms
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+ ✓ tests/issue143PurchaseOrdersPage.test.tsx > Issue #143 purchase-order page views > does not refresh the Kanban or report success after a 403 draft-create failure 26589ms
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+ ✓ tests/issue143PurchaseOrdersPage.test.tsx > Issue #143 purchase-order page views > does not refresh the Kanban or report success after a network error draft-create failure 29066ms
+
+ Test Files  1 passed (1)
+      Tests  5 passed (5)
+   Start at  18:56:37
+   Duration  95.10s (transform 285ms, setup 259ms, import 5.20s, tests 87.59s, environment 1.65s)
+

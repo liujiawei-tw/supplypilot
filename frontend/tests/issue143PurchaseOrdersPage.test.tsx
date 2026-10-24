@@ -37,7 +37,11 @@ const purchaseOrder: PurchaseOrderResponse = {
   paymentConfirmedByDisplayName: null,
   paymentConfirmedByUsername: null,
   paymentConfirmedAt: null,
-  items: [],
+  items: [{
+    id: 420, materialId: 10, materialCode: 'MAT-010', materialName: '測試物料', quantity: '2', unit: 'KG',
+    unitPrice: '100', total: '200', recommendationId: null, supplierRecommendationResultId: null,
+    supplierOverride: false, quantityOverride: false, supplierOverrideReason: null, quantityOverrideReason: null,
+  }],
   createdBy: null,
   createdByDisplayName: '採購人員',
   createdByUsername: null,
@@ -184,7 +188,11 @@ beforeEach(() => {
       const query = (config.params ?? {}) as PurchaseOrderQuery;
       requestedQueries.push({ ...query });
       const filteredOrders = backendPurchaseOrders
-        .filter((item) => query.supplierId === undefined || item.supplierId === query.supplierId);
+        .filter((item) => query.supplierId === undefined || item.supplierId === query.supplierId)
+        .filter((item) => !query.poNumber || item.poNumber.toLowerCase().includes(query.poNumber.toLowerCase()))
+        .filter((item) => !query.supplierCode || item.supplierCode.toLowerCase().includes(query.supplierCode.toLowerCase()))
+        .filter((item) => !query.supplierName || item.supplierName.toLowerCase().includes(query.supplierName.toLowerCase()))
+        .filter((item) => !query.materialCode || item.items.some((line) => line.materialCode.toLowerCase().includes(query.materialCode!.toLowerCase())));
       const page = query.page ?? 0;
       const size = query.size ?? 20;
       return {
@@ -217,6 +225,17 @@ describe('Issue #143 purchase-order page views', () => {
 
     expect(await screen.findByRole('region', { name: '採購單八階段看板' })).toBeTruthy();
     expect(await screen.findByText('PO-20261022-000043')).toBeTruthy();
+    const poNumberSearch = screen.getByRole('textbox', { name: '採購單號搜尋' }) as HTMLInputElement;
+    const supplierCodeSearch = screen.getByRole('textbox', { name: '供應商代碼搜尋' }) as HTMLInputElement;
+    const supplierNameSearch = screen.getByRole('textbox', { name: '供應商名稱搜尋' }) as HTMLInputElement;
+    const materialCodeSearch = screen.getByRole('textbox', { name: '物料代碼搜尋' }) as HTMLInputElement;
+    fireEvent.change(poNumberSearch, { target: { value: '000042' } });
+    fireEvent.change(supplierCodeSearch, { target: { value: 'SUP-007' } });
+    fireEvent.change(supplierNameSearch, { target: { value: '台灣' } });
+    fireEvent.change(materialCodeSearch, { target: { value: 'MAT-010' } });
+    await waitFor(() => expect(requestedQueries.some((query) => query.poNumber === '000042'
+      && query.supplierCode === 'SUP-007' && query.supplierName === '台灣'
+      && query.materialCode === 'MAT-010' && query.size === 100)).toBe(true));
     const supplierFilter = screen.getByRole('textbox', { name: '供應商編號篩選' }) as HTMLInputElement;
     fireEvent.change(supplierFilter, { target: { value: '7' } });
     await waitFor(() => expect(requestedQueries.some((query) => query.supplierId === 7 && query.size === 100)).toBe(true));
@@ -226,14 +245,26 @@ describe('Issue #143 purchase-order page views', () => {
     expect(await screen.findByRole('table')).toBeTruthy();
     expect(await screen.findByText('PO-20261022-000042')).toBeTruthy();
     expect(screen.queryByText('PO-20261022-000043')).toBeNull();
+    expect(poNumberSearch.value).toBe('000042');
+    expect(supplierCodeSearch.value).toBe('SUP-007');
+    expect(supplierNameSearch.value).toBe('台灣');
+    expect(materialCodeSearch.value).toBe('MAT-010');
     expect(supplierFilter.value).toBe('7');
-    await waitFor(() => expect(requestedQueries.some((query) => query.supplierId === 7 && query.size === 20)).toBe(true));
+    await waitFor(() => expect(requestedQueries.some((query) => query.supplierId === 7 && query.poNumber === '000042'
+      && query.supplierCode === 'SUP-007' && query.supplierName === '台灣'
+      && query.materialCode === 'MAT-010' && query.size === 20)).toBe(true));
 
     await user.click(screen.getByText('看板'));
     expect(await screen.findByRole('region', { name: '採購單八階段看板' })).toBeTruthy();
     expect(screen.queryByText('PO-20261022-000043')).toBeNull();
+    expect(poNumberSearch.value).toBe('000042');
+    expect(supplierCodeSearch.value).toBe('SUP-007');
+    expect(supplierNameSearch.value).toBe('台灣');
+    expect(materialCodeSearch.value).toBe('MAT-010');
     expect(supplierFilter.value).toBe('7');
-    expect(requestedQueries.some((query) => query.supplierId === 7 && query.size === 100)).toBe(true);
+    expect(requestedQueries.some((query) => query.supplierId === 7 && query.poNumber === '000042'
+      && query.supplierCode === 'SUP-007' && query.supplierName === '台灣'
+      && query.materialCode === 'MAT-010' && query.size === 100)).toBe(true);
   });
 
   it('opens the mobile page in List mode while retaining backend purchase-order data', async () => {
