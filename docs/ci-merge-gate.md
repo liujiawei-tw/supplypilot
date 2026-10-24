@@ -1,3 +1,7 @@
+> **2026-10-24 最新交付流程：** GPT 讀 GitHub Issue／Repo → Codex 實作、Commit／Push → GPT Independent Code Review → Codex 執行必要 CI → GPT 建立 PR → 使用者 Merge／核對 Issue Closed。舊 Orchestrator Code Gate／Issue Gate／Release Gate／State 不再是一般 PR 強制前置。以下保留的是既有 GitHub Workflow 的**實際設定說明**，不代表目前正在使用該 Workflow。
+>
+> **GitHub Actions：`PAUSED BY USER / NOT USED AS GATE`。** 未經使用者恢復，不手動啟動或依賴 Actions；Push 仍可能依 GitHub Workflow 自動觸發，不宣稱 Actions 已停用。Codex 在 GPT Code Review 後依實際 Diff、直接／間接依賴、安全／交易／併發／跨端風險選擇必要本機 CI；保存完整日誌、退出碼、失敗及 skipped／未跑項目，GPT 核實後才建 PR。文件改動不要求無關的全量 Backend／Frontend／Docker；必要 CI 失敗一律阻擋 PR。Branch Protection 的必要狀態檢查不因本機驗證而自動滿足，不能繞過。
+
 # CI Merge Gate
 
 Workflow：`.github/workflows/ci.yml`
