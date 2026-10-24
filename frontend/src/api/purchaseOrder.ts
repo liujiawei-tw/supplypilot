@@ -6,7 +6,7 @@ import { decimalResponseConfig } from './decimalJson';
 export type DecimalValue = string | number;
 export type PurchaseOrderStatus = 'DRAFT' | 'APPROVED' | 'ORDERED' | 'RECEIVED' | 'REJECTED' | 'CANCELLED';
 export type OrderedProgress = 'FOLLOW_UP' | 'RECEIVING_INSPECTION' | 'LEGACY_UNKNOWN';
-/** PROVISIONAL — #142 local implementation; confirm again after its merge. */
+/** Persisted Kanban position from the merged #142 Stage contract; null means no known active lane. */
 export type PurchaseOrderStage =
   | 'NEW_REQUEST'
   | 'SOURCING'

@@ -15,10 +15,7 @@ import {
 } from './purchaseOrder';
 import type { PageResponse } from '../types/api';
 
-/**
- * PROVISIONAL — #142 LOCAL IMPLEMENTATION / NOT MERGED / INTEGRATION NOT VERIFIED.
- * These values match the current #142 enum; re-check after #142 merges.
- */
+/** The eight persisted lanes defined by the merged #142 PurchaseOrderStage contract. */
 export const purchaseOrderStages: ReadonlyArray<{ id: PurchaseOrderStage; label: string }> = [
   { id: 'NEW_REQUEST', label: '待處理／新請購' },
   { id: 'SOURCING', label: '詢比議價' },

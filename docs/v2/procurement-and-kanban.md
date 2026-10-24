@@ -87,9 +87,9 @@ Issue #138 的程式與驗證狀態以 [`docs/evidence/issue-138-validation.md`]
 
 程式與驗證狀態以 [`docs/evidence/issue-139-validation.md`](../evidence/issue-139-validation.md) 為準。已實作 DRAFT 駁回、APPROVED 取消、ORDERED 第 5 欄取消、取消稽核快照、不可復原終態、取消後排除在途查詢及禁止收貨。取消與收貨、核准、駁回、下單使用相同的 PO `PESSIMISTIC_WRITE` 列鎖，收貨先鎖 PO 再寫 Inventory/StockTransaction。
 
-為辨認第 5/6 欄，只新增 ORDERED 專用的持久化 `ordered_progress` 契約：新下單為 `FOLLOW_UP`（第 5 欄），「開始到貨驗收」命令將其改為 `RECEIVING_INSPECTION`（第 6 欄）；第 6 欄起取消被後端拒絕。既有 ORDERED 資料無法由舊欄位可靠推算第 5 或第 6 欄，Migration 以 `LEGACY_UNKNOWN` 保留未知並禁止取消；管理員可經受控命令明確移入第 6 欄，不接受 Client 任意 Stage 值。此欄位與遷移規則是 #139 的最小取消保護契約；#141 沿用第 5→6 操作並補齊驗收/收貨流程，#142 再擴為完整八階段模型與轉移不變量。目前沒有完整八欄看板或任意 Stage API。
+為辨認第 5/6 欄，只新增 ORDERED 專用的持久化 `ordered_progress` 契約：新下單為 `FOLLOW_UP`（第 5 欄），「開始到貨驗收」命令將其改為 `RECEIVING_INSPECTION`（第 6 欄）；第 6 欄起取消被後端拒絕。既有 ORDERED 資料無法由舊欄位可靠推算第 5 或第 6 欄，Migration 以 `LEGACY_UNKNOWN` 保留未知並禁止取消；管理員可經受控命令明確移入第 6 欄，不接受 Client 任意 Stage 值。此欄位與遷移規則是 #139 的最小取消保護契約；#141 沿用第 5→6 操作並補齊驗收/收貨流程，#142 後續擴為完整八階段模型與轉移不變量，實際合併契約見下方 V2-205 實作狀態。
 
-**#139 範圍限制：** #139 原始實作僅完成取消及第 5／6 欄的取消保護；第 6 欄完整人工數量／品質驗收與 6→7 收貨准入由 #141 實作。#141 實際完成狀態見下方 V2-204 實作紀錄。完整八階段與通用轉換仍由 #142 負責。
+**#139 範圍限制：** #139 原始實作僅完成取消及第 5／6 欄的取消保護；第 6 欄完整人工數量／品質驗收與 6→7 收貨准入由 #141 實作。#141 實際完成狀態見下方 V2-204 實作紀錄；完整八階段與通用轉換由 #142 後續實作。
 
 ## V2-204 實作狀態（Issue #141）
 
@@ -98,3 +98,11 @@ Issue #138 的程式與驗證狀態以 [`docs/evidence/issue-138-validation.md`]
 - 合格後仍一次更新 PO、Inventory 與 StockTransaction；付款確認及撤銷以目前付款者/時間欄位記錄，不變更 RECEIVED 或庫存。
 - 欄位遷移、API 與驗收證據分別見 `docs/api.md`、`docs/domain-model.md`、`docs/transaction-boundary.md`、`docs/security-design.md`、`docs/testing-strategy-merged.md` 與 `docs/evidence/issue-141-validation.md`。
 - 第 7/8 欄由 RECEIVED 及目前付款確認時間推導；本 Issue 沒有建立完整八欄 Stage 欄位或 Stage Transition Engine。
+
+## V2-205 實作狀態（Issue #142）
+
+Issue #142 已將 nullable `stage`、八個 `PurchaseOrderStage` 值與 1→2、2→3 的受控命令合併至 main。回應中的 `status` 仍代表 PO 正式狀態，`stage` 代表 Kanban 目前位置；核准、下單、開始驗收、收貨、付款確認及撤銷付款仍走原業務 API。`ORDERED + LEGACY_UNKNOWN` 保持 `stage=null`，只可由 ADMIN 使用既有「開始到貨驗收」命令明確處置至第六階段，不接受 Client 任意指定 Stage。Stage 與正式狀態由同一 Aggregate 命令、列鎖及資料庫約束維持一致。該 Issue 的驗證範圍與尚未完成項目以 [`docs/evidence/issue-142-validation.md`](../evidence/issue-142-validation.md) 為準。
+
+## V2-206 實作狀態（Issue #143）
+
+`/purchase-orders` 使用同一查詢狀態切換 Kanban／列表；桌面初始看板、窄視窗初始列表。列表篩選、排序及分頁狀態沿用原 PO 查詢；看板逐頁取得完整後端結果並使用 Stage 與既有交易 API，資料分頁不一致時隱藏卡片。拖曳與明確按鈕均先確認；錯誤或結果未知時不樂觀移卡，結果未知會要求重新查詢。精準測試與本 Issue 驗收狀態待完成後記錄，不以程式碼或文件變更宣稱 PASS。

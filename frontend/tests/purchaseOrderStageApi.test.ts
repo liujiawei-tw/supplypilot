@@ -1,5 +1,6 @@
-// Development-phase coverage for the provisional #142 contract used by Issue #143.
+// Contract tests for the merged #142 Stage API used by Issue #143.
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { AxiosError } from 'axios';
 import type { InternalAxiosRequestConfig } from 'axios';
 import axiosClient from '../src/api/axiosClient';
 import { purchaseOrderStageGateway, type PurchaseOrderStageTransition } from '../src/api/purchaseOrderStage';
@@ -11,7 +12,7 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-describe('Issue #143 provisional Stage API contract', () => {
+describe('Issue #143 persisted Stage API contract', () => {
   it.each<[PurchaseOrderStageTransition, string]>([
     ['BEGIN_SOURCING', '/purchase-orders/42/begin-sourcing'],
     ['SUBMIT_FOR_APPROVAL', '/purchase-orders/42/submit-for-approval'],
@@ -44,6 +45,29 @@ describe('Issue #143 provisional Stage API contract', () => {
     await expect(purchaseOrderStageGateway.executeTransition(42, 'RECEIVE'))
       .rejects.toThrow('請先在驗收詳情完成人工驗收表單。');
     expect(adapter).not.toHaveBeenCalled();
+  });
+
+  it('does not report a command as verified when the authoritative read fails', async () => {
+    const adapter = vi.fn(async (config: InternalAxiosRequestConfig) => {
+      if (config.url === '/purchase-orders/42') {
+        throw new AxiosError('Network Error', 'ERR_NETWORK', config);
+      }
+      return {
+        data: { id: 42 },
+        status: 200,
+        statusText: 'OK',
+        headers: {},
+        config,
+      };
+    });
+    axiosClient.defaults.adapter = adapter;
+
+    await expect(purchaseOrderStageGateway.executeTransition(42, 'BEGIN_SOURCING'))
+      .rejects.toMatchObject({
+        name: 'PurchaseOrderStageCommittedReadError',
+        originalError: expect.objectContaining({ code: 'ERR_NETWORK' }),
+      });
+    expect(adapter).toHaveBeenCalledTimes(2);
   });
 
   it('withholds the board when the first page does not contain its declared rows', async () => {

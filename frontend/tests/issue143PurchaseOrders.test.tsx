@@ -1,4 +1,4 @@
-// Issue #143 development-phase provisional-contract tests.
+// Issue #143 persisted Stage and purchase-order view contracts.
 import type { ReactNode } from 'react';
 import { ConfigProvider } from 'antd';
 import { AxiosError, type AxiosResponse, type InternalAxiosRequestConfig } from 'axios';
@@ -45,16 +45,16 @@ const po = (overrides: Record<string, unknown> = {}) => ({
   ...overrides,
 }) as unknown as PurchaseOrderStageBoardSnapshot['purchaseOrders'][number];
 
-function stageMutationError(status: 403 | 409 | undefined): AxiosError {
+function stageMutationError(status: 403 | 409 | 500 | undefined): AxiosError {
   const config = { headers: {} } as InternalAxiosRequestConfig;
   if (status === undefined) return new AxiosError('Network Error', 'ERR_NETWORK', config);
   const response = {
     data: {
-      code: status === 409 ? 'CONCURRENT_MODIFICATION' : 'ACCESS_DENIED',
-      message: status === 403 ? 'Mock: 權限拒絕' : 'Mock: 併發衝突',
+      code: status === 403 ? 'ACCESS_DENIED' : status === 409 ? 'INVALID_PO_STATUS_TRANSITION' : 'INTERNAL_SERVER_ERROR',
+      message: status === 403 ? 'Mock: 權限拒絕' : status === 409 ? 'Mock: Stage 衝突' : 'Mock: 伺服器錯誤',
     },
     status,
-    statusText: status === 409 ? 'Conflict' : 'Forbidden',
+    statusText: status === 409 ? 'Conflict' : status === 500 ? 'Internal Server Error' : 'Forbidden',
     headers: {},
     config,
   } as AxiosResponse;
@@ -208,7 +208,8 @@ describe('Issue #143 purchase-order view contracts', () => {
 
   it.each([
     ['403 permission error', 403, '看板操作失敗', false],
-    ['409 conflict', 409, '操作結果待查核', true],
+    ['409 Stage conflict', 409, '操作結果待查核', true],
+    ['500 unknown write result', 500, '操作結果待查核', true],
     ['network failure', undefined, '操作結果待查核', true],
   ] as const)(
     'handles a %s without optimistic card movement or duplicate command',

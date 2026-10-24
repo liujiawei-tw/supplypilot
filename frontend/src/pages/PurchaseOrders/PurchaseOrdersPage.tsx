@@ -40,6 +40,7 @@ export default function PurchaseOrdersPage() {
   const { user } = useAuth();
   const [apiMessage, contextHolder] = message.useMessage();
   const [data, setData] = useState<PageResponse<PurchaseOrderResponse> | null>(null);
+  const [dataQuery, setDataQuery] = useState<PurchaseOrderQuery | null>(null);
   const [assignableUsers, setAssignableUsers] = useState<AssignableUser[]>([]);
   const [error, setError] = useState<ApiErrorResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -64,8 +65,20 @@ export default function PurchaseOrdersPage() {
 
   const load = useCallback(async () => {
     const current = ++requestId.current; setLoading(true); setError(null);
-    try { const result = await listPurchaseOrders(query); if (current === requestId.current) setData(result); }
-    catch (requestError) { if (current === requestId.current) setError(toApiError(requestError)); }
+    try {
+      const result = await listPurchaseOrders(query);
+      if (current === requestId.current) {
+        setData(result);
+        setDataQuery(query);
+      }
+    }
+    catch (requestError) {
+      if (current === requestId.current) {
+        setData(null);
+        setDataQuery(query);
+        setError(toApiError(requestError));
+      }
+    }
     finally { if (current === requestId.current) setLoading(false); }
   }, [query]);
   useEffect(() => {
@@ -101,6 +114,8 @@ export default function PurchaseOrdersPage() {
   useEffect(() => { void listAssignableUsers().then(setAssignableUsers).catch(() => setAssignableUsers([])); }, []);
 
   const currentBoardResult = boardResult?.query === query && boardResult.retry === boardRetry ? boardResult : null;
+  const currentListData = dataQuery === query ? data : null;
+  const listLoading = loading || dataQuery !== query;
   const boardState = currentBoardResult?.state ?? 'loading';
   const boardSnapshot = currentBoardResult?.state === 'ready' ? currentBoardResult.snapshot : null;
   const boardError = currentBoardResult?.state === 'error' ? currentBoardResult.error : null;
@@ -212,10 +227,10 @@ export default function PurchaseOrdersPage() {
       reason={boardReason}
       onRetry={() => setBoardRetry((current) => current + 1)}
       onRefresh={() => setBoardRetry((current) => current + 1)}
-    /> : <Table rowKey="id" columns={columns} dataSource={data?.content ?? []} loading={loading}
+    /> : <Table rowKey="id" columns={columns} dataSource={currentListData?.content ?? []} loading={listLoading}
       locale={{ emptyText: <EmptyState simple description="沒有符合條件的 Purchase Order" /> }}
       scroll={{ x: true }}
-      pagination={{ current: (data?.page ?? 0) + 1, pageSize: data?.size ?? query.size, total: data?.totalElements ?? 0, showSizeChanger: true }}
+      pagination={{ current: (currentListData?.page ?? query.page ?? 0) + 1, pageSize: currentListData?.size ?? query.size ?? 20, total: currentListData?.totalElements ?? 0, showSizeChanger: true }}
       onChange={(pagination, _filters, sorter) => {
         const selected = Array.isArray(sorter) ? sorter[0] : sorter;
         const field = typeof selected?.field === 'string' && sortable.has(selected.field) ? selected.field : undefined;

@@ -219,13 +219,7 @@ export default function PurchaseOrderKanban({ state, snapshot, gateway, error, r
   const locked = verificationId !== null || submitting;
 
   return <section className="purchase-order-kanban" aria-label="採購單八階段看板">
-    <Alert
-      type="info"
-      showIcon
-      message="看板 Stage／命令契約為暫定整合"
-      description="資料與命令依 #142 尚未合併的本機實作接線，待 #142 合併後重新核對並驗證。轉移仍由後端授權與檢查；看板不會直接修改 Stage 或正式 PO 狀態。"
-    />
-    {unknownStageCount > 0 && <Alert type="warning" showIcon message={`${unknownStageCount} 筆採購單的 Stage 為 NULL`} description="此版本不推測 NULL Stage 的業務位置，也不提供看板寫入操作；資料維持唯讀，待 #142 合併後核對顯示契約。" />}
+    {unknownStageCount > 0 && <Alert type="warning" showIcon message={`${unknownStageCount} 筆採購單的 Stage 為 NULL`} description="後端無法確認這些舊資料目前所在欄位，因此不放入八階段欄位，也不提供看板操作；請由採購單明細確認資料。" />}
     {announcement && <div role="status" aria-live="polite" className="purchase-order-kanban__announcement">{announcement}</div>}
     {verificationState && <VerificationRequiredAlert
       state={verificationState}
