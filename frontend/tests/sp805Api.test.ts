@@ -46,6 +46,26 @@ describe('SP-805 API contracts', () => {
     expect(transaction.quantity).toBe('1.23E+8');
   });
 
+  it('preserves Inventory and SupplierMaterial BigDecimal fields while keeping IDs and integer DTO fields numeric', () => {
+    const inventory = parseDecimalJson('{"materialId":42,"quantity":999999999999999.1234}') as Record<string, unknown>;
+    const supplierMaterial = parseDecimalJson('{"id":8,"supplierId":2,"materialId":42,"unitPrice":999999999999999.1234,"moq":0.0001,"packageMultiple":1E-4,"leadTimeDays":7}') as Record<string, unknown>;
+
+    expect(inventory).toEqual({ materialId: 42, quantity: '999999999999999.1234' });
+    expect(supplierMaterial).toEqual({
+      id: 8,
+      supplierId: 2,
+      materialId: 42,
+      unitPrice: '999999999999999.1234',
+      moq: '0.0001',
+      packageMultiple: '1E-4',
+      leadTimeDays: 7,
+    });
+    expect(typeof inventory.materialId).toBe('number');
+    expect(typeof supplierMaterial.id).toBe('number');
+    expect(typeof supplierMaterial.supplierId).toBe('number');
+    expect(typeof supplierMaterial.materialId).toBe('number');
+    expect(typeof supplierMaterial.leadTimeDays).toBe('number');
+  });
   it('rejects unsafe ordinary integer fields instead of silently rounding them', () => {
     expect(() => parseDecimalJson('{"id":999999999999999999999,"quantity":100,"page":0,"size":20}'))
       .toThrow('Unsafe integer token for field "id": 999999999999999999999');
@@ -129,6 +149,40 @@ describe('SP-805 API contracts', () => {
     expect(requests[4].data).toBeUndefined();
   });
 
+
+  it('preserves PO and StockTransaction decimal tokens through API response transforms', async () => {
+    const requests: InternalAxiosRequestConfig[] = [];
+    axiosClient.defaults.adapter = vi.fn(async (config) => {
+      requests.push(config);
+      const data = config.url === '/purchase-orders'
+        ? '{"content":[{"id":42,"items":[{"id":1,"materialId":7,"quantity":999999999999999.1234000,"unitPrice":0.0000001234500,"total":1.234500E+30}]}],"page":0,"size":20,"totalElements":1,"totalPages":1}'
+        : config.url === '/stock-transactions'
+          ? '{"content":[{"id":71,"materialId":7,"createdBy":3,"quantity":123456789012345.123456789}],"page":0,"size":20,"totalElements":1,"totalPages":1}'
+          : '{"id":72,"materialId":7,"createdBy":3,"quantity":1.23E+8}';
+      return response(config, data);
+    });
+
+    const purchaseOrders = await listPurchaseOrders({ page: 0, size: 20 });
+    const stockTransactions = await listStockTransactions({ page: 0, size: 20 });
+    const stockTransaction = await getStockTransaction(72);
+
+    expect(purchaseOrders.content[0].items[0]).toMatchObject({
+      quantity: '999999999999999.1234000',
+      unitPrice: '0.0000001234500',
+      total: '1.234500E+30',
+    });
+    expect(typeof purchaseOrders.content[0].id).toBe('number');
+    expect(typeof purchaseOrders.page).toBe('number');
+    expect(stockTransactions.content[0].quantity).toBe('123456789012345.123456789');
+    expect(typeof stockTransactions.content[0].id).toBe('number');
+    expect(stockTransaction.quantity).toBe('1.23E+8');
+    expect(typeof stockTransaction.materialId).toBe('number');
+    expect(requests.map(({ url }) => url)).toEqual([
+      '/purchase-orders',
+      '/stock-transactions',
+      '/stock-transactions/72',
+    ]);
+  });
   it('supports the read-only stock transaction list and detail contract', async () => {
     const requests: InternalAxiosRequestConfig[] = [];
     axiosClient.defaults.adapter = vi.fn(async (config) => { requests.push(config); return response(config); });

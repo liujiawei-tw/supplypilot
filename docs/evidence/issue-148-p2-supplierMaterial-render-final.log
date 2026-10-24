@@ -1,0 +1,12 @@
+COMMAND=npm exec -- vitest run --pool=forks --maxWorkers=1 tests/supplierMaterialPrecision.test.tsx
+
+ RUN  v4.1.11 C:/Users/z0976/.codex/worktrees/issue-148-v2-401/supplypilot/frontend
+
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+
+ Test Files  1 passed (1)
+      Tests  1 passed (1)
+   Start at  00:12:01
+   Duration  6.14s (transform 263ms, setup 282ms, import 4.04s, tests 778ms, environment 820ms)
+
+EXIT_CODE=0

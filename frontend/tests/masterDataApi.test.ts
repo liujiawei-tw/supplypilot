@@ -25,6 +25,41 @@ describe('master data API contracts', () => {
     ]);
   });
 
+  it('parses SupplierMaterial BigDecimal fields losslessly across response endpoints', async () => {
+    const requests: InternalAxiosRequestConfig[] = [];
+    const item = '{"id":8,"supplierId":2,"materialId":42,"unitPrice":999999999999999.1234,"moq":0.0001,"packageMultiple":1E-4,"leadTimeDays":7,"currency":"TWD","status":"ACTIVE","createdAt":"2026-10-24T00:00:00Z","updatedAt":"2026-10-24T00:00:00Z"}';
+    axiosClient.defaults.adapter = vi.fn(async (config) => {
+      requests.push(config);
+      const data = config.method === 'get'
+        ? '{"content":[' + item + '],"page":0,"size":20,"totalElements":1,"totalPages":1}'
+        : item;
+      return response(config, data);
+    });
+
+    const listed = await listSupplierMaterials({ page: 0, size: 20 });
+    const created = await createSupplierMaterial({ supplierId: 2, materialId: 42, unitPrice: '999999999999999.1234', moq: '0.0001', packageMultiple: '0.0001', leadTimeDays: 7, currency: 'TWD' });
+    const updated = await updateSupplierMaterial(8, { status: 'ACTIVE' });
+    for (const value of [listed.content[0], created, updated]) {
+      expect(value).toMatchObject({
+        id: 8,
+        supplierId: 2,
+        materialId: 42,
+        unitPrice: '999999999999999.1234',
+        moq: '0.0001',
+        packageMultiple: '1E-4',
+        leadTimeDays: 7,
+      });
+      expect(typeof value.id).toBe('number');
+      expect(typeof value.supplierId).toBe('number');
+      expect(typeof value.materialId).toBe('number');
+      expect(typeof value.leadTimeDays).toBe('number');
+    }
+    expect(requests.map(({ method, url }) => ({ method, url }))).toEqual([
+      { method: 'get', url: '/supplier-materials' },
+      { method: 'post', url: '/supplier-materials' },
+      { method: 'patch', url: '/supplier-materials/8' },
+    ]);
+  });
   it('sends only backend-supported PATCH fields', async () => {
     const requests: InternalAxiosRequestConfig[] = [];
     axiosClient.defaults.adapter = vi.fn(async (config) => { requests.push(config); return response(config); });

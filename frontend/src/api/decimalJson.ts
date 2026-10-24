@@ -1,7 +1,9 @@
 import { isInteger, isLosslessNumber, parse } from 'lossless-json';
 
-/** BigDecimal fields in the PO, Receiving, and StockTransaction response DTOs. */
-const BIG_DECIMAL_FIELDS = new Set(['quantity', 'unitPrice', 'total']);
+export type DecimalValue = string | number;
+
+/** BigDecimal fields in Inventory, SupplierMaterial, PO, Receiving, and StockTransaction response DTOs. */
+const BIG_DECIMAL_FIELDS = new Set(['quantity', 'unitPrice', 'total', 'moq', 'packageMultiple']);
 
 /**
  * Parse API numbers according to the formal response DTO field type.

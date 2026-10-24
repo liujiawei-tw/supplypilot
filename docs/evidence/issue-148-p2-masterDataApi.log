@@ -1,0 +1,11 @@
+COMMAND=npm exec -- vitest run --pool=forks --maxWorkers=1 tests/masterDataApi.test.ts
+
+ RUN  v4.1.11 C:/Users/z0976/.codex/worktrees/issue-148-v2-401/supplypilot/frontend
+
+
+ Test Files  1 passed (1)
+      Tests  4 passed (4)
+   Start at  00:09:10
+   Duration  2.01s (transform 124ms, setup 327ms, import 243ms, tests 20ms, environment 1.16s)
+
+EXIT_CODE=0

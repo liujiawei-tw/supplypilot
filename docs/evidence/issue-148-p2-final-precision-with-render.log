@@ -1,0 +1,12 @@
+COMMAND=npm exec -- vitest run --pool=forks --maxWorkers=1 tests/demandInventoryApi.test.ts tests/masterDataApi.test.ts tests/sp805Api.test.ts tests/issue148DisplayFormatters.test.ts tests/supplierMaterialPrecision.test.tsx
+
+ RUN  v4.1.11 C:/Users/z0976/.codex/worktrees/issue-148-v2-401/supplypilot/frontend
+
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+
+ Test Files  5 passed (5)
+      Tests  26 passed (26)
+   Start at  00:12:27
+   Duration  12.83s (transform 348ms, setup 996ms, import 5.04s, tests 1.14s, environment 4.01s)
+
+EXIT_CODE=0

@@ -4,7 +4,7 @@ import type { TableProps } from 'antd';
 import { PlusOutlined } from '@ant-design/icons';
 import { getMaterial, type MaterialResponse } from '../../api/material';
 import { getSupplier, type SupplierResponse } from '../../api/supplier';
-import { createSupplierMaterial, listSupplierMaterials, updateSupplierMaterial, type CreateSupplierMaterialRequest, type SupplierMaterialResponse, type SupplierMaterialStatus, type UpdateSupplierMaterialRequest } from '../../api/supplierMaterial';
+import { createSupplierMaterial, listSupplierMaterials, updateSupplierMaterial, type CreateSupplierMaterialRequest, type DecimalValue, type SupplierMaterialResponse, type SupplierMaterialStatus, type UpdateSupplierMaterialRequest } from '../../api/supplierMaterial';
 import { toApiError } from '../../api/apiError';
 import EmptyState from '../../components/EmptyState';
 import ErrorState from '../../components/ErrorState';
@@ -102,9 +102,9 @@ export default function SupplierMaterialList({ isAdmin }: { isAdmin: boolean }) 
   const columns = [
     { title: '供應商', dataIndex: 'supplierId', render: (id: number) => label(suppliers[id], id) },
     { title: '物料', dataIndex: 'materialId', render: (id: number) => label(materials[id], id) },
-    { title: '單價', dataIndex: 'unitPrice', sorter: true, render: (value: number, row: SupplierMaterialResponse) => formatCurrency(value, row.currency) },
-    { title: '最低訂購量（MOQ）', dataIndex: 'moq', sorter: true, render: (value: number, row: SupplierMaterialResponse) => formatQuantity(value, materials[row.materialId]?.baseUnit) },
-    { title: '包裝倍數', dataIndex: 'packageMultiple', sorter: true, render: (value: number | null, row: SupplierMaterialResponse) => formatQuantity(value, materials[row.materialId]?.baseUnit) },
+    { title: '單價', dataIndex: 'unitPrice', sorter: true, render: (value: DecimalValue, row: SupplierMaterialResponse) => formatCurrency(value, row.currency) },
+    { title: '最低訂購量（MOQ）', dataIndex: 'moq', sorter: true, render: (value: DecimalValue, row: SupplierMaterialResponse) => formatQuantity(value, materials[row.materialId]?.baseUnit) },
+    { title: '包裝倍數', dataIndex: 'packageMultiple', sorter: true, render: (value: DecimalValue | null, row: SupplierMaterialResponse) => formatQuantity(value, materials[row.materialId]?.baseUnit) },
     { title: '交期（天）', dataIndex: 'leadTimeDays', sorter: true },
     { title: '狀態', dataIndex: 'status', sorter: true, render: (status: SupplierMaterialStatus) => <Tag color={status === 'ACTIVE' ? 'green' : 'default'}>{displayLabel(status)}</Tag> },
     ...(isAdmin ? [{ title: '操作', key: 'actions', render: (_: unknown, item: SupplierMaterialResponse) => <Space>

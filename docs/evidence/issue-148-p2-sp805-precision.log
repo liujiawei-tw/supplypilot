@@ -1,0 +1,10 @@
+
+ RUN  v4.1.11 C:/Users/z0976/.codex/worktrees/issue-148-v2-401/supplypilot/frontend
+
+
+ Test Files  1 passed (1)
+      Tests  13 passed (13)
+   Start at  00:07:14
+   Duration  1.34s (transform 109ms, setup 201ms, import 205ms, tests 21ms, environment 719ms)
+
+EXIT_CODE=0
