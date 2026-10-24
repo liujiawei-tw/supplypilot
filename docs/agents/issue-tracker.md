@@ -21,7 +21,7 @@ gh pr view <PRNumber> --repo liujiawei-tw/supplypilot --json number,title,body,b
 
 - 若 `gh` 無法使用，改採已連線且授權的 GitHub 工具讀取；不得假稱已成功查詢。請勿在 Log 印出 Secret／Token。
 - 交付前核對 `origin/main`、當次 Issue、前置 PR、Branch 與 Head SHA。Skill 需要查詢 Spec 時，以 Issue 與 `docs/v2/` 對應契約為準。
-- **寫入限制：** Codex 僅能按 `AGENTS.md` 在當次 Feature Branch 實作、Commit／Push；GPT 獨立 Review Final PASS 後建立繁體中文 PR 並含獨立 `Closes #<IssueNumber>`；使用者自行 Merge。禁止 Skills 自行開 PR、Merge、改 Label、關閉 Issue。
+- **寫入限制：** Codex 僅能按 `AGENTS.md` 在當次 Feature Branch 實作、Commit／Push；GPT 先對遠端確切 HEAD 獨立 Code Review，Codex 再跑必要 CI；GPT 核實證據後建立繁體中文 PR（含獨立 `Closes #<IssueNumber>`），使用者自行 Merge。舊 Orchestrator State／Gate 非一般 PR 前置。禁止 Skills 自行開 PR、Merge、改 Label、關閉 Issue。
 - 若 `code-review` 需要 fixed point，使用該次驗證的 base commit／`main`，先核對引用存在；Reviewer 須記錄實際比較 SHA。內部 `code-review` 不等於 GPT Final PASS。
 
 完整交接請讀 [Matt Pocock V2 協作文件](../v2/matt-pocock-codex-gpt-handoff.md)。
