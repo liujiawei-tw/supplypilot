@@ -189,6 +189,10 @@ export default function PurchaseOrdersPage() {
     <Space wrap style={{ width: '100%', justifyContent: 'space-between' }}><div><Typography.Title level={2} style={{ marginBottom: 0 }}>採購單管理</Typography.Title><Typography.Text type="secondary">查詢採購單流程與稽核紀錄</Typography.Text></div>{user && can(user.role, 'purchaseOrderCreate') && <Button type="primary" onClick={() => { setCreateOpen(true); setCreateError(null); }}>建立手動草稿</Button>}</Space>
     <Space wrap>
       <Select allowClear placeholder="狀態" style={{ width: 150 }} options={statuses.map((value) => ({ value, label: displayLabel(value) }))} onChange={(value) => setFilter('status', value)} />
+      <Input aria-label="採購單號搜尋" placeholder="採購單號" maxLength={100} allowClear style={{ width: 190 }} value={query.poNumber ?? ''} onChange={(event) => setFilter('poNumber', event.target.value)} />
+      <Input aria-label="供應商代碼搜尋" placeholder="供應商代碼" maxLength={100} allowClear style={{ width: 170 }} value={query.supplierCode ?? ''} onChange={(event) => setFilter('supplierCode', event.target.value)} />
+      <Input aria-label="供應商名稱搜尋" placeholder="供應商名稱" maxLength={100} allowClear style={{ width: 190 }} value={query.supplierName ?? ''} onChange={(event) => setFilter('supplierName', event.target.value)} />
+      <Input aria-label="物料代碼搜尋" placeholder="物料代碼" maxLength={100} allowClear style={{ width: 170 }} value={query.materialCode ?? ''} onChange={(event) => setFilter('materialCode', event.target.value)} />
       <Input aria-label="供應商編號篩選" placeholder="供應商編號" style={{ width: 130 }} onChange={(event) => setFilter('supplierId', Number(event.target.value) || undefined)} />
       <Input aria-label="物料編號篩選" placeholder="物料編號" style={{ width: 130 }} onChange={(event) => setFilter('materialId', Number(event.target.value) || undefined)} />
       <Input aria-label="建立日期起日" type="date" onChange={(event) => setFilter('createdFrom', event.target.value)} />
