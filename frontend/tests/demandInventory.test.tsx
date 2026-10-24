@@ -30,7 +30,10 @@ async function open(path: string) {
   render(<App />);
 }
 
-beforeEach(() => { localStorage.clear(); });
+beforeEach(async () => {
+  localStorage.clear();
+  await router.navigate('/login');
+});
 
 describe('SP-802 Demand UI', () => {
   it('does not mount Demand queries for an unauthorized role', async () => {
