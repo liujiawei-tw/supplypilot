@@ -27,7 +27,7 @@ SupplyPilot V2 維持 **Codex 實作／測試／Commit/Push → GPT 遠端獨立
 
 > **以下為目前已實作 V1 基線的操作方式，非 V2 已完成證明。** V2 各模組的資料庫、角色、種子資料與畫面需依相關 Issue 實作後，才可更新此節為 V2 實際操作說明。
 
-根目錄 `compose.yaml` 是 Production 與 Demo 共用的唯一基底，包含 MySQL、pgvector、Backend 和 Frontend 四個服務。Production 預設只在本機回環位址提供網站，資料庫連接埠不會發布到主機。
+根目錄 `compose.yaml` 是 Production 與 Demo 共用的唯一基底，包含 MySQL、pgvector、Backend 和 Frontend 四個服務。Production 與 Demo 的網站和 MySQL 都綁定主機回環位址 `127.0.0.1`；預設 MySQL 主機埠分別為 `13306` 和 `13307`。pgvector 不發布主機埠。Docker Engine 28.0.0 之前的版本有同一區域網路網段仍可能連到 localhost 發布埠的例外；發布環境應使用 Docker Engine 28.0.0 以上版本，或另以主機防火牆限制連線。
 
 ### Production
 
@@ -39,6 +39,8 @@ SupplyPilot V2 維持 **Codex 實作／測試／Commit/Push → GPT 遠端獨立
    ```
 
 3. 開啟 `http://127.0.0.1:8080`，並以 `docker compose ps` 確認四個服務為 healthy。Backend 容器內的健康端點是 `/actuator/health`，不發布到主機。
+
+MySQL Workbench 使用 Hostname `127.0.0.1`、Port `13306`、`.env` 的 `DB_USERNAME`／`DB_PASSWORD`，Schema `supplypilot_prod`。可用 `.env` 的 `PRODUCTION_MYSQL_HOST_PORT` 調整主機埠；容器內 Backend 仍連 `mysql:3306`。
 
 全新且 `users` 表為空的 Production 資料庫會由 Backend 建立一個 `admin` / `admin` 管理員，使用 BCrypt 雜湊並標示為必須變更密碼。首次登入後，Backend 只允許讀取登入者資訊和修改密碼；修改完成需用新密碼重新登入。已有任何使用者時，Bootstrap 不建立、不覆寫帳號。若既有資料庫缺少管理員，依 `docs/SP-903-DOCKER-RELEASE-CANDIDATE.md` 的受控人工恢復程序操作。
 
@@ -53,6 +55,8 @@ SupplyPilot V2 維持 **Codex 實作／測試／Commit/Push → GPT 遠端獨立
    docker compose --env-file .env.demo -f compose.yaml -f compose.demo.yaml up -d --build
    ```
 3. 開啟 `http://127.0.0.1:8081`。
+
+Demo MySQL Workbench 使用 Hostname `127.0.0.1`、Port `13307`、`.env.demo` 的 `DB_USERNAME`／`DB_PASSWORD`，Schema `supplypilot_demo`。可用 `.env.demo` 的 `DEMO_MYSQL_HOST_PORT` 調整主機埠；容器內 Backend 仍連 `mysql:3306`。若主機的原生 MySQL 服務正在使用 `3306`，這兩個預設埠可避免衝突。
 
 **目前 V1 Demo** 的五個基線帳號 `admin`、`manager`、`buyer`、`warehouse`、`planner` 共用 `.env.demo` 的 `DEMO_ACCOUNT_PASSWORD`。密碼在 Backend 建立時載入；修改 `.env.demo` 後使用下方標準 Compose `down` 再 `up -d --build`，不要用 `docker compose restart` 更新環境變數。`down` 預設保留 Named Volume，禁止加 `-v`。新密碼生效、舊密碼失效；不會重新 Seed，文件與索引由 Named Volume 保留。已核發 JWT 依原有效期運作。Issue #45 已取消即時密碼熱更新，改為以 Compose 重建 Backend 驗收。Production 不啟用 Demo 認證元件；Docker 管理者可以檢視 Container Environment，因此 Demo 密碼不可與正式企業密碼共用。部署限制與驗收狀態見 `docs/SP-903-DOCKER-RELEASE-CANDIDATE.md`。
 

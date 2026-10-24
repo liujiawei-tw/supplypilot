@@ -4,9 +4,9 @@
 
 `compose.yaml` 是唯一服務基底，定義 MySQL、PostgreSQL/pgvector、Spring Boot Backend、React/Nginx Frontend。兩個 Web Container 使用相同 Dockerfile 建置方式、Health Check、資源限制與網路設定。
 
-Production 預設使用 `prod` Profile、固定的 `supplypilot_prod` / `supplypilot_semantic_prod` 資料庫、專屬專案 Volume、`127.0.0.1:8080` 前端入口及內部資料網路。資料庫埠不發布到主機。Production 不掛載 Demo 環境檔，不啟用 Demo Seeder。
+Production 預設使用 `prod` Profile、固定的 `supplypilot_prod` / `supplypilot_semantic_prod` 資料庫、專屬專案 Volume、`127.0.0.1:8080` 前端入口及內部資料網路。MySQL 發布到 Docker 主機的 `127.0.0.1:13306`，容器內仍使用 `3306`；主機埠可由 `.env` 的 `PRODUCTION_MYSQL_HOST_PORT` 調整。此設定供 Docker 主機上的 MySQL Workbench 連線；pgvector 仍不發布主機埠。Docker Engine 28.0.0 之前的版本有同一區域網路網段仍可能連到 localhost 發布埠的例外；發布環境應使用 Docker Engine 28.0.0 以上版本，或另以主機防火牆限制連線。Production 不掛載 Demo 環境檔，不啟用 Demo Seeder。
 
-Demo 只用 `compose.demo.yaml` 覆蓋必要差異：Compose Project、Profile、資料庫名稱、Demo 文件 Storage、基線密碼 Environment、Frontend Port。Backend 繼承基底的 `data`、`web` 網路，可直接連接 MySQL／pgvector 並服務 Frontend。Demo 專案名稱和三個 Named Volume 保留既有 SP-903 名稱。不得為了解決憑證錯誤移除 Volume 或 Reset 資料。
+Demo 只用 `compose.demo.yaml` 覆蓋必要差異：Compose Project、Profile、資料庫名稱、Demo 文件 Storage、基線密碼 Environment、Frontend Port 及 MySQL 主機埠。MySQL 發布到 `127.0.0.1:13307`，容器內仍使用 `3306`；主機埠可由 `.env.demo` 的 `DEMO_MYSQL_HOST_PORT` 調整。Workbench 使用 `.env.demo` 的 `DB_USERNAME`／`DB_PASSWORD` 連接 Schema `supplypilot_demo`。Backend 繼承基底的 `data`、`web` 網路，可直接連接 MySQL／pgvector 並服務 Frontend。Demo 專案名稱和三個 Named Volume 保留既有 SP-903 名稱。不得為了解決憑證錯誤移除 Volume 或 Reset 資料。
 
 Demo Backend 使用 `!override` 取代基底的整組 volume mounts，因此合併後只會掛載兩項：文件 volume `sp903-document-storage:/app/data/demo-documents` 和唯讀樣本 `./samples/documents:/app/samples/demo-documents:ro`。不會留下基底的 `/app/data/documents` 或 Production 文件 volume。Host 樣本路徑保留原名，因 SP-901 Semantic Gate 的手動 UI 上傳也使用該路徑。
 

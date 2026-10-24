@@ -12,9 +12,10 @@ ROOT = Path(__file__).resolve().parents[2]
 COMPOSE_VARIABLES = {
     "AI_API_KEY", "AI_CHAT_PROVIDER", "AI_EMBEDDING_PROVIDER", "AI_MODEL",
     "AI_MONTHLY_TOKEN_WARNING_ENABLED", "AI_PROVIDER_TIMEOUT", "DB_NAME", "DB_PASSWORD",
-    "DB_PORT", "DB_USERNAME", "DEMO_ACCOUNT_PASSWORD", "DEMO_DATASET_VERSION",
+    "DB_PORT", "DB_USERNAME", "DEMO_ACCOUNT_PASSWORD", "DEMO_DATASET_VERSION", "DEMO_MYSQL_HOST_PORT",
     "DEMO_FRONTEND_PORT", "FRONTEND_ORIGIN", "GEMINI_API_KEY", "GEMINI_EMBEDDING_MODEL",
     "GEMINI_MODEL", "JWT_EXPIRATION_SECONDS", "JWT_SECRET", "MYSQL_ROOT_PASSWORD",
+    "PRODUCTION_MYSQL_HOST_PORT",
     "SEMANTIC_DB_NAME", "SEMANTIC_DB_PASSWORD", "SEMANTIC_DB_PORT", "SEMANTIC_DB_USERNAME",
     "SEMANTIC_DIMENSIONS", "SEMANTIC_GENERATION_KEY", "SEMANTIC_READ_ENABLED",
     "COMPOSE_PROJECT_NAME",
@@ -94,9 +95,9 @@ class ComposeConfigurationTests(unittest.TestCase):
 
         self.assertEqual([("127.0.0.1", "8080", "8080")], published_ports(prod, "frontend"))
         self.assertEqual([("127.0.0.1", "8181", "8080")], published_ports(demo, "frontend"))
-        self.assertEqual([], published_ports(prod, "mysql"))
+        self.assertEqual([("127.0.0.1", "13306", "3306")], published_ports(prod, "mysql"))
         self.assertEqual([], published_ports(prod, "pgvector"))
-        self.assertEqual([], published_ports(demo, "mysql"))
+        self.assertEqual([("127.0.0.1", "13307", "3306")], published_ports(demo, "mysql"))
         self.assertEqual([], published_ports(demo, "pgvector"))
 
         prod_document_mounts = [volume for volume in prod["services"]["backend"]["volumes"]
@@ -135,6 +136,21 @@ class ComposeConfigurationTests(unittest.TestCase):
         self.assertNotEqual(prod["volumes"]["mysql-data"]["name"], demo["volumes"]["sp903-mysql-data"]["name"])
         self.assertNotEqual(prod["volumes"]["pgvector-data"]["name"], demo["volumes"]["sp903-pgvector-data"]["name"])
         self.assertNotEqual(prod["volumes"]["document-storage"]["name"], demo["volumes"]["sp903-document-storage"]["name"])
+
+    def test_mysql_host_ports_can_be_overridden_per_environment(self):
+        prod = compose_config(
+            self.prod_env, demo=False, environment={"PRODUCTION_MYSQL_HOST_PORT": "23306"}
+        )
+        demo = compose_config(
+            self.demo_env, demo=True, environment={"DEMO_MYSQL_HOST_PORT": "23307"}
+        )
+
+        def published_ports(config, service):
+            return [(item["host_ip"], str(item["published"]), str(item["target"]))
+                    for item in config["services"][service].get("ports", [])]
+
+        self.assertEqual([("127.0.0.1", "23306", "3306")], published_ports(prod, "mysql"))
+        self.assertEqual([("127.0.0.1", "23307", "3306")], published_ports(demo, "mysql"))
 
     def test_demo_password_comes_from_explicit_env_file_and_literal_dollar_is_preserved(self):
         self.demo_env.write_text(
