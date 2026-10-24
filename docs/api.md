@@ -1125,6 +1125,10 @@ Query：
 status
 supplierId
 materialId
+poNumber
+supplierCode
+supplierName
+materialCode
 createdFrom
 createdTo
 expectedDeliveryFrom
@@ -1159,6 +1163,20 @@ Open PO 在 V1 定義為 `status=ORDERED` 且尚未進入 `RECEIVED`；使用 `s
 交期等於 Backend Clock 的今天不算逾期。`isOverdue` 由 Backend Clock 動態計算，不寫入資料庫。
 
 `materialId` 使用 PO Item existence 條件，不會因一張 PO 有多個 Item 而重複回傳；分頁 count 以 PO 為單位。
+
+### V2-207 搜尋條件
+
+- `poNumber` 支援完整單號或部分單號包含比對；`supplierCode`、`supplierName`、`materialCode` 皆為不分大小寫的部分比對。
+- 搜尋值先去除前後空白；空字串或純空白不套用該條件。每個搜尋值最多 100 字元；超過上限回 `400 VALIDATION_FAILED`。
+- `%`、`_`、`!` 是一般字元，不作為 SQL `LIKE` 萬用字元。查詢以資料庫條件套用後再分頁，不會先取一頁再在應用程式過濾。
+- 所有已提供條件以 AND 組合。`materialId` 與 `materialCode` 同時提供時，必須是同一筆 PO 品項同時符合兩者；物料搜尋採 `EXISTS`，故一張 PO 即使有多筆符合品項仍只計一次，`totalElements` 以 PO 為單位。
+- 此查詢沿用本節列出的 PO 讀取角色與 Service 授權檢查；新增搜尋參數不擴大可見資料範圍。
+
+範例：
+
+```text
+GET /api/v1/purchase-orders?poNumber=P-a12b&supplierCode=SUP-00&supplierName=北區&materialCode=MAT-0&page=0&size=20&sort=poNumber,asc
+```
 
 ---
 

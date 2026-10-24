@@ -57,7 +57,9 @@ export interface PurchaseOrderResponse {
   receivedByDisplayName: string | null; receivedByUsername: string | null; receivedAt: string | null; isOverdue: boolean; updatedAt: string;
 }
 export interface PurchaseOrderQuery {
-  status?: PurchaseOrderStatus; supplierId?: number; materialId?: number; createdFrom?: string; createdTo?: string;
+  status?: PurchaseOrderStatus; supplierId?: number; materialId?: number;
+  poNumber?: string; supplierCode?: string; supplierName?: string; materialCode?: string;
+  createdFrom?: string; createdTo?: string;
   expectedDeliveryFrom?: string; expectedDeliveryTo?: string; overdue?: boolean; page?: number; size?: number; sort?: string;
 }
 export type PurchaseOrderDraftResponse = PurchaseOrderResponse;
