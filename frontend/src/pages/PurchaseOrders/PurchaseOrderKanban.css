@@ -1,0 +1,90 @@
+.purchase-orders__view-switch {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.purchase-order-kanban {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+
+.purchase-order-kanban__columns {
+  display: grid;
+  grid-auto-columns: minmax(260px, 1fr);
+  grid-auto-flow: column;
+  gap: 12px;
+  overflow-x: auto;
+  padding: 2px 2px 14px;
+  scroll-snap-type: x proximity;
+}
+
+.purchase-order-kanban__columns:focus-visible {
+  outline: 2px solid #1677ff;
+  outline-offset: 2px;
+}
+
+.purchase-order-kanban__column {
+  min-width: 0;
+  min-height: 200px;
+  padding: 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #f8fafc;
+  scroll-snap-align: start;
+}
+
+.purchase-order-kanban__column--drop-target {
+  border-color: #1677ff;
+  background: #e6f4ff;
+  box-shadow: inset 0 0 0 1px #1677ff;
+}
+
+.purchase-order-kanban__column-heading {
+  display: flex;
+  min-height: 48px;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.purchase-order-kanban__column-heading .ant-typography {
+  margin: 0;
+  line-height: 1.45;
+}
+
+.purchase-order-kanban__cards {
+  display: grid;
+  align-content: start;
+  gap: 10px;
+}
+
+.purchase-order-kanban__card {
+  overflow-wrap: anywhere;
+}
+
+.purchase-order-kanban__pending {
+  display: grid;
+  min-height: 112px;
+  place-items: center;
+  padding: 12px;
+  color: #64748b;
+  text-align: center;
+  border: 1px dashed #cbd5e1;
+  border-radius: 6px;
+  background: #fff;
+}
+
+.purchase-order-kanban__announcement {
+  padding: 10px 12px;
+  border: 1px solid #91caff;
+  border-radius: 6px;
+  background: #f0f7ff;
+}
+
+@media (max-width: 767px) {
+  .purchase-order-kanban__columns {
+    grid-auto-columns: minmax(240px, 82vw);
+  }
+}

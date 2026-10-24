@@ -6,6 +6,16 @@ import { decimalResponseConfig } from './decimalJson';
 export type DecimalValue = string | number;
 export type PurchaseOrderStatus = 'DRAFT' | 'APPROVED' | 'ORDERED' | 'RECEIVED' | 'REJECTED' | 'CANCELLED';
 export type OrderedProgress = 'FOLLOW_UP' | 'RECEIVING_INSPECTION' | 'LEGACY_UNKNOWN';
+/** Persisted Kanban position from the merged #142 Stage contract; null means no known active lane. */
+export type PurchaseOrderStage =
+  | 'NEW_REQUEST'
+  | 'SOURCING'
+  | 'APPROVAL'
+  | 'APPROVED_PENDING_ORDER'
+  | 'ORDER_FOLLOW_UP'
+  | 'RECEIVING_INSPECTION'
+  | 'PAYMENT_RECONCILIATION'
+  | 'COMPLETED';
 export interface ReceivingInspectionResponse {
   allItemsReceived: boolean; allQuantitiesConfirmed: boolean; allQualityAccepted: boolean; note: string | null;
   inspectedBy: number | null; inspectedByDisplayName: string | null; inspectedByUsername: string | null; inspectedAt: string | null;
@@ -30,7 +40,7 @@ export interface PurchaseOrderItemResponse {
   supplierOverride: boolean; quantityOverride: boolean; supplierOverrideReason: string | null; quantityOverrideReason: string | null;
 }
 export interface PurchaseOrderResponse {
-  id: number; poNumber: string; supplierId: number; supplierCode: string; supplierName: string; status: PurchaseOrderStatus; orderedProgress: OrderedProgress | null;
+  id: number; poNumber: string; supplierId: number; supplierCode: string; supplierName: string; status: PurchaseOrderStatus; stage: PurchaseOrderStage | null; orderedProgress: OrderedProgress | null;
   expectedDeliveryDate: string | null; supplierPromisedDeliveryDate: string | null;
   receivingInspection: ReceivingInspectionResponse;
   paymentConfirmed: boolean; paymentConfirmedBy: number | null; paymentConfirmedByDisplayName: string | null;
@@ -68,6 +78,12 @@ export async function updateSupplierPromisedDeliveryDate(id: number, supplierPro
 }
 export async function approvePurchaseOrder(id: number): Promise<PurchaseOrderResponse> {
   return (await axiosClient.post<PurchaseOrderResponse>(`/purchase-orders/${id}/approve`, undefined, decimalResponseConfig)).data;
+}
+export async function beginPurchaseOrderSourcing(id: number): Promise<PurchaseOrderResponse> {
+  return (await axiosClient.post<PurchaseOrderResponse>(`/purchase-orders/${id}/begin-sourcing`, undefined, decimalResponseConfig)).data;
+}
+export async function submitPurchaseOrderForApproval(id: number): Promise<PurchaseOrderResponse> {
+  return (await axiosClient.post<PurchaseOrderResponse>(`/purchase-orders/${id}/submit-for-approval`, undefined, decimalResponseConfig)).data;
 }
 export async function rejectPurchaseOrder(id: number, reason: string): Promise<PurchaseOrderResponse> {
   return (await axiosClient.post<PurchaseOrderResponse>(`/purchase-orders/${id}/reject`, { reason }, decimalResponseConfig)).data;

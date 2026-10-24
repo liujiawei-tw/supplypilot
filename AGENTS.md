@@ -20,6 +20,19 @@
 **#168 有兩輪修正上限。** 每輪指完成修正並實際驗證的一次交付審查；第一輪失敗才安排第二輪。第二輪仍無法穩定恢復時停止擴大 Orchestrator，依使用者核定方向另行最小化移除一般流程中的強制入口，保留必要 CI／Review 與證據；不得因上限直接宣稱不安全變更通過。#142、#145 已通過的程式審查成果須保留，僅補足交付所需 CI。
 
 
+
+## 2026-10-24 補充核定：Issue 精準 CI 與 V2 整合後完整 CI（取代舊全量 Gate 慣例）
+
+**使用者最新決策：** V2 一般 Issue 不再以「每張 Issue 都跑完整 Backend Maven verify／完整 Frontend Vitest」為建立 PR 的必要條件。完成所有規劃的 V2 Issues 並整合後，統一執行完整 Backend／Frontend CI 與跨模組回歸；正式本機部署及 Release 仍需各自必要的真實 Browser／RAG／Gemini／Docker 驗收，未執行不得聲稱通過。
+
+- **每張 Issue 仍須過 Gate：** 精準 Unit／Integration／API 契約測試與受影響模組回歸、適用的 Lint／Build、Issue 明訂 Browser／可及性驗收、必要安全／授權／交易／資料庫 Migration／併發驗證，按實際 Diff、共用依賴及風險擴大範圍；**安全與跨模組直接風險不可延後到最後**。不能為了節省時間跳過必要測試。
+- **已執行的完整套件失敗：** 必須保留原始非零 Exit Code、失敗案例與逐項分診。只有具證據足以確認與本 Issue 直接及間接影響無關，且本次所有必要精準測試與驗收均通過，才可標示「完整套件：DEFERRED TO V2 INTEGRATION」而不阻擋本 Issue PR。未能排除本 Issue 風險的失敗仍屬 **BLOCKED**；絕不可將完整套件原本的 FAIL 改寫為 PASS 或籠統宣稱 Flaky。
+- **證據與 SHA：** Codex 保留測試命令、環境、Tests／Failures／Errors／Skipped、Exit Code、原始日誌及 Browser 圖像，綁定 GPT Review 的精確 HEAD。若最新 Commit 只有測試或文件，且產品程式與依賴未變，可重用仍有效的前一 SHA 證據，但必須明列來源 SHA、適用範圍與最新修改的精準驗證。變更產品程式／必要測試要重新驗證受影響部分，並由 GPT Review 新 SHA。
+- **交付定義：** GPT 獨立 Code Review PASS + 當張 Issue 必要精準 CI／驗收 PASS + 已核對證據，方可給予 **FINAL DELIVERY PASS／LOCAL VERIFIED** 並建立繁體中文 PR；使用者親自 Merge。完整回歸標為 **DEFERRED** 不等於已通過。GitHub Actions 持續 **PAUSED BY USER / NOT USED AS GATE**。
+- **最終 V2 整合 Gate：** 全部規劃 Issues 合併後，執行完整 Maven verify、完整 Vitest、Frontend Lint／Build、影響範圍內的 MySQL／PostgreSQL Migration、相關安全／交易／跨模組整合與真實 Browser E2E，修復已登記失敗並保留證據；進入本機正式驗收／AWS／Demo 前按規格再做真實 Provider 與部署測試。必要全量 Gate 未綠不能宣稱 V2 整體完成。
+
+以下既有「本機 CI 等價驗證」及「PR Gate」條文中若將非零 Exit Code 一律視為阻擋，**以本補充決策的「本次必要檢查」與「已分診、延後的無關完整套件」之區分解釋**；其餘安全、交易、權限與人工 Merge 限制維持不變。
+
 ## Matt Pocock Skills 與 Codex／GPT 角色
 
 > 詳細交接見 [docs/v2/matt-pocock-codex-gpt-handoff.md](docs/v2/matt-pocock-codex-gpt-handoff.md)。Skills 是可選的實作／TDD／除錯／內部 Review 方法，不是需求權威，也不取代 GPT 的獨立 GitHub Review。

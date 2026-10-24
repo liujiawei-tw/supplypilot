@@ -12,7 +12,7 @@
 - GitHub Issue 與 [V2 規格總綱](README.md) 確認 Scope，修改前檢查最新 Repo／必要依賴、風險和現有測試；第三方 Skills 不改動授權邊界。
 - 每張 Issue 原則上一個 Feature Branch／Worktree／PR；多 Issue 並行時用 GitHub 依賴及 Worktree／檔案衝突實際核對，不靠 Orchestrator 的多層 State／Gate 作一般交付的強制前置。
 - 不把未合併上游當作已完成、不改 main、不 Force Push、不代替使用者 Merge，不隱藏失敗測試或跳過必要安全／授權／交易／併發回歸。
-- GitHub Actions 目前 `PAUSED BY USER / NOT USED AS GATE`；Codex 在 GPT Code Review 後執行必要本機 CI 等價驗證，保留範圍、結果與未執行項目，非真實 Gemini／Browser／AWS 不得宣稱 PASS。
+- GitHub Actions 目前 `PAUSED BY USER / NOT USED AS GATE`。一般 V2 Issue 採 **精準 CI／必要風險整合測試**；不要求每張 Issue 重跑全套 Maven／Vitest，完整 CI 在所有規劃 V2 Issues 合併後統一執行。Codex 在 GPT Code Review 後驗證必要範圍、保留原始證據，未執行 Gemini／Browser／AWS 不得宣稱 PASS。
 - #168 最多兩輪 Orchestrator 修正；第二輪仍無法穩定運作，停止擴大修復，提請最小化移除其剩餘強制入口，**不刪除必要測試**。
 
 
@@ -48,13 +48,13 @@ GPT Review 檢查兩軸：**Spec**（驗收條件、範圍、V2 Business Rules�
 1. **GPT 讀 GitHub：** 核實最新 main、Issue／Acceptance Criteria、已合併的前置 PR 與 Code／Docs，給 Codex 清楚的 Prompt。
 2. **Codex 實作：** 專用 Branch／Worktree，執行開發期受影響測試及內部 Review，Commit／Push；交接 Issue URL、Base、完整 HEAD SHA、Diff 範圍、風險與已跑／未跑測試。
 3. **GPT Independent Review：** 對 GitHub 遠端 HEAD 的完整 Diff 檢查 Spec／Standards／Security／Transaction／Tests；阻擋 Finding 交 Codex 在相同分支修正並重新 Review。
-4. **Codex 必要 CI：** Review PASS 後，以相同 HEAD 執行受影響 Backend Maven、Frontend Node.js 24／Lint／Vitest／Build，及必要 Integration／Migration／授權／併發測試；依風險擴大。保存命令、測試計數、exit code、logs／Hash、Skipped 與未執行理由。程式或測試另有新 Commit 則 GPT 重新審查新 SHA。
+4. **Codex 必要精準 CI：** Review PASS 後，對相同 HEAD 執行直接／間接受影響 Backend Maven、Frontend Node.js 24／Lint／Vitest／Build，以及必要 Integration／Migration／授權／併發與 Issue 指定 Browser 驗收；高風險必跑項目不得延後。保留命令、測試計數、Exit Code、Logs／Hash、Skipped 與未執行理由；修改後重新 Commit／Push 則 GPT Review 新 SHA。全量 Maven／Vitest 留待全部規劃 V2 Issues 整合完成後執行。
 5. **GPT 交付 PASS 與 PR：** 僅在必要 CI 有效且無阻擋問題時建立繁體中文 PR，目標 `main`，描述獨立一行 `Closes #<IssueNumber>`，回讀確認 Base／Head／SHA。
 6. **使用者 Merge：** 只由使用者決定 Merge；再核實 PR merged、最新 main 與 Issue closed。
 
 舊 Orchestrator `ISSUE_GATE_VERIFIED`、State Reconciliation／Contract Verification、Reservation、Release Gate 不作此一般路徑的額外必要條件。它們若被單獨啟動仍須忠實回報結果；不可冒稱工具已從程式刪除。部署／真實 Gemini／Browser／Docker／AWS 驗證另依實際交付範圍安排。
 
-必要 CI 失敗阻擋 PR；真正 opt-in、未排入本次必要範圍的 Provider Smoke 可清楚列為 `NOT RUN／RELEASE_PENDING`，不可把它算作成功執行。純文件改動可用 Markdown 連結／規範一致性／Diff Check 驗證，不強制無關的全量 Backend／Frontend 測試。
+**當張 Issue 必要精準 CI 失敗仍阻擋 PR。** 先前全套測試的失敗必須保留並完成影響分診，只有證據能證明與此次直接／間接變更無關，且必要精準 CI 和驗收通過，才可記作 `DEFERRED TO V2 INTEGRATION` 而不阻擋 PR；不得把完整 FAIL 冒稱 PASS，亦不得把無根據的失敗籠統列為 Flaky。真正 opt-in、未排入本次必要範圍的 Provider Smoke 可列 `NOT RUN／RELEASE_PENDING`。純文件改動可用 Markdown／連結一致性與 Diff Check 驗證，不強制無關全量測試。
 
 
 ## 5. 原 Orchestrator：歷史工具與 #168 兩輪限制
