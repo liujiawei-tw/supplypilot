@@ -157,7 +157,9 @@ export default function PurchaseOrdersPage() {
     try {
       const created = await createPurchaseOrderDraft(pending);
       apiMessage.success(`採購單草稿 ${created.poNumber} 已建立`);
-      setPending(null); setCreateOpen(false); await load();
+      setPending(null); setCreateOpen(false);
+      if (viewMode === 'kanban') setBoardRetry((current) => current + 1);
+      else await load();
     } catch (requestError) {
       const unknown = isUnknownMutation(requestError); setCreateUnknown(unknown); setCreateError(toApiError(requestError)); setPending(null);
     } finally { submittingRef.current = false; setSubmitting(false); }

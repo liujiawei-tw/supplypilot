@@ -3,7 +3,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ConfigProvider } from 'antd';
 import zhTW from 'antd/locale/zh_TW';
-import type { InternalAxiosRequestConfig } from 'axios';
+import { AxiosError, type InternalAxiosRequestConfig } from 'axios';
 import { MemoryRouter } from 'react-router-dom';
 import axiosClient from '../src/api/axiosClient';
 import type { PurchaseOrderResponse, PurchaseOrderQuery } from '../src/api/purchaseOrder';
@@ -88,25 +88,102 @@ const authValue = {
   login: async () => { throw new Error('not used'); },
   logout: () => undefined,
 };
+const purchaserAuthValue = {
+  ...authValue,
+  user: { id: 7, username: 'buyer', displayName: '採購人員', role: 'PROCUREMENT_STAFF' as const, canManageUsers: false },
+  isAuthenticated: true,
+};
 
 let requestedQueries: PurchaseOrderQuery[];
+let backendPurchaseOrders: PurchaseOrderResponse[];
+let purchaseOrderCreateFailure: 'forbidden' | 'network' | null;
 
-function renderPage() {
-  return render(<ConfigProvider locale={zhTW}><AuthContext.Provider value={authValue}>
+function renderPage(contextValue = authValue) {
+  return render(<ConfigProvider locale={zhTW}><AuthContext.Provider value={contextValue}>
     <MemoryRouter><PurchaseOrdersPage /></MemoryRouter>
   </AuthContext.Provider></ConfigProvider>);
 }
 
+async function submitManualDraft() {
+  const user = userEvent.setup();
+  await user.click(screen.getByRole('button', { name: '建立手動草稿' }));
+  await user.click(screen.getByRole('combobox', { name: '選取供應商' }));
+  await user.click(await screen.findByText('SUP-007 — 台灣測試供應商'));
+  await user.click(screen.getByRole('combobox', { name: '選取物料' }));
+  await user.click(await screen.findByText('MAT-010 — 測試物料 (PCS)'));
+  await user.type(screen.getByRole('textbox', { name: '採購單品項 1 數量' }), '2');
+  await user.type(screen.getByRole('textbox', { name: '採購單品項 1 單價' }), '100');
+  await user.click(screen.getByRole('button', { name: '檢視新草稿' }));
+  await user.click(screen.getByRole('button', { name: '確認建立草稿' }));
+}
+
 beforeEach(() => {
   requestedQueries = [];
+  backendPurchaseOrders = [purchaseOrder, otherSupplierPurchaseOrder];
+  purchaseOrderCreateFailure = null;
+  window.matchMedia = vi.fn().mockImplementation((query: string) => ({
+    matches: false,
+    media: query,
+    onchange: null,
+    addListener: vi.fn(),
+    removeListener: vi.fn(),
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+    dispatchEvent: vi.fn(),
+  }));
   axiosClient.defaults.adapter = vi.fn(async (config: InternalAxiosRequestConfig) => {
     if (config.url === '/users/assignable') {
       return { data: [], status: 200, statusText: 'OK', headers: {}, config };
     }
+    if (config.url === '/suppliers') {
+      return {
+        data: {
+          content: [{ id: 7, code: 'SUP-007', name: '台灣測試供應商', country: 'TW', reliabilityScore: 80, qualityScore: 85, status: 'ACTIVE', createdAt: '2026-10-22T09:00:00Z', updatedAt: '2026-10-22T09:00:00Z' }],
+          page: 0,
+          size: 20,
+          totalElements: 1,
+          totalPages: 1,
+        },
+        status: 200,
+        statusText: 'OK',
+        headers: {},
+        config,
+      };
+    }
+    if (config.url === '/materials') {
+      return {
+        data: {
+          content: [{ id: 10, code: 'MAT-010', name: '測試物料', baseUnit: 'PCS', safetyStock: 0, status: 'ACTIVE', createdAt: '2026-10-22T09:00:00Z', updatedAt: '2026-10-22T09:00:00Z' }],
+          page: 0,
+          size: 20,
+          totalElements: 1,
+          totalPages: 1,
+        },
+        status: 200,
+        statusText: 'OK',
+        headers: {},
+        config,
+      };
+    }
     if (config.url === '/purchase-orders') {
+      if (config.method === 'post') {
+        if (purchaseOrderCreateFailure === 'forbidden') {
+          throw new AxiosError('Forbidden', 'ERR_BAD_REQUEST', config, undefined, {
+            data: { code: 'ACCESS_DENIED', message: '測試帳號沒有建立權限' },
+            status: 403,
+            statusText: 'Forbidden',
+            headers: {},
+            config,
+          });
+        }
+        if (purchaseOrderCreateFailure === 'network') throw new AxiosError('Network Error', 'ERR_NETWORK', config);
+        const created = { ...purchaseOrder, id: 44, poNumber: 'PO-20261022-000044' };
+        backendPurchaseOrders = [created, ...backendPurchaseOrders];
+        return { data: created, status: 201, statusText: 'Created', headers: {}, config };
+      }
       const query = (config.params ?? {}) as PurchaseOrderQuery;
       requestedQueries.push({ ...query });
-      const filteredOrders = [purchaseOrder, otherSupplierPurchaseOrder]
+      const filteredOrders = backendPurchaseOrders
         .filter((item) => query.supplierId === undefined || item.supplierId === query.supplierId);
       const page = query.page ?? 0;
       const size = query.size ?? 20;
@@ -178,5 +255,52 @@ describe('Issue #143 purchase-order page views', () => {
     expect(await screen.findByText('PO-20261022-000043')).toBeTruthy();
     expect(screen.queryByRole('region', { name: '採購單八階段看板' })).toBeNull();
     expect(requestedQueries.some((query) => query.page === 0 && query.size === 20)).toBe(true);
+  });
+
+  it('refreshes the current Kanban from backend after a successful draft create', async () => {
+    backendPurchaseOrders = [otherSupplierPurchaseOrder];
+    renderPage(purchaserAuthValue);
+
+    expect(await screen.findByRole('region', { name: '採購單八階段看板' })).toBeTruthy();
+    const supplierFilter = screen.getByRole('textbox', { name: '供應商編號篩選' }) as HTMLInputElement;
+    fireEvent.change(supplierFilter, { target: { value: '7' } });
+    await waitFor(() => expect(requestedQueries.some((query) => query.supplierId === 7 && query.size === 100)).toBe(true));
+    await waitFor(() => expect(screen.queryByText('PO-20261022-000043')).toBeNull());
+
+    await submitManualDraft();
+
+    expect(await screen.findByText('採購單草稿 PO-20261022-000044 已建立')).toBeTruthy();
+    expect(backendPurchaseOrders.some((item) => item.poNumber === 'PO-20261022-000044')).toBe(true);
+    expect(screen.getByRole('region', { name: '採購單八階段看板' })).toBeTruthy();
+    expect(await screen.findByText('PO-20261022-000044')).toBeTruthy();
+    expect(supplierFilter.value).toBe('7');
+    await waitFor(() => expect(requestedQueries.filter((query) => query.supplierId === 7 && query.size === 100)).toHaveLength(2));
+    expect(requestedQueries.some((query) => query.size === 20)).toBe(false);
+  });
+
+  it.each([
+    ['403', 'forbidden', '採購單草稿建立失敗'],
+    ['network error', 'network', '建立結果不明，已鎖定再次送出'],
+  ] as const)('does not refresh the Kanban or report success after a %s draft-create failure', async (_label, failure, expectedMessage) => {
+    purchaseOrderCreateFailure = failure;
+    backendPurchaseOrders = [otherSupplierPurchaseOrder];
+    renderPage(purchaserAuthValue);
+
+    expect(await screen.findByRole('region', { name: '採購單八階段看板' })).toBeTruthy();
+    const supplierFilter = screen.getByRole('textbox', { name: '供應商編號篩選' }) as HTMLInputElement;
+    fireEvent.change(supplierFilter, { target: { value: '7' } });
+    await waitFor(() => expect(requestedQueries.filter((query) => query.supplierId === 7 && query.size === 100)).toHaveLength(1));
+    const boardQueryCount = requestedQueries.filter((query) => query.supplierId === 7 && query.size === 100).length;
+
+    await submitManualDraft();
+
+    expect(await screen.findByText(expectedMessage)).toBeTruthy();
+    expect(screen.queryByText('採購單草稿 PO-20261022-000044 已建立')).toBeNull();
+    expect(backendPurchaseOrders.some((item) => item.poNumber === 'PO-20261022-000044')).toBe(false);
+    expect(supplierFilter.value).toBe('7');
+    expect(screen.getByRole('region', { name: '採購單八階段看板' })).toBeTruthy();
+    await new Promise((resolve) => window.setTimeout(resolve, 20));
+    expect(requestedQueries.filter((query) => query.supplierId === 7 && query.size === 100)).toHaveLength(boardQueryCount);
+    expect(requestedQueries.some((query) => query.size === 20)).toBe(false);
   });
 });
