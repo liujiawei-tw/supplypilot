@@ -57,6 +57,68 @@ describe('AI answer display', () => {
     expect(container.textContent).toContain('150.0000 KG');
   });
 
+  it('keeps a warning between structured PO sections', () => {
+    const answer = [
+      'PO-001（ID 1、supplier=供應商甲、status=ORDERED、expectedDeliveryDate=null、currency=TWD、items=[MAT-01：quantity=1 KG、unitPrice=10 TWD、total=10 TWD]）；',
+      '警告：以下資料尚未經人工核實。',
+      'PO-002（ID 2、supplier=供應商乙、status=ORDERED、expectedDeliveryDate=null、currency=TWD、items=[MAT-02：quantity=2 KG、unitPrice=20 TWD、total=40 TWD]）；',
+    ].join('\n');
+
+    render(<AiAnswerDisplay answer={answer} />);
+
+    expect(screen.getByText('警告：以下資料尚未經人工核實。')).toBeTruthy();
+    expect(screen.getAllByRole('region', { name: /^採購單/u })).toHaveLength(2);
+  });
+
+  it('keeps different explanations between PO sections in their original order', () => {
+    const firstExplanation = '說明：第一筆採購單使用供應商確認價格。';
+    const secondExplanation = '限制：第二筆採購單的交期尚待回覆。';
+    const answer = [
+      'PO-001（ID 1、supplier=供應商甲、status=ORDERED、expectedDeliveryDate=null、currency=TWD、items=[MAT-01：quantity=1 KG、unitPrice=10 TWD、total=10 TWD]）；',
+      firstExplanation,
+      'PO-002（ID 2、supplier=供應商乙、status=ORDERED、expectedDeliveryDate=null、currency=TWD、items=[MAT-02：quantity=2 KG、unitPrice=20 TWD、total=40 TWD]）；',
+      secondExplanation,
+      'PO-003（ID 3、supplier=供應商丙、status=ORDERED、expectedDeliveryDate=null、currency=TWD、items=[MAT-03：quantity=3 KG、unitPrice=30 TWD、total=90 TWD]）；',
+    ].join('\n');
+
+    const { container } = render(<AiAnswerDisplay answer={answer} />);
+
+    expect(container.textContent).toContain(firstExplanation);
+    expect(container.textContent).toContain(secondExplanation);
+    expect(container.textContent!.indexOf(firstExplanation)).toBeLessThan(container.textContent!.indexOf('PO-002'));
+    expect(container.textContent!.indexOf(secondExplanation)).toBeLessThan(container.textContent!.indexOf('PO-003'));
+  });
+
+  it('keeps incomplete PO text and additional source and risk explanations', () => {
+    const incompletePo = 'PO-UNKNOWN（ID 9、supplier=供應商丁、status=ORDERED、items=[格式不完整';
+    const sourceAndRisk = '來源：採購單附件報價單；風險：尚未完成人工核對。';
+    const answer = [
+      'PO-001（ID 1、supplier=供應商甲、status=ORDERED、expectedDeliveryDate=null、currency=TWD、items=[MAT-01：quantity=1 KG、unitPrice=10 TWD、total=10 TWD]）；',
+      incompletePo,
+      sourceAndRisk,
+      'PO-002（ID 2、supplier=供應商乙、status=ORDERED、expectedDeliveryDate=null、currency=TWD、items=[MAT-02：quantity=2 KG、unitPrice=20 TWD、total=40 TWD]）；',
+    ].join('\n');
+
+    const { container } = render(<AiAnswerDisplay answer={answer} />);
+
+    expect(container.textContent).toContain(incompletePo);
+    expect(container.textContent).toContain(sourceAndRisk);
+  });
+
+  it('renders unparsed markup between PO sections as harmless text', () => {
+    const unsafeMarkup = '<img src=x onerror=alert(1)> & <script>alert("x")</script>';
+    const answer = [
+      'PO-001（ID 1、supplier=供應商甲、status=ORDERED、expectedDeliveryDate=null、currency=TWD、items=[MAT-01：quantity=1 KG、unitPrice=10 TWD、total=10 TWD]）；',
+      unsafeMarkup,
+      'PO-002（ID 2、supplier=供應商乙、status=ORDERED、expectedDeliveryDate=null、currency=TWD、items=[MAT-02：quantity=2 KG、unitPrice=20 TWD、total=40 TWD]）；',
+    ].join('\n');
+
+    const { container } = render(<AiAnswerDisplay answer={answer} />);
+
+    expect(container.querySelector('img, script')).toBeNull();
+    expect(container.textContent).toContain(unsafeMarkup);
+  });
+
   it('shows empty PO results and keeps additional rows available through a native disclosure', () => {
     const empty = 'Open PO 依既有定義只包含 ORDERED 狀態；總計 0 筆，本次回傳 0 筆：';
     const { rerender } = render(<AiAnswerDisplay answer={empty} />);

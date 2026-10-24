@@ -1,4 +1,5 @@
 import { Divider, Space, Tag, Typography } from 'antd';
+import type { ReactNode } from 'react';
 import { displayLabel } from '../../utils/displayLabels';
 
 const { Paragraph, Text, Title } = Typography;
@@ -25,14 +26,18 @@ interface PurchaseOrderFact {
 }
 
 interface ParsedPurchaseOrderAnswer {
-  intro: string;
   totalCount: number;
-  orders: PurchaseOrderFact[];
-  trailingText: string;
+  content: PurchaseOrderAnswerBlock[];
+  unparsedOrderCount: number;
 }
 
+type PurchaseOrderAnswerBlock =
+  | { type: 'text'; text: string }
+  | { type: 'purchase-order'; order: PurchaseOrderFact };
+
+const PURCHASE_ORDER_START_PATTERN = /[^\s（）;；]+（ID \d+、supplier=/g;
 const PURCHASE_ORDER_PATTERN =
-  /(?<poNumber>[^\s（）;；]+)（ID (?<id>\d+)、supplier=(?<supplier>[\s\S]*?)、status=(?<status>[^、；]+)、expectedDeliveryDate=(?<expectedDeliveryDate>[^、；]+)、currency=(?<currency>[A-Z]{3})、items=\[(?<items>[\s\S]*?)\]）;?/g;
+  /^(?<poNumber>[^\s（）;；]+)（ID (?<id>\d+)、supplier=(?<supplier>[\s\S]*?)、status=(?<status>[^、；]+)、expectedDeliveryDate=(?<expectedDeliveryDate>[^、；]+)、currency=(?<currency>[A-Z]{3})、items=\[(?<items>[\s\S]*?)\]）[;；]?/u;
 const PURCHASE_ORDER_COUNT_PATTERN = /總計\s*(\d+)\s*筆，本次回傳\s*\d+\s*筆/u;
 const MONEY_FIELD_PATTERN = /\b(unitPrice|totalCost|total|amount|price)\s*=\s*(-?\d+(?:\.\d+)?)\s*([A-Z]{3})\b/g;
 const ITEM_PATTERN =
@@ -64,7 +69,7 @@ function formatMoney(amount: string, currency: string): string {
   return currency === 'TWD' ? 'NT$' + formatted : currency + ' ' + formatted;
 }
 
-/** Display-only formatting for amounts in trusted answer text; quantities remain untouched. */
+/** Display-only formatting for labeled amounts in plain answer text; quantities remain untouched. */
 function formatLabeledMoney(text: string): string {
   return text.replace(MONEY_FIELD_PATTERN, (_match, label: string, amount: string, currency: string) => {
     const labelText: Record<string, string> = {
@@ -108,36 +113,55 @@ function parsePurchaseOrderItems(items: string): PurchaseOrderItem[] {
 }
 
 function parsePurchaseOrderAnswer(answer: string): ParsedPurchaseOrderAnswer | null {
-  const matches = [...answer.matchAll(PURCHASE_ORDER_PATTERN)];
   const countMatch = PURCHASE_ORDER_COUNT_PATTERN.exec(answer);
-  if (!countMatch && matches.length === 0) return null;
+  const starts = [...answer.matchAll(PURCHASE_ORDER_START_PATTERN)];
+  const content: PurchaseOrderAnswerBlock[] = [];
+  let cursor = 0;
+  let unparsedOrderCount = 0;
 
-  const firstOrderOffset = matches[0]?.index ?? answer.length;
-  const prefix = answer.slice(0, firstOrderOffset);
-  const intro = prefix
-    .replace(/Open PO 依既有定義只包含 ORDERED 狀態；[\s\S]*?本次回傳\s*\d+\s*筆：?/u, '')
-    .trim();
-  const totalCount = countMatch ? Number(countMatch[1]) : matches.length;
-  const orders = matches.map((match) => {
-    const fields = match.groups;
-    if (!fields) return null;
-    return {
-      poNumber: fields.poNumber,
-      id: fields.id,
-      supplier: fields.supplier,
-      status: fields.status,
-      expectedDeliveryDate: fields.expectedDeliveryDate,
-      currency: fields.currency,
-      items: fields.items,
-    };
-  }).filter((order): order is PurchaseOrderFact => order !== null);
+  starts.forEach((start, index) => {
+    const startOffset = start.index ?? 0;
+    const endOffset = starts[index + 1]?.index ?? answer.length;
+    if (startOffset > cursor) {
+      content.push({ type: 'text', text: answer.slice(cursor, startOffset) });
+    }
 
-  const lastMatch = matches[matches.length - 1];
-  const trailingText = lastMatch
-    ? answer.slice(lastMatch.index! + lastMatch[0].length).replace(/^[；。\s]+/u, '').trim()
-    : answer.slice(countMatch!.index! + countMatch![0].length).replace(/^[：；。\s]+/u, '').trim();
+    const candidate = answer.slice(startOffset, endOffset);
+    const match = PURCHASE_ORDER_PATTERN.exec(candidate);
+    const fields = match?.groups;
+    if (!match || !fields) {
+      content.push({ type: 'text', text: candidate });
+      unparsedOrderCount += 1;
+    } else {
+      content.push({
+        type: 'purchase-order',
+        order: {
+          poNumber: fields.poNumber,
+          id: fields.id,
+          supplier: fields.supplier,
+          status: fields.status,
+          expectedDeliveryDate: fields.expectedDeliveryDate,
+          currency: fields.currency,
+          items: fields.items,
+        },
+      });
+      const remaining = candidate.slice(match[0].length);
+      if (remaining) content.push({ type: 'text', text: remaining });
+    }
 
-  return { intro, totalCount, orders, trailingText };
+    cursor = endOffset;
+  });
+
+  if (cursor < answer.length) content.push({ type: 'text', text: answer.slice(cursor) });
+
+  const orderCount = content.filter((block) => block.type === 'purchase-order').length;
+  if (!countMatch && orderCount === 0) return null;
+
+  return {
+    totalCount: countMatch ? Number(countMatch[1]) : orderCount,
+    content,
+    unparsedOrderCount,
+  };
 }
 
 function PurchaseOrderSummary({ order }: { order: PurchaseOrderFact }) {
@@ -175,34 +199,71 @@ export default function AiAnswerDisplay({ answer }: { answer: string }) {
     </Paragraph>;
   }
 
-  return <div style={{ overflowWrap: 'anywhere' }}>
-    {parsed.intro && <Paragraph style={{ whiteSpace: 'pre-wrap', marginBottom: 12 }}>{parsed.intro}</Paragraph>}
-    <Text strong>
-      已下單採購單：共 {parsed.totalCount} 筆，以下列出 {parsed.orders.length} 筆。
-    </Text>
-    {parsed.orders.length === 0
-      ? <Paragraph type="secondary" style={{ marginTop: 8, marginBottom: 0 }}>目前沒有可列出的採購單明細。</Paragraph>
-      : <div aria-label="採購單明細">
-        {parsed.orders.slice(0, VISIBLE_ORDER_LIMIT).map((order, index) =>
-          <div key={order.id}>
-            {index > 0 && <Divider style={{ marginBlock: 4 }} />}
-            <PurchaseOrderSummary order={order} />
-          </div>,
-        )}
-        {parsed.orders.length > VISIBLE_ORDER_LIMIT && <details>
+  const orderCount = parsed.content.filter((block) => block.type === 'purchase-order').length;
+  const renderedContent: ReactNode[] = [];
+  let renderedOrderCount = 0;
+  let extraOrders: PurchaseOrderFact[] = [];
+
+  const flushExtraOrders = () => {
+    if (extraOrders.length === 0) return;
+    const orders = extraOrders;
+    extraOrders = [];
+    renderedContent.push(
+      <div key={'extra-orders-' + renderedOrderCount}>
+        {renderedOrderCount > 0 && <Divider style={{ marginBlock: 4 }} />}
+        <details>
           <summary style={{ cursor: 'pointer', paddingBlock: 8 }}>
-            展開其餘 {parsed.orders.length - VISIBLE_ORDER_LIMIT} 筆採購單
+            展開其餘 {orders.length} 筆採購單
           </summary>
-          {parsed.orders.slice(VISIBLE_ORDER_LIMIT).map((order) =>
+          {orders.map((order) =>
             <div key={order.id}>
               <Divider style={{ marginBlock: 4 }} />
               <PurchaseOrderSummary order={order} />
-            </div>,
+            </div>
           )}
-        </details>}
-      </div>}
-    {parsed.trailingText && <Paragraph style={{ whiteSpace: 'pre-wrap', marginTop: 12, marginBottom: 0 }}>
-      {formatLabeledMoney(parsed.trailingText)}
+        </details>
+      </div>,
+    );
+  };
+
+  parsed.content.forEach((block, index) => {
+    if (block.type === 'text') {
+      if (!block.text.trim()) return;
+      flushExtraOrders();
+      renderedContent.push(
+        <Paragraph key={'text-' + index} style={{ whiteSpace: 'pre-wrap', marginBlock: 12 }}>
+          {formatLabeledMoney(block.text)}
+        </Paragraph>,
+      );
+      return;
+    }
+
+    if (renderedOrderCount >= VISIBLE_ORDER_LIMIT) {
+      extraOrders.push(block.order);
+      renderedOrderCount += 1;
+      return;
+    }
+
+    flushExtraOrders();
+    renderedContent.push(
+      <div key={'order-' + block.order.id + '-' + index}>
+        {renderedOrderCount > 0 && <Divider style={{ marginBlock: 4 }} />}
+        <PurchaseOrderSummary order={block.order} />
+      </div>,
+    );
+    renderedOrderCount += 1;
+  });
+  flushExtraOrders();
+
+  return <div style={{ overflowWrap: 'anywhere' }}>
+    <Text strong>
+      已下單採購單：共 {parsed.totalCount} 筆，以下列出 {orderCount} 筆。
+    </Text>
+    {parsed.unparsedOrderCount > 0 && <Paragraph type="secondary" style={{ marginBlock: 8 }}>
+      部分採購單格式無法解析，已保留原始回答內容。
     </Paragraph>}
+    {renderedContent}
+    {orderCount === 0 && parsed.unparsedOrderCount === 0 &&
+      <Paragraph type="secondary" style={{ marginTop: 8, marginBottom: 0 }}>目前沒有可列出的採購單明細。</Paragraph>}
   </div>;
 }
