@@ -99,6 +99,14 @@ class ComposeConfigurationTests(unittest.TestCase):
         self.assertEqual([], published_ports(prod, "pgvector"))
         self.assertEqual([("127.0.0.1", "13307", "3306")], published_ports(demo, "mysql"))
         self.assertEqual([], published_ports(demo, "pgvector"))
+        for config in (prod, demo):
+            self.assertEqual({"data", "mysql-host"}, set(config["services"]["mysql"]["networks"]))
+            self.assertTrue(config["networks"]["data"]["internal"])
+            self.assertEqual("bridge", config["networks"]["mysql-host"]["driver"])
+            self.assertEqual({"mysql"}, {
+                service_name for service_name, service in config["services"].items()
+                if "mysql-host" in service.get("networks", {})
+            })
 
         prod_document_mounts = [volume for volume in prod["services"]["backend"]["volumes"]
                                 if volume["target"] == "/app/data/documents"]

@@ -27,7 +27,7 @@ SupplyPilot V2 維持 **Codex 實作／測試／Commit/Push → GPT 遠端獨立
 
 > **以下為目前已實作 V1 基線的操作方式，非 V2 已完成證明。** V2 各模組的資料庫、角色、種子資料與畫面需依相關 Issue 實作後，才可更新此節為 V2 實際操作說明。
 
-根目錄 `compose.yaml` 是 Production 與 Demo 共用的唯一基底，包含 MySQL、pgvector、Backend 和 Frontend 四個服務。Production 與 Demo 的網站和 MySQL 都綁定主機回環位址 `127.0.0.1`；預設 MySQL 主機埠分別為 `13306` 和 `13307`。pgvector 不發布主機埠。Docker Engine 28.0.0 之前的版本有同一區域網路網段仍可能連到 localhost 發布埠的例外；發布環境應使用 Docker Engine 28.0.0 以上版本，或另以主機防火牆限制連線。
+根目錄 `compose.yaml` 是 Production 與 Demo 共用的唯一基底，包含 MySQL、pgvector、Backend 和 Frontend 四個服務。Production 與 Demo 的網站和 MySQL 都綁定主機回環位址 `127.0.0.1`；預設 MySQL 主機埠分別為 `13306` 和 `13307`。MySQL 保留內部 `data` 網路，另接專屬 bridge network 供主機埠發布；其他服務不加入該網路。這個 bridge network 允許 MySQL 容器對外連線，pgvector 則仍留在內部資料網路且不發布主機埠。Docker Engine 28.0.0 之前的版本有同一區域網路網段仍可能連到 localhost 發布埠的例外；發布環境應使用 Docker Engine 28.0.0 以上版本，或另以主機防火牆限制連線。
 
 ### Production
 
