@@ -4,6 +4,8 @@ services:
   mysql:
     image: mysql:8.4.11
     restart: unless-stopped
+    ports:
+      - "127.0.0.1:${PRODUCTION_MYSQL_HOST_PORT:-13306}:3306"
     environment:
       MYSQL_DATABASE: supplypilot_prod
       MYSQL_USER: ${DB_USERNAME:?Set DB_USERNAME in .env}

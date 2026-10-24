@@ -514,7 +514,9 @@ docker compose up -d --build
 docker compose --env-file .env.demo -f compose.yaml -f compose.demo.yaml up -d --build
 ```
 
-Production 使用 `prod` Profile，資料庫為 `supplypilot_prod` 和 `supplypilot_semantic_prod`。Demo 使用 `demo` Profile，資料庫為 `supplypilot_demo` 和 `supplypilot_semantic_demo`。兩環境分開使用 Compose Project、資料庫帳密、JWT Secret、MySQL/pgvector 資料 Volume、文件 Storage Volume 和 Frontend Host Port。資料庫不發布主機連接埠；Production 預設前端只監聽 `127.0.0.1:8080`，Demo 只監聽 `127.0.0.1:8081`。
+Production 使用 `prod` Profile，資料庫為 `supplypilot_prod` 和 `supplypilot_semantic_prod`。Demo 使用 `demo` Profile，資料庫為 `supplypilot_demo` 和 `supplypilot_semantic_demo`。兩環境分開使用 Compose Project、資料庫帳密、JWT Secret、MySQL/pgvector 資料 Volume、文件 Storage Volume 和 Frontend Host Port。MySQL 只發布到 Docker 主機的回環位址：Production 預設 `127.0.0.1:13306`，Demo 預設 `127.0.0.1:13307`；容器內連接埠皆為 `3306`，pgvector 不發布主機埠。Production 前端只監聽 `127.0.0.1:8080`，Demo 只監聽 `127.0.0.1:8081`。
+
+MySQL Workbench 的 Hostname 設為 `127.0.0.1`，Production 使用 Port `13306` 及 Schema `supplypilot_prod`，Demo 使用 Port `13307` 及 Schema `supplypilot_demo`；帳密分別取自 `.env` 或 `.env.demo` 的 `DB_USERNAME`／`DB_PASSWORD`。可透過 `PRODUCTION_MYSQL_HOST_PORT` 和 `DEMO_MYSQL_HOST_PORT` 調整主機埠。兩個環境的預設埠彼此不同，也避開常見的原生 MySQL `3306`；若改用 `3306`，該埠必須未被其他 MySQL 服務占用。埠綁定 `127.0.0.1`，不監聽所有主機網卡。Docker Engine 28.0.0 之前的版本有同一區域網路網段仍可能連到 localhost 發布埠的例外；發布環境應使用 Docker Engine 28.0.0 以上版本，或另以主機防火牆限制連線。參考 [Docker 埠發布說明](https://docs.docker.com/engine/network/port-publishing/)。
 
 原本開發用 MySQL 設定移至 `compose.dev.yaml`，使用 `supplypilot-dev-v2` 專案和新 Volume；先前 `compose.yaml` 建立的舊開發 Volume不會自動接管或刪除。既有 SP-903 Demo 保留 `supplypilot-sp903-local-demo` 專案與原 MySQL、pgvector、文件 Volume 名稱。切換或重建 Container 前，人工確認 `.env.demo` DB 帳密與原資料庫初始化時一致。
 
