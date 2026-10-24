@@ -9,7 +9,7 @@
 
 - 真實 Chrome（CUA）瀏覽器操作；前端為本機 Vite `http://127.0.0.1:5173`，後端資料由隔離 mock API `http://127.0.0.1:9090` 回應。fixture 僅用測試身份 `ui-test/ui-test-only` 與固定資料。
 - 下列瀏覽器結果全部標記 **MOCKED UI PASS**，只證明 UI、版面和 mock 流程。沒有連接真實後端，也沒有把 mock POST 說成 authenticated E2E。
-- **AUTHENTICATED E2E：BLOCKED / NOT RUN**。隔離的 Testcontainers/API 憑證流程無法啟動（Docker engine 不可用／權限錯誤）；未讀取、輸出、猜測或修改任何 production credential。
+- **AUTHENTICATED E2E：BLOCKED / NOT RUN**。本次已用 Testcontainers MySQL 完成 Backend integration tests，但沒有啟動帶有隔離測試 API 與測試身份的 Browser 流程；Backend Testcontainers PASS 不等於 authenticated Browser E2E。未讀取、輸出、猜測或修改任何 production credential。
 - **真實 200% browser zoom：NOT RUN / BLOCKED**。可用 CUA 只提供 viewport override，無法控制 Chrome zoom；未以 CSS scale 冒充。一般瀏覽器 viewport 仍用實際 Chrome 驗收。
 - 圖片：CUA 在 Chrome 中直接捕捉的畫面保留於本次工作階段的工具輸出；CUA 沒有提供可寫入本 worktree 的 screenshot file API，因此**沒有可引用的截圖檔案路徑**。本文件可隨提交保存；原始 logs 於下方所述 worktree 路徑另外保留。
 - 原始 terminal stdout/stderr 逐字保存在 worktree 的 `frontend/docs/evidence/issue-148-rwd/logs/`；此目錄被 `frontend/.gitignore` 忽略，因此不納入產品 commit。原始檔未正規化或修改；若後續封存 worktree，請先另行保存此目錄。
@@ -49,7 +49,7 @@
 
 ### 查詢、內容與互動
 
-- PO List supplierId 查詢在 320/390 及 768/1280 的 List 模式操作：供應商 ID 2 顯示 `PO-2026-000902`，排除 `PO-2026-000901`，四個尺寸均無外層 overflow。**PO-number filter：NOT RUN**，原因是目前 UI 沒有 PO number 查詢輸入欄位；本工作不改 #144 搜尋行為。
+- 合併前 PO List supplierId 查詢在 320/390 及 768/1280 的 List 模式操作：供應商 ID 2 顯示 `PO-2026-000902`，排除 `PO-2026-000901`，四個尺寸均無外層 overflow。該次 browser run 的 #148 分支尚未含 #144 新增的 PO number 查詢欄位，因此 PO-number 真瀏覽器查詢標為 NOT RUN。#144 合併後，merge-sha grouped Vitest 中 `defaults to desktop Kanban and preserves the active filter across both views` 通過，涵蓋 PO number 輸入與 `poNumber` API query；該合併後 viewport/browser 矩陣仍 NOT RUN。
 - Supplier List 在 320/390 以 `台灣國際` 查詢，長供應商名稱可見且排除 `SUP-002`。Material List 在 320/390 以 `MAT-000001` 查詢，目標列存在且排除 `MAT-000002`。Supplier Material 長 supplier/material 名稱四尺寸均可讀且無外層 overflow。
 - Dashboard 顯示長供應商名稱；PO Detail 顯示長名稱、大數值、原幣別與日期：數量 `1,234,567,890.5000 KG`、單價 `TWD 123,456.7890`、合計 `TWD 152,415,787,532,388.3675`。UTC `2026-10-24T16:05Z` 顯示為台北時間 `2026/10/25 00:05`。
 - Inventory 顯示 `1,234,567,890,123.5 KG`；資料表在內層可捲動，不產生頁面水平溢位。
@@ -179,3 +179,61 @@ Demand 精確比較在 clean main worktree 執行：npm run test -- --reporter=v
 | #147 V31__demo_baseline_approval_events.sql | 31 | -1468955155 |
 
 #148 分支自身的 migration version scan 沒有重複數字版本；#147 worktree 亦新增另一個 V31，兩檔 checksum 不同。這是跨分支版本衝突，不是同一版本的 checksum drift；合併時需協調 migration renumber/version order，不能原樣同時保留兩個 V31。此 Issue 分支未修改任何已建立的 migration 歷史。前端 triage 後的 acceptance 文件與 checksum log 是文件／證據變更；上述產品程式與依賴未變，後端測試證據適用於本次 source HEAD bee6efde3bbe40996b34b0993a75ed39c9b74933。
+
+## 最新 main 合併與合併後驗證
+
+### 基底與合併
+
+- 合併前 #148 HEAD：`aa7486c8c5ed58c6a7f7a64145f01d1f842183c5`。
+- 合併前核對 `origin/main`：`e4df2d9ec5db7d4e859afe375f1fd293f2cfbcd8`。
+- 在 #148 分支執行一般 `git merge origin/main`，無衝突；合併 commit：`d7787a501d9d7e65e67d33e83db9d1f521687b1b`。
+- 自動合併的共同路徑包含 PO service/controller integration test、API 文件、前端 PO API 與 PO 頁面。#144 PO number 搜尋控制與 `poNumber` 查詢契約仍在合併結果；本分支未修改該搜尋。PO response 的 #148 `currency` 欄位及原幣別格式化也仍在合併後程式碼中。
+- 合併後尚未產生新的產品程式碼差異；以下結果都是 merge SHA 上的驗證。
+
+### Migration 完整掃描
+
+命令依據：列舉 `backend/src/main/resources/db/migration` 的 `V{number}__*.sql`，依版本排序並以 `Group-Object Version` 檢查重號。原始掃描記錄：`logs/post-merge-migration-scan.txt`。
+
+結果：31 個 migration，版本 `1–31` 每版各一個，重複版本 0，最高 V31 為 `V31__add_purchase_order_item_currency_snapshot.sql`（SHA-256 `1244483DAF1675F7D5AFA8748D2189EF7678BA66FECCE796C5606458ACC5C0E0`）。#147 未合併分支另有不同內容的 V31；跨分支整合仍需先協調版本重編，不能同時保留同版本。此分支未改寫 migration 歷史。
+
+### 合併後前端精準 Vitest 與基線比較
+
+命令均在 `frontend/`，均用單 worker；raw output 保留於忽略目錄 `frontend/docs/evidence/issue-148-rwd/logs/`。沒有修改 timeout、skip 或 assertion。
+
+| 命令／SHA | 結果 | Raw log |
+|---|---|---|
+| `npm run test -- --reporter=verbose --maxWorkers=1 tests/issue143PurchaseOrdersPage.test.tsx tests/issue143PurchaseOrders.test.tsx tests/purchaseOrderApi.test.ts tests/issue148DisplayFormatters.test.ts tests/antdLocale.test.tsx tests/sp805.test.tsx`（#148 merge SHA） | **EXIT 1**；6 files：5 passed／1 failed；44 tests：38 passed／6 failed | `logs/post-main-intersection-vitest.txt` |
+| `npm run test -- --reporter=verbose --maxWorkers=1 tests/sp805.test.tsx`（#148 merge SHA） | EXIT 0；18/18 passed；上列六例均在乾淨序列單檔運行中通過 | `logs/post-main-sp805-serial.txt` |
+| `npm run test -- --reporter=verbose --maxWorkers=1 tests/issue143PurchaseOrdersPage.test.tsx tests/sp805.test.tsx`（#148 merge SHA） | EXIT 0；2 files、23/23 passed | `logs/post-main-po-page-sp805-intersection.txt` |
+| 同 grouped 範圍，但在 clean `origin/main` SHA `e4df2d9ec5db7d4e859afe375f1fd293f2cfbcd8` 執行，去掉僅存在於 #148 的 formatter test | **EXIT 1**；5 files：4 passed／1 failed；40 tests：39 passed／1 failed；唯一失敗是 #143 draft-create Kanban refresh 30 秒 timeout（`tests/issue143PurchaseOrdersPage.test.tsx:291`） | `logs/main-grouped-intersection-vitest.txt` |
+
+#148 merge SHA grouped run 的六個失敗皆在 `tests/sp805.test.tsx`，原始 stack／DOM 訊息詳見 `logs/post-main-intersection-vitest.txt`：
+
+1. `does not retry after a conflict and requires querying the actual PO state`：找不到 `取消採購單` 按鈕；呼叫點 `tests/sp805.test.tsx:120`。
+2. `moves an ordered PO into receiving inspection and removes its cancellation action`：找不到 `取消採購單` 按鈕；呼叫點 `tests/sp805.test.tsx:145`。
+3. `creates a Manual DRAFT with exact decimal strings after explicit confirmation`：原訂 30 秒 timeout；測試列 `tests/sp805.test.tsx:167`。
+4. `creates a DRAFT with the exact IDs of page-6 master records and does not confuse duplicate names`：原訂 30 秒 timeout；測試列 `tests/sp805.test.tsx:190`。
+5. `restores off-page master labels in edit and preserves recommendation evidence and price snapshot`：原訂 30 秒 timeout；測試列 `tests/sp805.test.tsx:228`。
+6. `keeps linked recommendation evidence while filling delivery date, approving, and marking ordered`：原訂 30 秒 timeout；測試列 `tests/sp805.test.tsx:268`。
+
+不把 initial grouped EXIT 1 改寫為 PASS。後續 `sp805.test.tsx` 單檔 18/18、PO page + SP805 兩檔 23/23 均 PASS，表示這六例在序列精準範圍可通過；clean-main grouped comparison 的 #143 timeout 是另一案例，且其 stack/30 秒 timeout 可在 main 基線重現。初始 grouped 組合仍記錄為 FAIL，不能僅因較窄範圍成功而覆寫。
+
+### 合併後 Backend、Lint 與 Build
+
+| 命令 | 結果 | Raw log |
+|---|---|---|
+| `backend/mvnw.cmd '-Dtest=PurchaseOrderControllerIntegrationTests,PurchaseOrderUpdateIntegrationTests,V31PurchaseOrderCurrencyMigrationIntegrationTests' test` | EXIT 0；22 tests、0 failures／errors／skipped（controller 11、update 10、V31 migration 1） | `logs/post-merge-backend-precision.txt` |
+| `npm run lint` | EXIT 0；保留既有 `SemanticOperationsPanel.tsx:98` `react(set-state-in-effect)` warning | `logs/post-merge-lint.txt` |
+| `npm run build` | EXIT 0；`tsc -b` 與 Vite build 完成；3257 modules；bundle >500 kB warning | `logs/post-merge-build.txt` |
+
+Backend 使用 Testcontainers MySQL 8.4。Flyway fresh schema 驗證 31 個 migrations；V31 專項先在空測試資料庫成功套用 V1–V30，再套用 V31 到 version 31，測試通過。這是隔離測試容器，不使用 production credentials。
+
+### Browser 證據適用範圍與縮放
+
+本文件較早的 320/390/768/1280、358px 冷載、鍵盤、Select/Modal/Drawer 與 UI mock 矩陣是合併前 Chrome 實測，沿用當時的 `aa7486c8c5ed58c6a7f7a64145f01d1f842183c5` UI revision；它們仍作為 `MOCKED UI PASS` 歷史證據。合併後未再控制共享 Chrome，因此 #144 合併後 PO List 搜尋的真瀏覽器矩陣是 **NOT RUN**，Authenticated E2E 維持 **BLOCKED / NOT RUN**。此前矩陣不宣稱已在 merge SHA 重跑。
+
+原生 Chrome 200% zoom：**BLOCKED / NOT RUN**。CUA 僅能操作頁面 tab，未暴露 Chrome 視窗、選單或原生縮放控制；在 tab 嘗試 `Ctrl+plus` 與 `Ctrl+Equal` 未改變 `devicePixelRatio`（仍為 1.25）、`innerWidth`（1536）或 visual viewport scale（1）。沒有用 CSS scale、CDP page scale 或 device metrics 冒充 200%；依協作要求停止共享 Chrome 操作，亦未改變全域 Chrome zoom 設定。CUA 截圖僅留在工具輸出，沒有可引用的本機截圖路徑。
+
+### 完整 Vitest 狀態
+
+原始完整 Vitest 仍為 **FAIL — DEFERRED TO V2 INTEGRATION**：EXIT 1、29 files（22 passed／7 failed）、262 tests（225 passed／37 failed），原始 log `logs/vitest.txt` 不變。七個原失敗 suites 的逐案例分診與失敗名稱在上文既有表格；合併後 grouped EXIT 1 及 clean-main baseline 另以本節記錄。精準 rerun PASS 不會改寫上述任何原始 FAIL。
