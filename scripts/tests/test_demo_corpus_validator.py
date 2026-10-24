@@ -25,6 +25,10 @@ class DemoCorpusValidatorTests(unittest.TestCase):
                 "supplierCode": "SUP-001", "materialCode": "MAT-001", "unitPrice": "100",
                 "currency": "TWD", "moq": "10", "packageMultiple": "5", "leadTimeDays": 3,
             }],
+            "purchaseOrderExamples": [{
+                "seedKey": "DEMO-PO-001", "supplierCode": "SUP-001", "materialCode": "MAT-001",
+                "quantity": "10", "status": "DRAFT", "stage": "NEW_REQUEST",
+            }],
             "manualUploadFixtures": [{
                 "documentKey": "UI-SUP-001-ADDENDUM", "filename": "manual.txt",
                 "seedBaseline": False, "requiredAction": "MANUAL_UI_UPLOAD",
@@ -162,6 +166,64 @@ class DemoCorpusValidatorTests(unittest.TestCase):
         master["supplierMaterials"].append(copy.deepcopy(master["supplierMaterials"][0]))
         errors = self._validate(master=master)
         self.assertTrue(any("duplicate SupplierMaterial" in e for e in errors), errors)
+
+    def test_purchase_order_must_reference_a_supplier_material_pair(self) -> None:
+        master = copy.deepcopy(self.master)
+        master["purchaseOrderExamples"][0]["materialCode"] = "MAT-999"
+        errors = self._validate(master=master)
+        self.assertTrue(any("unknown material 'MAT-999'" in e for e in errors), errors)
+        self.assertTrue(any("no SupplierMaterial relation" in e for e in errors), errors)
+
+    def test_purchase_order_quantity_must_meet_moq_and_package_multiple(self) -> None:
+        below_moq = copy.deepcopy(self.master)
+        below_moq["purchaseOrderExamples"][0]["quantity"] = "5"
+        errors = self._validate(master=below_moq)
+        self.assertTrue(any("below linked MOQ" in e for e in errors), errors)
+
+        not_multiple = copy.deepcopy(self.master)
+        not_multiple["purchaseOrderExamples"][0]["quantity"] = "12"
+        errors = self._validate(master=not_multiple)
+        self.assertTrue(any("not a multiple of package size" in e for e in errors), errors)
+
+    def test_purchase_order_status_and_stage_must_be_a_supported_pair(self) -> None:
+        master = copy.deepcopy(self.master)
+        master["purchaseOrderExamples"][0].update({"status": "ORDERED", "stage": "SOURCING"})
+        errors = self._validate(master=master)
+        self.assertTrue(any("ORDERED/SOURCING is not a legal combination" in e for e in errors), errors)
+
+    def test_rejected_and_cancelled_orders_require_terminal_reason_and_null_stage(self) -> None:
+        rejected = copy.deepcopy(self.master)
+        rejected["purchaseOrderExamples"][0].update({"status": "REJECTED", "stage": "NEW_REQUEST"})
+        errors = self._validate(master=rejected)
+        self.assertTrue(any("REJECTED purchase orders must have a null stage" in e for e in errors), errors)
+        self.assertTrue(any("require a termination reason" in e for e in errors), errors)
+
+        cancelled = copy.deepcopy(self.master)
+        cancelled["purchaseOrderExamples"][0].update({"status": "CANCELLED", "stage": None,
+                                                       "cancellationReason": "   "})
+        errors = self._validate(master=cancelled)
+        self.assertTrue(any("CANCELLED purchase orders require a termination reason" in e for e in errors), errors)
+
+    def test_received_and_completed_orders_follow_receipt_and_payment_contract(self) -> None:
+        payment_reconciliation = copy.deepcopy(self.master)
+        payment_reconciliation["purchaseOrderExamples"][0].update({
+            "status": "RECEIVED", "stage": "PAYMENT_RECONCILIATION", "paymentConfirmed": True,
+        })
+        errors = self._validate(master=payment_reconciliation)
+        self.assertTrue(any("RECEIVED/PAYMENT_RECONCILIATION requires false or omitted" in e for e in errors), errors)
+
+        completed = copy.deepcopy(self.master)
+        completed["purchaseOrderExamples"][0].update({
+            "status": "RECEIVED", "stage": "COMPLETED", "paymentConfirmed": False,
+        })
+        errors = self._validate(master=completed)
+        self.assertTrue(any("RECEIVED/COMPLETED requires true" in e for e in errors), errors)
+
+    def test_payment_cannot_be_confirmed_before_receipt(self) -> None:
+        master = copy.deepcopy(self.master)
+        master["purchaseOrderExamples"][0]["paymentConfirmed"] = True
+        errors = self._validate(master=master)
+        self.assertTrue(any("payment cannot be confirmed before RECEIVED/COMPLETED" in e for e in errors), errors)
 
     def test_fixture_cannot_cite_manual_upload(self) -> None:
         fixtures = copy.deepcopy(self.fixtures)

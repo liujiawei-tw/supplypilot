@@ -1,11 +1,11 @@
 package com.supplypilot.demo;
 
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.MessageDigest;
 import java.time.Clock;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HexFormat;
 import java.util.List;
 import java.util.Map;
@@ -83,24 +83,29 @@ public class DemoDatasetUpgradeService {
     public UpdatePlan dryRun() {
         String actualDatabase = jdbc.queryForObject("SELECT DATABASE()", String.class);
         DemoTargetGuard.requirePrimaryTargets(actualDatabase, properties.getAllowedDatabase(), documentStorageRoot);
-        Map<String, Object> state = state();
+        return buildPlan(loadMasterDataSnapshot(), actualDatabase, state(false));
+    }
+
+    private UpdatePlan buildPlan(MasterDataSnapshot snapshot, String actualDatabase, Map<String, Object> state) {
         if (state == null) {
             throw new IllegalStateException("No SP-901 dataset marker exists; use the normal empty-database initializer");
         }
         String currentVersion = String.valueOf(state.get("dataset_version"));
         String currentStatus = String.valueOf(state.get("status"));
-        if (!("COMPLETE".equals(currentStatus) && !properties.getDatasetVersion().equals(currentVersion))
-                && !("UPDATE_REQUIRED".equals(currentStatus)
-                && properties.getDatasetVersion().equals(currentVersion))) {
-            throw new IllegalStateException("Dataset state is not an eligible completed legacy baseline");
+        DemoDatasetCoordinator.ExistingDatasetAction stateAction = DemoDatasetCoordinator.classifyExistingDataset(
+                currentStatus, currentVersion, properties.getDatasetVersion());
+        if (stateAction != DemoDatasetCoordinator.ExistingDatasetAction.LEGACY_UPDATE_REQUIRED
+                && stateAction != DemoDatasetCoordinator.ExistingDatasetAction.MANUAL_STEPS_INCOMPLETE) {
+            throw new IllegalStateException("Dataset state is already complete or is not eligible for upgrade");
         }
 
-        JsonNode master = loadMasterData();
+        JsonNode master = snapshot.root();
         List<String> actions = new ArrayList<>();
         List<String> conflicts = new ArrayList<>();
         planSuppliers(master, actions, conflicts);
         planMaterials(master, actions, conflicts);
         planSupplierMaterials(master, actions, conflicts);
+        String databasePreconditionsSha256 = sha256(stableJson(databasePreconditions(master)));
 
         List<String> manual = List.of(
                 "DOCUMENTS: import each seed source as a new version through the admin document workflow; "
@@ -108,26 +113,32 @@ public class DemoDatasetUpgradeService {
                 "KANBAN: create fresh demo purchase orders through the UI/API lifecycle for the eight stages; "
                         + "preserve existing PO records and snapshots",
                 "MANUAL_UPLOAD: upload ui-upload-sup-005-v1.txt through the UI as a separate review-required document");
-        String fingerprint = String.join("\n", List.of(
+        String fingerprint = stableJson(List.of(
                 actualDatabase, currentVersion, currentStatus, properties.getDatasetVersion(),
-                String.join("\n", actions), String.join("\n", conflicts), String.join("\n", manual)));
+                snapshot.sha256(), databasePreconditionsSha256, actions, conflicts, manual));
         String hash = sha256(fingerprint);
         return new UpdatePlan(actualDatabase, currentVersion, currentStatus, properties.getDatasetVersion(),
-                List.copyOf(actions), List.copyOf(conflicts), manual, hash);
+                List.copyOf(actions), List.copyOf(conflicts), manual, snapshot.sha256(),
+                databasePreconditionsSha256, hash);
     }
 
     @Transactional
     public UpdatePlan apply(String confirmation, String approvedPlanSha256) {
-        UpdatePlan plan = dryRun();
+        String actualDatabase = jdbc.queryForObject("SELECT DATABASE()", String.class);
+        DemoTargetGuard.requirePrimaryTargets(actualDatabase, properties.getAllowedDatabase(), documentStorageRoot);
+        MasterDataSnapshot snapshot = loadMasterDataSnapshot();
+        Map<String, Object> lockedState = state(true);
+        lockUpgradeRows();
+        UpdatePlan plan = buildPlan(snapshot, actualDatabase, lockedState);
         String expectedConfirmation = "UPDATE-SP-901@" + plan.database() + "@" + plan.targetVersion();
         if (!expectedConfirmation.equals(confirmation)) {
             throw new IllegalStateException("Update confirmation must exactly match " + expectedConfirmation);
         }
         if (approvedPlanSha256 == null || !plan.sha256().equalsIgnoreCase(approvedPlanSha256)) {
-            throw new IllegalStateException("Approved dry-run plan SHA-256 does not match current database diff");
+            throw new IllegalStateException("Approved dry-run plan SHA-256 does not match current database or master data");
         }
 
-        JsonNode master = loadMasterData();
+        JsonNode master = snapshot.root();
         for (String action : plan.actions()) {
             if (action.startsWith("UPDATE_SUPPLIER:")) {
                 applySupplierUpdate(master, action.substring("UPDATE_SUPPLIER:".length()));
@@ -148,7 +159,16 @@ public class DemoDatasetUpgradeService {
                     failure_reason = 'Manual document and Kanban update steps remain'
                 WHERE dataset_key = ?
                 """, plan.targetVersion(), DemoDatasetCoordinator.DATASET_KEY);
-        return dryRun();
+        Map<String, Object> updatedState = Map.of("dataset_version", plan.targetVersion(), "status", "UPDATE_REQUIRED");
+        return buildPlan(snapshot, actualDatabase, updatedState);
+    }
+
+    private void lockUpgradeRows() {
+        // Lock the dataset marker first, then affected entity tables in a stable order.
+        // This serializes concurrent upgrade applies and makes the subsequent snapshot comparison authoritative.
+        jdbc.queryForList("SELECT id FROM suppliers ORDER BY id FOR UPDATE");
+        jdbc.queryForList("SELECT id FROM materials ORDER BY id FOR UPDATE");
+        jdbc.queryForList("SELECT id FROM supplier_materials ORDER BY id FOR UPDATE");
     }
 
     private void planSuppliers(JsonNode master, List<String> actions, List<String> conflicts) {
@@ -307,19 +327,75 @@ public class DemoDatasetUpgradeService {
         supplierMaterials.saveAndFlush(relation);
     }
 
-    private JsonNode loadMasterData() {
+    private MasterDataSnapshot loadMasterDataSnapshot() {
         Path path = Path.of(properties.getMasterDataPath()).toAbsolutePath().normalize();
         if (!Files.isRegularFile(path)) throw new IllegalStateException("Demo master data file is missing: " + path);
         try {
-            JsonNode root = objectMapper.readTree(path.toFile());
+            byte[] content = Files.readAllBytes(path);
+            JsonNode root = objectMapper.readTree(content);
             if (!root.path("datasetKey").asText().equals(DemoDatasetCoordinator.DATASET_KEY)
                     || !root.path("datasetVersion").asText().equals(properties.getDatasetVersion())) {
                 throw new IllegalStateException("Demo master data key/version does not match configured dataset");
             }
-            return root;
+            return new MasterDataSnapshot(root, sha256(content));
         } catch (java.io.IOException exception) {
             throw new IllegalStateException("Cannot read demo master data file: " + path, exception);
         }
+    }
+
+    private List<List<Object>> databasePreconditions(JsonNode master) {
+        List<List<Object>> facts = new ArrayList<>();
+        for (JsonNode seed : master.path("suppliers")) {
+            String code = seed.path("code").asText();
+            Supplier existing = suppliers.findByCode(code).orElse(null);
+            facts.add(Arrays.asList("supplier", code, existing == null ? null : existing.getId(),
+                    existing == null ? null : existing.getName(), existing == null ? null : existing.getCountry(),
+                    existing == null ? null : decimal(existing.getReliabilityScore()),
+                    existing == null ? null : decimal(existing.getQualityScore()),
+                    existing == null ? null : existing.getStatus().name(),
+                    existing == null ? null : String.valueOf(existing.getUpdatedAt())));
+        }
+        for (JsonNode seed : master.path("materials")) {
+            String code = seed.path("code").asText();
+            Material existing = materials.findByCode(code).orElse(null);
+            facts.add(Arrays.asList("material", code, existing == null ? null : existing.getId(),
+                    existing == null ? null : existing.getName(),
+                    existing == null ? null : existing.getBaseUnit().name(),
+                    existing == null ? null : decimal(existing.getSafetyStock()),
+                    existing == null ? null : existing.getStatus().name(),
+                    existing == null ? null : String.valueOf(existing.getUpdatedAt())));
+        }
+        for (JsonNode seed : master.path("supplierMaterials")) {
+            String supplierCode = seed.path("supplierCode").asText();
+            String materialCode = seed.path("materialCode").asText();
+            Supplier supplier = suppliers.findByCode(supplierCode).orElse(null);
+            Material material = materials.findByCode(materialCode).orElse(null);
+            SupplierMaterial existing = supplier == null || material == null ? null
+                    : supplierMaterials.findBySupplierIdAndMaterialId(supplier.getId(), material.getId()).orElse(null);
+            facts.add(Arrays.asList("supplierMaterial", supplierCode, materialCode,
+                    supplier == null ? null : supplier.getId(), material == null ? null : material.getId(),
+                    existing == null ? null : existing.getId(),
+                    existing == null ? null : decimal(existing.getUnitPrice()),
+                    existing == null ? null : decimal(existing.getMoq()),
+                    existing == null ? null : decimal(existing.getPackageMultiple()),
+                    existing == null ? null : existing.getLeadTimeDays(),
+                    existing == null ? null : existing.getCurrency().name(),
+                    existing == null ? null : existing.getStatus().name(),
+                    existing == null ? null : String.valueOf(existing.getUpdatedAt())));
+        }
+        return facts;
+    }
+
+    private String stableJson(Object value) {
+        try {
+            return objectMapper.writeValueAsString(value);
+        } catch (java.io.IOException exception) {
+            throw new IllegalStateException("Cannot serialize demo upgrade plan fingerprint", exception);
+        }
+    }
+
+    private static String decimal(java.math.BigDecimal value) {
+        return value == null ? null : value.stripTrailingZeros().toPlainString();
     }
 
     private static JsonNode find(JsonNode list, String field, String value) {
@@ -329,23 +405,31 @@ public class DemoDatasetUpgradeService {
         throw new IllegalStateException("Demo master data is missing key " + value);
     }
 
-    private Map<String, Object> state() {
+    private Map<String, Object> state(boolean forUpdate) {
+        String lockClause = forUpdate ? " FOR UPDATE" : "";
         List<Map<String, Object>> rows = jdbc.queryForList(
-                "SELECT dataset_version, status FROM demo_dataset_state WHERE dataset_key = ?",
+                "SELECT dataset_version, status FROM demo_dataset_state WHERE dataset_key = ?" + lockClause,
                 DemoDatasetCoordinator.DATASET_KEY);
         return rows.isEmpty() ? null : rows.getFirst();
     }
 
     private static String sha256(String value) {
+        return sha256(value.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+    }
+
+    private static String sha256(byte[] value) {
         try {
             return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256")
-                    .digest(value.getBytes(StandardCharsets.UTF_8)));
+                    .digest(value));
         } catch (java.security.NoSuchAlgorithmException exception) {
             throw new IllegalStateException(exception);
         }
     }
 
+    private record MasterDataSnapshot(JsonNode root, String sha256) { }
+
     public record UpdatePlan(
             String database, String sourceVersion, String sourceStatus, String targetVersion,
-            List<String> actions, List<String> conflicts, List<String> manualSteps, String sha256) { }
+            List<String> actions, List<String> conflicts, List<String> manualSteps,
+            String masterDataSha256, String databasePreconditionsSha256, String sha256) { }
 }

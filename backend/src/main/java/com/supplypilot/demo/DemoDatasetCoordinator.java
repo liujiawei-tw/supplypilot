@@ -1,18 +1,22 @@
 package com.supplypilot.demo;
 
 import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
-import java.util.HexFormat;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.EnumSet;
+import java.util.HexFormat;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -69,6 +73,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 public class DemoDatasetCoordinator implements DemoDataCoordinator {
     static final String DATASET_KEY = "SP-901";
     static final String RESET_CONFIRMATION = "RESET-SP-901-DEMO";
+    private static final Pattern DATASET_VERSION_PATTERN = Pattern.compile("sp-([0-9]+)-(?:[a-z0-9]+-)*v([0-9]+)");
     private static final Logger log = LoggerFactory.getLogger(DemoDatasetCoordinator.class);
 
     private final DemoProperties properties;
@@ -142,15 +147,19 @@ public class DemoDatasetCoordinator implements DemoDataCoordinator {
     private void initializeBaseline() {
         Map<String, Object> state = state();
         if (state != null) {
-            if ("COMPLETE".equals(state.get("status"))
-                    && properties.getDatasetVersion().equals(state.get("dataset_version"))) {
-                log.info("DEMO_DATASET_ALREADY_COMPLETE key={} version={} baselineDate={}", DATASET_KEY,
-                        state.get("dataset_version"), state.get("baseline_date"));
-                return;
+            ExistingDatasetAction action = classifyExistingDataset(
+                    state.get("status"), state.get("dataset_version"), properties.getDatasetVersion());
+            switch (action) {
+                case ALREADY_COMPLETE -> log.info("DEMO_DATASET_ALREADY_COMPLETE key={} version={} baselineDate={}",
+                        DATASET_KEY, state.get("dataset_version"), state.get("baseline_date"));
+                case LEGACY_UPDATE_REQUIRED -> log.warn("DEMO_DATASET_UPDATE_REQUIRED key={} currentVersion={} "
+                                + "currentStatus=COMPLETE targetVersion={}; legacy records are preserved and no reset "
+                                + "or automatic upgrade was performed",
+                        DATASET_KEY, state.get("dataset_version"), properties.getDatasetVersion());
+                case MANUAL_STEPS_INCOMPLETE -> log.warn("DEMO_DATASET_UPDATE_REQUIRED key={} version={} "
+                                + "manualStepsIncomplete=true reason={}; startup seeding preserved all records",
+                        DATASET_KEY, state.get("dataset_version"), state.get("failure_reason"));
             }
-            log.warn("DEMO_DATASET_UPDATE_REQUIRED key={} currentVersion={} currentStatus={} targetVersion={}; "
-                    + "startup seeding did not modify existing records", DATASET_KEY,
-                    state.get("dataset_version"), state.get("status"), properties.getDatasetVersion());
             return;
         }
         requireEmptyDatabase();
@@ -177,6 +186,54 @@ public class DemoDatasetCoordinator implements DemoDataCoordinator {
                     reason.substring(0, Math.min(reason.length(), 120)), DATASET_KEY);
             throw exception;
         }
+    }
+
+    static ExistingDatasetAction classifyExistingDataset(Object statusValue, Object versionValue,
+                                                           String targetVersion) {
+        if (!isLegalDatasetVersion(targetVersion)) {
+            throw new IllegalStateException("Configured demo dataset version is invalid");
+        }
+        if (!(statusValue instanceof String status) || !(versionValue instanceof String version)
+                || !isLegalDatasetVersion(version)) {
+            throw new IllegalStateException("Demo dataset state has an invalid status/version combination");
+        }
+        return switch (status) {
+            case "COMPLETE" -> {
+                if (version.equals(targetVersion)) yield ExistingDatasetAction.ALREADY_COMPLETE;
+                if (!isOlderDatasetVersion(version, targetVersion)) {
+                    throw new IllegalStateException("COMPLETE demo dataset version is not older than the configured version");
+                }
+                yield ExistingDatasetAction.LEGACY_UPDATE_REQUIRED;
+            }
+            case "UPDATE_REQUIRED" -> {
+                if (!version.equals(targetVersion)) {
+                    throw new IllegalStateException("UPDATE_REQUIRED demo dataset must use the configured version");
+                }
+                yield ExistingDatasetAction.MANUAL_STEPS_INCOMPLETE;
+            }
+            case "INITIALIZING", "RELATIONAL_READY", "FAILED" -> throw new IllegalStateException(
+                    "Demo dataset is not complete; refusing to treat status " + status + " as a baseline");
+            default -> throw new IllegalStateException("Unknown demo dataset status: " + status);
+        };
+    }
+
+    private static boolean isLegalDatasetVersion(String version) {
+        return version != null && DATASET_VERSION_PATTERN.matcher(version).matches();
+    }
+
+    private static boolean isOlderDatasetVersion(String candidate, String target) {
+        Matcher candidateMatcher = DATASET_VERSION_PATTERN.matcher(candidate);
+        Matcher targetMatcher = DATASET_VERSION_PATTERN.matcher(target);
+        if (!candidateMatcher.matches() || !targetMatcher.matches()) return false;
+        int revisionOrder = new BigInteger(candidateMatcher.group(1)).compareTo(new BigInteger(targetMatcher.group(1)));
+        return revisionOrder < 0 || (revisionOrder == 0
+                && new BigInteger(candidateMatcher.group(2)).compareTo(new BigInteger(targetMatcher.group(2))) < 0);
+    }
+
+    enum ExistingDatasetAction {
+        ALREADY_COMPLETE,
+        LEGACY_UPDATE_REQUIRED,
+        MANUAL_STEPS_INCOMPLETE
     }
 
     private void seedRelational(LocalDate baselineDate, Instant now) {
@@ -371,19 +428,7 @@ public class DemoDatasetCoordinator implements DemoDataCoordinator {
                     || !catalog.path("corpusVersion").asText().equals(properties.getDatasetVersion())) {
                 throw new IllegalStateException("Demo corpus catalog key/version does not match configured dataset");
             }
-            List<JsonNode> seedDocuments = new java.util.ArrayList<>();
-            for (JsonNode document : catalog.path("documents")) {
-                if ("SEED_BASELINE".equals(document.path("classification").asText())) {
-                    seedDocuments.add(document);
-                } else if (!"MANUAL_UI_UPLOAD_ONLY".equals(document.path("classification").asText())) {
-                    throw new IllegalStateException("Unknown demo document classification: "
-                            + document.path("documentKey").asText());
-                }
-            }
-            if (seedDocuments.size() != catalog.path("seedDocumentCount").asInt()
-                    || seedDocuments.size() != 15) {
-                throw new IllegalStateException("Demo corpus must contain exactly 15 baseline seed documents");
-            }
+            List<JsonNode> seedDocuments = requireValidSeedDocuments(catalog);
 
             for (JsonNode seed : seedDocuments) {
                 String filename = Path.of(seed.path("filename").asText()).getFileName().toString();
@@ -428,6 +473,38 @@ public class DemoDatasetCoordinator implements DemoDataCoordinator {
         } catch (java.io.IOException exception) {
             throw new IllegalStateException("Cannot read demo corpus catalog", exception);
         }
+    }
+
+    static List<JsonNode> requireValidSeedDocuments(JsonNode catalog) {
+        if (!catalog.path("documents").isArray()) {
+            throw new IllegalStateException("Demo corpus catalog documents must be an array");
+        }
+        List<JsonNode> seedDocuments = new java.util.ArrayList<>();
+        EnumSet<DocumentType> coveredTypes = EnumSet.noneOf(DocumentType.class);
+        for (JsonNode document : catalog.path("documents")) {
+            if ("SEED_BASELINE".equals(document.path("classification").asText())) {
+                seedDocuments.add(document);
+                try {
+                    coveredTypes.add(DocumentType.valueOf(document.path("type").asText()));
+                } catch (IllegalArgumentException exception) {
+                    throw new IllegalStateException("Unsupported demo corpus document type: "
+                            + document.path("type").asText(), exception);
+                }
+            } else if (!"MANUAL_UI_UPLOAD_ONLY".equals(document.path("classification").asText())) {
+                throw new IllegalStateException("Unknown demo document classification: "
+                        + document.path("documentKey").asText());
+            }
+        }
+        if (seedDocuments.isEmpty() || !catalog.path("seedDocumentCount").isIntegralNumber()
+                || seedDocuments.size() != catalog.path("seedDocumentCount").asInt()) {
+            throw new IllegalStateException("Demo corpus seedDocumentCount must match its non-empty baseline catalog");
+        }
+        if (!coveredTypes.containsAll(EnumSet.allOf(DocumentType.class))) {
+            EnumSet<DocumentType> missingTypes = EnumSet.allOf(DocumentType.class);
+            missingTypes.removeAll(coveredTypes);
+            throw new IllegalStateException("Demo corpus is missing required seed document types: " + missingTypes);
+        }
+        return List.copyOf(seedDocuments);
     }
 
     private static String canonicalLfSha256(String text) {
@@ -507,7 +584,7 @@ public class DemoDatasetCoordinator implements DemoDataCoordinator {
 
     private Map<String, Object> state() {
         List<Map<String, Object>> rows = jdbc.queryForList(
-                "SELECT dataset_version, baseline_date, status FROM demo_dataset_state WHERE dataset_key = ?",
+                "SELECT dataset_version, baseline_date, status, failure_reason FROM demo_dataset_state WHERE dataset_key = ?",
                 DATASET_KEY);
         return rows.isEmpty() ? null : rows.getFirst();
     }

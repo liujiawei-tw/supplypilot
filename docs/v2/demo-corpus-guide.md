@@ -17,6 +17,10 @@
 | `PRODUCT_SPECIFICATION` | 3 |
 | `QUALITY_REQUIREMENT` | 3 |
 
+上述數量描述目前 Catalog。Coordinator 依 Catalog 的 `seedDocumentCount` 驗證實際 Seed 數量，並要求每個 `DocumentType` 至少有一份 Seed；文件數量不是寫死在業務程式中的常數。
+
+PO 範例由同一主檔的供應商、物料及 `SupplierMaterial` 條件交叉驗證：供應商/物料組合必須存在，數量須達 MOQ 並符合包裝倍數；PO `status` 必須與 Kanban `stage` 相符。`REJECTED`／`CANCELLED` 必須提供終止原因且不帶流程 Stage；`RECEIVED/PAYMENT_RECONCILIATION` 表示已收貨、付款尚未確認，`RECEIVED/COMPLETED` 則要求收貨完成且付款已確認。這些是靜態語料契約檢查，不代表資料已寫入資料庫。
+
 ## 文件內容約束
 
 所有內容均為虛構的繁體中文供應鏈展示案例。業務代碼、狀態及物料單位維持系統使用的英文識別值。報價文件只記錄結構化資料中可核對的供貨期間、MOQ、包裝倍數與交期，不記錄單價或金額；其他文件亦不含憑證、個人資料或認證結果。歷史條件清楚標示適用期間，不能當成現行條件引用。

@@ -35,6 +35,17 @@ UNIT_RE = re.compile(r"(?:基本單位|單位)\s*(?:(?:為|是|[：:])\s*|\s+)([
 PRICE_KEYS = {"price", "unitprice", "amount", "totalprice", "quotedprice", "priceamount"}
 BAD_STATUSES = {"ADMIN_APPROVED", "APPROVED", "APPROVED_BY_ADMIN", "GEMINI_READY", "READY", "PASS", "RAG_PASS", "INDEX_READY", "INDEXED"}
 STATUS_KEYS = {"approvalstatus", "adminapprovalstatus", "reviewstatus", "firstreviewstatus", "geministatus", "geminiindexstatus", "indexstatus", "indexingstatus", "ragstatus", "ragqualitystatus"}
+PO_STAGE_STATUS = {
+    "NEW_REQUEST": "DRAFT",
+    "SOURCING": "DRAFT",
+    "APPROVAL": "DRAFT",
+    "APPROVED_PENDING_ORDER": "APPROVED",
+    "ORDER_FOLLOW_UP": "ORDERED",
+    "RECEIVING_INSPECTION": "ORDERED",
+    "PAYMENT_RECONCILIATION": "RECEIVED",
+    "COMPLETED": "RECEIVED",
+}
+PO_STATUSES = set(PO_STAGE_STATUS.values()) | {"REJECTED", "CANCELLED"}
 
 
 def _first(obj: dict[str, Any], *keys: str) -> Any:
@@ -169,6 +180,116 @@ def _sentence_number(sentence: str, label: str) -> int | None:
     return int(m.group(1).replace(",", "")) if m else None
 
 
+def _positive_decimal(value: Any) -> Decimal | None:
+    if isinstance(value, bool) or value is None:
+        return None
+    try:
+        parsed = Decimal(str(value))
+    except (InvalidOperation, ValueError):
+        return None
+    return parsed if parsed.is_finite() and parsed > 0 else None
+
+
+def _validate_purchase_orders(master: dict[str, Any], suppliers: dict[str, dict[str, Any]],
+                              materials: dict[str, dict[str, Any]],
+                              pairs: dict[tuple[Any, Any], dict[str, Any]], errors: list[str]) -> None:
+    orders = master.get("purchaseOrderExamples")
+    if not isinstance(orders, list) or not orders:
+        errors.append("master.purchaseOrderExamples: expected non-empty purchase order examples")
+        return
+    valid_orders = _objects(orders)
+    if len(valid_orders) != len(orders):
+        errors.append("master.purchaseOrderExamples: every entry must be an object")
+    seen_keys: set[str] = set()
+    for i, order in enumerate(valid_orders):
+        path = f"master.purchaseOrderExamples[{i}]"
+        key = order.get("seedKey")
+        if not isinstance(key, str) or not key.strip():
+            errors.append(f"{path}.seedKey: missing purchase order key")
+        elif key in seen_keys:
+            errors.append(f"{path}.seedKey: duplicate purchase order key {key}")
+        else:
+            seen_keys.add(key)
+
+        supplier_code, material_code = order.get("supplierCode"), order.get("materialCode")
+        if supplier_code not in suppliers:
+            errors.append(f"{path}.supplierCode: unknown supplier {supplier_code!r}")
+        if material_code not in materials:
+            errors.append(f"{path}.materialCode: unknown material {material_code!r}")
+        link = pairs.get((supplier_code, material_code))
+        if link is None:
+            errors.append(f"{path}: no SupplierMaterial relation for {supplier_code}/{material_code}")
+
+        quantity = _positive_decimal(order.get("quantity"))
+        if quantity is None:
+            errors.append(f"{path}.quantity: expected a positive finite quantity")
+        elif link is not None:
+            moq = _positive_decimal(link.get("moq"))
+            if moq is None:
+                errors.append(f"{path}: linked SupplierMaterial has an invalid MOQ")
+            elif quantity < moq:
+                errors.append(f"{path}.quantity: {quantity} is below linked MOQ {moq}")
+            multiple_value = link.get("packageMultiple")
+            if multiple_value not in (None, ""):
+                package_multiple = _positive_decimal(multiple_value)
+                if package_multiple is None:
+                    errors.append(f"{path}: linked SupplierMaterial has an invalid package multiple")
+                elif quantity % package_multiple != 0:
+                    errors.append(f"{path}.quantity: {quantity} is not a multiple of package size {package_multiple}")
+
+        status = order.get("status")
+        stage = order.get("stage")
+        if not isinstance(status, str) or status not in PO_STATUSES:
+            errors.append(f"{path}.status: unsupported purchase order status {status!r}")
+            status = None
+        if "stage" not in order:
+            errors.append(f"{path}.stage: missing purchase order stage")
+
+        if status == "REJECTED":
+            if stage is not None:
+                errors.append(f"{path}.stage: REJECTED purchase orders must have a null stage")
+            reason = order.get("rejectionReason")
+            if not isinstance(reason, str) or not reason.strip():
+                errors.append(f"{path}.rejectionReason: REJECTED purchase orders require a termination reason")
+            if order.get("cancellationReason") not in (None, ""):
+                errors.append(f"{path}.cancellationReason: REJECTED purchase orders cannot have a cancellation reason")
+        elif status == "CANCELLED":
+            if stage is not None:
+                errors.append(f"{path}.stage: CANCELLED purchase orders must have a null stage")
+            reason = order.get("cancellationReason")
+            if not isinstance(reason, str) or not reason.strip():
+                errors.append(f"{path}.cancellationReason: CANCELLED purchase orders require a termination reason")
+            if order.get("rejectionReason") not in (None, ""):
+                errors.append(f"{path}.rejectionReason: CANCELLED purchase orders cannot have a rejection reason")
+        elif status is not None:
+            if not isinstance(stage, str) or stage not in PO_STAGE_STATUS:
+                errors.append(f"{path}.stage: unsupported stage {stage!r} for status {status}")
+            elif PO_STAGE_STATUS[stage] != status:
+                errors.append(f"{path}.status/stage: {status}/{stage} is not a legal combination")
+
+        payment_confirmed = order.get("paymentConfirmed", False)
+        if not isinstance(payment_confirmed, bool):
+            errors.append(f"{path}.paymentConfirmed: expected a boolean when present")
+            payment_confirmed = False
+        if status == "RECEIVED":
+            expected_paid = stage == "COMPLETED"
+            if payment_confirmed != expected_paid:
+                expected_text = "true" if expected_paid else "false or omitted"
+                errors.append(f"{path}.paymentConfirmed: {status}/{stage} requires {expected_text}")
+            # PAYMENT_RECONCILIATION and COMPLETED are both post-receipt stages. If an
+            # explicit receipt marker is present, it must agree with that lifecycle state.
+            for field in ("receivingConfirmed", "receiptConfirmed", "receivingCompleted"):
+                if field in order and order[field] is not True:
+                    errors.append(f"{path}.{field}: {status}/{stage} requires a confirmed receipt")
+        elif payment_confirmed:
+            errors.append(f"{path}.paymentConfirmed: payment cannot be confirmed before RECEIVED/COMPLETED")
+
+    counts = master.get("counts")
+    if isinstance(counts, dict) and counts.get("purchaseOrders") is not None \
+            and counts["purchaseOrders"] != len(valid_orders):
+        errors.append(f"master.counts.purchaseOrders: expected {counts['purchaseOrders']}, found {len(valid_orders)}")
+
+
 def validate_corpus(master: dict[str, Any], catalog: dict[str, Any], fixtures_data: dict[str, Any], documents_dir: Path) -> list[str]:
     """Return static corpus issues; a clean result does not prove Gemini or RAG quality."""
     errors: list[str] = []
@@ -201,6 +322,8 @@ def validate_corpus(master: dict[str, Any], catalog: dict[str, Any], fixtures_da
         material_row = materials.get(material)
         if material_row and row.get("currency") and material_row.get("currency") and row["currency"] != material_row["currency"]:
             errors.append(f"{path}.currency: conflicts with {material} currency")
+
+    _validate_purchase_orders(master, suppliers, materials, pairs, errors)
 
     docs, fixtures = _documents(catalog), _fixtures(fixtures_data)
     if not docs:

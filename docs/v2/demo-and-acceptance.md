@@ -21,9 +21,11 @@
 
 ## 3. 既有 Demo 更新
 
-一般啟動遇到舊版本會標示 DEMO_DATASET_UPDATE_REQUIRED，不改寫既有資料。Compose Demo 將 master data 與文件目錄唯讀掛載，並固定讀取 `sp-906-zh-tw-v2`。更新工具預設 `DISABLED`；維護者需將 `DEMO_DATASET_UPGRADE_MODE` 設為 `DRY_RUN`，核對輸出的資料庫名稱、來源/目標版本、變更明細、衝突、人工步驟及計畫 SHA-256。DRY_RUN 對應的升級服務只讀取資料庫與主檔，不執行資料寫入。
+啟動時依資料集狀態採 Fail-Closed 判斷：`COMPLETE` 且版本相同時略過 Seed；`COMPLETE` 且為合法舊版本時保留資料並標示 `DEMO_DATASET_UPDATE_REQUIRED`，不 Reset、不自動升級；`UPDATE_REQUIRED` 且版本相同時保留資料並標示文件及看板人工步驟仍未完成。`INITIALIZING`、`RELATIONAL_READY`、`FAILED`、未知狀態、未來版本或不合法版本組合均拒絕當成完整基線。
 
-確認計畫後，切換到 `APPLY` 時服務會在同一資料庫重新產生計畫；只有 `DEMO_DATASET_UPGRADE_PLAN_SHA256=<本次 DRY_RUN 的 SHA-256>` 與 `DEMO_DATASET_UPGRADE_CONFIRMATION=UPDATE-SP-901@<database>@sp-906-zh-tw-v2` 均符合時才套用。若資料狀態或計畫內容變動，雜湊不符會拒絕執行。套用後標記為 `UPDATE_REQUIRED`，表示後續文件及看板人工步驟仍未完成；工具不會替文件核准／索引，也不會修改既有 PO、庫存、使用者或文件審核。Compose 範例預設保持 `DISABLED`，不得在本 Issue 對既有 Demo 資料庫執行。
+Compose Demo 將 master data 與文件目錄唯讀掛載，並固定讀取 `sp-906-zh-tw-v2`。更新工具預設 `DISABLED`；維護者需將 `DEMO_DATASET_UPGRADE_MODE` 設為 `DRY_RUN`，核對輸出的資料庫名稱、來源/目標版本、變更明細、衝突、人工步驟及計畫 SHA-256。計畫雜湊包含主檔原始內容 SHA-256、待套用值、資料庫狀態及相關供應商、物料、供應關係前置條件。DRY_RUN 只讀取資料庫與主檔，不執行資料寫入。
+
+確認計畫後，切換到 `APPLY` 時服務在目標鎖定後重新產生計畫；只有 `DEMO_DATASET_UPGRADE_PLAN_SHA256=<本次 DRY_RUN 的 SHA-256>` 與 `DEMO_DATASET_UPGRADE_CONFIRMATION=UPDATE-SP-901@<database>@sp-906-zh-tw-v2` 均符合時才套用。APPLY 讀取一次主檔，核對其內容雜湊後使用同一份快照套用，不會核准或套用另一份主檔；供應商、物料、供應關係或資料集狀態在 DRY_RUN 後改變時會拒絕舊 SHA。資料列鎖定與資料更新位於同一交易，發生錯誤時整筆更新回滾。套用後標記為 `UPDATE_REQUIRED`，表示後續文件及看板人工步驟仍未完成；工具不會替文件核准／索引，也不會修改既有 PO、庫存、使用者或文件審核。Compose 範例預設保持 `DISABLED`，不得在本 Issue 對既有 Demo 資料庫執行。
 
 自動更新僅能將仍符合舊基線值的供應商/物料展示名稱改為繁中，新增缺少的非核心供應商與供應關係，並保留既有狀態、庫存、價格、PO 快照、使用者資料、V1 Demand 與文件審核。既有 SupplierMaterial 價格／條件差異、已被使用者修改的值、缺少的既有物料/庫存或資料衝突會列為人工處理。更新後狀態為 UPDATE_REQUIRED，表示文件與看板資料仍待人工完成，不會冒稱與全新 Seed 完全一致。
 
