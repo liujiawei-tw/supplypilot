@@ -108,7 +108,7 @@ export default function SupplierList({ isAdmin }: { isAdmin: boolean }) {
       pagination={{ current: (data?.page ?? 0) + 1, pageSize: data?.size ?? query.size, total: data?.totalElements ?? 0, showSizeChanger: true }} onChange={handleTableChange} />}
     <Modal title={editing ? '編輯供應商' : '新增供應商'} open={modalOpen} onCancel={() => !submitting && setModalOpen(false)} onOk={() => void submit()} confirmLoading={submitting} okButtonProps={{ disabled: submitting }} destroyOnHidden>
       {submitError && <ErrorState title="供應商送出失敗" error={submitError} />}
-      <Form form={form} layout="vertical" preserve={false}>
+      <Form form={form} layout="vertical">
         <Form.Item name="code" label="供應商代碼" rules={[{ required: true, whitespace: true, message: '請輸入供應商代碼' }, { max: 50 }]}><Input disabled={!!editing} /></Form.Item>
         <Form.Item name="name" label="名稱" rules={[{ required: true, whitespace: true, message: '請輸入供應商名稱' }, { max: 100 }]}><Input /></Form.Item>
         <Form.Item name="country" label="國家／地區" rules={[{ max: 100 }]}><Input /></Form.Item>

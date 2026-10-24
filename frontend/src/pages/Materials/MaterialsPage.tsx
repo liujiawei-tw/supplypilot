@@ -147,7 +147,7 @@ export default function MaterialsPage() {
     </Space>
     <Modal title={editing ? '編輯物料' : '新增物料'} open={modalOpen} onCancel={() => !submitting && setModalOpen(false)} onOk={() => void submit()} confirmLoading={submitting} okButtonProps={{ disabled: submitting }} destroyOnHidden>
       {submitError && <ErrorState title="物料送出失敗" error={submitError} />}
-      <Form form={form} layout="vertical" preserve={false}>
+      <Form form={form} layout="vertical">
         <Form.Item name="code" label="物料代碼" rules={[{ required: true, whitespace: true, message: '請輸入物料代碼' }, { max: 50 }]}><Input disabled={!!editing} /></Form.Item>
         <Form.Item name="name" label="名稱" rules={[{ required: true, whitespace: true, message: '請輸入物料名稱' }, { max: 100 }]}><Input /></Form.Item>
         <Form.Item name="baseUnit" label="基本單位" rules={[{ required: true, message: '請選擇基本單位' }]}><Select disabled={!!editing} options={units.map((unit) => ({ value: unit, label: unit }))} /></Form.Item>

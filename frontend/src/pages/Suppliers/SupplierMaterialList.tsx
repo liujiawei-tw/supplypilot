@@ -131,7 +131,7 @@ export default function SupplierMaterialList({ isAdmin }: { isAdmin: boolean }) 
       pagination={{ current: (data?.page ?? 0) + 1, pageSize: data?.size ?? query.size, total: data?.totalElements ?? 0, showSizeChanger: true }} onChange={handleTableChange} />}
     <Modal title={editing ? '編輯供應商物料關聯' : '新增供應商物料關聯'} open={modalOpen} onCancel={() => !submitting && setModalOpen(false)} onOk={() => void submit()} confirmLoading={submitting} okButtonProps={{ disabled: submitting }} destroyOnHidden>
       {submitError && <ErrorState title="供應商物料資料送出失敗" error={submitError} />}
-      <Form form={form} layout="vertical" preserve={false}>
+      <Form form={form} layout="vertical">
         {editing ? <>
           <Form.Item label="供應商"><Input disabled value={label(suppliers[editing.supplierId], editing.supplierId)} /></Form.Item>
           <Form.Item label="物料"><Input disabled value={label(materials[editing.materialId], editing.materialId)} /></Form.Item>

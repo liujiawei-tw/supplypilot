@@ -1,0 +1,64 @@
+
+> frontend@0.0.0 test
+> vitest run tests/masterData.test.tsx tests/precisionEditRoundTrip.test.tsx tests/supplierMaterialPrecision.test.tsx
+
+
+ RUN  v4.1.11 C:/Users/z0976/.codex/worktrees/issue-148-v2-401/supplypilot/frontend
+
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Could not parse CSS stylesheet
+Could not parse CSS stylesheet
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Could not parse CSS stylesheet
+Could not parse CSS stylesheet
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Could not parse CSS stylesheet
+Could not parse CSS stylesheet
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Could not parse CSS stylesheet
+Could not parse CSS stylesheet
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+ ❯ tests/masterData.test.tsx (10 tests | 1 failed) 172455ms
+     × keeps Supplier create and edit values when backend submissions fail 44004ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/masterData.test.tsx > master data pages > keeps Supplier create and edit values when backend submissions fail
+Error: Test timed out in 40000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+ ❯ tests/masterData.test.tsx:220:3
+    218|   }, 20_000);
+    219|
+    220|   it('keeps Supplier create and edit values when backend submissions f…
+       |   ^
+    221|     const requests: InternalAxiosRequestConfig[] = [];
+    222|     axiosClient.defaults.adapter = vi.fn(async (config) => {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed | 2 passed (3)
+      Tests  1 failed | 12 passed (13)
+   Start at  02:23:47
+   Duration  178.98s (transform 543ms, setup 705ms, import 15.27s, tests 196.61s, environment 2.69s)
+

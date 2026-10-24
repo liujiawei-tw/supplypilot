@@ -274,3 +274,47 @@ Backend 使用 Testcontainers MySQL 8.4。Flyway fresh schema 驗證 31 個 migr
 - Authenticated page 操作、keyboard、loading、empty、error、長文字及本次編輯 roundtrip 的 Browser 驗收：**NOT RUN**。Chrome 原生 200% zoom：**BLOCKED**（依使用者確認），未以其他縮放方式替代。
 - #148 新增 `V31__add_purchase_order_item_currency_snapshot.sql`，#147 分支亦使用 V31 migration version；版本衝突與整合順序仍未解決。合併前需由整合工作核對並安排 migration version sequencing，不能把目前 #148 MySQL migration 測試視為已解決跨分支衝突。現有 checksum/檔案對照見 [V31 evidence](../../../../docs/evidence/issue-148-flyway-checksums.txt)。
 - GitHub Actions 仍為 **PAUSED BY USER / NOT USED AS GATE**；本節均為本機驗證。
+
+## 2026-10-25 #148 真實登入 Browser 補驗
+
+### 環境與程式 Finding
+
+- Repository：`liujiawei-tw/supplypilot`；Branch：`codex/issue-148-ui-format-rwd`。本輪開始時精確 HEAD 為已 Review 的 `7a1c2abea5c8a1b46247c47ffd8516726327b889`。
+- 使用本機 Vite 8.3.4（`http://127.0.0.1:5174`）、Spring Boot／Java 21.0.10（`http://127.0.0.1:18080`）、MySQL 8.4.11 隔離 Compose project `supplypilot-issue148-e2e-20261025`、獨立 schema `supplypilot_issue148_e2e`。API 紀錄經 `127.0.0.1:18081` 透明轉送，auth body 與 response 遮蔽，沒有記錄 Authorization header。使用本機隔離 ADMIN 及 `canManageUsers=false` 帳號；沒有使用 AWS／Production 憑證。Vite 的 5173 與其他 Docker 專案均未操作。
+- 真實 Browser 使用已登入帳號，viewport 320×800、390×844、桌面 1280×900。Chrome 原生 200% 縮放為 **WAIVED BY USER**。GitHub Actions 為 **PAUSED BY USER / NOT USED AS GATE**。
+- 真實 Material Edit 初次開啟時欄位全空，按確定由必填驗證擋下，沒有 PATCH。根因為 `preserve={false}` 搭配 `destroyOnHidden`，Modal 關閉卸載 Form 欄位後，下一次開啟前設定的值被清除。最小修正移除 Material、SupplierMaterial、Supplier 三個 Form 的 `preserve={false}`；Create 開啟時仍明確 `resetFields()`，Edit 仍逐欄載入既有資料。修正後真實 Browser 的三個編輯表單均能載入原值並正常 PATCH。
+- 這是 `7a1c2ab…` Review PASS 後的產品程式變動；該舊 SHA 的 Review 結果不代表目前修正已 Review。新 commit 尚待 GPT 對精確新 SHA 獨立 Review；本輪不建立 PR、不 Merge。
+
+### 本輪新增的真實 Browser 驗收
+
+| 項目 | 結果 | 實際證據／限制 |
+|---|---|---|
+| 320px PO 查詢 | PASS | 已登入後顯示單筆隔離草稿；PO number、supplier code、supplier name、material code 及四欄組合均命中同一筆後端結果。Document scroll width 305px，不超過 320px。 |
+| 390px PO 查詢 | PASS | 四欄組合命中同一筆真實後端結果；切換 Kanban→List 後查詢條件與列結果仍在。Document scroll width 375px，不超過 390px。 |
+| #144 PO pagination control | PASS（受單筆資料限制） | 在 List 將 page size 由 20 改為 10，Request 帶 `page=0&size=10`、Response 200／`totalElements=1`／`totalPages=1`；下一頁按鈕正確 disabled。只有一筆隔離 PO，未測試跨到實際存在資料的第二頁，沒有為此大量灌入草稿。 |
+| 320px Inventory 查詢 | PASS | 以 `MAT-148-HIGH` 搜尋，真實 API 200，畫面顯示該 Material 的庫存列（目前數量 0）。Document scroll width 320px。 |
+| 390px Inventory 查詢 | PASS | 相同 Material 查詢回傳真實列。Document scroll width 390px。 |
+| 320px Supplier 查詢 | PASS | 以 `SUP-148-E2E` 搜尋並顯示真實後端 Supplier。Document scroll width 320px。 |
+| 390px Supplier 查詢 | PASS | 以供應商名稱搜尋並顯示同一筆真實後端資料。Document scroll width 390px。 |
+| 320／390px AI Assistant | UI／錯誤回饋 PASS；成功回答 BLOCKED | Drawer 與輸入欄可操作，各尺寸 document scroll width 等於 viewport。兩次問題均送至本機 `/api/v1/ai/query`；因隔離環境刻意未配置 Provider，回傳 503 `AI_PROVIDER_UNAVAILABLE`，畫面清楚保留核心功能可用的錯誤訊息。未呼叫 Gemini／外部 Provider，也未把錯誤回應標成 AI 成功。 |
+| Material 高精度 Create | PASS | Browser POST `safetyStock=999999999999999.1234`；201 Response 與重新 GET 均精確相同，畫面顯示完整小數。 |
+| Material 高精度 Edit | PASS（修正後） | Edit 表單先載入既有精確值；只修改名稱後 PATCH 僅有 `name`、`safetyStock`、`status`，不含不可修改 `code`／`baseUnit`。PATCH Response 與重新 GET 的 `safetyStock` 仍為 `999999999999999.1234`。 |
+| SupplierMaterial 高精度 Create | PASS | Browser POST `unitPrice=999999999999999.1234`、`moq=0.0001`、`packageMultiple=12.3400`、`currency=TWD`；201 Response、重新 GET 與畫面均保留完整精度與尾端零。 |
+| SupplierMaterial 高精度 Edit | PASS（修正後） | Read→Edit 表單載入上述原值；改 `leadTimeDays` 後 PATCH 仍精確送出三個 Decimal，且不含 `supplierId`、`materialId`、`currency`。重新 GET 保持原值。 |
+| P2-04 空 `packageMultiple` | PASS | 對第二筆相關測試物料留空後 Browser POST 完全省略 `packageMultiple`；201 Response 與重新 GET 為 `null`。未送 `0`、空字串或 `null` 作為 request 欄位。 |
+| Supplier 主檔 Admin Edit | PASS（修正後） | Edit 表單載入原 code/name/country/評分/status；修改名稱後 PATCH 不含不可修改 code，Response／重新 GET 顯示新名稱。 |
+| 後端拒絕與不得假成功／重送 | PASS | 重複 Material POST 回 409 `DUPLICATE_CODE`；重複 SupplierMaterial POST 回 409 `DUPLICATE_SUPPLIER_MATERIAL`。兩者均在 Modal 顯示錯誤、沒有成功提示；原始 API log 各只有一次 409 POST，沒有自動重送。 |
+| Restricted account | 受限操作拒絕 PASS；非 ADMIN role E2E BLOCKED | `canManageUsers=false` 的 V2 有效帳號登入後直接開 `/users` 顯示 403；測試帳號初始化的 `/api/v1/users` 亦為 403。V2 後端只接受 `role=ADMIN`，嘗試建立舊 V1 `PROCUREMENT_STAFF` 回 400 `VALIDATION_FAILED`，故本輪無法建立有效的非 ADMIN role 帳號；沒有偽造登入角色。 |
+
+本輪僅在隔離 DB 建立 1 筆測試 Supplier、2 筆相關 Material、2 筆 SupplierMaterial 及 1 筆 DRAFT PO。DRAFT 未核准、未下單；沒有 Reset、刪除或清空 Volume。跨頁查詢因總筆數 1 而未執行第二頁資料比對。成功 AI 回答、真實 Gemini/RAG、AWS、Demo Reset、200% 原生 Chrome zoom 與展示影片均非本輪驗收範圍。
+
+### 本輪程式修正後的精準驗證
+
+| 命令／範圍 | 結果 | 原始 log |
+|---|---|---|
+| 首次多 Worker：`npm test -- tests/masterData.test.tsx tests/precisionEditRoundTrip.test.tsx tests/supplierMaterialPrecision.test.tsx` | **EXIT 1**；3 files／13 tests：12 passed、1 failed。唯一失敗為 Supplier create/edit 後端拒絕案例 40 秒 timeout；定位到 Supplier Form 同一值遺失根因，原始結果保留。 | `../../../../docs/evidence/issue-148-browser-e2e/targeted-vitest-after-browser-fix.log` |
+| 序列精準：`npm test -- --maxWorkers=1 --testTimeout=60000 --reporter=verbose tests/masterData.test.tsx tests/precisionEditRoundTrip.test.tsx tests/supplierMaterialPrecision.test.tsx` | **EXIT 0**；3 files／13 tests 全部 PASS，0 failures/errors/skipped。 | `../../../../docs/evidence/issue-148-browser-e2e/targeted-vitest-after-supplier-fix.log` |
+| `npm run lint` | **EXIT 0**；只有未修改 `Documents/SemanticOperationsPanel.tsx:98` 的既有 warning。 | `../../../../docs/evidence/issue-148-browser-e2e/frontend-lint-after-form-fix.log` |
+| `npm run build` | **EXIT 0**；TypeScript 與 Vite build 成功；保留既有 bundle >500 kB warning。 | `../../../../docs/evidence/issue-148-browser-e2e/frontend-build-after-form-fix.log` |
+
+完整 Vitest 原始 **225 PASS／37 FAIL、EXIT 1** 維持歷史狀態，沒有重跑或改寫。API Request／Response、登入權限初始化及隱藏敏感登入內容的紀錄見 `../../../../docs/evidence/issue-148-browser-e2e/api-traffic.jsonl` 與 `account-setup.txt`；Chrome 持久化截圖見 `../../../../docs/evidence/issue-148-browser-e2e/screenshots/`。本節結果是本機驗證，不代表 GitHub Actions PASS。
