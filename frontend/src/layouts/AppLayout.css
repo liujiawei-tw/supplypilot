@@ -52,6 +52,10 @@
   .app-header .ant-typography {
     overflow-wrap: anywhere;
   }
+
+  .app-header .app-header__ai-button {
+    margin-inline-start: 28px;
+  }
 }
 
 @media (max-width: 767px) {
