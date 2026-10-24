@@ -88,3 +88,287 @@
     grid-auto-columns: minmax(240px, 82vw);
   }
 }
+
+@media (min-width: 1200px) {
+  .purchase-order-kanban {
+    --kanban-ink: #24344d;
+    --kanban-muted: #5b687c;
+    --kanban-border: #d8e0eb;
+    --kanban-accent: #24558f;
+    gap: 14px;
+  }
+
+  .purchase-order-kanban--state {
+    gap: 16px;
+  }
+
+  .purchase-order-kanban__columns {
+    counter-reset: kanban-stage;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-auto-columns: minmax(0, 1fr);
+    grid-auto-flow: row;
+    gap: 14px;
+    max-width: 100%;
+    padding: 4px 4px 16px;
+    overflow-x: visible;
+    scroll-snap-type: none;
+  }
+
+  .purchase-order-kanban__columns:focus-visible {
+    outline-color: #5279ad;
+    outline-offset: 3px;
+  }
+
+  .purchase-order-kanban__column {
+    counter-increment: kanban-stage;
+    min-height: 360px;
+    padding: 14px;
+    border-color: var(--kanban-border);
+    border-radius: 12px;
+    background: #f3f6fa;
+  }
+
+  .purchase-order-kanban__column--drop-target {
+    border-color: #7c9fc9;
+    background: #edf3fb;
+    box-shadow: inset 0 0 0 1px #a9bfdc;
+  }
+
+  .purchase-order-kanban__column-heading {
+    min-height: 54px;
+    align-items: flex-start;
+    gap: 10px;
+    margin-bottom: 14px;
+    padding: 1px 1px 12px;
+    border-bottom: 1px solid #e0e6ef;
+  }
+
+  .purchase-order-kanban__column-heading .ant-typography {
+    min-width: 0;
+    color: var(--kanban-ink);
+    font-size: 13px;
+    font-weight: 650;
+    line-height: 1.45;
+    overflow-wrap: anywhere;
+  }
+
+  .purchase-order-kanban__column-heading .ant-typography::before {
+    display: inline-grid;
+    width: 23px;
+    height: 23px;
+    margin-inline-end: 8px;
+    place-items: center;
+    border: 1px solid #d6e0ed;
+    border-radius: 7px;
+    background: #fff;
+    color: #547096;
+    content: counter(kanban-stage, decimal-leading-zero);
+    font-size: 10px;
+    font-variant-numeric: tabular-nums;
+    font-weight: 700;
+    vertical-align: middle;
+  }
+
+  .purchase-order-kanban__column-heading .ant-badge {
+    flex: 0 0 auto;
+    line-height: 1;
+  }
+
+  .purchase-order-kanban__column-heading .ant-badge-count {
+    min-width: 24px;
+    height: 22px;
+    padding: 0 7px;
+    border: 1px solid #d8e1ee;
+    border-radius: 7px;
+    background: #e8eef7;
+    box-shadow: none;
+    color: #344b6b;
+    font-size: 11px;
+    font-variant-numeric: tabular-nums;
+    font-weight: 650;
+    line-height: 20px;
+  }
+
+  .purchase-order-kanban__cards {
+    gap: 12px;
+  }
+
+  .purchase-order-kanban__card.ant-card {
+    overflow: hidden;
+    border: 1px solid #d9e1ec;
+    border-radius: 12px;
+    background: #fff;
+    box-shadow: none;
+    transition: border-color 160ms ease, background-color 160ms ease;
+  }
+
+  .purchase-order-kanban__card.ant-card:hover {
+    border-color: #afc0d8;
+  }
+
+  .purchase-order-kanban__card.ant-card:focus-within {
+    outline: 3px solid rgb(36 85 143 / 24%);
+    outline-offset: 2px;
+  }
+
+  .purchase-order-kanban__card--dragging.ant-card {
+    border-style: dashed;
+    opacity: 0.58;
+  }
+
+  .purchase-order-kanban__card .ant-card-body {
+    padding: 14px;
+  }
+
+  .purchase-order-kanban__card-content.ant-space-vertical {
+    display: grid;
+    gap: 11px !important;
+  }
+
+  .purchase-order-kanban__card-content > .ant-space-item {
+    min-width: 0;
+    margin: 0 !important;
+  }
+
+  .purchase-order-kanban__po-number {
+    display: block;
+    color: var(--kanban-ink);
+    font-size: 13px;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.4;
+    overflow-wrap: anywhere;
+  }
+
+  .purchase-order-kanban__supplier {
+    display: block;
+    color: #35445c;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+  }
+
+  .purchase-order-kanban__date-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 10px;
+    padding-top: 9px;
+    border-top: 1px solid #edf0f5;
+  }
+
+  .purchase-order-kanban__date-label {
+    min-width: 0;
+    color: var(--kanban-muted);
+    font-size: 11px;
+    line-height: 1.45;
+    overflow-wrap: anywhere;
+  }
+
+  .purchase-order-kanban__date-value {
+    flex: 0 0 auto;
+    color: #293951;
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+    line-height: 1.45;
+    text-align: right;
+  }
+
+  .purchase-order-kanban__overdue.ant-tag {
+    width: fit-content;
+    margin-inline-end: 0;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+
+  .purchase-order-kanban__badges.ant-space {
+    gap: 6px !important;
+  }
+
+  .purchase-order-kanban__badges .ant-tag {
+    margin-inline-end: 0;
+    border-radius: 6px;
+    font-size: 11px;
+    line-height: 20px;
+    padding-inline: 8px;
+  }
+
+  .purchase-order-kanban__details-link {
+    width: fit-content;
+    color: var(--kanban-accent);
+    font-size: 12px;
+    font-weight: 600;
+    text-underline-offset: 3px;
+  }
+
+  .purchase-order-kanban__details-link:focus-visible {
+    border-radius: 3px;
+    outline: 2px solid #5279ad;
+    outline-offset: 3px;
+  }
+
+  .purchase-order-kanban__transition-action.ant-btn {
+    width: 100%;
+    min-height: 32px;
+    border-color: #c7d5e7;
+    border-radius: 7px;
+    background: #f3f7fc;
+    box-shadow: none;
+    color: #274d7c;
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  .purchase-order-kanban__transition-action.ant-btn:hover:not(:disabled) {
+    border-color: #91aaca;
+    background: #eaf1f9;
+    color: #1f446f;
+  }
+
+  .purchase-order-kanban__transition-action.ant-btn:focus-visible {
+    outline: 3px solid rgb(36 85 143 / 26%);
+    outline-offset: 2px;
+  }
+
+  .purchase-order-kanban__cards > .ant-empty {
+    margin: 12px 0 0;
+    padding: 22px 8px;
+    border: 1px dashed #d7e0eb;
+    border-radius: 9px;
+    background: rgb(255 255 255 / 72%);
+  }
+
+  .purchase-order-kanban__cards > .ant-empty .ant-empty-description {
+    color: var(--kanban-muted);
+    font-size: 12px;
+  }
+
+  .purchase-order-kanban__pending {
+    min-height: 112px;
+    border-color: #cbd7e6;
+    border-radius: 9px;
+    color: var(--kanban-muted);
+    background: #fff;
+    font-size: 12px;
+  }
+
+  .purchase-order-kanban__announcement {
+    border-color: #c4d4e9;
+    border-radius: 9px;
+    background: #f2f6fb;
+    color: #344b68;
+    font-size: 13px;
+  }
+
+  .purchase-order-kanban > .ant-alert {
+    border-radius: 9px;
+  }
+}
+
+@media (min-width: 1600px) {
+  .purchase-order-kanban__columns {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}

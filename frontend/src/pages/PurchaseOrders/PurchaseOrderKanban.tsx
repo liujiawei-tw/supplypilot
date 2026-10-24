@@ -187,8 +187,8 @@ export default function PurchaseOrderKanban({ state, snapshot, gateway, error, r
     setDraggedId(null);
   };
 
-  if (state === 'loading') return <LoadingState tip="正在載入完整採購單看板…" />;
-  if (state === 'error') return <ErrorState title="採購單看板載入失敗" error={error} onRetry={onRetry} />;
+  if (state === 'loading') return <section className="purchase-order-kanban purchase-order-kanban--state"><LoadingState tip="正在載入完整採購單看板…" /></section>;
+  if (state === 'error') return <section className="purchase-order-kanban purchase-order-kanban--state"><ErrorState title="採購單看板載入失敗" error={error} onRetry={onRetry} /></section>;
 
   if (state === 'incomplete' || !snapshot) {
     return <section className="purchase-order-kanban" aria-label="採購單八階段看板">
@@ -198,7 +198,7 @@ export default function PurchaseOrderKanban({ state, snapshot, gateway, error, r
         message="看板資料不完整，已隱藏卡片"
         description={reason ?? '尚未取得全部採購單資料。為避免將部分資料當成完整看板，請重新載入或切換至列表查詢。'}
       />
-      <div className="purchase-order-kanban__columns" role="region" aria-label="八階段欄位，可水平捲動" tabIndex={0}>
+      <div className="purchase-order-kanban__columns" role="region" aria-label="採購單八階段流程欄位" tabIndex={0}>
         {purchaseOrderStages.map((stage) => <section className="purchase-order-kanban__column" key={stage.id} aria-labelledby={`stage-${stage.id}`}>
           <div className="purchase-order-kanban__column-heading">
             <Typography.Title level={5} id={`stage-${stage.id}`}>{stage.label}</Typography.Title>
@@ -211,7 +211,7 @@ export default function PurchaseOrderKanban({ state, snapshot, gateway, error, r
   }
 
   if (!snapshot.complete) {
-    return <Alert type="warning" showIcon message="看板資料不完整，已隱藏卡片" description="後端尚未確認所有符合條件的採購單均已載入。為避免部分資料造成錯誤操作，請先使用列表模式。" />;
+    return <section className="purchase-order-kanban purchase-order-kanban--state"><Alert type="warning" showIcon message="看板資料不完整，已隱藏卡片" description="後端尚未確認所有符合條件的採購單均已載入。為避免部分資料造成錯誤操作，請先使用列表模式。" /></section>;
   }
 
   const activePurchaseOrders = items.filter((po) => isActivePurchaseOrderStatus(po.status));
@@ -231,7 +231,7 @@ export default function PurchaseOrderKanban({ state, snapshot, gateway, error, r
     {verificationError && <ErrorState title="採購單狀態查核失敗" error={verificationError} onRetry={() => void verifyLatestState()} retryText="重新查核" />}
     {operationError && <ErrorState title={verificationId !== null ? '操作結果待查核' : '看板操作失敗'} error={operationError} operation="mutation" />}
 
-    <div className="purchase-order-kanban__columns" role="region" aria-label="八階段欄位，可水平捲動" tabIndex={0}>
+    <div className="purchase-order-kanban__columns" role="region" aria-label="採購單八階段流程欄位" tabIndex={0}>
       {purchaseOrderStages.map((stage) => {
         const stageItems = activePurchaseOrders.filter((po) => po.stage === stage.id);
         return <section
@@ -277,7 +277,7 @@ export default function PurchaseOrderKanban({ state, snapshot, gateway, error, r
               return <Card
                 key={po.id}
                 size="small"
-                className="purchase-order-kanban__card"
+                className={`purchase-order-kanban__card${draggedId === po.id ? ' purchase-order-kanban__card--dragging' : ''}`}
                 draggable={canDrag}
                 onDragStart={(event) => {
                   if (!canDrag) { event.preventDefault(); return; }
@@ -287,24 +287,25 @@ export default function PurchaseOrderKanban({ state, snapshot, gateway, error, r
                 }}
                 onDragEnd={() => { setDraggedId(null); setDropTarget(null); }}
               >
-                <Space orientation="vertical" size={8} style={{ width: '100%' }}>
-                  <Typography.Text strong>{po.poNumber}</Typography.Text>
-                  <Typography.Text>{po.supplierCode} — {po.supplierName}</Typography.Text>
-                  <div>
-                    <Typography.Text type="secondary">公司期望到貨日：</Typography.Text>
-                    <Typography.Text>{formatPurchaseOrderDate(po.expectedDeliveryDate)}</Typography.Text>
+                <Space orientation="vertical" size={8} style={{ width: '100%' }} className="purchase-order-kanban__card-content">
+                  <Typography.Text strong className="purchase-order-kanban__po-number">{po.poNumber}</Typography.Text>
+                  <Typography.Text className="purchase-order-kanban__supplier">{po.supplierCode} — {po.supplierName}</Typography.Text>
+                  <div className="purchase-order-kanban__date-row">
+                    <Typography.Text type="secondary" className="purchase-order-kanban__date-label">公司期望到貨日：</Typography.Text>
+                    <Typography.Text className="purchase-order-kanban__date-value">{formatPurchaseOrderDate(po.expectedDeliveryDate)}</Typography.Text>
                   </div>
-                  {po.supplierPromisedDeliveryDate && <div>
-                    <Typography.Text type="secondary">供應商承諾交期：</Typography.Text>
-                    <Typography.Text>{formatPurchaseOrderDate(po.supplierPromisedDeliveryDate)}</Typography.Text>
+                  {po.supplierPromisedDeliveryDate && <div className="purchase-order-kanban__date-row">
+                    <Typography.Text type="secondary" className="purchase-order-kanban__date-label">供應商承諾交期：</Typography.Text>
+                    <Typography.Text className="purchase-order-kanban__date-value">{formatPurchaseOrderDate(po.supplierPromisedDeliveryDate)}</Typography.Text>
                   </div>}
-                  {po.isOverdue && <Tag color="red">後端標示已逾期</Tag>}
-                  <Space wrap>
+                  {po.isOverdue && <Tag className="purchase-order-kanban__overdue" color="red">後端標示已逾期</Tag>}
+                  <Space wrap className="purchase-order-kanban__badges">
                     <Tag color={statusColors[po.status]}>{displayLabel(po.status)}</Tag>
                     <Tag>{stageLabel(po.stage)}</Tag>
                   </Space>
-                  <Link to={`/purchase-orders/${po.id}`} aria-label={`檢視採購單 ${po.poNumber}`}>檢視採購單</Link>
+                  <Link className="purchase-order-kanban__details-link" to={`/purchase-orders/${po.id}`} aria-label={`檢視採購單 ${po.poNumber}`}>檢視採購單</Link>
                   {nextTransition && canUse(po, nextTransition) && !requiresReceivingDetail(nextTransition) && <Button
+                    className="purchase-order-kanban__transition-action"
                     size="small"
                     disabled={!gateway || locked}
                     loading={submitting && pending?.po.id === po.id}
@@ -312,8 +313,8 @@ export default function PurchaseOrderKanban({ state, snapshot, gateway, error, r
                   >
                     {transitionLabel(nextTransition)}
                   </Button>}
-                  {canOpenReceiving && <Link to={`/receiving/purchase-orders/${po.id}`}>前往驗收詳情</Link>}
-                  {reverseTransition && canUse(po, reverseTransition) && <Button size="small" disabled={!gateway || locked} onClick={() => openTransition(po, reverseTransition)}>
+                  {canOpenReceiving && <Link className="purchase-order-kanban__details-link" to={`/receiving/purchase-orders/${po.id}`}>前往驗收詳情</Link>}
+                  {reverseTransition && canUse(po, reverseTransition) && <Button className="purchase-order-kanban__transition-action" size="small" disabled={!gateway || locked} onClick={() => openTransition(po, reverseTransition)}>
                     {transitionLabel(reverseTransition)}
                   </Button>}
                 </Space>
