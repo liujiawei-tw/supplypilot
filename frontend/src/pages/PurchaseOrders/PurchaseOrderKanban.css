@@ -368,7 +368,7 @@
   }
 }
 
-@media (min-width: 1600px) {
+@media (min-width: 1440px) {
   .purchase-order-kanban__columns {
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
