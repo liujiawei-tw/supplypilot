@@ -373,6 +373,62 @@ class SemanticRagIntegrationTests extends AbstractIntegrationTest {
     }
 
     @Test
+    void oversizedRetryAfterFailsDurablyWithoutRetryingOrClosingOtherPublishedDocuments() throws Exception {
+        User admin = user(UserRole.ADMIN);
+        long publishedId = ready(admin, DocumentType.PROCUREMENT_SOP,
+                "Forklift capacity is 500 kilograms.");
+        approve(admin, publishedId);
+        assertThat(worker.processNext()).isTrue();
+        assertThat(store.state(publishedId, "v1").status()).isEqualTo("READY");
+
+        long failingId = ready(admin, DocumentType.QUALITY_REQUIREMENT,
+                "Quality checks are performed daily.");
+        approve(admin, failingId);
+        SemanticIndexJob queuedJob = indexJobs.latest(10).stream()
+                .filter(job -> job.documentId() == failingId).findFirst().orElseThrow();
+        assertThat(queuedJob.status()).isEqualTo(SemanticIndexJobStatus.QUEUED);
+
+        int providerCallsBeforeFailure = model.transactionStates.size();
+        HttpHeaders retryHeaders = new HttpHeaders();
+        retryHeaders.set("Retry-After", "9223372036854775807");
+        model.failure.set(new RestClientResponseException("provider rate limit",
+                HttpStatusCode.valueOf(429), "Too Many Requests", retryHeaders,
+                "private provider body".getBytes(StandardCharsets.UTF_8), StandardCharsets.UTF_8));
+
+        assertThat(worker.processNext()).isTrue();
+
+        var storedJob = jdbc.queryForMap("""
+                SELECT status, attempts, failure_code, lease_until, next_attempt_at
+                  FROM semantic_index_jobs WHERE id = ?
+                """, queuedJob.id());
+        assertThat(storedJob.get("status")).isEqualTo("FAILED");
+        assertThat(((Number) storedJob.get("attempts")).intValue()).isEqualTo(1);
+        assertThat(storedJob.get("failure_code")).isEqualTo("PROVIDER_RATE_LIMITED");
+        assertThat(storedJob.get("lease_until")).isNull();
+        assertThat(storedJob.get("next_attempt_at")).isNull();
+        assertThat(model.transactionStates).hasSize(providerCallsBeforeFailure + 1);
+
+        String jobsJson = mvc.perform(get("/api/v1/semantic-index/jobs")
+                        .header("Authorization", bearer(admin)))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+        JsonNode failedJobResponse = objectMapper.readTree(jobsJson).findParents("id").stream()
+                .filter(item -> item.path("id").asLong() == queuedJob.id())
+                .findFirst().orElseThrow();
+        assertThat(failedJobResponse.path("status").asText()).isEqualTo("FAILED");
+        assertThat(failedJobResponse.path("failureCode").asText()).isEqualTo("PROVIDER_RATE_LIMITED");
+        assertThat(jobsJson).doesNotContain("private provider body", "9223372036854775807");
+
+        assertThat(worker.processNext()).isFalse();
+        assertThat(model.transactionStates).hasSize(providerCallsBeforeFailure + 1);
+
+        model.failure.set(null);
+        query(admin, "forklift capacity").andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("ANSWERED"))
+                .andExpect(jsonPath("$.sources[0].documentId").value(publishedId));
+        assertThat(store.state(publishedId, "v1").status()).isEqualTo("READY");
+    }
+
+    @Test
     void oldGenerationMarksCannotOverwriteNewerReadyPublication() {
         long id = 841L;
         List<Float> vector = new java.util.ArrayList<>(java.util.Collections.nCopies(768, 0f));
