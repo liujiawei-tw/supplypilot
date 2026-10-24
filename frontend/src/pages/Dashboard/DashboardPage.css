@@ -88,6 +88,13 @@
   overflow-wrap: anywhere;
 }
 
+.dashboard-panel .ant-list-item-meta-title,
+.dashboard-panel .ant-list-item-meta-description,
+.dashboard-panel .ant-tag {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
 @media (max-width: 767px) {
   .dashboard-header,
   .dashboard-panel-heading {
@@ -106,5 +113,15 @@
 
   .dashboard-panel {
     padding-block: 14px;
+  }
+
+  .dashboard-work-list .ant-list-item {
+    flex-wrap: wrap;
+  }
+
+  .dashboard-work-list .ant-list-item-action {
+    width: 100%;
+    margin-inline-start: 0;
+    text-align: right;
   }
 }

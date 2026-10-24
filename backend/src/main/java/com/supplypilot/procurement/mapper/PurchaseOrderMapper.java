@@ -78,7 +78,7 @@ public class PurchaseOrderMapper {
         return new PurchaseOrderItemResponse(
                 item.getId(), item.getMaterial().getId(), item.getMaterial().getCode(), item.getMaterial().getName(),
                 item.getQuantity(), item.getUnit(), item.getUnitPrice(), item.getQuantity().multiply(item.getUnitPrice()),
-                item.getRecommendationId(), item.getSupplierRecommendationResultId(),
+                item.getCurrency(), item.getRecommendationId(), item.getSupplierRecommendationResultId(),
                 item.getSupplierOverrideReason() != null, item.getQuantityOverrideReason() != null,
                 item.getSupplierOverrideReason(), item.getQuantityOverrideReason());
     }

@@ -102,14 +102,16 @@ class PurchaseOrderUpdateIntegrationTests extends AbstractIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.supplierId").value(replacementSupplier.getId()))
                 .andExpect(jsonPath("$.expectedDeliveryDate").value("2026-10-30"))
-                .andExpect(jsonPath("$.items.length()").value(2));
+                .andExpect(jsonPath("$.items.length()").value(2))
+                .andExpect(jsonPath("$.items[0].currency").value("TWD"));
         update(staff, id, "{\"items\":[" + manualItem(retained, "5", "12") + ","
                 + manualItem(added, "7", "14") + "]}")
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.items.length()").value(2))
                 .andExpect(jsonPath("$.items[0].id").value(retainedItemId))
                 .andExpect(jsonPath("$.items[0].quantity").value(5))
-                .andExpect(jsonPath("$.items[0].unitPrice").value(12));
+                .andExpect(jsonPath("$.items[0].unitPrice").value(12))
+                .andExpect(jsonPath("$.items[0].currency").value("TWD"));
         update(staff, id, "{\"expectedDeliveryDate\":null}")
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.expectedDeliveryDate").doesNotExist())
@@ -127,7 +129,8 @@ class PurchaseOrderUpdateIntegrationTests extends AbstractIntegrationTest {
                 .andExpect(jsonPath("$.supplierId").value(replacementSupplier.getId()))
                 .andExpect(jsonPath("$.items.length()").value(2))
                 .andExpect(jsonPath("$.items[0].id").value(retainedItemId))
-                .andExpect(jsonPath("$.items[0].quantity").value(5));
+                .andExpect(jsonPath("$.items[0].quantity").value(5))
+                .andExpect(jsonPath("$.items[0].currency").value("TWD"));
 
         assertThat(jdbcTemplate.queryForObject(
                 "SELECT COUNT(*) FROM purchase_order_items WHERE purchase_order_id = ? AND material_id = ?",

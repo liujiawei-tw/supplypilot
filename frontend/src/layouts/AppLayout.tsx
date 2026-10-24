@@ -16,6 +16,9 @@ export const AppLayout: React.FC = () => {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
   const [aiOpen, setAiOpen] = useState(false);
+  const [initiallyCollapsed] = useState(() => typeof window !== 'undefined'
+    && typeof window.matchMedia === 'function'
+    && window.matchMedia('(max-width: 991px)').matches);
   const {
     token: { colorBgContainer, borderRadiusLG },
   } = theme.useToken();
@@ -39,8 +42,13 @@ export const AppLayout: React.FC = () => {
   };
 
   return (
-    <Layout style={{ minHeight: '100vh' }}>
-      <Sider breakpoint="lg" collapsedWidth="0" theme="dark">
+    <Layout className="app-layout" style={{ minHeight: '100vh' }}>
+      <Sider
+        breakpoint="lg"
+        collapsedWidth="0"
+        defaultCollapsed={initiallyCollapsed}
+        theme="dark"
+      >
         <div style={{ padding: '16px', textAlign: 'center' }}>
           <Title level={4} style={{ color: '#fff', margin: 0 }}>
             SupplyPilot
@@ -75,21 +83,18 @@ export const AppLayout: React.FC = () => {
             </Text>
           </div>
           <Space wrap>
-            {canUser(user, 'aiQuery') && <Button icon={<RobotOutlined />} onClick={() => setAiOpen(true)}>AI 助理</Button>}
+            {canUser(user, 'aiQuery') && (
+              <Button className="app-header__ai-button" icon={<RobotOutlined />} onClick={() => setAiOpen(true)}>
+                AI 助理
+              </Button>
+            )}
             <Text>{user.displayName}（{user.username}）</Text>
             <Text type="secondary">{roleLabels[user.role]}</Text>
             <Button icon={<LogoutOutlined />} onClick={() => { logout(); navigate('/login', { replace: true, state: null }); }}>登出</Button>
           </Space>
         </Header>
-        <Content style={{ margin: '24px 16px 0' }}>
-          <div
-            style={{
-              padding: 24,
-              minHeight: 360,
-              background: colorBgContainer,
-              borderRadius: borderRadiusLG,
-            }}
-          >
+        <Content className="app-content">
+          <div className="app-content__surface" style={{ background: colorBgContainer, borderRadius: borderRadiusLG }}>
             <Outlet />
           </div>
         </Content>

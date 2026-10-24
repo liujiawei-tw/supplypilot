@@ -4,7 +4,7 @@ import type { TableProps } from 'antd';
 import { PlusOutlined } from '@ant-design/icons';
 import { getMaterial, type MaterialResponse } from '../../api/material';
 import { getSupplier, type SupplierResponse } from '../../api/supplier';
-import { createSupplierMaterial, listSupplierMaterials, updateSupplierMaterial, type CreateSupplierMaterialRequest, type SupplierMaterialResponse, type SupplierMaterialStatus, type UpdateSupplierMaterialRequest } from '../../api/supplierMaterial';
+import { createSupplierMaterial, listSupplierMaterials, updateSupplierMaterial, type CreateSupplierMaterialRequest, type DecimalValue, type SupplierMaterialResponse, type SupplierMaterialStatus, type UpdateSupplierMaterialRequest } from '../../api/supplierMaterial';
 import { toApiError } from '../../api/apiError';
 import EmptyState from '../../components/EmptyState';
 import ErrorState from '../../components/ErrorState';
@@ -12,6 +12,8 @@ import LoadingState from '../../components/LoadingState';
 import RelatedEntitySelect from '../../components/RelatedEntitySelect';
 import type { ApiErrorResponse, PageResponse } from '../../types/api';
 import { displayLabel } from '../../utils/displayLabels';
+import { formatCurrency, formatQuantity } from '../../utils/displayFormatters';
+import { nonNegativeDecimalRule, positiveDecimalRule } from '../../utils/decimalValidation';
 
 const statuses: SupplierMaterialStatus[] = ['ACTIVE', 'INACTIVE'];
 type SupplierMaterialFormValues = CreateSupplierMaterialRequest & { status?: SupplierMaterialStatus };
@@ -101,8 +103,9 @@ export default function SupplierMaterialList({ isAdmin }: { isAdmin: boolean }) 
   const columns = [
     { title: '供應商', dataIndex: 'supplierId', render: (id: number) => label(suppliers[id], id) },
     { title: '物料', dataIndex: 'materialId', render: (id: number) => label(materials[id], id) },
-    { title: '單價', dataIndex: 'unitPrice', sorter: true }, { title: '幣別', dataIndex: 'currency' },
-    { title: '最低訂購量（MOQ）', dataIndex: 'moq', sorter: true }, { title: '包裝倍數', dataIndex: 'packageMultiple', sorter: true, render: (value: number | null) => value ?? '—' },
+    { title: '單價', dataIndex: 'unitPrice', sorter: true, render: (value: DecimalValue, row: SupplierMaterialResponse) => formatCurrency(value, row.currency) },
+    { title: '最低訂購量（MOQ）', dataIndex: 'moq', sorter: true, render: (value: DecimalValue, row: SupplierMaterialResponse) => formatQuantity(value, materials[row.materialId]?.baseUnit) },
+    { title: '包裝倍數', dataIndex: 'packageMultiple', sorter: true, render: (value: DecimalValue | null, row: SupplierMaterialResponse) => formatQuantity(value, materials[row.materialId]?.baseUnit) },
     { title: '交期（天）', dataIndex: 'leadTimeDays', sorter: true },
     { title: '狀態', dataIndex: 'status', sorter: true, render: (status: SupplierMaterialStatus) => <Tag color={status === 'ACTIVE' ? 'green' : 'default'}>{displayLabel(status)}</Tag> },
     ...(isAdmin ? [{ title: '操作', key: 'actions', render: (_: unknown, item: SupplierMaterialResponse) => <Space>
@@ -123,12 +126,12 @@ export default function SupplierMaterialList({ isAdmin }: { isAdmin: boolean }) 
         {isAdmin && <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>新增供應商物料關聯</Button>}
     </Space>
     {listError && <ErrorState title="供應商物料查詢失敗" error={listError} onRetry={() => void load()} />}
-    {loading && !data ? <LoadingState tip="正在載入供應商物料關聯…" /> : <Table<SupplierMaterialResponse> rowKey="id" columns={columns} dataSource={data?.content ?? []} loading={loading}
+    {loading && !data ? <LoadingState tip="正在載入供應商物料關聯…" /> : <Table<SupplierMaterialResponse> rowKey="id" columns={columns} dataSource={data?.content ?? []} loading={loading} scroll={{ x: 'max-content' }}
       locale={{ emptyText: <EmptyState simple description={filtered ? '沒有符合條件的供應商物料關聯' : '目前沒有供應商物料關聯'} actionText={isAdmin && !filtered ? '新增供應商物料關聯' : undefined} onAction={isAdmin && !filtered ? openCreate : undefined} /> }}
       pagination={{ current: (data?.page ?? 0) + 1, pageSize: data?.size ?? query.size, total: data?.totalElements ?? 0, showSizeChanger: true }} onChange={handleTableChange} />}
     <Modal title={editing ? '編輯供應商物料關聯' : '新增供應商物料關聯'} open={modalOpen} onCancel={() => !submitting && setModalOpen(false)} onOk={() => void submit()} confirmLoading={submitting} okButtonProps={{ disabled: submitting }} destroyOnHidden>
       {submitError && <ErrorState title="供應商物料資料送出失敗" error={submitError} />}
-      <Form form={form} layout="vertical" preserve={false}>
+      <Form form={form} layout="vertical">
         {editing ? <>
           <Form.Item label="供應商"><Input disabled value={label(suppliers[editing.supplierId], editing.supplierId)} /></Form.Item>
           <Form.Item label="物料"><Input disabled value={label(materials[editing.materialId], editing.materialId)} /></Form.Item>
@@ -138,9 +141,9 @@ export default function SupplierMaterialList({ isAdmin }: { isAdmin: boolean }) 
           <Form.Item name="materialId" label="物料" rules={[{ required: true }]}><RelatedEntitySelect entity="material" onError={handleSubmitRelatedError} /></Form.Item>
           <Form.Item name="currency" label="幣別" rules={[{ required: true }]}><Select options={[{ value: 'TWD', label: 'TWD' }]} /></Form.Item>
         </>}
-        <Form.Item name="unitPrice" label="單價" rules={[{ required: true }, { type: 'number', min: 0 }]}><InputNumber min={0} style={{ width: '100%' }} /></Form.Item>
-        <Form.Item name="moq" label="最低訂購量（MOQ）" rules={[{ required: true }, { type: 'number', min: Number.MIN_VALUE, message: 'MOQ 必須大於 0' }]}><InputNumber min={0} style={{ width: '100%' }} /></Form.Item>
-        <Form.Item name="packageMultiple" label="包裝倍數" rules={[{ type: 'number', min: Number.MIN_VALUE, message: '包裝倍數必須大於 0' }]}><InputNumber min={0} style={{ width: '100%' }} /></Form.Item>
+        <Form.Item name="unitPrice" label="單價" rules={[{ required: true }, nonNegativeDecimalRule('單價不可小於 0')]}><Input inputMode="decimal" /></Form.Item>
+        <Form.Item name="moq" label="最低訂購量（MOQ）" rules={[{ required: true }, positiveDecimalRule('MOQ 必須大於 0')]}><Input inputMode="decimal" /></Form.Item>
+        <Form.Item name="packageMultiple" label="包裝倍數" rules={[positiveDecimalRule('包裝倍數必須大於 0')]}><Input inputMode="decimal" /></Form.Item>
         <Form.Item name="leadTimeDays" label="交期（天）" rules={[{ required: true }, { type: 'integer', min: 0 }]}><InputNumber min={0} precision={0} style={{ width: '100%' }} /></Form.Item>
         {editing && <Form.Item name="status" label="狀態" rules={[{ required: true }]}><Select options={statuses.map((status) => ({ value: status, label: displayLabel(status) }))} /></Form.Item>}
         {!editing && <Typography.Text type="secondary">供應商、物料啟用狀態及重複關聯由 後端 最終驗證。</Typography.Text>}

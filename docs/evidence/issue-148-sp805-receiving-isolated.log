@@ -1,0 +1,15 @@
+
+> frontend@0.0.0 test
+> vitest run tests/sp805.test.tsx -t moves an ordered PO into receiving inspection and removes its cancellation action
+
+
+ RUN  v4.1.11 C:/Users/z0976/.codex/worktrees/issue-148-v2-401/supplypilot/frontend
+
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+
+ Test Files  1 passed (1)
+      Tests  1 passed | 17 skipped (18)
+   Start at  19:17:58
+   Duration  14.80s (transform 1.20s, setup 212ms, import 6.62s, tests 6.09s, environment 1.44s)
+

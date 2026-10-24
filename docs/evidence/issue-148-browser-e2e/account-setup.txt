@@ -1,0 +1,7 @@
+PROFILE=prod against unique isolated local MySQL schema only
+No AWS/Gemini/semantic credentials configured
+Bootstrap admin first-login/change flow completed via localhost API; secrets omitted
+V2 createUser contract accepts role=ADMIN only; legacy PROCUREMENT_STAFF attempt returned VALIDATION_FAILED/400 and created no account
+restricted_test_user=created id=2 role=ADMIN canManageUsers=False
+restricted_test_user_login=200 role=ADMIN canManageUsers=False
+restricted_test_user_GET_users=status=403

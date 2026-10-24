@@ -1217,6 +1217,7 @@ ADMIN
 poNumber
 status
 unit
+currency
 createdBy
 approvedBy
 orderedBy
@@ -1225,7 +1226,7 @@ recommendedSupplierIdSnapshot
 recommendedQuantitySnapshot
 ```
 
-上述欄位由 Backend 產生或取得。
+上述欄位由 Backend 產生或取得。每筆 PO item 的 `currency` 是建立／替換品項時從該 PO 供應商的有效 SupplierMaterial 複製的歷史快照。更新供應商但保留品項時，草稿快照依新供應商的 SupplierMaterial 更新；只更新交期等非商務欄位時保留原快照。既有品項由 V31 回填 `TWD`；目前 Currency enum 與 SupplierMaterial 資料庫約束只允許 `TWD`。
 
 ### Acceptance Conditions
 
@@ -1305,6 +1306,7 @@ status = DRAFT
       "unit": "KG",
       "unitPrice": 85,
       "total": 17000,
+      "currency": "TWD",
       "recommendationId": 501,
       "supplierOverride": false,
       "quantityOverride": false,
@@ -1374,6 +1376,7 @@ Response 使用 `PurchaseOrderResponse`，成功回傳 `200 OK`。
       "unit": "KG",
       "unitPrice": 82,
       "total": 20500,
+      "currency": "TWD",
       "recommendationId": 501,
       "supplierRecommendationResultId": 802,
       "supplierOverride": true,

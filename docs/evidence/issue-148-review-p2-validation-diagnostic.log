@@ -1,0 +1,557 @@
+
+> frontend@0.0.0 test
+> vitest run --maxWorkers=1 --testTimeout=60000 --reporter=verbose --testNamePattern=validates Material fields tests/masterData.test.tsx
+
+
+ RUN  v4.1.11 C:/Users/z0976/.codex/worktrees/issue-148-v2-401/supplypilot/frontend
+
+ ↓ tests/masterData.test.tsx > master data pages > shows loading, data and ADMIN actions on Materials
+ ↓ tests/masterData.test.tsx > master data pages > keeps Materials read-only for an authorized non-ADMIN role
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+stdout | tests/masterData.test.tsx > master data pages > validates Material fields, creates once, then refetches
+safetyStock validation diagnostic [ "'code' cannot be longer than 50 characters" ] [] 物料管理維護物料主檔與安全庫存新增物料狀態物料代碼名稱安全庫存狀態操作物料代碼名稱安全庫存狀態操作No data目前沒有物料資料新增物料新增物料物料代碼'code' cannot be longer than 50 characters名稱基本單位PCS安全庫存CancelOK
+
+ × tests/masterData.test.tsx > master data pages > validates Material fields, creates once, then refetches 12660ms
+   → Unable to find an element with the text: 安全庫存不可小於 0. This could be because the text is broken up by multiple elements. In this case, you can provide a function for your text matcher to make your matcher more flexible.
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div>[39m
+    [36m<div>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"ant-space css-dev-only-do-not-override-oc1rc0 ant-space-vertical ant-space-gap-row-large ant-space-gap-col-large css-var-root"[39m
+        [33mstyle[39m=[32m"width: 100%;"[39m
+      [36m>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"ant-space-item"[39m
+        [36m>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"ant-space css-dev-only-do-not-override-oc1rc0 ant-space-horizontal ant-space-align-center ant-space-gap-row-small ant-space-gap-col-small css-var-root"[39m
+            [33mstyle[39m=[32m"flex-wrap: wrap; width: 100%; justify-content: space-between;"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"ant-space-item"[39m
+            [36m>[39m
+              [36m<div>[39m
+                [36m<h2[39m
+                  [33mclass[39m=[32m"ant-typography css-dev-only-do-not-override-oc1rc0 css-var-root"[39m
+                  [33mstyle[39m=[32m"margin-bottom: 0px;"[39m
+                [36m>[39m
+                  [0m物料管理[0m
+                [36m</h2>[39m
+                [36m<span[39m
+                  [33mclass[39m=[32m"ant-typography ant-typography-secondary css-dev-only-do-not-override-oc1rc0 css-var-root"[39m
+                [36m>[39m
+                  [0m維護物料主檔與安全庫存[0m
+                [36m</span>[39m
+              [36m</div>[39m
+            [36m</div>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"ant-space-item"[39m
+            [36m>[39m
+              [36m<button[39m
+                [33mclass[39m=[32m"ant-btn css-dev-only-do-not-override-oc1rc0 css-var-root ant-btn-primary ant-btn-color-primary ant-btn-variant-solid"[39m
+                [33mtype[39m=[32m"button"[39m
+              [36m>[39m
+                [36m<span[39m
+                  [33mclass[39m=[32m"ant-btn-icon"[39m
+                [36m>[39m
+                  [36m<span[39m
+                    [33maria-label[39m=[32m"plus"[39m
+                    [33mclass[39m=[32m"anticon anticon-plus"[39m
+                    [33mrole[39m=[32m"img"[39m
+                  [36m>[39m
+                    [36m<svg[39m
+                      [33maria-hidden[39m=[32m"true"[39m
+                      [33mdata-icon[39m=[32m"plus"[39m
+                      [33mfill[39m=[32m"currentColor"[39m
+                      [33mfocusable[39m=[32m"false"[39m
+                      [33mheight[39m=[32m"1em"[39m
+                      [33mviewBox[39m=[32m"64 64 896 896"[39m
+                      [33mwidth[39m=[32m"1em"[39m
+                    [36m>[39m
+                      [36m<path[39m
+                        [33md[39m=[32m"M482 152h60q8 0 8 8v704q0 8-8 8h-60q-8 0-8-8V160q0-8 8-8z"[39m
+                      [36m/>[39m
+                      [36m<path[39m
+                        [33md[39m=[32m"M192 474h672q8 0 8 8v60q0 8-8 8H160q-8 0-8-8v-60q0-8 8-8z"[39m
+                      [36m/>[39m
+                    [36m</svg>[39m
+                  [36m</span>[39m
+                [36m</span>[39m
+                [36m<span>[39m
+                  [0m新增物料[0m
+                [36m</span>[39m
+              [36m</button>[39m
+            [36m</div>[39m
+          [36m</div>[39m
+        [36m</div>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"ant-space-item"[39m
+        [36m>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"ant-space css-dev-only-do-not-override-oc1rc0 ant-space-horizontal ant-space-align-center ant-space-gap-row-small ant-space-gap-col-small css-var-root"[39m
+            [33mstyle[39m=[32m"flex-wrap: wrap; max-width: 100%;"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"ant-space-item"[39m
+            [36m>[39m
+              [36m<span[39m
+                [33mclass[39m=[32m"ant-input-affix-wrapper css-dev-only-do-not-override-oc1rc0 ant-input-outlined css-var-root ant-input-css-var"[39m
+              [36m>[39m
+                [36m<input[39m
+                  [33maria-label[39m=[32m"物料代碼篩選"[39m
+                  [33mclass[39m=[32m"ant-input css-dev-only-do-not-override-oc1rc0"[39m
+                  [33mplaceholder[39m=[32m"物料代碼"[39m
+                  [33mtype[39m=[32m"text"[39m
+                  [33mvalue[39m=[32m""[39m
+                [36m/>[39m
+                [36m<span[39m
+                  [33mclass[39m=[32m"ant-input-suffix"[39m
+                [36m>[39m
+                  [36m<button[39m
+                    [33mclass[39m=[32m"ant-input-clear-icon ant-input-clear-icon-hidden"[39m
+                    [33mtype[39m=[32m"button"[39m
+                  [36m>[39m
+                    [36m<span[39m
+                      [33maria-label[39m=[32m"close-circle"[39m
+                      [33mclass[39m=[32m"anticon anticon-close-circle"[39m
+                      [33mrole[39m=[32m"img"[39m
+                    [36m>[39m
+                      [36m<svg[39m
+                        [33maria-hidden[39m=[32m"true"[39m
+                        [33mdata-icon[39m=[32m"close-circle"[39m
+                        [33mfill[39m=[32m"currentColor"[39m
+                        [33mfill-rule[39m=[32m"evenodd"[39m
+                        [33mfocusable[39m=[32m"false"[39m
+                        [33mheight[39m=[32m"1em"[39m
+                        [33mviewBox[39m=[32m"64 64 896 896"[39m
+                        [33mwidth[39m=[32m"1em"[39m
+                      [36m>[39m
+                        [36m<path[39m
+                          [33md[39m=[32m"M512 64c247.4 0 448 200.6 448 448S759.4 960 512 960 64 759.4 64 512 264.6 64 512 64zm127.98 274.82h-.04l-.08.06L512 466.75 384.14 338.88c-.04-.05-.06-.06-.08-.06a.12.12 0 00-.07 0c-.03 0-.05.01-.09.05l-45.02 45.02a.2.2 0 00-.05.09.12.12 0 000 .07v.02a.27.27 0 00.06.06L466.75 512 338.88 639.86c-.05.04-.06.06-.06.08a.12.12 0 000 .07c0 .03.01.05.05.09l45.02 45.02a.2.2 0 00.09.05.12.12 0 00.07 0c.02 0 .04-.01.08-.05L512 557.25l127.86 127.87c.04.04.06.05.08.05a.12.12 0 00.07 0c.03 0 .05-.01.09-.05l45.02-45.02a.2.2 0 00.05-.09.12.12 0 000-.07v-.02a.27.27 0 00-.05-.06L557.25 512l127.87-127.86c.04-.04.05-.06.05-.08a.12.12 0 000-.07c0-.03-.01-.05-.05-.09l-45.02-45.02a.2.2 0 00-.09-.05.12.12 0 00-.07 0z"[39m
+                        [36m/>[39m
+                      [36m</svg>[39m
+                    [36m</span>[39m
+                  [36m</button>[39m
+                [36m</span>[39m
+              [36m</span>[39m
+            [36m</div>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"ant-space-item"[39m
+            [36m>[39m
+              [36m<span[39m
+                [33mclass[39m=[32m"ant-input-affix-wrapper css-dev-only-do-not-override-oc1rc0 ant-input-outlined css-var-root ant-input-css-v...
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div>[39m
+    [36m<div>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"ant-space css-dev-only-do-not-override-oc1rc0 ant-space-vertical ant-space-gap-row-large ant-space-gap-col-large css-var-root"[39m
+        [33mstyle[39m=[32m"width: 100%;"[39m
+      [36m>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"ant-space-item"[39m
+        [36m>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"ant-space css-dev-only-do-not-override-oc1rc0 ant-space-horizontal ant-space-align-center ant-space-gap-row-small ant-space-gap-col-small css-var-root"[39m
+            [33mstyle[39m=[32m"flex-wrap: wrap; width: 100%; justify-content: space-between;"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"ant-space-item"[39m
+            [36m>[39m
+              [36m<div>[39m
+                [36m<h2[39m
+                  [33mclass[39m=[32m"ant-typography css-dev-only-do-not-override-oc1rc0 css-var-root"[39m
+                  [33mstyle[39m=[32m"margin-bottom: 0px;"[39m
+                [36m>[39m
+                  [0m物料管理[0m
+                [36m</h2>[39m
+                [36m<span[39m
+                  [33mclass[39m=[32m"ant-typography ant-typography-secondary css-dev-only-do-not-override-oc1rc0 css-var-root"[39m
+                [36m>[39m
+                  [0m維護物料主檔與安全庫存[0m
+                [36m</span>[39m
+              [36m</div>[39m
+            [36m</div>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"ant-space-item"[39m
+            [36m>[39m
+              [36m<button[39m
+                [33mclass[39m=[32m"ant-btn css-dev-only-do-not-override-oc1rc0 css-var-root ant-btn-primary ant-btn-color-primary ant-btn-variant-solid"[39m
+                [33mtype[39m=[32m"button"[39m
+              [36m>[39m
+                [36m<span[39m
+                  [33mclass[39m=[32m"ant-btn-icon"[39m
+                [36m>[39m
+                  [36m<span[39m
+                    [33maria-label[39m=[32m"plus"[39m
+                    [33mclass[39m=[32m"anticon anticon-plus"[39m
+                    [33mrole[39m=[32m"img"[39m
+                  [36m>[39m
+                    [36m<svg[39m
+                      [33maria-hidden[39m=[32m"true"[39m
+                      [33mdata-icon[39m=[32m"plus"[39m
+                      [33mfill[39m=[32m"currentColor"[39m
+                      [33mfocusable[39m=[32m"false"[39m
+                      [33mheight[39m=[32m"1em"[39m
+                      [33mviewBox[39m=[32m"64 64 896 896"[39m
+                      [33mwidth[39m=[32m"1em"[39m
+                    [36m>[39m
+                      [36m<path[39m
+                        [33md[39m=[32m"M482 152h60q8 0 8 8v704q0 8-8 8h-60q-8 0-8-8V160q0-8 8-8z"[39m
+                      [36m/>[39m
+                      [36m<path[39m
+                        [33md[39m=[32m"M192 474h672q8 0 8 8v60q0 8-8 8H160q-8 0-8-8v-60q0-8 8-8z"[39m
+                      [36m/>[39m
+                    [36m</svg>[39m
+                  [36m</span>[39m
+                [36m</span>[39m
+                [36m<span>[39m
+                  [0m新增物料[0m
+                [36m</span>[39m
+              [36m</button>[39m
+            [36m</div>[39m
+          [36m</div>[39m
+        [36m</div>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"ant-space-item"[39m
+        [36m>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"ant-space css-dev-only-do-not-override-oc1rc0 ant-space-horizontal ant-space-align-center ant-space-gap-row-small ant-space-gap-col-small css-var-root"[39m
+            [33mstyle[39m=[32m"flex-wrap: wrap; max-width: 100%;"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"ant-space-item"[39m
+            [36m>[39m
+              [36m<span[39m
+                [33mclass[39m=[32m"ant-input-affix-wrapper css-dev-only-do-not-override-oc1rc0 ant-input-outlined css-var-root ant-input-css-var"[39m
+              [36m>[39m
+                [36m<input[39m
+                  [33maria-label[39m=[32m"物料代碼篩選"[39m
+                  [33mclass[39m=[32m"ant-input css-dev-only-do-not-override-oc1rc0"[39m
+                  [33mplaceholder[39m=[32m"物料代碼"[39m
+                  [33mtype[39m=[32m"text"[39m
+                  [33mvalue[39m=[32m""[39m
+                [36m/>[39m
+                [36m<span[39m
+                  [33mclass[39m=[32m"ant-input-suffix"[39m
+                [36m>[39m
+                  [36m<button[39m
+                    [33mclass[39m=[32m"ant-input-clear-icon ant-input-clear-icon-hidden"[39m
+                    [33mtype[39m=[32m"button"[39m
+                  [36m>[39m
+                    [36m<span[39m
+                      [33maria-label[39m=[32m"close-circle"[39m
+                      [33mclass[39m=[32m"anticon anticon-close-circle"[39m
+                      [33mrole[39m=[32m"img"[39m
+                    [36m>[39m
+                      [36m<svg[39m
+                        [33maria-hidden[39m=[32m"true"[39m
+                        [33mdata-icon[39m=[32m"close-circle"[39m
+                        [33mfill[39m=[32m"currentColor"[39m
+                        [33mfill-rule[39m=[32m"evenodd"[39m
+                        [33mfocusable[39m=[32m"false"[39m
+                        [33mheight[39m=[32m"1em"[39m
+                        [33mviewBox[39m=[32m"64 64 896 896"[39m
+                        [33mwidth[39m=[32m"1em"[39m
+                      [36m>[39m
+                        [36m<path[39m
+                          [33md[39m=[32m"M512 64c247.4 0 448 200.6 448 448S759.4 960 512 960 64 759.4 64 512 264.6 64 512 64zm127.98 274.82h-.04l-.08.06L512 466.75 384.14 338.88c-.04-.05-.06-.06-.08-.06a.12.12 0 00-.07 0c-.03 0-.05.01-.09.05l-45.02 45.02a.2.2 0 00-.05.09.12.12 0 000 .07v.02a.27.27 0 00.06.06L466.75 512 338.88 639.86c-.05.04-.06.06-.06.08a.12.12 0 000 .07c0 .03.01.05.05.09l45.02 45.02a.2.2 0 00.09.05.12.12 0 00.07 0c.02 0 .04-.01.08-.05L512 557.25l127.86 127.87c.04.04.06.05.08.05a.12.12 0 00.07 0c.03 0 .05-.01.09-.05l45.02-45.02a.2.2 0 00.05-.09.12.12 0 000-.07v-.02a.27.27 0 00-.05-.06L557.25 512l127.87-127.86c.04-.04.05-.06.05-.08a.12.12 0 000-.07c0-.03-.01-.05-.05-.09l-45.02-45.02a.2.2 0 00-.09-.05.12.12 0 00-.07 0z"[39m
+                        [36m/>[39m
+                      [36m</svg>[39m
+                    [36m</span>[39m
+                  [36m</button>[39m
+                [36m</span>[39m
+              [36m</span>[39m
+            [36m</div>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"ant-space-item"[39m
+            [36m>[39m
+              [36m<span[39m
+                [33mclass[39m=[32m"ant-input-affix-wrapper css-dev-only-do-not-override-oc1rc0 ant-input-outlined css-var-root ant-input-css-v...
+ ↓ tests/masterData.test.tsx > master data pages > shows backend validation details and does not report a failed status update as success
+ ↓ tests/masterData.test.tsx > master data pages > keeps the Material create modal and values after a 409, then refetches only after retry succeeds
+ ↓ tests/masterData.test.tsx > master data pages > shows Material edit validation errors inside the modal and keeps edited values
+ ↓ tests/masterData.test.tsx > master data pages > shows Suppliers and SupplierMaterials as read-only tabs for procurement roles
+ ↓ tests/masterData.test.tsx > master data pages > edits a Supplier without sending its immutable code and refetches
+ ↓ tests/masterData.test.tsx > master data pages > keeps Supplier create and edit values when backend submissions fail
+ ↓ tests/masterData.test.tsx > master data pages > creates and edits SupplierMaterial through the UI without PATCHing immutable relationships or currency
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/masterData.test.tsx > master data pages > validates Material fields, creates once, then refetches
+TestingLibraryElementError: Unable to find an element with the text: 安全庫存不可小於 0. This could be because the text is broken up by multiple elements. In this case, you can provide a function for your text matcher to make your matcher more flexible.
+
+Ignored nodes: comments, script, style
+<body>
+  <div>
+    <div>
+      <div
+        class="ant-space css-dev-only-do-not-override-oc1rc0 ant-space-vertical ant-space-gap-row-large ant-space-gap-col-large css-var-root"
+        style="width: 100%;"
+      >
+        <div
+          class="ant-space-item"
+        >
+          <div
+            class="ant-space css-dev-only-do-not-override-oc1rc0 ant-space-horizontal ant-space-align-center ant-space-gap-row-small ant-space-gap-col-small css-var-root"
+            style="flex-wrap: wrap; width: 100%; justify-content: space-between;"
+          >
+            <div
+              class="ant-space-item"
+            >
+              <div>
+                <h2
+                  class="ant-typography css-dev-only-do-not-override-oc1rc0 css-var-root"
+                  style="margin-bottom: 0px;"
+                >
+                  物料管理
+                </h2>
+                <span
+                  class="ant-typography ant-typography-secondary css-dev-only-do-not-override-oc1rc0 css-var-root"
+                >
+                  維護物料主檔與安全庫存
+                </span>
+              </div>
+            </div>
+            <div
+              class="ant-space-item"
+            >
+              <button
+                class="ant-btn css-dev-only-do-not-override-oc1rc0 css-var-root ant-btn-primary ant-btn-color-primary ant-btn-variant-solid"
+                type="button"
+              >
+                <span
+                  class="ant-btn-icon"
+                >
+                  <span
+                    aria-label="plus"
+                    class="anticon anticon-plus"
+                    role="img"
+                  >
+                    <svg
+                      aria-hidden="true"
+                      data-icon="plus"
+                      fill="currentColor"
+                      focusable="false"
+                      height="1em"
+                      viewBox="64 64 896 896"
+                      width="1em"
+                    >
+                      <path
+                        d="M482 152h60q8 0 8 8v704q0 8-8 8h-60q-8 0-8-8V160q0-8 8-8z"
+                      />
+                      <path
+                        d="M192 474h672q8 0 8 8v60q0 8-8 8H160q-8 0-8-8v-60q0-8 8-8z"
+                      />
+                    </svg>
+                  </span>
+                </span>
+                <span>
+                  新增物料
+                </span>
+              </button>
+            </div>
+          </div>
+        </div>
+        <div
+          class="ant-space-item"
+        >
+          <div
+            class="ant-space css-dev-only-do-not-override-oc1rc0 ant-space-horizontal ant-space-align-center ant-space-gap-row-small ant-space-gap-col-small css-var-root"
+            style="flex-wrap: wrap; max-width: 100%;"
+          >
+            <div
+              class="ant-space-item"
+            >
+              <span
+                class="ant-input-affix-wrapper css-dev-only-do-not-override-oc1rc0 ant-input-outlined css-var-root ant-input-css-var"
+              >
+                <input
+                  aria-label="物料代碼篩選"
+                  class="ant-input css-dev-only-do-not-override-oc1rc0"
+                  placeholder="物料代碼"
+                  type="text"
+                  value=""
+                />
+                <span
+                  class="ant-input-suffix"
+                >
+                  <button
+                    class="ant-input-clear-icon ant-input-clear-icon-hidden"
+                    type="button"
+                  >
+                    <span
+                      aria-label="close-circle"
+                      class="anticon anticon-close-circle"
+                      role="img"
+                    >
+                      <svg
+                        aria-hidden="true"
+                        data-icon="close-circle"
+                        fill="currentColor"
+                        fill-rule="evenodd"
+                        focusable="false"
+                        height="1em"
+                        viewBox="64 64 896 896"
+                        width="1em"
+                      >
+                        <path
+                          d="M512 64c247.4 0 448 200.6 448 448S759.4 960 512 960 64 759.4 64 512 264.6 64 512 64zm127.98 274.82h-.04l-.08.06L512 466.75 384.14 338.88c-.04-.05-.06-.06-.08-.06a.12.12 0 00-.07 0c-.03 0-.05.01-.09.05l-45.02 45.02a.2.2 0 00-.05.09.12.12 0 000 .07v.02a.27.27 0 00.06.06L466.75 512 338.88 639.86c-.05.04-.06.06-.06.08a.12.12 0 000 .07c0 .03.01.05.05.09l45.02 45.02a.2.2 0 00.09.05.12.12 0 00.07 0c.02 0 .04-.01.08-.05L512 557.25l127.86 127.87c.04.04.06.05.08.05a.12.12 0 00.07 0c.03 0 .05-.01.09-.05l45.02-45.02a.2.2 0 00.05-.09.12.12 0 000-.07v-.02a.27.27 0 00-.05-.06L557.25 512l127.87-127.86c.04-.04.05-.06.05-.08a.12.12 0 000-.07c0-.03-.01-.05-.05-.09l-45.02-45.02a.2.2 0 00-.09-.05.12.12 0 00-.07 0z"
+                        />
+                      </svg>
+                    </span>
+                  </button>
+                </span>
+              </span>
+            </div>
+            <div
+              class="ant-space-item"
+            >
+              <span
+                class="ant-input-affix-wrapper css-dev-only-do-not-override-oc1rc0 ant-input-outlined css-var-root ant-input-css-v...
+
+Ignored nodes: comments, script, style
+<body>
+  <div>
+    <div>
+      <div
+        class="ant-space css-dev-only-do-not-override-oc1rc0 ant-space-vertical ant-space-gap-row-large ant-space-gap-col-large css-var-root"
+        style="width: 100%;"
+      >
+        <div
+          class="ant-space-item"
+        >
+          <div
+            class="ant-space css-dev-only-do-not-override-oc1rc0 ant-space-horizontal ant-space-align-center ant-space-gap-row-small ant-space-gap-col-small css-var-root"
+            style="flex-wrap: wrap; width: 100%; justify-content: space-between;"
+          >
+            <div
+              class="ant-space-item"
+            >
+              <div>
+                <h2
+                  class="ant-typography css-dev-only-do-not-override-oc1rc0 css-var-root"
+                  style="margin-bottom: 0px;"
+                >
+                  物料管理
+                </h2>
+                <span
+                  class="ant-typography ant-typography-secondary css-dev-only-do-not-override-oc1rc0 css-var-root"
+                >
+                  維護物料主檔與安全庫存
+                </span>
+              </div>
+            </div>
+            <div
+              class="ant-space-item"
+            >
+              <button
+                class="ant-btn css-dev-only-do-not-override-oc1rc0 css-var-root ant-btn-primary ant-btn-color-primary ant-btn-variant-solid"
+                type="button"
+              >
+                <span
+                  class="ant-btn-icon"
+                >
+                  <span
+                    aria-label="plus"
+                    class="anticon anticon-plus"
+                    role="img"
+                  >
+                    <svg
+                      aria-hidden="true"
+                      data-icon="plus"
+                      fill="currentColor"
+                      focusable="false"
+                      height="1em"
+                      viewBox="64 64 896 896"
+                      width="1em"
+                    >
+                      <path
+                        d="M482 152h60q8 0 8 8v704q0 8-8 8h-60q-8 0-8-8V160q0-8 8-8z"
+                      />
+                      <path
+                        d="M192 474h672q8 0 8 8v60q0 8-8 8H160q-8 0-8-8v-60q0-8 8-8z"
+                      />
+                    </svg>
+                  </span>
+                </span>
+                <span>
+                  新增物料
+                </span>
+              </button>
+            </div>
+          </div>
+        </div>
+        <div
+          class="ant-space-item"
+        >
+          <div
+            class="ant-space css-dev-only-do-not-override-oc1rc0 ant-space-horizontal ant-space-align-center ant-space-gap-row-small ant-space-gap-col-small css-var-root"
+            style="flex-wrap: wrap; max-width: 100%;"
+          >
+            <div
+              class="ant-space-item"
+            >
+              <span
+                class="ant-input-affix-wrapper css-dev-only-do-not-override-oc1rc0 ant-input-outlined css-var-root ant-input-css-var"
+              >
+                <input
+                  aria-label="物料代碼篩選"
+                  class="ant-input css-dev-only-do-not-override-oc1rc0"
+                  placeholder="物料代碼"
+                  type="text"
+                  value=""
+                />
+                <span
+                  class="ant-input-suffix"
+                >
+                  <button
+                    class="ant-input-clear-icon ant-input-clear-icon-hidden"
+                    type="button"
+                  >
+                    <span
+                      aria-label="close-circle"
+                      class="anticon anticon-close-circle"
+                      role="img"
+                    >
+                      <svg
+                        aria-hidden="true"
+                        data-icon="close-circle"
+                        fill="currentColor"
+                        fill-rule="evenodd"
+                        focusable="false"
+                        height="1em"
+                        viewBox="64 64 896 896"
+                        width="1em"
+                      >
+                        <path
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 9 skipped (10)
+   Start at  00:39:49
+   Duration  21.91s (transform 567ms, setup 431ms, import 6.95s, tests 12.66s, environment 1.52s)
+
+                          d="M512 64c247.4 0 448 200.6 448 448S759.4 960 512 960 64 759.4 64 512 264.6 64 512 64zm127.98 274.82h-.04l-.08.06L512 466.75 384.14 338.88c-.04-.05-.06-.06-.08-.06a.12.12 0 00-.07 0c-.03 0-.05.01-.09.05l-45.02 45.02a.2.2 0 00-.05.09.12.12 0 000 .07v.02a.27.27 0 00.06.06L466.75 512 338.88 639.86c-.05.04-.06.06-.06.08a.12.12 0 000 .07c0 .03.01.05.05.09l45.02 45.02a.2.2 0 00.09.05.12.12 0 00.07 0c.02 0 .04-.01.08-.05L512 557.25l127.86 127.87c.04.04.06.05.08.05a.12.12 0 00.07 0c.03 0 .05-.01.09-.05l45.02-45.02a.2.2 0 00.05-.09.12.12 0 000-.07v-.02a.27.27 0 00-.05-.06L557.25 512l127.87-127.86c.04-.04.05-.06.05-.08a.12.12 0 000-.07c0-.03-.01-.05-.05-.09l-45.02-45.02a.2.2 0 00-.09-.05.12.12 0 00-.07 0z"
+                        />
+                      </svg>
+                    </span>
+                  </button>
+                </span>
+              </span>
+            </div>
+            <div
+              class="ant-space-item"
+            >
+              <span
+                class="ant-input-affix-wrapper css-dev-only-do-not-override-oc1rc0 ant-input-outlined css-var-root ant-input-css-v...
+ ❯ waitForWrapper node_modules/@testing-library/dom/dist/wait-for.js:163:27
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:86:33
+ ❯ tests/masterData.test.tsx:76:25
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+

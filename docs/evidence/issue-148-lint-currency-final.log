@@ -1,0 +1,10 @@
+COMMAND: npm run lint
+WORKDIR: frontend
+DATE: 2026-10-24 Asia/Taipei
+
+
+> frontend@0.0.0 lint
+> oxlint src tests vite.config.ts vitest.config.ts
+
+src/pages/Documents/SemanticOperationsPanel.tsx:98:26: warning react(set-state-in-effect): Calling setState synchronously within an effect can trigger cascading renders help: Effects should synchronize React with external systems. Calling setState synchronously inside an effect starts another render and is usually unnecessary. Derive the value during render, initialize state directly, or update it from the event that caused the change. Use an effect only when synchronizing with an external system.
+EXIT_CODE=0

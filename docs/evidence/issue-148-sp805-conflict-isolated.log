@@ -1,0 +1,15 @@
+
+> frontend@0.0.0 test
+> vitest run tests/sp805.test.tsx -t does not retry after a conflict and requires querying the actual PO state
+
+
+ RUN  v4.1.11 C:/Users/z0976/.codex/worktrees/issue-148-v2-401/supplypilot/frontend
+
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+
+ Test Files  1 passed (1)
+      Tests  1 passed | 17 skipped (18)
+   Start at  19:17:29
+   Duration  18.82s (transform 1.38s, setup 236ms, import 5.54s, tests 12.01s, environment 771ms)
+

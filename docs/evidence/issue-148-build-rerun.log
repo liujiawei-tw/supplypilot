@@ -1,0 +1,6 @@
+
+> frontend@0.0.0 build
+> tsc -b && vite build
+
+src/pages/Suppliers/SupplierList.tsx(88,75): error TS7006: Parameter 'value' implicitly has an 'any' type.
+src/pages/Suppliers/SupplierList.tsx(88,176): error TS7006: Parameter 'value' implicitly has an 'any' type.

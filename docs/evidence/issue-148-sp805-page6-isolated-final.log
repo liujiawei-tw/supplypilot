@@ -1,0 +1,15 @@
+
+> frontend@0.0.0 test
+> vitest run tests/sp805.test.tsx -t creates a DRAFT with the exact IDs of page-6 master records and does not confuse duplicate names
+
+
+ RUN  v4.1.11 C:/Users/z0976/.codex/worktrees/issue-148-v2-401/supplypilot/frontend
+
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+
+ Test Files  1 passed (1)
+      Tests  1 passed | 17 skipped (18)
+   Start at  19:43:17
+   Duration  26.34s (transform 1.07s, setup 203ms, import 5.02s, tests 20.06s, environment 805ms)
+

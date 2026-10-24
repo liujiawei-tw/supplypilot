@@ -1,7 +1,9 @@
-import { isInteger, isLosslessNumber, parse } from 'lossless-json';
+import { isInteger, isLosslessNumber, LosslessNumber, parse, stringify } from 'lossless-json';
 
-/** BigDecimal fields in the PO, Receiving, and StockTransaction response DTOs. */
-const BIG_DECIMAL_FIELDS = new Set(['quantity', 'unitPrice', 'total']);
+export type DecimalValue = string | number;
+
+/** BigDecimal fields in Material, Inventory, SupplierMaterial, PO, Receiving, and StockTransaction response DTOs. */
+const BIG_DECIMAL_FIELDS = new Set(['quantity', 'unitPrice', 'total', 'moq', 'packageMultiple', 'safetyStock']);
 
 /**
  * Parse API numbers according to the formal response DTO field type.
@@ -26,3 +28,26 @@ export function parseDecimalJson(data: unknown): unknown {
 }
 
 export const decimalResponseConfig = { transformResponse: [parseDecimalJson] };
+
+function toLosslessDecimal(value: string): LosslessNumber {
+  const match = /^([+-]?)(?:(\d+)(?:\.(\d*))?|\.(\d+))(?:[eE]([+-]?\d+))?$/.exec(value.trim());
+  if (!match) throw new TypeError('Invalid decimal request value');
+
+  const sign = match[1] === '-' ? '-' : '';
+  const integer = (match[2] || '0').replace(/^0+(?=\d)/, '');
+  const fraction = match[3] ?? match[4] ?? '';
+  const exponent = match[5] === undefined ? '' : 'e' + match[5];
+  const token = sign + integer + (fraction ? '.' + fraction : '') + exponent;
+  return new LosslessNumber(token);
+}
+
+/** Preserve decimal strings as JSON number tokens in the two BigDecimal create APIs. */
+export function stringifyDecimalRequest(data: unknown): string | undefined {
+  return stringify(data, (key, value) => {
+    if (key === 'packageMultiple' && value === '') return undefined;
+    if (BIG_DECIMAL_FIELDS.has(key) && typeof value === 'string') return toLosslessDecimal(value);
+    return value;
+  });
+}
+
+export const decimalRequestConfig = { transformRequest: [stringifyDecimalRequest] };

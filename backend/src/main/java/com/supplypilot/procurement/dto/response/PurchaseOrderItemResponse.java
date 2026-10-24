@@ -3,6 +3,7 @@ package com.supplypilot.procurement.dto.response;
 import java.math.BigDecimal;
 
 import com.supplypilot.material.domain.BaseUnit;
+import com.supplypilot.supplier.domain.Currency;
 
 public record PurchaseOrderItemResponse(
         Long id,
@@ -13,6 +14,7 @@ public record PurchaseOrderItemResponse(
         BaseUnit unit,
         BigDecimal unitPrice,
         BigDecimal total,
+        Currency currency,
         Long recommendationId,
         Long supplierRecommendationResultId,
         boolean supplierOverride,

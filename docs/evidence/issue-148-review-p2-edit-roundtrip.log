@@ -1,0 +1,40 @@
+
+> frontend@0.0.0 test
+> vitest run --reporter=verbose --maxWorkers=1 --fileParallelism=false tests/precisionEditRoundTrip.test.tsx
+
+
+ RUN  v4.1.11 C:/Users/z0976/.codex/worktrees/issue-148-v2-401/supplypilot/frontend
+
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+ × tests/precisionEditRoundTrip.test.tsx > BigDecimal edit round trips > keeps SupplierMaterial decimal strings through edit, unrelated field change, and PATCH 4759ms
+   → expected '12.34' to be '12.3400' // Object.is equality
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+ ✓ tests/precisionEditRoundTrip.test.tsx > BigDecimal edit round trips > keeps Material safetyStock exact through read, edit, unrelated field change, and PATCH 10107ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/precisionEditRoundTrip.test.tsx > BigDecimal edit round trips > keeps SupplierMaterial decimal strings through edit, unrelated field change, and PATCH
+AssertionError: expected '12.34' to be '12.3400' // Object.is equality
+
+Expected: "12.3400"
+Received: "12.34"
+
+ ❯ tests/precisionEditRoundTrip.test.tsx:59:33
+
+     57|     expect(priceInput.value).toBe(unitPrice);
+     58|     expect(moqInput.value).toBe(moq);
+     59|     expect(multipleInput.value).toBe(packageMultiple);
+       |                                 ^
+     60|
+     61|     const leadTimeInput = screen.getByRole('spinbutton', { name: '交期（天…
+ Test Files  1 failed (1)
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+      Tests  1 failed | 1 passed (2)
+   Start at  00:28:06
+   Duration  20.45s (transform 318ms, setup 204ms, import 4.43s, tests 14.87s, environment 744ms)
+
+Exit code: 1

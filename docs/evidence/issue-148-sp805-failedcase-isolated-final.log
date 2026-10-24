@@ -1,0 +1,20 @@
+COMMAND: npm test -- --maxWorkers=1 --testTimeout=60000 tests/sp805.test.tsx -t 'confirms the move into receiving inspection without issuing a receive command'
+WORKDIR: frontend
+DATE: 2026-10-24 Asia/Taipei
+
+
+> frontend@0.0.0 test
+> vitest run --maxWorkers=1 --testTimeout=60000 tests/sp805.test.tsx -t confirms the move into receiving inspection without issuing a receive command
+
+
+ RUN  v4.1.11 C:/Users/z0976/.codex/worktrees/issue-148-v2-401/supplypilot/frontend
+
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+
+ Test Files  1 passed (1)
+      Tests  1 passed | 17 skipped (18)
+   Start at  20:01:27
+   Duration  9.62s (transform 1.09s, setup 239ms, import 4.92s, tests 3.46s, environment 771ms)
+
+EXIT_CODE=0

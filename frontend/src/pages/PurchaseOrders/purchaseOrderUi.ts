@@ -1,5 +1,6 @@
 import type { PurchaseOrderStatus } from '../../api/purchaseOrder';
 import { isUnknownMutationResult } from '../../api/apiError';
+import { formatDate, formatDateTime } from '../../utils/displayFormatters';
 
 export const decimalPattern = /^(?:0|[1-9]\d*)(?:\.\d+)?$/;
 
@@ -16,13 +17,11 @@ export function isUnknownMutation(error: unknown): boolean {
 }
 
 export function formatTimestamp(value: string | null | undefined): string {
-  return value ? new Intl.DateTimeFormat('zh-TW', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value)) : '—';
+  return formatDateTime(value);
 }
 
 export function formatPurchaseOrderDate(value: string | null | undefined): string {
-  if (!value) return '未設定';
-  const [year, month, day] = value.split('-');
-  return year && month && day ? `${year}/${month}/${day}` : value;
+  return formatDate(value, '未設定');
 }
 
 export const statusColors: Record<PurchaseOrderStatus, string> = {

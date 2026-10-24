@@ -8,6 +8,7 @@ import com.supplypilot.common.exception.BusinessException;
 import com.supplypilot.common.exception.ErrorCode;
 import com.supplypilot.material.domain.BaseUnit;
 import com.supplypilot.material.domain.Material;
+import com.supplypilot.supplier.domain.Currency;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -44,6 +45,10 @@ public class PurchaseOrderItem {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 10)
+    private Currency currency;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 10)
     private BaseUnit unit;
 
     @Column(name = "recommendation_id")
@@ -70,11 +75,18 @@ public class PurchaseOrderItem {
     protected PurchaseOrderItem() {
     }
 
+    /** Compatibility factory for callers that predate line-level currency snapshots. */
     public static PurchaseOrderItem create(Material material, BigDecimal quantity, BigDecimal unitPrice, Instant now) {
+        return create(material, quantity, unitPrice, Currency.TWD, now);
+    }
+
+    public static PurchaseOrderItem create(
+            Material material, BigDecimal quantity, BigDecimal unitPrice, Currency currency, Instant now) {
         PurchaseOrderItem item = new PurchaseOrderItem();
         item.material = Objects.requireNonNull(material, "Material must not be null");
         item.quantity = validQuantity(quantity);
         item.unitPrice = validUnitPrice(unitPrice);
+        item.currency = Objects.requireNonNull(currency, "Currency must not be null");
         item.unit = Objects.requireNonNull(material.getBaseUnit(), "Material base unit must not be null");
         item.createdAt = Objects.requireNonNull(now, "Timestamp must not be null");
         return item;
@@ -91,7 +103,24 @@ public class PurchaseOrderItem {
             String supplierOverrideReason,
             String quantityOverrideReason,
             Instant now) {
-        PurchaseOrderItem item = create(material, quantity, unitPrice, now);
+        return createFromRecommendation(material, quantity, unitPrice, Currency.TWD, recommendationId,
+                supplierRecommendationResultId, recommendedSupplierIdSnapshot, recommendedQuantitySnapshot,
+                supplierOverrideReason, quantityOverrideReason, now);
+    }
+
+    public static PurchaseOrderItem createFromRecommendation(
+            Material material,
+            BigDecimal quantity,
+            BigDecimal unitPrice,
+            Currency currency,
+            Long recommendationId,
+            Long supplierRecommendationResultId,
+            Long recommendedSupplierIdSnapshot,
+            BigDecimal recommendedQuantitySnapshot,
+            String supplierOverrideReason,
+            String quantityOverrideReason,
+            Instant now) {
+        PurchaseOrderItem item = create(material, quantity, unitPrice, currency, now);
         item.recommendationId = Objects.requireNonNull(recommendationId, "Recommendation id must not be null");
         item.supplierRecommendationResultId = Objects.requireNonNull(
                 supplierRecommendationResultId, "Supplier recommendation result id must not be null");
@@ -115,9 +144,14 @@ public class PurchaseOrderItem {
         }
         quantity = replacement.quantity;
         unitPrice = replacement.unitPrice;
+        currency = replacement.currency;
         unit = replacement.unit;
         // Recommendation references and override details are historical snapshots. Draft edits
         // may update commercial values but cannot erase or rewrite the original decision record.
+    }
+
+    public void refreshCurrencySnapshot(Currency currency) {
+        this.currency = Objects.requireNonNull(currency, "Currency must not be null");
     }
 
     private static BigDecimal validQuantity(BigDecimal value) {
@@ -135,6 +169,7 @@ public class PurchaseOrderItem {
     public Material getMaterial() { return material; }
     public BigDecimal getQuantity() { return quantity; }
     public BigDecimal getUnitPrice() { return unitPrice; }
+    public Currency getCurrency() { return currency; }
     public BaseUnit getUnit() { return unit; }
     public Long getRecommendationId() { return recommendationId; }
     public Long getSupplierRecommendationResultId() { return supplierRecommendationResultId; }

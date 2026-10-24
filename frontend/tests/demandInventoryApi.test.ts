@@ -40,6 +40,26 @@ describe('SP-802 API contracts', () => {
     expect(update).not.toHaveProperty('status');
   });
 
+  it('parses Inventory BigDecimal responses losslessly and keeps material IDs numeric', async () => {
+    const requests: InternalAxiosRequestConfig[] = [];
+    axiosClient.defaults.adapter = vi.fn(async (config) => {
+      requests.push(config);
+      const data = config.url === '/inventory'
+        ? '{"content":[{"materialId":7,"materialCode":"MAT-007","materialName":"Material","quantity":999999999999999.1234,"unit":"KG","updatedAt":"2026-10-24T00:00:00Z"}],"page":0,"size":20,"totalElements":1,"totalPages":1}'
+        : '{"materialId":7,"materialCode":"MAT-007","materialName":"Material","quantity":0.0001,"unit":"KG","updatedAt":"2026-10-24T00:00:00Z"}';
+      return response(config, data);
+    });
+
+    const list = await listInventory({ page: 0, size: 20 });
+    const detail = await getInventory(7);
+
+    expect(list.content[0].quantity).toBe('999999999999999.1234');
+    expect(detail.quantity).toBe('0.0001');
+    expect(typeof list.content[0].materialId).toBe('number');
+    expect(typeof detail.materialId).toBe('number');
+    expect(typeof list.page).toBe('number');
+    expect(requests.map(({ url }) => url)).toEqual(['/inventory', '/inventory/7']);
+  });
   it('uses Inventory filters without an unsupported sort and preserves decimal adjustment strings exactly', async () => {
     const requests: InternalAxiosRequestConfig[] = [];
     axiosClient.defaults.adapter = vi.fn(async (config) => { requests.push(config); return response(config, config.url === '/inventory/3' ? { materialId: 3 } : { content: [] }); });

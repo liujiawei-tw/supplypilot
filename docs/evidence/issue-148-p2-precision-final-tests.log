@@ -1,0 +1,11 @@
+COMMAND=npm exec -- vitest run --pool=forks --maxWorkers=1 tests/demandInventoryApi.test.ts tests/masterDataApi.test.ts tests/sp805Api.test.ts
+
+ RUN  v4.1.11 C:/Users/z0976/.codex/worktrees/issue-148-v2-401/supplypilot/frontend
+
+
+ Test Files  3 passed (3)
+      Tests  21 passed (21)
+   Start at  00:07:34
+   Duration  3.88s (transform 178ms, setup 534ms, import 532ms, tests 63ms, environment 2.13s)
+
+EXIT_CODE=0

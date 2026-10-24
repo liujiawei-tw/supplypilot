@@ -1,0 +1,12 @@
+COMMAND: npm test -- --maxWorkers=1 --testTimeout=60000 tests/sp805.test.tsx
+WORKDIR: frontend
+DATE: 2026-10-24 Asia/Taipei
+
+Terminal summary captured from the isolated full-file run (the warning stream was not redirected to a file):
+
+ Test Files  1 passed (1)
+      Tests  18 passed (18)
+   Start at  20:02:38
+   Duration  259.93s (transform 1.45s, setup 5.53s, import 86.45s, tests 149.45s, environment 17.55s)
+
+EXIT_CODE=0

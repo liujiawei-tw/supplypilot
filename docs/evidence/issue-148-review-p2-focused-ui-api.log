@@ -1,0 +1,18 @@
+
+> frontend@0.0.0 test
+> vitest run --maxWorkers=1 --minWorkers=1 --testTimeout=60000 --reporter=verbose tests/precisionEditRoundTrip.test.tsx tests/supplierMaterialPrecision.test.tsx tests/masterDataApi.test.ts tests/masterData.test.tsx tests/purchaseOrderApi.test.ts tests/sp805Api.test.ts
+
+file:///C:/Users/z0976/.codex/worktrees/issue-148-v2-401/supplypilot/frontend/node_modules/vitest/dist/chunks/cac.uFydS1Z4.js:406
+          throw new CACError(`Unknown option \`${name.length > 1 ? `--${name}` : `-${name}`}\``);
+                ^
+
+CACError: Unknown option `--minWorkers`
+    at Command.checkUnknownOptions (file:///C:/Users/z0976/.codex/worktrees/issue-148-v2-401/supplypilot/frontend/node_modules/vitest/dist/chunks/cac.uFydS1Z4.js:406:17)
+    at CAC.runMatchedCommand (file:///C:/Users/z0976/.codex/worktrees/issue-148-v2-401/supplypilot/frontend/node_modules/vitest/dist/chunks/cac.uFydS1Z4.js:606:13)
+    at CAC.parse (file:///C:/Users/z0976/.codex/worktrees/issue-148-v2-401/supplypilot/frontend/node_modules/vitest/dist/chunks/cac.uFydS1Z4.js:547:12)
+    at file:///C:/Users/z0976/.codex/worktrees/issue-148-v2-401/supplypilot/frontend/node_modules/vitest/dist/cli.js:11:13
+    at ModuleJob.run (node:internal/modules/esm/module_job:437:25)
+    at async node:internal/modules/esm/loader:639:26
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:101:5)
+
+Node.js v24.15.0

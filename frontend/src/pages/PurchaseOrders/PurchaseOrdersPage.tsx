@@ -250,7 +250,7 @@ export default function PurchaseOrdersPage() {
     <Modal title="確認建立手動草稿" open={!!pending} okText="確認建立草稿" confirmLoading={submitting} okButtonProps={{ disabled: submitting }} onOk={() => void confirmCreate()} onCancel={() => { if (!submittingRef.current) setPending(null); }}>
       {pending && <><Alert type="warning" showIcon title="只會建立草稿，不會自動核准或下單。" /><Descriptions style={{ marginTop: 16 }} bordered column={1} items={[
         { key: 'supplier', label: '供應商編號', children: pending.supplierId },
-        { key: 'delivery', label: '預計交期', children: pending.expectedDeliveryDate ?? '未設定' },
+        { key: 'delivery', label: '預計交期', children: formatPurchaseOrderDate(pending.expectedDeliveryDate) },
         { key: 'items', label: '品項', children: pending.items.map((item) => `物料 #${item.materialId}：${item.quantity} @ ${item.unitPrice}`).join('；') },
       ]} /></>}
     </Modal>

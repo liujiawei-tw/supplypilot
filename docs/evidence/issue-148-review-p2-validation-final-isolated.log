@@ -1,0 +1,25 @@
+
+> frontend@0.0.0 test
+> vitest run --maxWorkers=1 --testTimeout=60000 --reporter=verbose --testNamePattern=validates Material fields tests/masterData.test.tsx
+
+
+ RUN  v4.1.11 C:/Users/z0976/.codex/worktrees/issue-148-v2-401/supplypilot/frontend
+
+ ↓ tests/masterData.test.tsx > master data pages > shows loading, data and ADMIN actions on Materials
+ ↓ tests/masterData.test.tsx > master data pages > keeps Materials read-only for an authorized non-ADMIN role
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+ ✓ tests/masterData.test.tsx > master data pages > validates Material fields, creates once, then refetches 18183ms
+ ↓ tests/masterData.test.tsx > master data pages > shows backend validation details and does not report a failed status update as success
+ ↓ tests/masterData.test.tsx > master data pages > keeps the Material create modal and values after a 409, then refetches only after retry succeeds
+ ↓ tests/masterData.test.tsx > master data pages > shows Material edit validation errors inside the modal and keeps edited values
+ ↓ tests/masterData.test.tsx > master data pages > shows Suppliers and SupplierMaterials as read-only tabs for procurement roles
+ ↓ tests/masterData.test.tsx > master data pages > edits a Supplier without sending its immutable code and refetches
+ ↓ tests/masterData.test.tsx > master data pages > keeps Supplier create and edit values when backend submissions fail
+ ↓ tests/masterData.test.tsx > master data pages > creates and edits SupplierMaterial through the UI without PATCHing immutable relationships or currency
+
+ Test Files  1 passed (1)
+      Tests  1 passed | 9 skipped (10)
+   Start at  00:42:03
+   Duration  23.51s (transform 335ms, setup 203ms, import 4.19s, tests 18.19s, environment 723ms)
+
