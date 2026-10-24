@@ -1,0 +1,1236 @@
+
+> frontend@0.0.0 test
+> vitest run tests/issue148DisplayFormatters.test.ts tests/dashboard.test.tsx tests/masterData.test.tsx tests/issue143PurchaseOrdersPage.test.tsx tests/sp805.test.tsx
+
+
+ RUN  v4.1.11 C:/Users/z0976/.codex/worktrees/issue-148-v2-401/supplypilot/frontend
+
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+stderr | tests/sp805.test.tsx > SP-805 PO lifecycle UI > shows both delivery dates and updates the supplier promise without changing the expected date
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+stderr | tests/dashboard.test.tsx > SP-907 role-adaptive dashboard API access > uses the restricted Receiving API for warehouse data and never renders price fields
+Warning: [antd: List] The `List` component is deprecated and will be removed in the next major version. If you're using version 6.6.0 or later, please use `Listy` instead.
+Warning: [antd: List] The `List` component is deprecated and will be removed in the next major version. If you're using version 6.6.0 or later, please use `Listy` instead.
+
+stderr | tests/dashboard.test.tsx > SP-907 role-adaptive dashboard API access > uses the restricted Receiving API for warehouse data and never renders price fields
+Warning: [antd: List] The `List` component is deprecated and will be removed in the next major version. If you're using version 6.6.0 or later, please use `Listy` instead.
+Warning: [antd: List] The `List` component is deprecated and will be removed in the next major version. If you're using version 6.6.0 or later, please use `Listy` instead.
+
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+ ❯ tests/dashboard.test.tsx (9 tests | 1 failed) 14970ms
+     × uses the restricted Receiving API for warehouse data and never renders price fields 521ms
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+stderr | tests/sp805.test.tsx > SP-805 PO lifecycle UI > preserves integer, decimal, and scientific BigDecimal tokens from an API response through UI rendering
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Could not parse CSS stylesheet
+Could not parse CSS stylesheet
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Could not parse CSS stylesheet
+Could not parse CSS stylesheet
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Could not parse CSS stylesheet
+Could not parse CSS stylesheet
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+stderr | tests/sp805.test.tsx > SP-805 PO lifecycle UI > creates a DRAFT with the exact IDs of page-6 master records and does not confuse duplicate names
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+stderr | tests/sp805.test.tsx > SP-805 PO lifecycle UI > creates a DRAFT with the exact IDs of page-6 master records and does not confuse duplicate names
+Warning: [antd: Alert] `message` is deprecated. Please use `title` instead.
+
+stderr | tests/sp805.test.tsx > SP-805 PO lifecycle UI > creates a DRAFT with the exact IDs of page-6 master records and does not confuse duplicate names
+Warning: [antd: Alert] `message` is deprecated. Please use `title` instead.
+
+stderr | tests/sp805.test.tsx > SP-805 PO lifecycle UI > creates a DRAFT with the exact IDs of page-6 master records and does not confuse duplicate names
+Warning: [antd: Alert] `message` is deprecated. Please use `title` instead.
+
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Could not parse CSS stylesheet
+Could not parse CSS stylesheet
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+stderr | tests/sp805.test.tsx > SP-805 PO lifecycle UI > uses role plus domain state guards and blocks approval when a DRAFT has no delivery date
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Could not parse CSS stylesheet
+Could not parse CSS stylesheet
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+ ❯ tests/masterData.test.tsx (10 tests | 1 failed) 170030ms
+     × creates and edits SupplierMaterial through the UI without PATCHing immutable relationships or currency 49739ms
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+ ❯ tests/sp805.test.tsx (18 tests | 4 failed) 182936ms
+     × shows both delivery dates and updates the supplier promise without changing the expected date 2468ms
+     × preserves integer, decimal, and scientific BigDecimal tokens from an API response through UI rendering 1040ms
+     × creates a DRAFT with the exact IDs of page-6 master records and does not confuse duplicate names 30107ms
+     × uses role plus domain state guards and blocks approval when a DRAFT has no delivery date 2571ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 6 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/dashboard.test.tsx > SP-907 role-adaptive dashboard API access > uses the restricted Receiving API for warehouse data and never renders price fields
+TestingLibraryElementError: Unable to find an element with the text: 預計交期：2026-10-10. This could be because the text is broken up by multiple elements. In this case, you can provide a function for your text matcher to make your matcher more flexible.
+
+Ignored nodes: comments, script, style
+<body>
+  <div>
+    <div
+      class="ant-layout ant-layout-has-sider app-layout css-dev-only-do-not-override-oc1rc0 css-var-_r_k_"
+      style="min-height: 100vh;"
+    >
+      <aside
+        class="ant-layout-sider ant-layout-sider-dark css-dev-only-do-not-override-oc1rc0 css-var-_r_k_"
+        style="flex: 0 0 200px; max-width: 200px; min-width: 200px; width: 200px;"
+      >
+        <div
+          class="ant-layout-sider-children"
+        >
+          <div
+            style="padding: 16px; text-align: center;"
+          >
+            <h4
+              class="ant-typography css-dev-only-do-not-override-oc1rc0 css-var-_r_k_"
+              style="color: rgb(255, 255, 255); margin: 0px;"
+            >
+              SupplyPilot
+            </h4>
+            <span
+              class="ant-typography css-dev-only-do-not-override-oc1rc0 css-var-_r_k_"
+              style="color: rgb(140, 140, 140); font-size: 11px; display: block; margin-top: 4px;"
+            >
+              採購決策平台
+            </span>
+          </div>
+          <ul
+            class="ant-menu ant-menu-root ant-menu-inline ant-menu-dark css-dev-only-do-not-override-oc1rc0 css-var-_r_k_ ant-menu-css-var"
+            data-menu-list="true"
+            role="menu"
+            tabindex="0"
+          >
+            <li
+              class="ant-menu-item ant-menu-item-selected"
+              data-menu-id="rc-menu-uuid-test-id-/dashboard"
+              role="menuitem"
+              style="padding-left: 24px;"
+              tabindex="-1"
+            >
+              <span
+                aria-label="dashboard"
+                class="anticon anticon-dashboard ant-menu-item-icon"
+                role="img"
+              >
+                <svg
+                  aria-hidden="true"
+                  data-icon="dashboard"
+                  fill="currentColor"
+                  focusable="false"
+                  height="1em"
+                  viewBox="64 64 896 896"
+                  width="1em"
+                >
+                  <path
+                    d="M924.8 385.6a446.7 446.7 0 00-96-142.4 446.7 446.7 0 00-142.4-96C631.1 123.8 572.5 112 512 112s-119.1 11.8-174.4 35.2a446.7 446.7 0 00-142.4 96 446.7 446.7 0 00-96 142.4C75.8 440.9 64 499.5 64 560c0 132.7 58.3 257.7 159.9 343.1l1.7 1.4c5.8 4.8 13.1 7.5 20.6 7.5h531.7c7.5 0 14.8-2.7 20.6-7.5l1.7-1.4C901.7 817.7 960 692.7 960 560c0-60.5-11.9-119.1-35.2-174.4zM761.4 836H262.6A371.12 371.12 0 01140 560c0-99.4 38.7-192.8 109-263 70.3-70.3 163.7-109 263-109 99.4 0 192.8 38.7 263 109 70.3 70.3 109 163.7 109 263 0 105.6-44.5 205.5-122.6 276zM623.5 421.5a8.03 8.03 0 00-11.3 0L527.7 506c-18.7-5-39.4-.2-54.1 14.5a55.95 55.95 0 000 79.2 55.95 55.95 0 0079.2 0 55.87 55.87 0 0014.5-54.1l84.5-84.5c3.1-3.1 3.1-8.2 0-11.3l-28.3-28.3zM490 320h44c4.4 0 8-3.6 8-8v-80c0-4.4-3.6-8-8-8h-44c-4.4 0-8 3.6-8 8v80c0 4.4 3.6 8 8 8zm260 218v44c0 4.4 3.6 8 8 8h80c4.4 0 8-3.6 8-8v-44c0-4.4-3.6-8-8-8h-80c-4.4 0-8 3.6-8 8zm12.7-197.2l-31.1-31.1a8.03 8.03 0 00-11.3 0l-56.6 56.6a8.03 8.03 0 000 11.3l31.1 31.1c3.1 3.1 8.2 3.1 11.3 0l56.6-56.6c3.1-3.1 3.1-8.2 0-11.3zm-458.6-31.1a8.03 8.03 0 00-11.3 0l-31.1 31.1a8.03 8.03 0 000 11.3l56.6 56.6c3.1 3.1 8.2 3.1 11.3 0l31.1-31.1c3.1-3.1 3.1-8.2 0-11.3l-56.6-56.6zM262 530h-80c-4.4 0-8 3.6-8 8v44c0 4.4 3.6 8 8 8h80c4.4 0 8-3.6 8-8v-44c0-4.4-3.6-8-8-8z"
+                  />
+                </svg>
+              </span>
+              <span
+                class="ant-menu-title-content"
+              >
+                儀表板
+              </span>
+            </li>
+            <li
+              class="ant-menu-submenu ant-menu-submenu-inline"
+              role="none"
+            >
+              <div
+                aria-controls="rc-menu-uuid-test-id-主檔管理-popup"
+                aria-expanded="false"
+                aria-haspopup="true"
+                class="ant-menu-submenu-title"
+                data-menu-id="rc-menu-uuid-test-id-主檔管理"
+                role="menuitem"
+                style="padding-left: 24px;"
+                tabindex="-1"
+              >
+                <span
+                  class="ant-menu-title-content"
+                >
+                  主檔管理
+                </span>
+                <i
+                  class="ant-menu-submenu-arrow"
+                />
+              </div>
+            </li>
+            <li
+              class="ant-menu-submenu ant-menu-submenu-inline"
+              role="none"
+            >
+              <div
+                aria-controls="rc-menu-uuid-test-id-需求與庫存-popup"
+                aria-expanded="false"
+                aria-haspopup="true"
+                class="ant-menu-submenu-title"
+                data-menu-id="rc-menu-uuid-test-id-需求與庫存"
+                role="menuitem"
+                style="padding-left: 24px;"
+                tabindex="-1"
+              >
+                <span
+                  class="ant-menu-title-content"
+                >
+                  需求與庫存
+                </span>
+                <i
+                  class="ant-menu-submenu-arrow"
+                />
+              </div>
+            </li>
+            <li
+              class="ant-menu-submenu ant-menu-submenu-inline"
+              role="none"
+            >
+              <div
+                aria-controls=[32...
+ ❯ Object.getElementError node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ tests/dashboard.test.tsx:156:19
+    154|     expect(await screen.findByText('PO-000051')).toBeTruthy();
+    155|     expect(screen.getByText('已逾期')).toBeTruthy();
+    156|     expect(screen.getByText('預計交期：2026-10-10')).toBeTruthy();
+       |                   ^
+    157|     expect(requests.filter((request) => request.url === '/receiving/pu…
+    158|     const receivingRequest = requests.find((request) => request.url ==…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/6]⎯
+
+ FAIL  tests/masterData.test.tsx > master data pages > creates and edits SupplierMaterial through the UI without PATCHing immutable relationships or currency
+TestingLibraryElementError: Unable to find an element with the text: 80. This could be because the text is broken up by multiple elements. In this case, you can provide a function for your text matcher to make your matcher more flexible.
+
+Ignored nodes: comments, script, style
+<body>
+  <div>
+    <div>
+      <h2
+        class="ant-typography css-dev-only-do-not-override-oc1rc0 css-var-root"
+        style="margin-bottom: 0px;"
+      >
+        供應商管理
+      </h2>
+      <span
+        class="ant-typography ant-typography-secondary css-dev-only-do-not-override-oc1rc0 css-var-root"
+      >
+        供應商與供應物料關聯主檔
+      </span>
+      <div
+        class="ant-tabs ant-tabs-top css-dev-only-do-not-override-oc1rc0 css-var-root ant-tabs-css-var"
+      >
+        <div
+          aria-orientation="horizontal"
+          class="ant-tabs-nav"
+          role="tablist"
+        >
+          <div
+            class="ant-tabs-nav-wrap"
+          >
+            <div
+              class="ant-tabs-nav-list"
+              style="transform: translate(0px, 0px);"
+            >
+              <div
+                class="ant-tabs-tab"
+                data-node-key="suppliers"
+              >
+                <div
+                  aria-controls="rc-tabs-test-panel-suppliers"
+                  aria-selected="false"
+                  class="ant-tabs-tab-btn"
+                  id="rc-tabs-test-tab-suppliers"
+                  role="tab"
+                  tabindex="-1"
+                >
+                  供應商
+                </div>
+              </div>
+              <div
+                class="ant-tabs-tab ant-tabs-tab-active"
+                data-node-key="supplier-materials"
+              >
+                <div
+                  aria-controls="rc-tabs-test-panel-supplier-materials"
+                  aria-selected="true"
+                  class="ant-tabs-tab-btn"
+                  id="rc-tabs-test-tab-supplier-materials"
+                  role="tab"
+                  tabindex="0"
+                >
+                  供應商物料
+                </div>
+              </div>
+              <div
+                class="ant-tabs-ink-bar ant-tabs-ink-bar-animated"
+                style="width: 0px; left: 0px; transform: translateX(-50%);"
+              />
+            </div>
+          </div>
+          <div
+            class="ant-tabs-nav-operations ant-tabs-nav-operations-hidden"
+          >
+            <button
+              aria-controls="rc-tabs-test-more-popup"
+              aria-expanded="false"
+              aria-haspopup="listbox"
+              class="ant-tabs-nav-more"
+              id="rc-tabs-test-more"
+              style="visibility: hidden; order: 1;"
+              type="button"
+            >
+              <span
+                aria-label="ellipsis"
+                class="anticon anticon-ellipsis"
+                role="img"
+              >
+                <svg
+                  aria-hidden="true"
+                  data-icon="ellipsis"
+                  fill="currentColor"
+                  focusable="false"
+                  height="1em"
+                  viewBox="64 64 896 896"
+                  width="1em"
+                >
+                  <path
+                    d="M176 511a56 56 0 10112 0 56 56 0 10-112 0zm280 0a56 56 0 10112 0 56 56 0 10-112 0zm280 0a56 56 0 10112 0 56 56 0 10-112 0z"
+                  />
+                </svg>
+              </span>
+            </button>
+          </div>
+        </div>
+        <div
+          class="ant-tabs-body-holder"
+        >
+          <div
+            class="ant-tabs-body ant-tabs-body-top"
+          >
+            <div
+              aria-hidden="false"
+              aria-labelledby="rc-tabs-test-tab-supplier-materials"
+              class="ant-tabs-content ant-tabs-content-active"
+              id="rc-tabs-test-panel-supplier-materials"
+              role="tabpanel"
+              tabindex="0"
+            >
+              <div
+                class="ant-space css-dev-only-do-not-override-oc1rc0 ant-space-vertical ant-space-gap-row-large ant-space-gap-col-large css-var-root"
+                style="width: 100%;"
+              >
+                <div
+                  class="ant-space-item"
+                />
+                <div
+                  class="ant-space-item"
+                >
+                  <div
+                    class="ant-space css-dev-only-do-not-override-oc1rc0 ant-space-horizontal ant-space-align-center ant-space-gap-row-small ant-space-gap-col-small css-var-root"
+                    style="flex-wrap: wrap; width: 100%; justify-content: space-between;"
+                  >
+                    <div
+                      class="ant-space-item"
+                    >
+                      <div
+                        class="ant-space css-dev-only-do-not-override-oc1rc0 ant-space-horizontal ant-space-align-center ant-space-gap-row-small ant-space-gap-col-small css-var-root"
+                        style="flex-wrap: wrap;"
+                      >
+                        <div
+                          class="ant-space-item"
+                        >
+                          <div
+                            style="width: 240px;"
+                          >
+                            <div
+                          ...
+
+Ignored nodes: comments, script, style
+<body>
+  <div>
+    <div>
+      <h2
+        class="ant-typography css-dev-only-do-not-override-oc1rc0 css-var-root"
+        style="margin-bottom: 0px;"
+      >
+        供應商管理
+      </h2>
+      <span
+        class="ant-typography ant-typography-secondary css-dev-only-do-not-override-oc1rc0 css-var-root"
+      >
+        供應商與供應物料關聯主檔
+      </span>
+      <div
+        class="ant-tabs ant-tabs-top css-dev-only-do-not-override-oc1rc0 css-var-root ant-tabs-css-var"
+      >
+        <div
+          aria-orientation="horizontal"
+          class="ant-tabs-nav"
+          role="tablist"
+        >
+          <div
+            class="ant-tabs-nav-wrap"
+          >
+            <div
+              class="ant-tabs-nav-list"
+              style="transform: translate(0px, 0px);"
+            >
+              <div
+                class="ant-tabs-tab"
+                data-node-key="suppliers"
+              >
+                <div
+                  aria-controls="rc-tabs-test-panel-suppliers"
+                  aria-selected="false"
+                  class="ant-tabs-tab-btn"
+                  id="rc-tabs-test-tab-suppliers"
+                  role="tab"
+                  tabindex="-1"
+                >
+                  供應商
+                </div>
+              </div>
+              <div
+                class="ant-tabs-tab ant-tabs-tab-active"
+                data-node-key="supplier-materials"
+              >
+                <div
+                  aria-controls="rc-tabs-test-panel-supplier-materials"
+                  aria-selected="true"
+                  class="ant-tabs-tab-btn"
+                  id="rc-tabs-test-tab-supplier-materials"
+                  role="tab"
+                  tabindex="0"
+                >
+                  供應商物料
+                </div>
+              </div>
+              <div
+                class="ant-tabs-ink-bar ant-tabs-ink-bar-animated"
+                style="width: 0px; left: 0px; transform: translateX(-50%);"
+              />
+            </div>
+          </div>
+          <div
+            class="ant-tabs-nav-operations ant-tabs-nav-operations-hidden"
+          >
+            <button
+              aria-controls="rc-tabs-test-more-popup"
+              aria-expanded="false"
+              aria-haspopup="listbox"
+              class="ant-tabs-nav-more"
+              id="rc-tabs-test-more"
+              style="visibility: hidden; order: 1;"
+              type="button"
+            >
+              <span
+                aria-label="ellipsis"
+                class="anticon anticon-ellipsis"
+                role="img"
+              >
+                <svg
+                  aria-hidden="true"
+                  data-icon="ellipsis"
+                  fill="currentColor"
+                  focusable="false"
+                  height="1em"
+                  viewBox="64 64 896 896"
+                  width="1em"
+                >
+                  <path
+                    d="M176 511a56 56 0 10112 0 56 56 0 10-112 0zm280 0a56 56 0 10112 0 56 56 0 10-112 0zm280 0a56 56 0 10112 0 56 56 0 10-112 0z"
+                  />
+                </svg>
+              </span>
+            </button>
+          </div>
+        </div>
+        <div
+          class="ant-tabs-body-holder"
+        >
+          <div
+            class="ant-tabs-body ant-tabs-body-top"
+          >
+            <div
+              aria-hidden="false"
+              aria-labelledby="rc-tabs-test-tab-supplier-materials"
+              class="ant-tabs-content ant-tabs-content-active"
+              id="rc-tabs-test-panel-supplier-materials"
+              role="tabpanel"
+              tabindex="0"
+            >
+              <div
+                class="ant-space css-dev-only-do-not-override-oc1rc0 ant-space-vertical ant-space-gap-row-large ant-space-gap-col-large css-var-root"
+                style="width: 100%;"
+              >
+                <div
+                  class="ant-space-item"
+                />
+                <div
+                  class="ant-space-item"
+                >
+                  <div
+                    class="ant-space css-dev-only-do-not-override-oc1rc0 ant-space-horizontal ant-space-align-center ant-space-gap-row-small ant-space-gap-col-small css-var-root"
+                    style="flex-wrap: wrap; width: 100%; justify-content: space-between;"
+                  >
+                    <div
+                      class="ant-space-item"
+                    >
+                      <div
+                        class="ant-space css-dev-only-do-not-override-oc1rc0 ant-space-horizontal ant-space-align-center ant-space-gap-row-small ant-space-gap-col-small css-var-root"
+                        style="flex-wrap: wrap;"
+                      >
+                        <div
+                          class="ant-space-item"
+                        >
+                          <div
+                            style="width: 240px;"
+                          >
+                            <div
+                          ...
+ ❯ waitForWrapper node_modules/@testing-library/dom/dist/wait-for.js:163:27
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:86:33
+ ❯ tests/masterData.test.tsx:299:25
+    297|     expect(screen.queryByText('SupplierMaterial 已建立')).toBeNull();
+    298|     await user.click(screen.getByRole('button', { name: 'OK' }));
+    299|     expect(await screen.findByText('80')).toBeTruthy();
+       |                         ^
+    300|
+    301|     const postPayloads = requests.filter(({ method }) => method === 'p…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/6]⎯
+
+ FAIL  tests/sp805.test.tsx > SP-805 PO lifecycle UI > shows both delivery dates and updates the supplier promise without changing the expected date
+TestingLibraryElementError: Unable to find an element with the text: 2026-10-30. This could be because the text is broken up by multiple elements. In this case, you can provide a function for your text matcher to make your matcher more flexible.
+
+Ignored nodes: comments, script, style
+<body>
+  <div>
+    <div
+      class="ant-layout ant-layout-has-sider app-layout css-dev-only-do-not-override-oc1rc0 css-var-_r_0_"
+      style="min-height: 100vh;"
+    >
+      <aside
+        class="ant-layout-sider ant-layout-sider-dark css-dev-only-do-not-override-oc1rc0 css-var-_r_0_"
+        style="flex: 0 0 200px; max-width: 200px; min-width: 200px; width: 200px;"
+      >
+        <div
+          class="ant-layout-sider-children"
+        >
+          <div
+            style="padding: 16px; text-align: center;"
+          >
+            <h4
+              class="ant-typography css-dev-only-do-not-override-oc1rc0 css-var-_r_0_"
+              style="color: rgb(255, 255, 255); margin: 0px;"
+            >
+              SupplyPilot
+            </h4>
+            <span
+              class="ant-typography css-dev-only-do-not-override-oc1rc0 css-var-_r_0_"
+              style="color: rgb(140, 140, 140); font-size: 11px; display: block; margin-top: 4px;"
+            >
+              採購決策平台
+            </span>
+          </div>
+          <ul
+            class="ant-menu ant-menu-root ant-menu-inline ant-menu-dark css-dev-only-do-not-override-oc1rc0 css-var-_r_0_ ant-menu-css-var"
+            data-menu-list="true"
+            role="menu"
+            tabindex="0"
+          >
+            <li
+              class="ant-menu-item"
+              data-menu-id="rc-menu-uuid-test-id-/dashboard"
+              role="menuitem"
+              style="padding-left: 24px;"
+              tabindex="-1"
+            >
+              <span
+                aria-label="dashboard"
+                class="anticon anticon-dashboard ant-menu-item-icon"
+                role="img"
+              >
+                <svg
+                  aria-hidden="true"
+                  data-icon="dashboard"
+                  fill="currentColor"
+                  focusable="false"
+                  height="1em"
+                  viewBox="64 64 896 896"
+                  width="1em"
+                >
+                  <path
+                    d="M924.8 385.6a446.7 446.7 0 00-96-142.4 446.7 446.7 0 00-142.4-96C631.1 123.8 572.5 112 512 112s-119.1 11.8-174.4 35.2a446.7 446.7 0 00-142.4 96 446.7 446.7 0 00-96 142.4C75.8 440.9 64 499.5 64 560c0 132.7 58.3 257.7 159.9 343.1l1.7 1.4c5.8 4.8 13.1 7.5 20.6 7.5h531.7c7.5 0 14.8-2.7 20.6-7.5l1.7-1.4C901.7 817.7 960 692.7 960 560c0-60.5-11.9-119.1-35.2-174.4zM761.4 836H262.6A371.12 371.12 0 01140 560c0-99.4 38.7-192.8 109-263 70.3-70.3 163.7-109 263-109 99.4 0 192.8 38.7 263 109 70.3 70.3 109 163.7 109 263 0 105.6-44.5 205.5-122.6 276zM623.5 421.5a8.03 8.03 0 00-11.3 0L527.7 506c-18.7-5-39.4-.2-54.1 14.5a55.95 55.95 0 000 79.2 55.95 55.95 0 0079.2 0 55.87 55.87 0 0014.5-54.1l84.5-84.5c3.1-3.1 3.1-8.2 0-11.3l-28.3-28.3zM490 320h44c4.4 0 8-3.6 8-8v-80c0-4.4-3.6-8-8-8h-44c-4.4 0-8 3.6-8 8v80c0 4.4 3.6 8 8 8zm260 218v44c0 4.4 3.6 8 8 8h80c4.4 0 8-3.6 8-8v-44c0-4.4-3.6-8-8-8h-80c-4.4 0-8 3.6-8 8zm12.7-197.2l-31.1-31.1a8.03 8.03 0 00-11.3 0l-56.6 56.6a8.03 8.03 0 000 11.3l31.1 31.1c3.1 3.1 8.2 3.1 11.3 0l56.6-56.6c3.1-3.1 3.1-8.2 0-11.3zm-458.6-31.1a8.03 8.03 0 00-11.3 0l-31.1 31.1a8.03 8.03 0 000 11.3l56.6 56.6c3.1 3.1 8.2 3.1 11.3 0l31.1-31.1c3.1-3.1 3.1-8.2 0-11.3l-56.6-56.6zM262 530h-80c-4.4 0-8 3.6-8 8v44c0 4.4 3.6 8 8 8h80c4.4 0 8-3.6 8-8v-44c0-4.4-3.6-8-8-8z"
+                  />
+                </svg>
+              </span>
+              <span
+                class="ant-menu-title-content"
+              >
+                儀表板
+              </span>
+            </li>
+            <li
+              class="ant-menu-submenu ant-menu-submenu-inline"
+              role="none"
+            >
+              <div
+                aria-controls="rc-menu-uuid-test-id-主檔管理-popup"
+                aria-expanded="false"
+                aria-haspopup="true"
+                class="ant-menu-submenu-title"
+                data-menu-id="rc-menu-uuid-test-id-主檔管理"
+                role="menuitem"
+                style="padding-left: 24px;"
+                tabindex="-1"
+              >
+                <span
+                  class="ant-menu-title-content"
+                >
+                  主檔管理
+                </span>
+                <i
+                  class="ant-menu-submenu-arrow"
+                />
+              </div>
+            </li>
+            <li
+              class="ant-menu-submenu ant-menu-submenu-inline"
+              role="none"
+            >
+              <div
+                aria-controls="rc-menu-uuid-test-id-需求與庫存-popup"
+                aria-expanded="false"
+                aria-haspopup="true"
+                class="ant-menu-submenu-title"
+                data-menu-id="rc-menu-uuid-test-id-需求與庫存"
+                role="menuitem"
+                style="padding-left: 24px;"
+                tabindex="-1"
+              >
+                <span
+                  class="ant-menu-title-content"
+                >
+                  需求與庫存
+                </span>
+                <i
+                  class="ant-menu-submenu-arrow"
+                />
+              </div>
+            </li>
+            <li
+              class="ant-menu-submenu ant-menu-submenu-inline ant-menu-submenu-selected"
+              role="none"
+            >
+              <div
+                aria-controls=...
+
+Ignored nodes: comments, script, style
+<body>
+  <div>
+    <div
+      class="ant-layout ant-layout-has-sider app-layout css-dev-only-do-not-override-oc1rc0 css-var-_r_0_"
+      style="min-height: 100vh;"
+    >
+      <aside
+        class="ant-layout-sider ant-layout-sider-dark css-dev-only-do-not-override-oc1rc0 css-var-_r_0_"
+        style="flex: 0 0 200px; max-width: 200px; min-width: 200px; width: 200px;"
+      >
+        <div
+          class="ant-layout-sider-children"
+        >
+          <div
+            style="padding: 16px; text-align: center;"
+          >
+            <h4
+              class="ant-typography css-dev-only-do-not-override-oc1rc0 css-var-_r_0_"
+              style="color: rgb(255, 255, 255); margin: 0px;"
+            >
+              SupplyPilot
+            </h4>
+            <span
+              class="ant-typography css-dev-only-do-not-override-oc1rc0 css-var-_r_0_"
+              style="color: rgb(140, 140, 140); font-size: 11px; display: block; margin-top: 4px;"
+            >
+              採購決策平台
+            </span>
+          </div>
+          <ul
+            class="ant-menu ant-menu-root ant-menu-inline ant-menu-dark css-dev-only-do-not-override-oc1rc0 css-var-_r_0_ ant-menu-css-var"
+            data-menu-list="true"
+            role="menu"
+            tabindex="0"
+          >
+            <li
+              class="ant-menu-item"
+              data-menu-id="rc-menu-uuid-test-id-/dashboard"
+              role="menuitem"
+              style="padding-left: 24px;"
+              tabindex="-1"
+            >
+              <span
+                aria-label="dashboard"
+                class="anticon anticon-dashboard ant-menu-item-icon"
+                role="img"
+              >
+                <svg
+                  aria-hidden="true"
+                  data-icon="dashboard"
+                  fill="currentColor"
+                  focusable="false"
+                  height="1em"
+                  viewBox="64 64 896 896"
+                  width="1em"
+                >
+                  <path
+                    d="M924.8 385.6a446.7 446.7 0 00-96-142.4 446.7 446.7 0 00-142.4-96C631.1 123.8 572.5 112 512 112s-119.1 11.8-174.4 35.2a446.7 446.7 0 00-142.4 96 446.7 446.7 0 00-96 142.4C75.8 440.9 64 499.5 64 560c0 132.7 58.3 257.7 159.9 343.1l1.7 1.4c5.8 4.8 13.1 7.5 20.6 7.5h531.7c7.5 0 14.8-2.7 20.6-7.5l1.7-1.4C901.7 817.7 960 692.7 960 560c0-60.5-11.9-119.1-35.2-174.4zM761.4 836H262.6A371.12 371.12 0 01140 560c0-99.4 38.7-192.8 109-263 70.3-70.3 163.7-109 263-109 99.4 0 192.8 38.7 263 109 70.3 70.3 109 163.7 109 263 0 105.6-44.5 205.5-122.6 276zM623.5 421.5a8.03 8.03 0 00-11.3 0L527.7 506c-18.7-5-39.4-.2-54.1 14.5a55.95 55.95 0 000 79.2 55.95 55.95 0 0079.2 0 55.87 55.87 0 0014.5-54.1l84.5-84.5c3.1-3.1 3.1-8.2 0-11.3l-28.3-28.3zM490 320h44c4.4 0 8-3.6 8-8v-80c0-4.4-3.6-8-8-8h-44c-4.4 0-8 3.6-8 8v80c0 4.4 3.6 8 8 8zm260 218v44c0 4.4 3.6 8 8 8h80c4.4 0 8-3.6 8-8v-44c0-4.4-3.6-8-8-8h-80c-4.4 0-8 3.6-8 8zm12.7-197.2l-31.1-31.1a8.03 8.03 0 00-11.3 0l-56.6 56.6a8.03 8.03 0 000 11.3l31.1 31.1c3.1 3.1 8.2 3.1 11.3 0l56.6-56.6c3.1-3.1 3.1-8.2 0-11.3zm-458.6-31.1a8.03 8.03 0 00-11.3 0l-31.1 31.1a8.03 8.03 0 000 11.3l56.6 56.6c3.1 3.1 8.2 3.1 11.3 0l31.1-31.1c3.1-3.1 3.1-8.2 0-11.3l-56.6-56.6zM262 530h-80c-4.4 0-8 3.6-8 8v44c0 4.4 3.6 8 8 8h80c4.4 0 8-3.6 8-8v-44c0-4.4-3.6-8-8-8z"
+                  />
+                </svg>
+              </span>
+              <span
+                class="ant-menu-title-content"
+              >
+                儀表板
+              </span>
+            </li>
+            <li
+              class="ant-menu-submenu ant-menu-submenu-inline"
+              role="none"
+            >
+              <div
+                aria-controls="rc-menu-uuid-test-id-主檔管理-popup"
+                aria-expanded="false"
+                aria-haspopup="true"
+                class="ant-menu-submenu-title"
+                data-menu-id="rc-menu-uuid-test-id-主檔管理"
+                role="menuitem"
+                style="padding-left: 24px;"
+                tabindex="-1"
+              >
+                <span
+                  class="ant-menu-title-content"
+                >
+                  主檔管理
+                </span>
+                <i
+                  class="ant-menu-submenu-arrow"
+                />
+              </div>
+            </li>
+            <li
+              class="ant-menu-submenu ant-menu-submenu-inline"
+              role="none"
+            >
+              <div
+                aria-controls="rc-menu-uuid-test-id-需求與庫存-popup"
+                aria-expanded="false"
+                aria-haspopup="true"
+                class="ant-menu-submenu-title"
+                data-menu-id="rc-menu-uuid-test-id-需求與庫存"
+                role="menuitem"
+                style="padding-left: 24px;"
+                tabindex="-1"
+              >
+                <span
+                  class="ant-menu-title-content"
+                >
+                  需求與庫存
+                </span>
+                <i
+                  class="ant-menu-submenu-arrow"
+                />
+              </div>
+            </li>
+            <li
+              class="ant-menu-submenu ant-menu-submenu-inline ant-menu-submenu-selected"
+              role="none"
+            >
+              <div
+                aria-controls=...
+ ❯ waitForWrapper node_modules/@testing-library/dom/dist/wait-for.js:163:27
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:86:33
+ ❯ tests/sp805.test.tsx:52:25
+     50|
+     51|     await open('/purchase-orders/42'); const user = userEvent.setup();
+     52|     expect(await screen.findByText('2026-10-30')).toBeTruthy();
+       |                         ^
+     53|     expect(screen.getByText('尚未提供')).toBeTruthy();
+     54|     await user.click(screen.getByRole('button', { name: '更新供應商承諾交期' })…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/6]⎯
+
+ FAIL  tests/sp805.test.tsx > SP-805 PO lifecycle UI > preserves integer, decimal, and scientific BigDecimal tokens from an API response through UI rendering
+TestingLibraryElementError: Unable to find an element with the text: 999999999999999999999 KG. This could be because the text is broken up by multiple elements. In this case, you can provide a function for your text matcher to make your matcher more flexible.
+
+Ignored nodes: comments, script, style
+<body>
+  <div>
+    <div
+      class="ant-layout ant-layout-has-sider app-layout css-dev-only-do-not-override-oc1rc0 css-var-_r_2l_"
+      style="min-height: 100vh;"
+    >
+      <aside
+        class="ant-layout-sider ant-layout-sider-dark css-dev-only-do-not-override-oc1rc0 css-var-_r_2l_"
+        style="flex: 0 0 200px; max-width: 200px; min-width: 200px; width: 200px;"
+      >
+        <div
+          class="ant-layout-sider-children"
+        >
+          <div
+            style="padding: 16px; text-align: center;"
+          >
+            <h4
+              class="ant-typography css-dev-only-do-not-override-oc1rc0 css-var-_r_2l_"
+              style="color: rgb(255, 255, 255); margin: 0px;"
+            >
+              SupplyPilot
+            </h4>
+            <span
+              class="ant-typography css-dev-only-do-not-override-oc1rc0 css-var-_r_2l_"
+              style="color: rgb(140, 140, 140); font-size: 11px; display: block; margin-top: 4px;"
+            >
+              採購決策平台
+            </span>
+          </div>
+          <ul
+            class="ant-menu ant-menu-root ant-menu-inline ant-menu-dark css-dev-only-do-not-override-oc1rc0 css-var-_r_2l_ ant-menu-css-var"
+            data-menu-list="true"
+            role="menu"
+            tabindex="0"
+          >
+            <li
+              class="ant-menu-item"
+              data-menu-id="rc-menu-uuid-test-id-/dashboard"
+              role="menuitem"
+              style="padding-left: 24px;"
+              tabindex="-1"
+            >
+              <span
+                aria-label="dashboard"
+                class="anticon anticon-dashboard ant-menu-item-icon"
+                role="img"
+              >
+                <svg
+                  aria-hidden="true"
+                  data-icon="dashboard"
+                  fill="currentColor"
+                  focusable="false"
+                  height="1em"
+                  viewBox="64 64 896 896"
+                  width="1em"
+                >
+                  <path
+                    d="M924.8 385.6a446.7 446.7 0 00-96-142.4 446.7 446.7 0 00-142.4-96C631.1 123.8 572.5 112 512 112s-119.1 11.8-174.4 35.2a446.7 446.7 0 00-142.4 96 446.7 446.7 0 00-96 142.4C75.8 440.9 64 499.5 64 560c0 132.7 58.3 257.7 159.9 343.1l1.7 1.4c5.8 4.8 13.1 7.5 20.6 7.5h531.7c7.5 0 14.8-2.7 20.6-7.5l1.7-1.4C901.7 817.7 960 692.7 960 560c0-60.5-11.9-119.1-35.2-174.4zM761.4 836H262.6A371.12 371.12 0 01140 560c0-99.4 38.7-192.8 109-263 70.3-70.3 163.7-109 263-109 99.4 0 192.8 38.7 263 109 70.3 70.3 109 163.7 109 263 0 105.6-44.5 205.5-122.6 276zM623.5 421.5a8.03 8.03 0 00-11.3 0L527.7 506c-18.7-5-39.4-.2-54.1 14.5a55.95 55.95 0 000 79.2 55.95 55.95 0 0079.2 0 55.87 55.87 0 0014.5-54.1l84.5-84.5c3.1-3.1 3.1-8.2 0-11.3l-28.3-28.3zM490 320h44c4.4 0 8-3.6 8-8v-80c0-4.4-3.6-8-8-8h-44c-4.4 0-8 3.6-8 8v80c0 4.4 3.6 8 8 8zm260 218v44c0 4.4 3.6 8 8 8h80c4.4 0 8-3.6 8-8v-44c0-4.4-3.6-8-8-8h-80c-4.4 0-8 3.6-8 8zm12.7-197.2l-31.1-31.1a8.03 8.03 0 00-11.3 0l-56.6 56.6a8.03 8.03 0 000 11.3l31.1 31.1c3.1 3.1 8.2 3.1 11.3 0l56.6-56.6c3.1-3.1 3.1-8.2 0-11.3zm-458.6-31.1a8.03 8.03 0 00-11.3 0l-31.1 31.1a8.03 8.03 0 000 11.3l56.6 56.6c3.1 3.1 8.2 3.1 11.3 0l31.1-31.1c3.1-3.1 3.1-8.2 0-11.3l-56.6-56.6zM262 530h-80c-4.4 0-8 3.6-8 8v44c0 4.4 3.6 8 8 8h80c4.4 0 8-3.6 8-8v-44c0-4.4-3.6-8-8-8z"
+                  />
+                </svg>
+              </span>
+              <span
+                class="ant-menu-title-content"
+              >
+                儀表板
+              </span>
+            </li>
+            <li
+              class="ant-menu-submenu ant-menu-submenu-inline"
+              role="none"
+            >
+              <div
+                aria-controls="rc-menu-uuid-test-id-主檔管理-popup"
+                aria-expanded="false"
+                aria-haspopup="true"
+                class="ant-menu-submenu-title"
+                data-menu-id="rc-menu-uuid-test-id-主檔管理"
+                role="menuitem"
+                style="padding-left: 24px;"
+                tabindex="-1"
+              >
+                <span
+                  class="ant-menu-title-content"
+                >
+                  主檔管理
+                </span>
+                <i
+                  class="ant-menu-submenu-arrow"
+                />
+              </div>
+            </li>
+            <li
+              class="ant-menu-submenu ant-menu-submenu-inline"
+              role="none"
+            >
+              <div
+                aria-controls="rc-menu-uuid-test-id-需求與庫存-popup"
+                aria-expanded="false"
+                aria-haspopup="true"
+                class="ant-menu-submenu-title"
+                data-menu-id="rc-menu-uuid-test-id-需求與庫存"
+                role="menuitem"
+                style="padding-left: 24px;"
+                tabindex="-1"
+              >
+                <span
+                  class="ant-menu-title-content"
+                >
+                  需求與庫存
+                </span>
+                <i
+                  class="ant-menu-submenu-arrow"
+                />
+              </div>
+            </li>
+            <li
+              class="ant-menu-submenu ant-menu-submenu-inline ant-menu-submenu-selected"
+              role="none"
+            >
+              <div
+                aria-controls[...
+
+Ignored nodes: comments, script, style
+<body>
+  <div>
+    <div
+      class="ant-layout ant-layout-has-sider app-layout css-dev-only-do-not-override-oc1rc0 css-var-_r_2l_"
+      style="min-height: 100vh;"
+    >
+      <aside
+        class="ant-layout-sider ant-layout-sider-dark css-dev-only-do-not-override-oc1rc0 css-var-_r_2l_"
+        style="flex: 0 0 200px; max-width: 200px; min-width: 200px; width: 200px;"
+      >
+        <div
+          class="ant-layout-sider-children"
+        >
+          <div
+            style="padding: 16px; text-align: center;"
+          >
+            <h4
+              class="ant-typography css-dev-only-do-not-override-oc1rc0 css-var-_r_2l_"
+              style="color: rgb(255, 255, 255); margin: 0px;"
+            >
+              SupplyPilot
+            </h4>
+            <span
+              class="ant-typography css-dev-only-do-not-override-oc1rc0 css-var-_r_2l_"
+              style="color: rgb(140, 140, 140); font-size: 11px; display: block; margin-top: 4px;"
+            >
+              採購決策平台
+            </span>
+          </div>
+          <ul
+            class="ant-menu ant-menu-root ant-menu-inline ant-menu-dark css-dev-only-do-not-override-oc1rc0 css-var-_r_2l_ ant-menu-css-var"
+            data-menu-list="true"
+            role="menu"
+            tabindex="0"
+          >
+            <li
+              class="ant-menu-item"
+              data-menu-id="rc-menu-uuid-test-id-/dashboard"
+              role="menuitem"
+              style="padding-left: 24px;"
+              tabindex="-1"
+            >
+              <span
+                aria-label="dashboard"
+                class="anticon anticon-dashboard ant-menu-item-icon"
+                role="img"
+              >
+                <svg
+                  aria-hidden="true"
+                  data-icon="dashboard"
+                  fill="currentColor"
+                  focusable="false"
+                  height="1em"
+                  viewBox="64 64 896 896"
+                  width="1em"
+                >
+                  <path
+                    d="M924.8 385.6a446.7 446.7 0 00-96-142.4 446.7 446.7 0 00-142.4-96C631.1 123.8 572.5 112 512 112s-119.1 11.8-174.4 35.2a446.7 446.7 0 00-142.4 96 446.7 446.7 0 00-96 142.4C75.8 440.9 64 499.5 64 560c0 132.7 58.3 257.7 159.9 343.1l1.7 1.4c5.8 4.8 13.1 7.5 20.6 7.5h531.7c7.5 0 14.8-2.7 20.6-7.5l1.7-1.4C901.7 817.7 960 692.7 960 560c0-60.5-11.9-119.1-35.2-174.4zM761.4 836H262.6A371.12 371.12 0 01140 560c0-99.4 38.7-192.8 109-263 70.3-70.3 163.7-109 263-109 99.4 0 192.8 38.7 263 109 70.3 70.3 109 163.7 109 263 0 105.6-44.5 205.5-122.6 276zM623.5 421.5a8.03 8.03 0 00-11.3 0L527.7 506c-18.7-5-39.4-.2-54.1 14.5a55.95 55.95 0 000 79.2 55.95 55.95 0 0079.2 0 55.87 55.87 0 0014.5-54.1l84.5-84.5c3.1-3.1 3.1-8.2 0-11.3l-28.3-28.3zM490 320h44c4.4 0 8-3.6 8-8v-80c0-4.4-3.6-8-8-8h-44c-4.4 0-8 3.6-8 8v80c0 4.4 3.6 8 8 8zm260 218v44c0 4.4 3.6 8 8 8h80c4.4 0 8-3.6 8-8v-44c0-4.4-3.6-8-8-8h-80c-4.4 0-8 3.6-8 8zm12.7-197.2l-31.1-31.1a8.03 8.03 0 00-11.3 0l-56.6 56.6a8.03 8.03 0 000 11.3l31.1 31.1c3.1 3.1 8.2 3.1 11.3 0l56.6-56.6c3.1-3.1 3.1-8.2 0-11.3zm-458.6-31.1a8.03 8.03 0 00-11.3 0l-31.1 31.1a8.03 8.03 0 000 11.3l56.6 56.6c3.1 3.1 8.2 3.1 11.3 0l31.1-31.1c3.1-3.1 3.1-8.2 0-11.3l-56.6-56.6zM262 530h-80c-4.4 0-8 3.6-8 8v44c0 4.4 3.6 8 8 8h80c4.4 0 8-3.6 8-8v-44c0-4.4-3.6-8-8-8z"
+                  />
+                </svg>
+              </span>
+              <span
+                class="ant-menu-title-content"
+              >
+                儀表板
+              </span>
+            </li>
+            <li
+              class="ant-menu-submenu ant-menu-submenu-inline"
+              role="none"
+            >
+              <div
+                aria-controls="rc-menu-uuid-test-id-主檔管理-popup"
+                aria-expanded="false"
+                aria-haspopup="true"
+                class="ant-menu-submenu-title"
+                data-menu-id="rc-menu-uuid-test-id-主檔管理"
+                role="menuitem"
+                style="padding-left: 24px;"
+                tabindex="-1"
+              >
+                <span
+                  class="ant-menu-title-content"
+                >
+                  主檔管理
+                </span>
+                <i
+                  class="ant-menu-submenu-arrow"
+                />
+              </div>
+            </li>
+            <li
+              class="ant-menu-submenu ant-menu-submenu-inline"
+              role="none"
+            >
+              <div
+                aria-controls="rc-menu-uuid-test-id-需求與庫存-popup"
+                aria-expanded="false"
+                aria-haspopup="true"
+                class="ant-menu-submenu-title"
+                data-menu-id="rc-menu-uuid-test-id-需求與庫存"
+                role="menuitem"
+                style="padding-left: 24px;"
+                tabindex="-1"
+              >
+                <span
+                  class="ant-menu-title-content"
+                >
+                  需求與庫存
+                </span>
+                <i
+                  class="ant-menu-submenu-arrow"
+                />
+              </div>
+            </li>
+            <li
+              class="ant-menu-submenu ant-menu-submenu-inline ant-menu-submenu-selected"
+              role="none"
+            >
+              <div
+                aria-controls[...
+ ❯ waitForWrapper node_modules/@testing-library/dom/dist/wait-for.js:163:27
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:86:33
+ ❯ tests/sp805.test.tsx:162:25
+    160|     });
+    161|     await open('/purchase-orders/42');
+    162|     expect(await screen.findByText('999999999999999999999 KG')).toBeTr…
+       |                         ^
+    163|     expect(screen.getByText('123.4500')).toBeTruthy();
+    164|     expect(screen.getByText('1.23E+8')).toBeTruthy();
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/6]⎯
+
+ FAIL  tests/sp805.test.tsx > SP-805 PO lifecycle UI > creates a DRAFT with the exact IDs of page-6 master records and does not confuse duplicate names
+Error: Test timed out in 30000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+ ❯ tests/sp805.test.tsx:190:3
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/6]⎯
+
+ FAIL  tests/sp805.test.tsx > SP-805 PO lifecycle UI > uses role plus domain state guards and blocks approval when a DRAFT has no delivery date
+TestingLibraryElementError: Unable to find an element with the text: 999999999999999.1234000 KG. This could be because the text is broken up by multiple elements. In this case, you can provide a function for your text matcher to make your matcher more flexible.
+
+Ignored nodes: comments, script, style
+<body>
+  <div>
+    <div
+      class="ant-layout ant-layout-has-sider app-layout css-dev-only-do-not-override-oc1rc0 css-var-_r_6q_"
+      style="min-height: 100vh;"
+    >
+      <aside
+        class="ant-layout-sider ant-layout-sider-dark css-dev-only-do-not-override-oc1rc0 css-var-_r_6q_"
+        style="flex: 0 0 200px; max-width: 200px; min-width: 200px; width: 200px;"
+      >
+        <div
+          class="ant-layout-sider-children"
+        >
+          <div
+            style="padding: 16px; text-align: center;"
+          >
+            <h4
+              class="ant-typography css-dev-only-do-not-override-oc1rc0 css-var-_r_6q_"
+              style="color: rgb(255, 255, 255); margin: 0px;"
+            >
+              SupplyPilot
+            </h4>
+            <span
+              class="ant-typography css-dev-only-do-not-override-oc1rc0 css-var-_r_6q_"
+              style="color: rgb(140, 140, 140); font-size: 11px; display: block; margin-top: 4px;"
+            >
+              採購決策平台
+            </span>
+          </div>
+          <ul
+            class="ant-menu ant-menu-root ant-menu-inline ant-menu-dark css-dev-only-do-not-override-oc1rc0 css-var-_r_6q_ ant-menu-css-var"
+            data-menu-list="true"
+            role="menu"
+            tabindex="0"
+          >
+            <li
+              class="ant-menu-item"
+              data-menu-id="rc-menu-uuid-test-id-/dashboard"
+              role="menuitem"
+              style="padding-left: 24px;"
+              tabindex="-1"
+            >
+              <span
+                aria-label="dashboard"
+                class="anticon anticon-dashboard ant-menu-item-icon"
+                role="img"
+              >
+                <svg
+                  aria-hidden="true"
+                  data-icon="dashboard"
+                  fill="currentColor"
+                  focusable="false"
+                  height="1em"
+                  viewBox="64 64 896 896"
+                  width="1em"
+                >
+                  <path
+                    d="M924.8 385.6a446.7 446.7 0 00-96-142.4 446.7 446.7 0 00-142.4-96C631.1 123.8 572.5 112 512 112s-119.1 11.8-174.4 35.2a446.7 446.7 0 00-142.4 96 446.7 446.7 0 00-96 142.4C75.8 440.9 64 499.5 64 560c0 132.7 58.3 257.7 159.9 343.1l1.7 1.4c5.8 4.8 13.1 7.5 20.6 7.5h531.7c7.5 0 14.8-2.7 20.6-7.5l1.7-1.4C901.7 817.7 960 692.7 960 560c0-60.5-11.9-119.1-35.2-174.4zM761.4 836H262.6A371.12 371.12 0 01140 560c0-99.4 38.7-192.8 109-263 70.3-70.3 163.7-109 263-109 99.4 0 192.8 38.7 263 109 70.3 70.3 109 163.7 109 263 0 105.6-44.5 205.5-122.6 276zM623.5 421.5a8.03 8.03 0 00-11.3 0L527.7 506c-18.7-5-39.4-.2-54.1 14.5a55.95 55.95 0 000 79.2 55.95 55.95 0 0079.2 0 55.87 55.87 0 0014.5-54.1l84.5-84.5c3.1-3.1 3.1-8.2 0-11.3l-28.3-28.3zM490 320h44c4.4 0 8-3.6 8-8v-80c0-4.4-3.6-8-8-8h-44c-4.4 0-8 3.6-8 8v80c0 4.4 3.6 8 8 8zm260 218v44c0 4.4 3.6 8 8 8h80c4.4 0 8-3.6 8-8v-44c0-4.4-3.6-8-8-8h-80c-4.4 0-8 3.6-8 8zm12.7-197.2l-31.1-31.1a8.03 8.03 0 00-11.3 0l-56.6 56.6a8.03 8.03 0 000 11.3l31.1 31.1c3.1 3.1 8.2 3.1 11.3 0l56.6-56.6c3.1-3.1 3.1-8.2 0-11.3zm-458.6-31.1a8.03 8.03 0 00-11.3 0l-31.1 31.1a8.03 8.03 0 000 11.3l56.6 56.6c3.1 3.1 8.2 3.1 11.3 0l31.1-31.1c3.1-3.1 3.1-8.2 0-11.3l-56.6-56.6zM262 530h-80c-4.4 0-8 3.6-8 8v44c0 4.4 3.6 8 8 8h80c4.4 0 8-3.6 8-8v-44c0-4.4-3.6-8-8-8z"
+                  />
+                </svg>
+              </span>
+              <span
+                class="ant-menu-title-content"
+              >
+                儀表板
+              </span>
+            </li>
+            <li
+              class="ant-menu-submenu ant-menu-submenu-inline"
+              role="none"
+            >
+              <div
+                aria-controls="rc-menu-uuid-test-id-主檔管理-popup"
+                aria-expanded="false"
+                aria-haspopup="true"
+                class="ant-menu-submenu-title"
+                data-menu-id="rc-menu-uuid-test-id-主檔管理"
+                role="menuitem"
+                style="padding-left: 24px;"
+                tabindex="-1"
+              >
+                <span
+                  class="ant-menu-title-content"
+                >
+                  主檔管理
+                </span>
+                <i
+                  class="ant-menu-submenu-arrow"
+                />
+              </div>
+            </li>
+            <li
+              class="ant-menu-submenu ant-menu-submenu-inline"
+              role="none"
+            >
+              <div
+                aria-controls="rc-menu-uuid-test-id-需求與庫存-popup"
+                aria-expanded="false"
+                aria-haspopup="true"
+                class="ant-menu-submenu-title"
+                data-menu-id="rc-menu-uuid-test-id-需求與庫存"
+                role="menuitem"
+                style="padding-left: 24px;"
+                tabindex="-1"
+              >
+                <span
+                  class="ant-menu-title-content"
+                >
+                  需求與庫存
+                </span>
+                <i
+                  class="ant-menu-submenu-arrow"
+                />
+              </div>
+            </li>
+            <li
+              class="ant-menu-submenu ant-menu-submenu-inline ant-menu-submenu-selected"
+              role="none"
+            >
+              <div
+                aria-controls[...
+ ❯ Object.getElementError node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ tests/sp805.test.tsx:312:19
+    310|     expect(screen.queryByRole('button', { name: '編輯草稿' })).toBeNull();
+    311|     expect(screen.queryByRole('button', { name: '標記為已下單' })).toBeNull(…
+    312|     expect(screen.getByText('999999999999999.1234000 KG')).toBeTruthy(…
+       |                   ^
+    313|     expect(requests).toEqual(['/auth/me', '/users/assignable', '/purch…
+    314|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/6]⎯
+
+
+ Test Files  3 failed | 2 passed (5)
+      Tests  6 failed | 40 passed (46)
+   Start at  19:05:59
+   Duration  198.28s (transform 4.40s, setup 2.85s, import 44.81s, tests 453.23s, environment 11.71s)
+

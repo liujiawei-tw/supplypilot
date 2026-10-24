@@ -115,6 +115,7 @@ class PurchaseOrderControllerIntegrationTests extends AbstractIntegrationTest {
                 .andExpect(jsonPath("$.status").value("DRAFT"))
                 .andExpect(jsonPath("$.items.length()").value(2))
                 .andExpect(jsonPath("$.items[0].unit").value("KG"))
+                .andExpect(jsonPath("$.items[0].currency").value("TWD"))
                 .andExpect(jsonPath("$.createdBy").value(staff.getId())).andReturn();
         create(admin, payload(supplier, List.of(item(first, 1, 1)))).andExpect(status().isCreated()).andExpect(jsonPath("$.status").value("DRAFT"));
 
@@ -122,6 +123,27 @@ class PurchaseOrderControllerIntegrationTests extends AbstractIntegrationTest {
         mockMvc.perform(get("/api/v1/purchase-orders/{id}", id).header("Authorization", bearer(staff)))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.id").value(id))
                 .andExpect(jsonPath("$.items.length()").value(2));
+    }
+
+    @Test
+    void returnsPersistedItemCurrencySnapshotWithoutRequiringCurrentSupplierMaterial() throws Exception {
+        Supplier supplier = activeSupplier();
+        Material material = activeMaterial();
+        SupplierMaterial relation = activeSupplierMaterial(supplier, material);
+        User staff = user(UserRole.PROCUREMENT_STAFF);
+        MvcResult created = create(staff, payload(supplier, List.of(item(material, 2, 10))))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.items[0].currency").value("TWD"))
+                .andReturn();
+        long id = ((Number) com.jayway.jsonpath.JsonPath.read(
+                created.getResponse().getContentAsString(), "$.id")).longValue();
+
+        supplierMaterialRepository.delete(relation);
+        supplierMaterialRepository.flush();
+
+        mockMvc.perform(get("/api/v1/purchase-orders/{id}", id).header("Authorization", bearer(staff)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items[0].currency").value("TWD"));
     }
 
     @Test
@@ -138,6 +160,8 @@ class PurchaseOrderControllerIntegrationTests extends AbstractIntegrationTest {
         create(user(UserRole.PROCUREMENT_STAFF), valid.substring(0, valid.length() - 1) + ",\"status\":\"APPROVED\",\"createdBy\":999,\"poNumber\":\"CLIENT\"}")
                 .andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("VALIDATION_FAILED"));
         create(user(UserRole.PROCUREMENT_STAFF), "{\"supplierId\":" + supplier.getId() + ",\"items\":[{\"materialId\":" + material.getId() + ",\"quantity\":1,\"unitPrice\":0,\"unit\":\"PCS\"}]}")
+                .andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("VALIDATION_FAILED"));
+        create(user(UserRole.PROCUREMENT_STAFF), "{\"supplierId\":" + supplier.getId() + ",\"items\":[{\"materialId\":" + material.getId() + ",\"quantity\":1,\"unitPrice\":0,\"currency\":\"TWD\"}]}")
                 .andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("VALIDATION_FAILED"));
         create(user(UserRole.PROCUREMENT_STAFF), "{\"supplierId\":" + supplier.getId() + ",\"items\":[{\"materialId\":" + material.getId() + ",\"quantity\":1,\"unitPrice\":0,\"recommendedSupplierIdSnapshot\":999,\"recommendedQuantitySnapshot\":999}]}")
                 .andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("VALIDATION_FAILED"));

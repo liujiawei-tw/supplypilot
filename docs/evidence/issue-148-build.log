@@ -1,0 +1,14 @@
+
+> frontend@0.0.0 build
+> tsc -b && vite build
+
+src/pages/Materials/MaterialsPage.tsx(117,71): error TS7006: Parameter 'value' implicitly has an 'any' type.
+src/pages/Materials/MaterialsPage.tsx(117,78): error TS7006: Parameter 'row' implicitly has an 'any' type.
+src/pages/Suppliers/SupplierList.tsx(106,96): error TS2322: Type '({ title: string; dataIndex: string; sorter: boolean; render?: undefined; key?: undefined; } | { title: string; dataIndex: string; sorter: boolean; render: (country: string | null) => string; key?: undefined; } | { ...; } | { ...; } | { ...; })[]' is not assignable to type '(ColumnGroupType<SupplierResponse> | ColumnType<SupplierResponse>)[]'.
+  Type '{ title: string; dataIndex: string; sorter: boolean; render?: undefined; key?: undefined; } | { title: string; dataIndex: string; sorter: boolean; render: (country: string | null) => string; key?: undefined; } | { ...; } | { ...; } | { ...; }' is not assignable to type 'ColumnGroupType<SupplierResponse> | ColumnType<SupplierResponse>'.
+    Type '{ title: string; dataIndex: string; sorter: boolean; render: (value: DecimalDisplayValue, emptyValue?: string) => string; key?: undefined; }' is not assignable to type 'ColumnGroupType<SupplierResponse> | ColumnType<SupplierResponse>'.
+      Type '{ title: string; dataIndex: string; sorter: boolean; render: (value: DecimalDisplayValue, emptyValue?: string) => string; key?: undefined; }' is not assignable to type 'ColumnType<SupplierResponse>'.
+        Types of property 'render' are incompatible.
+          Type '(value: DecimalDisplayValue, emptyValue?: string) => string' is not assignable to type '(value: any, record: SupplierResponse, index: number) => ReactNode | RenderedCell<SupplierResponse>'.
+            Types of parameters 'emptyValue' and 'record' are incompatible.
+              Type 'SupplierResponse' is not assignable to type 'string'.

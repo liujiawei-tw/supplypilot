@@ -1,0 +1,18 @@
+COMMAND: git diff --check
+BRANCH: codex/issue-148-ui-format-rwd
+DATE: 2026-10-24 Asia/Taipei
+
+warning: in the working copy of 'backend/src/main/java/com/supplypilot/procurement/domain/PurchaseOrderItem.java', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'backend/src/main/java/com/supplypilot/procurement/dto/response/PurchaseOrderItemResponse.java', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'backend/src/main/java/com/supplypilot/procurement/mapper/PurchaseOrderMapper.java', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'backend/src/main/java/com/supplypilot/procurement/service/PurchaseOrderService.java', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'backend/src/test/java/com/supplypilot/integration/PurchaseOrderControllerIntegrationTests.java', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'backend/src/test/java/com/supplypilot/integration/PurchaseOrderUpdateIntegrationTests.java', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'docs/api.md', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'frontend/src/api/purchaseOrder.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'frontend/src/pages/PurchaseOrders/PurchaseOrderDetailPage.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'frontend/tests/sp805.test.tsx', LF will be replaced by CRLF the next time Git touches it
+EXIT_CODE=0
+FINAL COMMAND: git diff --cached --check -- . ':!docs/evidence/*.log'
+RESULT: Exit 0; no whitespace errors in staged code or Markdown documentation.
+NOTE: Raw log files are excluded from this source/doc check and retained byte-for-byte, including logger trailing spaces.

@@ -9,6 +9,7 @@ import ErrorState from '../../components/ErrorState';
 import LoadingState from '../../components/LoadingState';
 import type { ApiErrorResponse, PageResponse } from '../../types/api';
 import { displayLabel } from '../../utils/displayLabels';
+import { formatDecimal } from '../../utils/displayFormatters';
 
 const statuses: SupplierStatus[] = ['ACTIVE', 'INACTIVE'];
 type SupplierFormValues = CreateSupplierRequest & { status?: SupplierStatus };
@@ -84,7 +85,7 @@ export default function SupplierList({ isAdmin }: { isAdmin: boolean }) {
   const columns = [
     { title: '供應商代碼', dataIndex: 'code', sorter: true }, { title: '名稱', dataIndex: 'name', sorter: true },
     { title: '國家／地區', dataIndex: 'country', sorter: true, render: (country: string | null) => country || '—' },
-    { title: '可靠度', dataIndex: 'reliabilityScore', sorter: true }, { title: '品質評分', dataIndex: 'qualityScore', sorter: true },
+    { title: '可靠度', dataIndex: 'reliabilityScore', sorter: true, render: (value: SupplierResponse['reliabilityScore']) => formatDecimal(value) }, { title: '品質評分', dataIndex: 'qualityScore', sorter: true, render: (value: SupplierResponse['qualityScore']) => formatDecimal(value) },
     { title: '狀態', dataIndex: 'status', sorter: true, render: (status: SupplierStatus) => <Tag color={status === 'ACTIVE' ? 'green' : 'default'}>{displayLabel(status)}</Tag> },
     ...(isAdmin ? [{ title: '操作', key: 'actions', render: (_: unknown, supplier: SupplierResponse) => <Space>
       <Button size="small" onClick={() => openEdit(supplier)}>編輯</Button>
@@ -102,7 +103,7 @@ export default function SupplierList({ isAdmin }: { isAdmin: boolean }) {
       {isAdmin && <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>新增供應商</Button>}
     </Space>
     {listError && <ErrorState title="供應商查詢失敗" error={listError} onRetry={() => void load()} />}
-    {loading && !data ? <LoadingState tip="正在載入供應商…" /> : <Table<SupplierResponse> rowKey="id" columns={columns} dataSource={data?.content ?? []} loading={loading}
+    {loading && !data ? <LoadingState tip="正在載入供應商…" /> : <Table<SupplierResponse> rowKey="id" columns={columns} dataSource={data?.content ?? []} loading={loading} scroll={{ x: 'max-content' }}
       locale={{ emptyText: <EmptyState simple description={filtered ? '沒有符合條件的供應商' : '目前沒有供應商資料'} actionText={isAdmin && !filtered ? '新增供應商' : undefined} onAction={isAdmin && !filtered ? openCreate : undefined} /> }}
       pagination={{ current: (data?.page ?? 0) + 1, pageSize: data?.size ?? query.size, total: data?.totalElements ?? 0, showSizeChanger: true }} onChange={handleTableChange} />}
     <Modal title={editing ? '編輯供應商' : '新增供應商'} open={modalOpen} onCancel={() => !submitting && setModalOpen(false)} onOk={() => void submit()} confirmLoading={submitting} okButtonProps={{ disabled: submitting }} destroyOnHidden>

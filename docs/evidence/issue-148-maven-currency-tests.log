@@ -1,0 +1,75 @@
+COMMAND: mvn -f backend/pom.xml -Dtest=PurchaseOrderControllerIntegrationTests,PurchaseOrderUpdateIntegrationTests,V31PurchaseOrderCurrencyMigrationIntegrationTests test
+DATE: 2026-10-24 Asia/Taipei
+
+EXIT_CODE=
+RETRY COMMAND: backend/mvnw.cmd -f backend/pom.xml -Dtest=PurchaseOrderControllerIntegrationTests,PurchaseOrderUpdateIntegrationTests,V31PurchaseOrderCurrencyMigrationIntegrationTests test
+The system mvn executable was unavailable; using the repository wrapper.
+
+[INFO] Scanning for projects...
+[INFO] 
+[INFO] ------------------< com.supplypilot:supply-pilot-api >------------------
+[INFO] Building supply-pilot-api 0.0.1-SNAPSHOT
+[INFO]   from pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.5.0:resources (default-resources) @ supply-pilot-api ---
+[INFO] Copying 5 resources from src\main\resources to target\classes
+[INFO] Copying 34 resources from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.15.0:compile (default-compile) @ supply-pilot-api ---
+[INFO] Recompiling the module because of changed source code.
+[INFO] Compiling 265 source files with javac [debug parameters release 21] to target\classes
+[WARNING] /C:/Users/z0976/.codex/worktrees/issue-148-v2-401/supplypilot/backend/src/main/java/com/supplypilot/ai/client/SpringAiDraftProposalGenerator.java:[165,42] getDefaultOptions() in org.springframework.ai.chat.model.ChatModel has been deprecated and marked for removal
+[WARNING] /C:/Users/z0976/.codex/worktrees/issue-148-v2-401/supplypilot/backend/src/main/java/com/supplypilot/ai/client/SpringAiDraftProposalGenerator.java:[165,76] getDefaultOptions() in org.springframework.ai.chat.model.ChatModel has been deprecated and marked for removal
+[WARNING] /C:/Users/z0976/.codex/worktrees/issue-148-v2-401/supplypilot/backend/src/main/java/com/supplypilot/ai/client/SpringAiProviderClient.java:[232,32] getDefaultOptions() in org.springframework.ai.chat.model.ChatModel has been deprecated and marked for removal
+[WARNING] /C:/Users/z0976/.codex/worktrees/issue-148-v2-401/supplypilot/backend/src/main/java/com/supplypilot/ai/client/SpringAiProviderClient.java:[233,33] getDefaultOptions() in org.springframework.ai.chat.model.ChatModel has been deprecated and marked for removal
+[INFO] 
+[INFO] --- resources:3.5.0:testResources (default-testResources) @ supply-pilot-api ---
+[INFO] Copying 3 resources from src\test\resources to target\test-classes
+[INFO] 
+[INFO] --- compiler:3.15.0:testCompile (default-testCompile) @ supply-pilot-api ---
+[INFO] Recompiling the module because of changed dependency.
+[INFO] Compiling 124 source files with javac [debug parameters release 21] to target\test-classes
+[INFO] /C:/Users/z0976/.codex/worktrees/issue-148-v2-401/supplypilot/backend/src/test/java/com/supplypilot/demand/service/DemandServiceTests.java: Some input files use unchecked or unsafe operations.
+[INFO] /C:/Users/z0976/.codex/worktrees/issue-148-v2-401/supplypilot/backend/src/test/java/com/supplypilot/demand/service/DemandServiceTests.java: Recompile with -Xlint:unchecked for details.
+[INFO] -------------------------------------------------------------
+[WARNING] COMPILATION WARNING : 
+[INFO] -------------------------------------------------------------
+[WARNING] /C:/Users/z0976/.codex/worktrees/issue-148-v2-401/supplypilot/backend/src/test/java/com/supplypilot/ai/client/SpringAiDraftProposalGeneratorTests.java:[43,42] getDefaultOptions() in org.springframework.ai.chat.model.ChatModel has been deprecated and marked for removal
+[WARNING] /C:/Users/z0976/.codex/worktrees/issue-148-v2-401/supplypilot/backend/src/test/java/com/supplypilot/ai/client/SpringAiProviderClientTests.java:[799,67] getDefaultOptions() in org.springframework.ai.chat.model.ChatModel has been deprecated and marked for removal
+[WARNING] /C:/Users/z0976/.codex/worktrees/issue-148-v2-401/supplypilot/backend/src/test/java/com/supplypilot/integration/AiControllerIntegrationTests.java:[316,28] getDefaultOptions() in org.springframework.ai.chat.model.ChatModel has been deprecated and marked for removal
+[WARNING] /C:/Users/z0976/.codex/worktrees/issue-148-v2-401/supplypilot/backend/src/test/java/com/supplypilot/integration/AiDraftProposalIntegrationTests.java:[286,46] getDefaultOptions() in org.springframework.ai.chat.model.ChatModel has been deprecated and marked for removal
+[INFO] 4 warnings 
+[INFO] -------------------------------------------------------------
+[INFO] -------------------------------------------------------------
+[ERROR] COMPILATION ERROR : 
+[INFO] -------------------------------------------------------------
+[ERROR] /C:/Users/z0976/.codex/worktrees/issue-148-v2-401/supplypilot/backend/src/test/java/com/supplypilot/integration/V31PurchaseOrderCurrencyMigrationIntegrationTests.java:[9,37] cannot find symbol
+  symbol:   class UncategorizedSQLException
+  location: package org.springframework.jdbc.core
+[ERROR] /C:/Users/z0976/.codex/worktrees/issue-148-v2-401/supplypilot/backend/src/test/java/com/supplypilot/integration/V31PurchaseOrderCurrencyMigrationIntegrationTests.java:[46,31] cannot find symbol
+  symbol:   class UncategorizedSQLException
+  location: class com.supplypilot.integration.V31PurchaseOrderCurrencyMigrationIntegrationTests
+[INFO] 2 errors 
+[INFO] -------------------------------------------------------------
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD FAILURE
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  24.629 s
+[INFO] Finished at: 2026-10-24T19:52:00+08:00
+[INFO] ------------------------------------------------------------------------
+[ERROR] Failed to execute goal org.apache.maven.plugins:maven-compiler-plugin:3.15.0:testCompile (default-testCompile) on project supply-pilot-api: Compilation failure: Compilation failure: 
+[ERROR] /C:/Users/z0976/.codex/worktrees/issue-148-v2-401/supplypilot/backend/src/test/java/com/supplypilot/integration/V31PurchaseOrderCurrencyMigrationIntegrationTests.java:[9,37] cannot find symbol
+[ERROR]   symbol:   class UncategorizedSQLException
+[ERROR]   location: package org.springframework.jdbc.core
+[ERROR] /C:/Users/z0976/.codex/worktrees/issue-148-v2-401/supplypilot/backend/src/test/java/com/supplypilot/integration/V31PurchaseOrderCurrencyMigrationIntegrationTests.java:[46,31] cannot find symbol
+[ERROR]   symbol:   class UncategorizedSQLException
+[ERROR]   location: class com.supplypilot.integration.V31PurchaseOrderCurrencyMigrationIntegrationTests
+[ERROR] -> [Help 1]
+[ERROR] 
+[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.
+[ERROR] Re-run Maven using the -X switch to enable full debug logging.
+[ERROR] 
+[ERROR] For more information about the errors and possible solutions, please read the following articles:
+[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoFailureException
+EXIT_CODE=1

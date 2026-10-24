@@ -1,5 +1,6 @@
 import axiosClient from './axiosClient';
 import type { BaseUnit } from './material';
+import type { Currency } from './supplierMaterial';
 import type { PageResponse } from '../types/api';
 import { decimalResponseConfig } from './decimalJson';
 
@@ -36,7 +37,7 @@ export interface UpdatePurchaseOrderRequest { supplierId?: number; expectedDeliv
 
 export interface PurchaseOrderItemResponse {
   id: number; materialId: number; materialCode: string; materialName: string; quantity: DecimalValue; unit: BaseUnit;
-  unitPrice: DecimalValue; total: DecimalValue; recommendationId: number | null; supplierRecommendationResultId: number | null;
+  unitPrice: DecimalValue; total: DecimalValue; currency: Currency; recommendationId: number | null; supplierRecommendationResultId: number | null;
   supplierOverride: boolean; quantityOverride: boolean; supplierOverrideReason: string | null; quantityOverrideReason: string | null;
 }
 export interface PurchaseOrderResponse {

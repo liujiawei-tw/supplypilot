@@ -38,6 +38,7 @@ import com.supplypilot.recommendation.repository.PurchaseRecommendationRepositor
 import com.supplypilot.recommendation.repository.SupplierRecommendationResultRepository;
 import com.supplypilot.security.CurrentUserProvider;
 import com.supplypilot.supplier.domain.Supplier;
+import com.supplypilot.supplier.domain.Currency;
 import com.supplypilot.supplier.domain.SupplierMaterial;
 import com.supplypilot.supplier.domain.SupplierMaterialStatus;
 import com.supplypilot.supplier.domain.SupplierStatus;
@@ -124,12 +125,8 @@ public class PurchaseOrderService {
             Material material = materialRepository.findById(itemRequest.materialId())
                     .orElseThrow(() -> new BusinessException(ErrorCode.MATERIAL_NOT_FOUND));
             if (material.getStatus() != MaterialStatus.ACTIVE) throw new BusinessException(ErrorCode.MATERIAL_INACTIVE);
-            SupplierMaterial supplierMaterial = supplierMaterialRepository.findBySupplierIdAndMaterialId(supplier.getId(), material.getId())
-                    .orElseThrow(() -> new BusinessException(ErrorCode.SUPPLIER_MATERIAL_NOT_FOUND));
-            if (supplierMaterial.getStatus() != SupplierMaterialStatus.ACTIVE) {
-                throw new BusinessException(ErrorCode.SUPPLIER_MATERIAL_INACTIVE);
-            }
-            purchaseOrder.addItem(createItem(itemRequest, material, supplier));
+            SupplierMaterial supplierMaterial = requireActiveSupplierMaterial(supplier, material);
+            purchaseOrder.addItem(createItem(itemRequest, material, supplier, supplierMaterial.getCurrency()));
         }
 
         return purchaseOrder;
@@ -224,12 +221,16 @@ public class PurchaseOrderService {
             replacementItems = request.items().stream().map(itemRequest -> {
                 if (!materialIds.add(itemRequest.materialId())) throw new BusinessException(ErrorCode.DUPLICATE_MATERIAL);
                 Material material = activeMaterial(itemRequest.materialId());
-                validateSupplierMaterial(finalSupplier, material);
-                return PurchaseOrderItem.create(material, itemRequest.quantity(), itemRequest.unitPrice(), clock.instant());
+                SupplierMaterial supplierMaterial = validateSupplierMaterial(finalSupplier, material);
+                return PurchaseOrderItem.create(material, itemRequest.quantity(), itemRequest.unitPrice(),
+                        supplierMaterial.getCurrency(), clock.instant());
             }).toList();
         } else {
             for (PurchaseOrderItem item : purchaseOrder.getItems()) {
-                validateRetainedItem(item, finalSupplier);
+                SupplierMaterial supplierMaterial = validateRetainedItem(item, finalSupplier);
+                if (request.supplierIdProvided()) {
+                    item.refreshCurrencySnapshot(supplierMaterial.getCurrency());
+                }
             }
         }
 
@@ -390,13 +391,17 @@ public class PurchaseOrderService {
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
     }
 
-    private PurchaseOrderItem createItem(CreatePurchaseOrderItemRequest request, Material material, Supplier supplier) {
-        return createItem(itemInput(request), material, supplier);
+    private PurchaseOrderItem createItem(
+            CreatePurchaseOrderItemRequest request, Material material, Supplier supplier,
+            Currency currency) {
+        return createItem(itemInput(request), material, supplier, currency);
     }
 
-    private PurchaseOrderItem createItem(ItemInput request, Material material, Supplier supplier) {
+    private PurchaseOrderItem createItem(
+            ItemInput request, Material material, Supplier supplier,
+            Currency currency) {
         if (!request.hasRecommendationInput()) {
-            return PurchaseOrderItem.create(material, request.quantity(), request.unitPrice(), clock.instant());
+            return PurchaseOrderItem.create(material, request.quantity(), request.unitPrice(), currency, clock.instant());
         }
 
         validateRecommendationInputShape(request);
@@ -429,6 +434,7 @@ public class PurchaseOrderService {
                 material,
                 request.quantity(),
                 request.unitPrice(),
+                currency,
                 recommendation.getId(),
                 supplierResult.getId(),
                 recommendedSupplierId,
@@ -465,18 +471,23 @@ public class PurchaseOrderService {
         return material;
     }
 
-    private void validateSupplierMaterial(Supplier supplier, Material material) {
+    private SupplierMaterial validateSupplierMaterial(Supplier supplier, Material material) {
+        return requireActiveSupplierMaterial(supplier, material);
+    }
+
+    private SupplierMaterial requireActiveSupplierMaterial(Supplier supplier, Material material) {
         SupplierMaterial supplierMaterial = supplierMaterialRepository
                 .findBySupplierIdAndMaterialId(supplier.getId(), material.getId())
                 .orElseThrow(() -> new BusinessException(ErrorCode.SUPPLIER_MATERIAL_NOT_FOUND));
         if (supplierMaterial.getStatus() != SupplierMaterialStatus.ACTIVE) {
             throw new BusinessException(ErrorCode.SUPPLIER_MATERIAL_INACTIVE);
         }
+        return supplierMaterial;
     }
 
-    private void validateRetainedItem(PurchaseOrderItem item, Supplier supplier) {
+    private SupplierMaterial validateRetainedItem(PurchaseOrderItem item, Supplier supplier) {
         Material material = activeMaterial(item.getMaterial().getId());
-        validateSupplierMaterial(supplier, material);
+        return validateSupplierMaterial(supplier, material);
     }
 
     private ItemInput itemInput(CreatePurchaseOrderItemRequest request) {

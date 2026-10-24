@@ -11,7 +11,8 @@ import LoadingState from '../../components/LoadingState';
 import VerificationRequiredAlert from '../../components/VerificationRequiredAlert';
 import type { ApiErrorResponse } from '../../types/api';
 import PurchaseOrderForm from './PurchaseOrderForm';
-import { formatTimestamp, statusColors } from './purchaseOrderUi';
+import { formatPurchaseOrderDate, formatTimestamp, statusColors } from './purchaseOrderUi';
+import { formatCurrency, formatDate, formatQuantity } from '../../utils/displayFormatters';
 import { displayLabel } from '../../utils/displayLabels';
 
 const emptyReceivingInspection = { allItemsReceived: false, allQuantitiesConfirmed: false, allQualityAccepted: false, note: null };
@@ -131,8 +132,8 @@ export default function PurchaseOrderDetailPage() {
     {actionError && <ErrorState title={verificationRequired ? '採購單操作結果待查核' : '採購單操作失敗'} error={actionError} operation="mutation" />}
     <Descriptions bordered column={{ xs: 1, md: 2 }} items={[
       { key: 'id', label: '採購單編號', children: po.id }, { key: 'status', label: '狀態', children: <Space><Tag color={statusColors[po.status]}>{displayLabel(po.status)}</Tag>{po.isOverdue && <Tag color="red">已逾期</Tag>}</Space> },
-      { key: 'supplier', label: '供應商快照', children: `${po.supplierCode} — ${po.supplierName} (#${po.supplierId})` }, { key: 'delivery', label: '公司期望到貨日', children: po.expectedDeliveryDate ?? '未設定' },
-      { key: 'supplier-promise', label: '供應商承諾交期', children: po.supplierPromisedDeliveryDate ?? '尚未提供' },
+      { key: 'supplier', label: '供應商快照', children: `${po.supplierCode} — ${po.supplierName} (#${po.supplierId})` }, { key: 'delivery', label: '公司期望到貨日', children: formatPurchaseOrderDate(po.expectedDeliveryDate) },
+      { key: 'supplier-promise', label: '供應商承諾交期', children: formatDate(po.supplierPromisedDeliveryDate, '尚未提供') },
       { key: 'created', label: '建立資訊', children: `${po.createdByDisplayName} (#${po.createdBy}) · ${formatTimestamp(po.createdAt)}` },
       { key: 'assigned', label: '目前負責人', children: po.assignedToDisplayName ?? '未指派' },
       { key: 'approved', label: '核准資訊', children: po.approvedBy ? `${po.approvedByDisplayName} (#${po.approvedBy}) · ${formatTimestamp(po.approvedAt)}` : '—' },
@@ -147,10 +148,10 @@ export default function PurchaseOrderDetailPage() {
       { key: 'updated', label: '更新時間', children: formatTimestamp(po.updatedAt) },
     ]} />
     <Typography.Title level={4}>品項</Typography.Title>
-    <Table<PurchaseOrderItemResponse> rowKey="id" pagination={false} dataSource={items} columns={[
+    <Table<PurchaseOrderItemResponse> rowKey="id" pagination={false} dataSource={items} scroll={{ x: 'max-content' }} columns={[
       { title: '物料', render: (_, row) => `${row.materialCode} — ${row.materialName} (#${row.materialId})` },
-      { title: '數量', render: (_, row) => `${String(row.quantity)} ${row.unit}` },
-      { title: '單價', render: (_, row) => String(row.unitPrice) }, { title: '小計', render: (_, row) => String(row.total) },
+      { title: '數量', render: (_, row) => formatQuantity(row.quantity, row.unit) },
+      { title: '單價', render: (_, row) => formatCurrency(row.unitPrice, row.currency) }, { title: '小計', render: (_, row) => formatCurrency(row.total, row.currency) },
       { title: '歷史採購決策依據', render: (_, row) => row.recommendationId ? <Space orientation="vertical" size={0}><span>歷史建議 #{row.recommendationId} / 結果 #{row.supplierRecommendationResultId}</span>{row.supplierOverride && <span>原供應商覆寫：{row.supplierOverrideReason}</span>}{row.quantityOverride && <span>原數量覆寫：{row.quantityOverrideReason}</span>}</Space> : '手動採購品項' },
     ]} />
 
@@ -167,7 +168,7 @@ export default function PurchaseOrderDetailPage() {
       <Input aria-label="供應商承諾交期" type="date" value={supplierPromisedDeliveryDate} disabled={submitting} onChange={(event) => setSupplierPromisedDeliveryDate(event.target.value)} style={{ marginTop: 16 }} />
     </Modal>
     <Modal title="核准採購單" open={active === 'approve'} okText="確認核准" confirmLoading={submitting} onCancel={() => setActive(null)} onOk={() => void perform('approve', () => approvePurchaseOrder(po.id))}>
-      <Alert type="warning" showIcon title="核准後草稿將不可再編輯。" /><Descriptions style={{ marginTop: 16 }} column={1} bordered items={[{ key: 'delivery', label: '預計交期', children: po.expectedDeliveryDate ?? '未設定' }]} />
+      <Alert type="warning" showIcon title="核准後草稿將不可再編輯。" /><Descriptions style={{ marginTop: 16 }} column={1} bordered items={[{ key: 'delivery', label: '預計交期', children: formatPurchaseOrderDate(po.expectedDeliveryDate) }]} />
     </Modal>
     <Modal title="駁回採購單" open={active === 'reject'} okText="確認駁回" okButtonProps={{ danger: true, disabled: !rejectReason.trim() }} confirmLoading={submitting} onCancel={() => { setActive(null); setRejectReason(''); }} onOk={() => void perform('reject', () => rejectPurchaseOrder(po.id, rejectReason.trim()))}>
       <Form layout="vertical"><Form.Item label="駁回原因" required><Input.TextArea aria-label="採購單駁回原因" maxLength={2000} rows={4} value={rejectReason} onChange={(event) => setRejectReason(event.target.value)} /></Form.Item></Form>
@@ -177,7 +178,7 @@ export default function PurchaseOrderDetailPage() {
       <Form layout="vertical" style={{ marginTop: 16 }}><Form.Item label="取消原因" required><Input.TextArea aria-label="採購單取消原因" maxLength={2000} rows={4} value={cancelReason} onChange={(event) => setCancelReason(event.target.value)} /></Form.Item></Form>
     </Modal>
     <Modal title="標記採購單已下單" open={active === 'order'} okText="確認下單" confirmLoading={submitting} onCancel={() => setActive(null)} onOk={() => void perform('order', () => markPurchaseOrderOrdered(po.id))}>
-      <Alert type="warning" showIcon title="此動作只標記正式下單，不會修改交期，也不會增加庫存。" /><Descriptions style={{ marginTop: 16 }} column={1} bordered items={[{ key: 'delivery', label: '核准的預計交期', children: po.expectedDeliveryDate ?? '未設定' }]} />
+      <Alert type="warning" showIcon title="此動作只標記正式下單，不會修改交期，也不會增加庫存。" /><Descriptions style={{ marginTop: 16 }} column={1} bordered items={[{ key: 'delivery', label: '核准的預計交期', children: formatPurchaseOrderDate(po.expectedDeliveryDate) }]} />
     </Modal>
   </Space>;
 }

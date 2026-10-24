@@ -13,16 +13,14 @@ import UnauthorizedPage from '../Unauthorized/UnauthorizedPage';
 import StockTransactions from '../../components/StockTransactions';
 import type { ApiErrorResponse, PageResponse } from '../../types/api';
 import { getAdjustmentQuantityError, getAdjustmentReasonError } from './inventoryValidation';
+import { formatTimestamp } from '../PurchaseOrders/purchaseOrderUi';
+import { formatQuantity } from '../../utils/displayFormatters';
 
 type InventoryTab = 'stock-levels' | 'stock-transactions';
 
 interface AdjustmentValues {
   quantity?: string;
   reason?: string;
-}
-
-function formatTimestamp(value: string): string {
-  return new Intl.DateTimeFormat('zh-TW', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value));
 }
 
 function StockLevels() {
@@ -124,8 +122,7 @@ function StockLevels() {
     { title: '物料編號', dataIndex: 'materialId' },
     { title: '物料代碼', dataIndex: 'materialCode' },
     { title: '物料名稱', dataIndex: 'materialName' },
-    { title: '庫存數量', dataIndex: 'quantity' },
-    { title: '單位', dataIndex: 'unit' },
+    { title: '庫存數量', dataIndex: 'quantity', render: (value, row) => formatQuantity(value, row.unit) },
     { title: '更新時間', dataIndex: 'updatedAt', render: formatTimestamp },
     { title: '操作', key: 'actions', render: (_value, inventory) => <Space>
       <Button size="small" onClick={() => void openDetail(inventory.materialId)}>檢視</Button>
@@ -136,26 +133,25 @@ function StockLevels() {
 
   return <Space orientation="vertical" size="large" style={{ width: '100%' }}>
     {contextHolder}
-    <Space wrap>
+    <Space wrap style={{ maxWidth: '100%' }}>
       <InputNumber aria-label="物料編號篩選" placeholder="物料編號" min={1} precision={0} value={query.materialId} onChange={(materialId) => setQuery((current) => ({ ...current, materialId: materialId ?? undefined, page: 0 }))} />
       <Input aria-label="物料代碼篩選" placeholder="物料代碼" allowClear value={query.materialCode} onChange={(event) => setQuery((current) => ({ ...current, materialCode: event.target.value, page: 0 }))} />
     </Space>
     {listError && <ErrorState title="庫存查詢失敗" error={listError} onRetry={() => void load()} />}
     {loading && !data ? <LoadingState tip="正在載入庫存…" /> : <Table<InventoryResponse>
-      rowKey="materialId" columns={columns} dataSource={data?.content ?? []} loading={loading}
+      rowKey="materialId" columns={columns} dataSource={data?.content ?? []} loading={loading} scroll={{ x: 'max-content' }}
       locale={{ emptyText: <EmptyState simple description={filtered ? '沒有符合查詢條件的庫存' : '目前沒有庫存資料'} /> }}
       pagination={{ current: (data?.page ?? 0) + 1, pageSize: data?.size ?? query.size, total: data?.totalElements ?? 0, showSizeChanger: true }}
       onChange={(pagination) => setQuery((current) => ({ ...current, page: (pagination.current ?? 1) - 1, size: pagination.pageSize ?? 20 }))}
     />}
-    <Drawer title={detail ? `${detail.materialCode} 庫存明細` : '庫存明細'} open={detailLoading || !!detail || !!detailError} onClose={() => { detailRequestId.current += 1; setDetail(null); setDetailError(null); setDetailLoading(false); }} size="large">
+    <Drawer title={detail ? `${detail.materialCode} 庫存明細` : '庫存明細'} open={detailLoading || !!detail || !!detailError} onClose={() => { detailRequestId.current += 1; setDetail(null); setDetailError(null); setDetailLoading(false); }} size="large" className="inventory-detail-drawer">
       {detailLoading && <LoadingState tip="正在載入庫存明細…" />}
       {detailError && <ErrorState title="庫存詳細資料載入失敗" error={detailError} />}
       {detail && <Descriptions column={1} bordered size="small" items={[
         { key: 'id', label: '物料編號', children: detail.materialId },
         { key: 'code', label: '物料代碼', children: detail.materialCode },
         { key: 'name', label: '物料名稱', children: detail.materialName },
-        { key: 'quantity', label: '庫存數量', children: detail.quantity },
-        { key: 'unit', label: '單位', children: detail.unit },
+        { key: 'quantity', label: '庫存數量', children: formatQuantity(detail.quantity, detail.unit) },
         { key: 'updatedAt', label: '更新時間', children: formatTimestamp(detail.updatedAt) },
       ]} />}
     </Drawer>
@@ -163,7 +159,7 @@ function StockLevels() {
       {adjusting && <>
         <Descriptions column={1} size="small" bordered items={[
           { key: 'material', label: '物料', children: `${adjusting.materialCode} — ${adjusting.materialName}` },
-          { key: 'current', label: '目前數量', children: `${adjusting.quantity} ${adjusting.unit}` },
+          { key: 'current', label: '目前數量', children: formatQuantity(adjusting.quantity, adjusting.unit) },
         ]} />
         <Alert style={{ marginTop: 16 }} type="info" showIcon title="正數增加庫存，負數減少庫存；輸入的是異動量，不是調整後總量。" />
         {unknownResult && <Alert style={{ marginTop: 16 }} type="warning" showIcon title="操作結果待確認" description={<Space orientation="vertical"><span>請先重新查詢庫存確認實際結果，再決定是否重新送出。本系統不會自動重送。</span><Button size="small" onClick={() => void verifyAdjustmentResult()}>重新查詢庫存</Button></Space>} />}

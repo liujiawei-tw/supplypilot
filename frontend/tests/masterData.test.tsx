@@ -296,7 +296,7 @@ describe('master data pages', () => {
     expect((screen.getByRole('spinbutton', { name: /最低訂購量/ }) as HTMLInputElement).value).toBe('100');
     expect(screen.queryByText('SupplierMaterial 已建立')).toBeNull();
     await user.click(screen.getByRole('button', { name: 'OK' }));
-    expect(await screen.findByText('80')).toBeTruthy();
+    expect(await screen.findByText('TWD 80')).toBeTruthy();
 
     const postPayloads = requests.filter(({ method }) => method === 'post').map(({ data }) => JSON.parse(data as string));
     expect(postPayloads).toEqual([

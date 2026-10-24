@@ -1,0 +1,319 @@
+COMMAND: backend/mvnw.cmd -f backend/pom.xml -Dtest=PurchaseOrderControllerIntegrationTests,PurchaseOrderUpdateIntegrationTests,V31PurchaseOrderCurrencyMigrationIntegrationTests test
+DATE: 2026-10-24 Asia/Taipei
+
+[INFO] Scanning for projects...
+[INFO] 
+[INFO] ------------------< com.supplypilot:supply-pilot-api >------------------
+[INFO] Building supply-pilot-api 0.0.1-SNAPSHOT
+[INFO]   from pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.5.0:resources (default-resources) @ supply-pilot-api ---
+[INFO] Copying 5 resources from src\main\resources to target\classes
+[INFO] Copying 34 resources from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.15.0:compile (default-compile) @ supply-pilot-api ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- resources:3.5.0:testResources (default-testResources) @ supply-pilot-api ---
+[INFO] Copying 3 resources from src\test\resources to target\test-classes
+[INFO] 
+[INFO] --- compiler:3.15.0:testCompile (default-testCompile) @ supply-pilot-api ---
+[INFO] Recompiling the module because of changed source code.
+[INFO] Compiling 124 source files with javac [debug parameters release 21] to target\test-classes
+[WARNING] /C:/Users/z0976/.codex/worktrees/issue-148-v2-401/supplypilot/backend/src/test/java/com/supplypilot/ai/client/SpringAiDraftProposalGeneratorTests.java:[43,42] getDefaultOptions() in org.springframework.ai.chat.model.ChatModel has been deprecated and marked for removal
+[WARNING] /C:/Users/z0976/.codex/worktrees/issue-148-v2-401/supplypilot/backend/src/test/java/com/supplypilot/ai/client/SpringAiProviderClientTests.java:[799,67] getDefaultOptions() in org.springframework.ai.chat.model.ChatModel has been deprecated and marked for removal
+[WARNING] /C:/Users/z0976/.codex/worktrees/issue-148-v2-401/supplypilot/backend/src/test/java/com/supplypilot/integration/AiControllerIntegrationTests.java:[316,28] getDefaultOptions() in org.springframework.ai.chat.model.ChatModel has been deprecated and marked for removal
+[WARNING] /C:/Users/z0976/.codex/worktrees/issue-148-v2-401/supplypilot/backend/src/test/java/com/supplypilot/integration/AiDraftProposalIntegrationTests.java:[286,46] getDefaultOptions() in org.springframework.ai.chat.model.ChatModel has been deprecated and marked for removal
+[INFO] /C:/Users/z0976/.codex/worktrees/issue-148-v2-401/supplypilot/backend/src/test/java/com/supplypilot/demand/service/DemandServiceTests.java: Some input files use unchecked or unsafe operations.
+[INFO] /C:/Users/z0976/.codex/worktrees/issue-148-v2-401/supplypilot/backend/src/test/java/com/supplypilot/demand/service/DemandServiceTests.java: Recompile with -Xlint:unchecked for details.
+[INFO] 
+[INFO] --- surefire:3.5.6:test (default-test) @ supply-pilot-api ---
+[INFO] Using auto detected provider org.apache.maven.surefire.junitplatform.JUnitPlatformProvider
+[INFO] 
+[INFO] -------------------------------------------------------
+[INFO]  T E S T S
+[INFO] -------------------------------------------------------
+[INFO] Running com.supplypilot.integration.PurchaseOrderControllerIntegrationTests
+19:52:36.380 [main] INFO org.springframework.test.context.support.AnnotationConfigContextLoaderUtils -- Could not detect default configuration classes for test class [com.supplypilot.integration.PurchaseOrderControllerIntegrationTests]: PurchaseOrderControllerIntegrationTests does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
+19:52:36.737 [main] INFO org.springframework.boot.test.context.SpringBootTestContextBootstrapper -- Found @SpringBootConfiguration com.supplypilot.SupplyPilotApplication for test class com.supplypilot.integration.PurchaseOrderControllerIntegrationTests
+19:52:36.857 [main] INFO org.springframework.test.context.support.AnnotationConfigContextLoaderUtils -- Could not detect default configuration classes for test class [com.supplypilot.integration.PurchaseOrderControllerIntegrationTests]: PurchaseOrderControllerIntegrationTests does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
+19:52:36.858 [main] INFO org.springframework.test.context.support.AnnotationConfigContextLoaderUtils -- Could not detect default configuration classes for test class [com.supplypilot.integration.AbstractIntegrationTest]: AbstractIntegrationTest does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
+19:52:36.866 [main] INFO org.springframework.boot.test.context.SpringBootTestContextBootstrapper -- Found @SpringBootConfiguration com.supplypilot.SupplyPilotApplication for test class com.supplypilot.integration.PurchaseOrderControllerIntegrationTests
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+
+ :: Spring Boot ::                (v4.1.1)
+
+2026-10-24T19:52:37.475+08:00  INFO 30836 --- [supply-pilot-api] [           main] .PurchaseOrderControllerIntegrationTests : Starting PurchaseOrderControllerIntegrationTests using Java 21.0.10 with PID 30836 (started by Liu in C:\Users\z0976\.codex\worktrees\issue-148-v2-401\supplypilot\backend)
+2026-10-24T19:52:37.477+08:00  INFO 30836 --- [supply-pilot-api] [           main] .PurchaseOrderControllerIntegrationTests : The following 1 profile is active: "test"
+2026-10-24T19:52:39.717+08:00  INFO 30836 --- [supply-pilot-api] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2026-10-24T19:52:40.173+08:00  INFO 30836 --- [supply-pilot-api] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 435 ms. Found 15 JPA repository interfaces.
+2026-10-24T19:52:41.252+08:00  INFO 30836 --- [supply-pilot-api] [           main] org.testcontainers.images.PullPolicy     : Image pull policy will be performed by: DefaultPullPolicy()
+2026-10-24T19:52:41.260+08:00  INFO 30836 --- [supply-pilot-api] [           main] o.t.utility.ImageNameSubstitutor         : Image name substitution will be performed by: DefaultImageNameSubstitutor (composite of 'ConfigurationFileImageNameSubstitutor' and 'PrefixingImageNameSubstitutor')
+2026-10-24T19:52:41.351+08:00  INFO 30836 --- [supply-pilot-api] [           main] org.testcontainers.DockerClientFactory   : Testcontainers version: 2.0.5
+2026-10-24T19:52:41.734+08:00  INFO 30836 --- [supply-pilot-api] [           main] o.t.d.DockerClientProviderStrategy       : Loaded org.testcontainers.dockerclient.NpipeSocketClientProviderStrategy from ~/.testcontainers.properties, will try it first
+2026-10-24T19:52:47.795+08:00  INFO 30836 --- [supply-pilot-api] [           main] o.t.d.DockerClientProviderStrategy       : Found Docker environment with local Npipe socket (npipe:////./pipe/docker_engine)
+2026-10-24T19:52:47.798+08:00  INFO 30836 --- [supply-pilot-api] [           main] org.testcontainers.DockerClientFactory   : Docker host IP address is localhost
+2026-10-24T19:52:47.844+08:00  INFO 30836 --- [supply-pilot-api] [           main] org.testcontainers.DockerClientFactory   : Connected to docker: 
+  Server Version: 29.6.1
+  API Version: 1.55
+  Operating System: Docker Desktop
+  Total Memory: 19902 MB
+  Labels: 
+    com.docker.desktop.address=npipe://\\.\pipe\docker_cli
+2026-10-24T19:52:48.712+08:00  INFO 30836 --- [supply-pilot-api] [           main] tc.testcontainers/ryuk:0.14.0            : Creating container for image: testcontainers/ryuk:0.14.0
+2026-10-24T19:52:49.183+08:00  INFO 30836 --- [supply-pilot-api] [           main] tc.testcontainers/ryuk:0.14.0            : Container testcontainers/ryuk:0.14.0 is starting: c75780c05e54529ff5e8f8d9054559e2765f6591a73f50ba5cb7691aa63a4cb5
+2026-10-24T19:52:49.732+08:00  INFO 30836 --- [supply-pilot-api] [           main] tc.testcontainers/ryuk:0.14.0            : Container testcontainers/ryuk:0.14.0 started in PT1.0199194S
+2026-10-24T19:52:49.748+08:00  INFO 30836 --- [supply-pilot-api] [           main] o.t.utility.RyukResourceReaper           : Ryuk started - will monitor and terminate Testcontainers containers on JVM exit
+2026-10-24T19:52:49.748+08:00  INFO 30836 --- [supply-pilot-api] [           main] org.testcontainers.DockerClientFactory   : Checking the system...
+2026-10-24T19:52:49.749+08:00  INFO 30836 --- [supply-pilot-api] [           main] org.testcontainers.DockerClientFactory   : ?? Docker server version should be at least 1.6.0
+2026-10-24T19:52:49.750+08:00  INFO 30836 --- [supply-pilot-api] [           main] tc.mysql:8.4.11                          : Creating container for image: mysql:8.4.11
+2026-10-24T19:52:49.930+08:00  INFO 30836 --- [supply-pilot-api] [           main] tc.mysql:8.4.11                          : Container mysql:8.4.11 is starting: b54cd7c4daa8f213583b50c6ca3fe45c4e07c2cf06d9919517ba479c157bf742
+2026-10-24T19:52:50.357+08:00  INFO 30836 --- [supply-pilot-api] [           main] tc.mysql:8.4.11                          : Waiting for database connection to become available at jdbc:mysql://localhost:2926/supplypilot_demo_test using query 'SELECT 1'
+2026-10-24T19:53:04.735+08:00  INFO 30836 --- [supply-pilot-api] [           main] tc.mysql:8.4.11                          : Container mysql:8.4.11 started in PT14.9847121S
+2026-10-24T19:53:04.736+08:00  INFO 30836 --- [supply-pilot-api] [           main] tc.mysql:8.4.11                          : Container is started (JDBC URL: jdbc:mysql://localhost:2926/supplypilot_demo_test)
+2026-10-24T19:53:05.720+08:00  INFO 30836 --- [supply-pilot-api] [           main] org.flywaydb.core.FlywayExecutor         : Database: jdbc:mysql://localhost:2926/supplypilot_demo_test (MySQL 8.4)
+2026-10-24T19:53:05.984+08:00  INFO 30836 --- [supply-pilot-api] [           main] o.f.c.i.s.JdbcTableSchemaHistory         : Schema history table `supplypilot_demo_test`.`flyway_schema_history` does not exist yet
+2026-10-24T19:53:05.993+08:00  INFO 30836 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbValidate     : Successfully validated 31 migrations (execution time 00:00.121s)
+2026-10-24T19:53:06.053+08:00  INFO 30836 --- [supply-pilot-api] [           main] o.f.c.i.s.JdbcTableSchemaHistory         : Creating Schema History table `supplypilot_demo_test`.`flyway_schema_history` ...
+2026-10-24T19:53:06.208+08:00  INFO 30836 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Current version of schema `supplypilot_demo_test`: << Empty Schema >>
+2026-10-24T19:53:06.221+08:00  INFO 30836 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "1 - baseline"
+2026-10-24T19:53:06.300+08:00  INFO 30836 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "2 - create users"
+2026-10-24T19:53:06.443+08:00  INFO 30836 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "3 - create materials and inventory"
+2026-10-24T19:53:06.619+08:00  INFO 30836 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "4 - create suppliers"
+2026-10-24T19:53:06.748+08:00  INFO 30836 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "5 - create supplier materials"
+2026-10-24T19:53:06.879+08:00  INFO 30836 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "6 - create demands"
+2026-10-24T19:53:07.009+08:00  INFO 30836 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "7 - create stock transactions"
+2026-10-24T19:53:07.136+08:00  INFO 30836 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "8 - create inventory imports"
+2026-10-24T19:53:07.304+08:00  INFO 30836 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "9 - create purchase orders"
+2026-10-24T19:53:07.612+08:00  INFO 30836 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "10 - create purchase recommendations"
+2026-10-24T19:53:07.820+08:00  INFO 30836 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "11 - link purchase order items to recommendations"
+2026-10-24T19:53:08.037+08:00  INFO 30836 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "12 - add purchase order rejection audit"
+2026-10-24T19:53:08.309+08:00  INFO 30836 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "13 - link stock transactions to purchase orders"
+2026-10-24T19:53:08.499+08:00  INFO 30836 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "14 - create document metadata"
+2026-10-24T19:53:08.645+08:00  INFO 30836 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "15 - create document chunks"
+2026-10-24T19:53:08.749+08:00  INFO 30836 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "16 - create ai monthly token usage"
+2026-10-24T19:53:08.835+08:00  INFO 30836 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "17 - create ai purchase draft proposals"
+2026-10-24T19:53:08.940+08:00  INFO 30836 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "18 - document semantic outbound approval"
+2026-10-24T19:53:09.114+08:00  INFO 30836 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "19 - document semantic review state"
+2026-10-24T19:53:09.282+08:00  INFO 30836 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "20 - create demo dataset state"
+2026-10-24T19:53:09.371+08:00  INFO 30836 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "21 - require production admin password change"
+2026-10-24T19:53:09.533+08:00  INFO 30836 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "22 - create system initialization"
+2026-10-24T19:53:09.617+08:00  INFO 30836 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "23 - unify user roles and management capability"
+2026-10-24T19:53:09.813+08:00  INFO 30836 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "24 - user deletion and purchase order snapshots"
+2026-10-24T19:53:12.961+08:00  INFO 30836 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "25 - add purchase order cancellation and ordered progress"
+2026-10-24T19:53:13.492+08:00  INFO 30836 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "26 - add supplier promised delivery date"
+2026-10-24T19:53:13.738+08:00  INFO 30836 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "27 - add receiving inspection and payment confirmation"
+2026-10-24T19:53:14.040+08:00  INFO 30836 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "28 - add purchase order stage"
+2026-10-24T19:53:14.632+08:00  INFO 30836 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "29 - constrain purchase order payment stage consistency"
+2026-10-24T19:53:14.946+08:00  INFO 30836 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "30 - persistent semantic index jobs"
+2026-10-24T19:53:15.189+08:00  INFO 30836 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "31 - add purchase order item currency snapshot"
+2026-10-24T19:53:15.551+08:00  INFO 30836 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Successfully applied 31 migrations to schema `supplypilot_demo_test`, now at version v31 (execution time 00:08.031s)
+2026-10-24T19:53:15.857+08:00  INFO 30836 --- [supply-pilot-api] [           main] org.hibernate.orm.jpa                    : HHH008540: Processing PersistenceUnitInfo [name: default]
+2026-10-24T19:53:15.980+08:00  INFO 30836 --- [supply-pilot-api] [           main] org.hibernate.orm.core                   : HHH000001: Hibernate ORM core version 7.4.5.Final
+2026-10-24T19:53:16.723+08:00  INFO 30836 --- [supply-pilot-api] [           main] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
+2026-10-24T19:53:16.784+08:00  INFO 30836 --- [supply-pilot-api] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
+2026-10-24T19:53:16.850+08:00  INFO 30836 --- [supply-pilot-api] [           main] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added connection com.mysql.cj.jdbc.ConnectionImpl@34d08905
+2026-10-24T19:53:16.852+08:00  INFO 30836 --- [supply-pilot-api] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
+2026-10-24T19:53:16.950+08:00  INFO 30836 --- [supply-pilot-api] [           main] org.hibernate.orm.connections.pooling    : HHH10001005: Database info:
+	Database JDBC URL [jdbc:mysql://localhost:2926/supplypilot_demo_test]
+	Database driver: MySQL Connector/J
+	Database dialect: MySQLDialect
+	Database version: 8.4.11
+	Default catalog/schema: supplypilot_demo_test/undefined
+	Autocommit mode: undefined/unknown
+	Isolation level: REPEATABLE_READ [default REPEATABLE_READ]
+	JDBC fetch size: none
+	Pool: DataSourceConnectionProvider
+	Minimum pool size: undefined/unknown
+	Maximum pool size: undefined/unknown
+2026-10-24T19:53:19.123+08:00  INFO 30836 --- [supply-pilot-api] [           main] org.hibernate.orm.core                   : HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2026-10-24T19:53:19.193+08:00  INFO 30836 --- [supply-pilot-api] [           main] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
+2026-10-24T19:53:19.340+08:00  INFO 30836 --- [supply-pilot-api] [           main] o.s.d.j.r.query.QueryEnhancerFactories   : Hibernate is in classpath; If applicable, HQL parser will be used.
+2026-10-24T19:53:22.738+08:00  INFO 30836 --- [supply-pilot-api] [           main] eAuthenticationProviderManagerConfigurer : Global AuthenticationManager configured with AuthenticationProvider bean with name authenticationProvider
+2026-10-24T19:53:22.739+08:00  WARN 30836 --- [supply-pilot-api] [           main] r$InitializeUserDetailsManagerConfigurer : Global AuthenticationManager configured with an AuthenticationProvider bean. UserDetailsService beans will not be used by Spring Security for automatically configuring username/password login. Consider removing the AuthenticationProvider bean. Alternatively, consider using the UserDetailsService in a manually instantiated DaoAuthenticationProvider. If the current configuration is intentional, to turn off this warning, increase the logging level of 'org.springframework.security.config.annotation.authentication.configuration.InitializeUserDetailsBeanManagerConfigurer' to ERROR
+2026-10-24T19:53:24.796+08:00  INFO 30836 --- [supply-pilot-api] [           main] o.s.b.a.e.web.EndpointLinksResolver      : Exposing 2 endpoints beneath base path '/actuator'
+2026-10-24T19:53:24.906+08:00  INFO 30836 --- [supply-pilot-api] [           main] .PurchaseOrderControllerIntegrationTests : Started PurchaseOrderControllerIntegrationTests in 47.942 seconds (process running for 50.06)
+Mockito is currently self-attaching to enable the inline-mock-maker. This will no longer work in future releases of the JDK. Please add Mockito as an agent to your build as described in Mockito's documentation: https://javadoc.io/doc/org.mockito/mockito-core/latest/org.mockito/org/mockito/Mockito.html#0.3
+OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+WARNING: A Java agent has been loaded dynamically (C:\Users\z0976\.m2\repository\net\bytebuddy\byte-buddy-agent\1.18.11\byte-buddy-agent-1.18.11.jar)
+WARNING: If a serviceability tool is in use, please run with -XX:+EnableDynamicAgentLoading to hide this warning
+WARNING: If a serviceability tool is not in use, please run with -Djdk.instrument.traceUsage for more information
+WARNING: Dynamic loading of agents will be disallowed by default in a future release
+2026-10-24T19:53:25.571+08:00  INFO 30836 --- [supply-pilot-api] [           main] o.s.b.t.m.w.SpringBootMockServletContext : Initializing Spring TestDispatcherServlet ''
+2026-10-24T19:53:25.572+08:00  INFO 30836 --- [supply-pilot-api] [           main] o.s.t.web.servlet.TestDispatcherServlet  : Initializing Servlet ''
+2026-10-24T19:53:25.573+08:00  INFO 30836 --- [supply-pilot-api] [           main] o.s.t.web.servlet.TestDispatcherServlet  : Completed initialization in 1 ms
+2026-10-24T19:53:25.826+08:00  WARN 30836 --- [supply-pilot-api] [           main] c.s.s.CustomAuthenticationEntryPoint     : Unauthenticated request: path=/api/v1/purchase-orders, traceId=429f36a4-d2a7-4ffd-abfc-b88aba3455c2, reason=Full authentication is required to access this resource
+2026-10-24T19:53:26.291+08:00  WARN 30836 --- [supply-pilot-api] [           main] c.s.c.exception.GlobalExceptionHandler   : Access denied: path=/api/v1/purchase-orders, traceId=2255128a-c344-42b9-98a7-3341554b9341
+2026-10-24T19:53:26.348+08:00  WARN 30836 --- [supply-pilot-api] [           main] c.s.c.exception.GlobalExceptionHandler   : Request message not readable: path=/api/v1/purchase-orders, traceId=26266388-e2e2-446e-9501-954551087401
+2026-10-24T19:53:26.377+08:00  WARN 30836 --- [supply-pilot-api] [           main] c.s.c.exception.GlobalExceptionHandler   : Request message not readable: path=/api/v1/purchase-orders, traceId=e64c2959-66c5-4eb1-8bfd-8cf6a0b21c3c
+2026-10-24T19:53:26.414+08:00  WARN 30836 --- [supply-pilot-api] [           main] c.s.c.exception.GlobalExceptionHandler   : Request message not readable: path=/api/v1/purchase-orders, traceId=9ca50a27-d515-4d40-aeba-14a74c867060
+2026-10-24T19:53:26.447+08:00  WARN 30836 --- [supply-pilot-api] [           main] c.s.c.exception.GlobalExceptionHandler   : Request message not readable: path=/api/v1/purchase-orders, traceId=e28d7c79-4cb8-4642-9864-dfbb22ce2b4f
+2026-10-24T19:53:26.468+08:00  INFO 30836 --- [supply-pilot-api] [           main] o.s.b.t.m.w.SpringBootMockServletContext : Initializing Spring TestDispatcherServlet ''
+2026-10-24T19:53:26.469+08:00  INFO 30836 --- [supply-pilot-api] [           main] o.s.t.web.servlet.TestDispatcherServlet  : Initializing Servlet ''
+2026-10-24T19:53:26.472+08:00  INFO 30836 --- [supply-pilot-api] [           main] o.s.t.web.servlet.TestDispatcherServlet  : Completed initialization in 3 ms
+2026-10-24T19:53:26.515+08:00  WARN 30836 --- [supply-pilot-api] [           main] c.s.c.exception.GlobalExceptionHandler   : Request validation failed: path=/api/v1/purchase-orders, traceId=ea3e8638-b2f6-4352-bc44-fbfe1a7b36ad
+2026-10-24T19:53:26.552+08:00  WARN 30836 --- [supply-pilot-api] [           main] c.s.c.exception.GlobalExceptionHandler   : Business request failed: code=SUPPLIER_NOT_FOUND, path=/api/v1/purchase-orders, traceId=cb2e3012-8c5b-4095-9cae-aa950bc2194e
+2026-10-24T19:53:26.630+08:00  WARN 30836 --- [supply-pilot-api] [           main] c.s.c.exception.GlobalExceptionHandler   : Business request failed: code=SUPPLIER_INACTIVE, path=/api/v1/purchase-orders, traceId=2b633946-b434-46b2-a4a5-0d7aa0809f96
+2026-10-24T19:53:26.722+08:00  WARN 30836 --- [supply-pilot-api] [           main] c.s.c.exception.GlobalExceptionHandler   : Business request failed: code=MATERIAL_INACTIVE, path=/api/v1/purchase-orders, traceId=114acb5f-92d2-41c7-932b-dcba0dbec188
+2026-10-24T19:53:26.872+08:00  WARN 30836 --- [supply-pilot-api] [           main] c.s.c.exception.GlobalExceptionHandler   : Business request failed: code=SUPPLIER_MATERIAL_NOT_FOUND, path=/api/v1/purchase-orders, traceId=c52b96d8-26f0-45cb-a4a8-30b63767dfe8
+2026-10-24T19:53:26.952+08:00  WARN 30836 --- [supply-pilot-api] [           main] c.s.c.exception.GlobalExceptionHandler   : Business request failed: code=SUPPLIER_MATERIAL_INACTIVE, path=/api/v1/purchase-orders, traceId=a04077d6-4535-4790-aced-775bfd50d80f
+2026-10-24T19:53:26.972+08:00  WARN 30836 --- [supply-pilot-api] [           main] c.s.c.exception.GlobalExceptionHandler   : Request validation failed: path=/api/v1/purchase-orders, traceId=45016037-25d9-484f-a840-83d587e411bf
+2026-10-24T19:53:26.985+08:00  WARN 30836 --- [supply-pilot-api] [           main] c.s.c.exception.GlobalExceptionHandler   : Request validation failed: path=/api/v1/purchase-orders, traceId=b4ee875b-2eed-4fb3-b4e5-2255ab556fb5
+2026-10-24T19:53:27.011+08:00  WARN 30836 --- [supply-pilot-api] [           main] c.s.c.exception.GlobalExceptionHandler   : Request validation failed: path=/api/v1/purchase-orders, traceId=9ce0cc79-b5a6-4f02-999f-86aae21aafa5
+2026-10-24T19:53:27.020+08:00  INFO 30836 --- [supply-pilot-api] [           main] o.s.b.t.m.w.SpringBootMockServletContext : Initializing Spring TestDispatcherServlet ''
+2026-10-24T19:53:27.020+08:00  INFO 30836 --- [supply-pilot-api] [           main] o.s.t.web.servlet.TestDispatcherServlet  : Initializing Servlet ''
+2026-10-24T19:53:27.021+08:00  INFO 30836 --- [supply-pilot-api] [           main] o.s.t.web.servlet.TestDispatcherServlet  : Completed initialization in 1 ms
+2026-10-24T19:53:27.123+08:00  WARN 30836 --- [supply-pilot-api] [           main] c.s.c.exception.GlobalExceptionHandler   : Business request failed: code=DUPLICATE_MATERIAL, path=/api/v1/purchase-orders, traceId=ab2a71ac-9837-4597-be5b-5f0af7dced96
+2026-10-24T19:53:27.266+08:00  WARN 30836 --- [supply-pilot-api] [           main] c.s.c.exception.GlobalExceptionHandler   : Business request failed: code=MATERIAL_NOT_FOUND, path=/api/v1/purchase-orders, traceId=3e010d86-d177-4464-8e18-5ceddd01d171
+2026-10-24T19:53:27.292+08:00  INFO 30836 --- [supply-pilot-api] [           main] o.s.b.t.m.w.SpringBootMockServletContext : Initializing Spring TestDispatcherServlet ''
+2026-10-24T19:53:27.292+08:00  INFO 30836 --- [supply-pilot-api] [           main] o.s.t.web.servlet.TestDispatcherServlet  : Initializing Servlet ''
+2026-10-24T19:53:27.293+08:00  INFO 30836 --- [supply-pilot-api] [           main] o.s.t.web.servlet.TestDispatcherServlet  : Completed initialization in 1 ms
+2026-10-24T19:53:27.743+08:00  INFO 30836 --- [supply-pilot-api] [           main] o.s.b.t.m.w.SpringBootMockServletContext : Initializing Spring TestDispatcherServlet ''
+2026-10-24T19:53:27.744+08:00  INFO 30836 --- [supply-pilot-api] [           main] o.s.t.web.servlet.TestDispatcherServlet  : Initializing Servlet ''
+2026-10-24T19:53:27.751+08:00  INFO 30836 --- [supply-pilot-api] [           main] o.s.t.web.servlet.TestDispatcherServlet  : Completed initialization in 6 ms
+2026-10-24T19:53:28.060+08:00  INFO 30836 --- [supply-pilot-api] [           main] o.s.b.t.m.w.SpringBootMockServletContext : Initializing Spring TestDispatcherServlet ''
+2026-10-24T19:53:28.061+08:00  INFO 30836 --- [supply-pilot-api] [           main] o.s.t.web.servlet.TestDispatcherServlet  : Initializing Servlet ''
+2026-10-24T19:53:28.063+08:00  INFO 30836 --- [supply-pilot-api] [           main] o.s.t.web.servlet.TestDispatcherServlet  : Completed initialization in 2 ms
+2026-10-24T19:53:28.314+08:00  WARN 30836 --- [supply-pilot-api] [           main] c.s.s.CustomAuthenticationEntryPoint     : Unauthenticated request: path=/api/v1/purchase-orders/15, traceId=5b55ace6-40db-43c9-807b-5e8dac8eeefb, reason=Full authentication is required to access this resource
+2026-10-24T19:53:28.407+08:00  INFO 30836 --- [supply-pilot-api] [           main] o.s.b.t.m.w.SpringBootMockServletContext : Initializing Spring TestDispatcherServlet ''
+2026-10-24T19:53:28.407+08:00  INFO 30836 --- [supply-pilot-api] [           main] o.s.t.web.servlet.TestDispatcherServlet  : Initializing Servlet ''
+2026-10-24T19:53:28.408+08:00  INFO 30836 --- [supply-pilot-api] [           main] o.s.t.web.servlet.TestDispatcherServlet  : Completed initialization in 1 ms
+2026-10-24T19:53:28.580+08:00  INFO 30836 --- [supply-pilot-api] [           main] o.s.b.t.m.w.SpringBootMockServletContext : Initializing Spring TestDispatcherServlet ''
+2026-10-24T19:53:28.580+08:00  INFO 30836 --- [supply-pilot-api] [           main] o.s.t.web.servlet.TestDispatcherServlet  : Initializing Servlet ''
+2026-10-24T19:53:28.581+08:00  INFO 30836 --- [supply-pilot-api] [           main] o.s.t.web.servlet.TestDispatcherServlet  : Completed initialization in 1 ms
+2026-10-24T19:53:28.878+08:00  WARN 30836 --- [supply-pilot-api] [           main] org.hibernate.orm.jdbc.error             : HHH000247: ErrorCode: 3819, SQLState: HY000
+2026-10-24T19:53:28.878+08:00  WARN 30836 --- [supply-pilot-api] [           main] org.hibernate.orm.jdbc.error             : Check constraint 'chk_sp600_forced_item_failure' is violated.
+2026-10-24T19:53:28.895+08:00  WARN 30836 --- [supply-pilot-api] [           main] c.s.c.exception.GlobalExceptionHandler   : Request conflict: code=DATA_INTEGRITY_VIOLATION, path=/api/v1/purchase-orders, traceId=74547d78-8c49-4c1a-a575-6113a707fbdf
+2026-10-24T19:53:28.933+08:00  INFO 30836 --- [supply-pilot-api] [           main] o.s.b.t.m.w.SpringBootMockServletContext : Initializing Spring TestDispatcherServlet ''
+2026-10-24T19:53:28.933+08:00  INFO 30836 --- [supply-pilot-api] [           main] o.s.t.web.servlet.TestDispatcherServlet  : Initializing Servlet ''
+2026-10-24T19:53:28.934+08:00  INFO 30836 --- [supply-pilot-api] [           main] o.s.t.web.servlet.TestDispatcherServlet  : Completed initialization in 1 ms
+2026-10-24T19:53:29.063+08:00  WARN 30836 --- [supply-pilot-api] [           main] c.s.c.exception.GlobalExceptionHandler   : Business request failed: code=INVALID_SUPPLIER_RECOMMENDATION_REFERENCE, path=/api/v1/purchase-orders, traceId=8b545771-1c33-4435-b2ee-269c10e0da70
+2026-10-24T19:53:29.091+08:00  WARN 30836 --- [supply-pilot-api] [           main] c.s.c.exception.GlobalExceptionHandler   : Business request failed: code=INVALID_RECOMMENDATION_REFERENCE, path=/api/v1/purchase-orders, traceId=9a011838-50f4-40f3-a764-2d1e800b836e
+[INFO] Tests run: 9, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 53.11 s -- in com.supplypilot.integration.PurchaseOrderControllerIntegrationTests
+[INFO] Running com.supplypilot.integration.PurchaseOrderUpdateIntegrationTests
+2026-10-24T19:53:29.109+08:00  INFO 30836 --- [supply-pilot-api] [           main] t.c.s.AnnotationConfigContextLoaderUtils : Could not detect default configuration classes for test class [com.supplypilot.integration.PurchaseOrderUpdateIntegrationTests]: PurchaseOrderUpdateIntegrationTests does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
+2026-10-24T19:53:29.120+08:00  INFO 30836 --- [supply-pilot-api] [           main] .b.t.c.SpringBootTestContextBootstrapper : Found @SpringBootConfiguration com.supplypilot.SupplyPilotApplication for test class com.supplypilot.integration.PurchaseOrderUpdateIntegrationTests
+2026-10-24T19:53:29.122+08:00  INFO 30836 --- [supply-pilot-api] [           main] t.c.s.AnnotationConfigContextLoaderUtils : Could not detect default configuration classes for test class [com.supplypilot.integration.PurchaseOrderUpdateIntegrationTests]: PurchaseOrderUpdateIntegrationTests does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
+2026-10-24T19:53:29.123+08:00  INFO 30836 --- [supply-pilot-api] [           main] t.c.s.AnnotationConfigContextLoaderUtils : Could not detect default configuration classes for test class [com.supplypilot.integration.AbstractIntegrationTest]: AbstractIntegrationTest does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
+2026-10-24T19:53:29.135+08:00  INFO 30836 --- [supply-pilot-api] [           main] .b.t.c.SpringBootTestContextBootstrapper : Found @SpringBootConfiguration com.supplypilot.SupplyPilotApplication for test class com.supplypilot.integration.PurchaseOrderUpdateIntegrationTests
+2026-10-24T19:53:29.142+08:00  INFO 30836 --- [supply-pilot-api] [           main] o.s.b.t.m.w.SpringBootMockServletContext : Initializing Spring TestDispatcherServlet ''
+2026-10-24T19:53:29.143+08:00  INFO 30836 --- [supply-pilot-api] [           main] o.s.t.web.servlet.TestDispatcherServlet  : Initializing Servlet ''
+2026-10-24T19:53:29.144+08:00  INFO 30836 --- [supply-pilot-api] [           main] o.s.t.web.servlet.TestDispatcherServlet  : Completed initialization in 1 ms
+2026-10-24T19:53:29.501+08:00  WARN 30836 --- [supply-pilot-api] [           main] org.hibernate.orm.jdbc.error             : HHH000247: ErrorCode: 3819, SQLState: HY000
+2026-10-24T19:53:29.501+08:00  WARN 30836 --- [supply-pilot-api] [           main] org.hibernate.orm.jdbc.error             : Check constraint 'chk_sp602_forced_item_failure' is violated.
+2026-10-24T19:53:29.505+08:00  WARN 30836 --- [supply-pilot-api] [           main] c.s.c.exception.GlobalExceptionHandler   : Request conflict: code=DATA_INTEGRITY_VIOLATION, path=/api/v1/purchase-orders/19, traceId=3fdd682e-8e00-4a33-ab78-af830a59d01e
+2026-10-24T19:53:29.534+08:00  INFO 30836 --- [supply-pilot-api] [           main] o.s.b.t.m.w.SpringBootMockServletContext : Initializing Spring TestDispatcherServlet ''
+2026-10-24T19:53:29.534+08:00  INFO 30836 --- [supply-pilot-api] [           main] o.s.t.web.servlet.TestDispatcherServlet  : Initializing Servlet ''
+2026-10-24T19:53:29.535+08:00  INFO 30836 --- [supply-pilot-api] [           main] o.s.t.web.servlet.TestDispatcherServlet  : Completed initialization in 1 ms
+2026-10-24T19:53:29.868+08:00  WARN 30836 --- [supply-pilot-api] [pool-4-thread-1] c.s.c.exception.GlobalExceptionHandler   : Business request failed: code=PO_NOT_EDITABLE, path=/api/v1/purchase-orders/20, traceId=cc1a9fb2-a169-4ac5-8dca-1002064ca3b5
+2026-10-24T19:53:29.908+08:00  INFO 30836 --- [supply-pilot-api] [           main] o.s.b.t.m.w.SpringBootMockServletContext : Initializing Spring TestDispatcherServlet ''
+2026-10-24T19:53:29.909+08:00  INFO 30836 --- [supply-pilot-api] [           main] o.s.t.web.servlet.TestDispatcherServlet  : Initializing Servlet ''
+2026-10-24T19:53:29.910+08:00  INFO 30836 --- [supply-pilot-api] [           main] o.s.t.web.servlet.TestDispatcherServlet  : Completed initialization in 1 ms
+2026-10-24T19:53:30.040+08:00  WARN 30836 --- [supply-pilot-api] [           main] c.s.c.exception.GlobalExceptionHandler   : Business request failed: code=SUPPLIER_MATERIAL_NOT_FOUND, path=/api/v1/purchase-orders/21, traceId=0e1e27a5-e607-4a54-b081-84d7c84a68bc
+2026-10-24T19:53:30.050+08:00  INFO 30836 --- [supply-pilot-api] [           main] o.s.b.t.m.w.SpringBootMockServletContext : Initializing Spring TestDispatcherServlet ''
+2026-10-24T19:53:30.050+08:00  INFO 30836 --- [supply-pilot-api] [           main] o.s.t.web.servlet.TestDispatcherServlet  : Initializing Servlet ''
+2026-10-24T19:53:30.051+08:00  INFO 30836 --- [supply-pilot-api] [           main] o.s.t.web.servlet.TestDispatcherServlet  : Completed initialization in 1 ms
+2026-10-24T19:53:30.351+08:00  INFO 30836 --- [supply-pilot-api] [           main] o.s.b.t.m.w.SpringBootMockServletContext : Initializing Spring TestDispatcherServlet ''
+2026-10-24T19:53:30.351+08:00  INFO 30836 --- [supply-pilot-api] [           main] o.s.t.web.servlet.TestDispatcherServlet  : Initializing Servlet ''
+2026-10-24T19:53:30.352+08:00  INFO 30836 --- [supply-pilot-api] [           main] o.s.t.web.servlet.TestDispatcherServlet  : Completed initialization in 1 ms
+2026-10-24T19:53:30.468+08:00  WARN 30836 --- [supply-pilot-api] [           main] c.s.s.CustomAuthenticationEntryPoint     : Unauthenticated request: path=/api/v1/purchase-orders/23, traceId=667fc5cd-cf5c-4926-9da7-b767aa4dd864, reason=Full authentication is required to access this resource
+2026-10-24T19:53:30.478+08:00  WARN 30836 --- [supply-pilot-api] [           main] c.s.c.exception.GlobalExceptionHandler   : Access denied: path=/api/v1/purchase-orders/23, traceId=ad24c0b8-5e33-4cfc-b54c-3465612646e2
+2026-10-24T19:53:30.495+08:00  WARN 30836 --- [supply-pilot-api] [           main] c.s.c.exception.GlobalExceptionHandler   : Request message not readable: path=/api/v1/purchase-orders/23, traceId=804c9848-33f0-4262-b4fe-10450627adba
+2026-10-24T19:53:30.508+08:00  WARN 30836 --- [supply-pilot-api] [           main] c.s.c.exception.GlobalExceptionHandler   : Request message not readable: path=/api/v1/purchase-orders/23, traceId=fbf749a3-db6c-4a4a-af59-7bced69a321a
+2026-10-24T19:53:30.525+08:00  WARN 30836 --- [supply-pilot-api] [           main] c.s.c.exception.GlobalExceptionHandler   : Request message not readable: path=/api/v1/purchase-orders/23, traceId=b5c92f74-10f6-41df-9561-cbc9d0d337f4
+2026-10-24T19:53:30.570+08:00  WARN 30836 --- [supply-pilot-api] [           main] c.s.c.exception.GlobalExceptionHandler   : Business request failed: code=PO_NOT_EDITABLE, path=/api/v1/purchase-orders/23, traceId=00ec3620-fcd7-4014-a18a-24e96df99d69
+2026-10-24T19:53:30.582+08:00  INFO 30836 --- [supply-pilot-api] [           main] o.s.b.t.m.w.SpringBootMockServletContext : Initializing Spring TestDispatcherServlet ''
+2026-10-24T19:53:30.582+08:00  INFO 30836 --- [supply-pilot-api] [           main] o.s.t.web.servlet.TestDispatcherServlet  : Initializing Servlet ''
+2026-10-24T19:53:30.583+08:00  INFO 30836 --- [supply-pilot-api] [           main] o.s.t.web.servlet.TestDispatcherServlet  : Completed initialization in 1 ms
+2026-10-24T19:53:31.214+08:00  INFO 30836 --- [supply-pilot-api] [           main] o.s.b.t.m.w.SpringBootMockServletContext : Initializing Spring TestDispatcherServlet ''
+2026-10-24T19:53:31.215+08:00  INFO 30836 --- [supply-pilot-api] [           main] o.s.t.web.servlet.TestDispatcherServlet  : Initializing Servlet ''
+2026-10-24T19:53:31.216+08:00  INFO 30836 --- [supply-pilot-api] [           main] o.s.t.web.servlet.TestDispatcherServlet  : Completed initialization in 1 ms
+2026-10-24T19:53:31.341+08:00  WARN 30836 --- [supply-pilot-api] [           main] c.s.c.exception.GlobalExceptionHandler   : Request message not readable: path=/api/v1/purchase-orders/25, traceId=8fdb2430-e46a-483b-b1fa-486e6f2f6986
+2026-10-24T19:53:31.371+08:00  WARN 30836 --- [supply-pilot-api] [           main] c.s.c.exception.GlobalExceptionHandler   : Business request failed: code=DUPLICATE_MATERIAL, path=/api/v1/purchase-orders/25, traceId=2f0c2e6f-e794-4465-89ef-71adab974d76
+2026-10-24T19:53:31.399+08:00  WARN 30836 --- [supply-pilot-api] [           main] c.s.c.exception.GlobalExceptionHandler   : Business request failed: code=MATERIAL_NOT_FOUND, path=/api/v1/purchase-orders/25, traceId=a07f8e3b-08f8-45c4-b91c-b6c37085d543
+2026-10-24T19:53:31.521+08:00  WARN 30836 --- [supply-pilot-api] [           main] c.s.c.exception.GlobalExceptionHandler   : Business request failed: code=MATERIAL_INACTIVE, path=/api/v1/purchase-orders/25, traceId=86dec6a1-fb21-40b2-ab5d-789c6c47edc7
+2026-10-24T19:53:31.613+08:00  WARN 30836 --- [supply-pilot-api] [           main] c.s.c.exception.GlobalExceptionHandler   : Business request failed: code=SUPPLIER_MATERIAL_NOT_FOUND, path=/api/v1/purchase-orders/25, traceId=0d388e53-8143-4ab7-b3d1-1312b51e2036
+2026-10-24T19:53:31.736+08:00  WARN 30836 --- [supply-pilot-api] [           main] c.s.c.exception.GlobalExceptionHandler   : Business request failed: code=SUPPLIER_MATERIAL_INACTIVE, path=/api/v1/purchase-orders/25, traceId=1230bf34-9195-4e41-aa5f-a1536de2a5c4
+2026-10-24T19:53:31.748+08:00  INFO 30836 --- [supply-pilot-api] [           main] o.s.b.t.m.w.SpringBootMockServletContext : Initializing Spring TestDispatcherServlet ''
+2026-10-24T19:53:31.749+08:00  INFO 30836 --- [supply-pilot-api] [           main] o.s.t.web.servlet.TestDispatcherServlet  : Initializing Servlet ''
+2026-10-24T19:53:31.750+08:00  INFO 30836 --- [supply-pilot-api] [           main] o.s.t.web.servlet.TestDispatcherServlet  : Completed initialization in 1 ms
+2026-10-24T19:53:31.983+08:00  WARN 30836 --- [supply-pilot-api] [           main] c.s.s.CustomAuthenticationEntryPoint     : Unauthenticated request: path=/api/v1/purchase-orders/26/supplier-promised-delivery-date, traceId=cbd96e07-db8e-46a6-96ee-cf643fc31d59, reason=Full authentication is required to access this resource
+2026-10-24T19:53:32.003+08:00  WARN 30836 --- [supply-pilot-api] [           main] c.s.c.exception.GlobalExceptionHandler   : Access denied: path=/api/v1/purchase-orders/26/supplier-promised-delivery-date, traceId=6eb43eab-1659-4e9f-94b8-8d2d0a1611b6
+2026-10-24T19:53:32.037+08:00  WARN 30836 --- [supply-pilot-api] [           main] c.s.c.exception.GlobalExceptionHandler   : Business request failed: code=INVALID_PO_STATUS_TRANSITION, path=/api/v1/purchase-orders/26/supplier-promised-delivery-date, traceId=96fbac81-8167-4872-9b58-60a92fff443a
+2026-10-24T19:53:32.062+08:00  WARN 30836 --- [supply-pilot-api] [           main] c.s.c.exception.GlobalExceptionHandler   : Request message not readable: path=/api/v1/purchase-orders/26/supplier-promised-delivery-date, traceId=db9ce4cb-90e8-4f15-9886-ffb0bd4a84e1
+2026-10-24T19:53:32.074+08:00  INFO 30836 --- [supply-pilot-api] [           main] o.s.b.t.m.w.SpringBootMockServletContext : Initializing Spring TestDispatcherServlet ''
+2026-10-24T19:53:32.074+08:00  INFO 30836 --- [supply-pilot-api] [           main] o.s.t.web.servlet.TestDispatcherServlet  : Initializing Servlet ''
+2026-10-24T19:53:32.076+08:00  INFO 30836 --- [supply-pilot-api] [           main] o.s.t.web.servlet.TestDispatcherServlet  : Completed initialization in 2 ms
+2026-10-24T19:53:32.816+08:00  WARN 30836 --- [supply-pilot-api] [           main] c.s.c.exception.GlobalExceptionHandler   : Business request failed: code=EXPECTED_DELIVERY_DATE_REQUIRED, path=/api/v1/purchase-orders/27/approve, traceId=6f3117ea-1f6c-4a8d-bb43-3aee1f05c7bf
+2026-10-24T19:53:32.862+08:00  INFO 30836 --- [supply-pilot-api] [           main] o.s.b.t.m.w.SpringBootMockServletContext : Initializing Spring TestDispatcherServlet ''
+2026-10-24T19:53:32.862+08:00  INFO 30836 --- [supply-pilot-api] [           main] o.s.t.web.servlet.TestDispatcherServlet  : Initializing Servlet ''
+2026-10-24T19:53:32.863+08:00  INFO 30836 --- [supply-pilot-api] [           main] o.s.t.web.servlet.TestDispatcherServlet  : Completed initialization in 1 ms
+2026-10-24T19:53:33.102+08:00  WARN 30836 --- [supply-pilot-api] [           main] c.s.c.exception.GlobalExceptionHandler   : Business request failed: code=PO_NOT_EDITABLE, path=/api/v1/purchase-orders/28, traceId=bbe26705-5848-4a9a-adef-c0a87d0a95a6
+[INFO] Tests run: 10, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 4.183 s -- in com.supplypilot.integration.PurchaseOrderUpdateIntegrationTests
+[INFO] Running com.supplypilot.integration.V31PurchaseOrderCurrencyMigrationIntegrationTests
+2026-10-24T19:53:33.311+08:00  INFO 30836 --- [supply-pilot-api] [           main] tc.mysql:8.4.11                          : Creating container for image: mysql:8.4.11
+2026-10-24T19:53:33.455+08:00  INFO 30836 --- [supply-pilot-api] [           main] tc.mysql:8.4.11                          : Container mysql:8.4.11 is starting: ad96a2296459902242a2950187d445c3acd802da6638e8fbbc166091fdd37a24
+2026-10-24T19:53:33.848+08:00  INFO 30836 --- [supply-pilot-api] [           main] tc.mysql:8.4.11                          : Waiting for database connection to become available at jdbc:mysql://localhost:6974/supplypilot_po_currency_test using query 'SELECT 1'
+2026-10-24T19:53:47.829+08:00  INFO 30836 --- [supply-pilot-api] [           main] tc.mysql:8.4.11                          : Container mysql:8.4.11 started in PT14.5186377S
+2026-10-24T19:53:47.829+08:00  INFO 30836 --- [supply-pilot-api] [           main] tc.mysql:8.4.11                          : Container is started (JDBC URL: jdbc:mysql://localhost:6974/supplypilot_po_currency_test)
+2026-10-24T19:53:47.876+08:00  INFO 30836 --- [supply-pilot-api] [           main] org.flywaydb.core.FlywayExecutor         : Database: jdbc:mysql://localhost:6974/supplypilot_po_currency_test (MySQL 8.4)
+2026-10-24T19:53:47.956+08:00  INFO 30836 --- [supply-pilot-api] [           main] o.f.c.i.s.JdbcTableSchemaHistory         : Schema history table `supplypilot_po_currency_test`.`flyway_schema_history` does not exist yet
+2026-10-24T19:53:47.958+08:00  INFO 30836 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbValidate     : Successfully validated 31 migrations (execution time 00:00.043s)
+2026-10-24T19:53:47.989+08:00  INFO 30836 --- [supply-pilot-api] [           main] o.f.c.i.s.JdbcTableSchemaHistory         : Creating Schema History table `supplypilot_po_currency_test`.`flyway_schema_history` ...
+2026-10-24T19:53:48.094+08:00  INFO 30836 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Current version of schema `supplypilot_po_currency_test`: << Empty Schema >>
+2026-10-24T19:53:48.102+08:00  INFO 30836 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_po_currency_test` to version "1 - baseline"
+2026-10-24T19:53:48.146+08:00  INFO 30836 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_po_currency_test` to version "2 - create users"
+2026-10-24T19:53:48.275+08:00  INFO 30836 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_po_currency_test` to version "3 - create materials and inventory"
+2026-10-24T19:53:48.427+08:00  INFO 30836 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_po_currency_test` to version "4 - create suppliers"
+2026-10-24T19:53:48.530+08:00  INFO 30836 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_po_currency_test` to version "5 - create supplier materials"
+2026-10-24T19:53:48.641+08:00  INFO 30836 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_po_currency_test` to version "6 - create demands"
+2026-10-24T19:53:48.755+08:00  INFO 30836 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_po_currency_test` to version "7 - create stock transactions"
+2026-10-24T19:53:48.886+08:00  INFO 30836 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_po_currency_test` to version "8 - create inventory imports"
+2026-10-24T19:53:49.067+08:00  INFO 30836 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_po_currency_test` to version "9 - create purchase orders"
+2026-10-24T19:53:49.324+08:00  INFO 30836 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_po_currency_test` to version "10 - create purchase recommendations"
+2026-10-24T19:53:49.524+08:00  INFO 30836 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_po_currency_test` to version "11 - link purchase order items to recommendations"
+2026-10-24T19:53:49.762+08:00  INFO 30836 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_po_currency_test` to version "12 - add purchase order rejection audit"
+2026-10-24T19:53:50.025+08:00  INFO 30836 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_po_currency_test` to version "13 - link stock transactions to purchase orders"
+2026-10-24T19:53:50.229+08:00  INFO 30836 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_po_currency_test` to version "14 - create document metadata"
+2026-10-24T19:53:50.361+08:00  INFO 30836 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_po_currency_test` to version "15 - create document chunks"
+2026-10-24T19:53:50.475+08:00  INFO 30836 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_po_currency_test` to version "16 - create ai monthly token usage"
+2026-10-24T19:53:50.554+08:00  INFO 30836 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_po_currency_test` to version "17 - create ai purchase draft proposals"
+2026-10-24T19:53:50.658+08:00  INFO 30836 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_po_currency_test` to version "18 - document semantic outbound approval"
+2026-10-24T19:53:50.834+08:00  INFO 30836 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_po_currency_test` to version "19 - document semantic review state"
+2026-10-24T19:53:51.003+08:00  INFO 30836 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_po_currency_test` to version "20 - create demo dataset state"
+2026-10-24T19:53:51.081+08:00  INFO 30836 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_po_currency_test` to version "21 - require production admin password change"
+2026-10-24T19:53:51.239+08:00  INFO 30836 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_po_currency_test` to version "22 - create system initialization"
+2026-10-24T19:53:51.332+08:00  INFO 30836 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_po_currency_test` to version "23 - unify user roles and management capability"
+2026-10-24T19:53:51.503+08:00  INFO 30836 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_po_currency_test` to version "24 - user deletion and purchase order snapshots"
+2026-10-24T19:53:54.942+08:00  INFO 30836 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_po_currency_test` to version "25 - add purchase order cancellation and ordered progress"
+2026-10-24T19:53:55.455+08:00  INFO 30836 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_po_currency_test` to version "26 - add supplier promised delivery date"
+2026-10-24T19:53:55.710+08:00  INFO 30836 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_po_currency_test` to version "27 - add receiving inspection and payment confirmation"
+2026-10-24T19:53:56.067+08:00  INFO 30836 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_po_currency_test` to version "28 - add purchase order stage"
+2026-10-24T19:53:56.650+08:00  INFO 30836 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_po_currency_test` to version "29 - constrain purchase order payment stage consistency"
+2026-10-24T19:53:56.973+08:00  INFO 30836 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_po_currency_test` to version "30 - persistent semantic index jobs"
+2026-10-24T19:53:57.250+08:00  INFO 30836 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Successfully applied 30 migrations to schema `supplypilot_po_currency_test`, now at version v30 (execution time 00:08.133s)
+2026-10-24T19:53:57.443+08:00  INFO 30836 --- [supply-pilot-api] [           main] org.flywaydb.core.FlywayExecutor         : Database: jdbc:mysql://localhost:6974/supplypilot_po_currency_test (MySQL 8.4)
+2026-10-24T19:53:57.512+08:00  INFO 30836 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbValidate     : Successfully validated 31 migrations (execution time 00:00.041s)
+2026-10-24T19:53:57.526+08:00  INFO 30836 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Current version of schema `supplypilot_po_currency_test`: 30
+2026-10-24T19:53:57.535+08:00  INFO 30836 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_po_currency_test` to version "31 - add purchase order item currency snapshot"
+2026-10-24T19:53:57.772+08:00  INFO 30836 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Successfully applied 1 migration to schema `supplypilot_po_currency_test`, now at version v31 (execution time 00:00.215s)
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 25.08 s -- in com.supplypilot.integration.V31PurchaseOrderCurrencyMigrationIntegrationTests
+[INFO] 
+[INFO] Results:
+[INFO] 
+[INFO] Tests run: 20, Failures: 0, Errors: 0, Skipped: 0
+[INFO] 
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  01:39 min
+[INFO] Finished at: 2026-10-24T19:53:59+08:00
+[INFO] ------------------------------------------------------------------------
+EXIT_CODE=0

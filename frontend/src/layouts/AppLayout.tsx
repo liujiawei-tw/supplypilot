@@ -39,7 +39,7 @@ export const AppLayout: React.FC = () => {
   };
 
   return (
-    <Layout style={{ minHeight: '100vh' }}>
+    <Layout className="app-layout" style={{ minHeight: '100vh' }}>
       <Sider breakpoint="lg" collapsedWidth="0" theme="dark">
         <div style={{ padding: '16px', textAlign: 'center' }}>
           <Title level={4} style={{ color: '#fff', margin: 0 }}>
@@ -81,15 +81,8 @@ export const AppLayout: React.FC = () => {
             <Button icon={<LogoutOutlined />} onClick={() => { logout(); navigate('/login', { replace: true, state: null }); }}>登出</Button>
           </Space>
         </Header>
-        <Content style={{ margin: '24px 16px 0' }}>
-          <div
-            style={{
-              padding: 24,
-              minHeight: 360,
-              background: colorBgContainer,
-              borderRadius: borderRadiusLG,
-            }}
-          >
+        <Content className="app-content">
+          <div className="app-content__surface" style={{ background: colorBgContainer, borderRadius: borderRadiusLG }}>
             <Outlet />
           </div>
         </Content>

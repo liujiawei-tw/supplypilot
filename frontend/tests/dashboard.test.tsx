@@ -153,7 +153,7 @@ describe('SP-907 role-adaptive dashboard API access', () => {
     await openDashboard('WAREHOUSE_STAFF');
     expect(await screen.findByText('PO-000051')).toBeTruthy();
     expect(screen.getByText('已逾期')).toBeTruthy();
-    expect(screen.getByText('預計交期：2026-10-10')).toBeTruthy();
+    expect(screen.getByText('預計交期：2026/10/10')).toBeTruthy();
     expect(requests.filter((request) => request.url === '/receiving/purchase-orders')).toHaveLength(1);
     const receivingRequest = requests.find((request) => request.url === '/receiving/purchase-orders')!;
     expect(params(receivingRequest)).toMatchObject({ status: 'ORDERED', page: 0, size: 5, sort: 'expectedDeliveryDate,asc' });

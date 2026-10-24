@@ -1,0 +1,5 @@
+COMMAND: impeccable detect --json frontend/src/utils/displayFormatters.ts frontend/src/pages/PurchaseOrders/purchaseOrderUi.ts frontend/src/pages/PurchaseOrders/PurchaseOrdersPage.tsx frontend/src/pages/PurchaseOrders/PurchaseOrderDetailPage.tsx frontend/src/pages/Suppliers/SupplierList.tsx frontend/src/pages/Suppliers/SupplierMaterialList.tsx frontend/src/pages/Materials/MaterialsPage.tsx frontend/src/pages/Inventory/InventoryPage.tsx frontend/src/components/StockTransactions/StockTransactions.tsx frontend/src/pages/Dashboard/DashboardPage.tsx frontend/src/pages/Dashboard/DashboardPage.css frontend/src/layouts/AppLayout.tsx frontend/src/layouts/AppLayout.css
+DATE: 2026-10-24 Asia/Taipei
+
+[]
+EXIT_CODE=0

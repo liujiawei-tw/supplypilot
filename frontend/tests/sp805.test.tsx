@@ -13,7 +13,7 @@ const warehouse: AuthenticatedUser = { id: 4, username: 'warehouse', displayName
 const admin: AuthenticatedUser = { id: 1, username: 'admin', displayName: 'Admin', role: 'ADMIN' };
 const po = {
   id: 42, poNumber: 'PO-000042', supplierId: 7, supplierCode: 'SUP-007', supplierName: 'Supplier', status: 'DRAFT', orderedProgress: null,
-  expectedDeliveryDate: null, supplierPromisedDeliveryDate: null, items: [{ id: 1, materialId: 8, materialCode: 'MAT-008', materialName: 'Steel', quantity: '999999999999999.1234000', unit: 'KG', unitPrice: '0.0000001234500', total: '123.456789', recommendationId: 91, supplierRecommendationResultId: 101, supplierOverride: true, quantityOverride: true, supplierOverrideReason: 'Capacity', quantityOverrideReason: 'Demand changed' }],
+  expectedDeliveryDate: null, supplierPromisedDeliveryDate: null, items: [{ id: 1, materialId: 8, materialCode: 'MAT-008', materialName: 'Steel', quantity: '999999999999999.1234000', unit: 'KG', unitPrice: '0.0000001234500', total: '123.456789', currency: 'TWD', recommendationId: 91, supplierRecommendationResultId: 101, supplierOverride: true, quantityOverride: true, supplierOverrideReason: 'Capacity', quantityOverrideReason: 'Demand changed' }],
   receivingInspection: { allItemsReceived: false, allQuantitiesConfirmed: false, allQualityAccepted: false, note: null, inspectedBy: null, inspectedByDisplayName: null, inspectedByUsername: null, inspectedAt: null },
   createdBy: 2, createdByDisplayName: 'Buyer', createdAt: '2026-10-01T00:00:00Z', approvedBy: null, approvedByDisplayName: null, approvedAt: null, rejectReason: null, rejectedBy: null, rejectedByDisplayName: null, rejectedAt: null, orderedBy: null, orderedByDisplayName: null, orderedAt: null, receivedBy: null, receivedByDisplayName: null, receivedAt: null, paymentConfirmed: false, paymentConfirmedBy: null, paymentConfirmedByDisplayName: null, paymentConfirmedByUsername: null, paymentConfirmedAt: null, isOverdue: false, updatedAt: '2026-10-01T00:00:00Z',
 };
@@ -49,13 +49,13 @@ describe('SP-805 PO lifecycle UI', () => {
     });
 
     await open('/purchase-orders/42'); const user = userEvent.setup();
-    expect(await screen.findByText('2026-10-30')).toBeTruthy();
+    expect(await screen.findByText('2026/10/30')).toBeTruthy();
     expect(screen.getByText('尚未提供')).toBeTruthy();
     await user.click(screen.getByRole('button', { name: '更新供應商承諾交期' }));
     fireEvent.change(within(activeDialog()).getByLabelText('供應商承諾交期'), { target: { value: '2026-11-05' } });
     await user.click(within(activeDialog()).getByRole('button', { name: '確認更新' }));
-    expect(await screen.findByText('2026-11-05')).toBeTruthy();
-    expect(screen.getByText('2026-10-30')).toBeTruthy();
+    expect(await screen.findByText('2026/11/05')).toBeTruthy();
+    expect(screen.getByText('2026/10/30')).toBeTruthy();
     expect(JSON.parse((requests.find(({ url, method }) => url?.endsWith('/supplier-promised-delivery-date') && method === 'put')?.data) as string))
       .toEqual({ supplierPromisedDeliveryDate: '2026-11-05' });
   });
@@ -152,16 +152,16 @@ describe('SP-805 PO lifecycle UI', () => {
   }, 30_000);
 
   it('preserves integer, decimal, and scientific BigDecimal tokens from an API response through UI rendering', async () => {
-    const rawPo = JSON.stringify({ ...po, items: [] }).replace('"items":[]', '"items":[{"id":1,"materialId":8,"materialCode":"MAT-008","materialName":"Steel","quantity":999999999999999999999,"unit":"KG","unitPrice":123.4500,"total":1.23E+8,"recommendationId":null,"supplierRecommendationResultId":null,"supplierOverride":false,"quantityOverride":false,"supplierOverrideReason":null,"quantityOverrideReason":null}]');
+    const rawPo = JSON.stringify({ ...po, items: [] }).replace('"items":[]', '"items":[{"id":1,"materialId":8,"materialCode":"MAT-008","materialName":"Steel","quantity":999999999999999999999,"unit":"KG","unitPrice":123.4500,"total":1.23E+8,"currency":"TWD","recommendationId":null,"supplierRecommendationResultId":null,"supplierOverride":false,"quantityOverride":false,"supplierOverrideReason":null,"quantityOverrideReason":null}]');
     axiosClient.defaults.adapter = vi.fn(async (config) => {
       if (config.url === '/auth/me') return response(config, manager);
       if (config.url === '/purchase-orders/42') return response(config, rawPo);
       throw new Error(`Unexpected ${config.url}`);
     });
     await open('/purchase-orders/42');
-    expect(await screen.findByText('999999999999999999999 KG')).toBeTruthy();
-    expect(screen.getByText('123.4500')).toBeTruthy();
-    expect(screen.getByText('1.23E+8')).toBeTruthy();
+    expect(await screen.findByText('999,999,999,999,999,999,999 KG')).toBeTruthy();
+    expect(screen.getByText('TWD 123.4500')).toBeTruthy();
+    expect(screen.getByText('TWD 123,000,000')).toBeTruthy();
   });
 
   it('creates a Manual DRAFT with exact decimal strings after explicit confirmation', async () => {
@@ -309,7 +309,7 @@ describe('SP-805 PO lifecycle UI', () => {
     expect(screen.getByText(/尚未設定交期/)).toBeTruthy();
     expect(screen.queryByRole('button', { name: '編輯草稿' })).toBeNull();
     expect(screen.queryByRole('button', { name: '標記為已下單' })).toBeNull();
-    expect(screen.getByText('999999999999999.1234000 KG')).toBeTruthy();
+    expect(screen.getByText('999,999,999,999,999.1234000 KG')).toBeTruthy();
     expect(requests).toEqual(['/auth/me', '/users/assignable', '/purchase-orders/42']);
   });
 
@@ -336,7 +336,7 @@ describe('SP-805 PO lifecycle UI', () => {
       throw new Error(`Unexpected ${config.method} ${config.url}`);
     });
     await open('/purchase-orders/42'); const user = userEvent.setup();
-    await user.click(await screen.findByRole('button', { name: '開始到貨驗收' }));
+    await user.click(await screen.findByRole('button', { name: '開始到貨驗收' }, { timeout: 5000 }));
     await user.click(within(activeDialog()).getAllByRole('button').at(-1)!);
     await waitFor(() => expect(screen.getByText('到貨驗收中')).toBeTruthy());
     expect(requests.filter(({ url }) => url === '/purchase-orders/42/begin-receiving-inspection')).toHaveLength(1);

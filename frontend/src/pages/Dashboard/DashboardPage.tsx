@@ -13,6 +13,7 @@ import EmptyState from '../../components/EmptyState';
 import ErrorState from '../../components/ErrorState';
 import LoadingState from '../../components/LoadingState';
 import './DashboardPage.css';
+import { formatDate } from '../../utils/displayFormatters';
 
 const { Paragraph, Text, Title } = Typography;
 
@@ -131,14 +132,14 @@ function rowDescription(row: WorkRow): ReactNode {
   if (isPurchaseOrder(row)) {
     return <Space wrap size={[8, 4]}>
       <Text>{row.supplierCode} · {row.supplierName}</Text>
-      <Text type="secondary">預計交期：{row.expectedDeliveryDate ?? '未設定'}</Text>
+      <Text type="secondary">預計交期：{formatDate(row.expectedDeliveryDate, '未設定')}</Text>
       {row.isOverdue && <Tag color="red">已逾期</Tag>}
     </Space>;
   }
   if (isReceivingOrder(row)) {
     return <Space wrap size={[8, 4]}>
       <Text>{row.supplierCode} · {row.supplierName}</Text>
-      <Text type="secondary">預計交期：{row.expectedDeliveryDate ?? '未設定'}</Text>
+      <Text type="secondary">預計交期：{formatDate(row.expectedDeliveryDate, '未設定')}</Text>
       {row.isOverdue && <Tag color="red">已逾期</Tag>}
     </Space>;
   }

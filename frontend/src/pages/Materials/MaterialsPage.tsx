@@ -10,6 +10,7 @@ import ErrorState from '../../components/ErrorState';
 import LoadingState from '../../components/LoadingState';
 import type { ApiErrorResponse, PageResponse } from '../../types/api';
 import { displayLabel } from '../../utils/displayLabels';
+import { formatQuantity } from '../../utils/displayFormatters';
 
 const units: BaseUnit[] = ['G', 'KG', 'ML', 'L', 'PCS'];
 const statuses: MaterialStatus[] = ['ACTIVE', 'INACTIVE'];
@@ -110,11 +111,10 @@ export default function MaterialsPage() {
   };
 
   const filtered = !!(query.code || query.name || query.status);
-  const columns = [
+  const columns: TableProps<MaterialResponse>['columns'] = [
     { title: '物料代碼', dataIndex: 'code', sorter: true },
     { title: '名稱', dataIndex: 'name', sorter: true },
-    { title: '基本單位', dataIndex: 'baseUnit', sorter: true },
-    { title: '安全庫存', dataIndex: 'safetyStock', sorter: true },
+    { title: '安全庫存', dataIndex: 'safetyStock', sorter: true, render: (value, row) => formatQuantity(value, row.baseUnit) },
     { title: '狀態', dataIndex: 'status', sorter: true, render: (status: MaterialStatus) => <Tag color={status === 'ACTIVE' ? 'green' : 'default'}>{displayLabel(status)}</Tag> },
     ...(isAdmin ? [{ title: '操作', key: 'actions', render: (_: unknown, material: MaterialResponse) => <Space>
       <Button size="small" onClick={() => openEdit(material)}>編輯</Button>
@@ -131,14 +131,14 @@ export default function MaterialsPage() {
         <div><Typography.Title level={2} style={{ marginBottom: 0 }}>物料管理</Typography.Title><Typography.Text type="secondary">維護物料主檔與安全庫存</Typography.Text></div>
         {isAdmin && <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>新增物料</Button>}
       </Space>
-      <Space wrap>
+      <Space wrap style={{ maxWidth: '100%' }}>
         <Input aria-label="物料代碼篩選" placeholder="物料代碼" value={query.code} onChange={(event) => setQuery((current) => ({ ...current, code: event.target.value, page: 0 }))} allowClear />
         <Input aria-label="物料名稱篩選" placeholder="物料名稱" value={query.name} onChange={(event) => setQuery((current) => ({ ...current, name: event.target.value, page: 0 }))} allowClear />
         <Select aria-label="物料狀態篩選" placeholder="狀態" value={query.status} options={statuses.map((status) => ({ value: status, label: displayLabel(status) }))} onChange={(status) => setQuery((current) => ({ ...current, status, page: 0 }))} allowClear style={{ width: 150 }} />
       </Space>
       {listError && <ErrorState title="物料查詢失敗" error={listError} onRetry={() => void load()} />}
       {loading && !data ? <LoadingState tip="正在載入物料…" /> : <Table<MaterialResponse>
-        rowKey="id" columns={columns} dataSource={data?.content ?? []} loading={loading}
+        rowKey="id" columns={columns} dataSource={data?.content ?? []} loading={loading} scroll={{ x: 'max-content' }}
         locale={{ emptyText: <EmptyState simple description={filtered ? '沒有符合條件的物料' : '目前沒有物料資料'} actionText={isAdmin && !filtered ? '新增物料' : undefined} onAction={isAdmin && !filtered ? openCreate : undefined} /> }}
         pagination={{ current: (data?.page ?? 0) + 1, pageSize: data?.size ?? query.size, total: data?.totalElements ?? 0, showSizeChanger: true }}
         onChange={handleTableChange}
