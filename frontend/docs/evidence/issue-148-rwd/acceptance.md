@@ -237,3 +237,40 @@ Backend 使用 Testcontainers MySQL 8.4。Flyway fresh schema 驗證 31 個 migr
 ### 完整 Vitest 狀態
 
 原始完整 Vitest 仍為 **FAIL — DEFERRED TO V2 INTEGRATION**：EXIT 1、29 files（22 passed／7 failed）、262 tests（225 passed／37 failed），原始 log `logs/vitest.txt` 不變。七個原失敗 suites 的逐案例分診與失敗名稱在上文既有表格；合併後 grouped EXIT 1 及 clean-main baseline 另以本節記錄。精準 rerun PASS 不會改寫上述任何原始 FAIL。
+
+## 2026-10-25 GPT second-review P2 修正與驗收
+
+### 驗證對象與程式修改
+
+- Branch：`codex/issue-148-ui-format-rwd`
+- 本節列出的產品程式與回歸測試綁定於 pre-push code SHA：`dd13f7ef2eb42d3334486618c913d6d30a9e16c5`（本驗收文件另以 docs-only commit 更新）。
+- Material 的 `safetyStock` response DTO 保留 BigDecimal 字串；Material list/get/create/update response 套用 response-only lossless JSON parser。ID 與交期等整數欄位仍使用 number。
+- SupplierMaterial 與 Material 編輯模式使用文字輸入及十進位字串驗證，避免 InputNumber 將 `12.3400` 正規化成 `12.34`；既有建立模式控制仍保留 InputNumber。只移除十進位欄位會把負值靜默夾為零的 `min=0` UI clamp，驗證器仍拒絕負值，且負值不送出 create/update 請求。
+- 新增精確 read→edit→修改其他欄位→PATCH 測試，覆蓋 SupplierMaterial `unitPrice`、`moq`、`packageMultiple` 與 Material `safetyStock`；斷言 JSON request body 保留高精度數字及尾端零。既有 PO PATCH 行為未變。
+- 產品程式在以下 build、lint 與 Vitest 驗證後沒有再變更；後續只調整測試案例及本文件。
+
+### P2 精準驗證（Windows；Node.js v24.15.0、npm 11.12.1、Vitest 4.1.11）
+
+| 命令／範圍 | 結果 | 證據 |
+|---|---|---|
+| `npm run test -- --maxWorkers=1 --testTimeout=60000 --reporter=verbose tests/precisionEditRoundTrip.test.tsx tests/supplierMaterialPrecision.test.tsx tests/masterDataApi.test.ts tests/masterData.test.tsx tests/purchaseOrderApi.test.ts tests/sp805Api.test.ts` | 6 files、31/31 passed、0 failures/errors/skipped；EXIT 0。這次完整六檔執行在最後兩個 test-only 修訂之前；產品程式相同。 | [Vitest 6-file log](../../../../docs/evidence/issue-148-review-p2-focused-ui-api-final.log) |
+| `npm run test -- --maxWorkers=1 --testTimeout=60000 --reporter=verbose --testNamePattern='validates Material fields|creates and edits SupplierMaterial through' tests/masterData.test.tsx` | 2 個選取案例 passed、8 個因名稱篩選 skipped；EXIT 0。覆蓋 Material 與 SupplierMaterial 負值驗證及不得發送請求。 | [negative-validation log](../../../../docs/evidence/issue-148-review-p2-negative-validator-cases.log) |
+| `npm run test -- --maxWorkers=1 --testTimeout=60000 --reporter=verbose tests/precisionEditRoundTrip.test.tsx` | 1 file、2/2 passed；EXIT 0。 | [edit-roundtrip log](../../../../docs/evidence/issue-148-review-p2-edit-roundtrip-final.log) |
+| `npm run lint` | EXIT 0；僅有既有、未修改的 `SemanticOperationsPanel.tsx:98` `react(set-state-in-effect)` warning。 | [lint log](../../../../docs/evidence/issue-148-review-p2-lint-validated.log) |
+| `npm run build` | EXIT 0；Vite build 成功，保留既有大型 bundle warning。 | [build log](../../../../docs/evidence/issue-148-review-p2-build.log) |
+| 最終 UI targets 的 `impeccable detect --json` | EXIT 0；輸出 `[]`。 | [detector log](../../../../docs/evidence/issue-148-impeccable-detect-p2-final.log) |
+
+這次 P2 的初始失敗及診斷輸出全部保留於 `docs/evidence/issue-148-review-p2-*.log`；包括編輯回歸測試的初始 adapter route 測試 harness 錯誤，以及負值被 InputNumber clamp 的重現。未刪除或放寬 PO、交易或既有失敗斷言。
+
+### 完整 Vitest 歷史狀態
+
+原始完整 Vitest 結果與 37 個案例逐項分診維持原樣，仍為 **FAIL — DEFERRED TO V2 INTEGRATION**：EXIT 1、29 files（22 passed、7 failed）、262 tests（225 passed、37 failed）；原始 log 是本目錄的 `logs/vitest.txt`。本次 P2 沒有重跑或改寫該完整結果。
+
+既有分診記錄指出，37 個案例中有 36 個在 #148 branch 的 clean serial rerun 通過；唯一未排除案例是 DemandInventory 409 操作測試，在 #148 branch 與 clean `origin/main` 對照均 30 秒 timeout，分類為同基線既有測試失敗，而非 #148 回歸。原始錯誤、各 suite rerun 與該 main 對照 log 均按前文表格保存。六檔 P2 精準測試及兩個後續 test-only 選取案例只證明其涵蓋範圍，不會把完整套件 FAIL 改成 PASS。
+
+### Browser 與整合限制
+
+- 最新 P2 修正未執行 Browser E2E；登入頁曾在桌面 1280×900、手機 320×800、390×844 驗證無水平溢位，但沒有可引用的持久化 screenshot。這不代表已驗收登入後 Material、SupplierMaterial、PO、Inventory 或其他受保護流程。
+- Authenticated page 操作、keyboard、loading、empty、error、長文字及本次編輯 roundtrip 的 Browser 驗收：**NOT RUN**。Chrome 原生 200% zoom：**BLOCKED**（依使用者確認），未以其他縮放方式替代。
+- #148 新增 `V31__add_purchase_order_item_currency_snapshot.sql`，#147 分支亦使用 V31 migration version；版本衝突與整合順序仍未解決。合併前需由整合工作核對並安排 migration version sequencing，不能把目前 #148 MySQL migration 測試視為已解決跨分支衝突。現有 checksum/檔案對照見 [V31 evidence](../../../../docs/evidence/issue-148-flyway-checksums.txt)。
+- GitHub Actions 仍為 **PAUSED BY USER / NOT USED AS GATE**；本節均為本機驗證。
