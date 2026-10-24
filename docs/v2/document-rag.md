@@ -30,6 +30,7 @@
 ## 3. 敏感資料安全（採既有方案 A）
 
 - 沿用現有 OutboundDocumentPolicy、管理員針對內容版本/hash 的核准及 REQUIRES_REVIEW/SKIPPED 規則。
+- 可遮罩的 Email、電話與台灣身分證字號以等長遮罩輸出，保留來源 Chunk offset 對應；憑證、銀行、商業及個人敏感內容仍須阻擋出站。
 - 包含金額、折扣、銀行帳戶、認證資訊等敏感內容，依既有策略不可外送 Gemini Embedding；**MySQL 搜尋命中不構成 Chat 外送許可**。
 - Hybrid Retrieval 需在**交給 LLM 之前**過濾、驗證可外送的證據；不可新增「lexical 路徑免審查」後門。
 - 文件級 ACL 暫緩；這不等於放棄現有登入/角色、原文讀取及索引操作授權。受此限制，部分敏感合約可能無法透過語意/AI 問答查詢，應誠實呈現。

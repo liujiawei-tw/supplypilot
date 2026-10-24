@@ -71,6 +71,7 @@ class DocumentRagIntegrationTests extends AbstractIntegrationTest {
                         .header("Authorization", bearer(staff)))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("READY"));
         assertThat(chunks.countByDocumentId(documentId)).isEqualTo(1);
+        approveOutbound(user(UserRole.ADMIN), documentId);
 
         String queryResponse = mockMvc.perform(post("/api/v1/document-queries")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -153,6 +154,7 @@ class DocumentRagIntegrationTests extends AbstractIntegrationTest {
         mockMvc.perform(post("/api/v1/documents/{id}/ingestions", qualityId)
                         .header("Authorization", bearer(admin)))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("READY"));
+        approveOutbound(admin, qualityId);
 
         String answerResponse = mockMvc.perform(post("/api/v1/document-queries")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -215,6 +217,7 @@ class DocumentRagIntegrationTests extends AbstractIntegrationTest {
         mockMvc.perform(post("/api/v1/documents/{id}/ingestions", compoundId)
                         .header("Authorization", bearer(admin)))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("READY"));
+        approveOutbound(admin, compoundId);
         String response = mockMvc.perform(post("/api/v1/document-queries").contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(java.util.Map.of("question", question)))
                         .header("Authorization", bearer(admin)))
@@ -351,6 +354,12 @@ class DocumentRagIntegrationTests extends AbstractIntegrationTest {
 
     private String bearer(User user) {
         return "Bearer " + tokens.generateToken(new AuthenticatedUser(user.getId(), user.getUsername(), user.getRole()));
+    }
+
+    private void approveOutbound(User admin, long documentId) throws Exception {
+        mockMvc.perform(post("/api/v1/semantic-index/documents/{id}/approve-outbound", documentId)
+                        .header("Authorization", bearer(admin)))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("APPROVED"));
     }
 
     @TestConfiguration(proxyBeanMethods = false)

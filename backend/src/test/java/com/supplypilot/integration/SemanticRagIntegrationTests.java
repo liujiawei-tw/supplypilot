@@ -7,11 +7,15 @@ import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Collectors;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.supplypilot.document.domain.DocumentChunk;
 import com.supplypilot.document.domain.DocumentMetadata;
 import com.supplypilot.document.domain.DocumentStatus;
 import com.supplypilot.document.domain.DocumentType;
+import com.supplypilot.document.rag.LocalLexicalEmbeddingProvider;
 import com.supplypilot.document.repository.DocumentChunkRepository;
 import com.supplypilot.document.repository.DocumentMetadataRepository;
 import com.supplypilot.document.semantic.SemanticStore;
@@ -68,6 +72,7 @@ class SemanticRagIntegrationTests extends AbstractIntegrationTest {
     @Autowired UserRepository users;
     @Autowired DocumentMetadataRepository documents;
     @Autowired DocumentChunkRepository chunks;
+    @Autowired ObjectMapper objectMapper;
     @Autowired JwtTokenService tokens;
     @Autowired Clock clock;
     @Autowired FakeModel model;
@@ -121,8 +126,8 @@ class SemanticRagIntegrationTests extends AbstractIntegrationTest {
                 .andExpect(jsonPath("$.requiresReview").value(1));
         assertThat(model.inputs).hasSize(1);
         assertThat(model.tasks).containsExactly(GoogleGenAiTextEmbeddingOptions.TaskType.RETRIEVAL_DOCUMENT);
-        assertThat(model.inputs.getFirst()).contains("[EMAIL_REDACTED]")
-                .contains("[PHONE_REDACTED]", "[ID_REDACTED]")
+        assertThat(model.inputs.getFirst()).contains("[EMAIL]")
+                .contains("[PHONE]", "[ID]")
                 .doesNotContain("alice@example.com", "+886912345678", "A123456789",
                         "secret-value", "Supplier contract");
         assertThat(store.state(reviewId, "v1").status()).isEqualTo("REQUIRES_REVIEW");
@@ -141,7 +146,9 @@ class SemanticRagIntegrationTests extends AbstractIntegrationTest {
                 .andExpect(jsonPath("$.sources[0].version").value("v1"))
                 .andExpect(jsonPath("$.sources[0].startOffset").value(0))
                 .andExpect(jsonPath("$.sources[0].excerpt").value(org.hamcrest.Matchers.containsString(
-                        "Forklift capacity is 500 kilograms. Contact [EMAIL_REDACTED], [PHONE_REDACTED], [ID_REDACTED].")))
+                        "Forklift capacity is 500 kilograms. Contact [EMAIL]")))
+                .andExpect(jsonPath("$.sources[0].excerpt").value(org.hamcrest.Matchers.containsString("[PHONE]")))
+                .andExpect(jsonPath("$.sources[0].excerpt").value(org.hamcrest.Matchers.containsString("[ID]")))
                 .andExpect(jsonPath("$.sources[0].excerpt").value(
                         org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("alice@example.com"))));
         assertThat(model.tasks).contains(GoogleGenAiTextEmbeddingOptions.TaskType.RETRIEVAL_QUERY);
@@ -225,6 +232,38 @@ class SemanticRagIntegrationTests extends AbstractIntegrationTest {
         newGeneration.ensureGeneration();
         assertThat(newGeneration.search(List.of(1f, 0f, 0f), 5)).isEmpty();
         assertThat(store.search(query, 2)).hasSize(2);
+    }
+
+    @Test
+    void documentQueryFusesMysqlAndPgvectorEvidenceOnceInReciprocalRankOrder() throws Exception {
+        User admin = user(UserRole.ADMIN);
+        String firstContent = "Forklift capacity is 500 kilograms.";
+        String secondContent = "Forklift capacity is 600 kilograms. Operators should inspect the load before every shift.";
+        long firstId = ready(admin, DocumentType.PRODUCT_SPECIFICATION, firstContent);
+        long secondId = ready(admin, DocumentType.PRODUCT_SPECIFICATION, secondContent);
+        approve(admin, firstId);
+        approve(admin, secondId);
+
+        mvc.perform(post("/api/v1/semantic-index/backfill").header("Authorization", bearer(admin)))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.ready").value(2));
+        mvc.perform(post("/api/v1/semantic-index/gate-audit").header("Authorization", bearer(admin)))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.passed").value(true));
+
+        String response = query(admin, "forklift capacity")
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("ANSWERED"))
+                .andReturn().getResponse().getContentAsString();
+        JsonNode sources = objectMapper.readTree(response).path("sources");
+
+        assertThat(sources).hasSize(2);
+        assertThat(sources.get(0).path("documentId").asLong()).isEqualTo(firstId);
+        assertThat(sources.get(0).path("excerpt").asText()).isEqualTo(firstContent);
+        assertThat(sources.get(0).path("relevanceScore").asDouble()).isEqualTo(1.0);
+        assertThat(sources.get(1).path("documentId").asLong()).isEqualTo(secondId);
+        assertThat(sources.get(1).path("excerpt").asText()).isEqualTo(secondContent);
+        assertThat(sources.get(1).path("relevanceScore").asDouble())
+                .isCloseTo(61.0 / 62.0, org.assertj.core.data.Offset.offset(1.0e-9));
+        assertThat(model.tasks).contains(GoogleGenAiTextEmbeddingOptions.TaskType.RETRIEVAL_QUERY);
     }
 
     @Test
@@ -318,7 +357,7 @@ class SemanticRagIntegrationTests extends AbstractIntegrationTest {
         query(admin, "單價 NT$1200 是多少？").andExpect(status().isBadRequest());
         assertThat(model.inputs).containsExactlyElementsOf(questions);
         query(admin, "供應商 alice@example.com 的報價期限？").andExpect(status().isOk());
-        assertThat(model.inputs.getLast()).contains("[EMAIL_REDACTED]")
+        assertThat(model.inputs.getLast()).contains("[EMAIL]")
                 .doesNotContain("alice@example.com");
     }
 
@@ -430,8 +469,10 @@ class SemanticRagIntegrationTests extends AbstractIntegrationTest {
                 "unused.txt", actor, clock.instant());
         document.markReady(clock.instant());
         document = documents.saveAndFlush(document);
+        String embedding = new LocalLexicalEmbeddingProvider().embed(content).stream()
+                .map(String::valueOf).collect(Collectors.joining(","));
         chunks.saveAndFlush(DocumentChunk.create(document, 0, 0, content.length(), content,
-                "[1]", clock.instant()));
+                embedding, clock.instant()));
         return document.getId();
     }
 

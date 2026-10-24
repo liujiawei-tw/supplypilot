@@ -93,6 +93,37 @@ class EvidenceValidatorTests {
     }
 
     @Test
+    void identifiersMustMatchExactNfkcNormalizedTokensBeforeCitingEvidence() {
+        String supplierQuestion = "SUP-001 standard lead time?";
+        String wrongSupplier = "SUP-001 is listed in the appendix. "
+                + "SUP-0012 standard lead time is 9 business days.";
+        RetrievedChunk wrongSupplierChunk = chunk(wrongSupplier, 0.9);
+
+        assertThat(validator.isSemanticallySufficient(supplierQuestion, List.of(wrongSupplierChunk), 0.45))
+                .isFalse();
+        assertThat(validator.supportedExcerpt(supplierQuestion, wrongSupplier)).isEmpty();
+
+        String materialQuestion = "MAT-001 standard lead time?";
+        String wrongMaterial = "MAT-001 is listed in the appendix. "
+                + "MAT-0012 standard lead time is 7 business days.";
+        RetrievedChunk wrongMaterialChunk = chunk(wrongMaterial, 0.9);
+
+        assertThat(validator.isSemanticallySufficient(materialQuestion, List.of(wrongMaterialChunk), 0.45))
+                .isFalse();
+        assertThat(validator.supportedExcerpt(materialQuestion, wrongMaterial)).isEmpty();
+
+        String normalizedQuestion = "sup-001 的 MAT-001 標準交期是多久？";
+        String fullWidthSource = "ＳＵＰ－００１ supplies ＭＡＴ－００１。"
+                + "ＭＡＴ－００１ 標準交期為採購單轉為 ORDERED 後 5 個曆日。";
+        RetrievedChunk normalizedSource = chunk(fullWidthSource, 0.9);
+
+        assertThat(validator.isSemanticallySufficient(normalizedQuestion, List.of(normalizedSource), 0.45))
+                .isTrue();
+        assertThat(validator.supportedExcerpt(normalizedQuestion, fullWidthSource))
+                .contains("ＭＡＴ－００１ 標準交期為採購單轉為 ORDERED 後 5 個曆日");
+    }
+
+    @Test
     void validatesSupportedProcurementQuestionsIncludingCrossLanguageQueries() {
         assertSupported("SUP-001 的 MAT-001 標準交期是多久？",
                 "SUP-001 supplies MAT-001\nMAT-001 標準交期為採購單轉為 ORDERED 後 5 個曆日。", 0.82);

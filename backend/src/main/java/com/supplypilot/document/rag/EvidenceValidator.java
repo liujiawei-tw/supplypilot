@@ -19,8 +19,6 @@ import org.springframework.stereotype.Component;
 public class EvidenceValidator {
 
     private static final double MINIMUM_SCORE = 0.15;
-    private static final Pattern IDENTIFIER = Pattern.compile("(?i)\\b[A-Z]{2,}[A-Z0-9_]*-[A-Z0-9]+\\b");
-    private static final Pattern MATERIAL_IDENTIFIER = Pattern.compile("(?i)\\b(?:MAT|MATERIAL)-[A-Z0-9_]+\\b");
     private static final Pattern EVIDENCE_CLAUSE_BOUNDARY = Pattern.compile(
             "(?<=[。！？!?])\\s*|(?<!\\d)\\.(?!\\d)\\s*|[，,；;\\r\\n]+");
     private static final Pattern EVIDENCE_SENTENCE_BOUNDARY = Pattern.compile(
@@ -146,6 +144,7 @@ public class EvidenceValidator {
         boolean conditionListQuestion = asksForConditions(question);
         List<String> clauses = conditionListQuestion
                 ? supportedConditionWindows(question, content) : splitEvidenceClauses(content);
+        clauses = clauses.stream().filter(clause -> hasNoConflictingIdentifiers(clause, identifiers)).toList();
         List<String> matching = new ArrayList<>();
         boolean quantitative = needsQuantitativeAnswer(question);
         if (!requestedTopics.isEmpty()) {
@@ -157,7 +156,7 @@ public class EvidenceValidator {
                         : requestedTopics.stream().anyMatch(topic -> topic.matches(normalized));
                 boolean materialMatch = materialIdentifiers.isEmpty()
                         || sourceMaterialIdentifiers.size() <= 1
-                        || materialIdentifiers.stream().allMatch(id -> normalized.contains(id.toLowerCase(Locale.ROOT)));
+                        || IdentifierMatcher.containsAll(normalized, materialIdentifiers);
                 if (topicMatch && materialMatch && (!quantitative || containsSupportedValue(question, List.of(clause)))) {
                     matching.add(clause.trim());
                 }
@@ -215,17 +214,13 @@ public class EvidenceValidator {
     }
 
     private Set<String> identifiers(String question) {
-        Matcher matcher = IDENTIFIER.matcher(question);
-        Set<String> result = new HashSet<>();
-        while (matcher.find()) result.add(matcher.group().toUpperCase(Locale.ROOT));
-        return result;
+        return IdentifierMatcher.find(question);
     }
 
     private Set<String> materialIdentifiers(String text) {
-        Matcher matcher = MATERIAL_IDENTIFIER.matcher(text);
-        Set<String> result = new HashSet<>();
-        while (matcher.find()) result.add(matcher.group().toUpperCase(Locale.ROOT));
-        return result;
+        return IdentifierMatcher.find(text).stream()
+                .filter(identifier -> identifier.startsWith("MAT-") || identifier.startsWith("MATERIAL-"))
+                .collect(java.util.stream.Collectors.toSet());
     }
 
     private boolean needsQuantitativeAnswer(String question) {
@@ -264,8 +259,24 @@ public class EvidenceValidator {
     }
 
     private boolean containsAllIdentifiers(String content, Set<String> identifiers) {
-        String normalized = normalize(content);
-        return identifiers.stream().allMatch(identifier -> normalized.contains(identifier.toLowerCase(Locale.ROOT)));
+        return IdentifierMatcher.containsAll(content, identifiers);
+    }
+
+    private boolean hasNoConflictingIdentifiers(String clause, Set<String> requestedIdentifiers) {
+        if (requestedIdentifiers.isEmpty()) return true;
+        Set<String> clauseIdentifiers = IdentifierMatcher.find(clause);
+        return clauseIdentifiers.stream().noneMatch(clauseIdentifier -> {
+            String family = identifierFamily(clauseIdentifier);
+            return requestedIdentifiers.stream().anyMatch(requested -> identifierFamily(requested).equals(family))
+                    && !requestedIdentifiers.contains(clauseIdentifier);
+        });
+    }
+
+    private String identifierFamily(String identifier) {
+        int separator = identifier.indexOf('-');
+        if (separator < 0) separator = identifier.indexOf('_');
+        if (separator < 0) separator = identifier.indexOf('/');
+        return separator < 0 ? identifier : identifier.substring(0, separator);
     }
 
     private List<String> splitEvidenceClauses(String content) {
