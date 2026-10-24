@@ -5,29 +5,27 @@
 > 審查基準：2026-10-22，來源 [Matt Pocock Skills](https://github.com/mattpocock/skills)；參考 upstream main commit `5beb35b040e3de97e54fa9e386d7e42d15c295c2`。上游可能更新，使用前應核對實際安裝版本與 Skill 內容。
 > 專屬追蹤：[Issue #156](https://github.com/liujiawei-tw/supplypilot/issues/156)。文件合併只建立協作規則，**不代表第三方 Skills 已安裝、功能已完成或測試已通過**。
 
-## 1. 權威、目標與不可改動的規則
 
-- **最高專案執行規則：** 根目錄 [AGENTS.md](../../AGENTS.md)；業務與 Scope 依 [V2 規格總綱](README.md)、[V1→V2 差異／Issue 對照](migration-and-issue-map.md)、當次 Issue 及對應文件。Matt Pocock 原版 Skill、README、範例命令均不是 SupplyPilot 規格權威。
-- 使用者當次明確指令及經核定的 Scope → 當次 Issue 與依賴 → V2 已核定文件 → 未被 V2 覆蓋的安全／交易／測試契約；Skill 只能在不牴觸上述要求時提供方法。遇到衝突，記錄具體來源、停止衝突行為並依既有決策程序處理；**不得以 Skill 為由自行修改專案規則**。
-- **每張 Issue 維持單 Feature Branch／單 Worktree／單 PR。** 已授權的多張 Issue 可在 Issue DAG、Code/Issue Gate、檔案 owner、測試資源及獨立工作樹均經 Orchestrator 驗證後平行實作；Issue Gate 等待其必要依賴 Merge/Closed，Release Gate 留給整合後 Release Candidate。不得建立跨 Issue Integration Branch、讓子 Agent 合併其他 Issue、提早建立 Draft PR、關閉 Issue、Force Push 或直接 Push main。
-- **Codex 實作＋測試＋內部預檢＋Commit／Push；GPT 以 GitHub 遠端確切 Head SHA 獨立審查；GPT Final PASS 才建立 PR；使用者親自決定 Merge。** Codex 或 Matt 的 `code-review` 結果不能取代 GPT Final PASS。
-- 不修改既有 CI Gate、GitHub Actions、測試必要覆蓋、安全／權限／交易／併發、Gemini 真實 Provider／Browser E2E 的證據要求。不得將單純靜態 Review、Mock、文件修改宣稱為真實測試 PASS。
-- 不授權自動安裝／升級第三方 Skill、執行第三方腳本、改寫 `AGENTS.md`、`docs/v2/`、GitHub Issue 或 CI；此類變更必須有明確 Scope。V2 仍依既定次序：逐張完成 → 本機 Docker／真實 E2E → AWS #133 → 展示影片。
+## 1. 規則與最新流程
 
-## 2. 固定角色與權限
+- **2026-10-24 最新使用者決策優先：** [根目錄 AGENTS.md](../../AGENTS.md) 的 GPT → Codex → GPT Code Review → Codex 必要 CI → GPT PR → 人工 Merge 是一般 Issue 的強制協作流程。
+- GitHub Issue 與 [V2 規格總綱](README.md) 確認 Scope，修改前檢查最新 Repo／必要依賴、風險和現有測試；第三方 Skills 不改動授權邊界。
+- 每張 Issue 原則上一個 Feature Branch／Worktree／PR；多 Issue 並行時用 GitHub 依賴及 Worktree／檔案衝突實際核對，不靠 Orchestrator 的多層 State／Gate 作一般交付的強制前置。
+- 不把未合併上游當作已完成、不改 main、不 Force Push、不代替使用者 Merge，不隱藏失敗測試或跳過必要安全／授權／交易／併發回歸。
+- GitHub Actions 目前 `PAUSED BY USER / NOT USED AS GATE`；Codex 在 GPT Code Review 後執行必要本機 CI 等價驗證，保留範圍、結果與未執行項目，非真實 Gemini／Browser／AWS 不得宣稱 PASS。
+- #168 最多兩輪 Orchestrator 修正；第二輪仍無法穩定運作，停止擴大修復，提請最小化移除其剩餘強制入口，**不刪除必要測試**。
 
-| 角色 | 職責 | 不得代行 |
+
+## 2. 角色與驗收責任
+
+| 角色 | 工作 | 不得代行 |
 | --- | --- | --- |
-| 使用者（Product Owner） | 需求、優先順序、重大衝突的決策；Merge／正式公開權限授權 | 不以安裝 Skill 代替驗收 |
-| Codex（Implementer） | 讀取 Issue／規格／實際 Repo；使用 Matt Skills 輔助實作、精準測試、內部預檢、整理證據、Commit／Push | 不自行建立 PR、Merge、關閉 Issue、改變 Scope，或宣布 GPT Final PASS |
-| Matt Pocock Skills（方法庫） | 提供 TDD、錯誤重現、程式設計與內部 Review 方法 | 不是 Agent、需求權威、審核者或自動 Merge 工具 |
-| GPT（Independent Reviewer） | 依來源與 Head SHA 審查 Spec、Standards、安全、交易、測試與風險，回報 P0／P1／P2，核定 Final PASS／CHANGES REQUIRED；Final PASS 後建立及回讀 PR | 不把 Codex 宣稱的測試當成自身執行；不得自行 Merge |
+| 使用者 | 決定 Scope、優先順序與 PR Merge | 不因工具顯示 PASS 而省略產品驗證 |
+| GPT | GitHub 讀取／Prompt、獨立 Code Review、CI 證據核對、建立繁體中文 PR | 不冒稱自己跑過 Codex 的測試、不擅自 Merge |
+| Codex | Branch／Worktree、實作、開發期精準測試、內部預檢、Commit／Push、Review 後必要 CI | 不自動開 PR、Merge、關閉 Issue 或偽造證據 |
+| Matt Skills | 可選的 implement／tdd／diagnosing-bugs／內部 code-review 方法 | 不取代 GitHub 事實、GPT 審查或專案規格 |
 
-### GPT 的雙軸 Review（外加專案關卡）
-
-1. **Spec：** 是否滿足 Issue 的 Acceptance Criteria、正確遵守 V2 業務規則及排除項目、沒有額外功能與越界修改。
-2. **Standards：** 是否符合 `docs/coding-standards.md`、相關 API／Domain／Security／Transaction／Exception 文件，檢查程式品質與可維護性。
-3. **必備 Gate：** 權限／機敏出站、資料庫遷移、交易原子性及併發、回歸測試、真實測試證據、交付 SHA／Base SHA、變更範圍及部署禁令。不得因前兩軸沒發現問題就省略。
+GPT Review 檢查兩軸：**Spec**（驗收條件、範圍、V2 Business Rules）、**Standards**（程式碼品質、安全、API／資料庫／交易／例外及測試設計）。Code Review 可以先 PASS，但**正式交付 PASS 仍需必要 CI 實際通過**。
 
 ## 3. Skills 導入矩陣（使用目的及限制）
 
@@ -39,31 +37,33 @@
 | [code-review](https://github.com/mattpocock/skills/blob/main/skills/engineering/code-review/SKILL.md) | Codex：Commit／Push 前的內部預檢 | 依 Spec／Standards 雙軸檢查；報告 Findings；**不是** GPT 遠端獨立 Review 或 Final PASS |
 | [codebase-design](https://github.com/mattpocock/skills/blob/main/skills/engineering/codebase-design/SKILL.md) | Codex：相關 Issue 需要改善模組邊界時 | 只處理本 Issue 直接必要的設計，不順便全域重構 |
 | [retro](https://github.com/mattpocock/skills/blob/main/skills/engineering/retro/SKILL.md) | 使用者要求時：比較實作／測試／Review 瓶頸 | 只提供可追溯改善建議；需修改 AGENTS、CI、其他 Issue 時另行核准 |
-| [implement-spec](https://github.com/mattpocock/skills/blob/main/skills/engineering/implement-spec/SKILL.md) | SupplyPilot 專屬版僅在使用者明確授權多 Issue 時使用 | 本機 .agents/skills/supplypilot-implement-spec 是 Issue #162 的受控協調器；僅借用 DAG/Ready Frontier/TDD/內部 Review 方法，明確替換原版 Integration Branch、Merger、Draft PR 和自動清理行為。原版不直接執行 |
+| [implement-spec](https://github.com/mattpocock/skills/blob/main/skills/engineering/implement-spec/SKILL.md) | 僅作選用的多 Issue 分析工具 | 原 #162 Orchestrator 的 State／Issue Gate／Release Gate 不再是一般 Code Review／CI／PR 前置；若明確使用舊工具，原本 fail-closed 不可偽造成功；不得自動建立 Integration Branch 或 Merge |
 | setup／triage／to-spec／to-tickets／pr | 目前不納入預設開發路徑 | V2 已有 Issue 與核定規格；setup 可能產生文件及修改 AGENTS，不能未經授權執行；PR 仍由 GPT 依 AGENTS 建立 |
 
 同類 TDD／Debug Skill（例如 Superpowers）不需要同時重複導入。任何第三方 Skill 若要求和本表衝突的操作，以此文件及 `AGENTS.md` 限制為準。
 
-## 4. 每張 V2 Issue 的執行與交接契約
 
-1. **前置：** 讀取 AGENTS.md、Issue、docs/v2/ 對應規格、實際程式碼與測試；從已授權 Issue 集合核實依賴 DAG 和目前 main SHA。各 Issue 維持單一 Feature Branch/Worktree；Code Gate 可依明確核准 provisional contract 放行編碼，但 Issue Gate 前仍須確認依賴 Merge/Closed、當前 main 與已核實契約。Release Gate 另須對整合候選版本執行完整驗證。
-2. **Codex 實作：** 每張 Issue 交給指定實作者，分派訊息附上 Issue、Worktree/Branch、Base SHA、契約、檔案 owner、測試資源和停止條件；使用 implement/tdd。Codex subagents 不保證自動各有 Worktree，因此主控需先實際建立並核對隔離工作樹，否則只派唯讀工作。
-3. **測試：** 修改後跑受影響精準測試、必要整合與負向案例，並依實際 Diff 完成 Issue Gate；Release Candidate 整合完成後才跑完整 Release Gate。不得重複跑相同且未修改程式碼的測試來虛增證據。GitHub Actions 若帳務阻擋，依既有本機完整 CI 等價驗證；如實標記 `FINAL PASS — LOCAL VERIFIED / GITHUB CI PENDING` 的適用條件。
-4. **Codex 內部 Review：** 先執行 Matt `code-review` 預檢並修正，再 Commit／Push 至 Feature Branch，核對遠端 Head SHA 和本機一致。
-5. **交接 GPT：** 回報 Issue 連結、Repository、Base Branch/SHA、Feature Branch、Head SHA、修改檔案與摘要、實際測試命令／結果／證據、未執行項目、已知風險、Matt Skills 的使用紀錄。**不要求使用者貼整份 Diff**。
-6. **GPT 獨立審查：** 從 GitHub 重新取得正確 Head 與 Base、Diff、程式與驗收條件；分開審查 Spec／Standards／必要 Gate；回報帶檔案依據的 Findings。若需修改，Codex 在同分支新增 Commit／Push，再以新的 SHA 重新審查。
-7. **PR 與 Merge：** GPT 確認 `FINAL PASS` 後，依 `AGENTS.md` 以繁體中文建立 PR，描述獨立一行 `Closes #<Issue編號>`，回讀核對 Head SHA／Base／Scope。由使用者人工 Merge；核對 Merge／Closed 才進下一張。
-8. **任何環節無法證實：** 明確記錄 `NOT RUN` 或 `BLOCKED`；不得猜測成功，尤其不把 Mock、靜態文件檢查等同 Browser、Gemini、CI 或 AWS PASS。
+## 4. 一般 Issue 執行順序（強制）
 
-## 5. SupplyPilot 多 Issue Orchestrator（Issue #162 提案）
+1. **GPT 讀 GitHub：** 核實最新 main、Issue／Acceptance Criteria、已合併的前置 PR 與 Code／Docs，給 Codex 清楚的 Prompt。
+2. **Codex 實作：** 專用 Branch／Worktree，執行開發期受影響測試及內部 Review，Commit／Push；交接 Issue URL、Base、完整 HEAD SHA、Diff 範圍、風險與已跑／未跑測試。
+3. **GPT Independent Review：** 對 GitHub 遠端 HEAD 的完整 Diff 檢查 Spec／Standards／Security／Transaction／Tests；阻擋 Finding 交 Codex 在相同分支修正並重新 Review。
+4. **Codex 必要 CI：** Review PASS 後，以相同 HEAD 執行受影響 Backend Maven、Frontend Node.js 24／Lint／Vitest／Build，及必要 Integration／Migration／授權／併發測試；依風險擴大。保存命令、測試計數、exit code、logs／Hash、Skipped 與未執行理由。程式或測試另有新 Commit 則 GPT 重新審查新 SHA。
+5. **GPT 交付 PASS 與 PR：** 僅在必要 CI 有效且無阻擋問題時建立繁體中文 PR，目標 `main`，描述獨立一行 `Closes #<IssueNumber>`，回讀確認 Base／Head／SHA。
+6. **使用者 Merge：** 只由使用者決定 Merge；再核實 PR merged、最新 main 與 Issue closed。
 
-此節與專案 Skill 在 Issue #162 PR 合併前均為待審查提案；main 上現行單 Issue 規則繼續適用。
+舊 Orchestrator `ISSUE_GATE_VERIFIED`、State Reconciliation／Contract Verification、Reservation、Release Gate 不作此一般路徑的額外必要條件。它們若被單獨啟動仍須忠實回報結果；不可冒稱工具已從程式刪除。部署／真實 Gemini／Browser／Docker／AWS 驗證另依實際交付範圍安排。
 
-使用者列出可處理的 Issue 集合後，主控根據 GitHub Issue/PR、目前 main、V2 需求、repo 程式契約建依賴 DAG，驗證 Missing/Cycle、Ready Frontier 與 Code Gate。每張 Issue 的 GPT Review／PR 前由 Orchestrator 依該次 Diff、依賴、共享元件及安全／交易／契約風險計畫並執行必要 Issue Gate；範圍不明時 fail closed。完整 Release Gate 留給整合後 Release Candidate，不由單 Issue Gate 組合推導。Codex subagent 可平行做唯讀探索，也可平行實作不同 Issue，但前提是主控先建立並核實獨立 Worktree/Branch、文件 owner 和測試資源限制；官方文件未宣稱 subagent 會自帶 Worktree。遇到既有 WIP、衝突或能力不支援就停止該項派工。
+必要 CI 失敗阻擋 PR；真正 opt-in、未排入本次必要範圍的 Provider Smoke 可清楚列為 `NOT RUN／RELEASE_PENDING`，不可把它算作成功執行。純文件改動可用 Markdown 連結／規範一致性／Diff Check 驗證，不強制無關的全量 Backend／Frontend 測試。
 
-第一版上限為 implementer 3；Full Vitest、Maven Verify、Docker/Testcontainers、Docker Image Build 等已確認高負載完整驗證共用同一個 `high-load` 鎖，同一時間只允許一項。持久化狀態由單一 Orchestrator writer 維護於 Git common directory 下的 `supplypilot-orchestrator/orchestrator.json`；共享資源鎖也放在此 common directory，讓所有 linked worktrees 都使用同一把鎖。Active Issue 保留 file ownership，直到 Merge、Failed 或明確釋放；未知 owner 狀態阻擋派工。
 
-Planner 分別輸出 Code Ready、Issue Gate Eligible／Verified、Release Gate Verified、GPT Handoff Ready 與 GPT Final PASS；handoff 必須有目前 SHA 的新 Issue Gate，既有 Full Gate 或 Targeted 記錄不會自動提升。`release_frontier` 代表確切 SHA 已有 GPT Final PASS，不表示 Release Gate 通過。Release Gate 使用固定完整驗證 manifest，保留其 Review／digest 信任邊界，只適用於整合候選版本。`state init` 與 Merge/Main 同步需由即時 `origin/main`、GitHub PR merged/base/merge commit、Issue Closed 狀態核實；main 更新會保留事件並使下游舊 Gate／Review 標為 STALE，不替下游分支改寫 base 或整合 main。若 main diff 涉及 backend/frontend source、API／DTO／Schema／migration／contract 路徑或資料格式，契約核驗也會失效；無法取得 diff 時 fail closed。下游須先經 `FULL_GATE_PENDING` 重新核實 main ancestry、乾淨且與遠端一致的 feature HEAD、依賴與契約，才能恢復實作或執行新 Issue Gate。既有 WIP 可透過唯讀 Adopt 記錄 index、tracked/untracked 內容與指紋；Resume 前需再次核對指紋、worktree 身分、依賴、base 及使用者授權。implementer 回報事實，不直接改共享狀態。完整規則、狀態資料與命令見 .agents/skills/supplypilot-implement-spec/；Internal Review 只屬預檢。
+## 5. 原 Orchestrator：歷史工具與 #168 兩輪限制
+
+#162 提供的 Orchestrator 仍在 Repo 中，其 State Machine、Impact Planner、Reservation 與獨立 Gate 原本採 Fail-Closed 設計；這些工具的程式行為**不會因文件變更而自動修改**。
+
+根據 2026-10-24 使用者決策，一般開發直接用 GitHub Branch／PR 與 GPT Review＋必要 CI 驗收，不再要求多層 State／Gate。只有使用者針對特定操作明確要求時，才可選用舊 Orchestrator 診斷功能；執行該工具時不得偽造 Gate PASS、直接編輯 Shared State 或擅自清除 Lock。
+
+#168 的 Orchestrator Recovery 最多兩輪修正，每輪需有實際修正與驗證結果；兩輪後仍失敗即停止擴張，轉為最小化移除強制入口的改動（另經確認與 Review）。#142、#145 既有業務成果保留，僅補足必要 CI，沒有額外 State Gate 要求。
 
 ## 6. Matt Skills 所需的最小 Repo 設定
 
@@ -105,7 +105,7 @@ npx skills@latest add mattpocock/skills -a codex
 1. 讀取 `liujiawei-tw/supplypilot` 的最新 `AGENTS.md`、`docs/v2/README.md`、本文件、`docs/agents/issue-tracker.md`、`docs/agents/domain.md`，以及 `docs/v2/migration-and-issue-map.md`；核實這次導入文件的 PR 是否**已合併至 main**。若仍只在 Feature Branch，應明確標為待合併草案，不能當 main 的既定規則。
 2. 讀取 Matt Pocock Skills 對應的上游 README、`implement`、`tdd`、`diagnosing-bugs`、`code-review` 原始 Skill；詢問／驗證實際 Windows Codex CLI 是否已安裝（不可從文件推定）。
 3. 確認 GPT 只負責獨立審查與 PR、Codex 負責實作與證據、使用者負責 Merge；確認單 Issue／單 Branch 及 Skills 的衝突限制。
-4. 若使用者希望先「對接」而非直接寫程式：先產出一份簡短的相容性檢查，核對 Skills 實際可用、AGENTS 優先序、正確 GitHub Repo、測試 Gate 與交接格式；**不要擅自開始實作下一張 Issue**。
+4. 若使用者希望先「對接」而非直接寫程式：先產出一份簡短的相容性檢查，核對 Skills 實際可用、AGENTS 優先序、正確 GitHub Repo、必要 CI 與交接格式；**不要擅自開始實作下一張 Issue**。
 5. 對接後要開始功能時，再讀取**當時最新** Issue、前置 PR、Repo 實況及 Head SHA；此前文件不得當成程式已完成的證明。
 
 可直接在新對話使用的啟動訊息：
