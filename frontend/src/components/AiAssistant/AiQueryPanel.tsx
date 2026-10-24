@@ -4,9 +4,10 @@ import { queryAi, type AiQueryResponse } from '../../api/ai';
 import { toApiError } from '../../api/apiError';
 import ErrorState from '../ErrorState';
 import AiSources from './AiSources';
+import AiAnswerDisplay from './AiAnswerDisplay';
 import type { ApiErrorResponse } from '../../types/api';
 
-const { Paragraph, Text, Title } = Typography;
+const { Text, Title } = Typography;
 
 function queryErrorMessage(error: ApiErrorResponse): string {
   if (error.code === 'AI_PROVIDER_UNAVAILABLE') return 'AI 服務暫時無法使用。核心採購功能與導覽仍可正常操作。';
@@ -45,7 +46,9 @@ export default function AiQueryPanel() {
     {response?.status === 'INSUFFICIENT_EVIDENCE' && <Alert type="info" showIcon title="證據不足"
       description="後端 沒有足夠證據支持肯定答案，因此不會顯示推測內容。" />}
     {response?.status === 'ANSWERED' && <Card size="small" title="回答">
-      <Paragraph style={{ whiteSpace: 'pre-wrap' }}>{response.answer}</Paragraph>
+      {response.answer
+        ? <AiAnswerDisplay answer={response.answer} />
+        : <Text type="secondary">後端未提供可顯示回答。</Text>}
       {response.answerSource && <Text type="secondary">Answer Source：{response.answerSource}</Text>}
       {response.tools.length > 0 && <div style={{ marginTop: 8 }}>{response.tools.map((tool) => <Tag key={tool}>{tool}</Tag>)}</div>}
     </Card>}
