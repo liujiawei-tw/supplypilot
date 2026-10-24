@@ -21,6 +21,7 @@ import com.supplypilot.procurement.service.ReceivingService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.Size;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
@@ -40,6 +41,7 @@ import org.springframework.validation.annotation.Validated;
 @RequestMapping("/api/v1/purchase-orders")
 @Validated
 public class PurchaseOrderController {
+    private static final int MAX_SEARCH_LENGTH = 100;
     private static final Set<String> SORTABLE_FIELDS = Set.of(
             "id", "poNumber", "status", "expectedDeliveryDate", "createdAt", "updatedAt", "orderedAt");
     private final PurchaseOrderService purchaseOrderService;
@@ -66,6 +68,10 @@ public class PurchaseOrderController {
             @RequestParam(required = false) PurchaseOrderStatus status,
             @RequestParam(required = false) Long supplierId,
             @RequestParam(required = false) Long materialId,
+            @RequestParam(required = false) @Size(max = MAX_SEARCH_LENGTH) String poNumber,
+            @RequestParam(required = false) @Size(max = MAX_SEARCH_LENGTH) String supplierCode,
+            @RequestParam(required = false) @Size(max = MAX_SEARCH_LENGTH) String supplierName,
+            @RequestParam(required = false) @Size(max = MAX_SEARCH_LENGTH) String materialCode,
             @RequestParam(required = false) LocalDate createdFrom,
             @RequestParam(required = false) LocalDate createdTo,
             @RequestParam(required = false) LocalDate expectedDeliveryFrom,
@@ -74,7 +80,8 @@ public class PurchaseOrderController {
             @RequestParam(defaultValue = "0") @Min(0) int page,
             @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size,
             @RequestParam(defaultValue = "id,asc") String sort) {
-        return purchaseOrderService.list(status, supplierId, materialId, createdFrom, createdTo,
+        return purchaseOrderService.list(status, supplierId, materialId, poNumber, supplierCode,
+                supplierName, materialCode, createdFrom, createdTo,
                 expectedDeliveryFrom, expectedDeliveryTo, overdue, PageRequest.of(page, size, parseSort(sort)));
     }
 
