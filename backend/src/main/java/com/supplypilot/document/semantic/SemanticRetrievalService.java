@@ -13,16 +13,15 @@ import com.supplypilot.document.domain.DocumentStatus;
 import com.supplypilot.document.rag.RetrievedChunk;
 import com.supplypilot.document.repository.DocumentChunkRepository;
 import com.supplypilot.document.repository.DocumentMetadataRepository;
+import io.micrometer.core.instrument.DistributionSummary;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
-import io.micrometer.core.instrument.DistributionSummary;
 import org.springframework.stereotype.Service;
 
 @Service
 public class SemanticRetrievalService {
     private final SemanticStore store;
     private final SemanticEmbeddingService embeddings;
-    private final SemanticReadinessService readiness;
     private final OutboundDocumentPolicy policy;
     private final SemanticProperties properties;
     private final DocumentMetadataRepository documents;
@@ -31,12 +30,11 @@ public class SemanticRetrievalService {
     private final DistributionSummary candidatesMeter;
 
     public SemanticRetrievalService(SemanticStore store, SemanticEmbeddingService embeddings,
-                                    SemanticReadinessService readiness, OutboundDocumentPolicy policy,
-                                    SemanticProperties properties, DocumentMetadataRepository documents,
-                                    DocumentChunkRepository chunks, MeterRegistry meters) {
+                                    OutboundDocumentPolicy policy, SemanticProperties properties,
+                                    DocumentMetadataRepository documents, DocumentChunkRepository chunks,
+                                    MeterRegistry meters) {
         this.store = store;
         this.embeddings = embeddings;
-        this.readiness = readiness;
         this.policy = policy;
         this.properties = properties;
         this.documents = documents;
@@ -45,15 +43,15 @@ public class SemanticRetrievalService {
                 .description("Exact pgvector search and MySQL source validation latency")
                 .register(meters);
         this.candidatesMeter = DistributionSummary.builder("supplypilot.semantic.search.candidates")
-                .description("Candidates returned by exact pgvector search")
+                .description("Exact pgvector candidates checked against current approved MySQL source")
                 .register(meters);
     }
 
     public List<RetrievedChunk> retrieve(String question) {
         long started = System.nanoTime();
         try {
-            if (!readiness.canRead()) throw new BusinessException(ErrorCode.AI_PROVIDER_UNAVAILABLE);
             String safeQuestion = policy.safeQuery(question);
+            store.ensureGeneration();
             List<Float> query = embeddings.query(safeQuestion);
             List<RetrievedChunk> result = new ArrayList<>();
             int batchSize = properties.topK() * 5;
@@ -74,6 +72,7 @@ public class SemanticRetrievalService {
                     List<DocumentChunk> source = chunks.findByDocumentIdOrderByChunkIndex(candidate.documentId());
                     SemanticStore.IndexState index = store.state(candidate.documentId(), candidate.version());
                     if (index == null || !"READY".equals(index.status())
+                            || index.publicationGeneration() != document.getSemanticIndexGeneration()
                             || index.expectedCount() != source.size()
                             || store.chunkCount(candidate.documentId(), candidate.version()) != source.size()
                             || !SemanticBackfillService.sourceHash(source).equals(index.sourceHash())) continue;

@@ -13,12 +13,14 @@ public class SemanticOperationsController {
     private final SemanticBackfillService backfill;
     private final SemanticReadinessService readiness;
     private final SemanticOutboundApprovalService approval;
+    private final SemanticIndexJobService jobs;
 
     public SemanticOperationsController(SemanticBackfillService backfill, SemanticReadinessService readiness,
-                                        SemanticOutboundApprovalService approval) {
+                                        SemanticOutboundApprovalService approval, SemanticIndexJobService jobs) {
         this.backfill = backfill;
         this.readiness = readiness;
         this.approval = approval;
+        this.jobs = jobs;
     }
 
     @PostMapping("/backfill")
@@ -37,6 +39,16 @@ public class SemanticOperationsController {
         return readiness.audit();
     }
 
+
+    @GetMapping("/jobs")
+    public java.util.List<SemanticIndexJobResponse> jobs(@RequestParam(defaultValue = "50") int limit) {
+        return jobs.latest(limit);
+    }
+
+    @PostMapping("/jobs/{jobId}/retry")
+    public SemanticIndexJobResponse retry(@PathVariable long jobId) {
+        return jobs.retry(jobId);
+    }
     @PostMapping("/documents/{id}/approve-outbound")
     public SemanticOutboundApprovalService.Review approve(@PathVariable long id) {
         return approval.approve(id);

@@ -72,6 +72,13 @@ supplypilot:
     top-k: ${SEMANTIC_TOP_K:5}
     similarity-threshold: ${SEMANTIC_SIMILARITY_THRESHOLD:0.45}
     embedding-timeout: ${SEMANTIC_EMBEDDING_TIMEOUT:15s}
+    indexing:
+      worker-enabled: ${SEMANTIC_INDEX_WORKER_ENABLED:true}
+      poll-interval-millis: ${SEMANTIC_INDEX_POLL_INTERVAL_MILLIS:1000}
+      lease-duration: ${SEMANTIC_INDEX_LEASE_DURATION:PT5M}
+      max-attempts: ${SEMANTIC_INDEX_MAX_ATTEMPTS:4}
+      initial-retry-delay: ${SEMANTIC_INDEX_INITIAL_RETRY_DELAY:PT2S}
+      max-retry-delay: ${SEMANTIC_INDEX_MAX_RETRY_DELAY:PT1M}
   document-storage:
     type: ${DOCUMENT_STORAGE_TYPE:local}
     path: ${DOCUMENT_STORAGE_PATH:./data/documents}
@@ -81,4 +88,3 @@ supplypilot:
     access-key-id: ${AWS_ACCESS_KEY_ID:}
     secret-access-key: ${AWS_SECRET_ACCESS_KEY:}
   demo-data-enabled: false
-

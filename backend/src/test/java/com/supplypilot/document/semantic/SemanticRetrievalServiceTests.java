@@ -64,7 +64,6 @@ class SemanticRetrievalServiceTests {
     private Fixture fixture(String candidateVersion, DocumentStatus documentStatus) {
         SemanticStore store = mock(SemanticStore.class);
         SemanticEmbeddingService embeddings = mock(SemanticEmbeddingService.class);
-        SemanticReadinessService readiness = mock(SemanticReadinessService.class);
         DocumentMetadataRepository documents = mock(DocumentMetadataRepository.class);
         DocumentChunkRepository chunks = mock(DocumentChunkRepository.class);
         DocumentMetadata document = mock(DocumentMetadata.class);
@@ -80,20 +79,19 @@ class SemanticRetrievalServiceTests {
         when(document.getSemanticApprovedBy()).thenReturn(7L);
         when(document.getSemanticApprovedAt()).thenReturn(Instant.EPOCH);
         when(embeddings.query(QUESTION)).thenReturn(QUERY_VECTOR);
-        when(readiness.canRead()).thenReturn(true);
         when(store.search(QUERY_VECTOR, properties.topK() * 5, 0)).thenReturn(List.of(
                 new SemanticStore.Candidate(DOCUMENT_ID, candidateVersion, 0, 0, CONTENT.length(), CONTENT, 0.92)));
         when(documents.findForSemanticRead(DOCUMENT_ID)).thenReturn(Optional.of(document));
         when(chunks.findByDocumentIdOrderByChunkIndex(DOCUMENT_ID)).thenReturn(List.of(source));
         when(store.state(DOCUMENT_ID, VERSION)).thenAnswer(call -> {
             String hash = SemanticBackfillService.sourceHash(List.of(source));
-            return new SemanticStore.IndexState("READY", hash, 1, null, 1);
+            return new SemanticStore.IndexState("READY", hash, 1, null, 1, 0);
         });
         when(store.chunkCount(DOCUMENT_ID, VERSION)).thenReturn(1);
         when(document.getSemanticApprovedSourceHash()).thenReturn(SemanticBackfillService.sourceHash(List.of(source)));
 
-        SemanticRetrievalService service = new SemanticRetrievalService(store, embeddings, readiness,
-                new OutboundDocumentPolicy(), properties, documents, chunks, new SimpleMeterRegistry());
+        SemanticRetrievalService service = new SemanticRetrievalService(store, embeddings, new OutboundDocumentPolicy(), properties,
+                documents, chunks, new SimpleMeterRegistry());
         return new Fixture(service, chunks);
     }
 

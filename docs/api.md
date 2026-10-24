@@ -2533,3 +2533,14 @@ PO 狀態命令（核准、駁回、下單、開始驗收、取消、收貨）�
 `POST /api/v1/purchase-orders/{id}/begin-sourcing` 僅允許 Stage 1→2；`POST /api/v1/purchase-orders/{id}/submit-for-approval` 僅允許 Stage 2→3。兩者都無 Request Body，呼叫動作固定，不接受 Client Stage 或 PO Status；重複或並發送出相同動作時，後續請求因 Stage 前置條件已變而回 `409 INVALID_PO_STATUS_TRANSITION`。Stage 3→4 使用既有核准 API，4→5 使用下單 API，5→6 使用開始驗收 API，6→7 使用整筆收貨 API，7→8 與 8→7 分別使用付款確認及撤銷 API。其他跳關、倒退、錯誤 status/stage 組合均回 `409 INVALID_PO_STATUS_TRANSITION`（收貨條件不完整仍依既有錯誤契約）。`ORDERED + LEGACY_UNKNOWN + stage=NULL` 不推測歷史欄位；僅 ADMIN 可呼叫既有 `POST /api/v1/purchase-orders/{id}/begin-receiving-inspection`，明確將其 disposition 到 Stage 6，原子更新 `orderedProgress` 與 `stage`，且不改庫存或交易。非 ADMIN 為 403，重複處置或其他不符合狀態的命令為 409。Stage 前進僅允許 `PROCUREMENT_STAFF`、`PROCUREMENT_MANAGER`、`ADMIN`，並透過 `@Transactional` 與 `findByIdForUpdate()` 序列化；狀態與 Stage 僅由 Aggregate 命令更新。
 
 V28 Migration 將 DRAFT、APPROVED、已知 OrderedProgress 與明確付款事實映射到對應 Stage；ORDERED + `LEGACY_UNKNOWN` 保持 NULL，避免猜測歷史第 5/6 欄位置。此類資料從活動 Stage 集合排除，直到 ADMIN 使用 `begin-receiving-inspection` 明確將其處置進 Stage 6；不接受任意 Stage 輸入。一般 PO GET／List 回應會保存並提供目前 `stage`，重讀後仍以 Backend 為準。Stage 不接受 PATCH 欄位，任何直接修改 PO `status` 的請求亦不在 API 契約中。
+
+## V2-302 Semantic Index Job API（Issue #146）
+
+以下端點限 ADMIN 角色，遵守既有 JWT／角色授權。回應僅包含索引工作狀態與安全錯誤代碼，不含文件內容、Provider 回應本文或敏感資訊。
+
+| Method | Path | 行為 |
+|---|---|---|
+| GET | /api/v1/semantic-index/jobs?limit=50 | 讀取近期 job；limit 預設 50，範圍 1–200。 |
+| POST | /api/v1/semantic-index/jobs/{jobId}/retry | 將仍符合現行文件來源、版本、核准及模型 generation 的 FAILED job 重設為 QUEUED。 |
+
+Job response 欄位：id、documentId、version、status、attempts、maxAttempts、retryCount、nextAttemptAt、failureCode、updatedAt。狀態包括 QUEUED、PROCESSING、RETRY_WAIT、SUCCEEDED、FAILED、SUPERSEDED。重複核准事件依文件、版本、來源 hash、模型 generation、文件 generation 去重。重試非 FAILED job 為冪等回應（若仍在執行或等待中），不會新增 provider 呼叫。

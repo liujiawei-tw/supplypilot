@@ -55,3 +55,16 @@ ADMIN 從 Documents 工作區進入 Semantic 索引管理；使用方式、各�
 五份 baseline 文件現以 UTF-8 繁體中文保存，Demo Dataset Version 為 `sp-905-zh-tw-v1`。這些文件的舊英文 chunk、Source Hash、Embedding 與 Gate Audit 不可沿用。透過受控 Guarded Reset 建立新版 MySQL 文件及 chunk 後，重新執行每份文件的 ADMIN outbound review、Backfill、Readiness 與 Gate Audit；只有新 generation 的 Gate 通過後才可顯式啟用 Semantic Read。第六份 SUP-005 是人工 UI upload 驗收素材，永遠不加入 baseline Seeder。
 
 SP-905 自動契約測試僅驗證 UTF-8／Unicode 儲存、Chunk offset 與來源切片一致，以及既有 API／來源契約；Fake Provider 或本機 lexical representation 不證明 Gemini 多語語意品質。中文問題查英文文件、英文問題查中文文件需由 SP-910 #117 使用實際 Provider 及 Browser 按其 Release Gate 驗證；在該驗收完成前不得宣稱跨語 Semantic PASS。
+
+## V2-302 逐文件核准索引工作（Issue #146）
+
+V2-302 將核准與 Embedding 拆成可恢復的背景工作。ADMIN 核准 READY 文件時，後端在同一個 MySQL 交易更新核准狀態及文件索引代次，並以文件版本、來源 SHA-256、語意模型 generation 與文件代次建立唯一 job。只有 APPROVED 文件會 enqueue；REQUIRES_REVIEW 或 SKIPPED 文件不會呼叫 Gemini。工作執行前與每個 chunk 的 provider 呼叫前會重新核對來源、版本、代次、核准狀態及 OutboundDocumentPolicy，只送出政策產生的安全文字。
+
+- GET /api/v1/semantic-index/jobs?limit=50 列出近期工作；POST /api/v1/semantic-index/jobs/{jobId}/retry 僅允許 ADMIN 將仍符合目前核准快照的 FAILED 工作重新排入佇列。
+- 狀態為 QUEUED、PROCESSING、RETRY_WAIT、SUCCEEDED、FAILED、SUPERSEDED。工作使用持久化 MySQL queue；process 重啟後逾期 lease 可重新領取，達到最大嘗試次數的逾期工作會成為 FAILED。
+- HTTP 429、timeout 與 5xx 以指數退避重試，尊重有界的 Retry-After；其他 provider 4xx 與無效向量不重試。管理端只顯示安全錯誤代碼，不保存或回傳 provider 錯誤本文。
+- PostgreSQL 以單一交易鎖定該文件索引列、替換全部 chunks，最後才提交 READY。失敗會 rollback，保留先前完整發布；較舊文件代次或同代次不同來源雜湊不得覆蓋目前發布。查詢仍逐文件核對 MySQL 狀態、版本、來源 hash、核准政策與 Evidence Validator。
+- 配置由 SEMANTIC_INDEX_WORKER_ENABLED、SEMANTIC_INDEX_POLL_INTERVAL_MILLIS、SEMANTIC_INDEX_LEASE_DURATION、SEMANTIC_INDEX_MAX_ATTEMPTS、SEMANTIC_INDEX_INITIAL_RETRY_DELAY、SEMANTIC_INDEX_MAX_RETRY_DELAY 控制。預設 worker 啟用、輪詢 1 秒、lease 5 分鐘、最多 4 次、退避 2 秒起且上限 1 分鐘。
+- 以 job 清單檢查失敗代碼與嘗試次數；確認目前文件仍 READY 且核准有效後按「手動重試」。文件版本、來源、核准或模型 generation 已變更時，舊工作會被隔離，須對目前文件重新核准才能建立新工作。
+
+Fake Provider 整合測試只驗證交易邊界、job 狀態、重試與資料隔離，不代表真實 Gemini API 通過。真實 Provider smoke test 仍須使用獲准測試文字及部署金鑰，並另行保存回應證據。

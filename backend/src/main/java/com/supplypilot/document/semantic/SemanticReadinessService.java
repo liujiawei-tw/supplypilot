@@ -72,7 +72,8 @@ public class SemanticReadinessService {
                 String status = index == null ? "PENDING" : index.status();
                 String reason = index == null ? "NOT_INDEXED" : index.failureReason();
                 if (index != null && (!hash.equals(index.sourceHash())
-                        || index.expectedCount() != source.size())) {
+                        || index.expectedCount() != source.size()
+                        || index.publicationGeneration() != document.getSemanticIndexGeneration())) {
                     status = "PENDING";
                     reason = "SOURCE_CHANGED";
                 }

@@ -1331,3 +1331,9 @@ Approve、Reject、Mark Ordered、Begin Receiving Inspection、Cancel、Receive 
 ## V2-205 Kanban Stage 授權與一致性
 
 `begin-sourcing` 與 `submit-for-approval` 僅對採購業務角色開放，且分別只接受目前 Stage 1 與 Stage 2；Client 不提供 Stage、正式狀態、操作者或時間。ADMIN 可透過既有 `begin-receiving-inspection` 將 `ORDERED + LEGACY_UNKNOWN + stage=NULL` 明確處置到 Stage 6；其他角色不能替未知歷史記錄選擇位置。其餘 Stage 轉移沿用核准、下單、驗收、收貨與付款的既有受控命令及角色要求。所有改變同時在 PO Aggregate 內維持 Stage/status 對應，並以 PO 列鎖與 `@Version` 序列化；Migration CHECK 再拒絕不相容的持久化組合。前端控制項與 Stage 回應只用於顯示，不是授權邊界。
+
+## V2-302 Semantic Index Job 安全界線（Issue #146）
+
+只有 ADMIN 可核准／排除文件、讀取索引工作的近期狀態及手動重試失敗工作。核准與 enqueue 同時保存於 MySQL，且只有政策判定為 APPROVED 的內容才會排入背景索引。Worker 每次送出前都重驗 READY 狀態、文件版本、來源 hash、文件 generation、核准快照及 OutboundDocumentPolicy；被遮蔽的 Email、台灣身分證及手機欄位只以安全替代文字送往 Gemini。未核准、需人工檢查或已排除的內容不會送往 Provider。
+
+Provider response body、exception message、文件內容及敏感來源值不得寫入 job failure 或日誌。Job API 僅暴露固定安全 failure code；管理員手動重試也會重新驗證現行核准，避免舊工作在核准撤銷或來源更新後重送。RAG Hybrid Retrieval 持續使用逐文件 MySQL 核對及既有 Evidence Validator。

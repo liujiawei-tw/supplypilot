@@ -2,10 +2,18 @@ package com.supplypilot.integration;
 
 import java.sql.DriverManager;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.time.Clock;
+import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
@@ -19,6 +27,10 @@ import com.supplypilot.document.rag.LocalLexicalEmbeddingProvider;
 import com.supplypilot.document.repository.DocumentChunkRepository;
 import com.supplypilot.document.repository.DocumentMetadataRepository;
 import com.supplypilot.document.semantic.SemanticStore;
+import com.supplypilot.document.semantic.SemanticIndexJob;
+import com.supplypilot.document.semantic.SemanticIndexJobRepository;
+import com.supplypilot.document.semantic.SemanticIndexJobStatus;
+import com.supplypilot.document.semantic.SemanticIndexWorker;
 import com.supplypilot.security.AuthenticatedUser;
 import com.supplypilot.security.JwtTokenService;
 import com.supplypilot.user.domain.User;
@@ -39,14 +51,17 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Primary;
 import org.springframework.http.MediaType;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.test.web.servlet.MockMvc;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 import org.testcontainers.utility.DockerImageName;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -77,11 +92,15 @@ class SemanticRagIntegrationTests extends AbstractIntegrationTest {
     @Autowired Clock clock;
     @Autowired FakeModel model;
     @Autowired SemanticStore store;
+    @Autowired SemanticIndexWorker worker;
+    @Autowired SemanticIndexJobRepository indexJobs;
+    @Autowired JdbcTemplate jdbc;
 
     @BeforeEach
     void clean() throws SQLException {
         model.inputs.clear();
         model.tasks.clear();
+        model.transactionStates.clear();
         model.fail.set(false);
         chunks.deleteAllInBatch();
         documents.deleteAllInBatch();
@@ -96,7 +115,7 @@ class SemanticRagIntegrationTests extends AbstractIntegrationTest {
     }
 
     @Test
-    void backfillRedactsAndGatesCutoverBeforeExactSearch() throws Exception {
+    void outboundApprovalAndPerDocumentPublicationAllowQueriesWithoutGlobalGate() throws Exception {
         User admin = user(UserRole.ADMIN);
         User manager = user(UserRole.PROCUREMENT_MANAGER);
         User planner = user(UserRole.PRODUCTION_PLANNER);
@@ -117,9 +136,13 @@ class SemanticRagIntegrationTests extends AbstractIntegrationTest {
         approve(admin, reviewId);
         exclude(admin, excludedId);
 
-        query(admin, "forklift capacity").andExpect(status().isServiceUnavailable());
+        query(admin, "forklift capacity").andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("ANSWERED"));
         mvc.perform(post("/api/v1/semantic-index/backfill").header("Authorization", bearer(planner)))
                 .andExpect(status().isForbidden());
+        model.inputs.clear();
+        model.tasks.clear();
+        model.transactionStates.clear();
         mvc.perform(post("/api/v1/semantic-index/backfill").header("Authorization", bearer(admin)))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.ready").value(1))
                 .andExpect(jsonPath("$.skipped").value(1))
@@ -133,7 +156,8 @@ class SemanticRagIntegrationTests extends AbstractIntegrationTest {
         assertThat(store.state(reviewId, "v1").status()).isEqualTo("REQUIRES_REVIEW");
         mvc.perform(post("/api/v1/semantic-index/gate-audit").header("Authorization", bearer(admin)))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.passed").value(false));
-        query(admin, "forklift capacity").andExpect(status().isServiceUnavailable());
+        query(admin, "forklift capacity").andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("ANSWERED"));
 
         DocumentMetadata review = documents.findById(reviewId).orElseThrow();
         review.updateMetadata(null, DocumentStatus.INACTIVE, clock.instant());
@@ -164,7 +188,188 @@ class SemanticRagIntegrationTests extends AbstractIntegrationTest {
         DocumentMetadata safe = documents.findById(safeId).orElseThrow();
         safe.updateMetadata(null, DocumentStatus.INACTIVE, clock.instant());
         documents.saveAndFlush(safe);
-        query(manager, "forklift capacity").andExpect(status().isServiceUnavailable());
+        query(manager, "forklift capacity").andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("INSUFFICIENT_EVIDENCE"));
+    }
+
+
+    @Test
+    void approvalQueuesDurableWorkAndWorkerPublishesOutsideMysqlTransaction() throws Exception {
+        User admin = user(UserRole.ADMIN);
+        long id = ready(admin, DocumentType.PROCUREMENT_SOP,
+                "Forklift capacity is 500 kilograms. Contact alice@example.com.");
+        approve(admin, id);
+
+        assertThat(model.inputs).isEmpty();
+        mvc.perform(get("/api/v1/semantic-index/jobs").header("Authorization", bearer(admin)))
+                .andExpect(status().isOk()).andExpect(jsonPath("$[0].documentId").value(id))
+                .andExpect(jsonPath("$[0].status").value("QUEUED"));
+        assertThat(worker.processNext()).isTrue();
+        assertThat(model.inputs).hasSize(1);
+        assertThat(model.inputs.getFirst()).contains("[EMAIL]").doesNotContain("alice@example.com");
+        assertThat(model.transactionStates).containsExactly(false);
+        assertThat(store.state(id, "v1").status()).isEqualTo("READY");
+        assertThat(store.state(id, "v1").publicationGeneration())
+                .isEqualTo(documents.findById(id).orElseThrow().getSemanticIndexGeneration());
+        assertThat(indexJobs.latest(10)).filteredOn(job -> job.documentId() == id)
+                .singleElement().satisfies(job -> assertThat(job.status().name()).isEqualTo("SUCCEEDED"));
+    }
+
+    @Test
+    void duplicateApprovalEventsCreateOnlyOneDurableJob() throws Exception {
+        User admin = user(UserRole.ADMIN);
+        long id = ready(admin, DocumentType.PROCUREMENT_SOP, "Forklift operating procedure.");
+
+        approve(admin, id);
+        long generation = documents.findById(id).orElseThrow().getSemanticIndexGeneration();
+        approve(admin, id);
+
+        assertThat(documents.findById(id).orElseThrow().getSemanticIndexGeneration()).isEqualTo(generation);
+        assertThat(indexJobs.latest(10)).filteredOn(job -> job.documentId() == id)
+                .singleElement().satisfies(job -> {
+                    assertThat(job.status().name()).isEqualTo("QUEUED");
+                    assertThat(job.documentGeneration()).isEqualTo(generation);
+                });
+        assertThat(model.inputs).isEmpty();
+    }
+
+    @Test
+    void concurrentWorkersClaimQueuedIndexJobExactlyOnce() throws Exception {
+        User admin = user(UserRole.ADMIN);
+        long documentId = ready(admin, DocumentType.PROCUREMENT_SOP, "Forklift operating procedure.");
+        approve(admin, documentId);
+
+        Instant now = clock.instant();
+        ExecutorService executor = Executors.newFixedThreadPool(2);
+        CountDownLatch readyToClaim = new CountDownLatch(2);
+        CountDownLatch startTogether = new CountDownLatch(1);
+        try {
+            Future<Optional<SemanticIndexJob>> first = executor.submit(() -> {
+                readyToClaim.countDown();
+                if (!startTogether.await(10, TimeUnit.SECONDS)) {
+                    throw new IllegalStateException("Timed out waiting to start concurrent index claim");
+                }
+                return indexJobs.claimNext(now, now.plusSeconds(30), 4);
+            });
+            Future<Optional<SemanticIndexJob>> second = executor.submit(() -> {
+                readyToClaim.countDown();
+                if (!startTogether.await(10, TimeUnit.SECONDS)) {
+                    throw new IllegalStateException("Timed out waiting to start concurrent index claim");
+                }
+                return indexJobs.claimNext(now, now.plusSeconds(30), 4);
+            });
+
+            assertThat(readyToClaim.await(10, TimeUnit.SECONDS)).isTrue();
+            startTogether.countDown();
+            Optional<SemanticIndexJob> firstClaim = first.get(15, TimeUnit.SECONDS);
+            Optional<SemanticIndexJob> secondClaim = second.get(15, TimeUnit.SECONDS);
+
+            assertThat(firstClaim.isPresent()).isNotEqualTo(secondClaim.isPresent());
+            SemanticIndexJob claimed = firstClaim.orElseGet(secondClaim::orElseThrow);
+            assertThat(claimed.documentId()).isEqualTo(documentId);
+            assertThat(claimed.attempts()).isEqualTo(1);
+            assertThat(claimed.status()).isEqualTo(SemanticIndexJobStatus.PROCESSING);
+        } finally {
+            startTogether.countDown();
+            executor.shutdownNow();
+            assertThat(executor.awaitTermination(5, TimeUnit.SECONDS)).isTrue();
+        }
+    }
+
+    @Test
+    void expiredProcessingLeaseIsRecoveredByAnotherWorkerAttempt() throws Exception {
+        User admin = user(UserRole.ADMIN);
+        long id = ready(admin, DocumentType.PROCUREMENT_SOP, "Forklift operating procedure.");
+        approve(admin, id);
+
+        var interrupted = indexJobs.claimNext(clock.instant(), clock.instant().plusSeconds(30), 4)
+                .orElseThrow();
+        assertThat(interrupted.status().name()).isEqualTo("PROCESSING");
+        assertThat(interrupted.attempts()).isEqualTo(1);
+        jdbc.update("UPDATE semantic_index_jobs SET lease_until = ? WHERE id = ?",
+                Timestamp.from(clock.instant().minusSeconds(1)), interrupted.id());
+
+        assertThat(worker.processNext()).isTrue();
+        assertThat(indexJobs.findById(interrupted.id()).orElseThrow()).satisfies(job -> {
+            assertThat(job.status().name()).isEqualTo("SUCCEEDED");
+            assertThat(job.attempts()).isEqualTo(2);
+        });
+        assertThat(model.inputs).containsExactly("Forklift operating procedure.");
+    }
+
+    @Test
+    void failedDocumentRetriesAreBoundedAndDoNotCloseOtherPublishedDocuments() throws Exception {
+        User admin = user(UserRole.ADMIN);
+        long publishedId = ready(admin, DocumentType.PROCUREMENT_SOP,
+                "Forklift capacity is 500 kilograms.");
+        approve(admin, publishedId);
+        assertThat(worker.processNext()).isTrue();
+
+        long failingId = ready(admin, DocumentType.QUALITY_REQUIREMENT,
+                "Quality checks are performed daily.");
+        approve(admin, failingId);
+        model.fail.set(true);
+        for (int attempt = 0; attempt < 4; attempt++) {
+            assertThat(worker.processNext()).isTrue();
+        }
+        var failedJob = indexJobs.latest(10).stream().filter(job -> job.documentId() == failingId)
+                .findFirst().orElseThrow();
+        assertThat(failedJob.status().name()).isEqualTo("FAILED");
+        assertThat(failedJob.attempts()).isEqualTo(4);
+        assertThat(failedJob.failureCode()).isEqualTo("PROVIDER_UNAVAILABLE");
+
+        User manager = user(UserRole.PROCUREMENT_MANAGER);
+        mvc.perform(get("/api/v1/semantic-index/jobs").header("Authorization", bearer(manager)))
+                .andExpect(status().isForbidden());
+        mvc.perform(post("/api/v1/semantic-index/jobs/{jobId}/retry", failedJob.id())
+                        .header("Authorization", bearer(manager)))
+                .andExpect(status().isForbidden());
+
+        model.fail.set(false);
+        mvc.perform(post("/api/v1/semantic-index/gate-audit").header("Authorization", bearer(admin)))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.passed").value(false));
+        query(admin, "forklift capacity").andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("ANSWERED"))
+                .andExpect(jsonPath("$.sources[0].documentId").value(publishedId));
+        assertThat(store.state(publishedId, "v1").status()).isEqualTo("READY");
+
+        mvc.perform(post("/api/v1/semantic-index/jobs/{jobId}/retry", failedJob.id())
+                        .header("Authorization", bearer(admin)))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("QUEUED"))
+                .andExpect(jsonPath("$.retryCount").value(1));
+        assertThat(worker.processNext()).isTrue();
+        assertThat(indexJobs.latest(10)).filteredOn(job -> job.documentId() == failingId)
+                .singleElement().satisfies(job -> {
+                    assertThat(job.status().name()).isEqualTo("SUCCEEDED");
+                    assertThat(job.retryCount()).isEqualTo(1);
+                    assertThat(job.attempts()).isEqualTo(1);
+                });
+    }
+
+    @Test
+    void olderPublicationGenerationCannotReplaceNewerPgvectorRows() {
+        long id = 840L;
+        List<Float> vector = new java.util.ArrayList<>(java.util.Collections.nCopies(768, 0f));
+        vector.set(0, 1f);
+        assertThat(store.publish(id, "v1", "newer-hash", 2,
+                List.of(new SemanticStore.SafeChunk(0, 0, 6, "newer", vector)))).isTrue();
+        assertThat(store.publish(id, "v1", "older-hash", 1,
+                List.of(new SemanticStore.SafeChunk(0, 0, 5, "older", vector)))).isFalse();
+
+        assertThat(store.state(id, "v1").publicationGeneration()).isEqualTo(2);
+        assertThat(store.state(id, "v1").sourceHash()).isEqualTo("newer-hash");
+        assertThat(store.matchesSource(id, "v1",
+                List.of(new SemanticStore.SourceChunk(0, 0, 6, "newer")))).isTrue();
+        assertThat(store.publish(id, "v1", "different-hash", 2,
+                List.of(new SemanticStore.SafeChunk(0, 0, 5, "stale", vector)))).isFalse();
+        assertThatThrownBy(() -> store.publish(id, "v1", "failed-generation", 3,
+                List.of(new SemanticStore.SafeChunk(0, 0, 5, "partial", List.of(1.0f)))))
+                .isInstanceOf(RuntimeException.class);
+        assertThat(store.state(id, "v1").status()).isEqualTo("READY");
+        assertThat(store.state(id, "v1").publicationGeneration()).isEqualTo(2);
+        assertThat(store.state(id, "v1").sourceHash()).isEqualTo("newer-hash");
+        assertThat(store.matchesSource(id, "v1",
+                List.of(new SemanticStore.SourceChunk(0, 0, 6, "newer")))).isTrue();
     }
 
     @Test
@@ -202,7 +407,8 @@ class SemanticRagIntegrationTests extends AbstractIntegrationTest {
         store.mark(id, "v1", "PROCESSING", null, store.state(id, "v1").sourceHash(), 1);
         mvc.perform(post("/api/v1/semantic-index/gate-audit").header("Authorization", bearer(admin)))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.passed").value(false));
-        query(admin, "forklift lifting").andExpect(status().isServiceUnavailable());
+        query(admin, "forklift lifting").andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("ANSWERED"));
         mvc.perform(post("/api/v1/semantic-index/backfill").header("Authorization", bearer(admin)))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.ready").value(1));
         assertThat(store.chunkCount(id, "v1")).isEqualTo(1);
@@ -303,11 +509,12 @@ class SemanticRagIntegrationTests extends AbstractIntegrationTest {
 
         List<Float> vector = new java.util.ArrayList<>(java.util.Collections.nCopies(768, 0f));
         vector.set(0, 1f);
-        store.replace(id, "v1", store.state(id, "v1").sourceHash(),
+        store.publish(id, "v1", store.state(id, "v1").sourceHash(), 1,
                 List.of(new SemanticStore.SafeChunk(0, 0, content.length(), "altered text", vector)));
         mvc.perform(get("/api/v1/semantic-index/readiness").header("Authorization", bearer(admin)))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.passed").value(false));
-        query(admin, "forklift procedure").andExpect(status().isServiceUnavailable());
+        query(admin, "forklift procedure").andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("ANSWERED"));
 
         mvc.perform(post("/api/v1/semantic-index/backfill").header("Authorization", bearer(admin)))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.ready").value(1));
@@ -319,7 +526,8 @@ class SemanticRagIntegrationTests extends AbstractIntegrationTest {
         documents.saveAndFlush(changedVersion);
         mvc.perform(get("/api/v1/semantic-index/readiness").header("Authorization", bearer(admin)))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.passed").value(false));
-        query(admin, "forklift procedure").andExpect(status().isServiceUnavailable());
+        query(admin, "forklift procedure").andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("INSUFFICIENT_EVIDENCE"));
     }
 
     @Test
@@ -389,7 +597,11 @@ class SemanticRagIntegrationTests extends AbstractIntegrationTest {
         mvc.perform(post("/api/v1/semantic-index/gate-audit").header("Authorization", bearer(admin)))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.passed").value(false))
                 .andExpect(jsonPath("$.ready").value(0));
-        query(admin, "forklift procedure").andExpect(status().isServiceUnavailable());
+        query(admin, "forklift procedure").andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("INSUFFICIENT_EVIDENCE"));
+        model.inputs.clear();
+        model.tasks.clear();
+        model.transactionStates.clear();
 
         long id = ready(admin, DocumentType.QUOTATION, "供應商報價程序。");
         exclude(admin, id);
@@ -400,7 +612,8 @@ class SemanticRagIntegrationTests extends AbstractIntegrationTest {
                 .andExpect(jsonPath("$.ready").value(0))
                 .andExpect(jsonPath("$.skipped").value(1));
         assertThat(model.inputs).isEmpty();
-        query(admin, "報價程序").andExpect(status().isServiceUnavailable());
+        query(admin, "報價程序").andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("INSUFFICIENT_EVIDENCE"));
     }
 
     @Test
@@ -420,7 +633,8 @@ class SemanticRagIntegrationTests extends AbstractIntegrationTest {
         mvc.perform(post("/api/v1/semantic-index/gate-audit").header("Authorization", bearer(admin)))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.passed").value(false));
         assertThat(store.hasPassingAudit()).isFalse();
-        query(admin, "報價程序").andExpect(status().isServiceUnavailable());
+        query(admin, "報價程序").andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("INSUFFICIENT_EVIDENCE"));
     }
 
     @Test
@@ -438,7 +652,7 @@ class SemanticRagIntegrationTests extends AbstractIntegrationTest {
         vector.set(0, 1f);
         for (long staleId = -30; staleId < 0; staleId++) {
             store.mark(staleId, "v1", "PROCESSING", null, "stale", 1);
-            store.replace(staleId, "v1", "stale",
+            store.publish(staleId, "v1", "stale", 0,
                     List.of(new SemanticStore.SafeChunk(0, 0, 5, "stale", vector)));
         }
         query(admin, "forklift procedure").andExpect(status().isOk())
@@ -495,9 +709,11 @@ class SemanticRagIntegrationTests extends AbstractIntegrationTest {
         final List<String> inputs = new CopyOnWriteArrayList<>();
         final List<GoogleGenAiTextEmbeddingOptions.TaskType> tasks = new CopyOnWriteArrayList<>();
         final AtomicBoolean fail = new AtomicBoolean();
+        final List<Boolean> transactionStates = new CopyOnWriteArrayList<>();
 
         @Override
         public EmbeddingResponse call(EmbeddingRequest request) {
+            transactionStates.add(TransactionSynchronizationManager.isActualTransactionActive());
             if (fail.get()) throw new IllegalStateException("fake provider unavailable");
             String content = request.getInstructions().getFirst();
             inputs.add(content);

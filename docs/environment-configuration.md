@@ -535,3 +535,14 @@ Compose 容器環境值在容器建立時固定。修改 `.env.demo` 不會熱�
 只有 `prod` Profile 啟用管理員 Bootstrap。每個全新空 `users` 表在 InnoDB transaction 中建立一次性初始化標記和使用 BCrypt 雜湊的 `admin/admin`、`ADMIN`、`ACTIVE` 使用者，並標記強制改密碼；唯一鍵可序列化並行啟動，兩項寫入同時提交或回滾。正常重啟不會重設密碼。首次權杖只可呼叫 `/api/v1/auth/me` 和 `/api/v1/auth/change-password`；新密碼維持一般 6 至 100 字元，成功後必須重新登入以取得一般權限權杖。
 
 若初始化標記存在但 `users` 為空，或資料庫已有使用者但沒有 ACTIVE ADMIN，Backend 會拒絕啟動且不會建立預設帳號；依 `docs/SP-903-DOCKER-RELEASE-CANDIDATE.md` 的 DBA 復原程序處理。標記加入前已初始化且後來清空 users 的舊資料庫無法從目前狀態辨別，升級前須核對備份和歷史。Production 對外開放前，必須已修改初始密碼、用新密碼重新登入，並確認初始 JWT 仍不能呼叫一般管理 API。
+
+## V2-302 Semantic Index Worker 設定（Issue #146）
+
+SEMANTIC_INDEX_WORKER_ENABLED=true
+SEMANTIC_INDEX_POLL_INTERVAL_MILLIS=1000
+SEMANTIC_INDEX_LEASE_DURATION=PT5M
+SEMANTIC_INDEX_MAX_ATTEMPTS=4
+SEMANTIC_INDEX_INITIAL_RETRY_DELAY=PT2S
+SEMANTIC_INDEX_MAX_RETRY_DELAY=PT1M
+
+Worker 預設啟用。部署多個 Backend instance 時，MySQL FOR UPDATE SKIP LOCKED 協調各 instance 領取不同工作；lease 到期後可回收中斷工作。退避及 Provider Retry-After 都受最大 retry delay 限制。測試 profile 關閉排程 worker，以便測試明確控制 job 執行。

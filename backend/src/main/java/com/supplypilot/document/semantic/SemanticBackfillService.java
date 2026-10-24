@@ -64,18 +64,20 @@ public class SemanticBackfillService {
                 source.stream().map(DocumentChunk::getContent).toList(), hash);
         if (!decision.status().equals("APPROVED")) {
             store.mark(document.getId(), document.getVersion(), decision.status(),
-                    decision.reason(), hash, source.size());
+                    decision.reason(), hash, source.size(), document.getSemanticIndexGeneration());
             return decision.status();
         }
         SemanticStore.IndexState existing = store.state(document.getId(), document.getVersion());
         if (existing != null && "READY".equals(existing.status()) && hash.equals(existing.sourceHash())
                 && existing.expectedCount() == source.size()
+                && existing.publicationGeneration() == document.getSemanticIndexGeneration()
                 && store.matchesSource(document.getId(), document.getVersion(),
                         sourceProof(source, decision.safeChunks()))) {
             return "READY";
         }
-        store.mark(document.getId(), document.getVersion(), "PROCESSING", null, hash, source.size());
         try {
+            store.mark(document.getId(), document.getVersion(), "PROCESSING", null,
+                    hash, source.size(), document.getSemanticIndexGeneration());
             List<SemanticStore.SafeChunk> prepared = new ArrayList<>();
             for (int i = 0; i < source.size(); i++) {
                 DocumentChunk chunk = source.get(i);
@@ -83,12 +85,13 @@ public class SemanticBackfillService {
                         chunk.getEndOffset(), decision.safeChunks().get(i),
                         embeddings.document(decision.safeChunks().get(i))));
             }
-            store.replace(document.getId(), document.getVersion(), hash, prepared);
-            return "READY";
+            return store.publish(document.getId(), document.getVersion(), hash,
+                    document.getSemanticIndexGeneration(), prepared) ? "READY" : "FAILED";
         } catch (RuntimeException failure) {
             String reason = failure instanceof BusinessException business
                     ? business.getErrorCode().name() : "INDEXING_FAILURE";
-            store.mark(document.getId(), document.getVersion(), "FAILED", reason, hash, source.size());
+            store.mark(document.getId(), document.getVersion(), "FAILED", reason,
+                    hash, source.size(), document.getSemanticIndexGeneration());
             return "FAILED";
         }
     }

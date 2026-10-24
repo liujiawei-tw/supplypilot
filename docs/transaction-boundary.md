@@ -1434,3 +1434,11 @@ UML 建議在 Validation / Exception 與 Security Design 鎖定後製作。
 4. Purchase Order Lifecycle Sequence Diagram
 5. Receiving Sequence Diagram
 ```
+
+## V2-302 語意索引工作交易邊界（Issue #146）
+
+管理員核准在一個 MySQL 交易內鎖定文件、確認 READY 與來源 chunks、執行 OutboundDocumentPolicy、保存審核及單調遞增的 semantic_index_generation，並插入唯一 durable job。交易提交前 worker 不可領取；交易 rollback 時審核與 job 一起 rollback。此交易不呼叫 Gemini。
+
+Worker 以獨立短交易領取 job／更新 lease，並以唯讀 MySQL 交易載入及重驗來源快照。Gemini 每個 chunk 呼叫都在 MySQL 交易外執行。發佈時由 PostgreSQL 自己的一個交易鎖定索引列、比較文件 generation 與來源 hash、替換 chunks 並將狀態設為 READY；任何一步失敗都 rollback。MySQL 與 PostgreSQL 不組成分散式交易，持久化 job、有限重試及 lease 到期回收提供恢復能力。
+
+查詢逐文件比對發布 generation 與目前 MySQL 文件 generation、版本、來源 hash、核准政策及 chunk offsets。較舊或來源不符的發布不會被 Evidence Validator 接受。

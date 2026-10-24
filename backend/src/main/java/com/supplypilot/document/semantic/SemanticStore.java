@@ -76,34 +76,78 @@ public class SemanticStore {
     public IndexState state(long documentId, String version) {
         ensureGeneration();
         List<IndexState> rows = jdbc.query("""
-                SELECT status, source_hash, expected_chunk_count, failure_reason, attempts
+                SELECT status, source_hash, expected_chunk_count, failure_reason, attempts,
+                       publication_generation
                   FROM semantic_document_indexes
                  WHERE document_id = ? AND document_version = ? AND generation_key = ?
                 """, (rs, row) -> new IndexState(rs.getString(1), rs.getString(2), rs.getInt(3),
-                        rs.getString(4), rs.getInt(5)), documentId, version, properties.generationKey());
+                        rs.getString(4), rs.getInt(5), rs.getLong(6)),
+                documentId, version, properties.generationKey());
         return rows.isEmpty() ? null : rows.getFirst();
     }
 
     public void mark(long documentId, String version, String status, String reason,
                      String sourceHash, int expectedCount) {
+        mark(documentId, version, status, reason, sourceHash, expectedCount, 0L);
+    }
+
+    public void mark(long documentId, String version, String status, String reason,
+                     String sourceHash, int expectedCount, long documentGeneration) {
         ensureGeneration();
         jdbc.update("""
                 INSERT INTO semantic_document_indexes
                     (document_id, document_version, generation_key, status, source_hash,
-                     expected_chunk_count, failure_reason, attempts)
-                VALUES (?, ?, ?, ?, ?, ?, ?, 1)
+                     expected_chunk_count, failure_reason, attempts, publication_generation)
+                VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?)
                 ON CONFLICT (document_id, document_version, generation_key)
                 DO UPDATE SET status = EXCLUDED.status, source_hash = EXCLUDED.source_hash,
                   expected_chunk_count = EXCLUDED.expected_chunk_count,
                   failure_reason = EXCLUDED.failure_reason,
+                  publication_generation = EXCLUDED.publication_generation,
                   attempts = semantic_document_indexes.attempts + 1, updated_at = now()
                 """, documentId, version, properties.generationKey(), status, sourceHash,
-                expectedCount, reason);
+                expectedCount, reason, documentGeneration);
     }
 
-    public void replace(long documentId, String version, String sourceHash, List<SafeChunk> chunks) {
+    /**
+     * Publishes all chunks and the READY marker in one PostgreSQL transaction.
+     * A delayed worker from an older approval generation cannot replace a newer publication.
+     */
+    public boolean publish(long documentId, String version, String sourceHash, long documentGeneration,
+                           List<SafeChunk> chunks) {
         ensureGeneration();
-        transactions.executeWithoutResult(tx -> {
+        Boolean published = transactions.execute(transaction -> {
+            jdbc.update("""
+                    INSERT INTO semantic_document_indexes
+                        (document_id, document_version, generation_key, status, source_hash,
+                         expected_chunk_count, failure_reason, attempts, publication_generation)
+                    VALUES (?, ?, ?, 'PROCESSING', NULL, 0, NULL, 0, 0)
+                    ON CONFLICT (document_id, document_version, generation_key) DO NOTHING
+                    """, documentId, version, properties.generationKey());
+
+            List<PublicationState> current = jdbc.query("""
+                    SELECT publication_generation, status, source_hash
+                      FROM semantic_document_indexes
+                     WHERE document_id = ? AND document_version = ? AND generation_key = ?
+                     FOR UPDATE
+                    """, (rs, row) -> new PublicationState(rs.getLong(1), rs.getString(2), rs.getString(3)),
+                    documentId, version, properties.generationKey());
+            if (current.isEmpty()) return false;
+            PublicationState publication = current.getFirst();
+            if (publication.generation() > documentGeneration
+                    || (publication.generation() == documentGeneration
+                    && "READY".equals(publication.status())
+                    && !sourceHash.equals(publication.sourceHash()))) {
+                return false;
+            }
+
+            jdbc.update("""
+                    UPDATE semantic_document_indexes
+                       SET status = 'PROCESSING', source_hash = ?, expected_chunk_count = ?,
+                           failure_reason = NULL, publication_generation = ?, updated_at = now()
+                     WHERE document_id = ? AND document_version = ? AND generation_key = ?
+                    """, sourceHash, chunks.size(), documentGeneration, documentId, version,
+                    properties.generationKey());
             jdbc.update("""
                     DELETE FROM semantic_chunks WHERE document_id = ? AND document_version = ?
                       AND generation_key = ?
@@ -118,11 +162,16 @@ public class SemanticStore {
             }
             jdbc.update("""
                     UPDATE semantic_document_indexes SET status = 'READY', failure_reason = NULL,
-                      source_hash = ?, expected_chunk_count = ?, updated_at = now()
+                      source_hash = ?, expected_chunk_count = ?, publication_generation = ?,
+                      updated_at = now()
                      WHERE document_id = ? AND document_version = ? AND generation_key = ?
-                    """, sourceHash, chunks.size(), documentId, version, properties.generationKey());
+                    """, sourceHash, chunks.size(), documentGeneration, documentId, version,
+                    properties.generationKey());
+            return true;
         });
+        return Boolean.TRUE.equals(published);
     }
+
 
     public int chunkCount(long documentId, String version) {
         ensureGeneration();
@@ -218,8 +267,14 @@ public class SemanticStore {
         return result.append(']').toString();
     }
 
+    private record PublicationState(long generation, String status, String sourceHash) { }
     public record IndexState(String status, String sourceHash, int expectedCount,
-                             String failureReason, int attempts) { }
+                             String failureReason, int attempts, long publicationGeneration) {
+        public IndexState(String status, String sourceHash, int expectedCount,
+                          String failureReason, int attempts) {
+            this(status, sourceHash, expectedCount, failureReason, attempts, 0);
+        }
+    }
     public record SafeChunk(int index, int startOffset, int endOffset, String content,
                             List<Float> embedding) { }
     public record SourceChunk(int index, int startOffset, int endOffset, String content) { }

@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AxiosError, type AxiosResponse, type InternalAxiosRequestConfig } from 'axios';
 import { axiosClient } from '../src/api/axiosClient';
-import { approveOutbound, excludeOutbound, getSemanticReadiness, runBackfill, runSemanticGateAudit } from '../src/api/semanticIndex';
+import { approveOutbound, excludeOutbound, getSemanticIndexJobs, getSemanticReadiness, retrySemanticIndexJob, runBackfill, runSemanticGateAudit } from '../src/api/semanticIndex';
 import { isUnknownMutationResult, requiresMutationVerification, toApiError } from '../src/api/apiError';
 
 function response(config: InternalAxiosRequestConfig, data: unknown = {}, status = 200): AxiosResponse {
@@ -58,6 +58,28 @@ describe('Semantic Index API contract', () => {
     expect(calls).toEqual(['/semantic-index/gate-audit', '/semantic-index/readiness']);
   });
 
+
+  it('lists per-document jobs and retries a failed job through the exact admin endpoints', async () => {
+    const requests: InternalAxiosRequestConfig[] = [];
+    const job = { id: 4, documentId: 17, version: 'v2', status: 'FAILED', attempts: 4,
+      maxAttempts: 4, retryCount: 0, nextAttemptAt: null, failureCode: 'PROVIDER_TIMEOUT',
+      updatedAt: '2026-10-24T01:00:00Z' };
+    axiosClient.defaults.adapter = vi.fn(async (config) => {
+      requests.push(config);
+      return response(config, config.method === 'get' ? [job] : { ...job, status: 'QUEUED', attempts: 0, retryCount: 1 });
+    });
+    await expect(getSemanticIndexJobs()).resolves.toEqual([job]);
+    await expect(retrySemanticIndexJob(4)).resolves.toMatchObject({ status: 'QUEUED', retryCount: 1 });
+    expect(requests.map(({ method, url }) => [method, url])).toEqual([
+      ['get', '/semantic-index/jobs'], ['post', '/semantic-index/jobs/4/retry'],
+    ]);
+    expect(requests[0].params).toEqual({ limit: 50 });
+  });
+
+  it('rejects malformed per-document job responses', async () => {
+    axiosClient.defaults.adapter = vi.fn(async (config) => response(config, [{ id: 4, status: 'FAILED' }]));
+    await expect(getSemanticIndexJobs()).rejects.toThrow(/incomplete Semantic indexing job list/);
+  });
   it.each([401, 403, 404, 409, 503])('preserves HTTP %i semantics and never retries a Gate Audit POST', async (status) => {
     let calls = 0;
     axiosClient.defaults.adapter = vi.fn(async (config) => {

@@ -7,7 +7,7 @@ import * as semantic from '../src/api/semanticIndex';
 import { AxiosError } from 'axios';
 
 vi.mock('../src/api/semanticIndex', () => ({
-  getSemanticReadiness: vi.fn(), runBackfill: vi.fn(), runSemanticGateAudit: vi.fn(), approveOutbound: vi.fn(), excludeOutbound: vi.fn(),
+  getSemanticIndexJobs: vi.fn(), retrySemanticIndexJob: vi.fn(), getSemanticReadiness: vi.fn(), runBackfill: vi.fn(), runSemanticGateAudit: vi.fn(), approveOutbound: vi.fn(), excludeOutbound: vi.fn(),
 }));
 
 const report: semantic.SemanticGateReport = { passed: true, generationKey: 'gen-1', modelId: 'embedding-model', dimensions: 768, ready: 6, skipped: 0, failed: 0, requiresReview: 0, pending: 0, findings: [], auditId: null };
@@ -19,9 +19,24 @@ function deferred<T>() {
 
 function mount(documentMutationVersion = 0) { return render(<MemoryRouter><SemanticOperationsPanel documentMutationVersion={documentMutationVersion} /></MemoryRouter>); }
 
-beforeEach(() => { vi.clearAllMocks(); });
+beforeEach(() => { vi.clearAllMocks(); vi.mocked(semantic.getSemanticIndexJobs).mockResolvedValue([]); });
 
 describe('Semantic admin operations UI', () => {
+
+  it('shows per-document status and retries only FAILED jobs', async () => {
+    const failed: semantic.SemanticIndexJob = { id: 9, documentId: 21, version: 'v3', status: 'FAILED',
+      attempts: 4, maxAttempts: 4, retryCount: 0, nextAttemptAt: null,
+      failureCode: 'PROVIDER_TIMEOUT', updatedAt: '2026-10-24T01:00:00Z' };
+    const queued: semantic.SemanticIndexJob = { ...failed, status: 'QUEUED', attempts: 0, retryCount: 1, failureCode: null };
+    vi.mocked(semantic.getSemanticIndexJobs).mockResolvedValueOnce([failed]).mockResolvedValueOnce([queued]);
+    vi.mocked(semantic.retrySemanticIndexJob).mockResolvedValue(queued);
+    const user = userEvent.setup(); mount();
+    expect(await screen.findByText('PROVIDER_TIMEOUT')).toBeTruthy();
+    await user.click(screen.getByRole('button', { name: '手動重試' }));
+    expect(semantic.retrySemanticIndexJob).toHaveBeenCalledWith(9);
+    await waitFor(() => expect(screen.queryByRole('button', { name: '手動重試' })).toBeNull());
+    expect(semantic.getSemanticIndexJobs).toHaveBeenCalledTimes(2);
+  });
   it('keeps Readiness PASS distinct from a saved 稽核 and renders the formal 稽核 response', async () => {
     vi.mocked(semantic.getSemanticReadiness).mockResolvedValue(report);
     vi.mocked(semantic.runSemanticGateAudit).mockResolvedValue({ ...report, auditId: 81 });
@@ -34,7 +49,7 @@ describe('Semantic admin operations UI', () => {
     await user.click(screen.getByRole('button', { name: '確認並保存稽核結果' }));
     expect(await screen.findByText('稽核編號')).toBeTruthy();
     expect(screen.getByText('81')).toBeTruthy();
-    expect(screen.getByText(/不會啟用 Semantic Read/)).toBeTruthy();
+    expect(screen.getByText(/Gate 通過不會自動啟用 Semantic Read/)).toBeTruthy();
   });
 
   it('marks a saved 稽核 as historical after Backfill without clearing its audit record', async () => {
