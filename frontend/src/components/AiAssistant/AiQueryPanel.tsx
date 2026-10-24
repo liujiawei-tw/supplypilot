@@ -6,6 +6,7 @@ import ErrorState from '../ErrorState';
 import AiSources from './AiSources';
 import AiAnswerDisplay from './AiAnswerDisplay';
 import type { ApiErrorResponse } from '../../types/api';
+import { displayLabel } from '../../utils/displayLabels';
 
 const { Text, Title } = Typography;
 
@@ -37,7 +38,7 @@ export default function AiQueryPanel() {
   return <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
     <div><Title level={4} style={{ marginBottom: 0 }}>向 SupplyPilot 提問</Title><Text type="secondary">單輪同步查詢；不保留對話記憶，也不提供串流回應。</Text></div>
     <Input.TextArea aria-label="AI 問題" rows={4} maxLength={2000} showCount value={message}
-      placeholder="例如：為什麼 Recommendation #91 推薦此供應商？"
+      placeholder="例如：為什麼採購建議 #91 推薦此供應商？"
       onChange={(event) => setMessage(event.target.value)} onPressEnter={(event) => { if (!event.shiftKey) { event.preventDefault(); void submit(); } }} />
     <Button type="primary" loading={loading} disabled={!message.trim()} onClick={() => void submit()}>送出問題</Button>
     {error && <ErrorState title="AI 問答失敗" error={error} onRetry={lastMessage ? () => void submit(lastMessage) : undefined} retryText="重新提問" />}
@@ -49,8 +50,8 @@ export default function AiQueryPanel() {
       {response.answer
         ? <AiAnswerDisplay answer={response.answer} />
         : <Text type="secondary">後端未提供可顯示回答。</Text>}
-      {response.answerSource && <Text type="secondary">Answer Source：{response.answerSource}</Text>}
-      {response.tools.length > 0 && <div style={{ marginTop: 8 }}>{response.tools.map((tool) => <Tag key={tool}>{tool}</Tag>)}</div>}
+      {response.answerSource && <Text type="secondary">答案來源：{displayLabel(response.answerSource)}</Text>}
+      {response.tools.length > 0 && <div style={{ marginTop: 8 }}>{response.tools.map((tool) => <Tag key={tool}>{displayLabel(tool)}</Tag>)}</div>}
     </Card>}
     {response && <Card size="small" title="資料來源"><AiSources sources={response.sources} /></Card>}
   </Space>;

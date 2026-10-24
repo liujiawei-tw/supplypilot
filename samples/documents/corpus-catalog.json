@@ -1,0 +1,566 @@
+{
+  "schemaVersion": 1,
+  "datasetKey": "SP-901",
+  "corpusVersion": "sp-906-zh-tw-v2",
+  "documentCount": 16,
+  "seedDocumentCount": 15,
+  "manualUiUploadCount": 1,
+  "documents": [
+    {
+      "documentKey": "DOC-SUP-001-CONTRACT",
+      "type": "SUPPLIER_CONTRACT",
+      "version": "1.0",
+      "title": "SUP-001 阿薩姆紅茶萃取物交付協議",
+      "filename": "samples/documents/supplier-contract-sup-001-v1.txt",
+      "corpusVersion": "sp-906-zh-tw-v2",
+      "sourceSha256": "e07a3c774863908d1b271225e36d9bdb12ba8cd857a42727ee7b742318a65f24",
+      "classification": "SEED_BASELINE",
+      "supplierCodes": [
+        "SUP-001"
+      ],
+      "materialCodes": [
+        "MAT-001"
+      ],
+      "relatedDocumentKeys": [
+        "DOC-SUP-001-QUOTATION",
+        "DOC-QUALITY-MAT-001"
+      ],
+      "firstReviewStatus": "REQUIRES_ADMIN_REVIEW",
+      "firstReviewBasis": "首次人工管理員審查尚待執行；本目錄只追蹤語料，不授予出站核准。",
+      "outboundPolicy": "REQUIRES_REVIEW",
+      "indexingExpectation": "須先完成該文件版本與 SHA-256 的人工審查，再依現行政策進入非同步索引流程；本文未核准、未索引，也未執行 Gemini。",
+      "fixtureKeys": [
+        "RAG-001",
+        "RAG-017"
+      ],
+      "supplierNames": [
+        "福爾摩沙原料工坊"
+      ],
+      "materialNames": [
+        "阿薩姆紅茶萃取物"
+      ]
+    },
+    {
+      "documentKey": "DOC-SUP-002-CONTRACT",
+      "type": "SUPPLIER_CONTRACT",
+      "version": "1.0",
+      "title": "SUP-002 阿薩姆紅茶與芒果濃縮汁供貨協議",
+      "filename": "samples/documents/supplier-contract-sup-002-v1.txt",
+      "corpusVersion": "sp-906-zh-tw-v2",
+      "sourceSha256": "08264ff70040434eab8937b43dd0a53d8f2c5cf8e1bc777f5c8ebd3be57b32d3",
+      "classification": "SEED_BASELINE",
+      "supplierCodes": [
+        "SUP-002"
+      ],
+      "materialCodes": [
+        "MAT-001",
+        "MAT-002"
+      ],
+      "relatedDocumentKeys": [
+        "DOC-SUP-002-QUOTATION"
+      ],
+      "firstReviewStatus": "REQUIRES_ADMIN_REVIEW",
+      "firstReviewBasis": "首次人工管理員審查尚待執行；本目錄只追蹤語料，不授予出站核准。",
+      "outboundPolicy": "REQUIRES_REVIEW",
+      "indexingExpectation": "須先完成該文件版本與 SHA-256 的人工審查，再依現行政策進入非同步索引流程；本文未核准、未索引，也未執行 Gemini。",
+      "fixtureKeys": [],
+      "supplierNames": [
+        "東港貿易社"
+      ],
+      "materialNames": [
+        "阿薩姆紅茶萃取物",
+        "芒果濃縮汁"
+      ]
+    },
+    {
+      "documentKey": "DOC-SUP-010-CONTRACT",
+      "type": "SUPPLIER_CONTRACT",
+      "version": "1.0",
+      "title": "SUP-010 椰奶基底交付作業協議",
+      "filename": "samples/documents/supplier-contract-sup-010-v1.txt",
+      "corpusVersion": "sp-906-zh-tw-v2",
+      "sourceSha256": "42130e4483055f2c426753704ca5afe55808defbcf334cb9eb6cbba0c1faec98",
+      "classification": "SEED_BASELINE",
+      "supplierCodes": [
+        "SUP-010"
+      ],
+      "materialCodes": [
+        "MAT-012"
+      ],
+      "relatedDocumentKeys": [
+        "DOC-SOP-DELIVERY-DATE"
+      ],
+      "firstReviewStatus": "REQUIRES_ADMIN_REVIEW",
+      "firstReviewBasis": "首次人工管理員審查尚待執行；本目錄只追蹤語料，不授予出站核准。",
+      "outboundPolicy": "REQUIRES_REVIEW",
+      "indexingExpectation": "須先完成該文件版本與 SHA-256 的人工審查，再依現行政策進入非同步索引流程；本文未核准、未索引，也未執行 Gemini。",
+      "fixtureKeys": [
+        "RAG-022",
+        "RAG-023"
+      ],
+      "supplierNames": [
+        "南島風味貿易"
+      ],
+      "materialNames": [
+        "椰奶基底"
+      ]
+    },
+    {
+      "documentKey": "DOC-SUP-001-QUOTATION",
+      "type": "QUOTATION",
+      "version": "1.0",
+      "title": "SUP-001 阿薩姆紅茶萃取物供貨條件",
+      "filename": "samples/documents/quotation-sup-001-v1.txt",
+      "corpusVersion": "sp-906-zh-tw-v2",
+      "sourceSha256": "2379fc594d8b41ac7647ff0269560b4f006f509ec76c7253c106d3e02bd35c97",
+      "classification": "SEED_BASELINE",
+      "supplierCodes": [
+        "SUP-001"
+      ],
+      "materialCodes": [
+        "MAT-001"
+      ],
+      "relatedDocumentKeys": [
+        "DOC-SUP-001-CONTRACT"
+      ],
+      "firstReviewStatus": "REQUIRES_ADMIN_REVIEW",
+      "firstReviewBasis": "首次人工管理員審查尚待執行；本目錄只追蹤語料，不授予出站核准。",
+      "outboundPolicy": "REQUIRES_REVIEW",
+      "indexingExpectation": "須先完成該文件版本與 SHA-256 的人工審查，再依現行政策進入非同步索引流程；本文未核准、未索引，也未執行 Gemini。",
+      "fixtureKeys": [
+        "RAG-002"
+      ],
+      "quoteTerms": [
+        {
+          "packageMultiple": "100",
+          "leadTimeDays": 5,
+          "currency": "TWD",
+          "validFrom": "2026-10-01",
+          "supplierCode": "SUP-001",
+          "materialCode": "MAT-001",
+          "leadTimeUnit": "CALENDAR_DAYS",
+          "moq": "800",
+          "validUntil": "2026-12-31",
+          "validityDays": 92
+        }
+      ],
+      "supplierNames": [
+        "福爾摩沙原料工坊"
+      ],
+      "materialNames": [
+        "阿薩姆紅茶萃取物"
+      ]
+    },
+    {
+      "documentKey": "DOC-SUP-002-QUOTATION",
+      "type": "QUOTATION",
+      "version": "1.0",
+      "title": "SUP-002 MAT-001 與 MAT-002 供貨條件及期間紀錄",
+      "filename": "samples/documents/quotation-sup-002-v1.txt",
+      "corpusVersion": "sp-906-zh-tw-v2",
+      "sourceSha256": "3d70da59e5f723ab4052959b5f3b967a7bbac55cc8928fb2f393c79239ba36e6",
+      "classification": "SEED_BASELINE",
+      "supplierCodes": [
+        "SUP-002"
+      ],
+      "materialCodes": [
+        "MAT-001",
+        "MAT-002"
+      ],
+      "relatedDocumentKeys": [
+        "DOC-SUP-002-CONTRACT"
+      ],
+      "firstReviewStatus": "REQUIRES_ADMIN_REVIEW",
+      "firstReviewBasis": "首次人工管理員審查尚待執行；本目錄只追蹤語料，不授予出站核准。",
+      "outboundPolicy": "REQUIRES_REVIEW",
+      "indexingExpectation": "須先完成該文件版本與 SHA-256 的人工審查，再依現行政策進入非同步索引流程；本文未核准、未索引，也未執行 Gemini。",
+      "fixtureKeys": [
+        "RAG-003",
+        "RAG-004",
+        "RAG-018",
+        "RAG-019"
+      ],
+      "quoteTerms": [
+        {
+          "periodStatus": "CURRENT",
+          "packageMultiple": "50",
+          "leadTimeDays": 3,
+          "currency": "TWD",
+          "validFrom": "2026-10-01",
+          "supplierCode": "SUP-002",
+          "materialCode": "MAT-001",
+          "leadTimeUnit": "CALENDAR_DAYS",
+          "moq": "500",
+          "validUntil": "2026-12-31",
+          "validityDays": 92
+        },
+        {
+          "periodStatus": "CURRENT",
+          "packageMultiple": "25",
+          "leadTimeDays": 8,
+          "currency": "TWD",
+          "validFrom": "2026-10-01",
+          "supplierCode": "SUP-002",
+          "materialCode": "MAT-002",
+          "leadTimeUnit": "CALENDAR_DAYS",
+          "moq": "400",
+          "validUntil": "2026-12-31",
+          "validityDays": 92
+        },
+        {
+          "periodStatus": "HISTORICAL",
+          "packageMultiple": "50",
+          "leadTimeDays": 3,
+          "currency": "TWD",
+          "validFrom": "2025-03-01",
+          "supplierCode": "SUP-002",
+          "materialCode": "MAT-001",
+          "leadTimeUnit": "CALENDAR_DAYS",
+          "moq": "500",
+          "validUntil": "2025-06-30",
+          "validityDays": 122
+        },
+        {
+          "periodStatus": "HISTORICAL",
+          "packageMultiple": "25",
+          "leadTimeDays": 8,
+          "currency": "TWD",
+          "validFrom": "2025-03-01",
+          "supplierCode": "SUP-002",
+          "materialCode": "MAT-002",
+          "leadTimeUnit": "CALENDAR_DAYS",
+          "moq": "400",
+          "validUntil": "2025-06-30",
+          "validityDays": 122
+        }
+      ],
+      "supplierNames": [
+        "東港貿易社"
+      ],
+      "materialNames": [
+        "阿薩姆紅茶萃取物",
+        "芒果濃縮汁"
+      ]
+    },
+    {
+      "documentKey": "DOC-SUP-007-QUOTATION",
+      "type": "QUOTATION",
+      "version": "1.0",
+      "title": "SUP-007 檸檬汁濃縮液供貨條件",
+      "filename": "samples/documents/quotation-sup-007-v1.txt",
+      "corpusVersion": "sp-906-zh-tw-v2",
+      "sourceSha256": "21ac10b71b01d6ffaa6c38b5b4057f2297c6c8cd8e25106b490137408ca57c5e",
+      "classification": "SEED_BASELINE",
+      "supplierCodes": [
+        "SUP-007"
+      ],
+      "materialCodes": [
+        "MAT-010"
+      ],
+      "relatedDocumentKeys": [
+        "DOC-QUALITY-MAT-010"
+      ],
+      "firstReviewStatus": "REQUIRES_ADMIN_REVIEW",
+      "firstReviewBasis": "首次人工管理員審查尚待執行；本目錄只追蹤語料，不授予出站核准。",
+      "outboundPolicy": "REQUIRES_REVIEW",
+      "indexingExpectation": "須先完成該文件版本與 SHA-256 的人工審查，再依現行政策進入非同步索引流程；本文未核准、未索引，也未執行 Gemini。",
+      "fixtureKeys": [
+        "RAG-005"
+      ],
+      "quoteTerms": [
+        {
+          "packageMultiple": "50",
+          "leadTimeDays": 4,
+          "currency": "TWD",
+          "validFrom": "2026-10-01",
+          "supplierCode": "SUP-007",
+          "materialCode": "MAT-010",
+          "leadTimeUnit": "CALENDAR_DAYS",
+          "moq": "150",
+          "validUntil": "2026-12-31",
+          "validityDays": 92
+        }
+      ],
+      "supplierNames": [
+        "山嵐果萃食品"
+      ],
+      "materialNames": [
+        "檸檬汁濃縮液"
+      ]
+    },
+    {
+      "documentKey": "DOC-SOP-LIFECYCLE",
+      "type": "PROCUREMENT_SOP",
+      "version": "1.0",
+      "title": "SupplyPilot 展示採購生命週期作業程序",
+      "filename": "samples/documents/procurement-sop-v1.txt",
+      "corpusVersion": "sp-906-zh-tw-v2",
+      "sourceSha256": "1a6db8e08b379944cfe2aac15c4b8c11762dc315ddf8a8c71c4f8d35c2d20dcc",
+      "classification": "SEED_BASELINE",
+      "supplierCodes": [],
+      "materialCodes": [],
+      "relatedDocumentKeys": [
+        "DOC-SOP-KANBAN",
+        "DOC-SOP-DELIVERY-DATE"
+      ],
+      "firstReviewStatus": "REQUIRES_ADMIN_REVIEW",
+      "firstReviewBasis": "首次人工管理員審查尚待執行；本目錄只追蹤語料，不授予出站核准。",
+      "outboundPolicy": "REQUIRES_REVIEW",
+      "indexingExpectation": "須先完成該文件版本與 SHA-256 的人工審查，再依現行政策進入非同步索引流程；本文未核准、未索引，也未執行 Gemini。",
+      "fixtureKeys": [
+        "RAG-013",
+        "RAG-014"
+      ],
+      "supplierNames": [],
+      "materialNames": []
+    },
+    {
+      "documentKey": "DOC-SOP-KANBAN",
+      "type": "PROCUREMENT_SOP",
+      "version": "1.0",
+      "title": "採購單終止與看板階段處理程序",
+      "filename": "samples/documents/procurement-sop-kanban-v1.txt",
+      "corpusVersion": "sp-906-zh-tw-v2",
+      "sourceSha256": "7522e447a548eb6390eaee9b62db139a81a28b32b59d70073cdc6f0a17db15db",
+      "classification": "SEED_BASELINE",
+      "supplierCodes": [],
+      "materialCodes": [],
+      "relatedDocumentKeys": [
+        "DOC-SOP-LIFECYCLE"
+      ],
+      "firstReviewStatus": "REQUIRES_ADMIN_REVIEW",
+      "firstReviewBasis": "首次人工管理員審查尚待執行；本目錄只追蹤語料，不授予出站核准。",
+      "outboundPolicy": "REQUIRES_REVIEW",
+      "indexingExpectation": "須先完成該文件版本與 SHA-256 的人工審查，再依現行政策進入非同步索引流程；本文未核准、未索引，也未執行 Gemini。",
+      "fixtureKeys": [
+        "RAG-015",
+        "RAG-025"
+      ],
+      "supplierNames": [],
+      "materialNames": []
+    },
+    {
+      "documentKey": "DOC-SOP-DELIVERY-DATE",
+      "type": "PROCUREMENT_SOP",
+      "version": "1.0",
+      "title": "採購交期欄位與異動作業程序",
+      "filename": "samples/documents/procurement-sop-delivery-date-v1.txt",
+      "corpusVersion": "sp-906-zh-tw-v2",
+      "sourceSha256": "f084cedbbcef54e917a6b07f116a664678c9784664f81cf13ff26fe1f07dfef6",
+      "classification": "SEED_BASELINE",
+      "supplierCodes": [],
+      "materialCodes": [],
+      "relatedDocumentKeys": [
+        "DOC-SOP-LIFECYCLE",
+        "DOC-SUP-010-CONTRACT"
+      ],
+      "firstReviewStatus": "REQUIRES_ADMIN_REVIEW",
+      "firstReviewBasis": "首次人工管理員審查尚待執行；本目錄只追蹤語料，不授予出站核准。",
+      "outboundPolicy": "REQUIRES_REVIEW",
+      "indexingExpectation": "須先完成該文件版本與 SHA-256 的人工審查，再依現行政策進入非同步索引流程；本文未核准、未索引，也未執行 Gemini。",
+      "fixtureKeys": [
+        "RAG-016",
+        "RAG-023"
+      ],
+      "supplierNames": [],
+      "materialNames": []
+    },
+    {
+      "documentKey": "DOC-MAT-001-SPEC",
+      "type": "PRODUCT_SPECIFICATION",
+      "version": "1.0",
+      "title": "MAT-001 阿薩姆紅茶萃取物規格",
+      "filename": "samples/documents/product-specification-mat-001-v1.txt",
+      "corpusVersion": "sp-906-zh-tw-v2",
+      "sourceSha256": "0a3962fa578188cae9db20a261d8f8da9d6656b6a9637e67b5be8d9fa1a5101b",
+      "classification": "SEED_BASELINE",
+      "supplierCodes": [],
+      "materialCodes": [
+        "MAT-001"
+      ],
+      "relatedDocumentKeys": [
+        "DOC-QUALITY-MAT-001",
+        "DOC-SUP-001-CONTRACT"
+      ],
+      "firstReviewStatus": "REQUIRES_ADMIN_REVIEW",
+      "firstReviewBasis": "首次人工管理員審查尚待執行；本目錄只追蹤語料，不授予出站核准。",
+      "outboundPolicy": "REQUIRES_REVIEW",
+      "indexingExpectation": "須先完成該文件版本與 SHA-256 的人工審查，再依現行政策進入非同步索引流程；本文未核准、未索引，也未執行 Gemini。",
+      "fixtureKeys": [
+        "RAG-006",
+        "RAG-020"
+      ],
+      "supplierNames": [],
+      "materialNames": [
+        "阿薩姆紅茶萃取物"
+      ]
+    },
+    {
+      "documentKey": "DOC-MAT-002-SPEC",
+      "type": "PRODUCT_SPECIFICATION",
+      "version": "1.0",
+      "title": "MAT-002 芒果濃縮汁規格",
+      "filename": "samples/documents/product-specification-mat-002-v1.txt",
+      "corpusVersion": "sp-906-zh-tw-v2",
+      "sourceSha256": "427946615828ae81a60c276b151c4e8d6ceeb17d4a77cd895012732e9f492a97",
+      "classification": "SEED_BASELINE",
+      "supplierCodes": [],
+      "materialCodes": [
+        "MAT-002"
+      ],
+      "relatedDocumentKeys": [
+        "DOC-SUP-002-CONTRACT",
+        "DOC-SUP-002-QUOTATION"
+      ],
+      "firstReviewStatus": "REQUIRES_ADMIN_REVIEW",
+      "firstReviewBasis": "首次人工管理員審查尚待執行；本目錄只追蹤語料，不授予出站核准。",
+      "outboundPolicy": "REQUIRES_REVIEW",
+      "indexingExpectation": "須先完成該文件版本與 SHA-256 的人工審查，再依現行政策進入非同步索引流程；本文未核准、未索引，也未執行 Gemini。",
+      "fixtureKeys": [
+        "RAG-007",
+        "RAG-008"
+      ],
+      "supplierNames": [],
+      "materialNames": [
+        "芒果濃縮汁"
+      ]
+    },
+    {
+      "documentKey": "DOC-MAT-006-SPEC",
+      "type": "PRODUCT_SPECIFICATION",
+      "version": "1.0",
+      "title": "MAT-006 茉莉茶萃取物規格",
+      "filename": "samples/documents/product-specification-mat-006-v1.txt",
+      "corpusVersion": "sp-906-zh-tw-v2",
+      "sourceSha256": "b8e085efa6174f5e23f65663e8138ec6777cb9c0657aa2564aec4fb01c3d92ca",
+      "classification": "SEED_BASELINE",
+      "supplierCodes": [],
+      "materialCodes": [
+        "MAT-006"
+      ],
+      "relatedDocumentKeys": [],
+      "firstReviewStatus": "REQUIRES_ADMIN_REVIEW",
+      "firstReviewBasis": "首次人工管理員審查尚待執行；本目錄只追蹤語料，不授予出站核准。",
+      "outboundPolicy": "REQUIRES_REVIEW",
+      "indexingExpectation": "須先完成該文件版本與 SHA-256 的人工審查，再依現行政策進入非同步索引流程；本文未核准、未索引，也未執行 Gemini。",
+      "fixtureKeys": [
+        "RAG-009"
+      ],
+      "supplierNames": [],
+      "materialNames": [
+        "茉莉茶萃取物"
+      ]
+    },
+    {
+      "documentKey": "DOC-QUALITY-GENERAL",
+      "type": "QUALITY_REQUIREMENT",
+      "version": "1.0",
+      "title": "原料收貨品質與異常隔離要求",
+      "filename": "samples/documents/quality-requirement-v1.txt",
+      "corpusVersion": "sp-906-zh-tw-v2",
+      "sourceSha256": "ef2d1baf3d3e46a679bca319171a6582dcbabb993e08091f6fe14216220b689e",
+      "classification": "SEED_BASELINE",
+      "supplierCodes": [],
+      "materialCodes": [],
+      "relatedDocumentKeys": [
+        "DOC-QUALITY-MAT-001",
+        "DOC-QUALITY-MAT-010",
+        "DOC-SOP-LIFECYCLE"
+      ],
+      "firstReviewStatus": "REQUIRES_ADMIN_REVIEW",
+      "firstReviewBasis": "首次人工管理員審查尚待執行；本目錄只追蹤語料，不授予出站核准。",
+      "outboundPolicy": "REQUIRES_REVIEW",
+      "indexingExpectation": "須先完成該文件版本與 SHA-256 的人工審查，再依現行政策進入非同步索引流程；本文未核准、未索引，也未執行 Gemini。",
+      "fixtureKeys": [
+        "RAG-010"
+      ],
+      "supplierNames": [],
+      "materialNames": []
+    },
+    {
+      "documentKey": "DOC-QUALITY-MAT-001",
+      "type": "QUALITY_REQUIREMENT",
+      "version": "1.0",
+      "title": "MAT-001 批次標示與收貨檢查要求",
+      "filename": "samples/documents/quality-requirement-mat-001-v1.txt",
+      "corpusVersion": "sp-906-zh-tw-v2",
+      "sourceSha256": "143ae137bb7a5b1b70f25641b43dd1d89adeca72130fe251e224e1a97fb0cadf",
+      "classification": "SEED_BASELINE",
+      "supplierCodes": [],
+      "materialCodes": [
+        "MAT-001"
+      ],
+      "relatedDocumentKeys": [
+        "DOC-MAT-001-SPEC",
+        "DOC-SUP-001-CONTRACT"
+      ],
+      "firstReviewStatus": "REQUIRES_ADMIN_REVIEW",
+      "firstReviewBasis": "首次人工管理員審查尚待執行；本目錄只追蹤語料，不授予出站核准。",
+      "outboundPolicy": "REQUIRES_REVIEW",
+      "indexingExpectation": "須先完成該文件版本與 SHA-256 的人工審查，再依現行政策進入非同步索引流程；本文未核准、未索引，也未執行 Gemini。",
+      "fixtureKeys": [
+        "RAG-011",
+        "RAG-017"
+      ],
+      "supplierNames": [],
+      "materialNames": [
+        "阿薩姆紅茶萃取物"
+      ]
+    },
+    {
+      "documentKey": "DOC-QUALITY-MAT-010",
+      "type": "QUALITY_REQUIREMENT",
+      "version": "1.0",
+      "title": "MAT-010 檸檬汁濃縮液收貨品質要求",
+      "filename": "samples/documents/quality-requirement-mat-010-v1.txt",
+      "corpusVersion": "sp-906-zh-tw-v2",
+      "sourceSha256": "77cb63615b62bb7f3d378bc192afacaf637f9a0f0a0595d1af4f9838e97c0ecd",
+      "classification": "SEED_BASELINE",
+      "supplierCodes": [],
+      "materialCodes": [
+        "MAT-010"
+      ],
+      "relatedDocumentKeys": [
+        "DOC-SUP-007-QUOTATION"
+      ],
+      "firstReviewStatus": "REQUIRES_ADMIN_REVIEW",
+      "firstReviewBasis": "首次人工管理員審查尚待執行；本目錄只追蹤語料，不授予出站核准。",
+      "outboundPolicy": "REQUIRES_REVIEW",
+      "indexingExpectation": "須先完成該文件版本與 SHA-256 的人工審查，再依現行政策進入非同步索引流程；本文未核准、未索引，也未執行 Gemini。",
+      "fixtureKeys": [
+        "RAG-012"
+      ],
+      "supplierNames": [],
+      "materialNames": [
+        "檸檬汁濃縮液"
+      ]
+    },
+    {
+      "documentKey": "UI-SUP-005-ADDENDUM",
+      "type": "SUPPLIER_CONTRACT",
+      "version": "1.0",
+      "title": "SUP-005 海岳食品素材季節性交期補充條款",
+      "filename": "samples/documents/ui-upload-sup-005-v1.txt",
+      "corpusVersion": "sp-906-zh-tw-v2",
+      "sourceSha256": "84f0dd681f91c08dc84fe666ced45bf75c3c02b61022bea06fa7bb334d3ce411",
+      "classification": "MANUAL_UI_UPLOAD_ONLY",
+      "supplierCodes": [
+        "SUP-005"
+      ],
+      "materialCodes": [],
+      "relatedDocumentKeys": [],
+      "firstReviewStatus": "REQUIRES_ADMIN_REVIEW",
+      "firstReviewBasis": "首次人工管理員審查尚待執行；本目錄只追蹤語料，不授予出站核准。",
+      "outboundPolicy": "REQUIRES_REVIEW",
+      "indexingExpectation": "僅由人工 UI 上傳；Coordinator 不得自動 Seed。首次人工審查與出站政策仍適用；本文未核准、未索引，也未執行 Gemini。",
+      "fixtureKeys": [
+        "RAG-021"
+      ],
+      "manualUploadRequired": true,
+      "supplierNames": [
+        "海岳食品素材"
+      ],
+      "materialNames": []
+    }
+  ]
+}

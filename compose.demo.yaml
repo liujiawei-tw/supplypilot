@@ -23,12 +23,17 @@ services:
       FRONTEND_ORIGIN: ${FRONTEND_ORIGIN:-http://127.0.0.1:${DEMO_FRONTEND_PORT:-8081}}
       DOCUMENT_STORAGE_PATH: /app/data/demo-documents
       DEMO_ACCOUNT_PASSWORD: ${DEMO_ACCOUNT_PASSWORD:?Set DEMO_ACCOUNT_PASSWORD in .env.demo}
-      DEMO_DATASET_VERSION: ${DEMO_DATASET_VERSION:-sp-905-zh-tw-v1}
+      DEMO_DATASET_VERSION: ${DEMO_DATASET_VERSION:-sp-906-zh-tw-v2}
+      DEMO_MASTER_DATA_PATH: /app/samples/demo-master-data.json
+      DEMO_DATASET_UPGRADE_MODE: ${DEMO_DATASET_UPGRADE_MODE:-DISABLED}
+      DEMO_DATASET_UPGRADE_CONFIRMATION: ${DEMO_DATASET_UPGRADE_CONFIRMATION:-}
+      DEMO_DATASET_UPGRADE_PLAN_SHA256: ${DEMO_DATASET_UPGRADE_PLAN_SHA256:-}
       DEMO_SAMPLES_PATH: /app/samples/demo-documents
       DEMO_ALLOWED_DATABASE: supplypilot_demo
       DEMO_ALLOWED_SEMANTIC_DATABASE: supplypilot_semantic_demo
     volumes: !override
       - sp903-document-storage:/app/data/demo-documents
+      - ./samples/demo-master-data.json:/app/samples/demo-master-data.json:ro
       - ./samples/documents:/app/samples/demo-documents:ro
 
   frontend:

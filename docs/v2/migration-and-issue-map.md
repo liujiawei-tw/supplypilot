@@ -19,7 +19,7 @@
 | PO 查詢 | status、supplierId、materialId、日期、逾期、排序分頁 | 額外 PO 號、供應商代碼/名稱、物料代碼 | #144 |
 | 文件查詢 | lexical/semantic 二選一，Evidence Validator | Hybrid Retrieval + 來源文件/版本/原文摘錄；無頁碼/合約比較 | #145 |
 | Semantic Gate | V1 新 READY 文件可能阻斷整體 Gate；人工 Backfill/Audit | 已發布文件獨立可用，新文件管理員核准即非同步索引/重試/原子發布 | #146 |
-| Demo 文件恢復 | Reset 後五份 READY、清除舊索引/核准，需人工重走 Gate | 可調整基線 Manifest、版本/哈希白名單合法恢復、真實索引自動重建 | #147 |
+| Demo 資料/語料 | V1 基線五份文件、六家供應商；更新資料集可能只拒絕版本差異 | #147 Reset 已取消；#178 擴為契約資料與 15 份 Seed 文件，首次審查依正常流程執行，舊資料使用非破壞性確認更新 | #178 |
 | 介面 / RWD | V1 有繁中與 UI-D 200%/RWD，格式仍需一致 | 統一 zh-TW、台灣時區/千分位/幣別；桌面完整、手機基本查詢 | #148 |
 | AI 回答排版 | #126 Backlog 原最多 1 位小數 | **既有 #126 已更新最多 2 位、去尾零及分段排版** | #126 |
 | E2E / Release | V1 SP-900/901/903/910 E9 證據已歷次執行，#46 Open | V2 新 SHA 重做對應測試，本機優先，再 AWS #133，最後影片 | #149、#133、#46 |
@@ -59,21 +59,21 @@
 | V2-207 | [#144](https://github.com/liujiawei-tw/supplypilot/issues/144) | PO 編號、供應商/物料代碼查詢 | #138；可在 Domain 穩定後實作 |
 | V2-301 | [#145](https://github.com/liujiawei-tw/supplypilot/issues/145) | MySQL + pgvector 檢索融合、可信來源 | #135、#136；與 PO 群組可分階段並行規劃，實作仍一單一 PR |
 | V2-302 | [#146](https://github.com/liujiawei-tw/supplypilot/issues/146) | 非同步 Index Job、逐文件發布與 Retry | #145 |
-| V2-303 | [#147](https://github.com/liujiawei-tw/supplypilot/issues/147) | Manifest 白名單與 Reset 後自動恢復 | #146 |
+| V2-303 | [#147](https://github.com/liujiawei-tw/supplypilot/issues/147) | 已 Closed — Not planned；Demo Reset/自動恢復取消 | 不再作為 #178/#149 前置條件 |
 | V2-401 | [#148](https://github.com/liujiawei-tw/supplypilot/issues/148) | 全站 zh-TW/timezone/format/RWD 一致化 | #143；AI 金額由 #126 另做 |
 | V2-900 | [#149](https://github.com/liujiawei-tw/supplypilot/issues/149) | V2 全站 E2E、資料遷移／安全與 README 對齊 | 必要 V2 Issues 合併後 |
 | 既有 | [#126](https://github.com/liujiawei-tw/supplypilot/issues/126) | AI 金額 **最多兩位小數**與回答排版 | V2 顯示規格，避免再開重複 Issue |
 | 既有 Backlog | [#127](https://github.com/liujiawei-tw/supplypilot/issues/127) | AI 多條件／金額比較精準查詢 | **獨立擴充，未因本輪 PO 列表搜尋自動納入已完成** |
-| 延後部署 | [#133](https://github.com/liujiawei-tw/supplypilot/issues/133) | AWS、HTTPS、台灣午夜 Reset、雲端驗收 | V2 本機驗收後，先完成共用帳號權限決策 |
+| 延後部署 | [#133](https://github.com/liujiawei-tw/supplypilot/issues/133) | AWS、HTTPS 與雲端驗收 | V2 本機驗收後，先完成共用帳號權限決策；不含已取消的 Reset |
 | 最終關卡 | [#46](https://github.com/liujiawei-tw/supplypilot/issues/46) | Release Review/影片等既有規則 | 新版 SHA/證據更新，不以舊 V1 PASS 代替 |
 
 ## 4. V2 程式影響檢查清單
 
 - **Database / Flyway：** User 權限能力、PO 負責人與操作快照、CANCELLED、stage、承諾日、人工付款欄位/狀態、必要的文件索引 Job/Manifest 狀態。**先設計可向前遷移/回滾的方案**，不假設可直接刪舊 Demand/Recommendation 表。
-- **Backend / API：** 採購業務權限簡化、Admin 人員管理、PO 草稿與終止、Stages/Receiving/Payment 命令、精確搜尋、Hybrid Query、per-document 索引/重試、重置保護與狀態檢查。
+- **Backend / API：** 採購業務權限簡化、Admin 人員管理、PO 草稿與終止、Stages/Receiving/Payment 命令、精確搜尋、Hybrid Query、per-document 索引/重試、Demo 目標隔離與非破壞性資料集更新。
 - **Frontend：** 人員與 PO 負責人、8 欄 Kanban+列表、操作確認與錯誤復原、雙交期、搜尋、RAG 原文引用、行動版查詢、格式統一。
 - **Docs：** 開發 PR 隨程式同步修改原有 API、security-design、domain-model、ERD、frontend-design、semantic-rag-runbook、Demo Runbook、README；V1 歷史 E9 證據不竄改。
-- **Testing：** Migration、角色負向、最後管理者保護、取消／收貨競態、庫存原子性、Stage 轉移、Provider Retry 與資料出站、UI 真實測試、瀏覽器/Reset E2E。
+- **Testing：** Migration、角色負向、最後管理者保護、取消／收貨競態、庫存原子性、Stage 轉移、Provider Retry 與資料出站、UI 真實測試、瀏覽器 E2E。
 
 ## 5. 尚未解決的事項與避免重複詢問原則
 

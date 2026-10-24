@@ -159,6 +159,17 @@ describe('AI query panel response contract', () => {
         endOffset: null,
         excerpt: null,
         relevanceScore: null,
+      }, {
+        resourceType: 'DOCUMENT',
+        resourceId: '42',
+        title: '採購流程手冊',
+        version: 'v1',
+        supplierId: 5,
+        chunkIndex: 3,
+        startOffset: 10,
+        endOffset: 20,
+        excerpt: '驗收流程摘要',
+        relevanceScore: 0.9,
       }],
       answerSource: 'BACKEND_FACTS',
     });
@@ -169,10 +180,18 @@ describe('AI query panel response contract', () => {
     await user.click(screen.getByRole('button', { name: '送出問題' }));
 
     expect(await screen.findByText('已下單採購單：共 1 筆，以下列出 1 筆。')).toBeTruthy();
-    expect(screen.getByText('Answer Source：BACKEND_FACTS')).toBeTruthy();
+    expect(screen.getByText('答案來源：後端查核資料')).toBeTruthy();
     expect(screen.getByRole('link', { name: '101' }).getAttribute('href')).toBe('/purchase-orders/101');
-    expect(screen.getByText('供應商 ID').parentElement?.textContent).toContain('4');
-    expect(screen.getByText('QUERY_OPEN_PO')).toBeTruthy();
+    expect(screen.getAllByText('供應商 ID')).toHaveLength(2);
+    expect(screen.getAllByText('供應商 ID')[0].parentElement?.textContent).toContain('4');
+    expect(screen.getByText('查詢待收貨採購單')).toBeTruthy();
+    expect(screen.getByText('採購單')).toBeTruthy();
+    expect(screen.queryByText('PURCHASE_ORDER')).toBeNull();
+    expect(screen.getByRole('link', { name: '42' }).getAttribute('href')).toBe('/documents?documentId=42');
+    expect(screen.getByText('文件')).toBeTruthy();
+    expect(screen.getByText('來源片段序號').parentElement?.textContent).toContain('3');
+    expect(screen.getByText('原文位置').parentElement?.textContent).toContain('10–20');
+    expect(screen.queryByText('DOCUMENT')).toBeNull();
   });
 
   it('keeps the insufficient evidence warning and empty source state', async () => {

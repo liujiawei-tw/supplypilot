@@ -11,7 +11,11 @@ supplypilot:
   demo:
     account-password: ${DEMO_ACCOUNT_PASSWORD}
     baseline-date: ${DEMO_BASELINE_DATE:}
-    dataset-version: ${DEMO_DATASET_VERSION:sp-905-zh-tw-v1}
+    dataset-version: ${DEMO_DATASET_VERSION:sp-906-zh-tw-v2}
+    master-data-path: ${DEMO_MASTER_DATA_PATH:../samples/demo-master-data.json}
+    upgrade-mode: ${DEMO_DATASET_UPGRADE_MODE:DISABLED}
+    upgrade-confirmation: ${DEMO_DATASET_UPGRADE_CONFIRMATION:}
+    upgrade-approved-plan-sha256: ${DEMO_DATASET_UPGRADE_PLAN_SHA256:}
     samples-path: ${DEMO_SAMPLES_PATH:../samples/documents}
     reset-confirmation: ${DEMO_RESET_CONFIRMATION:}
     allowed-database: ${DEMO_ALLOWED_DATABASE:supplypilot_demo}

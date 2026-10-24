@@ -187,7 +187,7 @@ function PurchaseOrderSummary({ order }: { order: PurchaseOrderFact }) {
           : <Text>{formatLabeledMoney(item.originalText)}</Text>}
       </li>)}
     </ul>
-    <Text type="secondary">PO ID：{order.id}　幣別：{order.currency}</Text>
+    <Text type="secondary">採購單編號：{order.id}　幣別：{order.currency}</Text>
   </section>;
 }
 

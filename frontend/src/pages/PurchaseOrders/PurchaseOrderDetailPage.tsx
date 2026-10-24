@@ -160,7 +160,7 @@ export default function PurchaseOrderDetailPage() {
       <PurchaseOrderForm purchaseOrder={po} disabled={submitting} onReview={(request: CreatePurchaseOrderRequest | UpdatePurchaseOrderRequest) => setPendingEdit(request as UpdatePurchaseOrderRequest)} />
     </Modal>
     <Modal title="確認草稿變更" open={!!pendingEdit} okText="確認更新草稿" confirmLoading={active === 'edit' && submitting} onCancel={() => setPendingEdit(null)} onOk={() => void perform('edit', () => updatePurchaseOrderDraft(po.id, pendingEdit!))}>
-      <Alert type="warning" showIcon title="只允許修改 DRAFT；Items 是完整替換清單。" />
+      <Alert type="warning" showIcon title="僅允許修改草稿；採購明細需整批替換。" />
     </Modal>
     <Modal title="更新供應商承諾交期" open={active === 'promise'} okText="確認更新" confirmLoading={active === 'promise' && submitting} onCancel={() => { if (!submitting) setActive(null); }} onOk={() => void perform('promise', () => updateSupplierPromisedDeliveryDate(po.id, supplierPromisedDeliveryDate || null))}>
       {actionError && <ErrorState title="供應商承諾交期更新失敗" error={actionError} operation="mutation" />}

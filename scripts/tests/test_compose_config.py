@@ -12,7 +12,9 @@ ROOT = Path(__file__).resolve().parents[2]
 COMPOSE_VARIABLES = {
     "AI_API_KEY", "AI_CHAT_PROVIDER", "AI_EMBEDDING_PROVIDER", "AI_MODEL",
     "AI_MONTHLY_TOKEN_WARNING_ENABLED", "AI_PROVIDER_TIMEOUT", "DB_NAME", "DB_PASSWORD",
-    "DB_PORT", "DB_USERNAME", "DEMO_ACCOUNT_PASSWORD", "DEMO_DATASET_VERSION", "DEMO_MYSQL_HOST_PORT",
+    "DB_PORT", "DB_USERNAME", "DEMO_ACCOUNT_PASSWORD", "DEMO_DATASET_VERSION",
+    "DEMO_DATASET_UPGRADE_MODE", "DEMO_DATASET_UPGRADE_CONFIRMATION", "DEMO_DATASET_UPGRADE_PLAN_SHA256",
+    "DEMO_MASTER_DATA_PATH", "DEMO_MYSQL_HOST_PORT",
     "DEMO_FRONTEND_PORT", "FRONTEND_ORIGIN", "GEMINI_API_KEY", "GEMINI_EMBEDDING_MODEL",
     "GEMINI_MODEL", "JWT_EXPIRATION_SECONDS", "JWT_SECRET", "MYSQL_ROOT_PASSWORD",
     "PRODUCTION_MYSQL_HOST_PORT",
@@ -126,6 +128,11 @@ class ComposeConfigurationTests(unittest.TestCase):
                          demo["services"]["backend"]["environment"]["DOCUMENT_STORAGE_PATH"])
         self.assertEqual("/app/samples/demo-documents",
                          demo["services"]["backend"]["environment"]["DEMO_SAMPLES_PATH"])
+        self.assertEqual("sp-906-zh-tw-v2",
+                         demo["services"]["backend"]["environment"]["DEMO_DATASET_VERSION"])
+        self.assertEqual("/app/samples/demo-master-data.json",
+                         demo["services"]["backend"]["environment"]["DEMO_MASTER_DATA_PATH"])
+        self.assertEqual("DISABLED", demo["services"]["backend"]["environment"]["DEMO_DATASET_UPGRADE_MODE"])
         self.assertEqual("sp903-document-storage", demo_document_mounts[0]["source"])
         self.assertEqual("supplypilot-sp903-local-demo-documents",
                          demo["volumes"]["sp903-document-storage"]["name"])
@@ -135,7 +142,14 @@ class ComposeConfigurationTests(unittest.TestCase):
         self.assertTrue(demo_sample_mounts[0]["read_only"])
         self.assertEqual(str(ROOT / "samples" / "documents"), demo_sample_mounts[0]["source"])
         self.assertEqual("bind", demo_sample_mounts[0]["type"])
-        self.assertEqual({"/app/data/demo-documents", "/app/samples/demo-documents"},
+        demo_master_mounts = [volume for volume in all_demo_mounts
+                              if volume["target"] == "/app/samples/demo-master-data.json"]
+        self.assertEqual(1, len(demo_master_mounts))
+        self.assertTrue(demo_master_mounts[0]["read_only"])
+        self.assertEqual(str(ROOT / "samples" / "demo-master-data.json"), demo_master_mounts[0]["source"])
+        self.assertEqual("bind", demo_master_mounts[0]["type"])
+        self.assertEqual({"/app/data/demo-documents", "/app/samples/demo-documents",
+                          "/app/samples/demo-master-data.json"},
                          {volume["target"] for volume in all_demo_mounts})
         self.assertEqual("Fixture123", demo["services"]["backend"]["environment"]["DEMO_ACCOUNT_PASSWORD"])
         self.assertFalse(any(".env.demo" in str(volume) for volume in demo["services"]["backend"]["volumes"]))

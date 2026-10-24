@@ -26,6 +26,9 @@ import com.supplypilot.document.domain.DocumentType;
 import com.supplypilot.document.repository.DocumentMetadataRepository;
 import com.supplypilot.document.repository.DocumentChunkRepository;
 import com.supplypilot.document.rag.DocumentTextExtractor;
+import com.supplypilot.demand.domain.Demand;
+import com.supplypilot.demand.repository.DemandRepository;
+import com.supplypilot.material.domain.Material;
 import com.supplypilot.material.repository.MaterialRepository;
 import com.supplypilot.inventory.repository.InventoryRepository;
 import com.supplypilot.procurement.domain.PurchaseOrderStatus;
@@ -54,7 +57,7 @@ import org.springframework.transaction.annotation.Transactional;
 @SpringBootTest(properties = {
         "spring.config.import=",
         "supplypilot.demo.allowed-database=supplypilot_demo_test",
-        "supplypilot.demo.dataset-version=sp-905-zh-tw-v1",
+        "supplypilot.demo.dataset-version=sp-906-zh-tw-v2",
         "supplypilot.demo.samples-path=../samples/documents",
         "supplypilot.document-storage.path=${java.io.tmpdir}/supplypilot-demo-seed-test-documents",
         "supplypilot.jwt.secret=dGVzdC1zZWNyZXQtZm9yLWRlbW8tc2VlZC10ZXN0cy1hdC1sZWFzdC0yNTYtYml0cw==",
@@ -74,6 +77,7 @@ class DemoSeedSmokeIntegrationTests {
 
     @Autowired private UserRepository users;
     @Autowired private MaterialRepository materials;
+    @Autowired private DemandRepository demands;
     @Autowired private InventoryRepository inventories;
     @Autowired private SupplierRepository suppliers;
     @Autowired private SupplierMaterialRepository supplierMaterials;
@@ -147,27 +151,25 @@ class DemoSeedSmokeIntegrationTests {
     void seedsCompleteDeterministicBaselineAndCanRunAgainWithoutDuplicates() throws Exception {
         assertThat(users.count()).isEqualTo(1);
         assertThat(materials.count()).isEqualTo(12);
-        assertThat(suppliers.count()).isEqualTo(6);
-        assertThat(supplierMaterials.count()).isEqualTo(30);
-        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM demands", Long.class)).isEqualTo(12);
+        assertThat(suppliers.count()).isEqualTo(10);
+        assertThat(supplierMaterials.count()).isEqualTo(45);
+        assertThat(demands.count()).isZero();
         assertThat(purchaseOrders.count()).isEqualTo(10);
-        assertThat(documents.count()).isEqualTo(5);
+        assertThat(documents.count()).isEqualTo(15);
         assertThat(documents.findAll()).allMatch(document -> document.getStatus() == DocumentStatus.READY);
-        assertThat(documents.findAll()).extracting(document -> document.getTitle()).containsExactlyInAnyOrder(
-                "SUP-001 交付與責任協議", "SUP-002 虛構報價條件", "SupplyPilot 虛構展示採購作業程序",
-                "MAT-001 阿薩姆紅茶萃取物規格", "虛構展示原料品質要求");
-        assertThat(documents.findAll()).extracting(document -> document.getDocumentType()).containsExactlyInAnyOrder(
-                DocumentType.SUPPLIER_CONTRACT, DocumentType.QUOTATION, DocumentType.PROCUREMENT_SOP,
-                DocumentType.PRODUCT_SPECIFICATION, DocumentType.QUALITY_REQUIREMENT);
+        assertThat(documents.findAll()).extracting(document -> document.getTitle()).hasSize(15);
+        for (DocumentType type : DocumentType.values()) {
+            assertThat(documents.findAll().stream().filter(document -> document.getDocumentType() == type)).hasSize(3);
+        }
         assertThat(documents.findAll()).allSatisfy(document -> {
             assertThat(document.getVersion()).isEqualTo("1.0");
             assertThat(document.getSemanticReviewStatus()).isNull();
             assertThat(Path.of(System.getProperty("java.io.tmpdir"), "supplypilot-demo-seed-test-documents",
                     document.getStoragePath())).isRegularFile();
         });
-        assertThat(documents.findAll()).noneMatch(document -> document.getTitle().contains("SUP-005 季節性"));
+        assertThat(documents.findAll()).noneMatch(document -> document.getTitle().contains("SUP-005") && document.getDocumentType() == DocumentType.SUPPLIER_CONTRACT);
         assertThat(jdbc.queryForObject("SELECT dataset_version FROM demo_dataset_state WHERE dataset_key = 'SP-901'", String.class))
-                .isEqualTo("sp-905-zh-tw-v1");
+                .isEqualTo("sp-906-zh-tw-v2");
         assertThat(documents.findAll()).allSatisfy(document -> {
             Path source = Path.of(System.getProperty("java.io.tmpdir"), "supplypilot-demo-seed-test-documents",
                     document.getStoragePath());
@@ -182,16 +184,26 @@ class DemoSeedSmokeIntegrationTests {
         });
 
         Map<PurchaseOrderStatus, Long> expected = Map.of(
-                PurchaseOrderStatus.DRAFT, 2L,
-                PurchaseOrderStatus.APPROVED, 2L,
-                PurchaseOrderStatus.ORDERED, 3L,
+                PurchaseOrderStatus.DRAFT, 3L,
+                PurchaseOrderStatus.APPROVED, 1L,
+                PurchaseOrderStatus.ORDERED, 2L,
                 PurchaseOrderStatus.RECEIVED, 2L,
-                PurchaseOrderStatus.REJECTED, 1L);
+                PurchaseOrderStatus.REJECTED, 1L,
+                PurchaseOrderStatus.CANCELLED, 1L);
         for (var entry : expected.entrySet()) {
             Long count = jdbc.queryForObject("SELECT COUNT(*) FROM purchase_orders WHERE status = ?",
                     Long.class, entry.getKey().name());
             assertThat(count).isEqualTo(entry.getValue());
         }
+
+        assertThat(jdbc.queryForObject(
+                "SELECT COUNT(DISTINCT stage) FROM purchase_orders WHERE stage IS NOT NULL", Long.class)).isEqualTo(8L);
+        for (String stage : List.of("NEW_REQUEST", "SOURCING", "APPROVAL", "APPROVED_PENDING_ORDER",
+                "ORDER_FOLLOW_UP", "RECEIVING_INSPECTION", "PAYMENT_RECONCILIATION", "COMPLETED")) {
+            assertThat(jdbc.queryForObject(
+                    "SELECT COUNT(*) FROM purchase_orders WHERE stage = ?", Long.class, stage)).isEqualTo(1L);
+        }
+
 
         var admin = users.findByUsername("admin").orElseThrow();
         assertThat(admin.getRole()).isEqualTo(UserRole.ADMIN);
@@ -207,20 +219,24 @@ class DemoSeedSmokeIntegrationTests {
         coordinator.initialize();
         assertThat(users.count()).isEqualTo(1);
         assertThat(purchaseOrders.count()).isEqualTo(10);
-        assertThat(documents.count()).isEqualTo(5);
+        assertThat(documents.count()).isEqualTo(15);
 
         demoProperties.setDatasetVersion("sp-901-v1");
-        assertThatThrownBy(coordinator::initialize).isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("different version");
-        assertThat(documents.count()).isEqualTo(5);
-        demoProperties.setDatasetVersion("sp-905-zh-tw-v1");
+        coordinator.initialize();
+        assertThat(documents.count()).isEqualTo(15);
+        assertThat(jdbc.queryForObject(
+                "SELECT dataset_version FROM demo_dataset_state WHERE dataset_key = 'SP-901'", String.class))
+                .isEqualTo("sp-906-zh-tw-v2");
+        demoProperties.setDatasetVersion("sp-906-zh-tw-v2");
     }
 
     @Test
     void standardScenarioBUsesRealRecommendationApiAndReturnsSevenHundredFiftyKg() throws Exception {
-        Long materialId = materials.findByCode("MAT-001").orElseThrow().getId();
+        Material material = materials.findByCode("MAT-001").orElseThrow();
+        Long materialId = material.getId();
         LocalDate baseline = jdbc.queryForObject(
                 "SELECT baseline_date FROM demo_dataset_state WHERE dataset_key = 'SP-901'", LocalDate.class);
+        createRecommendationTestDemand(material, baseline);
         User recommendationStaff = createRecommendationStaff();
         String token = login(recommendationStaff.getUsername(), "RecommendationTest123");
         String request = """
@@ -236,8 +252,8 @@ class DemoSeedSmokeIntegrationTests {
                     .andExpect(jsonPath("$.calculation.expectedDemand").value(1000))
                     .andExpect(jsonPath("$.calculation.safetyStock").value(200))
                     .andExpect(jsonPath("$.calculation.currentInventory").value(300))
-                    .andExpect(jsonPath("$.calculation.incomingInventory").value(150))
-                    .andExpect(jsonPath("$.calculation.netRequirement").value(750));
+                    .andExpect(jsonPath("$.calculation.incomingInventory").value(0))
+                    .andExpect(jsonPath("$.calculation.netRequirement").value(900));
         } finally {
             users.deleteById(recommendationStaff.getId());
         }
@@ -260,6 +276,7 @@ class DemoSeedSmokeIntegrationTests {
         var material = materials.findByCode("MAT-001").orElseThrow();
         LocalDate baseline = jdbc.queryForObject(
                 "SELECT baseline_date FROM demo_dataset_state WHERE dataset_key = 'SP-901'", LocalDate.class);
+        createRecommendationTestDemand(material, baseline);
         String admin = login("admin");
         User recommendationStaff = createRecommendationStaff();
         String recommendationToken = login(recommendationStaff.getUsername(), "RecommendationTest123");
@@ -385,6 +402,12 @@ class DemoSeedSmokeIntegrationTests {
         User user = User.create(username, passwordEncoder.encode("RecommendationTest123"), "Recommendation Test Staff",
                 UserRole.PROCUREMENT_STAFF, java.time.Instant.now());
         return users.saveAndFlush(user);
+    }
+
+    private void createRecommendationTestDemand(Material material, LocalDate baseline) {
+        User admin = users.findByUsername("admin").orElseThrow();
+        demands.saveAndFlush(Demand.create(material, new BigDecimal("1000"), baseline.plusDays(15),
+                "測試用需求", admin, java.time.Instant.now()));
     }
 
     private void assertLogin(String username, String password, int expectedStatus, String expectedRole)

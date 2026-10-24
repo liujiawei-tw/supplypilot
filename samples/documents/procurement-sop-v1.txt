@@ -1,11 +1,18 @@
-標題：SupplyPilot 虛構展示採購作業程序
+標題：SupplyPilot 展示採購生命週期作業程序
 文件類型：PROCUREMENT_SOP
 版本：1.0
-虛構展示文件：本文為流程示例，不代表真實公司的制度或授權。
+虛構展示文件：本文為採購流程示例，不代表真實公司的制度或個別使用者授權。
 
-生產規劃人員登錄需求。採購人員建立採購單草稿前，須檢視庫存、狀態為 ORDERED 的進貨採購單，以及採購建議快照。採購經理只能核准或駁回 DRAFT 草稿。採購人員可將已核准的採購單標記為 ORDERED。只有倉庫人員可收取狀態為 ORDERED 的採購單。收貨會增加庫存、建立 PURCHASE_RECEIVE 庫存異動，並在同一交易中將採購單狀態更新為 RECEIVED。任何角色都不得透過使用者介面跳過採購單狀態流程。
+【建立與逐步核准】採購人員依實際採購需求直接建立正式採購單草稿（DRAFT），不要求先建立 Demand、Net Requirement 或系統推薦。新草稿從 NEW_REQUEST 開始，依序經 SOURCING 到 APPROVAL；看板階段每次只可向前推進，不可略過中間審核。此三階段中，採購單正式狀態維持 DRAFT。於 APPROVAL 階段由具授權人員決定：核准後正式狀態轉為 APPROVED、看板進入 APPROVED_PENDING_ORDER；駁回則正式狀態轉為 REJECTED 並結束流程。
 
-正式流程：DRAFT → APPROVED → ORDERED → RECEIVED。
+【下單、收貨與付款】採購單核准後先位於 APPROVED_PENDING_ORDER；完成正式下單後，正式狀態轉為 ORDERED、看板進入 ORDER_FOLLOW_UP。後續依序進入 RECEIVING_INSPECTION。倉庫應按採購單整筆核對物料、數量、品質及包裝；只有整筆驗收合格才記錄收貨、更新庫存，並將正式狀態轉為 RECEIVED、看板推進至 PAYMENT_RECONCILIATION。不合格或短少不得部分入庫，須留在收貨檢查階段等待處理。經人工完成付款確認後看板才進入 COMPLETED；正式採購單狀態仍為 RECEIVED。
 
-問答：由哪個角色收取狀態為 ORDERED 的採購單？
-預期依據：倉庫人員。
+【Kanban 八階段】目前看板位置依序為 NEW_REQUEST → SOURCING → APPROVAL → APPROVED_PENDING_ORDER → ORDER_FOLLOW_UP → RECEIVING_INSPECTION → PAYMENT_RECONCILIATION → COMPLETED。看板階段是作業進度，與正式採購單狀態分開保存；每次移動須經後端業務操作，不能直接拖過驗證或交易步驟。
+
+【正式狀態與取消】正式採購單狀態包含 DRAFT、APPROVED、ORDERED、RECEIVED，以及終止狀態 REJECTED、CANCELLED；看板只記錄八階段中的目前作業位置。DRAFT 位於前三階段時可被駁回為 REJECTED；APPROVED_PENDING_ORDER 階段的 APPROVED 採購單，以及 ORDER_FOLLOW_UP 階段的 ORDERED 採購單，可依規則取消為 CANCELLED 並記錄原因。RECEIVING_INSPECTION 之後不得取消。任何狀態轉換、收貨或付款確認都須執行相應後端業務操作，不能僅移動看板欄位代替。
+
+問答：V2 新採購流程是否先建立 Demand 或 Recommendation？
+預期依據：不需要；採購人員直接建立 DRAFT。
+
+問答：Kanban 八階段依序為何？
+預期依據：依本文所列八個階段順序回答，並說明階段與正式狀態分開保存。
