@@ -1,8 +1,10 @@
 # Issue Gate、Release Gate 與共享資源政策
 
-依根目錄 `AGENTS.md`、當前 Issue 與已核准 Scope 執行。每張 Issue 在 GPT Review／PR 前執行 impact-based Issue Gate；Release Candidate 才執行完整 Release Gate。兩種 Gate 分開保存與審查，Issue Gate PASS 不能推導 Release Gate PASS。
+> **2026-10-24 流程更新：** 本文件以下細節是**選用舊 Orchestrator Runner 時**的內部安全與驗證契約，不再構成一般 SupplyPilot Issue 進入 GPT Code Review、Codex 必要 CI 或 GPT 建立 PR 的強制前置。一般流程以根目錄 `AGENTS.md` 及 `docs/v2/matt-pocock-codex-gpt-handoff.md` 為準：GPT 讀 GitHub／下 Prompt → Codex 實作 Push → GPT Independent Review → Codex 必要 CI → GPT PR → 使用者 Merge。舊 Runner 程式仍存在，其實際執行限制並未因文件變更自動放寬；若明確使用該工具，仍須遵守下列 Fail-Closed。#168 最多兩輪修復，若無效則停止擴充，另行移除日常流程中的強制入口。不可偽造成功、隱藏必要測試失敗或修改 Branch Protection。
 
-## Issue Gate 選測
+一般 CI 以實際 Diff、直接／間接依賴與風險選擇必要 Backend、Frontend、Security、Transaction、Concurrency、Migration 測試；本機執行要保存命令、精確 SHA、原始輸出、exit code、失敗與 skipped 明細。opt-in 真實 Provider Smoke 若不屬本次必要項，記錄 `NOT RUN／RELEASE_PENDING`，不等於執行 PASS。完整 Browser／Gemini／Docker／AWS E2E 依交付與部署範圍另外執行。GitHub Actions 目前 `PAUSED BY USER / NOT USED AS GATE`。
+
+## 舊 Orchestrator Issue Gate 選測（僅選用舊 Runner 時適用）
 
 任何 Dockerfile、Compose 或 `docker/` 部署設定變更目前都沒有核准的可信 Issue Gate runner，因此 Issue Gate 一律 `BLOCKED`，並記錄 Docker／Compose 驗證為 `RELEASE_PENDING`；即使同一 Diff 的其他應用程式測試通過，也不可略過部署 Gate 或將 Release Gate 待驗視為 Issue Gate PASS。已映射頁面若 base 與 HEAD 的 import／export 模組依賴不同、無法讀取或使用 `import.meta` 動態依賴（包括註解分隔的語法），須擴大至完整 Vitest；依賴簽章一致時才可使用該頁面的精準測試映射。修改 `frontend/package.json` 時，base 與 HEAD 的 `test`／`lint`／`build` 及對應 `pre*`／`post*` lifecycle 腳本必須可讀且完全一致；否則 Issue Gate `BLOCKED`，避免以腳本輸出偽造驗證結果。
 
