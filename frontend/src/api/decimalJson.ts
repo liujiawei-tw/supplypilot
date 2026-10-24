@@ -44,6 +44,7 @@ function toLosslessDecimal(value: string): LosslessNumber {
 /** Preserve decimal strings as JSON number tokens in the two BigDecimal create APIs. */
 export function stringifyDecimalRequest(data: unknown): string | undefined {
   return stringify(data, (key, value) => {
+    if (key === 'packageMultiple' && value === '') return undefined;
     if (BIG_DECIMAL_FIELDS.has(key) && typeof value === 'string') return toLosslessDecimal(value);
     return value;
   });

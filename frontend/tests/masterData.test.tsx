@@ -316,23 +316,34 @@ describe('master data pages', () => {
     expect(screen.getByText('MOQ violates supplier rule')).toBeTruthy();
     expect((screen.getByRole('textbox', { name: /最低訂購量/ }) as HTMLInputElement).value).toBe(decimalPayload.moq);
     expect(screen.queryByText('SupplierMaterial 已建立')).toBeNull();
+    fireEvent.change(packageMultipleInput, { target: { value: '' } });
+    expect((packageMultipleInput as HTMLInputElement).value).toBe('');
     await user.click(screen.getByRole('button', { name: 'OK' }));
     expect(await screen.findByText('TWD 80')).toBeTruthy();
 
     const postPayloads = requests.filter(({ method }) => method === 'post').map(({ data }) => data as string);
     expect(postPayloads).toHaveLength(2);
-    for (const postPayload of postPayloads) {
-      expect(postPayload).toContain('"unitPrice":999999999999999.1234');
-      expect(postPayload).toContain('"moq":0.0001');
-      expect(postPayload).toContain('"packageMultiple":12.3400');
-      expect(parseDecimalJson(postPayload)).toEqual({
-        supplierId: 2,
-        materialId: 1,
-        ...decimalPayload,
-        leadTimeDays: 14,
-        currency: 'TWD',
-      });
-    }
+    expect(postPayloads[0]).toContain('"unitPrice":999999999999999.1234');
+    expect(postPayloads[0]).toContain('"moq":0.0001');
+    expect(postPayloads[0]).toContain('"packageMultiple":12.3400');
+    expect(postPayloads[1]).toContain('"unitPrice":999999999999999.1234');
+    expect(postPayloads[1]).toContain('"moq":0.0001');
+    expect(postPayloads[1]).not.toContain('"packageMultiple"');
+    expect(parseDecimalJson(postPayloads[0])).toEqual({
+      supplierId: 2,
+      materialId: 1,
+      ...decimalPayload,
+      leadTimeDays: 14,
+      currency: 'TWD',
+    });
+    expect(parseDecimalJson(postPayloads[1])).toEqual({
+      supplierId: 2,
+      materialId: 1,
+      unitPrice: decimalPayload.unitPrice,
+      moq: decimalPayload.moq,
+      leadTimeDays: 14,
+      currency: 'TWD',
+    });
 
     await user.click(screen.getByRole('button', { name: /編\s*輯/ }));
     fireEvent.change(screen.getByRole('textbox', { name: '單價' }), { target: { value: '85' } });
