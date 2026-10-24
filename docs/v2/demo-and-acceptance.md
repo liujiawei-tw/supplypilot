@@ -21,7 +21,7 @@
 
 ## 3. 既有 Demo 更新
 
-啟動時依資料集狀態採 Fail-Closed 判斷：`COMPLETE` 且版本相同時略過 Seed；`COMPLETE` 且為合法舊版本時保留資料並標示 `DEMO_DATASET_UPDATE_REQUIRED`，不 Reset、不自動升級；`UPDATE_REQUIRED` 且版本相同時保留資料並標示文件及看板人工步驟仍未完成。`INITIALIZING`、`RELATIONAL_READY`、`FAILED`、未知狀態、未來版本或不合法版本組合均拒絕當成完整基線。
+啟動時依資料集狀態採 Fail-Closed 判斷：`COMPLETE` 且版本相同時略過 Seed；目前只承認 `sp-905-zh-tw-v1` 為可升級舊版、`sp-906-zh-tw-v2` 為目前版。歷史 `sp-901-v1` 不代表同一份語料，也不列為可升級版本。`COMPLETE` 且為已知舊版本時保留資料並標示 `DEMO_DATASET_UPDATE_REQUIRED`，不 Reset、不自動升級；`UPDATE_REQUIRED` 且版本相同時保留資料並標示文件及看板人工步驟仍未完成。格式正確但未登記的版本、`INITIALIZING`、`RELATIONAL_READY`、`FAILED`、未知狀態、未來版本或不合法版本組合均拒絕當成完整基線。
 
 Compose Demo 將 master data 與文件目錄唯讀掛載，並固定讀取 `sp-906-zh-tw-v2`。更新工具預設 `DISABLED`；維護者需將 `DEMO_DATASET_UPGRADE_MODE` 設為 `DRY_RUN`，核對輸出的資料庫名稱、來源/目標版本、變更明細、衝突、人工步驟及計畫 SHA-256。計畫雜湊包含主檔原始內容 SHA-256、待套用值、資料庫狀態及相關供應商、物料、供應關係前置條件。DRY_RUN 只讀取資料庫與主檔，不執行資料寫入。
 

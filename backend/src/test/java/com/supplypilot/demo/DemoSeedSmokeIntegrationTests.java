@@ -222,7 +222,9 @@ class DemoSeedSmokeIntegrationTests {
         assertThat(documents.count()).isEqualTo(15);
 
         demoProperties.setDatasetVersion("sp-901-v1");
-        coordinator.initialize();
+        assertThatThrownBy(coordinator::initialize)
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("Configured demo dataset version is invalid");
         assertThat(documents.count()).isEqualTo(15);
         assertThat(jdbc.queryForObject(
                 "SELECT dataset_version FROM demo_dataset_state WHERE dataset_key = 'SP-901'", String.class))

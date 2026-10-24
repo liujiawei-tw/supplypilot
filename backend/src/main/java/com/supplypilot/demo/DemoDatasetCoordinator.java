@@ -1,7 +1,6 @@
 package com.supplypilot.demo;
 
 import java.math.BigDecimal;
-import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -14,9 +13,8 @@ import java.util.HexFormat;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Supplier;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -73,7 +71,10 @@ import org.springframework.transaction.support.TransactionTemplate;
 public class DemoDatasetCoordinator implements DemoDataCoordinator {
     static final String DATASET_KEY = "SP-901";
     static final String RESET_CONFIRMATION = "RESET-SP-901-DEMO";
-    private static final Pattern DATASET_VERSION_PATTERN = Pattern.compile("sp-([0-9]+)-(?:[a-z0-9]+-)*v([0-9]+)");
+    private static final String LEGACY_DATASET_VERSION = "sp-905-zh-tw-v1";
+    private static final String CURRENT_DATASET_VERSION = "sp-906-zh-tw-v2";
+    private static final Set<String> SUPPORTED_DATASET_VERSIONS = Set.of(
+            LEGACY_DATASET_VERSION, CURRENT_DATASET_VERSION);
     private static final Logger log = LoggerFactory.getLogger(DemoDatasetCoordinator.class);
 
     private final DemoProperties properties;
@@ -218,16 +219,11 @@ public class DemoDatasetCoordinator implements DemoDataCoordinator {
     }
 
     private static boolean isLegalDatasetVersion(String version) {
-        return version != null && DATASET_VERSION_PATTERN.matcher(version).matches();
+        return version != null && SUPPORTED_DATASET_VERSIONS.contains(version);
     }
 
     private static boolean isOlderDatasetVersion(String candidate, String target) {
-        Matcher candidateMatcher = DATASET_VERSION_PATTERN.matcher(candidate);
-        Matcher targetMatcher = DATASET_VERSION_PATTERN.matcher(target);
-        if (!candidateMatcher.matches() || !targetMatcher.matches()) return false;
-        int revisionOrder = new BigInteger(candidateMatcher.group(1)).compareTo(new BigInteger(targetMatcher.group(1)));
-        return revisionOrder < 0 || (revisionOrder == 0
-                && new BigInteger(candidateMatcher.group(2)).compareTo(new BigInteger(targetMatcher.group(2))) < 0);
+        return LEGACY_DATASET_VERSION.equals(candidate) && CURRENT_DATASET_VERSION.equals(target);
     }
 
     enum ExistingDatasetAction {

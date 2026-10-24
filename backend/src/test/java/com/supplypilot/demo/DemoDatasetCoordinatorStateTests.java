@@ -19,8 +19,6 @@ class DemoDatasetCoordinatorStateTests {
     void completeLegalLegacyVersionPreservesRowsAndRequestsManualUpgrade() {
         assertThat(DemoDatasetCoordinator.classifyExistingDataset("COMPLETE", LEGACY, CURRENT))
                 .isEqualTo(DemoDatasetCoordinator.ExistingDatasetAction.LEGACY_UPDATE_REQUIRED);
-        assertThat(DemoDatasetCoordinator.classifyExistingDataset("COMPLETE", "sp-906-zh-tw-v1", CURRENT))
-                .isEqualTo(DemoDatasetCoordinator.ExistingDatasetAction.LEGACY_UPDATE_REQUIRED);
     }
 
     @Test
@@ -43,11 +41,21 @@ class DemoDatasetCoordinatorStateTests {
                 .isInstanceOf(IllegalStateException.class);
         assertThatThrownBy(() -> DemoDatasetCoordinator.classifyExistingDataset("COMPLETE", "sp-906-legacy", CURRENT))
                 .isInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(() -> DemoDatasetCoordinator.classifyExistingDataset(
+                "COMPLETE", "sp-001-unknown-v1", CURRENT)).isInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(() -> DemoDatasetCoordinator.classifyExistingDataset(
+                "COMPLETE", "sp-906-zh-tw-v1", CURRENT)).isInstanceOf(IllegalStateException.class);
         assertThatThrownBy(() -> DemoDatasetCoordinator.classifyExistingDataset("UPDATE_REQUIRED", LEGACY, CURRENT))
                 .isInstanceOf(IllegalStateException.class);
         assertThatThrownBy(() -> DemoDatasetCoordinator.classifyExistingDataset(
                 "COMPLETE", "sp-907-zh-tw-v3", CURRENT)).isInstanceOf(IllegalStateException.class);
         assertThatThrownBy(() -> DemoDatasetCoordinator.classifyExistingDataset("COMPLETE", CURRENT, "unknown"))
+                .isInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(() -> DemoDatasetCoordinator.classifyExistingDataset("COMPLETE", CURRENT, null))
+                .isInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(() -> DemoDatasetCoordinator.classifyExistingDataset("COMPLETE", null, CURRENT))
+                .isInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(() -> DemoDatasetCoordinator.classifyExistingDataset("COMPLETE", "sp-901-v1", CURRENT))
                 .isInstanceOf(IllegalStateException.class);
         assertThatThrownBy(() -> DemoDatasetCoordinator.classifyExistingDataset(null, CURRENT, CURRENT))
                 .isInstanceOf(IllegalStateException.class);
