@@ -187,8 +187,8 @@ export default function PurchaseOrderKanban({ state, snapshot, gateway, error, r
     setDraggedId(null);
   };
 
-  if (state === 'loading') return <section className="purchase-order-kanban purchase-order-kanban--state"><LoadingState tip="正在載入完整採購單看板…" /></section>;
-  if (state === 'error') return <section className="purchase-order-kanban purchase-order-kanban--state"><ErrorState title="採購單看板載入失敗" error={error} onRetry={onRetry} /></section>;
+  if (state === 'loading') return <section className="purchase-order-kanban--state"><LoadingState tip="正在載入完整採購單看板…" /></section>;
+  if (state === 'error') return <section className="purchase-order-kanban--state"><ErrorState title="採購單看板載入失敗" error={error} onRetry={onRetry} /></section>;
 
   if (state === 'incomplete' || !snapshot) {
     return <section className="purchase-order-kanban" aria-label="採購單八階段看板">
@@ -211,7 +211,7 @@ export default function PurchaseOrderKanban({ state, snapshot, gateway, error, r
   }
 
   if (!snapshot.complete) {
-    return <section className="purchase-order-kanban purchase-order-kanban--state"><Alert type="warning" showIcon message="看板資料不完整，已隱藏卡片" description="後端尚未確認所有符合條件的採購單均已載入。為避免部分資料造成錯誤操作，請先使用列表模式。" /></section>;
+    return <section className="purchase-order-kanban--state"><Alert type="warning" showIcon message="看板資料不完整，已隱藏卡片" description="後端尚未確認所有符合條件的採購單均已載入。為避免部分資料造成錯誤操作，請先使用列表模式。" /></section>;
   }
 
   const activePurchaseOrders = items.filter((po) => isActivePurchaseOrderStatus(po.status));

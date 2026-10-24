@@ -99,6 +99,7 @@
   }
 
   .purchase-order-kanban--state {
+    display: grid;
     gap: 16px;
   }
 
