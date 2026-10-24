@@ -1,25 +1,41 @@
-# GPT Review Handoff 模板
+# Codex → GPT Review 與 CI 交接模板
 
-    ## GPT Review Handoff
-    - Repository: liujiawei-tw/supplypilot
-    - Issue: #<number> <URL>
-    - Base branch/SHA: main / <SHA>
-    - Feature branch: codex/issue-<number>-<slug>
-    - Head SHA: <full SHA>
-    - Scope and acceptance criteria: <links and concise checklist>
-    - Changed files: <paths>
-    - Dependencies: <Issue/PR state, source SHA and contract versions>
-    - Internal review: <result and evidence; not GPT review>
-    - Issue Gate impact matrix: <changed files → affected behavior/dependencies → required checks → results>
-    - Issue Gate: <PASS/FAIL/BLOCKED, exact commands, test counts, exit codes and log paths>
-    - NOT_APPLICABLE: <checks and evidence-based reasons>
-    - Release Gate: <PASS/FAIL/BLOCKED/NOT RUN; never infer from Issue Gate>
-    - Known risks / deferred checks: <items>
-    - Verification state applies to SHA: <full SHA>
-    - GitHub Actions: <actual status or NOT RUN>
+> 一般 SupplyPilot 交付依 `AGENTS.md` 的 2026-10-24 簡化流程。此模板不要求 Orchestrator Issue Gate、Contract flag、Reservation 或 State Handoff Frontier。
 
-推送後再核對 local HEAD == remote feature branch head。只有新的 `ISSUE_GATE_VERIFIED` 對確切 SHA 有效、內部預檢通過且 local/remote HEAD 相等，才可交 GPT 並進入 `WAITING_GPT_REVIEW`。Issue Gate 只涵蓋該 Issue 的影響範圍；不代表 Release Candidate 的完整 Release Gate 通過。GPT 必須直接從 GitHub 讀取準確 Head 與 diff，審查 impact matrix、必要測試、N/A 理由及失敗／未執行項目。未執行測試不能寫成 PASS；GPT 沒有親自執行的測試須註記為 implementer evidence。
+## A. Codex 完成實作並 Push → GPT Code Review
 
-GPT 回覆需保存完整 UTF-8 證據檔並保留同一 Conversation URL。`CHANGES REQUIRED` 必須回到同一 Feature Branch 修正、精準驗證、Commit/Push 並重新審查。只有 GPT 對確切 SHA 明確 `FINAL PASS`，且人類 reviewer 在互動 TTY 使用 `state review-attest` 核對 URL、唯一且一致的非引用／非 code fence `Reviewed SHA: <40 位 SHA>` 行、最後有效 verdict 和證據檔 SHA-256 後，Orchestrator 才能登記 `GPT_FINAL_PASS`。一般 `state transition --evidence` 不接受此狀態。
+- Repository：`liujiawei-tw/supplypilot`
+- Issue：`#<number> <URL>`
+- Base：`main / <40-char SHA>`
+- Feature Branch：`<branch>`
+- 遠端 HEAD：`<40-char SHA>`
+- 需求／Acceptance Criteria：`<links>`
+- 完整 `main...HEAD` Diff／實際修改檔案：`<paths>`
+- 必要 GitHub 依賴／PR 是否已 Merge：`<references>`
+- Codex 開發期測試與內部預檢：`<commands, results>`（**不是**正式交付 CI）
+- Known risks／未執行項目：`<items>`
 
-Release Candidate 執行 Full Gate 前，先由獨立 GPT Review 審查確切 SHA 的 `scripts/supplypilot_full_gate.py`，並在非引用／非 code fence 的證據正文輸出獨立行 `FULL_GATE_MANIFEST_REVIEW: PASS`。此 manifest 子項 verdict 與整體 Issue review 分開：整體為 `CHANGES REQUIRED`／`BLOCKED` 時不可宣稱 Final Pass；manifest 子項通過後，人類 reviewer 可使用 `state trust-full-gate` 登記 Review URL、審查 SHA、證據檔及 manifest SHA-256。Orchestrator 會在 Gate 前後核對 manifest 與 runner digest；只有經獨立審查與互動確認才可建立或更新 trust baseline。Release Gate 結果只適用於其確切 Release Candidate SHA，不能回填成 Issue Gate 證據。
+GPT 以 GitHub 上的精確 HEAD 獨立 Code Review，回報 P0/P1/P2 與 `CODE_REVIEW_PASS` 或 `CHANGES_REQUIRED`。阻擋問題交回 Codex 在同 Branch 修正、Push 新 SHA，再 Review。
+
+## B. GPT Code Review PASS → Codex 必要 CI
+
+- Reviewed SHA：`<40-char SHA>`
+- 受影響行為／風險 → 必要測試與 Build／Lint：`<mapping and reasons>`
+- 每項命令、工作目錄、Java／Node／Docker 等版本、Tests／Failures／Errors／Skipped、Exit Code：`<results>`
+- 原始 logs／報告路徑與 SHA-256：`<evidence>`
+- 未執行、環境 BLOCKED、Release Pending 項目：`<explicit status and reason>`
+- Actions：`PAUSED BY USER / NOT USED AS GATE`（當前決策）
+
+只需執行實際改動與風險所要求的 CI；必要測試失敗不得 PASS，opt-in Provider Smoke 不可偽裝成功，真實 Gemini／Browser／AWS 不得以 Mock 代替。Codex 執行的測試不可寫成 GPT 親自執行。
+
+## C. GPT 建立 PR → 使用者 Merge
+
+GPT 驗證 Code Review 對**目前 HEAD**有效、必要 CI 也綁定同一 SHA 且通過，核發正式交付 PASS 後建立繁體中文 PR，目標 `main`，描述單獨一行：
+
+`Closes #<IssueNumber>`
+
+回讀核對 PR Base、Head、SHA、描述。使用者人工 Merge，GPT 核對 PR merged、main SHA、Issue closed；不得自行 Merge。
+
+## 舊 Orchestrator 補充
+
+舊 `ISSUE_GATE_VERIFIED`／`FULL_GATE_VERIFIED`／`state review-attest` 只是當用戶明確選用舊工具時才適用的額外內部流程，**不作一般 Code Review、CI 或 PR 前置條件**。工具仍存在且執行時不可以偽造 PASS；使用者要求移除其強制入口時應在另案實作與審查。
