@@ -151,7 +151,7 @@ describe('Issue #143 purchase-order view contracts', () => {
     const snapshot: PurchaseOrderStageBoardSnapshot = { complete: true, purchaseOrders: [legacyOrder] };
     renderKanban(<PurchaseOrderKanban state="ready" snapshot={snapshot} gateway={purchaseOrderStageGateway} />);
     expect(screen.getByText('1 筆採購單的 Stage 為 NULL')).toBeTruthy();
-    expect(within(screen.getByRole('region', { name: '八階段欄位，可水平捲動' })).queryByText('PO-LEGACY-45')).toBeNull();
+    expect(within(screen.getByRole('region', { name: '採購單八階段流程欄位' })).queryByText('PO-LEGACY-45')).toBeNull();
     expect(screen.queryByRole('button', { name: '開始到貨驗收' })).toBeNull();
   });
 
