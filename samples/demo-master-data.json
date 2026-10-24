@@ -1,0 +1,776 @@
+{
+  "schemaVersion": 1,
+  "datasetKey": "SP-901",
+  "datasetVersion": "sp-906-zh-tw-v2",
+  "corpusVersion": "sp-906-zh-tw-v2",
+  "fictionalBuyer": {
+    "code": "BUYER-DEMO-001",
+    "name": "澄野茶飲製造有限公司",
+    "country": "台灣",
+    "fictional": true
+  },
+  "counts": {
+    "suppliers": 10,
+    "materials": 12,
+    "supplierMaterials": 45,
+    "purchaseOrders": 10,
+    "seedDocuments": 15,
+    "manualUploadFixtures": 1
+  },
+  "suppliers": [
+    {
+      "code": "SUP-001",
+      "name": "福爾摩沙原料工坊",
+      "country": "台灣",
+      "reliabilityScore": "92",
+      "qualityScore": "90",
+      "status": "ACTIVE"
+    },
+    {
+      "code": "SUP-002",
+      "name": "東港貿易社",
+      "country": "台灣",
+      "reliabilityScore": "85",
+      "qualityScore": "91",
+      "status": "ACTIVE"
+    },
+    {
+      "code": "SUP-003",
+      "name": "青葉食材供應",
+      "country": "台灣",
+      "reliabilityScore": "88",
+      "qualityScore": "86",
+      "status": "ACTIVE"
+    },
+    {
+      "code": "SUP-004",
+      "name": "舊港原料行",
+      "country": "台灣",
+      "reliabilityScore": "70",
+      "qualityScore": "72",
+      "status": "INACTIVE"
+    },
+    {
+      "code": "SUP-005",
+      "name": "海岳食品素材",
+      "country": "日本",
+      "reliabilityScore": "94",
+      "qualityScore": "93",
+      "status": "ACTIVE"
+    },
+    {
+      "code": "SUP-006",
+      "name": "金田貿易",
+      "country": "泰國",
+      "reliabilityScore": "82",
+      "qualityScore": "89",
+      "status": "ACTIVE"
+    },
+    {
+      "code": "SUP-007",
+      "name": "山嵐果萃食品",
+      "country": "台灣",
+      "reliabilityScore": "90",
+      "qualityScore": "88",
+      "status": "ACTIVE"
+    },
+    {
+      "code": "SUP-008",
+      "name": "森川飲品原料",
+      "country": "台灣",
+      "reliabilityScore": "87",
+      "qualityScore": "90",
+      "status": "ACTIVE"
+    },
+    {
+      "code": "SUP-009",
+      "name": "昕川澱粉工坊",
+      "country": "台灣",
+      "reliabilityScore": "84",
+      "qualityScore": "86",
+      "status": "ACTIVE"
+    },
+    {
+      "code": "SUP-010",
+      "name": "南島風味貿易",
+      "country": "台灣",
+      "reliabilityScore": "89",
+      "qualityScore": "91",
+      "status": "ACTIVE"
+    }
+  ],
+  "materials": [
+    {
+      "code": "MAT-001",
+      "name": "阿薩姆紅茶萃取物",
+      "unit": "KG",
+      "currency": "TWD",
+      "safetyStock": "200",
+      "initialInventory": "300",
+      "status": "ACTIVE"
+    },
+    {
+      "code": "MAT-002",
+      "name": "芒果濃縮汁",
+      "unit": "KG",
+      "currency": "TWD",
+      "safetyStock": "100",
+      "initialInventory": "175",
+      "status": "ACTIVE"
+    },
+    {
+      "code": "MAT-003",
+      "name": "果糖糖漿",
+      "unit": "KG",
+      "currency": "TWD",
+      "safetyStock": "300",
+      "initialInventory": "260",
+      "status": "ACTIVE"
+    },
+    {
+      "code": "MAT-004",
+      "name": "奶茶基底",
+      "unit": "KG",
+      "currency": "TWD",
+      "safetyStock": "150",
+      "initialInventory": "150",
+      "status": "ACTIVE"
+    },
+    {
+      "code": "MAT-005",
+      "name": "珍珠風味粉",
+      "unit": "KG",
+      "currency": "TWD",
+      "safetyStock": "50",
+      "initialInventory": "0",
+      "status": "INACTIVE"
+    },
+    {
+      "code": "MAT-006",
+      "name": "茉莉茶萃取物",
+      "unit": "KG",
+      "currency": "TWD",
+      "safetyStock": "180",
+      "initialInventory": "420",
+      "status": "ACTIVE"
+    },
+    {
+      "code": "MAT-007",
+      "name": "百香果泥",
+      "unit": "KG",
+      "currency": "TWD",
+      "safetyStock": "90",
+      "initialInventory": "70",
+      "status": "ACTIVE"
+    },
+    {
+      "code": "MAT-008",
+      "name": "黑糖糖漿",
+      "unit": "KG",
+      "currency": "TWD",
+      "safetyStock": "120",
+      "initialInventory": "0",
+      "status": "ACTIVE"
+    },
+    {
+      "code": "MAT-009",
+      "name": "芋頭風味粉",
+      "unit": "KG",
+      "currency": "TWD",
+      "safetyStock": "60",
+      "initialInventory": "55",
+      "status": "ACTIVE"
+    },
+    {
+      "code": "MAT-010",
+      "name": "檸檬汁濃縮液",
+      "unit": "KG",
+      "currency": "TWD",
+      "safetyStock": "80",
+      "initialInventory": "200",
+      "status": "ACTIVE"
+    },
+    {
+      "code": "MAT-011",
+      "name": "烏龍茶萃取物",
+      "unit": "KG",
+      "currency": "TWD",
+      "safetyStock": "160",
+      "initialInventory": "145",
+      "status": "ACTIVE"
+    },
+    {
+      "code": "MAT-012",
+      "name": "椰奶基底",
+      "unit": "KG",
+      "currency": "TWD",
+      "safetyStock": "110",
+      "initialInventory": "240",
+      "status": "ACTIVE"
+    }
+  ],
+  "supplierMaterials": [
+    {
+      "supplierCode": "SUP-001",
+      "materialCode": "MAT-001",
+      "unitPrice": "100",
+      "currency": "TWD",
+      "moq": "800",
+      "packageMultiple": "100",
+      "leadTimeDays": 5,
+      "status": "ACTIVE"
+    },
+    {
+      "supplierCode": "SUP-002",
+      "materialCode": "MAT-001",
+      "unitPrice": "104",
+      "currency": "TWD",
+      "moq": "500",
+      "packageMultiple": "50",
+      "leadTimeDays": 3,
+      "status": "ACTIVE"
+    },
+    {
+      "supplierCode": "SUP-003",
+      "materialCode": "MAT-001",
+      "unitPrice": "97",
+      "currency": "TWD",
+      "moq": "1000",
+      "packageMultiple": "100",
+      "leadTimeDays": 10,
+      "status": "ACTIVE"
+    },
+    {
+      "supplierCode": "SUP-004",
+      "materialCode": "MAT-001",
+      "unitPrice": "90",
+      "currency": "TWD",
+      "moq": "500",
+      "packageMultiple": "50",
+      "leadTimeDays": 2,
+      "status": "INACTIVE"
+    },
+    {
+      "supplierCode": "SUP-005",
+      "materialCode": "MAT-001",
+      "unitPrice": "102",
+      "currency": "TWD",
+      "moq": "600",
+      "packageMultiple": "100",
+      "leadTimeDays": 7,
+      "status": "ACTIVE"
+    },
+    {
+      "supplierCode": "SUP-001",
+      "materialCode": "MAT-002",
+      "unitPrice": "58",
+      "currency": "TWD",
+      "moq": "300",
+      "packageMultiple": "50",
+      "leadTimeDays": 3,
+      "status": "ACTIVE"
+    },
+    {
+      "supplierCode": "SUP-001",
+      "materialCode": "MAT-003",
+      "unitPrice": "61",
+      "currency": "TWD",
+      "moq": "400",
+      "packageMultiple": "75",
+      "leadTimeDays": 4,
+      "status": "ACTIVE"
+    },
+    {
+      "supplierCode": "SUP-001",
+      "materialCode": "MAT-004",
+      "unitPrice": "64",
+      "currency": "TWD",
+      "moq": "500",
+      "packageMultiple": "25",
+      "leadTimeDays": 5,
+      "status": "ACTIVE"
+    },
+    {
+      "supplierCode": "SUP-001",
+      "materialCode": "MAT-006",
+      "unitPrice": "67",
+      "currency": "TWD",
+      "moq": "200",
+      "packageMultiple": "50",
+      "leadTimeDays": 6,
+      "status": "ACTIVE"
+    },
+    {
+      "supplierCode": "SUP-001",
+      "materialCode": "MAT-007",
+      "unitPrice": "70",
+      "currency": "TWD",
+      "moq": "300",
+      "packageMultiple": "75",
+      "leadTimeDays": 7,
+      "status": "ACTIVE"
+    },
+    {
+      "supplierCode": "SUP-002",
+      "materialCode": "MAT-002",
+      "unitPrice": "73",
+      "currency": "TWD",
+      "moq": "400",
+      "packageMultiple": "25",
+      "leadTimeDays": 8,
+      "status": "ACTIVE"
+    },
+    {
+      "supplierCode": "SUP-002",
+      "materialCode": "MAT-003",
+      "unitPrice": "76",
+      "currency": "TWD",
+      "moq": "500",
+      "packageMultiple": "50",
+      "leadTimeDays": 9,
+      "status": "ACTIVE"
+    },
+    {
+      "supplierCode": "SUP-002",
+      "materialCode": "MAT-004",
+      "unitPrice": "79",
+      "currency": "TWD",
+      "moq": "200",
+      "packageMultiple": "75",
+      "leadTimeDays": 10,
+      "status": "ACTIVE"
+    },
+    {
+      "supplierCode": "SUP-002",
+      "materialCode": "MAT-006",
+      "unitPrice": "82",
+      "currency": "TWD",
+      "moq": "300",
+      "packageMultiple": "25",
+      "leadTimeDays": 2,
+      "status": "ACTIVE"
+    },
+    {
+      "supplierCode": "SUP-002",
+      "materialCode": "MAT-007",
+      "unitPrice": "85",
+      "currency": "TWD",
+      "moq": "400",
+      "packageMultiple": "50",
+      "leadTimeDays": 3,
+      "status": "ACTIVE"
+    },
+    {
+      "supplierCode": "SUP-003",
+      "materialCode": "MAT-002",
+      "unitPrice": "88",
+      "currency": "TWD",
+      "moq": "500",
+      "packageMultiple": "75",
+      "leadTimeDays": 4,
+      "status": "ACTIVE"
+    },
+    {
+      "supplierCode": "SUP-003",
+      "materialCode": "MAT-003",
+      "unitPrice": "91",
+      "currency": "TWD",
+      "moq": "200",
+      "packageMultiple": "25",
+      "leadTimeDays": 5,
+      "status": "ACTIVE"
+    },
+    {
+      "supplierCode": "SUP-003",
+      "materialCode": "MAT-004",
+      "unitPrice": "94",
+      "currency": "TWD",
+      "moq": "300",
+      "packageMultiple": "50",
+      "leadTimeDays": 6,
+      "status": "ACTIVE"
+    },
+    {
+      "supplierCode": "SUP-003",
+      "materialCode": "MAT-006",
+      "unitPrice": "97",
+      "currency": "TWD",
+      "moq": "400",
+      "packageMultiple": "75",
+      "leadTimeDays": 7,
+      "status": "ACTIVE"
+    },
+    {
+      "supplierCode": "SUP-003",
+      "materialCode": "MAT-007",
+      "unitPrice": "100",
+      "currency": "TWD",
+      "moq": "500",
+      "packageMultiple": "25",
+      "leadTimeDays": 8,
+      "status": "ACTIVE"
+    },
+    {
+      "supplierCode": "SUP-005",
+      "materialCode": "MAT-002",
+      "unitPrice": "103",
+      "currency": "TWD",
+      "moq": "200",
+      "packageMultiple": "50",
+      "leadTimeDays": 9,
+      "status": "ACTIVE"
+    },
+    {
+      "supplierCode": "SUP-005",
+      "materialCode": "MAT-003",
+      "unitPrice": "106",
+      "currency": "TWD",
+      "moq": "300",
+      "packageMultiple": "75",
+      "leadTimeDays": 10,
+      "status": "ACTIVE"
+    },
+    {
+      "supplierCode": "SUP-005",
+      "materialCode": "MAT-004",
+      "unitPrice": "109",
+      "currency": "TWD",
+      "moq": "400",
+      "packageMultiple": "25",
+      "leadTimeDays": 2,
+      "status": "ACTIVE"
+    },
+    {
+      "supplierCode": "SUP-005",
+      "materialCode": "MAT-006",
+      "unitPrice": "112",
+      "currency": "TWD",
+      "moq": "500",
+      "packageMultiple": "50",
+      "leadTimeDays": 3,
+      "status": "ACTIVE"
+    },
+    {
+      "supplierCode": "SUP-005",
+      "materialCode": "MAT-007",
+      "unitPrice": "115",
+      "currency": "TWD",
+      "moq": "200",
+      "packageMultiple": "75",
+      "leadTimeDays": 4,
+      "status": "ACTIVE"
+    },
+    {
+      "supplierCode": "SUP-006",
+      "materialCode": "MAT-002",
+      "unitPrice": "118",
+      "currency": "TWD",
+      "moq": "300",
+      "packageMultiple": "25",
+      "leadTimeDays": 5,
+      "status": "ACTIVE"
+    },
+    {
+      "supplierCode": "SUP-006",
+      "materialCode": "MAT-003",
+      "unitPrice": "121",
+      "currency": "TWD",
+      "moq": "400",
+      "packageMultiple": "50",
+      "leadTimeDays": 6,
+      "status": "ACTIVE"
+    },
+    {
+      "supplierCode": "SUP-006",
+      "materialCode": "MAT-004",
+      "unitPrice": "124",
+      "currency": "TWD",
+      "moq": "500",
+      "packageMultiple": "75",
+      "leadTimeDays": 7,
+      "status": "ACTIVE"
+    },
+    {
+      "supplierCode": "SUP-006",
+      "materialCode": "MAT-006",
+      "unitPrice": "127",
+      "currency": "TWD",
+      "moq": "200",
+      "packageMultiple": "25",
+      "leadTimeDays": 8,
+      "status": "ACTIVE"
+    },
+    {
+      "supplierCode": "SUP-006",
+      "materialCode": "MAT-007",
+      "unitPrice": "130",
+      "currency": "TWD",
+      "moq": "300",
+      "packageMultiple": "50",
+      "leadTimeDays": 9,
+      "status": "ACTIVE"
+    },
+    {
+      "supplierCode": "SUP-007",
+      "materialCode": "MAT-002",
+      "unitPrice": "92",
+      "currency": "TWD",
+      "moq": "100",
+      "packageMultiple": "25",
+      "leadTimeDays": 6,
+      "status": "ACTIVE"
+    },
+    {
+      "supplierCode": "SUP-007",
+      "materialCode": "MAT-007",
+      "unitPrice": "118",
+      "currency": "TWD",
+      "moq": "100",
+      "packageMultiple": "25",
+      "leadTimeDays": 7,
+      "status": "ACTIVE"
+    },
+    {
+      "supplierCode": "SUP-007",
+      "materialCode": "MAT-010",
+      "unitPrice": "86",
+      "currency": "TWD",
+      "moq": "150",
+      "packageMultiple": "50",
+      "leadTimeDays": 4,
+      "status": "ACTIVE"
+    },
+    {
+      "supplierCode": "SUP-007",
+      "materialCode": "MAT-012",
+      "unitPrice": "145",
+      "currency": "TWD",
+      "moq": "80",
+      "packageMultiple": "20",
+      "leadTimeDays": 8,
+      "status": "ACTIVE"
+    },
+    {
+      "supplierCode": "SUP-008",
+      "materialCode": "MAT-003",
+      "unitPrice": "61",
+      "currency": "TWD",
+      "moq": "200",
+      "packageMultiple": "100",
+      "leadTimeDays": 3,
+      "status": "ACTIVE"
+    },
+    {
+      "supplierCode": "SUP-008",
+      "materialCode": "MAT-004",
+      "unitPrice": "127",
+      "currency": "TWD",
+      "moq": "150",
+      "packageMultiple": "50",
+      "leadTimeDays": 5,
+      "status": "ACTIVE"
+    },
+    {
+      "supplierCode": "SUP-008",
+      "materialCode": "MAT-006",
+      "unitPrice": "105",
+      "currency": "TWD",
+      "moq": "100",
+      "packageMultiple": "25",
+      "leadTimeDays": 4,
+      "status": "ACTIVE"
+    },
+    {
+      "supplierCode": "SUP-008",
+      "materialCode": "MAT-011",
+      "unitPrice": "112",
+      "currency": "TWD",
+      "moq": "100",
+      "packageMultiple": "50",
+      "leadTimeDays": 6,
+      "status": "ACTIVE"
+    },
+    {
+      "supplierCode": "SUP-009",
+      "materialCode": "MAT-005",
+      "unitPrice": "78",
+      "currency": "TWD",
+      "moq": "50",
+      "packageMultiple": "25",
+      "leadTimeDays": 7,
+      "status": "INACTIVE"
+    },
+    {
+      "supplierCode": "SUP-009",
+      "materialCode": "MAT-008",
+      "unitPrice": "75",
+      "currency": "TWD",
+      "moq": "100",
+      "packageMultiple": "25",
+      "leadTimeDays": 5,
+      "status": "ACTIVE"
+    },
+    {
+      "supplierCode": "SUP-009",
+      "materialCode": "MAT-009",
+      "unitPrice": "88",
+      "currency": "TWD",
+      "moq": "80",
+      "packageMultiple": "20",
+      "leadTimeDays": 6,
+      "status": "ACTIVE"
+    },
+    {
+      "supplierCode": "SUP-010",
+      "materialCode": "MAT-001",
+      "unitPrice": "99",
+      "currency": "TWD",
+      "moq": "800",
+      "packageMultiple": "100",
+      "leadTimeDays": 5,
+      "status": "ACTIVE"
+    },
+    {
+      "supplierCode": "SUP-010",
+      "materialCode": "MAT-006",
+      "unitPrice": "108",
+      "currency": "TWD",
+      "moq": "100",
+      "packageMultiple": "25",
+      "leadTimeDays": 5,
+      "status": "ACTIVE"
+    },
+    {
+      "supplierCode": "SUP-010",
+      "materialCode": "MAT-007",
+      "unitPrice": "120",
+      "currency": "TWD",
+      "moq": "100",
+      "packageMultiple": "25",
+      "leadTimeDays": 8,
+      "status": "ACTIVE"
+    },
+    {
+      "supplierCode": "SUP-010",
+      "materialCode": "MAT-012",
+      "unitPrice": "140",
+      "currency": "TWD",
+      "moq": "100",
+      "packageMultiple": "25",
+      "leadTimeDays": 7,
+      "status": "ACTIVE"
+    }
+  ],
+  "purchaseOrderExamples": [
+    {
+      "seedKey": "DEMO-PO-001",
+      "supplierCode": "SUP-001",
+      "materialCode": "MAT-001",
+      "quantity": "800",
+      "deliveryOffsetDays": 14,
+      "status": "DRAFT",
+      "stage": "NEW_REQUEST"
+    },
+    {
+      "seedKey": "DEMO-PO-002",
+      "supplierCode": "SUP-002",
+      "materialCode": "MAT-002",
+      "quantity": "400",
+      "deliveryOffsetDays": 18,
+      "status": "DRAFT",
+      "stage": "SOURCING"
+    },
+    {
+      "seedKey": "DEMO-PO-003",
+      "supplierCode": "SUP-003",
+      "materialCode": "MAT-003",
+      "quantity": "200",
+      "deliveryOffsetDays": 16,
+      "status": "DRAFT",
+      "stage": "APPROVAL"
+    },
+    {
+      "seedKey": "DEMO-PO-004",
+      "supplierCode": "SUP-002",
+      "materialCode": "MAT-001",
+      "quantity": "500",
+      "deliveryOffsetDays": 20,
+      "status": "APPROVED",
+      "stage": "APPROVED_PENDING_ORDER"
+    },
+    {
+      "seedKey": "DEMO-PO-005",
+      "supplierCode": "SUP-006",
+      "materialCode": "MAT-006",
+      "quantity": "400",
+      "deliveryOffsetDays": 10,
+      "status": "ORDERED",
+      "stage": "ORDER_FOLLOW_UP"
+    },
+    {
+      "seedKey": "DEMO-PO-006",
+      "supplierCode": "SUP-007",
+      "materialCode": "MAT-010",
+      "quantity": "150",
+      "deliveryOffsetDays": 8,
+      "status": "ORDERED",
+      "stage": "RECEIVING_INSPECTION"
+    },
+    {
+      "seedKey": "DEMO-PO-007",
+      "supplierCode": "SUP-008",
+      "materialCode": "MAT-004",
+      "quantity": "150",
+      "deliveryOffsetDays": -2,
+      "status": "RECEIVED",
+      "stage": "PAYMENT_RECONCILIATION"
+    },
+    {
+      "seedKey": "DEMO-PO-008",
+      "supplierCode": "SUP-010",
+      "materialCode": "MAT-012",
+      "quantity": "100",
+      "deliveryOffsetDays": -5,
+      "status": "RECEIVED",
+      "stage": "COMPLETED",
+      "paymentConfirmed": true
+    },
+    {
+      "seedKey": "DEMO-PO-009",
+      "supplierCode": "SUP-003",
+      "materialCode": "MAT-001",
+      "quantity": "1000",
+      "deliveryOffsetDays": 19,
+      "status": "REJECTED",
+      "stage": null,
+      "rejectionReason": "供應商交期安排無法配合本次需求，已駁回草稿；請確認時程後重新建立。"
+    },
+    {
+      "seedKey": "DEMO-PO-010",
+      "supplierCode": "SUP-002",
+      "materialCode": "MAT-001",
+      "quantity": "500",
+      "deliveryOffsetDays": 30,
+      "status": "CANCELLED",
+      "stage": null,
+      "cancellationReason": "需求時程調整，撤銷尚未下單的採購單；未異動庫存。"
+    }
+  ],
+  "documentPolicy": {
+    "documentCurrencyAmountsIncluded": false,
+    "initialReviewStatus": "REQUIRES_ADMIN_REVIEW",
+    "automaticApproval": false,
+    "automaticGeminiIndexingBeforeApproval": false,
+    "sensitivePricesRemainInStructuredMasterData": true
+  },
+  "manualUploadFixtures": [
+    {
+      "documentKey": "UI-SUP-005-ADDENDUM",
+      "filename": "ui-upload-sup-005-v1.txt",
+      "supplierCode": "SUP-005",
+      "seedBaseline": false,
+      "requiredAction": "MANUAL_UI_UPLOAD",
+      "initialReviewStatus": "REQUIRES_ADMIN_REVIEW"
+    }
+  ]
+}
