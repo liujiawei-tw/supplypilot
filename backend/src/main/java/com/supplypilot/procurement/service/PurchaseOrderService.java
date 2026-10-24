@@ -266,6 +266,24 @@ public class PurchaseOrderService {
     }
 
     @Transactional
+    @PreAuthorize("hasAnyRole('PROCUREMENT_STAFF', 'PROCUREMENT_MANAGER', 'ADMIN')")
+    public PurchaseOrderResponse advanceFromNewRequest(Long id) {
+        PurchaseOrder purchaseOrder = purchaseOrderRepository.findByIdForUpdate(id)
+                .orElseThrow(() -> new BusinessException(ErrorCode.PURCHASE_ORDER_NOT_FOUND));
+        purchaseOrder.advanceFromNewRequest(clock.instant());
+        return purchaseOrderMapper.toResponse(purchaseOrderRepository.saveAndFlush(purchaseOrder));
+    }
+
+    @Transactional
+    @PreAuthorize("hasAnyRole('PROCUREMENT_STAFF', 'PROCUREMENT_MANAGER', 'ADMIN')")
+    public PurchaseOrderResponse advanceFromSourcing(Long id) {
+        PurchaseOrder purchaseOrder = purchaseOrderRepository.findByIdForUpdate(id)
+                .orElseThrow(() -> new BusinessException(ErrorCode.PURCHASE_ORDER_NOT_FOUND));
+        purchaseOrder.advanceFromSourcing(clock.instant());
+        return purchaseOrderMapper.toResponse(purchaseOrderRepository.saveAndFlush(purchaseOrder));
+    }
+
+    @Transactional
     @PreAuthorize("hasAnyRole('PROCUREMENT_MANAGER', 'ADMIN')")
     public PurchaseOrderResponse reject(Long id, RejectPurchaseOrderRequest request) {
         PurchaseOrder purchaseOrder = purchaseOrderRepository.findByIdForUpdate(id)

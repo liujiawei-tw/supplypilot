@@ -129,7 +129,7 @@ class PurchaseOrderOrderingIntegrationTests extends AbstractIntegrationTest {
 
         long received = approved(TestDataConstants.TEST_TODAY.minusDays(1), material);
         order(staff, received, null).andExpect(status().isOk());
-        jdbcTemplate.update("UPDATE purchase_orders SET status = 'RECEIVED', ordered_progress = NULL WHERE id = ?", received);
+        jdbcTemplate.update("UPDATE purchase_orders SET status = 'RECEIVED', stage = 'PAYMENT_RECONCILIATION', ordered_progress = NULL WHERE id = ?", received);
         order(staff, received, null).andExpect(status().isConflict())
                 .andExpect(jsonPath("$.code").value("INVALID_PO_STATUS_TRANSITION"));
 
@@ -184,7 +184,7 @@ class PurchaseOrderOrderingIntegrationTests extends AbstractIntegrationTest {
         long dueTomorrow = ordered(TestDataConstants.TEST_TODAY.plusDays(1), material);
         long approvedPastDue = approved(TestDataConstants.TEST_TODAY.minusDays(2), material);
         long received = ordered(TestDataConstants.TEST_TODAY.minusDays(3), material);
-        jdbcTemplate.update("UPDATE purchase_orders SET status = 'RECEIVED', ordered_progress = NULL WHERE id = ?", received);
+        jdbcTemplate.update("UPDATE purchase_orders SET status = 'RECEIVED', stage = 'PAYMENT_RECONCILIATION', ordered_progress = NULL WHERE id = ?", received);
 
         list(manager, "supplierId", supplier.getId().toString(), "overdue", "true")
                 .andExpect(status().isOk()).andExpect(jsonPath("$.totalElements").value(1))
@@ -246,6 +246,12 @@ class PurchaseOrderOrderingIntegrationTests extends AbstractIntegrationTest {
 
     private long approved(LocalDate date, Material... materials) throws Exception {
         long id = draft(date, materials);
+        mockMvc.perform(post("/api/v1/purchase-orders/{id}/begin-sourcing", id)
+                        .header("Authorization", bearer(manager)))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.stage").value("SOURCING"));
+        mockMvc.perform(post("/api/v1/purchase-orders/{id}/submit-for-approval", id)
+                        .header("Authorization", bearer(manager)))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.stage").value("APPROVAL"));
         mockMvc.perform(post("/api/v1/purchase-orders/{id}/approve", id)
                         .header("Authorization", bearer(manager)))
                 .andExpect(status().isOk());

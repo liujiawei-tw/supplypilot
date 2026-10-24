@@ -547,6 +547,8 @@ class PurchaseOrderConcurrentReceivingIntegrationTests extends AbstractIntegrati
         order.assignPendingPoNumber("P-" + suffix());
         quantities.forEach((material, quantity) -> order.addItem(PurchaseOrderItem.create(
                 material, new BigDecimal(quantity), BigDecimal.TEN, clock.instant())));
+        order.advanceFromNewRequest(clock.instant());
+        order.advanceFromSourcing(clock.instant());
         order.approve(manager, clock.instant());
         order.markOrdered(buyer, clock.instant());
         PurchaseOrder persisted = purchaseOrderRepository.saveAndFlush(order);
@@ -566,6 +568,8 @@ class PurchaseOrderConcurrentReceivingIntegrationTests extends AbstractIntegrati
 
     private PurchaseOrder approvedOrder(Map<Material, String> quantities) {
         PurchaseOrder order = draftOrder(quantities);
+        order.advanceFromNewRequest(clock.instant());
+        order.advanceFromSourcing(clock.instant());
         order.approve(manager, clock.instant());
         return purchaseOrderRepository.saveAndFlush(order);
     }

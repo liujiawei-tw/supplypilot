@@ -301,6 +301,8 @@ class StockTransactionControllerIntegrationTests extends AbstractIntegrationTest
         PurchaseOrder order = PurchaseOrder.create(supplier, LocalDate.now(clock).plusDays(1), procurementStaff, clock.instant());
         order.assignPendingPoNumber("P-402-" + suffix());
         order.addItem(PurchaseOrderItem.create(material, new BigDecimal("3"), BigDecimal.ONE, clock.instant()));
+        order.advanceFromNewRequest(clock.instant());
+        order.advanceFromSourcing(clock.instant());
         order.approve(admin, clock.instant());
         order.markOrdered(procurementStaff, clock.instant());
         PurchaseOrder persisted = purchaseOrderRepository.saveAndFlush(order);

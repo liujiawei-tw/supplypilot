@@ -32,8 +32,53 @@ class PurchaseOrderTests {
         order.addItem(PurchaseOrderItem.create(material, BigDecimal.ONE, BigDecimal.ZERO, TestDataConstants.TEST_INSTANT));
 
         assertThat(order.getStatus()).isEqualTo(PurchaseOrderStatus.DRAFT);
+        assertThat(order.getStage()).isEqualTo(PurchaseOrderStage.NEW_REQUEST);
         assertThat(order.getItems()).singleElement().extracting(PurchaseOrderItem::getUnit).isEqualTo(BaseUnit.KG);
         assertThat(order.getItems().getFirst().getUnitPrice()).isEqualByComparingTo(BigDecimal.ZERO);
+    }
+
+    @Test void preApprovalStagesAdvanceOneStepAndCannotSkipOrReverse() {
+        PurchaseOrder order = PurchaseOrder.create(supplier, null, user, TestDataConstants.TEST_INSTANT);
+
+        order.advanceFromNewRequest(TestDataConstants.TEST_INSTANT.plusSeconds(1));
+        assertThat(order.getStage()).isEqualTo(PurchaseOrderStage.SOURCING);
+        order.advanceFromSourcing(TestDataConstants.TEST_INSTANT.plusSeconds(2));
+        assertThat(order.getStage()).isEqualTo(PurchaseOrderStage.APPROVAL);
+        assertThat(order.getStatus()).isEqualTo(PurchaseOrderStatus.DRAFT);
+        assertThatThrownBy(() -> order.advanceFromNewRequest(TestDataConstants.TEST_INSTANT.plusSeconds(3)))
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCode").isEqualTo(ErrorCode.INVALID_PO_STATUS_TRANSITION);
+    }
+
+    @Test void eightStagesMapToTheirFormalPurchaseOrderStatuses() {
+        assertThat(List.of(PurchaseOrderStage.NEW_REQUEST, PurchaseOrderStage.SOURCING,
+                PurchaseOrderStage.APPROVAL).stream().map(PurchaseOrderStage::getPurchaseOrderStatus).toList())
+                .containsOnly(PurchaseOrderStatus.DRAFT);
+        assertThat(PurchaseOrderStage.APPROVED_PENDING_ORDER.getPurchaseOrderStatus())
+                .isEqualTo(PurchaseOrderStatus.APPROVED);
+        assertThat(List.of(PurchaseOrderStage.ORDER_FOLLOW_UP, PurchaseOrderStage.RECEIVING_INSPECTION)
+                .stream().map(PurchaseOrderStage::getPurchaseOrderStatus).toList())
+                .containsOnly(PurchaseOrderStatus.ORDERED);
+        assertThat(List.of(PurchaseOrderStage.PAYMENT_RECONCILIATION, PurchaseOrderStage.COMPLETED)
+                .stream().map(PurchaseOrderStage::getPurchaseOrderStatus).toList())
+                .containsOnly(PurchaseOrderStatus.RECEIVED);
+    }
+
+    @Test void approvalRequiresStageThreeAndMovesStatusAndStageTogether() {
+        PurchaseOrder order = PurchaseOrder.create(supplier, TestDataConstants.TEST_TODAY.plusDays(1), user,
+                TestDataConstants.TEST_INSTANT);
+        order.addItem(PurchaseOrderItem.create(material, BigDecimal.ONE, BigDecimal.TEN,
+                TestDataConstants.TEST_INSTANT));
+        assertThatThrownBy(() -> order.approve(user, TestDataConstants.TEST_INSTANT.plusSeconds(1)))
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCode").isEqualTo(ErrorCode.INVALID_PO_STATUS_TRANSITION);
+
+        order.advanceFromNewRequest(TestDataConstants.TEST_INSTANT.plusSeconds(2));
+        order.advanceFromSourcing(TestDataConstants.TEST_INSTANT.plusSeconds(3));
+        order.approve(user, TestDataConstants.TEST_INSTANT.plusSeconds(4));
+
+        assertThat(order.getStatus()).isEqualTo(PurchaseOrderStatus.APPROVED);
+        assertThat(order.getStage()).isEqualTo(PurchaseOrderStage.APPROVED_PENDING_ORDER);
     }
 
     @Test void rejectsDuplicateMaterialAndInvalidQuantityOrPrice() {
@@ -140,6 +185,8 @@ class PurchaseOrderTests {
 
     @Test void rejectsMissingReasonAndApprovalWithoutItems() {
         PurchaseOrder empty = PurchaseOrder.create(supplier, null, user, TestDataConstants.TEST_INSTANT);
+        empty.advanceFromNewRequest(TestDataConstants.TEST_INSTANT.plusSeconds(1));
+        empty.advanceFromSourcing(TestDataConstants.TEST_INSTANT.plusSeconds(2));
         PurchaseOrder order = draftWithItem();
 
         assertThatThrownBy(() -> empty.approve(user, TestDataConstants.TEST_INSTANT))
@@ -182,6 +229,8 @@ class PurchaseOrderTests {
                 supplier, TestDataConstants.TEST_TODAY.plusDays(2), user, TestDataConstants.TEST_INSTANT);
         order.addItem(PurchaseOrderItem.create(material, BigDecimal.ONE, BigDecimal.TEN,
                 TestDataConstants.TEST_INSTANT));
+        order.advanceFromNewRequest(TestDataConstants.TEST_INSTANT.plusSeconds(1));
+        order.advanceFromSourcing(TestDataConstants.TEST_INSTANT.plusSeconds(2));
         User manager = User.create("manager-order", "hash", "Manager", UserRole.PROCUREMENT_MANAGER,
                 TestDataConstants.TEST_INSTANT);
         order.approve(manager, TestDataConstants.TEST_INSTANT.plusSeconds(30));
@@ -219,7 +268,7 @@ class PurchaseOrderTests {
         assertThat(ordered.getOrderedProgress()).isNull();
     }
 
-    @Test void receivingInspectionAndLegacyUnknownOrdersCannotBeCancelledOrRepeatedlyMoved() {
+    @Test void receivingInspectionOrdersCannotBeCancelledOrRepeatedlyMoved() {
         User admin = User.create("cancel-admin-2", "hash", "Cancel Admin", UserRole.ADMIN,
                 TestDataConstants.TEST_INSTANT);
         PurchaseOrder order = approvedOrderWithDate(TestDataConstants.TEST_TODAY.plusDays(1));
@@ -233,14 +282,28 @@ class PurchaseOrderTests {
                 .isInstanceOf(BusinessException.class).extracting("errorCode")
                 .isEqualTo(ErrorCode.INVALID_PO_STATUS_TRANSITION);
 
+    }
+
+    @Test void legacyUnknownCanOnlyBePlacedInInspectionThroughExplicitDisposition() {
+        User admin = User.create("legacy-disposition-admin", "hash", "Legacy Disposition Admin", UserRole.ADMIN,
+                TestDataConstants.TEST_INSTANT);
         PurchaseOrder legacy = approvedOrderWithDate(TestDataConstants.TEST_TODAY.plusDays(1));
         ReflectionTestUtils.setField(legacy, "status", PurchaseOrderStatus.ORDERED);
         ReflectionTestUtils.setField(legacy, "orderedProgress", OrderedProgress.LEGACY_UNKNOWN);
+        ReflectionTestUtils.setField(legacy, "stage", null);
         assertThatThrownBy(() -> legacy.cancel("legacy", admin, TestDataConstants.TEST_INSTANT.plusSeconds(4)))
                 .isInstanceOf(BusinessException.class).extracting("errorCode")
                 .isEqualTo(ErrorCode.INVALID_PO_STATUS_TRANSITION);
+        assertThat(legacy.getStage()).isNull();
+
         legacy.beginReceivingInspection(TestDataConstants.TEST_INSTANT.plusSeconds(5));
+
+        assertThat(legacy.getStatus()).isEqualTo(PurchaseOrderStatus.ORDERED);
         assertThat(legacy.getOrderedProgress()).isEqualTo(OrderedProgress.RECEIVING_INSPECTION);
+        assertThat(legacy.getStage()).isEqualTo(PurchaseOrderStage.RECEIVING_INSPECTION);
+        assertThatThrownBy(() -> legacy.beginReceivingInspection(TestDataConstants.TEST_INSTANT.plusSeconds(6)))
+                .isInstanceOf(BusinessException.class).extracting("errorCode")
+                .isEqualTo(ErrorCode.INVALID_PO_STATUS_TRANSITION);
     }
 
     @Test void rejectsMissingBlankAndOverlongCancellationReasonsWithoutChangingOrder() {
@@ -258,6 +321,7 @@ class PurchaseOrderTests {
     @Test void markOrderedRejectsMissingDeliveryDateAndEveryNonApprovedStatusWithoutChangingAudit() {
         PurchaseOrder missingDate = draftWithItem();
         ReflectionTestUtils.setField(missingDate, "status", PurchaseOrderStatus.APPROVED);
+        ReflectionTestUtils.setField(missingDate, "stage", PurchaseOrderStage.APPROVED_PENDING_ORDER);
         assertThatThrownBy(() -> missingDate.markOrdered(user, TestDataConstants.TEST_INSTANT.plusSeconds(60)))
                 .isInstanceOf(BusinessException.class)
                 .extracting("errorCode").isEqualTo(ErrorCode.EXPECTED_DELIVERY_DATE_REQUIRED);
@@ -385,6 +449,8 @@ class PurchaseOrderTests {
         PurchaseOrder order = PurchaseOrder.create(supplier, null, user, TestDataConstants.TEST_INSTANT);
         order.addItem(PurchaseOrderItem.create(material, BigDecimal.ONE, BigDecimal.TEN,
                 TestDataConstants.TEST_INSTANT));
+        order.advanceFromNewRequest(TestDataConstants.TEST_INSTANT.plusSeconds(1));
+        order.advanceFromSourcing(TestDataConstants.TEST_INSTANT.plusSeconds(2));
         return order;
     }
 
@@ -392,6 +458,8 @@ class PurchaseOrderTests {
         PurchaseOrder order = PurchaseOrder.create(supplier, date, user, TestDataConstants.TEST_INSTANT);
         order.addItem(PurchaseOrderItem.create(material, BigDecimal.ONE, BigDecimal.TEN,
                 TestDataConstants.TEST_INSTANT));
+        order.advanceFromNewRequest(TestDataConstants.TEST_INSTANT.plusSeconds(1));
+        order.advanceFromSourcing(TestDataConstants.TEST_INSTANT.plusSeconds(2));
         order.approve(user, TestDataConstants.TEST_INSTANT);
         return order;
     }

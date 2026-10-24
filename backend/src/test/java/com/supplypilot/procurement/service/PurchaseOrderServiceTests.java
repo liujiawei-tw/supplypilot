@@ -18,6 +18,7 @@ import com.supplypilot.material.domain.Material;
 import com.supplypilot.material.repository.MaterialRepository;
 import com.supplypilot.procurement.domain.PurchaseOrder;
 import com.supplypilot.procurement.domain.PurchaseOrderItem;
+import com.supplypilot.procurement.domain.PurchaseOrderStage;
 import com.supplypilot.procurement.domain.PurchaseOrderStatus;
 import com.supplypilot.procurement.mapper.PurchaseOrderMapper;
 import com.supplypilot.procurement.repository.PurchaseOrderRepository;
@@ -91,6 +92,24 @@ class PurchaseOrderServiceTests {
     }
 
     @Test
+    void beginSourcingLoadsTheLockedAggregateAndPersistsOneStep() {
+        PurchaseOrder order = PurchaseOrder.create(
+                Supplier.create("SUP-STAGE", "Supplier", null, BigDecimal.ZERO, BigDecimal.ZERO,
+                        TestDataConstants.TEST_INSTANT),
+                null, staff, TestDataConstants.TEST_INSTANT);
+        when(purchaseOrderRepository.findByIdForUpdate(10L)).thenReturn(Optional.of(order));
+        when(purchaseOrderRepository.saveAndFlush(order)).thenReturn(order);
+
+        service.advanceFromNewRequest(10L);
+
+        assertThat(order.getStage()).isEqualTo(PurchaseOrderStage.SOURCING);
+        assertThat(order.getStatus()).isEqualTo(PurchaseOrderStatus.DRAFT);
+        verify(purchaseOrderRepository).findByIdForUpdate(10L);
+        verify(purchaseOrderRepository).saveAndFlush(order);
+        verify(purchaseOrderMapper).toResponse(order);
+    }
+
+    @Test
     void approveUsesCurrentUserAndPersistsOnlyWhenDeliveryDateExists() {
         PurchaseOrder order = draftOrder(TestDataConstants.TEST_TODAY.plusDays(2));
         User manager = manager();
@@ -138,6 +157,8 @@ class PurchaseOrderServiceTests {
         PurchaseOrder order = PurchaseOrder.create(supplier, date, staff, TestDataConstants.TEST_INSTANT);
         order.addItem(PurchaseOrderItem.create(material, BigDecimal.ONE, BigDecimal.TEN,
                 TestDataConstants.TEST_INSTANT));
+        order.advanceFromNewRequest(TestDataConstants.TEST_INSTANT.plusSeconds(1));
+        order.advanceFromSourcing(TestDataConstants.TEST_INSTANT.plusSeconds(2));
         return order;
     }
 
@@ -150,6 +171,8 @@ class PurchaseOrderServiceTests {
                 TestDataConstants.TEST_INSTANT.minusSeconds(120));
         order.addItem(PurchaseOrderItem.create(material, BigDecimal.ONE, BigDecimal.TEN,
                 TestDataConstants.TEST_INSTANT.minusSeconds(120)));
+        order.advanceFromNewRequest(TestDataConstants.TEST_INSTANT.minusSeconds(100));
+        order.advanceFromSourcing(TestDataConstants.TEST_INSTANT.minusSeconds(90));
         User manager = User.create("manager-order", "hash", "Manager", UserRole.PROCUREMENT_MANAGER,
                 TestDataConstants.TEST_INSTANT);
         order.approve(manager, TestDataConstants.TEST_INSTANT.minusSeconds(60));

@@ -452,6 +452,7 @@ PurchaseOrder 為 Aggregate Root。
 | po_number | VARCHAR | No | UNIQUE |
 | supplier_id | BIGINT | No | FK → supplier.id |
 | status | ENUM / VARCHAR | No | PO lifecycle |
+| stage | VARCHAR(32) | Yes | V2 current Kanban position; NULL only for terminal or unresolved legacy records |
 | expected_delivery_date | DATE | Yes | Required before ORDERED |
 | reject_reason | TEXT | Yes | Required for REJECTED |
 | created_by | BIGINT | No | FK → user.id |
@@ -473,7 +474,10 @@ APPROVED
 ORDERED
 RECEIVED
 REJECTED
+CANCELLED
 ```
+
+V2 `stage` is separate from `status`: stages 1–3 are DRAFT, 4 is APPROVED, 5–6 are ORDERED, and 7–8 are RECEIVED. V28 constrains compatible pairs and indexes `stage`; REJECTED/CANCELLED have no active stage. An ORDERED row with `ordered_progress=LEGACY_UNKNOWN` keeps `stage=NULL` until explicitly resolved.
 
 ## 11.3 Allowed Transition
 

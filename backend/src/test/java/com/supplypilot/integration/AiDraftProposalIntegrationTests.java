@@ -103,6 +103,12 @@ class AiDraftProposalIntegrationTests extends AbstractIntegrationTest {
                 .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("DRAFT"))
                 .andExpect(jsonPath("$.expectedDeliveryDate").doesNotExist()).andReturn();
         long draftId = mapper.readTree(confirmed.getResponse().getContentAsString()).path("id").asLong();
+        mvc.perform(post("/api/v1/purchase-orders/{id}/begin-sourcing", draftId)
+                        .header("Authorization", bearer(f.staff)))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.stage").value("SOURCING"));
+        mvc.perform(post("/api/v1/purchase-orders/{id}/submit-for-approval", draftId)
+                        .header("Authorization", bearer(f.staff)))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.stage").value("APPROVAL"));
         mvc.perform(post("/api/v1/purchase-orders/{id}/approve", draftId)
                         .header("Authorization", bearer(user(UserRole.PROCUREMENT_MANAGER))))
                 .andExpect(status().isBadRequest())

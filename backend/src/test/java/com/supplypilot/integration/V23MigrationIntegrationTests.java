@@ -1,6 +1,7 @@
 package com.supplypilot.integration;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.List;
 import java.util.Map;
@@ -12,9 +13,10 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.mysql.MySQLContainer;
 import org.testcontainers.utility.DockerImageName;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.UncategorizedSQLException;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 
-/** Verifies an existing V23 database upgrades safely through V24 on MySQL 8. */
+/** Verifies an existing V23 database upgrades safely through the current PO stage migration on MySQL 8. */
 @Testcontainers(disabledWithoutDocker = true)
 class V23MigrationIntegrationTests {
     private static final int HISTORICAL_V23_CHECKSUM = 1761549949;
@@ -25,7 +27,7 @@ class V23MigrationIntegrationTests {
             .withCommand("--log-bin-trust-function-creators=1");
 
     @Test
-    void validatesHistoricalV23AndMigratesExistingAccountsAndAuditRowsThroughV24() {
+    void validatesHistoricalV23AndMigratesExistingAccountsAuditRowsAndPoStageThroughCurrentVersion() {
         flyway(MYSQL.getJdbcUrl(), "22").migrate();
         JdbcTemplate db = jdbc(MYSQL.getJdbcUrl());
         seedV1Rows(db);
@@ -47,8 +49,17 @@ class V23MigrationIntegrationTests {
                 .isZero();
 
         // Restore only this disposable test row to its historically applied value,
-        // proving normal Flyway validation and the additive V24 upgrade then work.
+        // proving normal Flyway validation and the additive upgrades then work.
         db.update("UPDATE flyway_schema_history SET checksum = ? WHERE version = '23'", HISTORICAL_V23_CHECKSUM);
+        flyway(MYSQL.getJdbcUrl(), "27").migrate();
+        db.update("UPDATE purchase_orders SET ordered_progress = 'FOLLOW_UP' WHERE id = 502");
+        db.update("INSERT INTO purchase_orders (id, po_number, supplier_id, status, ordered_progress, created_by, created_at, updated_at) " +
+                        "VALUES (504, 'PO-MIGRATION-504', 401, 'ORDERED', 'RECEIVING_INSPECTION', 101, CURRENT_TIMESTAMP(6), CURRENT_TIMESTAMP(6))");
+        db.update("INSERT INTO purchase_orders (id, po_number, supplier_id, status, payment_confirmed_by, " +
+                        "payment_confirmed_by_user_id_snapshot, payment_confirmed_by_username_snapshot, " +
+                        "payment_confirmed_by_display_name_snapshot, payment_confirmed_at, created_by, created_at, updated_at) " +
+                        "VALUES (505, 'PO-MIGRATION-505', 401, 'RECEIVED', 101, 101, 'legacy_admin', 'Legacy Admin', " +
+                        "CURRENT_TIMESTAMP(6), 101, CURRENT_TIMESTAMP(6), CURRENT_TIMESTAMP(6))");
         flyway(MYSQL.getJdbcUrl(), null).migrate();
 
         List<Map<String, Object>> migrated = db.queryForList(
@@ -74,7 +85,24 @@ class V23MigrationIntegrationTests {
                 .isGreaterThan(0);
 
         assertThat(db.queryForObject("SELECT created_by FROM purchase_orders WHERE id = 501", Long.class)).isEqualTo(102L);
-        assertThat(db.queryForObject("SELECT COUNT(*) FROM purchase_orders WHERE created_by = 102", Long.class)).isEqualTo(1L);
+        assertThat(db.queryForObject("SELECT stage FROM purchase_orders WHERE id = 501", String.class))
+                .isEqualTo("NEW_REQUEST");
+        assertThat(db.queryForObject("SELECT stage FROM purchase_orders WHERE id = 502", String.class))
+                .isEqualTo("ORDER_FOLLOW_UP");
+        assertThat(db.queryForObject("SELECT stage FROM purchase_orders WHERE id = 503", String.class))
+                .isEqualTo("PAYMENT_RECONCILIATION");
+        assertThat(db.queryForObject("SELECT stage FROM purchase_orders WHERE id = 506", String.class)).isNull();
+        assertThat(db.queryForObject("SELECT ordered_progress FROM purchase_orders WHERE id = 506", String.class))
+                .isEqualTo("LEGACY_UNKNOWN");
+        assertThatThrownBy(() -> db.update(
+                "UPDATE purchase_orders SET stage = 'RECEIVING_INSPECTION' WHERE id = 506"))
+                .isInstanceOf(UncategorizedSQLException.class);
+        assertThat(db.queryForObject("SELECT stage FROM purchase_orders WHERE id = 506", String.class)).isNull();
+        assertThat(db.queryForObject("SELECT stage FROM purchase_orders WHERE id = 504", String.class))
+                .isEqualTo("RECEIVING_INSPECTION");
+        assertThat(db.queryForObject("SELECT stage FROM purchase_orders WHERE id = 505", String.class))
+                .isEqualTo("COMPLETED");
+        assertThat(db.queryForObject("SELECT COUNT(*) FROM purchase_orders WHERE created_by = 102", Long.class)).isEqualTo(4L);
         assertThat(db.queryForObject("SELECT assigned_to FROM purchase_orders WHERE id = 501", Long.class)).isEqualTo(102L);
         assertThat(db.queryForObject("SELECT created_by_user_id_snapshot FROM purchase_orders WHERE id = 501", Long.class)).isEqualTo(102L);
         assertThat(db.queryForObject("SELECT created_by_username_snapshot FROM purchase_orders WHERE id = 501", String.class)).isEqualTo("legacy_staff");
@@ -106,7 +134,10 @@ class V23MigrationIntegrationTests {
         db.update("INSERT INTO materials (id, code, name, base_unit, safety_stock, status, created_at, updated_at) " +
                 "VALUES (601, 'MIGRATION-MATERIAL', 'Migration Material', 'KG', 0, 'ACTIVE', CURRENT_TIMESTAMP(6), CURRENT_TIMESTAMP(6))");
         db.update("INSERT INTO purchase_orders (id, po_number, supplier_id, status, created_by, created_at, updated_at) " +
-                "VALUES (501, 'PO-MIGRATION-501', 401, 'DRAFT', 102, CURRENT_TIMESTAMP(6), CURRENT_TIMESTAMP(6))");
+                "VALUES (501, 'PO-MIGRATION-501', 401, 'DRAFT', 102, CURRENT_TIMESTAMP(6), CURRENT_TIMESTAMP(6)), " +
+                "(502, 'PO-MIGRATION-502', 401, 'ORDERED', 102, CURRENT_TIMESTAMP(6), CURRENT_TIMESTAMP(6)), " +
+                "(503, 'PO-MIGRATION-503', 401, 'RECEIVED', 102, CURRENT_TIMESTAMP(6), CURRENT_TIMESTAMP(6)), " +
+                "(506, 'PO-MIGRATION-506', 401, 'ORDERED', 102, CURRENT_TIMESTAMP(6), CURRENT_TIMESTAMP(6))");
         db.update("INSERT INTO stock_transactions (id, material_id, type, quantity, reason, created_by, created_at) " +
                 "VALUES (701, 601, 'MANUAL_ADJUSTMENT', 1, 'legacy audit row', 102, CURRENT_TIMESTAMP(6))");
     }

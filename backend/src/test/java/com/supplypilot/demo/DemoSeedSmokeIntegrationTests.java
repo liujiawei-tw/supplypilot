@@ -304,6 +304,12 @@ class DemoSeedSmokeIntegrationTests {
                         "items", List.of(item)))), 201);
         long purchaseOrderId = draft.get("id").asLong();
 
+        mockMvc.perform(post("/api/v1/purchase-orders/{id}/begin-sourcing", purchaseOrderId)
+                        .header("Authorization", bearer(admin)))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.stage").value("SOURCING"));
+        mockMvc.perform(post("/api/v1/purchase-orders/{id}/submit-for-approval", purchaseOrderId)
+                        .header("Authorization", bearer(admin)))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.stage").value("APPROVAL"));
         mockMvc.perform(post("/api/v1/purchase-orders/{id}/approve", purchaseOrderId)
                         .header("Authorization", bearer(admin)))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("APPROVED"));

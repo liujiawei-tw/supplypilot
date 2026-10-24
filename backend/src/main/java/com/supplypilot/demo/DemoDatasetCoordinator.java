@@ -330,6 +330,8 @@ public class DemoDatasetCoordinator implements DemoDataCoordinator {
         if (target == PurchaseOrderStatus.REJECTED) {
             order.reject("Demo rejection: delivery plan changed", userMap.get("admin"), now);
         } else if (target != PurchaseOrderStatus.DRAFT) {
+            order.advanceFromNewRequest(now);
+            order.advanceFromSourcing(now);
             order.approve(userMap.get("admin"), now);
             if (target == PurchaseOrderStatus.ORDERED || target == PurchaseOrderStatus.RECEIVED) {
                 order.markOrdered(userMap.get("admin"), now);

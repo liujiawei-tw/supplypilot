@@ -1,6 +1,7 @@
 package com.supplypilot.integration;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
@@ -43,6 +44,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.UncategorizedSQLException;
 import org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
@@ -155,7 +157,8 @@ class PurchaseOrderReceivingIntegrationTests extends AbstractIntegrationTest {
                         .header("Authorization", bearer(admin)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("ORDERED"))
-                .andExpect(jsonPath("$.orderedProgress").value("RECEIVING_INSPECTION"));
+                .andExpect(jsonPath("$.orderedProgress").value("RECEIVING_INSPECTION"))
+                .andExpect(jsonPath("$.stage").value("RECEIVING_INSPECTION"));
 
         mockMvc.perform(put("/api/v1/purchase-orders/{id}/receiving-inspection", order.getId())
                         .header("Authorization", bearer(admin)).contentType(MediaType.APPLICATION_JSON)
@@ -200,9 +203,13 @@ class PurchaseOrderReceivingIntegrationTests extends AbstractIntegrationTest {
         receive(admin, order.getId()).andExpect(status().isOk()).andExpect(jsonPath("$.status").value("RECEIVED"));
         assertThat(quantity(material)).isEqualByComparingTo("30");
         assertThat(transactionCount(order.getId())).isEqualTo(1);
+        mockMvc.perform(get("/api/v1/purchase-orders/{id}", order.getId()).header("Authorization", bearer(admin)))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("RECEIVED"))
+                .andExpect(jsonPath("$.stage").value("PAYMENT_RECONCILIATION"));
         mockMvc.perform(post("/api/v1/purchase-orders/{id}/confirm-payment", order.getId())
                         .header("Authorization", bearer(admin)))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("RECEIVED"))
+                .andExpect(jsonPath("$.stage").value("COMPLETED"))
                 .andExpect(jsonPath("$.paymentConfirmed").value(true))
                 .andExpect(jsonPath("$.paymentConfirmedBy").value(admin.getId()))
                 .andExpect(jsonPath("$.paymentConfirmedAt").value(clock.instant().toString()));
@@ -212,6 +219,7 @@ class PurchaseOrderReceivingIntegrationTests extends AbstractIntegrationTest {
         mockMvc.perform(post("/api/v1/purchase-orders/{id}/revoke-payment-confirmation", order.getId())
                         .header("Authorization", bearer(admin)))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("RECEIVED"))
+                .andExpect(jsonPath("$.stage").value("PAYMENT_RECONCILIATION"))
                 .andExpect(jsonPath("$.paymentConfirmed").value(false))
                 .andExpect(jsonPath("$.paymentConfirmedBy").doesNotExist())
                 .andExpect(jsonPath("$.paymentConfirmedAt").doesNotExist());
@@ -353,8 +361,9 @@ class PurchaseOrderReceivingIntegrationTests extends AbstractIntegrationTest {
         for (String statusValue : new String[] {"DRAFT", "APPROVED", "REJECTED"}) {
             Material material = material(statusValue, "5");
             PurchaseOrder order = orderedOrder(Map.of(material, "4"));
-            jdbcTemplate.update("UPDATE purchase_orders SET status = ?, ordered_progress = NULL WHERE id = ?",
-                    statusValue, order.getId());
+            jdbcTemplate.update("UPDATE purchase_orders SET status = ?, ordered_progress = NULL, stage = ? WHERE id = ?",
+                    statusValue, "APPROVED".equals(statusValue) ? "APPROVED_PENDING_ORDER"
+                            : "DRAFT".equals(statusValue) ? "NEW_REQUEST" : null, order.getId());
             receive(warehouse, order.getId()).andExpect(status().isConflict())
                     .andExpect(jsonPath("$.code").value("INVALID_PO_STATUS"));
             assertThat(quantity(material)).isEqualByComparingTo("5");
@@ -434,6 +443,48 @@ class PurchaseOrderReceivingIntegrationTests extends AbstractIntegrationTest {
         assertThat(quantity(third)).isEqualByComparingTo("300");
         assertThat(transactionCount(order.getId())).isZero();
         assertUnreceived(order.getId());
+        assertThat(jdbcTemplate.queryForObject(
+                "SELECT stage FROM purchase_orders WHERE id = ?", String.class, order.getId()))
+                .isEqualTo("RECEIVING_INSPECTION");
+    }
+
+    @Test
+    void databaseRejectsCompletedStageWithoutPaymentConfirmation() throws Exception {
+        Material material = material("UNPAID-COMPLETED", "0");
+        PurchaseOrder order = orderedOrder(Map.of(material, "1"));
+        prepareAcceptedInspection(admin, order.getId());
+        receive(admin, order.getId()).andExpect(status().isOk());
+
+        assertThat(jdbcTemplate.queryForObject(
+                "SELECT payment_confirmed_at FROM purchase_orders WHERE id = ?", Object.class, order.getId()))
+                .isNull();
+        assertThatThrownBy(() -> jdbcTemplate.update(
+                "UPDATE purchase_orders SET stage = 'COMPLETED' WHERE id = ?", order.getId()))
+                .isInstanceOf(UncategorizedSQLException.class);
+        assertThat(jdbcTemplate.queryForObject(
+                "SELECT stage FROM purchase_orders WHERE id = ?", String.class, order.getId()))
+                .isEqualTo("PAYMENT_RECONCILIATION");
+    }
+
+    @Test
+    void databaseRejectsPaymentReconciliationStageAfterPaymentConfirmation() throws Exception {
+        Material material = material("PAID-RECONCILIATION", "0");
+        PurchaseOrder order = orderedOrder(Map.of(material, "1"));
+        prepareAcceptedInspection(admin, order.getId());
+        receive(admin, order.getId()).andExpect(status().isOk());
+        mockMvc.perform(post("/api/v1/purchase-orders/{id}/confirm-payment", order.getId())
+                        .header("Authorization", bearer(admin)))
+                .andExpect(status().isOk());
+
+        assertThat(jdbcTemplate.queryForObject(
+                "SELECT payment_confirmed_at FROM purchase_orders WHERE id = ?", Object.class, order.getId()))
+                .isNotNull();
+        assertThatThrownBy(() -> jdbcTemplate.update(
+                "UPDATE purchase_orders SET stage = 'PAYMENT_RECONCILIATION' WHERE id = ?", order.getId()))
+                .isInstanceOf(UncategorizedSQLException.class);
+        assertThat(jdbcTemplate.queryForObject(
+                "SELECT stage FROM purchase_orders WHERE id = ?", String.class, order.getId()))
+                .isEqualTo("COMPLETED");
     }
 
     @Test
@@ -473,6 +524,8 @@ class PurchaseOrderReceivingIntegrationTests extends AbstractIntegrationTest {
         order.assignPendingPoNumber("P-" + suffix());
         quantities.forEach((material, quantity) -> order.addItem(PurchaseOrderItem.create(
                 material, new BigDecimal(quantity), BigDecimal.TEN, clock.instant())));
+        order.advanceFromNewRequest(clock.instant());
+        order.advanceFromSourcing(clock.instant());
         order.approve(manager, clock.instant());
         order.markOrdered(buyer, clock.instant());
         PurchaseOrder persisted = purchaseOrderRepository.saveAndFlush(order);

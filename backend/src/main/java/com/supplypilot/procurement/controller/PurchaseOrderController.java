@@ -95,6 +95,16 @@ public class PurchaseOrderController {
         return purchaseOrderService.approve(id);
     }
 
+    @PostMapping("/{id}/begin-sourcing")
+    public PurchaseOrderResponse advanceFromNewRequest(@PathVariable Long id) {
+        return purchaseOrderService.advanceFromNewRequest(id);
+    }
+
+    @PostMapping("/{id}/submit-for-approval")
+    public PurchaseOrderResponse advanceFromSourcing(@PathVariable Long id) {
+        return purchaseOrderService.advanceFromSourcing(id);
+    }
+
     @PostMapping("/{id}/reject")
     public PurchaseOrderResponse reject(
             @PathVariable Long id,

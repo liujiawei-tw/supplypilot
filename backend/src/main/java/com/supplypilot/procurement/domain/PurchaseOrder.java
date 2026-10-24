@@ -49,6 +49,10 @@ public class PurchaseOrder {
     @Column(nullable = false, length = 20)
     private PurchaseOrderStatus status;
 
+    @Enumerated(EnumType.STRING)
+    @Column(length = 32)
+    private PurchaseOrderStage stage;
+
     @Column(name = "expected_delivery_date")
     private LocalDate expectedDeliveryDate;
 
@@ -188,6 +192,7 @@ public class PurchaseOrder {
         purchaseOrder.createdByUsernameSnapshot = createdBy.getUsername();
         purchaseOrder.createdByDisplayNameSnapshot = createdBy.getDisplayName();
         purchaseOrder.status = PurchaseOrderStatus.DRAFT;
+        purchaseOrder.stage = PurchaseOrderStage.NEW_REQUEST;
         purchaseOrder.createdAt = Objects.requireNonNull(now, "Timestamp must not be null");
         purchaseOrder.updatedAt = now;
         return purchaseOrder;
@@ -253,6 +258,7 @@ public class PurchaseOrder {
 
     public void approve(User approver, Instant now) {
         assertDraftTransitionTo(PurchaseOrderStatus.APPROVED);
+        requireStage(PurchaseOrderStage.APPROVAL);
         if (items.isEmpty()) throw new BusinessException(ErrorCode.VALIDATION_FAILED);
         if (expectedDeliveryDate == null) {
             throw new BusinessException(ErrorCode.EXPECTED_DELIVERY_DATE_REQUIRED);
@@ -260,6 +266,7 @@ public class PurchaseOrder {
         User validatedApprover = Objects.requireNonNull(approver, "Approver must not be null");
         Instant validatedNow = Objects.requireNonNull(now, "Timestamp must not be null");
         status = PurchaseOrderStatus.APPROVED;
+        stage = PurchaseOrderStage.APPROVED_PENDING_ORDER;
         approvedBy = validatedApprover;
         approvedAt = validatedNow;
         approvedByUserIdSnapshot = validatedApprover.getId();
@@ -278,12 +285,14 @@ public class PurchaseOrder {
 
     public void reject(String reason, User rejector, Instant now) {
         assertDraftTransitionTo(PurchaseOrderStatus.REJECTED);
+        requireDraftStage();
         if (reason == null || reason.trim().isEmpty()) {
             throw new BusinessException(ErrorCode.REJECT_REASON_REQUIRED);
         }
         User validatedRejector = Objects.requireNonNull(rejector, "Rejector must not be null");
         Instant validatedNow = Objects.requireNonNull(now, "Timestamp must not be null");
         status = PurchaseOrderStatus.REJECTED;
+        stage = null;
         rejectReason = reason.trim();
         rejectedBy = validatedRejector;
         rejectedAt = validatedNow;
@@ -297,6 +306,7 @@ public class PurchaseOrder {
         if (status != PurchaseOrderStatus.APPROVED) {
             throw new BusinessException(ErrorCode.INVALID_PO_STATUS_TRANSITION);
         }
+        requireStage(PurchaseOrderStage.APPROVED_PENDING_ORDER);
         if (expectedDeliveryDate == null) {
             throw new BusinessException(ErrorCode.EXPECTED_DELIVERY_DATE_REQUIRED);
         }
@@ -313,6 +323,7 @@ public class PurchaseOrder {
         User validatedOrderer = Objects.requireNonNull(orderer, "Orderer must not be null");
         Instant validatedNow = Objects.requireNonNull(now, "Timestamp must not be null");
         status = PurchaseOrderStatus.ORDERED;
+        stage = PurchaseOrderStage.ORDER_FOLLOW_UP;
         orderedProgress = OrderedProgress.FOLLOW_UP;
         orderedBy = validatedOrderer;
         orderedAt = validatedNow;
@@ -323,17 +334,33 @@ public class PurchaseOrder {
     }
 
     public void beginReceivingInspection(Instant now) {
-        if (status != PurchaseOrderStatus.ORDERED
-                || (orderedProgress != OrderedProgress.FOLLOW_UP && orderedProgress != OrderedProgress.LEGACY_UNKNOWN)) {
+        Instant validatedNow = Objects.requireNonNull(now, "Timestamp must not be null");
+        if (status != PurchaseOrderStatus.ORDERED) {
+            throw new BusinessException(ErrorCode.INVALID_PO_STATUS_TRANSITION);
+        }
+
+        // V25 deliberately left the position of pre-existing ordered rows unknown.
+        // The ADMIN-only command is the explicit disposition into inspection; it
+        // does not infer which stage the row occupied before this command.
+        if (orderedProgress == OrderedProgress.LEGACY_UNKNOWN && stage == null) {
+            orderedProgress = OrderedProgress.RECEIVING_INSPECTION;
+            stage = PurchaseOrderStage.RECEIVING_INSPECTION;
+            updatedAt = validatedNow;
+            return;
+        }
+
+        if (orderedProgress != OrderedProgress.FOLLOW_UP || stage != PurchaseOrderStage.ORDER_FOLLOW_UP) {
             throw new BusinessException(ErrorCode.INVALID_PO_STATUS_TRANSITION);
         }
         orderedProgress = OrderedProgress.RECEIVING_INSPECTION;
-        updatedAt = Objects.requireNonNull(now, "Timestamp must not be null");
+        stage = PurchaseOrderStage.RECEIVING_INSPECTION;
+        updatedAt = validatedNow;
     }
 
     public void recordReceivingInspection(boolean allItemsReceived, boolean allQuantitiesConfirmed,
             boolean allQualityAccepted, String note, User inspector, Instant now) {
-        if (status != PurchaseOrderStatus.ORDERED || orderedProgress != OrderedProgress.RECEIVING_INSPECTION) {
+        if (status != PurchaseOrderStatus.ORDERED || orderedProgress != OrderedProgress.RECEIVING_INSPECTION
+                || stage != PurchaseOrderStage.RECEIVING_INSPECTION) {
             throw new BusinessException(ErrorCode.INVALID_PO_STATUS_TRANSITION);
         }
         String normalizedNote = note == null || note.isBlank() ? null : note.trim();
@@ -355,7 +382,8 @@ public class PurchaseOrder {
     }
 
     public void confirmPayment(User confirmer, Instant now) {
-        if (status != PurchaseOrderStatus.RECEIVED || paymentConfirmedAt != null) {
+        if (status != PurchaseOrderStatus.RECEIVED || stage != PurchaseOrderStage.PAYMENT_RECONCILIATION
+                || paymentConfirmedAt != null) {
             throw new BusinessException(ErrorCode.INVALID_PO_STATUS_TRANSITION);
         }
         User validatedConfirmer = Objects.requireNonNull(confirmer, "Payment confirmer must not be null");
@@ -365,11 +393,13 @@ public class PurchaseOrder {
         paymentConfirmedByUsernameSnapshot = username(validatedConfirmer);
         paymentConfirmedByDisplayNameSnapshot = displayName(validatedConfirmer);
         paymentConfirmedAt = validatedNow;
+        stage = PurchaseOrderStage.COMPLETED;
         updatedAt = validatedNow;
     }
 
     public void revokePaymentConfirmation(Instant now) {
-        if (status != PurchaseOrderStatus.RECEIVED || paymentConfirmedAt == null) {
+        if (status != PurchaseOrderStatus.RECEIVED || stage != PurchaseOrderStage.COMPLETED
+                || paymentConfirmedAt == null) {
             throw new BusinessException(ErrorCode.INVALID_PO_STATUS_TRANSITION);
         }
         paymentConfirmedBy = null;
@@ -377,6 +407,7 @@ public class PurchaseOrder {
         paymentConfirmedByUsernameSnapshot = null;
         paymentConfirmedByDisplayNameSnapshot = null;
         paymentConfirmedAt = null;
+        stage = PurchaseOrderStage.PAYMENT_RECONCILIATION;
         updatedAt = Objects.requireNonNull(now, "Timestamp must not be null");
     }
 
@@ -385,12 +416,17 @@ public class PurchaseOrder {
                 && !(status == PurchaseOrderStatus.ORDERED && orderedProgress == OrderedProgress.FOLLOW_UP)) {
             throw new BusinessException(ErrorCode.INVALID_PO_STATUS_TRANSITION);
         }
+        if ((status == PurchaseOrderStatus.APPROVED && stage != PurchaseOrderStage.APPROVED_PENDING_ORDER)
+                || (status == PurchaseOrderStatus.ORDERED && stage != PurchaseOrderStage.ORDER_FOLLOW_UP)) {
+            throw new BusinessException(ErrorCode.INVALID_PO_STATUS_TRANSITION);
+        }
         if (reason == null || reason.trim().isEmpty()) throw new BusinessException(ErrorCode.CANCEL_REASON_REQUIRED);
         String normalizedReason = reason.trim();
         if (normalizedReason.length() > 2000) throw new BusinessException(ErrorCode.VALIDATION_FAILED);
         User validatedActor = Objects.requireNonNull(actor, "Cancelling actor must not be null");
         Instant validatedNow = Objects.requireNonNull(now, "Timestamp must not be null");
         status = PurchaseOrderStatus.CANCELLED;
+        stage = null;
         orderedProgress = null;
         cancelReason = normalizedReason;
         cancelledBy = validatedActor;
@@ -409,6 +445,7 @@ public class PurchaseOrder {
             throw new BusinessException(ErrorCode.INVALID_PO_STATUS);
         }
         if (orderedProgress != OrderedProgress.RECEIVING_INSPECTION
+                || stage != PurchaseOrderStage.RECEIVING_INSPECTION
                 || !inspectionAllItemsReceived || !inspectionAllQuantitiesConfirmed || !inspectionAllQualityAccepted
                 || inspectedAt == null || (inspectedBy == null && inspectedByUserIdSnapshot == null)) {
             throw new BusinessException(ErrorCode.RECEIVING_INSPECTION_INCOMPLETE);
@@ -435,6 +472,7 @@ public class PurchaseOrder {
         User validatedReceiver = Objects.requireNonNull(receiver, "Receiver must not be null");
         Instant validatedNow = Objects.requireNonNull(now, "Timestamp must not be null");
         status = PurchaseOrderStatus.RECEIVED;
+        stage = PurchaseOrderStage.PAYMENT_RECONCILIATION;
         orderedProgress = null;
         receivedBy = validatedReceiver;
         receivedAt = validatedNow;
@@ -454,6 +492,37 @@ public class PurchaseOrder {
     void assertDraftTransitionTo(PurchaseOrderStatus target) {
         if (status != PurchaseOrderStatus.DRAFT
                 || (target != PurchaseOrderStatus.APPROVED && target != PurchaseOrderStatus.REJECTED)) {
+            throw new BusinessException(ErrorCode.INVALID_PO_STATUS_TRANSITION);
+        }
+    }
+
+    public void advanceFromNewRequest(Instant now) {
+        advancePreApprovalStage(PurchaseOrderStage.NEW_REQUEST, PurchaseOrderStage.SOURCING, now);
+    }
+
+    public void advanceFromSourcing(Instant now) {
+        advancePreApprovalStage(PurchaseOrderStage.SOURCING, PurchaseOrderStage.APPROVAL, now);
+    }
+
+    private void advancePreApprovalStage(PurchaseOrderStage expected, PurchaseOrderStage next, Instant now) {
+        if (status != PurchaseOrderStatus.DRAFT || stage != expected) {
+            throw new BusinessException(ErrorCode.INVALID_PO_STATUS_TRANSITION);
+        }
+        stage = next;
+        updatedAt = Objects.requireNonNull(now, "Timestamp must not be null");
+    }
+
+    private void requireDraftStage() {
+        if (status != PurchaseOrderStatus.DRAFT || stage == null
+                || (stage != PurchaseOrderStage.NEW_REQUEST
+                && stage != PurchaseOrderStage.SOURCING
+                && stage != PurchaseOrderStage.APPROVAL)) {
+            throw new BusinessException(ErrorCode.INVALID_PO_STATUS_TRANSITION);
+        }
+    }
+
+    private void requireStage(PurchaseOrderStage expected) {
+        if (stage != expected || expected.getPurchaseOrderStatus() != status) {
             throw new BusinessException(ErrorCode.INVALID_PO_STATUS_TRANSITION);
         }
     }
@@ -485,6 +554,7 @@ public class PurchaseOrder {
     public String getPoNumber() { return poNumber; }
     public Supplier getSupplier() { return supplier; }
     public PurchaseOrderStatus getStatus() { return status; }
+    public PurchaseOrderStage getStage() { return stage; }
     public LocalDate getExpectedDeliveryDate() { return expectedDeliveryDate; }
     public LocalDate getSupplierPromisedDeliveryDate() { return supplierPromisedDeliveryDate; }
     public String getRejectReason() { return rejectReason; }

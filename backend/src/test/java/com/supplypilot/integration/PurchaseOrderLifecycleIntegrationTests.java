@@ -134,15 +134,19 @@ class PurchaseOrderLifecycleIntegrationTests extends AbstractIntegrationTest {
     void missingDateApprovalLeavesPersistedDraftUntouchedThenPatchAllowsApprovalAndOrdering() throws Exception {
         User manager = user(UserRole.PROCUREMENT_MANAGER);
         long id = draftId();
+        advanceToApprovalLane(manager, id);
         var before = jdbcTemplate.queryForMap(
-                "SELECT status, approved_by, approved_at, updated_at, version FROM purchase_orders WHERE id = ?", id);
+                "SELECT status, stage, approved_by, approved_at, updated_at, version FROM purchase_orders WHERE id = ?", id);
 
-        approve(manager, id, null).andExpect(status().isBadRequest())
+        mockMvc.perform(post("/api/v1/purchase-orders/{id}/approve", id)
+                        .header("Authorization", bearer(manager)))
+                .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("EXPECTED_DELIVERY_DATE_REQUIRED"));
         var after = jdbcTemplate.queryForMap(
-                "SELECT status, approved_by, approved_at, updated_at, version FROM purchase_orders WHERE id = ?", id);
+                "SELECT status, stage, approved_by, approved_at, updated_at, version FROM purchase_orders WHERE id = ?", id);
         assertThat(after).isEqualTo(before);
         assertThat(after.get("status")).isEqualTo("DRAFT");
+        assertThat(after.get("stage")).isEqualTo("APPROVAL");
         assertThat(after.get("approved_by")).isNull();
         assertThat(after.get("approved_at")).isNull();
 
@@ -150,7 +154,9 @@ class PurchaseOrderLifecycleIntegrationTests extends AbstractIntegrationTest {
                         .header("Authorization", bearer(staff)).contentType(MediaType.APPLICATION_JSON)
                         .content("{\"expectedDeliveryDate\":\"2026-10-30\"}"))
                 .andExpect(status().isOk());
-        approve(manager, id, null).andExpect(status().isOk())
+        mockMvc.perform(post("/api/v1/purchase-orders/{id}/approve", id)
+                        .header("Authorization", bearer(manager)))
+                .andExpect(status().isOk())
                 .andExpect(jsonPath("$.approvedBy").value(manager.getId()));
         mockMvc.perform(post("/api/v1/purchase-orders/{id}/order", id)
                         .header("Authorization", bearer(staff)))
@@ -176,7 +182,7 @@ class PurchaseOrderLifecycleIntegrationTests extends AbstractIntegrationTest {
         assertThat(jdbcTemplate.queryForObject("SELECT assigned_to FROM purchase_orders WHERE id = ?", Long.class, id)).isNull();
 
         // RECEIVED can remain billable/in-progress in V2, so ownership assignment stays allowed.
-        jdbcTemplate.update("UPDATE purchase_orders SET status = 'RECEIVED', ordered_progress = NULL WHERE id = ?", id);
+        jdbcTemplate.update("UPDATE purchase_orders SET status = 'RECEIVED', stage = 'PAYMENT_RECONCILIATION', ordered_progress = NULL WHERE id = ?", id);
         mockMvc.perform(post("/api/v1/purchase-orders/{id}/claim", id)
                         .header("Authorization", bearer(admin)))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("RECEIVED"))
@@ -239,14 +245,18 @@ class PurchaseOrderLifecycleIntegrationTests extends AbstractIntegrationTest {
 
         for (String existing : new String[] {"APPROVED", "REJECTED", "ORDERED", "RECEIVED"}) {
             long approveId = draftId();
-            jdbcTemplate.update("UPDATE purchase_orders SET status = ?, ordered_progress = ? WHERE id = ?",
-                    existing, "ORDERED".equals(existing) ? "LEGACY_UNKNOWN" : null, approveId);
+            jdbcTemplate.update("UPDATE purchase_orders SET status = ?, ordered_progress = ?, stage = ? WHERE id = ?",
+                    existing, "ORDERED".equals(existing) ? "LEGACY_UNKNOWN" : null,
+                    "APPROVED".equals(existing) ? "APPROVED_PENDING_ORDER"
+                            : "RECEIVED".equals(existing) ? "PAYMENT_RECONCILIATION" : null, approveId);
             approve(manager, approveId, null).andExpect(status().isConflict())
                     .andExpect(jsonPath("$.code").value("INVALID_PO_STATUS_TRANSITION"));
 
             long rejectId = draftId();
-            jdbcTemplate.update("UPDATE purchase_orders SET status = ?, ordered_progress = ? WHERE id = ?",
-                    existing, "ORDERED".equals(existing) ? "LEGACY_UNKNOWN" : null, rejectId);
+            jdbcTemplate.update("UPDATE purchase_orders SET status = ?, ordered_progress = ?, stage = ? WHERE id = ?",
+                    existing, "ORDERED".equals(existing) ? "LEGACY_UNKNOWN" : null,
+                    "APPROVED".equals(existing) ? "APPROVED_PENDING_ORDER"
+                            : "RECEIVED".equals(existing) ? "PAYMENT_RECONCILIATION" : null, rejectId);
             reject(manager, rejectId, "{\"reason\":\"reason\"}").andExpect(status().isConflict())
                     .andExpect(jsonPath("$.code").value("INVALID_PO_STATUS_TRANSITION"));
         }
@@ -267,8 +277,9 @@ class PurchaseOrderLifecycleIntegrationTests extends AbstractIntegrationTest {
             jdbcTemplate.execute("ALTER TABLE purchase_orders DROP CHECK chk_sp610_forced_approval_failure");
         }
         var approvalRow = jdbcTemplate.queryForMap(
-                "SELECT status, approved_by, approved_at FROM purchase_orders WHERE id = ?", approvalId);
+                "SELECT status, stage, approved_by, approved_at FROM purchase_orders WHERE id = ?", approvalId);
         assertThat(approvalRow.get("status")).isEqualTo("DRAFT");
+        assertThat(approvalRow.get("stage")).isEqualTo("APPROVAL");
         assertThat(approvalRow.get("approved_by")).isNull();
         assertThat(approvalRow.get("approved_at")).isNull();
 
@@ -284,8 +295,9 @@ class PurchaseOrderLifecycleIntegrationTests extends AbstractIntegrationTest {
         }
 
         var row = jdbcTemplate.queryForMap(
-                "SELECT status, reject_reason, rejected_by, rejected_at FROM purchase_orders WHERE id = ?", rejectionId);
+                "SELECT status, stage, reject_reason, rejected_by, rejected_at FROM purchase_orders WHERE id = ?", rejectionId);
         assertThat(row.get("status")).isEqualTo("DRAFT");
+        assertThat(row.get("stage")).isEqualTo("NEW_REQUEST");
         assertThat(row.get("reject_reason")).isNull();
         assertThat(row.get("rejected_by")).isNull();
         assertThat(row.get("rejected_at")).isNull();
@@ -338,14 +350,22 @@ class PurchaseOrderLifecycleIntegrationTests extends AbstractIntegrationTest {
     }
 
     @Test
-    void stageSixAndLegacyUnknownCannotCancelAndTerminalOrdersCannotBeReopened() throws Exception {
+    void legacyUnknownRequiresAdminDispositionAndThenEntersInspectionWithoutBecomingCancellable() throws Exception {
         User admin = user(UserRole.ADMIN);
+        User manager = user(UserRole.PROCUREMENT_MANAGER);
         long stageSix = draftIdWithDate();
         approve(admin, stageSix, null).andExpect(status().isOk());
-        order(staff, stageSix).andExpect(status().isOk());
+        order(staff, stageSix).andExpect(status().isOk())
+                .andExpect(jsonPath("$.stage").value("ORDER_FOLLOW_UP"));
         mockMvc.perform(post("/api/v1/purchase-orders/{id}/begin-receiving-inspection", stageSix)
                         .header("Authorization", bearer(admin)))
-                .andExpect(status().isOk()).andExpect(jsonPath("$.orderedProgress").value("RECEIVING_INSPECTION"));
+                .andExpect(status().isOk()).andExpect(jsonPath("$.orderedProgress").value("RECEIVING_INSPECTION"))
+                .andExpect(jsonPath("$.stage").value("RECEIVING_INSPECTION"));
+        mockMvc.perform(get("/api/v1/purchase-orders/{id}", stageSix).header("Authorization", bearer(admin)))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.stage").value("RECEIVING_INSPECTION"));
+        assertThat(jdbcTemplate.queryForObject(
+                "SELECT stage FROM purchase_orders WHERE id = ?", String.class, stageSix))
+                .isEqualTo("RECEIVING_INSPECTION");
         cancel(admin, stageSix, "too late").andExpect(status().isConflict())
                 .andExpect(jsonPath("$.code").value("INVALID_PO_STATUS_TRANSITION"));
         assertThat(statusOf(stageSix)).isEqualTo("ORDERED");
@@ -353,11 +373,34 @@ class PurchaseOrderLifecycleIntegrationTests extends AbstractIntegrationTest {
         long legacy = draftIdWithDate();
         approve(admin, legacy, null).andExpect(status().isOk());
         order(staff, legacy).andExpect(status().isOk());
-        jdbcTemplate.update("UPDATE purchase_orders SET ordered_progress = 'LEGACY_UNKNOWN' WHERE id = ?", legacy);
+        jdbcTemplate.update("UPDATE purchase_orders SET ordered_progress = 'LEGACY_UNKNOWN', stage = NULL WHERE id = ?", legacy);
         cancel(admin, legacy, "cannot establish stage").andExpect(status().isConflict());
         mockMvc.perform(post("/api/v1/purchase-orders/{id}/begin-receiving-inspection", legacy)
+                        .header("Authorization", bearer(manager)))
+                .andExpect(status().isForbidden()).andExpect(jsonPath("$.code").value("ACCESS_DENIED"));
+        assertThat(jdbcTemplate.queryForMap(
+                "SELECT status, ordered_progress, stage FROM purchase_orders WHERE id = ?", legacy))
+                .containsEntry("status", "ORDERED")
+                .containsEntry("ordered_progress", "LEGACY_UNKNOWN")
+                .containsEntry("stage", null);
+        mockMvc.perform(post("/api/v1/purchase-orders/{id}/begin-receiving-inspection", legacy)
                         .header("Authorization", bearer(admin)))
-                .andExpect(status().isOk()).andExpect(jsonPath("$.orderedProgress").value("RECEIVING_INSPECTION"));
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("ORDERED"))
+                .andExpect(jsonPath("$.orderedProgress").value("RECEIVING_INSPECTION"))
+                .andExpect(jsonPath("$.stage").value("RECEIVING_INSPECTION"));
+        assertThat(jdbcTemplate.queryForMap(
+                "SELECT status, ordered_progress, stage FROM purchase_orders WHERE id = ?", legacy))
+                .containsEntry("status", "ORDERED")
+                .containsEntry("ordered_progress", "RECEIVING_INSPECTION")
+                .containsEntry("stage", "RECEIVING_INSPECTION");
+        mockMvc.perform(get("/api/v1/purchase-orders/{id}", legacy)
+                        .header("Authorization", bearer(admin)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.orderedProgress").value("RECEIVING_INSPECTION"))
+                .andExpect(jsonPath("$.stage").value("RECEIVING_INSPECTION"));
+        cancel(admin, legacy, "inspection remains non-cancellable").andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("INVALID_PO_STATUS_TRANSITION"));
 
         long cancelled = draftIdWithDate();
         approve(admin, cancelled, null).andExpect(status().isOk());
@@ -452,10 +495,78 @@ class PurchaseOrderLifecycleIntegrationTests extends AbstractIntegrationTest {
         assertThat(row.get("cancelled_by_display_name_snapshot")).isNull();
     }
 
+    @Test
+    void stageEndpointAdvancesOnlyPreApprovalStagesAndKeepsLifecycleStatusSeparate() throws Exception {
+        User manager = user(UserRole.PROCUREMENT_MANAGER);
+        User warehouse = user(UserRole.WAREHOUSE_STAFF);
+        long id = draftIdWithDate();
+
+        long forbidden = draftId();
+        mockMvc.perform(post("/api/v1/purchase-orders/{id}/begin-sourcing", forbidden)
+                        .header("Authorization", bearer(warehouse)))
+                .andExpect(status().isForbidden()).andExpect(jsonPath("$.code").value("ACCESS_DENIED"));
+        assertThat(jdbcTemplate.queryForObject(
+                "SELECT stage FROM purchase_orders WHERE id = ?", String.class, forbidden))
+                .isEqualTo("NEW_REQUEST");
+
+        mockMvc.perform(get("/api/v1/purchase-orders/{id}", id).header("Authorization", bearer(manager)))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("DRAFT"))
+                .andExpect(jsonPath("$.stage").value("NEW_REQUEST"));
+        mockMvc.perform(patch("/api/v1/purchase-orders/{id}", id)
+                        .header("Authorization", bearer(manager)).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"stage\":\"COMPLETED\",\"status\":\"RECEIVED\"}"))
+                .andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("VALIDATION_FAILED"));
+        mockMvc.perform(get("/api/v1/purchase-orders/{id}", id).header("Authorization", bearer(manager)))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("DRAFT"))
+                .andExpect(jsonPath("$.stage").value("NEW_REQUEST"));
+        mockMvc.perform(post("/api/v1/purchase-orders/{id}/begin-sourcing", id)
+                        .header("Authorization", bearer(manager)).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"stage\":\"COMPLETED\",\"status\":\"RECEIVED\"}"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("DRAFT"))
+                .andExpect(jsonPath("$.stage").value("SOURCING"));
+        mockMvc.perform(post("/api/v1/purchase-orders/{id}/submit-for-approval", id)
+                        .header("Authorization", bearer(manager)))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.stage").value("APPROVAL"));
+        mockMvc.perform(post("/api/v1/purchase-orders/{id}/begin-sourcing", id)
+                        .header("Authorization", bearer(manager)))
+                .andExpect(status().isConflict()).andExpect(jsonPath("$.code").value("INVALID_PO_STATUS_TRANSITION"));
+        mockMvc.perform(post("/api/v1/purchase-orders/{id}/approve", id)
+                        .header("Authorization", bearer(manager)))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("APPROVED"))
+                .andExpect(jsonPath("$.stage").value("APPROVED_PENDING_ORDER"));
+        mockMvc.perform(get("/api/v1/purchase-orders/{id}", id).header("Authorization", bearer(manager)))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.stage").value("APPROVED_PENDING_ORDER"));
+    }
+
+    @Test
+    void databaseRejectsStageAndLifecycleStatusMismatch() throws Exception {
+        long id = draftId();
+        assertThatThrownBy(() -> jdbcTemplate.update(
+                "UPDATE purchase_orders SET stage = 'COMPLETED' WHERE id = ?", id))
+                .isInstanceOf(UncategorizedSQLException.class);
+        assertThat(jdbcTemplate.queryForObject(
+                "SELECT stage FROM purchase_orders WHERE id = ?", String.class, id))
+                .isEqualTo("NEW_REQUEST");
+    }
+
     private org.springframework.test.web.servlet.ResultActions approve(User user, long id, String body) throws Exception {
+        // Lifecycle cases below assume the draft has reached the approval lane.
+        mockMvc.perform(post("/api/v1/purchase-orders/{id}/begin-sourcing", id)
+                .header("Authorization", bearer(user)));
+        mockMvc.perform(post("/api/v1/purchase-orders/{id}/submit-for-approval", id)
+                .header("Authorization", bearer(user)));
         var request = post("/api/v1/purchase-orders/{id}/approve", id).header("Authorization", bearer(user));
         if (body != null) request.contentType(MediaType.APPLICATION_JSON).content(body);
         return mockMvc.perform(request);
+    }
+
+    private void advanceToApprovalLane(User user, long id) throws Exception {
+        mockMvc.perform(post("/api/v1/purchase-orders/{id}/begin-sourcing", id)
+                        .header("Authorization", bearer(user)))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.stage").value("SOURCING"));
+        mockMvc.perform(post("/api/v1/purchase-orders/{id}/submit-for-approval", id)
+                        .header("Authorization", bearer(user)))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.stage").value("APPROVAL"));
     }
 
     private org.springframework.test.web.servlet.ResultActions reject(User user, long id, String body) throws Exception {

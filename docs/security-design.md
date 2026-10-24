@@ -1327,3 +1327,7 @@ Approve、Reject、Mark Ordered、Begin Receiving Inspection、Cancel、Receive 
 ## V2-204 收貨驗收與付款確認授權
 
 開始驗收、保存驗收確認、正式整筆收貨、確認付款與撤銷確認皆由 Service `@PreAuthorize` 保護；前端是否顯示按鈕不構成授權。驗收 request 僅接受整筆到貨、全數量確認、全品質合格及備註，不接受 PO status、Stage、操作者或時間。Backend 從當前登入帳號與 Clock 產生驗收/收貨/付款稽核資料；收貨另要求 `ORDERED + RECEIVING_INSPECTION` 和三項確認全真。每個命令在交易內取得同一 PO `PESSIMISTIC_WRITE` 列鎖，避免驗收/收貨、付款確認/撤銷及重複寫入競態。未登入/未授權仍是 401/403；非法狀態或重複命令回 409。付款確認不觸發金流、銀行、財會或通知整合。
+
+## V2-205 Kanban Stage 授權與一致性
+
+`begin-sourcing` 與 `submit-for-approval` 僅對採購業務角色開放，且分別只接受目前 Stage 1 與 Stage 2；Client 不提供 Stage、正式狀態、操作者或時間。ADMIN 可透過既有 `begin-receiving-inspection` 將 `ORDERED + LEGACY_UNKNOWN + stage=NULL` 明確處置到 Stage 6；其他角色不能替未知歷史記錄選擇位置。其餘 Stage 轉移沿用核准、下單、驗收、收貨與付款的既有受控命令及角色要求。所有改變同時在 PO Aggregate 內維持 Stage/status 對應，並以 PO 列鎖與 `@Version` 序列化；Migration CHECK 再拒絕不相容的持久化組合。前端控制項與 Stage 回應只用於顯示，不是授權邊界。
