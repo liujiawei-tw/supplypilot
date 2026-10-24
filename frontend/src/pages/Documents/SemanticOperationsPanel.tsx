@@ -1,7 +1,7 @@
-import { useCallback, useLayoutEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Alert, Button, Card, Col, Descriptions, InputNumber, Modal, Row, Space, Statistic, Table, Tag, Typography } from 'antd';
 import { useNavigate, type NavigateFunction } from 'react-router-dom';
-import { getSemanticReadiness, runBackfill, runSemanticGateAudit, type BackfillBatchResponse, type SemanticGateReport } from '../../api/semanticIndex';
+import { getSemanticIndexJobs, getSemanticReadiness, retrySemanticIndexJob, runBackfill, runSemanticGateAudit, type BackfillBatchResponse, type SemanticGateReport, type SemanticIndexJob } from '../../api/semanticIndex';
 import { isUnknownMutationResult, requiresMutationVerification, toApiError } from '../../api/apiError';
 import type { ApiErrorResponse } from '../../types/api';
 import EmptyState from '../../components/EmptyState';
@@ -20,9 +20,10 @@ function storedUnknownOperations(): Operation[] {
 }
 
 function statusColor(status: string): string {
-  if (status === 'READY' || status === 'APPROVED') return 'success';
+  if (status === 'READY' || status === 'APPROVED' || status === 'SUCCEEDED') return 'success';
   if (status === 'FAILED' || status === 'REQUIRES_REVIEW') return 'error';
-  if (status === 'PENDING' || status === 'PROCESSING') return 'processing';
+  if (status === 'PENDING' || status === 'PROCESSING' || status === 'QUEUED') return 'processing';
+  if (status === 'RETRY_WAIT') return 'warning';
   return 'default';
 }
 
@@ -66,6 +67,10 @@ export default function SemanticOperationsPanel({ documentMutationVersion = 0 }:
   const [readiness, setReadiness] = useState<SemanticGateReport | null>(null);
   const [audit, setAudit] = useState<SemanticGateReport | null>(null);
   const [auditStale, setAuditStale] = useState(false);
+  const [jobs, setJobs] = useState<SemanticIndexJob[]>([]);
+  const [jobsLoading, setJobsLoading] = useState(false);
+  const [retryingJobId, setRetryingJobId] = useState<number | null>(null);
+  const [jobError, setJobError] = useState<ApiErrorResponse | null>(null);
   const [error, setError] = useState<ApiErrorResponse | null>(null);
   const [errorIsRead, setErrorIsRead] = useState(false);
   const [loading, setLoading] = useState<'readiness' | Operation | null>(null);
@@ -77,6 +82,36 @@ export default function SemanticOperationsPanel({ documentMutationVersion = 0 }:
   const requestEpoch = useRef(0);
   const previousDocumentMutationVersion = useRef(documentMutationVersion);
 
+  const refreshJobs = useCallback(async () => {
+    setJobsLoading(true);
+    try {
+      const current = await getSemanticIndexJobs();
+      setJobs(current);
+      setJobError(null);
+    } catch (cause) {
+      setJobError(toApiError(cause));
+    } finally {
+      setJobsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { void refreshJobs(); }, [refreshJobs]);
+
+  const retryJob = async (jobId: number) => {
+    if (retryingJobId !== null) return;
+    setRetryingJobId(jobId);
+    setJobError(null);
+    try {
+      await retrySemanticIndexJob(jobId);
+      await refreshJobs();
+    } catch (cause) {
+      await refreshJobs();
+      setJobError(toApiError(cause));
+    } finally {
+      setRetryingJobId(null);
+    }
+  };
+
   const invalidateReports = useCallback(() => {
     requestEpoch.current += 1;
     setReadiness(null);
@@ -87,7 +122,8 @@ export default function SemanticOperationsPanel({ documentMutationVersion = 0 }:
     if (previousDocumentMutationVersion.current === documentMutationVersion) return;
     previousDocumentMutationVersion.current = documentMutationVersion;
     invalidateReports();
-  }, [documentMutationVersion, invalidateReports]);
+    void refreshJobs();
+  }, [documentMutationVersion, invalidateReports, refreshJobs]);
 
   const start = async <T,>(operation: Operation, request: () => Promise<T>, success: (result: T) => void) => {
     if (mutationBusyRef.current || unknown.includes(operation)) return;
@@ -132,7 +168,7 @@ export default function SemanticOperationsPanel({ documentMutationVersion = 0 }:
     finally { readinessBusyRef.current = false; setLoading((current) => current === 'readiness' ? null : current); }
   };
 
-  return <Card title={<Space direction="vertical" size={0}><Title level={4} style={{ margin: 0 }}>Semantic 索引管理</Title><Text type="secondary">Document READY、Semantic Index READY、Gate PASS 與 Semantic Read 啟用是不同狀態。</Text></Space>}>
+  return <Card title={<Space direction="vertical" size={0}><Title level={4} style={{ margin: 0 }}>Semantic 索引管理</Title><Text type="secondary">文件核准後會自動排入逐文件索引；每份文件獨立發布，Gate 報表提供環境診斷。</Text></Space>}>
     <Space direction="vertical" size="large" style={{ width: '100%' }}>
       {error && <ErrorState title={unknown.length > 0 ? '操作結果未知，已鎖定重送' : 'Semantic 操作失敗'} error={error} operation={errorIsRead ? 'read' : 'mutation'} onRetry={errorIsRead ? () => void refreshReadiness() : undefined} />}
       {unknown.map((operation) => <Alert key={operation} type="warning" showIcon title={`${operation === 'audit' ? 'Gate 稽核' : 'Backfill'} 結果未知；不會自動重送`}
@@ -162,14 +198,33 @@ export default function SemanticOperationsPanel({ documentMutationVersion = 0 }:
         {!readiness && errorIsRead && <Alert style={{ marginTop: 16 }} type="warning" showIcon title="無法確認目前就緒狀態" description="最新就緒狀態查詢失敗；先前回應已清除，不可視為目前 Gate 狀態。" />}
       </Card>
 
+      <Card size="small" title="逐文件索引工作" extra={<Button loading={jobsLoading} onClick={() => void refreshJobs()}>重新整理</Button>}>
+        <Text type="secondary">核准後的索引由背景工作執行。FAILED 工作可由管理員手動重試；錯誤欄位只顯示安全代碼。</Text>
+        {jobError && <ErrorState title="索引工作查詢或重試失敗" error={jobError} operation="read" onRetry={() => void refreshJobs()} />}
+        <Table size="small" rowKey="id" loading={jobsLoading} scroll={{ x: 760 }}
+          dataSource={jobs}
+          locale={{ emptyText: <EmptyState simple description="目前沒有索引工作" /> }}
+          columns={[
+            { title: '工作編號', dataIndex: 'id', key: 'id' },
+            { title: '文件編號', dataIndex: 'documentId', key: 'documentId', render: (id: number) => <Button type="link" onClick={() => navigate('/documents?documentId=' + id)}>#{id}</Button> },
+            { title: '版本', dataIndex: 'version', key: 'version' },
+            { title: '狀態', dataIndex: 'status', key: 'status', render: (status: string) => <Tag color={statusColor(status)}>{displayLabel(status)}</Tag> },
+            { title: '嘗試次數', key: 'attempts', render: (_: unknown, job: SemanticIndexJob) => job.attempts + ' / ' + job.maxAttempts },
+            { title: '錯誤代碼', dataIndex: 'failureCode', key: 'failureCode', render: (code: string | null) => code || '—' },
+            { title: '更新時間', dataIndex: 'updatedAt', key: 'updatedAt' },
+            { title: '操作', key: 'action', render: (_: unknown, job: SemanticIndexJob) => job.status === 'FAILED'
+              ? <Button size="small" loading={retryingJobId === job.id} disabled={retryingJobId !== null} onClick={() => void retryJob(job.id)}>手動重試</Button> : '—' },
+          ]} />
+      </Card>
+
       <Card size="small" title="Gate 稽核">
         <Space direction="vertical" style={{ width: '100%' }}>
-          <Alert type="info" showIcon title="Gate 稽核會保存正式稽核結果" description="稽核通過不會啟用 Semantic Read。請依 semantic-rag-runbook.md 完成人工環境設定與重啟；新增或變更 READY 文件可能使 Gate 重新關閉。" />
+          <Alert type="info" showIcon title="Gate 稽核會保存正式稽核結果" description="Gate 稽核是整體環境的診斷紀錄，不是逐文件發布條件或每次查詢的全域阻擋。請以各文件工作狀態和目前核准版本為準。" />
           <Button danger disabled={(loading !== null && loading !== 'readiness') || unknown.includes('audit')} loading={loading === 'audit'} onClick={() => setConfirmAudit(true)}>執行並保存 Gate 稽核</Button>
           {audit && <SemanticReport report={audit} title={auditStale ? '歷史 Gate 稽核回應' : '本頁最近取得的稽核回應'} saved stale={auditStale} navigate={navigate} />}
         </Space>
       </Card>
-      <Alert type="warning" showIcon title="Semantic Read 開關不由此介面控制" description="只有正式 Gate 稽核通過後，才依 Runbook 明確設定 SEMANTIC_READ_ENABLED 並重新啟動 後端。此頁不會顯示或推定開關已啟用。" />
+      <Alert type="warning" showIcon title="Semantic Read 由部署設定控制" description="SEMANTIC_READ_ENABLED 仍由部署環境管理；Gate 稽核不會逐文件啟用或關閉已發布文件的查詢。此頁不會顯示或推定環境開關已啟用。" />
     </Space>
 
     <Modal title="確認執行 Gate 稽核" open={confirmAudit} okText="確認並保存稽核結果" confirmLoading={loading === 'audit'} onOk={() => { setConfirmAudit(false); void start('audit', runSemanticGateAudit, (report) => setAudit(report)); }} onCancel={() => setConfirmAudit(false)}>

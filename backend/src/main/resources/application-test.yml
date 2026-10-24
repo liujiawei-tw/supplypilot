@@ -8,7 +8,13 @@ supplypilot:
     secret: dGVzdC1zZWNyZXQtZm9yLXVuaXQtdGVzdHMtb25seS1hdC1sZWFzdC0yNTYtYml0cw==
     expiration-seconds: 3600
   frontend-origin: http://localhost:5173
+  semantic:
+    indexing:
+      worker-enabled: false
+      poll-interval-millis: 1000
+      max-attempts: 4
+      initial-retry-delay: PT0S
+      max-retry-delay: PT0S
   document-storage:
     type: local
     path: ${java.io.tmpdir}/supplypilot-test-documents
-

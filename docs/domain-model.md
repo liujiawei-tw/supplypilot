@@ -1949,3 +1949,11 @@ V27 在 `purchase_orders` 增加三個預設 `FALSE` 的目前驗收事實欄位
 V2-205 新增獨立 `PurchaseOrderStage` 與 nullable `purchase_orders.stage`。Stage 1～3 對應 DRAFT、4 對應 APPROVED、5～6 對應 ORDERED、7～8 對應 RECEIVED；REJECTED/CANCELLED 的 Stage 為 NULL。Stage 與 status 由同一 PurchaseOrder Aggregate 命令同步變更，並由 V28 CHECK constraint 限定相容組合。新 PO 從 `NEW_REQUEST` 開始；只有 1→2、2→3 可使用受控 Stage 前進命令，核准、下單、驗收收貨、付款確認/撤銷仍由原業務命令完成轉移。所有變更沿用 PO 列鎖、`@Version` 與既有 Service Transaction。
 
 V28 對舊 PO 採可由既有欄位證明的映射：所有 DRAFT 從 Stage 1 開始；APPROVED 為 Stage 4；ORDERED + FOLLOW_UP 為 Stage 5；ORDERED + RECEIVING_INSPECTION 為 Stage 6；RECEIVED 依目前付款確認事實分別為 Stage 7/8；REJECTED/CANCELLED 不進活動看板。ORDERED + LEGACY_UNKNOWN 的 Stage 保持 NULL，因舊資料不能證明它位於第 5 或第 6 欄，且不進活動八欄。ADMIN 可使用既有 `begin-receiving-inspection` 受控命令明確將該筆 PO 作為第 6 欄處置；同一 Aggregate 交易將 `ordered_progress` 與 Stage 設為 `RECEIVING_INSPECTION`，不回填或宣稱其歷史上曾位於第 5/6 欄，也不改 Inventory/StockTransaction。之後仍須完成一般驗收流程才可收貨。Stage 只保存目前位置，不另建移動歷史。
+
+## V2-302 Document Semantic Index Job（Issue #146）
+
+DocumentMetadata.semanticIndexGeneration 是文件審核／索引快照的單調遞增代次。審核結果、文件版本或來源 hash 改變時遞增；相同核准事件重送不會再增加代次。
+
+SemanticIndexJob 是持久化背景工作記錄，保存 document id、version、source hash、模型 generation key、文件 generation、狀態、嘗試次數、重試次數、lease、下次執行時間及安全錯誤代碼。生命週期為 QUEUED → PROCESSING → SUCCEEDED，暫時錯誤進入 RETRY_WAIT，超過上限成為 FAILED；快照過期或被更新代次取代時成為 SUPERSEDED。FAILED 可由 ADMIN 在現行核准仍有效時手動重試。
+
+索引 job 不改變文件本身的 READY lifecycle；索引失敗獨立記錄，已發布文件的完整向量仍由 PostgreSQL 原子替換策略保護。

@@ -1,6 +1,7 @@
 package com.supplypilot.document.semantic;
 
 import java.time.Clock;
+import java.util.List;
 
 import com.supplypilot.common.exception.BusinessException;
 import com.supplypilot.common.exception.ErrorCode;
@@ -18,16 +19,22 @@ import org.springframework.transaction.annotation.Transactional;
 public class SemanticOutboundApprovalService {
     private final DocumentMetadataRepository documents;
     private final DocumentChunkRepository chunks;
+    private final SemanticIndexJobRepository jobs;
+    private final SemanticProperties properties;
     private final CurrentUserProvider currentUser;
     private final Clock clock;
     private final OutboundDocumentPolicy policy;
 
     public SemanticOutboundApprovalService(DocumentMetadataRepository documents,
                                            DocumentChunkRepository chunks,
+                                           SemanticIndexJobRepository jobs,
+                                           SemanticProperties properties,
                                            CurrentUserProvider currentUser, Clock clock,
                                            OutboundDocumentPolicy policy) {
         this.documents = documents;
         this.chunks = chunks;
+        this.jobs = jobs;
+        this.properties = properties;
         this.currentUser = currentUser;
         this.clock = clock;
         this.policy = policy;
@@ -55,11 +62,16 @@ public class SemanticOutboundApprovalService {
         if (source.isEmpty()) throw new BusinessException(ErrorCode.VALIDATION_FAILED);
         String hash = SemanticBackfillService.sourceHash(source);
         var decision = exclude
-                ? new OutboundDocumentPolicy.Decision("SKIPPED", "ADMIN_EXCLUDED", java.util.List.of())
+                ? new OutboundDocumentPolicy.Decision("SKIPPED", "ADMIN_EXCLUDED", List.of())
                 : policy.inspectContents(source.stream().map(chunk -> chunk.getContent()).toList());
         SemanticReviewStatus status = SemanticReviewStatus.valueOf(decision.status());
-        document.reviewSemanticOutbound(hash, currentUser.getCurrentUserId(), clock.instant(),
+        long generation = document.reviewSemanticOutbound(hash, currentUser.getCurrentUserId(), clock.instant(),
                 status, decision.reason());
+        if (status == SemanticReviewStatus.APPROVED) {
+            // This insert shares the MySQL approval transaction. The worker can claim it only after commit.
+            jobs.enqueue(documentId, document.getVersion(), hash, properties.generationKey(), generation,
+                    clock.instant());
+        }
         return new Review(documentId, document.getVersion(), hash, document.getSemanticApprovedBy(),
                 status, decision.reason());
     }

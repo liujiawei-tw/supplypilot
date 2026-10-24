@@ -969,3 +969,18 @@ API Design
 ```
 
 在沒有新的 Functional Requirement 前，不需要再增加資料表。
+
+## V2-302 語意索引持久工作表（Issue #146）
+
+MySQL V30 新增 document_metadata.semantic_index_generation BIGINT NOT NULL DEFAULT 0 及 semantic_index_jobs：
+
+| 欄位 | 定義 |
+|---|---|
+| id | BIGINT AUTO_INCREMENT 主鍵 |
+| document_id | document_metadata(id) 外鍵，刪除文件時 cascade |
+| document_version、source_hash、generation_key、document_generation | 工作快照 |
+| status、attempts、retry_count | 狀態與重試紀錄 |
+| next_attempt_at、lease_until | 背景輪詢與程序重啟回收 |
+| failure_code、created_at、updated_at | 安全錯誤及時間戳 |
+
+唯一鍵為 (document_id, document_version, source_hash, generation_key, document_generation)；poll index 支援到期與待執行工作查找，document index 支援近期文件工作查詢。PostgreSQL semantic migration V2 為 semantic_document_indexes 增加 publication_generation BIGINT NOT NULL DEFAULT 0，作為原子發布的版本 fencing 欄位。

@@ -81,6 +81,9 @@ public class DocumentMetadata {
     @Column(name = "semantic_review_reason", length = 120)
     private String semanticReviewReason;
 
+    @Column(name = "semantic_index_generation", nullable = false)
+    private long semanticIndexGeneration;
+
     protected DocumentMetadata() {
     }
 
@@ -141,20 +144,32 @@ public class DocumentMetadata {
     }
 
     /** V18 approval columns retain the ADMIN review identity for all review outcomes. */
-    public void reviewSemanticOutbound(String sourceHash, Long actorId, Instant now,
+    public long reviewSemanticOutbound(String sourceHash, Long actorId, Instant now,
                                        SemanticReviewStatus reviewStatus, String reason) {
         if (status != DocumentStatus.READY || sourceHash == null || sourceHash.length() != 64
                 || actorId == null || reviewStatus == null || (reviewStatus != SemanticReviewStatus.APPROVED
                 && (reason == null || reason.isBlank() || reason.length() > 120))) {
             throw new BusinessException(ErrorCode.VALIDATION_FAILED);
         }
+        String reviewedVersion = version;
+        boolean reviewChanged = semanticReviewStatus != reviewStatus
+                || !Objects.equals(semanticApprovedSourceHash, sourceHash)
+                || !Objects.equals(semanticReviewVersion, reviewedVersion)
+                || !Objects.equals(semanticReviewReason, reason);
+        if (reviewChanged) {
+            if (semanticIndexGeneration == Long.MAX_VALUE) {
+                throw new BusinessException(ErrorCode.VALIDATION_FAILED);
+            }
+            semanticIndexGeneration++;
+        }
         semanticApprovedSourceHash = sourceHash;
         semanticApprovedBy = actorId;
         semanticApprovedAt = Objects.requireNonNull(now);
-        semanticReviewVersion = version;
+        semanticReviewVersion = reviewedVersion;
         semanticReviewStatus = reviewStatus;
         semanticReviewReason = reason;
         updatedAt = now;
+        return semanticIndexGeneration;
     }
 
     private void transitionFromProcessing(DocumentStatus target, Instant now) {
@@ -190,4 +205,5 @@ public class DocumentMetadata {
     public String getSemanticReviewVersion() { return semanticReviewVersion; }
     public SemanticReviewStatus getSemanticReviewStatus() { return semanticReviewStatus; }
     public String getSemanticReviewReason() { return semanticReviewReason; }
+    public long getSemanticIndexGeneration() { return semanticIndexGeneration; }
 }

@@ -39,6 +39,23 @@ class DocumentMetadataTests {
     }
 
     @Test
+    void semanticReviewGenerationChangesOnlyWhenReviewedSnapshotChanges() {
+        DocumentMetadata document = document();
+        document.markReady(UPLOADED_AT.plusSeconds(1));
+        String firstHash = "a".repeat(64);
+        String secondHash = "b".repeat(64);
+
+        assertThat(document.reviewSemanticOutbound(firstHash, 42L, UPLOADED_AT.plusSeconds(2),
+                SemanticReviewStatus.APPROVED, null)).isEqualTo(1);
+        assertThat(document.reviewSemanticOutbound(firstHash, 42L, UPLOADED_AT.plusSeconds(3),
+                SemanticReviewStatus.APPROVED, null)).isEqualTo(1);
+        assertThat(document.reviewSemanticOutbound(secondHash, 42L, UPLOADED_AT.plusSeconds(4),
+                SemanticReviewStatus.APPROVED, null)).isEqualTo(2);
+        assertThat(document.reviewSemanticOutbound(secondHash, 42L, UPLOADED_AT.plusSeconds(5),
+                SemanticReviewStatus.SKIPPED, "ADMIN_EXCLUDED")).isEqualTo(3);
+    }
+
+    @Test
     void ingestionTransitionsOnlyFromProcessing() {
         DocumentMetadata ready = document();
         ready.markReady(UPLOADED_AT.plusSeconds(1));

@@ -12,10 +12,12 @@ import org.springframework.context.annotation.Condition;
 import org.springframework.context.annotation.ConditionContext;
 import org.springframework.context.annotation.Conditional;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.core.type.AnnotatedTypeMetadata;
 
 @Configuration(proxyBeanMethods = false)
-@EnableConfigurationProperties(SemanticProperties.class)
+@EnableConfigurationProperties({SemanticProperties.class, SemanticIndexingProperties.class})
+@EnableScheduling
 public class SemanticConfiguration {
     @Bean
     @ConditionalOnMissingBean(EmbeddingModel.class)

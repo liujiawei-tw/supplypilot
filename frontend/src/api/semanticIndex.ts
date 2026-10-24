@@ -29,6 +29,20 @@ export interface SemanticFinding {
   reason: string | null;
 }
 
+export type SemanticIndexJobStatus = 'QUEUED' | 'PROCESSING' | 'RETRY_WAIT' | 'SUCCEEDED' | 'FAILED' | 'SUPERSEDED';
+
+export interface SemanticIndexJob {
+  id: number;
+  documentId: number;
+  version: string;
+  status: SemanticIndexJobStatus;
+  attempts: number;
+  maxAttempts: number;
+  retryCount: number;
+  nextAttemptAt: string | null;
+  failureCode: string | null;
+  updatedAt: string;
+}
 export interface SemanticGateReport {
   passed: boolean;
   generationKey: string;
@@ -63,6 +77,20 @@ function validBatch(value: unknown): value is BackfillBatchResponse {
     && typeof item.morePossible === 'boolean';
 }
 
+function validJob(value: unknown): value is SemanticIndexJob {
+  if (!value || typeof value !== 'object') return false;
+  const item = value as Record<string, unknown>;
+  return validNumber(item.id) && validNumber(item.documentId) && typeof item.version === 'string'
+    && ['QUEUED', 'PROCESSING', 'RETRY_WAIT', 'SUCCEEDED', 'FAILED', 'SUPERSEDED'].includes(String(item.status))
+    && validNumber(item.attempts) && validNumber(item.maxAttempts) && validNumber(item.retryCount)
+    && (item.nextAttemptAt === null || typeof item.nextAttemptAt === 'string')
+    && (item.failureCode === null || typeof item.failureCode === 'string')
+    && typeof item.updatedAt === 'string';
+}
+
+function validJobs(value: unknown): value is SemanticIndexJob[] {
+  return Array.isArray(value) && value.every(validJob);
+}
 function validReport(value: unknown): value is SemanticGateReport {
   if (!value || typeof value !== 'object') return false;
   const item = value as Record<string, unknown>;
@@ -113,4 +141,15 @@ export function getSemanticReadiness(): Promise<SemanticGateReport> {
 
 export function runSemanticGateAudit(): Promise<SemanticGateReport> {
   return axiosClient.post<SemanticGateReport>('/semantic-index/gate-audit').then(({ data, config }) => mutationResult(config, data, validAuditReport));
+}
+
+export function getSemanticIndexJobs(limit = 50): Promise<SemanticIndexJob[]> {
+  return axiosClient.get<SemanticIndexJob[]>('/semantic-index/jobs', { params: { limit } }).then(({ data }) => {
+    if (!validJobs(data)) throw new Error('Backend returned an incomplete Semantic indexing job list.');
+    return data;
+  });
+}
+
+export function retrySemanticIndexJob(jobId: number): Promise<SemanticIndexJob> {
+  return axiosClient.post<SemanticIndexJob>('/semantic-index/jobs/' + jobId + '/retry').then(({ data, config }) => mutationResult(config, data, validJob));
 }
