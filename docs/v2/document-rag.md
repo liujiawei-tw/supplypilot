@@ -38,7 +38,7 @@
 ## 4. 逐文件發布（取代日常全域 Gate）
 
 1. 上傳與解析完成，文件在 MySQL 可為 READY，但**不代表可供語意查詢**。
-2. 管理員對**特定文件來源版本/hash**核准合法出站。
+2. 一般文件由管理員對**特定文件來源版本/hash**核准合法出站；固定可信 Demo Seed 由專用系統審核 seam 重新驗證來源及既有出站政策後決定是否核准。
 3. 核准成功即排入**持久化、非同步**索引工作；不要求管理員另按 Backfill 或 Gate Audit。
 4. 真實 Gemini Embedding → pgvector 建立／驗證 Chunk、model generation、來源 hash。
 5. 只在該文件索引完整、政策合規與版本一致後**原子發布**；其他已發布文件始終可正常查詢。
@@ -51,7 +51,7 @@ Documents API 會分開回傳文件 ingestion `status`、持久化 `semanticRevi
 ## 5. Demo 語料與首次審查
 
 - Demo Seed 使用 `samples/documents/corpus-catalog.json` 記錄文件鍵、類型、theme、版本、標題、供應商/物料關聯、`SP-901` corpus provenance 與來源 SHA-256；`samples/documents/rag-fixtures.json` 記錄靜態問答及預期引用。Catalog 欄位只建立可信來源清單；它本身不記錄或授予核准結果，也不能證明資料已傳送或索引已發布。
-- `DemoCorpusSyncService` 只讀取 demo Repository corpus 的 catalog 與來源，固定核對 schema、dataset key、corpus version、文件鍵、類型、標題、版本、supplier 關聯、政策、provenance 和 canonical-LF source hash。同步與系統核准共用 `DemoCorpusCatalogTrust`，要求 catalog 為一般檔案且非 symlink，且 UTF-8 內容換行正規化為 LF 後符合固定 SHA-256 `EA11CD69DC5311836845ECA3B282A9325C74F9159CB9987FE945FE41E45B9114`；外部自製同 envelope catalog 不受信任。重跑以 `(datasetKey, documentKey, version)` 和持久 provenance 辨識基線，絕不只靠標題合併。
+- `DemoCorpusSyncService` 只讀取 demo Repository corpus 的 catalog 與來源，固定核對 schema、dataset key、corpus version、文件鍵、類型、標題、版本、supplier 關聯、政策、provenance 和 canonical-LF source hash。同步與系統核准共用 `DemoCorpusCatalogTrust`，要求 catalog 為一般檔案且非 symlink，且 UTF-8 內容換行正規化為 LF 後符合固定 SHA-256 `8F7DD4A00A3CC17C079174035A0FAD42D3B1A792BA2D254163B86928F7EB1F8B`；外部自製同 envelope catalog 不受信任。重跑以 `(datasetKey, documentKey, version)` 和持久 provenance 辨識基線，絕不只靠標題合併。
 - 無 provenance 的舊 Seed 只有在 type/title/version/supplier 與 catalog 完全相符、唯一候選且資料庫儲存來源的 canonical-LF hash 完全相符時才可採用並寫入 provenance。候選歧義、來源或欄位不同、已存在 keyed baseline 被改動時，建立同步 conflict 並保留原文件；不覆寫其來源，也不覆蓋有效人工審查 audit。
 - 只有 demo profile、明確允許的 MySQL DEMO 資料庫、demo 文件儲存根目錄、相符 Repository catalog entry、READY chunks/source proof 及當下 `OutboundDocumentPolicy` 都通過時，專用 system approval seam 才能記錄 `SYSTEM / TRUSTED_DEMO_CORPUS` 審查和 enqueue 現有 durable job。它不偽裝管理員，沒有 HTTP 授權入口；一般上傳與一般 API 仍走使用者既有審查流程。需審查或政策阻擋的結果會保留原因，不排索引工作。
 - Semantic PostgreSQL URL 必須指向設定的 demo database，host 僅允許 Compose `pgvector` 或 loopback (`localhost`、`127.0.0.1`、`::1`)。URL 缺少或目標不符時保留文件 READY、記錄 `REQUIRES_REVIEW` 且不 enqueue；已驗證為 demo 的目標暫時不可連線時，durable job 可等待既有 worker 重試，API 必須顯示待處理/不可用，直到 PostgreSQL 發布證明核對成功。

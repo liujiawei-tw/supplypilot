@@ -35,7 +35,7 @@ Demo Profile 的 Compose 預設為 `DEMO_DATASET_VERSION=sp-907-zh-tw-v3`、`DEM
 
 ### 3.3 語料同步與完成 marker
 
-關聯式升級後，AUTO_SAFE 會呼叫 `DemoCorpusSyncService.synchronizeBaseline()`；目標版本已完成時也會重跑此冪等同步，以便恢復中斷的來源基線工作。同步只處理 `SP-901`、`sp-907-zh-tw-v3` Catalog 中 115 筆 `SEED_BASELINE` 來源；唯一 `MANUAL_UI_UPLOAD_ONLY` 項目不會被自動建立、採用或改動。來源檔雜湊、關聯供應商、文件身分或既有來源不符時記錄 source conflict，失敗時保留可重試狀態。
+關聯式升級後，AUTO_SAFE 會呼叫 `DemoCorpusSyncService.synchronizeBaseline()`；目標版本已完成時也會重跑此冪等同步，以便恢復中斷的來源基線工作。同步先取得 MySQL named lock，讓共用 DEMO 資料庫的多個程序依序執行，最多等待 300 秒；同步只處理 `SP-901`、`sp-907-zh-tw-v3` Catalog 中 115 筆 `SEED_BASELINE` 來源；唯一 `MANUAL_UI_UPLOAD_ONLY` 項目不會被自動建立、採用或改動。來源檔雜湊、關聯供應商、文件身分或既有來源不符時記錄 source conflict，失敗時保留可重試狀態。
 
 資料集 marker 只有在目標版本的關聯式階段完成，且 115/115 來源已存在或採用、Ingestion 為 READY，並且沒有來源 conflict/failure 時才可成為 `COMPLETE`。這個 marker 不代表文件都已核准或語意索引已發布；核准政策、每份文件的索引狀態、排程與 pending/retry 由文件生命週期獨立追蹤。索引 pending 不會被冒充為索引完成，也不阻止關聯式/來源基線 marker 完成；Provider 未就緒不得讓採購核心不可用。
 
@@ -48,7 +48,7 @@ Demo Profile 的 Compose 預設為 `DEMO_DATASET_VERSION=sp-907-zh-tw-v3`、`DEM
 ## 4. RAG 文件與索引驗收
 
 - Document READY 代表上傳及解析完成，不代表可供語意查詢或已發布索引。
-- 新文件須經管理員對特定來源版本/hash 審查；通過後依 #146 持久化非同步索引流程執行。
+- 一般新增文件須經管理員對特定來源版本/hash 審查；符合固定可信 Seed 清單者由 Demo 專用系統審核 seam 依出站政策決定是否核准。核准後依 #146 持久化非同步索引流程執行。
 - 真實 Gemini Embedding、pgvector 發布、引用來源及回答品質只有在實際執行並保存證據後才可標示 PASS。靜態 Fixture 或 Fake Provider 不代表 RAG 品質 PASS。
 - Gemini 不可用、限流或中斷時，不能宣稱索引或查詢驗收完成；採購核心流程仍須可用。
 
@@ -65,7 +65,7 @@ Demo Profile 的 Compose 預設為 `DEMO_DATASET_VERSION=sp-907-zh-tw-v3`、`DEM
 | 搜尋 | PO/供應商/物料文字條件及原有日期/狀態，含 101 筆以上分頁與安全查詢 |
 | RAG | MySQL+pgvector 查詢融合、文件名稱/版本/原文摘錄、無證據拒答、敏感出站不繞過 |
 | 索引 | 新文件未索引/失敗不阻斷已發布文件；核准後自動 Job、Retry、Reboot 恢復與 admin Retry |
-| Demo | 種子資料/語料契約一致；新增文件待審；既有資料升級具 Demo 隔離、Dry Run、目標確認及冪等性 |
+| Demo | 種子資料/語料契約一致；可信 Seed 依系統審核及出站政策處理，一般新增文件待管理員審查；既有資料升級具 Demo 隔離、Dry Run、目標確認及冪等性 |
 | UI | 繁中、時區、RWD、金額格式、只保留使用者確認的功能範圍 |
 | 可靠性 | JWT、後端權限、交易回滾、併發 409、Provider 503、安全錯誤訊息及秘密資料保護 |
 

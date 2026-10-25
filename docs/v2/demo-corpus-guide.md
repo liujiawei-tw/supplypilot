@@ -32,7 +32,7 @@ PO 範例由同一主檔的供應商、物料及 `SupplierMaterial` 條件交叉
 
 ## 信任邊界、審查、出站與索引
 
-`DemoCorpusSyncService` 只信任 demo profile 中 Repository 的目前 corpus catalog 和來源檔，並精確核對 dataset/version、document key、type/title/version、supplier code/name、theme、來源 filename/hash、approval/outbound policy 與完整 provenance。同步與系統核准共用 `DemoCorpusCatalogTrust`：catalog 必須是一般檔案（regular file）、不可為 symlink，且 UTF-8 文字將 CRLF/CR 正規化為 LF 後須符合固定 SHA-256 `EA11CD69DC5311836845ECA3B282A9325C74F9159CB9987FE945FE41E45B9114`；改用自製同 envelope catalog 或只改 `samplesPath` 不會取得信任。內容 hash 同樣將換行正規化為 LF。同步會以 `(datasetKey, documentKey, version)` 和持久 provenance 做冪等比對，絕不只用標題判斷身分。
+`DemoCorpusSyncService` 只信任 demo profile 中 Repository 的目前 corpus catalog 和來源檔，並精確核對 dataset/version、document key、type/title/version、supplier code/name、theme、來源 filename/hash、approval/outbound policy 與完整 provenance。同步與系統核准共用 `DemoCorpusCatalogTrust`：catalog 必須是一般檔案（regular file）、不可為 symlink，且 UTF-8 文字將 CRLF/CR 正規化為 LF 後須符合固定 SHA-256 `8F7DD4A00A3CC17C079174035A0FAD42D3B1A792BA2D254163B86928F7EB1F8B`；改用自製同 envelope catalog 或只改 `samplesPath` 不會取得信任。內容 hash 同樣將換行正規化為 LF。同步會以 `(datasetKey, documentKey, version)` 和持久 provenance 做冪等比對，絕不只用標題判斷身分。
 
 無 provenance 的舊資料只會在唯一候選、type/title/version/supplier 完全相符，且資料庫保存來源的 canonical hash 與 catalog 相同時採用；檢查通過後才寫 provenance。重複候選、任何欄位或 source hash 不符、或既有 keyed baseline 被修改，會留下 sync conflict 並保留既有文件與來源，不會覆寫內容。有效人工審查 audit 也不會被 legacy adoption 覆蓋。
 

@@ -66,6 +66,7 @@ public class DemoCorpusSyncService {
     private final TextChunker chunker;
     private final DemoCorpusTrustedApprovalService approvals;
     private final DocumentSemanticLifecycleReader lifecycleReader;
+    private final DemoCorpusSyncLock synchronizationLock;
 
     public DemoCorpusSyncService(DemoProperties demoProperties,
             @Value("${supplypilot.document-storage.path:./data/demo-documents}") String documentStoragePath,
@@ -74,7 +75,8 @@ public class DemoCorpusSyncService {
             DocumentService documentService, DocumentIngestionService ingestion,
             DocumentStorageService storage, DocumentChunkRepository chunks,
             DocumentTextExtractor textExtractor, TextChunker chunker,
-            DemoCorpusTrustedApprovalService approvals, DocumentSemanticLifecycleReader lifecycleReader) {
+            DemoCorpusTrustedApprovalService approvals, DocumentSemanticLifecycleReader lifecycleReader,
+            DemoCorpusSyncLock synchronizationLock) {
         this.demoProperties = demoProperties;
         this.documentStorageRoot = Path.of(documentStoragePath).toAbsolutePath().normalize();
         this.objectMapper = objectMapper;
@@ -90,9 +92,14 @@ public class DemoCorpusSyncService {
         this.chunker = chunker;
         this.approvals = approvals;
         this.lifecycleReader = lifecycleReader;
+        this.synchronizationLock = synchronizationLock;
     }
 
     public synchronized SyncReport synchronizeBaseline() {
+        return synchronizationLock.withLock(this::synchronizeBaselineWithLock);
+    }
+
+    private SyncReport synchronizeBaselineWithLock() {
         Instant startedAt = clock.instant();
         String runId = UUID.randomUUID().toString();
         requireDemoTarget();

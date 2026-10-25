@@ -14,6 +14,9 @@ import java.math.BigDecimal;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -95,7 +98,49 @@ class DemoSeedSmokeIntegrationTests {
     @Autowired private JdbcTemplate jdbc;
     @Autowired private MockMvc mockMvc;
     @Autowired private ObjectMapper objectMapper;
+    @Autowired private DemoCorpusSyncLock corpusSyncLock;
 
+    @Test
+    void corpusSyncLockSerializesConcurrentDatabaseSessions() throws Exception {
+        CountDownLatch firstEntered = new CountDownLatch(1);
+        CountDownLatch releaseFirst = new CountDownLatch(1);
+        CountDownLatch secondStarted = new CountDownLatch(1);
+        CountDownLatch secondEntered = new CountDownLatch(1);
+        try (var executor = Executors.newFixedThreadPool(2)) {
+            var first = executor.submit(() -> corpusSyncLock.withLock(() -> {
+                firstEntered.countDown();
+                awaitLatch(releaseFirst);
+                return "first";
+            }));
+            assertThat(firstEntered.await(5, TimeUnit.SECONDS)).isTrue();
+            var second = executor.submit(() -> {
+                secondStarted.countDown();
+                return corpusSyncLock.withLock(() -> {
+                    secondEntered.countDown();
+                    return "second";
+                });
+            });
+            assertThat(secondStarted.await(5, TimeUnit.SECONDS)).isTrue();
+            assertThat(secondEntered.await(250, TimeUnit.MILLISECONDS)).isFalse();
+            releaseFirst.countDown();
+            assertThat(first.get(5, TimeUnit.SECONDS)).isEqualTo("first");
+            assertThat(secondEntered.await(5, TimeUnit.SECONDS)).isTrue();
+            assertThat(second.get(5, TimeUnit.SECONDS)).isEqualTo("second");
+        } finally {
+            releaseFirst.countDown();
+        }
+    }
+
+    private static void awaitLatch(CountDownLatch latch) {
+        try {
+            if (!latch.await(5, TimeUnit.SECONDS)) {
+                throw new IllegalStateException("Timed out waiting to release the first corpus lock holder");
+            }
+        } catch (InterruptedException exception) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("Interrupted while waiting for corpus lock test", exception);
+        }
+    }
     @Test
     void onlyAdminBaselineAccountUsesConfiguredPassword() throws Exception {
         assertLogin("admin", PASSWORD, 200, "ADMIN");
