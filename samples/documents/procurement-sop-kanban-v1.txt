@@ -1,0 +1,13 @@
+標題：採購單終止與看板階段處理程序
+文件類型：PROCUREMENT_SOP
+版本：1.0
+虛構展示文件：本文為採購流程示例，不代表真實公司的制度或個別使用者授權。
+
+正式採購單草稿（DRAFT）自 NEW_REQUEST 開始，依序經 SOURCING、APPROVAL；核准後正式狀態成為 APPROVED 並進入 APPROVED_PENDING_ORDER；完成下單後正式狀態成為 ORDERED 並進入 ORDER_FOLLOW_UP。之後依序進入 RECEIVING_INSPECTION、PAYMENT_RECONCILIATION、COMPLETED。流程只能逐階段向前推進，不得跳過核准、下單或收貨檢查。正式 PurchaseOrderStatus 與看板 stage 分開保存：整筆驗收合格後狀態為 RECEIVED；人工確認付款後看板進入 COMPLETED，但正式狀態維持 RECEIVED。若付款確認需要撤銷，可依授權操作由 COMPLETED 回到 PAYMENT_RECONCILIATION 重新處理。
+
+採購單在前三個階段正式狀態為 DRAFT；若於核准流程中被駁回，正式狀態記為 REJECTED。位於 APPROVED_PENDING_ORDER 的 APPROVED 採購單，或位於 ORDER_FOLLOW_UP 的 ORDERED 採購單，可依規則取消為 CANCELLED，並記錄取消原因；尚未收貨的取消不應造成庫存異動。進入 RECEIVING_INSPECTION、PAYMENT_RECONCILIATION 或 COMPLETED 後，不允許以取消替代收貨或付款例外處理。
+
+看板欄位只顯示目前階段，不保留每次移動的歷史清單。採購單正式狀態和看板階段各自表達不同資訊，不得把 REJECTED 或 CANCELLED 當作一般流程階段。
+
+問答：哪些階段可取消採購單，哪些階段不可取消？
+預期依據：第 4 階段的 APPROVED 與第 5 階段的 ORDERED 採購單可依規則取消為 CANCELLED；第 6 至第 8 階段不可取消；前三階段的 DRAFT 若遭駁回則為 REJECTED。

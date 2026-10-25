@@ -8,6 +8,8 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Profile;
 import org.springframework.core.env.Environment;
+import org.springframework.core.Ordered;
+import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -15,6 +17,7 @@ import org.springframework.stereotype.Component;
 @ConditionalOnProperty(name = "supplypilot.demo-data-enabled", havingValue = "true")
 @ConditionalOnProperty(name = "supplypilot.demo.reset-command-enabled", havingValue = "false", matchIfMissing = true)
 @EnableConfigurationProperties(DemoProperties.class)
+@Order(Ordered.LOWEST_PRECEDENCE - 1)
 public class DemoDataInitializer implements ApplicationRunner {
     private final Environment environment;
     private final DemoDataCoordinator coordinator;

@@ -1,0 +1,3 @@
+samples/documents/*.txt text eol=lf
+samples/documents/*.json text eol=lf
+samples/demo-master-data.json text eol=lf

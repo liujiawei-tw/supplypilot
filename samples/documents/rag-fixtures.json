@@ -1,0 +1,436 @@
+{
+  "schemaVersion": 1,
+  "corpusVersion": "sp-906-zh-tw-v2",
+  "fixtures": [
+    {
+      "fixtureKey": "RAG-001",
+      "category": "supplier_fact",
+      "question": "SUP-001 供應 MAT-001 的標準交期從何時起算、為多久？",
+      "expectedAnswerPoints": [
+        "採購單進入 ORDERED 後起算。",
+        "標準交期為 5 個日曆日。"
+      ],
+      "expectedSourceKeys": [
+        "DOC-SUP-001-CONTRACT"
+      ],
+      "citationRequirements": [
+        "引用來源標題與版號。",
+        "交期及起算條件須有同一來源原文支持。"
+      ],
+      "expectedStatus": "ANSWER"
+    },
+    {
+      "fixtureKey": "RAG-002",
+      "category": "supplier_material_terms",
+      "question": "SUP-001 的 MAT-001 最低訂購量、包裝倍數及供貨條件有效日為何？",
+      "expectedAnswerPoints": [
+        "最低訂購量 800 KG。",
+        "訂購量為 100 KG 整數倍。",
+        "供貨條件有效至 2026-12-31（含當日）。"
+      ],
+      "expectedSourceKeys": [
+        "DOC-SUP-001-QUOTATION"
+      ],
+      "citationRequirements": [
+        "引用報價文件標題與版號。",
+        "每一數值均引用原文摘錄。"
+      ],
+      "expectedStatus": "ANSWER"
+    },
+    {
+      "fixtureKey": "RAG-003",
+      "category": "supplier_material_terms",
+      "question": "SUP-002 供應 MAT-001 的 MOQ、包裝倍數和交期是什麼？",
+      "expectedAnswerPoints": [
+        "最低 500 KG。",
+        "每次增量 50 KG。",
+        "ORDERED 後 3 個日曆日。"
+      ],
+      "expectedSourceKeys": [
+        "DOC-SUP-002-QUOTATION"
+      ],
+      "citationRequirements": [
+        "引用同一現行供貨條件段落。",
+        "交期起算狀態不可省略。"
+      ],
+      "expectedStatus": "ANSWER"
+    },
+    {
+      "fixtureKey": "RAG-004",
+      "category": "supplier_material_terms",
+      "question": "SUP-002 供應 MAT-002 芒果濃縮汁的最低量、包裝增量與交期為何？",
+      "expectedAnswerPoints": [
+        "MAT-002 最低 400 KG。",
+        "每次增量 25 KG。",
+        "ORDERED 後 8 個日曆日。"
+      ],
+      "expectedSourceKeys": [
+        "DOC-SUP-002-QUOTATION"
+      ],
+      "citationRequirements": [
+        "引用 SUP-002 報價文件與版本。",
+        "不得混用 MAT-001 條件。"
+      ],
+      "expectedStatus": "ANSWER"
+    },
+    {
+      "fixtureKey": "RAG-005",
+      "category": "supplier_material_terms",
+      "question": "SUP-007 供應 MAT-010 的最低訂購量、包裝倍數及標準交期為何？",
+      "expectedAnswerPoints": [
+        "最低 150 KG。",
+        "50 KG 整數倍。",
+        "ORDERED 後 4 個日曆日。"
+      ],
+      "expectedSourceKeys": [
+        "DOC-SUP-007-QUOTATION"
+      ],
+      "citationRequirements": [
+        "引用 SUP-007 現行展示條件及版號。",
+        "不得混用其他供應商交期。"
+      ],
+      "expectedStatus": "ANSWER"
+    },
+    {
+      "fixtureKey": "RAG-006",
+      "category": "material_fact",
+      "question": "MAT-001 阿薩姆紅茶萃取物的基本單位與儲存方式為何？",
+      "expectedAnswerPoints": [
+        "基本單位為 KG。",
+        "陰涼乾燥處保存，避免陽光直射並保持密封。"
+      ],
+      "expectedSourceKeys": [
+        "DOC-MAT-001-SPEC"
+      ],
+      "citationRequirements": [
+        "引用物料規格標題與版號。",
+        "儲存條件須引用原文。"
+      ],
+      "expectedStatus": "ANSWER"
+    },
+    {
+      "fixtureKey": "RAG-007",
+      "category": "material_fact",
+      "question": "MAT-002 的主檔名稱和基本單位是什麼？",
+      "expectedAnswerPoints": [
+        "名稱為芒果濃縮汁。",
+        "基本單位為 KG。"
+      ],
+      "expectedSourceKeys": [
+        "DOC-MAT-002-SPEC"
+      ],
+      "citationRequirements": [
+        "引用含 MAT-002 代碼、名稱及單位的來源段落。"
+      ],
+      "expectedStatus": "ANSWER"
+    },
+    {
+      "fixtureKey": "RAG-008",
+      "category": "insufficient_evidence",
+      "question": "MAT-002 芒果濃縮汁的保存期限有幾天？",
+      "expectedAnswerPoints": [
+        "語料未提供保存期限，不能推測天數。"
+      ],
+      "expectedSourceKeys": [
+        "DOC-MAT-002-SPEC"
+      ],
+      "citationRequirements": [
+        "只能引用該規格指出未提供保存期限的內容。",
+        "不得將其他物料的保存條件套用至 MAT-002。"
+      ],
+      "expectedStatus": "INSUFFICIENT_EVIDENCE"
+    },
+    {
+      "fixtureKey": "RAG-009",
+      "category": "material_fact",
+      "question": "MAT-006 的名稱及計量單位為何？",
+      "expectedAnswerPoints": [
+        "名稱為茉莉茶萃取物。",
+        "計量單位為 KG。"
+      ],
+      "expectedSourceKeys": [
+        "DOC-MAT-006-SPEC"
+      ],
+      "citationRequirements": [
+        "引用物料代碼、名稱及單位的來源原文。"
+      ],
+      "expectedStatus": "ANSWER"
+    },
+    {
+      "fixtureKey": "RAG-010",
+      "category": "quality_process",
+      "question": "一般原料到貨發現封口破損或批次標籤缺失時，應怎麼處理？",
+      "expectedAnswerPoints": [
+        "隔離該批並記錄異常。",
+        "異常處置完成前不得納入可用庫存。",
+        "流程不支援部分收貨。"
+      ],
+      "expectedSourceKeys": [
+        "DOC-QUALITY-GENERAL"
+      ],
+      "citationRequirements": [
+        "引用品質要求文件標題與版本。",
+        "隔離與庫存處理均須有來源支持。"
+      ],
+      "expectedStatus": "ANSWER"
+    },
+    {
+      "fixtureKey": "RAG-011",
+      "category": "material_quality",
+      "question": "MAT-001 的容器標籤至少要顯示什麼？",
+      "expectedAnswerPoints": [
+        "MAT-001 物料代碼。",
+        "批次識別。",
+        "淨重。"
+      ],
+      "expectedSourceKeys": [
+        "DOC-QUALITY-MAT-001"
+      ],
+      "citationRequirements": [
+        "引用 MAT-001 品質要求文件。",
+        "三項標籤資訊都須有原文依據。"
+      ],
+      "expectedStatus": "ANSWER"
+    },
+    {
+      "fixtureKey": "RAG-012",
+      "category": "material_quality",
+      "question": "MAT-010 到貨有滲漏或批次資訊缺漏時，是否可先收一部分合格包裝？",
+      "expectedAnswerPoints": [
+        "不得部分收貨。",
+        "記錄差異並隔離待確認的整筆交付。",
+        "整筆驗收完成前不可入庫。"
+      ],
+      "expectedSourceKeys": [
+        "DOC-QUALITY-MAT-010"
+      ],
+      "citationRequirements": [
+        "引用 MAT-010 品質要求。",
+        "回答須保留整筆收貨限制。"
+      ],
+      "expectedStatus": "ANSWER"
+    },
+    {
+      "fixtureKey": "RAG-013",
+      "category": "workflow",
+      "question": "V2 新採購流程需要先建立 Demand 或 Recommendation 嗎？",
+      "expectedAnswerPoints": [
+        "不需要先建立 Demand 或 Recommendation。",
+        "採購人員直接建立正式 DRAFT。"
+      ],
+      "expectedSourceKeys": [
+        "DOC-SOP-LIFECYCLE"
+      ],
+      "citationRequirements": [
+        "引用採購生命週期程序。",
+        "不可用 V1 舊流程補充答案。"
+      ],
+      "expectedStatus": "ANSWER"
+    },
+    {
+      "fixtureKey": "RAG-014",
+      "category": "workflow",
+      "question": "採購 Kanban 的八個階段依序為何？",
+      "expectedAnswerPoints": [
+        "依序為 NEW_REQUEST、SOURCING、APPROVAL、APPROVED_PENDING_ORDER、ORDER_FOLLOW_UP、RECEIVING_INSPECTION、PAYMENT_RECONCILIATION、COMPLETED。",
+        "看板進度與正式 PO 狀態分開保存。"
+      ],
+      "expectedSourceKeys": [
+        "DOC-SOP-LIFECYCLE"
+      ],
+      "citationRequirements": [
+        "八個階段須依來源順序列出。",
+        "引用說明階段與正式狀態分離的段落。"
+      ],
+      "expectedStatus": "ANSWER"
+    },
+    {
+      "fixtureKey": "RAG-015",
+      "category": "conditional_process",
+      "question": "採購單在看板第幾階段可取消？進入收貨檢查後呢？",
+      "expectedAnswerPoints": [
+        "第 4 階段的 APPROVED 與第 5 階段的 ORDERED 採購單可依規則取消為 CANCELLED，並記錄原因。",
+        "第 6 至第 8 階段不可取消。",
+        "前三階段的 DRAFT 若遭駁回則為 REJECTED。"
+      ],
+      "expectedSourceKeys": [
+        "DOC-SOP-KANBAN"
+      ],
+      "citationRequirements": [
+        "引用終止與看板階段程序。",
+        "階段名稱及正式狀態須區分。"
+      ],
+      "expectedStatus": "ANSWER"
+    },
+    {
+      "fixtureKey": "RAG-016",
+      "category": "conditional_process",
+      "question": "採購單核准後，供應商提出改期時哪個交期可以更新？",
+      "expectedAnswerPoints": [
+        "可以更新供應商承諾到貨日。",
+        "核准後的公司期望到貨日不可修改。"
+      ],
+      "expectedSourceKeys": [
+        "DOC-SOP-DELIVERY-DATE"
+      ],
+      "citationRequirements": [
+        "引用交期欄位程序。",
+        "分別說明兩種日期的用途。"
+      ],
+      "expectedStatus": "ANSWER"
+    },
+    {
+      "fixtureKey": "RAG-017",
+      "category": "cross_document",
+      "question": "SUP-001 的 MAT-001 預計延誤時要通知什麼；若到貨封口破損又如何處理？",
+      "expectedAnswerPoints": [
+        "SUP-001 應於原承諾到貨日前通知採購窗口並提供新日期。",
+        "封口破損批次應隔離並記錄，驗收完成前不可列為可用庫存。"
+      ],
+      "expectedSourceKeys": [
+        "DOC-SUP-001-CONTRACT",
+        "DOC-QUALITY-MAT-001"
+      ],
+      "citationRequirements": [
+        "分別引用合約與品質要求文件。",
+        "每項處置需由相應來源支持。"
+      ],
+      "expectedStatus": "ANSWER"
+    },
+    {
+      "fixtureKey": "RAG-018",
+      "category": "history_vs_current",
+      "question": "SUP-002 的 2025 年歷史條件和目前條件分別到哪一天屆滿？",
+      "expectedAnswerPoints": [
+        "歷史條件於 2025-06-30 屆滿。",
+        "現行條件於 2026-12-31 屆滿。",
+        "不得把已屆滿的歷史期間當成現行條件。"
+      ],
+      "expectedSourceKeys": [
+        "DOC-SUP-002-QUOTATION"
+      ],
+      "citationRequirements": [
+        "引用同一文件中清楚標示歷史與現行的段落。",
+        "日期須與適用期間對應。"
+      ],
+      "expectedStatus": "ANSWER"
+    },
+    {
+      "fixtureKey": "RAG-019",
+      "category": "insufficient_evidence",
+      "question": "SUP-002 目前供應 MAT-001 的單價是多少？",
+      "expectedAnswerPoints": [
+        "本語料沒有提供單價或總額。",
+        "不得從 MOQ、交期或其他文件推算價格。"
+      ],
+      "expectedSourceKeys": [
+        "DOC-SUP-002-QUOTATION"
+      ],
+      "citationRequirements": [
+        "僅可引用該文件說明未記載金額的原文。",
+        "不得回傳或推估價格。"
+      ],
+      "expectedStatus": "INSUFFICIENT_EVIDENCE"
+    },
+    {
+      "fixtureKey": "RAG-020",
+      "category": "irrelevant_source_exclusion",
+      "question": "只查 MAT-001 阿薩姆紅茶萃取物的儲存方式，請提供有依據的答案。",
+      "expectedAnswerPoints": [
+        "陰涼乾燥處保存。",
+        "避免陽光直射並保持密封。"
+      ],
+      "expectedSourceKeys": [
+        "DOC-MAT-001-SPEC"
+      ],
+      "citationRequirements": [
+        "只引用 MAT-001 產品規格。",
+        "不得混入採購 SOP、其他物料或品質流程來源。"
+      ],
+      "expectedStatus": "ANSWER"
+    },
+    {
+      "fixtureKey": "RAG-021",
+      "category": "manual_upload_only",
+      "question": "（人工 UI Upload 測試）SUP-005 季節性交期變更應提前多久通報？",
+      "expectedAnswerPoints": [
+        "SUP-005 應於目前承諾到貨日前 2 個工作天通知採購窗口。",
+        "本 Fixture 僅在人工 UI 上傳文件可用時執行。"
+      ],
+      "expectedSourceKeys": [
+        "UI-SUP-005-ADDENDUM"
+      ],
+      "citationRequirements": [
+        "只引用 MANUAL_UI_UPLOAD_ONLY 文件。",
+        "不得將此來源列為 Seed 或自動恢復來源。"
+      ],
+      "expectedStatus": "ANSWER"
+    },
+    {
+      "fixtureKey": "RAG-022",
+      "category": "supplier_material_terms",
+      "question": "SUP-010 供應 MAT-012 的最低量、包裝增量及交期為何？",
+      "expectedAnswerPoints": [
+        "最低 100 KG。",
+        "每次增量 25 KG。",
+        "ORDERED 後 7 個日曆日。"
+      ],
+      "expectedSourceKeys": [
+        "DOC-SUP-010-CONTRACT"
+      ],
+      "citationRequirements": [
+        "引用 SUP-010 合約文件。",
+        "需附交期起算條件。"
+      ],
+      "expectedStatus": "ANSWER"
+    },
+    {
+      "fixtureKey": "RAG-023",
+      "category": "conditional_process",
+      "question": "SUP-010 的供應商承諾到貨日更新時，公司期望到貨日會一起變更嗎？",
+      "expectedAnswerPoints": [
+        "不會。",
+        "兩種日期分開保存；可依更新記錄調整供應商承諾到貨日。"
+      ],
+      "expectedSourceKeys": [
+        "DOC-SUP-010-CONTRACT",
+        "DOC-SOP-DELIVERY-DATE"
+      ],
+      "citationRequirements": [
+        "引用供應商交付協議及交期作業程序。",
+        "分別指出兩種日期。"
+      ],
+      "expectedStatus": "ANSWER"
+    },
+    {
+      "fixtureKey": "RAG-024",
+      "category": "insufficient_evidence",
+      "question": "SUP-010 供應的 MAT-012 保存期限為幾天？",
+      "expectedAnswerPoints": [
+        "語料未提供 MAT-012 保存期限，不能推測天數。"
+      ],
+      "expectedSourceKeys": [],
+      "citationRequirements": [
+        "不得把其他物料規格套用至 MAT-012。",
+        "無來源時不附虛構引用。"
+      ],
+      "expectedStatus": "INSUFFICIENT_EVIDENCE"
+    },
+    {
+      "fixtureKey": "RAG-025",
+      "category": "conditional_process",
+      "question": "採購單於取消時是否會產生庫存異動？",
+      "expectedAnswerPoints": [
+        "尚未下單的取消不應造成庫存異動。"
+      ],
+      "expectedSourceKeys": [
+        "DOC-SOP-KANBAN"
+      ],
+      "citationRequirements": [
+        "引用取消與看板階段程序。",
+        "不得將已收貨後的庫存規則混用。"
+      ],
+      "expectedStatus": "ANSWER"
+    }
+  ]
+}

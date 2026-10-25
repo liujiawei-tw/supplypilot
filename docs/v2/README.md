@@ -25,7 +25,7 @@
 | 查詢與 UI | PO 號、供應商代碼/名稱、物料代碼搜尋；同頁看板／列表切換；桌面優先，手機基本查詢 |
 | RAG | MySQL 關鍵字／元資料 + pgvector Hybrid Retrieval，Evidence Validator，答案附來源文件及原文摘錄 |
 | 文件發布 | 管理員核准後非同步自動索引、逐文件原子發布、自動有限次重試、失敗可由管理員重試 |
-| Demo | 受控 Baseline Manifest 可更新，重置後僅已核准且版本/hash 一致文件自動恢復真實索引 |
+| Demo | Reset 已取消；主資料與語料契約可驗證，新增來源仍須首次人工審查；既有資料更新使用目標確認 Dry Run/Apply 與明確人工步驟 |
 | 格式 | zh-TW、Asia/Taipei、千分位；AI 金額最多兩位小數且去除尾隨零，不改 BigDecimal 精度 |
 
 ## 3. 明確不做或延後

@@ -46,12 +46,14 @@
 
 **重試：** 429、逾時及暫時性外部 5xx 自動有限次、退避重試；Retry-After 是最短等待時間，本地指數退避以 maxRetryDelay 封頂。若伺服器要求的等待超出 MySQL DATETIME(6) 可保存範圍，工作轉為 FAILED 供管理員查核，不會提前自動重試。審核拒絕／違反敏感政策等不可自動重試。超過上限 FAILED 並提供管理員安全錯誤資訊及手動重試入口。重啟後任務狀態可復原；同一文件多次觸發必須冪等，舊代次或舊 hash 不可發布覆蓋新版。
 
-## 5. Demo 基線自動恢復
+## 5. Demo 語料與首次審查
 
-- Demo 使用可維護的 Baseline Manifest，**目前五份虛構文件，未來允許調整**；唯一識別、版本、原文 SHA-256、審核狀態及 dataset version 相綁定。
-- 重置時只對 manifest 白名單且**內容與版本完全一致、曾合法核准**的基線文件恢復審核並自動索引。新增或修改語料必須先經首次管理員審核；不繼承舊授權。
-- 其他一般上傳文件（包含 E2E 使用的第六份虛構供應商文件）不能自動核准，也不得在重置後偽造仍存在。
-- 實際恢復須經真實 Gemini Embedding 與可追溯來源確認；Fake Provider、READY 字樣或舊 Gate PASS 不能充當本次驗收證據。
+- Demo Seed 使用 samples/documents/corpus-catalog.json 記錄文件邏輯鍵、類型、版本、標題、來源 SHA-256 與資料關聯；samples/documents/rag-fixtures.json 記錄靜態問答及預期引用。
+- Catalog 只追蹤與驗證來源；它不代表管理員核准、已對外傳送或已發布索引。所有新文件及新來源版本都須先經管理員審查。
+- 純文字來源的 sourceSha256 使用 UTF-8 文字將 CRLF/CR 換行正規化為 LF 後計算；samples/documents/*.txt 固定以 LF 儲存，確保跨平台 hash 穩定。
+- SEED_BASELINE 文件隨空資料庫初始 Seed 建立並維持未審核狀態。SUP-005 人工 UI Upload 文件標記 MANUAL_UI_UPLOAD_ONLY，不得被 Seeder 建立或引用為基線 Fixture。
+- 舊資料更新時保留既有文件、來源 hash 及審核狀態。同名同版但來源改變的文件必須由管理員走正常的新版本上傳及審查流程；不得複製舊核准或直接改寫審核資料。
+- 靜態 Fixture PASS 只代表檔案、來源關聯及預期格式通過檢查，不表示 Gemini RAG 回答品質 PASS。
 
 ## 6. 明確不做
 
@@ -67,4 +69,4 @@
 - 回答有真實文件名稱、版本與引用原文；無證據不回答實質細節。
 - 未核准/敏感文件不經任何路徑送入 Gemini；Provider 故障不阻斷核心採購 MySQL 業務。
 - 新文件排隊、失敗、重試、手動再索引不影響既有可查文件；管理員不需日常全域 Gate 操作。
-- Demo 白名單版本/hash 不符不能自動恢復核准或發布索引。
+- Demo Catalog 版本/hash 不符時不得自動核准或發布索引；須依正常人工審查與 #146 索引流程處理。

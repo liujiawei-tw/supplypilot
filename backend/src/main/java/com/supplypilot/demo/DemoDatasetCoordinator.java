@@ -1,17 +1,24 @@
 package com.supplypilot.demo;
 
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.security.MessageDigest;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.EnumSet;
+import java.util.HexFormat;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Supplier;
 
-import com.supplypilot.demand.domain.Demand;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import com.supplypilot.demand.repository.DemandRepository;
 import com.supplypilot.document.domain.DocumentStatus;
 import com.supplypilot.document.domain.DocumentType;
@@ -64,9 +71,14 @@ import org.springframework.transaction.support.TransactionTemplate;
 public class DemoDatasetCoordinator implements DemoDataCoordinator {
     static final String DATASET_KEY = "SP-901";
     static final String RESET_CONFIRMATION = "RESET-SP-901-DEMO";
+    private static final String LEGACY_DATASET_VERSION = "sp-905-zh-tw-v1";
+    private static final String CURRENT_DATASET_VERSION = "sp-906-zh-tw-v2";
+    private static final Set<String> SUPPORTED_DATASET_VERSIONS = Set.of(
+            LEGACY_DATASET_VERSION, CURRENT_DATASET_VERSION);
     private static final Logger log = LoggerFactory.getLogger(DemoDatasetCoordinator.class);
 
     private final DemoProperties properties;
+    private final ObjectMapper objectMapper;
     private final Clock clock;
     private final PasswordEncoder passwordEncoder;
     private final JdbcTemplate jdbc;
@@ -96,8 +108,9 @@ public class DemoDatasetCoordinator implements DemoDataCoordinator {
             DocumentMetadataRepository documents, DocumentService documentService,
             DocumentIngestionService ingestionService, DocumentStorageService documentStorage,
             SemanticStore semanticStore, SemanticProperties semanticProperties,
-            @Value("${supplypilot.document-storage.path:./data/demo-documents}") String documentStoragePath) {
+            @Value("${supplypilot.document-storage.path:./data/demo-documents}") String documentStoragePath, ObjectMapper objectMapper) {
         this.properties = properties;
+        this.objectMapper = objectMapper;
         this.clock = clock;
         this.passwordEncoder = passwordEncoder;
         this.jdbc = jdbc;
@@ -135,13 +148,20 @@ public class DemoDatasetCoordinator implements DemoDataCoordinator {
     private void initializeBaseline() {
         Map<String, Object> state = state();
         if (state != null) {
-            if ("COMPLETE".equals(state.get("status"))
-                    && properties.getDatasetVersion().equals(state.get("dataset_version"))) {
-                log.info("DEMO_DATASET_ALREADY_COMPLETE key={} version={} baselineDate={}", DATASET_KEY,
-                        state.get("dataset_version"), state.get("baseline_date"));
-                return;
+            ExistingDatasetAction action = classifyExistingDataset(
+                    state.get("status"), state.get("dataset_version"), properties.getDatasetVersion());
+            switch (action) {
+                case ALREADY_COMPLETE -> log.info("DEMO_DATASET_ALREADY_COMPLETE key={} version={} baselineDate={}",
+                        DATASET_KEY, state.get("dataset_version"), state.get("baseline_date"));
+                case LEGACY_UPDATE_REQUIRED -> log.warn("DEMO_DATASET_UPDATE_REQUIRED key={} currentVersion={} "
+                                + "currentStatus=COMPLETE targetVersion={}; legacy records are preserved and no reset "
+                                + "or automatic upgrade was performed",
+                        DATASET_KEY, state.get("dataset_version"), properties.getDatasetVersion());
+                case MANUAL_STEPS_INCOMPLETE -> log.warn("DEMO_DATASET_UPDATE_REQUIRED key={} version={} "
+                                + "manualStepsIncomplete=true reason={}; startup seeding preserved all records",
+                        DATASET_KEY, state.get("dataset_version"), state.get("failure_reason"));
             }
-            throw new IllegalStateException("Demo dataset is partial or has a different version; run the guarded reset");
+            return;
         }
         requireEmptyDatabase();
         LocalDate baselineDate = baselineDate();
@@ -169,14 +189,74 @@ public class DemoDatasetCoordinator implements DemoDataCoordinator {
         }
     }
 
+    static ExistingDatasetAction classifyExistingDataset(Object statusValue, Object versionValue,
+                                                           String targetVersion) {
+        if (!isLegalDatasetVersion(targetVersion)) {
+            throw new IllegalStateException("Configured demo dataset version is invalid");
+        }
+        if (!(statusValue instanceof String status) || !(versionValue instanceof String version)
+                || !isLegalDatasetVersion(version)) {
+            throw new IllegalStateException("Demo dataset state has an invalid status/version combination");
+        }
+        return switch (status) {
+            case "COMPLETE" -> {
+                if (version.equals(targetVersion)) yield ExistingDatasetAction.ALREADY_COMPLETE;
+                if (!isOlderDatasetVersion(version, targetVersion)) {
+                    throw new IllegalStateException("COMPLETE demo dataset version is not older than the configured version");
+                }
+                yield ExistingDatasetAction.LEGACY_UPDATE_REQUIRED;
+            }
+            case "UPDATE_REQUIRED" -> {
+                if (!version.equals(targetVersion)) {
+                    throw new IllegalStateException("UPDATE_REQUIRED demo dataset must use the configured version");
+                }
+                yield ExistingDatasetAction.MANUAL_STEPS_INCOMPLETE;
+            }
+            case "INITIALIZING", "RELATIONAL_READY", "FAILED" -> throw new IllegalStateException(
+                    "Demo dataset is not complete; refusing to treat status " + status + " as a baseline");
+            default -> throw new IllegalStateException("Unknown demo dataset status: " + status);
+        };
+    }
+
+    private static boolean isLegalDatasetVersion(String version) {
+        return version != null && SUPPORTED_DATASET_VERSIONS.contains(version);
+    }
+
+    private static boolean isOlderDatasetVersion(String candidate, String target) {
+        return LEGACY_DATASET_VERSION.equals(candidate) && CURRENT_DATASET_VERSION.equals(target);
+    }
+
+    enum ExistingDatasetAction {
+        ALREADY_COMPLETE,
+        LEGACY_UPDATE_REQUIRED,
+        MANUAL_STEPS_INCOMPLETE
+    }
+
     private void seedRelational(LocalDate baselineDate, Instant now) {
+        JsonNode master = loadMasterData();
         Map<String, User> userMap = seedUsers(now);
-        Map<String, Material> materialMap = seedMaterialsAndInventory(now);
-        Map<String, com.supplypilot.supplier.domain.Supplier> supplierMap = seedSuppliers(now);
+        Map<String, Material> materialMap = seedMaterialsAndInventory(master, now);
+        Map<String, com.supplypilot.supplier.domain.Supplier> supplierMap = seedSuppliers(master, now);
         Map<String, SupplierMaterial> supplierMaterialMap = seedSupplierMaterials(
-                supplierMap, materialMap, now);
-        seedDemands(materialMap, userMap.get("admin"), baselineDate, now);
-        seedPurchaseOrders(materialMap, supplierMap, supplierMaterialMap, userMap, baselineDate, now);
+                master, supplierMap, materialMap, now);
+        seedPurchaseOrders(master, materialMap, supplierMap, supplierMaterialMap, userMap, baselineDate, now);
+    }
+
+    private JsonNode loadMasterData() {
+        Path path = Path.of(properties.getMasterDataPath()).toAbsolutePath().normalize();
+        if (!Files.isRegularFile(path)) {
+            throw new IllegalStateException("Demo master data file is missing: " + path);
+        }
+        try {
+            JsonNode root = objectMapper.readTree(path.toFile());
+            if (!root.path("datasetKey").asText().equals(DATASET_KEY)
+                    || !root.path("datasetVersion").asText().equals(properties.getDatasetVersion())) {
+                throw new IllegalStateException("Demo master data key/version does not match configured dataset");
+            }
+            return root;
+        } catch (java.io.IOException exception) {
+            throw new IllegalStateException("Cannot read demo master data file: " + path, exception);
+        }
     }
 
     private Map<String, User> seedUsers(Instant now) {
@@ -184,79 +264,59 @@ public class DemoDatasetCoordinator implements DemoDataCoordinator {
         // Keep a random, unusable BCrypt value so BCrypt authentication cannot become a fallback.
         String hash = passwordEncoder.encode(java.util.UUID.randomUUID().toString());
         Map<String, User> result = new LinkedHashMap<>();
-        result.put("admin", User.create("admin", hash, "Demo Administrator", UserRole.ADMIN, true, now));
+        result.put("admin", User.create("admin", hash, "澄野茶飲展示管理員", UserRole.ADMIN, true, now));
         users.saveAll(result.values());
         users.flush();
         return result;
     }
 
-    private Map<String, Material> seedMaterialsAndInventory(Instant now) {
-        List<MaterialSeed> seeds = List.of(
-                new MaterialSeed("MAT-001", "Assam Tea Extract", "200", "300", true),
-                new MaterialSeed("MAT-002", "Mango Concentrate", "100", "175", true),
-                new MaterialSeed("MAT-003", "Fructose Syrup", "300", "260", true),
-                new MaterialSeed("MAT-004", "Milk Tea Base", "150", "150", true),
-                new MaterialSeed("MAT-005", "Tapioca Flavor Powder", "50", "0", false),
-                new MaterialSeed("MAT-006", "Jasmine Tea Extract", "180", "420", true),
-                new MaterialSeed("MAT-007", "Passion Fruit Puree", "90", "70", true),
-                new MaterialSeed("MAT-008", "Brown Sugar Syrup", "120", "0", true),
-                new MaterialSeed("MAT-009", "Taro Flavor Powder", "60", "55", true),
-                new MaterialSeed("MAT-010", "Lemon Juice Concentrate", "80", "200", true),
-                new MaterialSeed("MAT-011", "Oolong Tea Extract", "160", "145", true),
-                new MaterialSeed("MAT-012", "Coconut Cream Base", "110", "240", true));
+    private Map<String, Material> seedMaterialsAndInventory(JsonNode master, Instant now) {
         Map<String, Material> result = new LinkedHashMap<>();
-        for (MaterialSeed seed : seeds) {
-            Material material = Material.create(seed.code(), seed.name(), BaseUnit.KG,
-                    decimal(seed.safetyStock()), now);
-            if (!seed.active()) material.update(null, null, MaterialStatus.INACTIVE, now);
+        for (JsonNode seed : master.path("materials")) {
+            String code = seed.path("code").asText();
+            Material material = Material.create(code, seed.path("name").asText(),
+                    BaseUnit.valueOf(seed.path("unit").asText()), decimal(seed.path("safetyStock").asText()), now);
+            MaterialStatus status = MaterialStatus.valueOf(seed.path("status").asText());
+            if (status != MaterialStatus.ACTIVE) material.update(null, null, status, now);
             materials.save(material);
             Inventory inventory = Inventory.create(material, now);
-            inventory.replaceSnapshot(decimal(seed.inventory()), now);
+            inventory.replaceSnapshot(decimal(seed.path("initialInventory").asText()), now);
             inventories.save(inventory);
-            result.put(seed.code(), material);
+            result.put(code, material);
         }
         materials.flush();
         inventories.flush();
         return result;
     }
 
-    private Map<String, com.supplypilot.supplier.domain.Supplier> seedSuppliers(Instant now) {
-        List<SupplierSeed> seeds = List.of(
-                new SupplierSeed("SUP-001", "Formosa Ingredients", "Taiwan", "92", "90", true),
-                new SupplierSeed("SUP-002", "East Harbor Trading", "Taiwan", "85", "91", true),
-                new SupplierSeed("SUP-003", "Green Leaf Supply", "Taiwan", "88", "86", true),
-                new SupplierSeed("SUP-004", "Old Vendor Co.", "Taiwan", "70", "72", false),
-                new SupplierSeed("SUP-005", "Pacific Food Materials", "Japan", "94", "93", true),
-                new SupplierSeed("SUP-006", "Golden Field Trading", "Thailand", "82", "89", true));
+    private Map<String, com.supplypilot.supplier.domain.Supplier> seedSuppliers(JsonNode master, Instant now) {
         Map<String, com.supplypilot.supplier.domain.Supplier> result = new LinkedHashMap<>();
-        for (SupplierSeed seed : seeds) {
-            var supplier = com.supplypilot.supplier.domain.Supplier.create(seed.code(), seed.name(), seed.country(),
-                    decimal(seed.reliability()), decimal(seed.quality()), now);
-            if (!seed.active()) supplier.update(null, null, null, null, SupplierStatus.INACTIVE, now);
+        for (JsonNode seed : master.path("suppliers")) {
+            String code = seed.path("code").asText();
+            var supplier = com.supplypilot.supplier.domain.Supplier.create(code, seed.path("name").asText(),
+                    seed.path("country").asText(), decimal(seed.path("reliabilityScore").asText()),
+                    decimal(seed.path("qualityScore").asText()), now);
+            SupplierStatus status = SupplierStatus.valueOf(seed.path("status").asText());
+            if (status != SupplierStatus.ACTIVE) supplier.update(null, null, null, null, status, now);
             suppliers.save(supplier);
-            result.put(seed.code(), supplier);
+            result.put(code, supplier);
         }
         suppliers.flush();
         return result;
     }
 
     private Map<String, SupplierMaterial> seedSupplierMaterials(
-            Map<String, com.supplypilot.supplier.domain.Supplier> supplierMap,
+            JsonNode master, Map<String, com.supplypilot.supplier.domain.Supplier> supplierMap,
             Map<String, Material> materialMap, Instant now) {
         Map<String, SupplierMaterial> result = new LinkedHashMap<>();
-        addSupplierMaterial(result, supplierMap, materialMap, "SUP-001", "MAT-001", "100", "800", "100", 5, true, now);
-        addSupplierMaterial(result, supplierMap, materialMap, "SUP-002", "MAT-001", "104", "500", "50", 3, true, now);
-        addSupplierMaterial(result, supplierMap, materialMap, "SUP-003", "MAT-001", "97", "1000", "100", 10, true, now);
-        addSupplierMaterial(result, supplierMap, materialMap, "SUP-004", "MAT-001", "90", "500", "50", 2, false, now);
-        addSupplierMaterial(result, supplierMap, materialMap, "SUP-005", "MAT-001", "102", "600", "100", 7, true, now);
-        int sequence = 0;
-        for (String supplierCode : List.of("SUP-001", "SUP-002", "SUP-003", "SUP-005", "SUP-006")) {
-            for (String materialCode : List.of("MAT-002", "MAT-003", "MAT-004", "MAT-006", "MAT-007")) {
-                sequence++;
-                addSupplierMaterial(result, supplierMap, materialMap, supplierCode, materialCode,
-                        Integer.toString(55 + sequence * 3), Integer.toString(200 + (sequence % 4) * 100),
-                        Integer.toString(25 + (sequence % 3) * 25), 2 + sequence % 9, true, now);
-            }
+        for (JsonNode seed : master.path("supplierMaterials")) {
+            String supplierCode = seed.path("supplierCode").asText();
+            String materialCode = seed.path("materialCode").asText();
+            boolean active = SupplierMaterialStatus.valueOf(seed.path("status").asText())
+                    == SupplierMaterialStatus.ACTIVE;
+            addSupplierMaterial(result, supplierMap, materialMap, supplierCode, materialCode,
+                    seed.path("unitPrice").asText(), seed.path("moq").asText(),
+                    seed.path("packageMultiple").asText(), seed.path("leadTimeDays").asInt(), active, now);
         }
         supplierMaterials.flush();
         return result;
@@ -266,126 +326,189 @@ public class DemoDatasetCoordinator implements DemoDataCoordinator {
                                      Map<String, com.supplypilot.supplier.domain.Supplier> supplierMap,
                                      Map<String, Material> materialMap, String supplierCode, String materialCode,
                                      String price, String moq, String multiple, int leadTime, boolean active, Instant now) {
-        SupplierMaterial relation = SupplierMaterial.create(supplierMap.get(supplierCode), materialMap.get(materialCode),
+        var supplier = supplierMap.get(supplierCode);
+        var material = materialMap.get(materialCode);
+        if (supplier == null || material == null) {
+            throw new IllegalStateException("Unknown demo supplier/material link: " + supplierCode + ":" + materialCode);
+        }
+        SupplierMaterial relation = SupplierMaterial.create(supplier, material,
                 decimal(price), decimal(moq), decimal(multiple), leadTime, Currency.TWD, now);
         if (!active) relation.update(null, null, null, null, SupplierMaterialStatus.INACTIVE, now);
         supplierMaterials.save(relation);
         result.put(supplierCode + ":" + materialCode, relation);
     }
 
-    private void seedDemands(Map<String, Material> materialMap, User planner, LocalDate date, Instant now) {
-        List<DemandSeed> seeds = List.of(
-                new DemandSeed("MAT-001", "600", 15), new DemandSeed("MAT-001", "400", 20),
-                new DemandSeed("MAT-002", "240", 12), new DemandSeed("MAT-002", "160", 28),
-                new DemandSeed("MAT-003", "500", 18), new DemandSeed("MAT-004", "280", 14),
-                new DemandSeed("MAT-006", "350", 22), new DemandSeed("MAT-007", "190", 11),
-                new DemandSeed("MAT-008", "210", 25), new DemandSeed("MAT-009", "90", 16),
-                new DemandSeed("MAT-010", "260", 30), new DemandSeed("MAT-011", "180", 7));
-        for (int index = 0; index < seeds.size(); index++) {
-            DemandSeed seed = seeds.get(index);
-            demands.save(Demand.create(materialMap.get(seed.materialCode()), decimal(seed.quantity()),
-                    date.plusDays(seed.daysFromAnchor()), "SP-901 demo demand " + (index + 1), planner, now));
-        }
-        demands.flush();
-    }
-
-    private void seedPurchaseOrders(Map<String, Material> materialMap,
+    private void seedPurchaseOrders(JsonNode master,
+                                    Map<String, Material> materialMap,
                                     Map<String, com.supplypilot.supplier.domain.Supplier> supplierMap,
                                     Map<String, SupplierMaterial> relationMap, Map<String, User> userMap,
                                     LocalDate date, Instant now) {
-        createPo(1, PurchaseOrderStatus.DRAFT, "SUP-001", "MAT-006", "300", date.plusDays(18),
-                materialMap, supplierMap, relationMap, userMap, now);
-        createPo(2, PurchaseOrderStatus.DRAFT, "SUP-002", "MAT-002", "250", date.plusDays(16),
-                materialMap, supplierMap, relationMap, userMap, now);
-        createPo(3, PurchaseOrderStatus.APPROVED, "SUP-003", "MAT-003", "400", date.plusDays(13),
-                materialMap, supplierMap, relationMap, userMap, now);
-        createPo(4, PurchaseOrderStatus.APPROVED, "SUP-005", "MAT-004", "300", date.plusDays(15),
-                materialMap, supplierMap, relationMap, userMap, now);
-        createPo(5, PurchaseOrderStatus.ORDERED, "SUP-001", "MAT-001", "150", date.plusDays(10),
-                materialMap, supplierMap, relationMap, userMap, now);
-        createPo(6, PurchaseOrderStatus.ORDERED, "SUP-002", "MAT-007", "225", date.plusDays(20),
-                materialMap, supplierMap, relationMap, userMap, now);
-        createPo(7, PurchaseOrderStatus.ORDERED, "SUP-005", "MAT-006", "250", date.plusDays(24),
-                materialMap, supplierMap, relationMap, userMap, now);
-        createPo(8, PurchaseOrderStatus.RECEIVED, "SUP-001", "MAT-002", "25", date.minusDays(2),
-                materialMap, supplierMap, relationMap, userMap, now);
-        createPo(9, PurchaseOrderStatus.RECEIVED, "SUP-003", "MAT-003", "40", date.minusDays(1),
-                materialMap, supplierMap, relationMap, userMap, now);
-        createPo(10, PurchaseOrderStatus.REJECTED, "SUP-006", "MAT-007", "200", date.plusDays(19),
-                materialMap, supplierMap, relationMap, userMap, now);
+        for (JsonNode seed : master.path("purchaseOrderExamples")) {
+            createPo(seed, materialMap, supplierMap, relationMap, userMap, date, now);
+        }
     }
 
-    private void createPo(int sequence, PurchaseOrderStatus target, String supplierCode, String materialCode,
-                          String quantity, LocalDate deliveryDate, Map<String, Material> materialMap,
+    private void createPo(JsonNode seed, Map<String, Material> materialMap,
                           Map<String, com.supplypilot.supplier.domain.Supplier> supplierMap,
-                          Map<String, SupplierMaterial> relationMap, Map<String, User> userMap, Instant now) {
+                          Map<String, SupplierMaterial> relationMap, Map<String, User> userMap,
+                          LocalDate date, Instant now) {
+        String seedKey = seed.path("seedKey").asText();
+        int sequence = Integer.parseInt(seedKey.substring(seedKey.lastIndexOf('-') + 1));
+        String supplierCode = seed.path("supplierCode").asText();
+        String materialCode = seed.path("materialCode").asText();
+        BigDecimal quantity = decimal(seed.path("quantity").asText());
+        LocalDate deliveryDate = date.plusDays(seed.path("deliveryOffsetDays").asInt());
         Material material = materialMap.get(materialCode);
-        PurchaseOrder order = PurchaseOrder.create(supplierMap.get(supplierCode), deliveryDate, userMap.get("admin"), now);
+        var supplier = supplierMap.get(supplierCode);
+        SupplierMaterial relation = relationMap.get(supplierCode + ":" + materialCode);
+        if (material == null || supplier == null || relation == null) {
+            throw new IllegalStateException("Demo PO references an unknown supplier/material relation: " + seedKey);
+        }
+
+        PurchaseOrder order = PurchaseOrder.create(supplier, deliveryDate, userMap.get("admin"), now);
         order.assignPendingPoNumber("DEMO-PENDING-" + sequence);
-        order.addItem(PurchaseOrderItem.create(material, decimal(quantity),
-                relationMap.get(supplierCode + ":" + materialCode).getUnitPrice(), now));
+        order.addItem(PurchaseOrderItem.create(material, quantity, relation.getUnitPrice(), now));
         purchaseOrders.saveAndFlush(order);
         order.assignDisplayPoNumber("PO-%04d%02d%02d-%06d".formatted(deliveryDate.getYear(),
                 deliveryDate.getMonthValue(), deliveryDate.getDayOfMonth(), order.getId()));
-        if (target == PurchaseOrderStatus.REJECTED) {
-            order.reject("Demo rejection: delivery plan changed", userMap.get("admin"), now);
-        } else if (target != PurchaseOrderStatus.DRAFT) {
+
+        String status = seed.path("status").asText();
+        if ("REJECTED".equals(status)) {
+            order.reject(seed.path("rejectionReason").asText(), userMap.get("admin"), now);
+        } else if ("CANCELLED".equals(status)) {
             order.advanceFromNewRequest(now);
             order.advanceFromSourcing(now);
             order.approve(userMap.get("admin"), now);
-            if (target == PurchaseOrderStatus.ORDERED || target == PurchaseOrderStatus.RECEIVED) {
+            order.cancel(seed.path("cancellationReason").asText(), userMap.get("admin"), now);
+        } else {
+            String targetStage = seed.path("stage").asText();
+            if (!"NEW_REQUEST".equals(targetStage)) order.advanceFromNewRequest(now);
+            if (!List.of("NEW_REQUEST", "SOURCING").contains(targetStage)) order.advanceFromSourcing(now);
+            if (List.of("APPROVED_PENDING_ORDER", "ORDER_FOLLOW_UP", "RECEIVING_INSPECTION",
+                    "PAYMENT_RECONCILIATION", "COMPLETED").contains(targetStage)) {
+                order.approve(userMap.get("admin"), now);
+            }
+            if (List.of("ORDER_FOLLOW_UP", "RECEIVING_INSPECTION", "PAYMENT_RECONCILIATION",
+                    "COMPLETED").contains(targetStage)) {
                 order.markOrdered(userMap.get("admin"), now);
             }
-            if (target == PurchaseOrderStatus.RECEIVED) {
+            if (List.of("RECEIVING_INSPECTION", "PAYMENT_RECONCILIATION", "COMPLETED").contains(targetStage)) {
                 order.beginReceivingInspection(now);
-                order.recordReceivingInspection(true, true, true, null, userMap.get("admin"), now);
+                order.recordReceivingInspection(true, true, true, "展示收貨檢驗：品項、數量與品質均已確認",
+                        userMap.get("admin"), now);
+            }
+            if (List.of("PAYMENT_RECONCILIATION", "COMPLETED").contains(targetStage)) {
                 Inventory inventory = inventories.findByMaterialId(material.getId()).orElseThrow();
-                inventory.receive(decimal(quantity), now);
+                inventory.receive(quantity, now);
                 inventories.save(inventory);
                 stockTransactions.save(StockTransaction.purchaseReceive(
-                        material, decimal(quantity), order.getId(), userMap.get("admin"), now));
+                        material, quantity, order.getId(), userMap.get("admin"), now));
                 order.receive(userMap.get("admin"), now);
             }
+            if ("COMPLETED".equals(targetStage)) order.confirmPayment(userMap.get("admin"), now);
         }
         purchaseOrders.saveAndFlush(order);
     }
 
     private void bootstrapDocuments() {
         User admin = users.findByUsername("admin").orElseThrow();
-        List<DocumentSeed> seeds = List.of(
-                new DocumentSeed("supplier-contract-sup-001-v1.txt", DocumentType.SUPPLIER_CONTRACT,
-                        "SUP-001 交付與責任協議", "1.0", "SUP-001"),
-                new DocumentSeed("quotation-sup-002-v1.txt", DocumentType.QUOTATION,
-                        "SUP-002 虛構報價條件", "1.0", "SUP-002"),
-                new DocumentSeed("procurement-sop-v1.txt", DocumentType.PROCUREMENT_SOP,
-                        "SupplyPilot 虛構展示採購作業程序", "1.0", null),
-                new DocumentSeed("product-specification-mat-001-v1.txt", DocumentType.PRODUCT_SPECIFICATION,
-                        "MAT-001 阿薩姆紅茶萃取物規格", "1.0", "SUP-001"),
-                new DocumentSeed("quality-requirement-v1.txt", DocumentType.QUALITY_REQUIREMENT,
-                        "虛構展示原料品質要求", "1.0", "SUP-003"));
         Path root = Path.of(properties.getSamplesPath()).toAbsolutePath().normalize();
-        for (DocumentSeed seed : seeds) {
-            if (documents.existsByDocumentTypeAndTitleAndVersion(seed.type(), seed.title(), seed.version())) {
-                throw new IllegalStateException("Unexpected duplicate demo document: " + seed.filename());
+        Path catalogPath = root.resolve("corpus-catalog.json");
+        if (!Files.isRegularFile(catalogPath)) {
+            throw new IllegalStateException("Demo corpus catalog is missing: " + catalogPath);
+        }
+
+        try {
+            JsonNode catalog = objectMapper.readTree(catalogPath.toFile());
+            if (!catalog.path("datasetKey").asText().equals(DATASET_KEY)
+                    || !catalog.path("corpusVersion").asText().equals(properties.getDatasetVersion())) {
+                throw new IllegalStateException("Demo corpus catalog key/version does not match configured dataset");
             }
-            Path source = root.resolve(seed.filename()).normalize();
-            if (!source.startsWith(root) || !Files.isRegularFile(source)) {
-                throw new IllegalStateException("Demo source document is missing: " + seed.filename());
-            }
-            Long supplierId = seed.supplierCode() == null ? null
-                    : suppliers.findByCode(seed.supplierCode()).orElseThrow().getId();
-            DocumentResponse uploaded = withUser(admin, () -> {
-                try {
-                    return documentService.upload(seed.type(), supplierId, seed.title(), seed.version(),
-                            new DemoMultipartFile(source, "text/plain"));
-                } catch (java.io.IOException exception) {
-                    throw new IllegalStateException("Cannot read demo source document", exception);
+            List<JsonNode> seedDocuments = requireValidSeedDocuments(catalog);
+
+            for (JsonNode seed : seedDocuments) {
+                String filename = Path.of(seed.path("filename").asText()).getFileName().toString();
+                DocumentSeed document = new DocumentSeed(filename,
+                        DocumentType.valueOf(seed.path("type").asText()),
+                        seed.path("title").asText(), seed.path("version").asText(),
+                        seed.path("supplierCodes").isArray() && !seed.path("supplierCodes").isEmpty()
+                                ? seed.path("supplierCodes").get(0).asText() : null,
+                        seed.path("sourceSha256").asText());
+                if (!"REQUIRES_ADMIN_REVIEW".equals(seed.path("firstReviewStatus").asText())
+                        || !"SEED_BASELINE".equals(seed.path("classification").asText())) {
+                    throw new IllegalStateException("Demo corpus seed must require first admin review");
                 }
-            });
-            DocumentResponse ready = withUser(admin, () -> ingestionService.ingest(uploaded.id()));
-            if (ready.status() != DocumentStatus.READY) {
-                throw new IllegalStateException("Demo document ingestion did not become READY: " + seed.filename());
+                if (documents.existsByDocumentTypeAndTitleAndVersion(
+                        document.type(), document.title(), document.version())) {
+                    throw new IllegalStateException("Unexpected duplicate demo document: " + document.filename());
+                }
+                Path source = root.resolve(document.filename()).normalize();
+                if (!source.startsWith(root) || !Files.isRegularFile(source)) {
+                    throw new IllegalStateException("Demo source document is missing: " + document.filename());
+                }
+                String actualHash = canonicalLfSha256(Files.readString(source, StandardCharsets.UTF_8));
+                if (!actualHash.equalsIgnoreCase(document.sourceSha256())) {
+                    throw new IllegalStateException("Demo source hash does not match catalog: " + document.filename());
+                }
+                Long supplierId = document.supplierCode() == null ? null
+                        : suppliers.findByCode(document.supplierCode()).orElseThrow().getId();
+                DocumentResponse uploaded = withUser(admin, () -> {
+                    try {
+                        return documentService.upload(document.type(), supplierId, document.title(), document.version(),
+                                new DemoMultipartFile(source, "text/plain"));
+                    } catch (java.io.IOException exception) {
+                        throw new IllegalStateException("Cannot read demo source document", exception);
+                    }
+                });
+                DocumentResponse ready = withUser(admin, () -> ingestionService.ingest(uploaded.id()));
+                if (ready.status() != DocumentStatus.READY) {
+                    throw new IllegalStateException("Demo document ingestion did not become READY: "
+                            + document.filename());
+                }
             }
+        } catch (java.io.IOException exception) {
+            throw new IllegalStateException("Cannot read demo corpus catalog", exception);
+        }
+    }
+
+    static List<JsonNode> requireValidSeedDocuments(JsonNode catalog) {
+        if (!catalog.path("documents").isArray()) {
+            throw new IllegalStateException("Demo corpus catalog documents must be an array");
+        }
+        List<JsonNode> seedDocuments = new java.util.ArrayList<>();
+        EnumSet<DocumentType> coveredTypes = EnumSet.noneOf(DocumentType.class);
+        for (JsonNode document : catalog.path("documents")) {
+            if ("SEED_BASELINE".equals(document.path("classification").asText())) {
+                seedDocuments.add(document);
+                try {
+                    coveredTypes.add(DocumentType.valueOf(document.path("type").asText()));
+                } catch (IllegalArgumentException exception) {
+                    throw new IllegalStateException("Unsupported demo corpus document type: "
+                            + document.path("type").asText(), exception);
+                }
+            } else if (!"MANUAL_UI_UPLOAD_ONLY".equals(document.path("classification").asText())) {
+                throw new IllegalStateException("Unknown demo document classification: "
+                        + document.path("documentKey").asText());
+            }
+        }
+        if (seedDocuments.isEmpty() || !catalog.path("seedDocumentCount").isIntegralNumber()
+                || seedDocuments.size() != catalog.path("seedDocumentCount").asInt()) {
+            throw new IllegalStateException("Demo corpus seedDocumentCount must match its non-empty baseline catalog");
+        }
+        if (!coveredTypes.containsAll(EnumSet.allOf(DocumentType.class))) {
+            EnumSet<DocumentType> missingTypes = EnumSet.allOf(DocumentType.class);
+            missingTypes.removeAll(coveredTypes);
+            throw new IllegalStateException("Demo corpus is missing required seed document types: " + missingTypes);
+        }
+        return List.copyOf(seedDocuments);
+    }
+
+    private static String canonicalLfSha256(String text) {
+        try {
+            byte[] canonical = text.replace("\r\n", "\n").replace('\r', '\n').getBytes(StandardCharsets.UTF_8);
+            return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(canonical));
+        } catch (java.security.NoSuchAlgorithmException exception) {
+            throw new IllegalStateException("SHA-256 is unavailable", exception);
         }
     }
 
@@ -457,7 +580,7 @@ public class DemoDatasetCoordinator implements DemoDataCoordinator {
 
     private Map<String, Object> state() {
         List<Map<String, Object>> rows = jdbc.queryForList(
-                "SELECT dataset_version, baseline_date, status FROM demo_dataset_state WHERE dataset_key = ?",
+                "SELECT dataset_version, baseline_date, status, failure_reason FROM demo_dataset_state WHERE dataset_key = ?",
                 DATASET_KEY);
         return rows.isEmpty() ? null : rows.getFirst();
     }
@@ -470,10 +593,6 @@ public class DemoDatasetCoordinator implements DemoDataCoordinator {
 
     private static BigDecimal decimal(String value) { return new BigDecimal(value); }
 
-    private record MaterialSeed(String code, String name, String safetyStock, String inventory, boolean active) { }
-    private record SupplierSeed(String code, String name, String country, String reliability, String quality,
-                                boolean active) { }
-    private record DemandSeed(String materialCode, String quantity, int daysFromAnchor) { }
     private record DocumentSeed(String filename, DocumentType type, String title, String version,
-                                String supplierCode) { }
+                                String supplierCode, String sourceSha256) { }
 }
