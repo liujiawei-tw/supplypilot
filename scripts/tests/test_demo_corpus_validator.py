@@ -138,6 +138,8 @@ class DemoCorpusValidatorTests(unittest.TestCase):
                 "seedBaseline": False, "requiredAction": "MANUAL_UI_UPLOAD",
             }],
             "documentPolicy": {
+                "documentCurrencyAmountsIncluded": True,
+                "sensitivePricesRemainInStructuredMasterData": True,
                 "automaticApproval": {
                     "enabled": True,
                     "scope": "TRUSTED_REPOSITORY_DEMO_BASELINE",
@@ -146,9 +148,24 @@ class DemoCorpusValidatorTests(unittest.TestCase):
                 },
                 "automaticGeminiIndexingBeforeApproval": False,
                 "automaticIndexingAfterApproval": True,
+                "trustedDemoQuotationPriceException": {
+                    "enabled": True,
+                    "scope": "PINNED_TRUSTED_REPOSITORY_DEMO_V2_QUOTATION",
+                    "priceSource": "VERSIONED_REPOSITORY_MASTER_DATA_SUPPLIER_MATERIAL",
+                    "requiresPinnedCatalog": True,
+                    "requiresRepositorySourceHash": True,
+                    "requiresTrustedDemoProvenance": True,
+                    "requiresAllowedDemoTargets": True,
+                    "requiresRepositoryMasterPriceCurrencyAndUnitMatch": True,
+                    "requiresOutboundPolicyAllow": True,
+                    "ordinaryDocumentsEligible": False,
+                    "manualUploadsEligible": False,
+                    "credentialsBankDataAndPersonalDataExempt": False,
+                },
             },
         }
-        self.catalog = {"schemaVersion": 2, "datasetKey": "SP-901", "corpusVersion": "test-v1",
+        self.catalog = {"schemaVersion": 3, "businessFactApplicabilityVersion": 1,
+                        "businessFactApplicability": [], "datasetKey": "SP-901", "corpusVersion": "test-v1",
                         "documentCount": 16, "seedDocumentCount": 15, "manualUiUploadCount": 1,
                         "documents": []}
         self.fixtures = {"corpusVersion": "test-v1", "fixtures": []}
@@ -321,6 +338,37 @@ class DemoCorpusValidatorTests(unittest.TestCase):
     def test_valid_static_corpus_passes(self) -> None:
         self.assertEqual([], self._validate())
 
+    def test_business_fact_applicability_requires_exact_quote_period(self) -> None:
+        catalog = copy.deepcopy(self.catalog)
+        catalog["businessFactApplicability"] = [{
+            "supplierCode": "SUP-001", "materialCode": "MAT-001", "factType": "QUOTATION_TERMS",
+            "currentSource": {"documentKey": "DOC-QUOTE", "documentVersion": "1.0",
+                              "effectiveFrom": "2026-10-01", "effectiveUntil": "2026-10-30"},
+            "historicalSources": [], "supersededSources": [],
+        }]
+        self.assertEqual([], self._validate(catalog=catalog))
+
+        catalog["businessFactApplicability"][0]["currentSource"]["effectiveUntil"] = "2026-10-29"
+        errors = self._validate(catalog=catalog)
+        self.assertTrue(any("period must exactly match" in error for error in errors), errors)
+
+    def test_business_fact_applicability_rejects_nonquotation_or_unlinked_source(self) -> None:
+        catalog = copy.deepcopy(self.catalog)
+        catalog["businessFactApplicability"] = [{
+            "supplierCode": "SUP-001", "materialCode": "MAT-001", "factType": "QUOTATION_TERMS",
+            "currentSource": {"documentKey": "DOC-CONTRACT", "documentVersion": "1.0",
+                              "effectiveFrom": "2026-10-01", "effectiveUntil": "2026-10-30"},
+            "historicalSources": [], "supersededSources": [],
+        }]
+        errors = self._validate(catalog=catalog)
+        self.assertTrue(any("exact catalog quotation, supplier and material" in error for error in errors), errors)
+
+    def test_catalog_requires_business_fact_schema_version(self) -> None:
+        catalog = copy.deepcopy(self.catalog)
+        catalog["schemaVersion"] = 2
+        errors = self._validate(catalog=catalog)
+        self.assertTrue(any("schemaVersion" in error for error in errors), errors)
+
     def test_hash_drift_is_reported(self) -> None:
         catalog = copy.deepcopy(self.catalog)
         catalog["documents"][0]["sourceSha256"] = "0" * 64
@@ -362,6 +410,48 @@ class DemoCorpusValidatorTests(unittest.TestCase):
         next(doc for doc in catalog["documents"] if doc.get("themeKey") == "quotation")["sourceSha256"] = _canonical_sha(quote)
         errors = self._validate(catalog=catalog)
         self.assertTrue(any("fictional unit price 999 TWD/KG conflicts with versioned master data" in e for e in errors), errors)
+
+    def test_document_policy_declares_restricted_fictional_demo_quotation_prices(self) -> None:
+        self.assertEqual(self._validate(), [])
+
+    def test_document_policy_rejects_inconsistent_or_overbroad_price_exception(self) -> None:
+        mutations = (
+            ("documentCurrencyAmountsIncluded", False, "documentCurrencyAmountsIncluded"),
+            ("sensitivePricesRemainInStructuredMasterData", False, "sensitivePricesRemainInStructuredMasterData"),
+            ("trustedDemoQuotationPriceException.enabled", False, "enabled"),
+            ("trustedDemoQuotationPriceException.scope", "ANY_QUOTATION", "scope"),
+            ("trustedDemoQuotationPriceException.priceSource", "UNVERSIONED_TEXT", "priceSource"),
+            ("trustedDemoQuotationPriceException.requiresPinnedCatalog", False, "requiresPinnedCatalog"),
+            ("trustedDemoQuotationPriceException.requiresPinnedCatalog", 1, "requiresPinnedCatalog"),
+            ("trustedDemoQuotationPriceException.requiresRepositorySourceHash", False, "requiresRepositorySourceHash"),
+            ("trustedDemoQuotationPriceException.requiresTrustedDemoProvenance", False, "requiresTrustedDemoProvenance"),
+            ("trustedDemoQuotationPriceException.requiresAllowedDemoTargets", False, "requiresAllowedDemoTargets"),
+            ("trustedDemoQuotationPriceException.requiresRepositoryMasterPriceCurrencyAndUnitMatch", False,
+             "requiresRepositoryMasterPriceCurrencyAndUnitMatch"),
+            ("trustedDemoQuotationPriceException.requiresOutboundPolicyAllow", False, "requiresOutboundPolicyAllow"),
+            ("trustedDemoQuotationPriceException.ordinaryDocumentsEligible", True, "ordinaryDocumentsEligible"),
+            ("trustedDemoQuotationPriceException.manualUploadsEligible", True, "manualUploadsEligible"),
+            ("trustedDemoQuotationPriceException.credentialsBankDataAndPersonalDataExempt", True,
+             "credentialsBankDataAndPersonalDataExempt"),
+        )
+        for path, value, expected_error in mutations:
+            with self.subTest(path=path):
+                master = copy.deepcopy(self.master)
+                if "." in path:
+                    parent, key = path.split(".", 1)
+                    master["documentPolicy"][parent][key] = value
+                else:
+                    master["documentPolicy"][path] = value
+                errors = self._validate(master=master)
+                self.assertTrue(any(expected_error in error for error in errors), errors)
+
+    def test_document_policy_requires_price_exception_contract(self) -> None:
+        master = copy.deepcopy(self.master)
+        del master["documentPolicy"]["trustedDemoQuotationPriceException"]
+
+        errors = self._validate(master=master)
+
+        self.assertTrue(any("trustedDemoQuotationPriceException: expected" in error for error in errors), errors)
 
     def test_answer_fixture_rejects_factual_claim_not_supported_by_source(self) -> None:
         fixtures = copy.deepcopy(self.fixtures)

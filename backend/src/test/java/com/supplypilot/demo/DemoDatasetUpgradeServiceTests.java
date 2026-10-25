@@ -68,11 +68,17 @@ class DemoDatasetUpgradeServiceTests {
         byte[] trackedMaster = Files.readAllBytes(Path.of("..", "samples", "demo-master-data.json"));
         byte[] changedMaster = trackedMaster.clone();
         changedMaster[0] ^= 1;
+        byte[] changedPolicy = new String(trackedMaster, java.nio.charset.StandardCharsets.UTF_8)
+                .replace("\"documentCurrencyAmountsIncluded\": true",
+                        "\"documentCurrencyAmountsIncluded\": false")
+                .getBytes(java.nio.charset.StandardCharsets.UTF_8);
 
         assertThat(DemoDatasetUpgradeService.isPinnedAutoSafeMasterData(trackedMaster)).isTrue();
         assertThat(DemoDatasetUpgradeService.isPinnedAutoSafeMasterData(changedMaster)).isFalse();
+        assertThat(DemoDatasetUpgradeService.isPinnedAutoSafeMasterData(changedPolicy)).isFalse();
         assertThat(DemoDatasetCoordinator.isInitialSeedMasterDataTrusted("AUTO_SAFE", trackedMaster)).isTrue();
         assertThat(DemoDatasetCoordinator.isInitialSeedMasterDataTrusted("auto_safe", changedMaster)).isFalse();
+        assertThat(DemoDatasetCoordinator.isInitialSeedMasterDataTrusted("AUTO_SAFE", changedPolicy)).isFalse();
         assertThat(DemoDatasetCoordinator.isInitialSeedMasterDataTrusted("DISABLED", changedMaster)).isTrue();
     }
 

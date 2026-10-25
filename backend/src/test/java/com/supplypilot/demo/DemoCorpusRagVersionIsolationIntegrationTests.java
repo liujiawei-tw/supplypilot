@@ -28,6 +28,7 @@ import com.supplypilot.document.domain.SemanticReviewStatus;
 import com.supplypilot.document.rag.DocumentIngestionService;
 import com.supplypilot.document.rag.DocumentRetrievalService;
 import com.supplypilot.document.rag.EmbeddingProvider;
+import com.supplypilot.document.rag.RetrievedChunk;
 import com.supplypilot.document.repository.DocumentChunkRepository;
 import com.supplypilot.document.repository.DocumentMetadataRepository;
 import com.supplypilot.document.semantic.OutboundDocumentPolicy;
@@ -275,6 +276,80 @@ class DemoCorpusRagVersionIsolationIntegrationTests {
         assertThat(semanticIds).contains(currentId, manual.document().getId()).doesNotContain(oldId);
         assertThat(eligibility.isEligible(manual.document())).isTrue();
 
+        DocumentMetadata legacySup002Quote = syncedDocument(firstSync, "DOC-SUP-002-QUOTATION");
+        DocumentMetadata currentSup002Quote = syncedDocument(firstSync, "DOC-SUP-002-QUOTATION-SP907");
+        List<DocumentChunk> legacyQuoteChunks = chunks.findByDocumentIdOrderByChunkIndex(legacySup002Quote.getId());
+        byte[] originalLegacyQuote = Files.readAllBytes(Path.of("../samples/documents/quotation-sup-002-v1.txt"));
+        assertThat(Files.readAllBytes(Path.of(STORAGE_ROOT, legacySup002Quote.getStoragePath())))
+                .isEqualTo(originalLegacyQuote);
+        assertThat(legacyQuoteChunks).isNotEmpty();
+        publishApprovedDemoDocument(legacySup002Quote);
+        publishApprovedDemoDocument(currentSup002Quote);
+
+        String currentQuoteQuestion = "SUP-002 的 MAT-002 現行報價有效到哪一天？";
+        List<RetrievedChunk> lexicalCurrentQuote = lexicalRetrieval.retrieve(currentQuoteQuestion).stream()
+                .filter(result -> result.chunk().getDocument().getDocumentType() == DocumentType.QUOTATION).toList();
+        assertThat(lexicalCurrentQuote).isNotEmpty().allSatisfy(result -> {
+            assertThat(result.chunk().getDocument().getDemoDocumentKey())
+                    .isEqualTo("DOC-SUP-002-QUOTATION-SP907");
+            assertThat(result.chunk().getDocument().getVersion()).isEqualTo("2.0");
+            assertThat(result.chunk().getContent()).contains("2026-11-30").doesNotContain("2026-12-31");
+        });
+        List<RetrievedChunk> semanticCurrentQuote = semanticRetrieval.retrieve(currentQuoteQuestion).stream()
+                .filter(result -> result.chunk().getDocument().getDocumentType() == DocumentType.QUOTATION).toList();
+        assertThat(semanticCurrentQuote).isNotEmpty().allSatisfy(result -> {
+            assertThat(result.chunk().getDocument().getDemoDocumentKey())
+                    .isEqualTo("DOC-SUP-002-QUOTATION-SP907");
+            assertThat(result.chunk().getDocument().getVersion()).isEqualTo("2.0");
+            assertThat(result.chunk().getContent()).contains("2026-11-30").doesNotContain("2026-12-31");
+        });
+
+        String historicalQuoteQuestion = "SUP-002 在 2025 年的歷史供貨條件有效到何時？";
+        List<RetrievedChunk> lexicalHistoricalQuote = lexicalRetrieval.retrieve(historicalQuoteQuestion).stream()
+                .filter(result -> result.chunk().getDocument().getDocumentType() == DocumentType.QUOTATION).toList();
+        assertThat(lexicalHistoricalQuote).isNotEmpty().allSatisfy(result -> {
+            assertThat(result.chunk().getDocument().getDemoDocumentKey()).isEqualTo("DOC-SUP-002-QUOTATION");
+            assertThat(result.chunk().getDocument().getVersion()).isEqualTo("1.0");
+            assertThat(result.chunk().getContent()).contains("【歷史條件】", "2025-06-30")
+                    .doesNotContain("2026-12-31", "【現行條件】", "阿薩姆紅茶萃取物（MAT-001",
+                            "芒果濃縮汁（MAT-002", "問答：");
+        });
+        List<RetrievedChunk> semanticHistoricalQuote = semanticRetrieval.retrieve(historicalQuoteQuestion).stream()
+                .filter(result -> result.chunk().getDocument().getDocumentType() == DocumentType.QUOTATION).toList();
+        assertThat(semanticHistoricalQuote).isNotEmpty().allSatisfy(result -> {
+            assertThat(result.chunk().getDocument().getDemoDocumentKey()).isEqualTo("DOC-SUP-002-QUOTATION");
+            assertThat(result.chunk().getDocument().getVersion()).isEqualTo("1.0");
+            assertThat(result.chunk().getContent()).contains("【歷史條件】", "2025-06-30")
+                    .doesNotContain("2026-12-31", "【現行條件】", "阿薩姆紅茶萃取物（MAT-001",
+                            "芒果濃縮汁（MAT-002", "問答：");
+        });
+
+        String ambiguousQuoteQuestion = "SUP-002 的 MAT-002 在 2025 年的歷史與現行報價有效期限為何？";
+        assertThat(eligibility.isApplicableToQuery(legacySup002Quote, ambiguousQuoteQuestion)).isFalse();
+        assertThat(eligibility.isApplicableToQuery(currentSup002Quote, ambiguousQuoteQuestion)).isFalse();
+        assertThat(lexicalRetrieval.retrieve(ambiguousQuoteQuestion).stream()
+                .filter(result -> result.chunk().getDocument().getDocumentType() == DocumentType.QUOTATION))
+                .isEmpty();
+        assertThat(semanticRetrieval.retrieve(ambiguousQuoteQuestion).stream()
+                .filter(result -> result.chunk().getDocument().getDocumentType() == DocumentType.QUOTATION))
+                .isEmpty();
+
+        assertThat(eligibility.isApplicableToQuery(legacySup002Quote, currentQuoteQuestion)).isFalse();
+        assertThat(eligibility.isApplicableToQuery(legacySup002Quote,
+                "SUP-002 的 MAT-001 現行供貨條件為何？")).isTrue();
+        assertThat(eligibility.isApplicableToQuery(legacySup002Quote,
+                "SUP-002 的 MAT-001 V2 報價是否提供 MOQ？")).isFalse();
+        assertThat(eligibility.isApplicableToQuery(manual.document(), currentQuoteQuestion)).isTrue();
+        assertThat(eligibility.isApplicableToQuery(current, currentQuoteQuestion)).isTrue();
+        assertThat(eligibility.isApplicableToQuery(legacySup002Quote,
+                "SUP-002 的歷史供貨條件到期日？")).isFalse();
+        assertThat(documents.findById(legacySup002Quote.getId())).isPresent();
+        assertThat(chunks.findByDocumentIdOrderByChunkIndex(legacySup002Quote.getId()).stream()
+                .map(DemoCorpusRagVersionIsolationIntegrationTests::snapshot).toList())
+                .containsExactlyElementsOf(legacyQuoteChunks.stream()
+                        .map(DemoCorpusRagVersionIsolationIntegrationTests::snapshot).toList());
+        assertThat(semanticStore.state(legacySup002Quote.getId(), "1.0").status()).isEqualTo("READY");
+
         MockEnvironment productionEnvironment = new MockEnvironment();
         productionEnvironment.setActiveProfiles("demo", "prod");
         DemoCorpusRagEligibility productionEligibility = new DemoCorpusRagEligibility(objectMapper,
@@ -297,6 +372,24 @@ class DemoCorpusRagVersionIsolationIntegrationTests {
                 "../samples/documents", STORAGE_ROOT, "supplypilot_demo_other_test", SEMANTIC_DATABASE,
                 semanticProperties.jdbcUrl(), demoEnvironment, jdbc);
         assertThat(rejectedMysqlTarget.isEligible(current)).isFalse();
+    }
+
+    private DocumentMetadata syncedDocument(DemoCorpusSyncService.SyncReport report, String documentKey) {
+        Long id = report.outcomes().stream().filter(outcome -> documentKey.equals(outcome.documentKey()))
+                .map(DemoCorpusSyncService.DocumentOutcome::documentId).filter(java.util.Objects::nonNull)
+                .findFirst().orElseThrow(() -> new IllegalStateException("Synced Demo document missing: " + documentKey));
+        return documents.findForSemanticRead(id).orElseThrow();
+    }
+
+    private void publishApprovedDemoDocument(DocumentMetadata document) {
+        List<DocumentChunk> source = chunks.findByDocumentIdOrderByChunkIndex(document.getId());
+        String hash = SemanticBackfillService.sourceHash(source);
+        var identity = eligibility.currentIdentity(document).orElseThrow();
+        var proof = DemoCorpusTrustedApprovalService.VerifiedDemoSource.forCurrentRetrieval(
+                document, identity, hash, document.getSemanticIndexGeneration()).orElseThrow();
+        var decision = policy.inspectVerifiedDemo(document, source, proof);
+        assertThat(decision.status()).isEqualTo("APPROVED");
+        publish(document, source, hash, decision.safeChunks());
     }
 
     private void seedAutoSafeRelationalBaseline() throws IOException {

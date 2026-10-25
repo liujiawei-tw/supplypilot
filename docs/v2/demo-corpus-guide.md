@@ -5,7 +5,7 @@
 ## 語料來源與檔案
 
 - [主資料契約](../../samples/demo-master-data.json) 是供應商、物料、供應關係、PO 範例及 Corpus Version 的一致性依據。供應商及物料名稱、代碼、單位、MOQ、包裝倍數與交期以該檔為準。
-- [Corpus Catalog](../../samples/documents/corpus-catalog.json) 使用 schema version 2，列出文件鍵、`DocumentType`、theme、版號、來源檔、canonical-LF SHA-256、供應商／物料關聯、fixture 關聯和 provenance。Catalog 不包含 approval result。
+- [Corpus Catalog](../../samples/documents/corpus-catalog.json) 使用 schema version 3，除文件鍵、`DocumentType`、theme、版號、來源檔、canonical-LF SHA-256、供應商／物料關聯、fixture 關聯、provenance，以及以 supplier/material/fact type/有效期間標示的現行、歷史與已取代事實來源。Catalog 不包含 approval result。
 - [RAG Fixtures](../../samples/documents/rag-fixtures.json) 列出 126 條靜態問答案例、預期答案要點、引用來源、引用要求、案例類別及預期狀態。
 - `samples/documents/` 包含 115 份 `SEED_BASELINE` 文件，以及 1 份 `MANUAL_UI_UPLOAD_ONLY` 文件。Seed 文件分類如下：
 
@@ -32,7 +32,7 @@ PO 範例由同一主檔的供應商、物料及 `SupplierMaterial` 條件交叉
 
 ## 信任邊界、審查、出站與索引
 
-`DemoCorpusSyncService` 只信任 demo profile 中 Repository 的目前 corpus catalog 和來源檔，並精確核對 dataset/version、document key、type/title/version、supplier code/name、theme、來源 filename/hash、approval/outbound policy 與完整 provenance。同步與系統核准共用 `DemoCorpusCatalogTrust`：catalog 必須是一般檔案（regular file）、不可為 symlink，且 UTF-8 文字將 CRLF/CR 正規化為 LF 後須符合固定 SHA-256 `F34301B7639E4D2FD85579F5525752D0C10CF71236CDEA70B4F1E464D7E2EA9B`；改用自製同 envelope catalog 或只改 `samplesPath` 不會取得信任。內容 hash 同樣將換行正規化為 LF。同步會以 `(datasetKey, documentKey, version)` 和持久 provenance 做冪等比對，絕不只用標題判斷身分。
+`DemoCorpusSyncService` 只信任 demo profile 中 Repository 的目前 corpus catalog 和來源檔，並精確核對 dataset/version、document key、type/title/version、supplier code/name、theme、來源 filename/hash、approval/outbound policy 與完整 provenance。同步與系統核准共用 `DemoCorpusCatalogTrust`：catalog 必須是一般檔案（regular file）、不可為 symlink，且 UTF-8 文字將 CRLF/CR 正規化為 LF 後須符合固定 SHA-256 `25E7878ADF8B3D6D9B9299B7A3E81667DB9C1BD020289A728369819D21D166D7`；改用自製同 envelope catalog 或只改 `samplesPath` 不會取得信任。內容 hash 同樣將換行正規化為 LF。同步會以 `(datasetKey, documentKey, version)` 和持久 provenance 做冪等比對，絕不只用標題判斷身分。
 
 無 provenance 的舊資料只會在唯一候選、type/title/version/supplier 完全相符，且資料庫保存來源的 canonical hash 與 catalog 相同時採用；檢查通過後才寫 provenance。重複候選、任何欄位或 source hash 不符、或既有 keyed baseline 被修改，會留下 sync conflict 並保留既有文件與來源，不會覆寫內容。有效人工審查 audit 也不會被 legacy adoption 覆蓋。
 
@@ -44,7 +44,7 @@ Semantic PostgreSQL 必須使用 `allowedSemanticDatabase` 指定的 demo databa
 
 `UI-SUP-005-ADDENDUM` 對應 `ui-upload-sup-005-v1.txt`，用途限於人工 UI Upload 驗收。其分類為 `MANUAL_UI_UPLOAD_ONLY`，Coordinator 不得自動 Seed，也不得當成基線來源。`RAG-021` 只適用於此文件由測試人員人工上傳後的查詢情境。
 
-只有目前固定 Catalog 中通過完整 provenance 驗證的 Demo 文件才依 document key/version 隔離；MySQL lexical 與 pgvector semantic retrieval 都只接受目前 Catalog 版本。被取代版本的 metadata、原始檔、核准及 audit 保留供文件管理查看，但不再當成 RAG 現行證據；無 Demo provenance 的手動上傳不套用這項版本規則。`SEED_BASELINE`、來源 canonical hash 與文件版本仍須重新驗證，不能複製舊核准。
+Demo RAG 先驗證固定 Catalog 身分，再依 Catalog 的 `businessFactApplicability` 對 supplier、material、fact type 與 effective period 判斷證據適用性；不同 Document Key 的報價也能明確標記為現行、歷史或已取代。MySQL lexical 與 pgvector semantic retrieval 共用同一查詢適用性檢查。歷史來源只有在問題明確提供年份且與 Catalog 期間相符時才可引用；無法辨認歷史期間時回覆資料不足。來源 chunk 若同時含被取代期間的有效期限，該日期句不會送入回答上下文。被取代文件的 metadata、原始檔、核准及 audit 保留供預覽與追溯；無 Demo provenance 的手動上傳不套用這項 Demo 規則。`SEED_BASELINE`、來源 canonical hash 與文件版本仍須重新驗證，不能複製舊核准。
 
 ## 雜湊維護與 Fixture 解讀
 

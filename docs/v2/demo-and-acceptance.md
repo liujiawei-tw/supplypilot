@@ -27,7 +27,9 @@
 
 ### 3.2 `AUTO_SAFE` 關聯式升級
 
-Demo Profile 的 Compose 預設為 `DEMO_DATASET_VERSION=sp-907-zh-tw-v3`、`DEMO_DATASET_UPGRADE_MODE=AUTO_SAFE`；Runner 只允許 `demo` 且不允許同時啟用 `prod`。主檔唯讀掛載。AUTO_SAFE 固定驗證 `samples/demo-master-data.json` 的 SHA-256：`6f66e13c66d7a42df96eda3e0b7abde5ba8872db6e53a7555961b0c356ea8245`。目標版本或雜湊不符時拒絕任何關聯式變更。
+Demo Profile 的 Compose 預設為 `DEMO_DATASET_VERSION=sp-907-zh-tw-v3`、`DEMO_DATASET_UPGRADE_MODE=AUTO_SAFE`；Runner 只允許 `demo` 且不允許同時啟用 `prod`。主檔唯讀掛載。AUTO_SAFE 固定驗證 `samples/demo-master-data.json` 的 SHA-256：`122734dc4dd60d7fa6ed7b845c55d2efe5c7ae2b2547e5aee95dd3989c27a467`。目標版本或雜湊不符時拒絕任何關聯式變更。
+
+可信 Repository V2 Demo 報價可呈現虛構商業金額；單價以版本化主檔 `supplierMaterials` 關係為來源，必須符合固定 Catalog、Repository source hash、Demo provenance 與允許的 Demo 資料目標，且報價金額、幣別、單位要與主檔一致，再通過既有 outbound policy 檢查。普通文件及人工上傳不適用此例外。例外只允許商業金額；憑證、銀行資料與實際個資仍受既有政策檢查，不能因可信 Demo 報價而豁免。主檔同時保留結構化單價作為版本化事實來源。
 
 雜湊檢查、資料集 marker 與資料列鎖定、鎖定後的計畫及前置條件比對、允許的更新與 marker 寫入都在同一資料庫交易中執行。鎖定順序固定為資料集 marker、供應商、物料、供應關係。AUTO_SAFE 的新增/更新只限已固定主檔與明確 allowlist：既有供應商只將精確舊值的展示名稱/國別改成 sp-907 值；既有物料只將精確舊名稱改成目標名稱；只可新增 SUP-007 至 SUP-010 的完整核准供應商資料及 15 組固定供應關係，每組需符合完整價格、MOQ、包裝倍數、交期、幣別及狀態欄位。
 

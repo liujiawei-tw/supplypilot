@@ -757,7 +757,7 @@
     }
   ],
   "documentPolicy": {
-    "documentCurrencyAmountsIncluded": false,
+    "documentCurrencyAmountsIncluded": true,
     "manualUploadInitialReviewStatus": "REQUIRES_ADMIN_REVIEW",
     "automaticApproval": {
       "enabled": true,
@@ -767,7 +767,21 @@
     },
     "automaticGeminiIndexingBeforeApproval": false,
     "automaticIndexingAfterApproval": true,
-    "sensitivePricesRemainInStructuredMasterData": true
+    "sensitivePricesRemainInStructuredMasterData": true,
+    "trustedDemoQuotationPriceException": {
+      "enabled": true,
+      "scope": "PINNED_TRUSTED_REPOSITORY_DEMO_V2_QUOTATION",
+      "priceSource": "VERSIONED_REPOSITORY_MASTER_DATA_SUPPLIER_MATERIAL",
+      "requiresPinnedCatalog": true,
+      "requiresRepositorySourceHash": true,
+      "requiresTrustedDemoProvenance": true,
+      "requiresAllowedDemoTargets": true,
+      "requiresRepositoryMasterPriceCurrencyAndUnitMatch": true,
+      "requiresOutboundPolicyAllow": true,
+      "ordinaryDocumentsEligible": false,
+      "manualUploadsEligible": false,
+      "credentialsBankDataAndPersonalDataExempt": false
+    }
   },
   "manualUploadFixtures": [
     {

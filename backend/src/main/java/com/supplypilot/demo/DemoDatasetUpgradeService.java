@@ -37,7 +37,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class DemoDatasetUpgradeService {
     private static final String AUTO_SAFE_TARGET_VERSION = "sp-907-zh-tw-v3";
     private static final String AUTO_SAFE_MASTER_DATA_SHA256 =
-            "6f66e13c66d7a42df96eda3e0b7abde5ba8872db6e53a7555961b0c356ea8245";
+            "122734dc4dd60d7fa6ed7b845c55d2efe5c7ae2b2547e5aee95dd3989c27a467";
     private static final Map<String, String> OLD_SUPPLIER_NAMES = Map.of(
             "SUP-001", "Formosa Ingredients",
             "SUP-002", "East Harbor Trading",

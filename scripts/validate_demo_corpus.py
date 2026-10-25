@@ -700,6 +700,133 @@ def _validate_supplier_scenarios(docs: list[dict[str, Any]], suppliers: dict[str
                 errors.append(f"{path}.filename: evaluation must identify its source scenario contract")
 
 
+
+def _validate_business_fact_applicability(catalog: dict[str, Any], documents: list[dict[str, Any]],
+                                          expected_version: Any, errors: list[str]) -> None:
+    if type(catalog.get("schemaVersion")) is not int or catalog.get("schemaVersion") != 3:
+        errors.append("catalog.schemaVersion: expected business-fact applicability schema version 3")
+    if type(catalog.get("businessFactApplicabilityVersion")) is not int or catalog.get("businessFactApplicabilityVersion") != 1:
+        errors.append("catalog.businessFactApplicabilityVersion: expected 1")
+    rules = catalog.get("businessFactApplicability")
+    if not isinstance(rules, list):
+        errors.append("catalog.businessFactApplicability: expected an array")
+        return
+
+    documents_by_key = {_key(document): document for document in documents if _key(document)}
+    scopes: set[tuple[str, str, str]] = set()
+
+    def validate_source(source: Any, role: str, supplier: str, material: str, path: str) -> tuple[Any, ...] | None:
+        if not isinstance(source, dict):
+            errors.append(f"{path}: expected a source object")
+            return None
+        document_key = source.get("documentKey")
+        version = source.get("documentVersion")
+        valid_from, valid_until = source.get("effectiveFrom"), source.get("effectiveUntil")
+        if not all(isinstance(value, str) and value.strip()
+                   for value in (document_key, version, valid_from, valid_until)):
+            errors.append(f"{path}: document key, version and effective dates are required")
+            return None
+        try:
+            starts, ends = date.fromisoformat(valid_from), date.fromisoformat(valid_until)
+            if ends < starts:
+                raise ValueError("effectiveUntil precedes effectiveFrom")
+        except ValueError:
+            errors.append(f"{path}: effective dates must be valid ISO dates in ascending order")
+            return None
+
+        document = documents_by_key.get(document_key)
+        if (document is None or _type(document) != "QUOTATION"
+                or str(_first(document, "version", "documentVersion")) != version
+                or supplier not in _items(_first(document, "supplierCodes", "supplierCode"))
+                or material not in _items(_first(document, "materialCodes", "materialCode"))):
+            errors.append(f"{path}: source must reference the exact catalog quotation, supplier and material")
+            return (supplier, material, role, document_key, version, valid_from, valid_until)
+
+        expected_period_status = "HISTORICAL" if role == "historicalSources" else "CURRENT"
+        terms = _items(_first(document, "quoteTerms", "quotationTerms", "commercialTerms"))
+        matching = [term for term in terms if isinstance(term, dict)
+                    and term.get("supplierCode") == supplier and term.get("materialCode") == material
+                    and term.get("validFrom") == valid_from and term.get("validUntil") == valid_until
+                    and str(term.get("periodStatus", "CURRENT")).upper() == expected_period_status]
+        if not matching:
+            errors.append(f"{path}: period must exactly match the quotation's {expected_period_status.lower()} quoteTerms")
+        return (supplier, material, role, document_key, version, valid_from, valid_until)
+
+    for index, rule in enumerate(rules):
+        path = f"catalog.businessFactApplicability[{index}]"
+        if not isinstance(rule, dict):
+            errors.append(f"{path}: expected an object")
+            continue
+        supplier, material, fact_type = rule.get("supplierCode"), rule.get("materialCode"), rule.get("factType")
+        scope = (supplier, material, fact_type)
+        if (not isinstance(supplier, str) or not re.fullmatch(r"SUP-\d{3}", supplier)
+                or not isinstance(material, str) or not re.fullmatch(r"MAT-\d{3}", material)
+                or fact_type != "QUOTATION_TERMS"):
+            errors.append(f"{path}: expected supplier/material scope and QUOTATION_TERMS fact type")
+            continue
+        if scope in scopes:
+            errors.append(f"{path}: duplicate business fact scope {supplier}/{material}/{fact_type}")
+        scopes.add(scope)
+        current = validate_source(rule.get("currentSource"), "currentSource", supplier, material,
+                                  f"{path}.currentSource")
+        for role in ("historicalSources", "supersededSources"):
+            sources = rule.get(role)
+            if not isinstance(sources, list):
+                errors.append(f"{path}.{role}: expected an array")
+                continue
+            seen: set[tuple[Any, ...]] = set()
+            for source_index, source in enumerate(sources):
+                parsed = validate_source(source, role, supplier, material,
+                                         f"{path}.{role}[{source_index}]")
+                if parsed is not None:
+                    if parsed in seen:
+                        errors.append(f"{path}.{role}: duplicate source period")
+                    seen.add(parsed)
+
+    if expected_version == "sp-907-zh-tw-v3":
+        expected = {
+            ("SUP-001", "MAT-001"): (
+                ("DOC-SUP-001-QUOTATION-SP907", "2.0", "2026-10-01", "2026-11-29"),
+                (),
+                (("DOC-SUP-001-QUOTATION", "1.0", "2026-10-01", "2026-12-31"),),
+            ),
+            ("SUP-002", "MAT-001"): (
+                ("DOC-SUP-002-QUOTATION", "1.0", "2026-10-01", "2026-12-31"),
+                (("DOC-SUP-002-QUOTATION", "1.0", "2025-03-01", "2025-06-30"),),
+                (),
+            ),
+            ("SUP-002", "MAT-002"): (
+                ("DOC-SUP-002-QUOTATION-SP907", "2.0", "2026-10-01", "2026-11-30"),
+                (("DOC-SUP-002-QUOTATION", "1.0", "2025-03-01", "2025-06-30"),),
+                (("DOC-SUP-002-QUOTATION", "1.0", "2026-10-01", "2026-12-31"),),
+            ),
+            ("SUP-007", "MAT-010"): (
+                ("DOC-SUP-007-QUOTATION-SP907", "2.0", "2026-10-01", "2026-12-05"),
+                (),
+                (("DOC-SUP-007-QUOTATION", "1.0", "2026-10-01", "2026-12-31"),),
+            ),
+        }
+        actual = {}
+        for rule in rules:
+            if not isinstance(rule, dict):
+                continue
+            key = (rule.get("supplierCode"), rule.get("materialCode"))
+            current_source = rule.get("currentSource") if isinstance(rule.get("currentSource"), dict) else {}
+            actual[key] = (
+                (current_source.get("documentKey"), current_source.get("documentVersion"),
+                 current_source.get("effectiveFrom"), current_source.get("effectiveUntil")),
+                tuple((source.get("documentKey"), source.get("documentVersion"),
+                       source.get("effectiveFrom"), source.get("effectiveUntil"))
+                      for source in rule.get("historicalSources", []) if isinstance(source, dict)),
+                tuple((source.get("documentKey"), source.get("documentVersion"),
+                       source.get("effectiveFrom"), source.get("effectiveUntil"))
+                      for source in rule.get("supersededSources", []) if isinstance(source, dict)),
+            )
+        for key, expected_value in expected.items():
+            if actual.get(key) != expected_value:
+                errors.append(f"catalog.businessFactApplicability: {key[0]}/{key[1]} applicability sources or periods do not match reviewed corpus facts")
+
+
 def validate_corpus(master: dict[str, Any], catalog: dict[str, Any], fixtures_data: dict[str, Any], documents_dir: Path) -> list[str]:
     """Return static corpus issues; a clean result does not prove Gemini or RAG quality."""
     errors: list[str] = []
@@ -762,8 +889,38 @@ def validate_corpus(master: dict[str, Any], catalog: dict[str, Any], fixtures_da
             errors.append("master.documentPolicy.automaticGeminiIndexingBeforeApproval: must remain false")
         if policy.get("automaticIndexingAfterApproval") is not True:
             errors.append("master.documentPolicy.automaticIndexingAfterApproval: must be enabled")
+        if policy.get("documentCurrencyAmountsIncluded") is not True:
+            errors.append("master.documentPolicy.documentCurrencyAmountsIncluded: trusted V2 Demo quotation amounts must be declared as included")
+        if policy.get("sensitivePricesRemainInStructuredMasterData") is not True:
+            errors.append("master.documentPolicy.sensitivePricesRemainInStructuredMasterData: versioned structured master data must remain a price source")
+        price_exception = policy.get("trustedDemoQuotationPriceException")
+        if not isinstance(price_exception, dict):
+            errors.append("master.documentPolicy.trustedDemoQuotationPriceException: expected a restricted trusted Demo quotation price policy")
+        else:
+            required_price_policy = {
+                "enabled": True,
+                "scope": "PINNED_TRUSTED_REPOSITORY_DEMO_V2_QUOTATION",
+                "priceSource": "VERSIONED_REPOSITORY_MASTER_DATA_SUPPLIER_MATERIAL",
+                "requiresPinnedCatalog": True,
+                "requiresRepositorySourceHash": True,
+                "requiresTrustedDemoProvenance": True,
+                "requiresAllowedDemoTargets": True,
+                "requiresRepositoryMasterPriceCurrencyAndUnitMatch": True,
+                "requiresOutboundPolicyAllow": True,
+                "ordinaryDocumentsEligible": False,
+                "manualUploadsEligible": False,
+                "credentialsBankDataAndPersonalDataExempt": False,
+            }
+            for field, expected in required_price_policy.items():
+                actual = price_exception.get(field)
+                matches = actual is expected if isinstance(expected, bool) else actual == expected
+                if not matches:
+                    errors.append(
+                        f"master.documentPolicy.trustedDemoQuotationPriceException.{field}: expected {expected!r}"
+                    )
 
     docs, fixtures = _documents(catalog), _fixtures(fixtures_data)
+    _validate_business_fact_applicability(catalog, docs, expected_version, errors)
     if not docs:
         errors.append("catalog.documents: expected document entries")
     if not fixtures:

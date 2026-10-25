@@ -82,7 +82,8 @@ public class SemanticRetrievalService {
                     DocumentMetadata document = documents.findForSemanticRead(candidate.documentId()).orElse(null);
                     if (document == null || document.getStatus() != DocumentStatus.READY
                             || !document.getVersion().equals(candidate.version())
-                            || !demoEligibility.isEligible(document)) continue;
+                            || !demoEligibility.isEligible(document)
+                            || !demoEligibility.isApplicableToQuery(document, question)) continue;
                     List<DocumentChunk> source = chunks.findByDocumentIdOrderByChunkIndex(candidate.documentId());
                     SemanticStore.IndexState index = store.state(candidate.documentId(), candidate.version());
                     if (index == null || !"READY".equals(index.status())
@@ -100,8 +101,11 @@ public class SemanticRetrievalService {
                     if (position < 0 || source.get(position).getStartOffset() != candidate.startOffset()
                             || source.get(position).getEndOffset() != candidate.endOffset()
                             || !decision.safeChunks().get(position).equals(candidate.content())) continue;
+                    String applicableContent = demoEligibility.restrictBusinessFactContent(document, question,
+                            candidate.content());
+                    if (applicableContent == null || applicableContent.isBlank()) continue;
                     DocumentChunk safe = DocumentChunk.create(document, candidate.chunkIndex(),
-                            candidate.startOffset(), candidate.endOffset(), candidate.content(), "", Instant.now());
+                            candidate.startOffset(), candidate.endOffset(), applicableContent, "", Instant.now());
                     result.add(new RetrievedChunk(safe, candidate.score()));
                     if (result.size() == properties.topK()) break;
                 }

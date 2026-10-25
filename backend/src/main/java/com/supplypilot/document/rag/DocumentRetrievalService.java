@@ -52,7 +52,8 @@ public class DocumentRetrievalService {
         for (DocumentChunk chunk : chunks.findRetrievable(DocumentStatus.READY)) {
             DocumentMetadata document = chunk.getDocument();
             if (document != null && document.getId() != null && document.getStatus() == DocumentStatus.READY
-                    && demoEligibility.isEligible(document)) {
+                    && demoEligibility.isEligible(document)
+                    && demoEligibility.isApplicableToQuery(document, question)) {
                 byDocument.computeIfAbsent(document.getId(), ignored -> new ArrayList<>()).add(chunk);
             }
         }
@@ -73,7 +74,8 @@ public class DocumentRetrievalService {
 
             for (int index = 0; index < source.size(); index++) {
                 DocumentChunk original = source.get(index);
-                String safeContent = decision.safeChunks().get(index);
+                String safeContent = demoEligibility.restrictBusinessFactContent(document, question,
+                        decision.safeChunks().get(index));
                 if (safeContent == null || safeContent.isBlank()) continue;
                 if (hasConflictingMaterialIdentifier(safeContent, requestedMaterialIdentifiers)) continue;
                 double contentScore = cosine(queryEmbedding, EmbeddingCodec.decode(original.getEmbedding()));

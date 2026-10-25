@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "datasetKey": "SP-901",
   "corpusVersion": "sp-907-zh-tw-v3",
   "documentCount": 116,
@@ -4285,5 +4285,95 @@
     "priorSemanticIndexEvidenceCarriedForward": false,
     "newVersionRequiresFreshSourceReview": true,
     "newVersionRequiresFreshSemanticPublicationEvidence": true
-  }
+  },
+  "businessFactApplicabilityVersion": 1,
+  "businessFactApplicability": [
+    {
+      "supplierCode": "SUP-001",
+      "materialCode": "MAT-001",
+      "factType": "QUOTATION_TERMS",
+      "currentSource": {
+        "documentKey": "DOC-SUP-001-QUOTATION-SP907",
+        "documentVersion": "2.0",
+        "effectiveFrom": "2026-10-01",
+        "effectiveUntil": "2026-11-29"
+      },
+      "historicalSources": [],
+      "supersededSources": [
+        {
+          "documentKey": "DOC-SUP-001-QUOTATION",
+          "documentVersion": "1.0",
+          "effectiveFrom": "2026-10-01",
+          "effectiveUntil": "2026-12-31"
+        }
+      ]
+    },
+    {
+      "supplierCode": "SUP-002",
+      "materialCode": "MAT-001",
+      "factType": "QUOTATION_TERMS",
+      "currentSource": {
+        "documentKey": "DOC-SUP-002-QUOTATION",
+        "documentVersion": "1.0",
+        "effectiveFrom": "2026-10-01",
+        "effectiveUntil": "2026-12-31"
+      },
+      "historicalSources": [
+        {
+          "documentKey": "DOC-SUP-002-QUOTATION",
+          "documentVersion": "1.0",
+          "effectiveFrom": "2025-03-01",
+          "effectiveUntil": "2025-06-30"
+        }
+      ],
+      "supersededSources": []
+    },
+    {
+      "supplierCode": "SUP-002",
+      "materialCode": "MAT-002",
+      "factType": "QUOTATION_TERMS",
+      "currentSource": {
+        "documentKey": "DOC-SUP-002-QUOTATION-SP907",
+        "documentVersion": "2.0",
+        "effectiveFrom": "2026-10-01",
+        "effectiveUntil": "2026-11-30"
+      },
+      "historicalSources": [
+        {
+          "documentKey": "DOC-SUP-002-QUOTATION",
+          "documentVersion": "1.0",
+          "effectiveFrom": "2025-03-01",
+          "effectiveUntil": "2025-06-30"
+        }
+      ],
+      "supersededSources": [
+        {
+          "documentKey": "DOC-SUP-002-QUOTATION",
+          "documentVersion": "1.0",
+          "effectiveFrom": "2026-10-01",
+          "effectiveUntil": "2026-12-31"
+        }
+      ]
+    },
+    {
+      "supplierCode": "SUP-007",
+      "materialCode": "MAT-010",
+      "factType": "QUOTATION_TERMS",
+      "currentSource": {
+        "documentKey": "DOC-SUP-007-QUOTATION-SP907",
+        "documentVersion": "2.0",
+        "effectiveFrom": "2026-10-01",
+        "effectiveUntil": "2026-12-05"
+      },
+      "historicalSources": [],
+      "supersededSources": [
+        {
+          "documentKey": "DOC-SUP-007-QUOTATION",
+          "documentVersion": "1.0",
+          "effectiveFrom": "2026-10-01",
+          "effectiveUntil": "2026-12-31"
+        }
+      ]
+    }
+  ]
 }
