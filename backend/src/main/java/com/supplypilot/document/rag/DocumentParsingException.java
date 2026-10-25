@@ -1,6 +1,6 @@
 package com.supplypilot.document.rag;
 
-final class DocumentParsingException extends RuntimeException {
+public final class DocumentParsingException extends RuntimeException {
     DocumentParsingException(String message, Throwable cause) {
         super(message, cause);
     }

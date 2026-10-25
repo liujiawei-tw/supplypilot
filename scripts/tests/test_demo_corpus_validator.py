@@ -13,6 +13,104 @@ def _canonical_sha(path: Path) -> str:
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 
+def _scenario_body(theme: str) -> str:
+    header = (
+        "標題：SUP-001 山海原料案例文件\n文件版本：2.0\n文件日期：2026-10-25\n"
+        "虛構展示來源：公司、人員、契約、批次與事件均為演練資料，不代表真實供應商、交易或檢驗結果。\n"
+    )
+    bodies = {
+        "supplier_profile": (
+            "供應商主檔狀態：ACTIVE\n窗口角色：虛構文件聯絡窗口，負責版次與附件點收。\n"
+            "服務時段：工作日 09:00 至 17:00；急件須先確認收件人。\n"
+            "服務範圍：SUP-001 山海原料提供 MAT-001 紅茶萃取物，主檔單位 KG。\n"
+            "合作案例邊界：下列資料是文件核對演練，不代表真實產能、庫存、交付或供應承諾。\n"
+            "本次由採購窗口依主檔供應關係及文件版本核對，發現附件索引應與批次清單使用相同版次。"
+        ),
+        "supply_capability": (
+            "能力演練案例編號：SIM-CAP-SUP-001-01\n關聯關係：SUP-001 / MAT-001 紅茶萃取物。\n"
+            "主檔 MOQ 為 10 KG、包裝倍數為 5 KG、標準交期為 3 個日曆日；演練需求設為 15 KG。\n"
+            "此數量只用於驗證整包倍數與交期欄位，不是月產能、可用庫存或供應商承諾。\n"
+            "採購應先核對有效供應關係、訂購單位和文件日期；資料不完整時不得推估可供數量。"
+        ),
+        "contract_terms": (
+            "案例契約編號：SIM-CONTRACT-SUP-001-2026-TEST\n契約情境狀態：SIMULATED_ACTIVE\n"
+            "契約生效日期：2026-06-01\n契約到期日期：2027-05-31\n供應商主檔狀態：ACTIVE\n"
+            "情境條款一：文件版次變更時，窗口應附差異摘要並保留原版查核記錄。\n"
+            "情境條款二：批次標示或附件索引不一致時，先暫停該份演練文件放行並通知採購複核。\n"
+            "適用關係：SUP-001 / MAT-001 紅茶萃取物；主檔單位 KG，未記載金額。\n"
+            "本契約為虛構情境條款，不具法律效力、不取代正式契約，日期只供資料一致性檢查。"
+        ),
+        "quotation": (
+            "SUP-001 山海原料就 MAT-001 紅茶萃取物提供演練報價條件；幣別 TWD，MOQ 10 KG，包裝倍數 5 KG。\n"
+            "標準交期為 3 個日曆日，從正式訂單進入 ORDERED 狀態起算。報價期間為 2026-10-01 至 2026-10-30（含首尾日），有效 30 個曆日。\n"
+            "本文件不含單價或總價；採購須在適用日期內核對物料關係、單位、MOQ 與包裝倍數。\n"
+            "以上數值僅供靜態驗證展示，不構成實際報價或供貨承諾。"
+        ),
+        "product_specification": (
+            "供應商與物料：SUP-001 山海原料 / MAT-001 紅茶萃取物，基本單位為 KG。\n"
+            "演練規格要求每份文件標示物料代碼、名稱、包裝淨重欄位及版次，批次附件不得混用不同版面。\n"
+            "採購窗口收件時比對文件上的 MAT-001 與主檔名稱；名稱或單位不一致即退回澄清，不自行換算。\n"
+            "案例關聯來源：SIM-CONTRACT-SUP-001-2026-TEST；這是規格文件查核練習，不是實際批次檢驗或產品保證。"
+        ),
+        "quality_requirements": (
+            "品質文件核對案例：MAT-001 紅茶萃取物（KG）的演練批次資料須列明批次碼、淨重、版次及附件索引。\n"
+            "點收人先比對標籤稿與批次清單，再確認附件檔名和頁面版本一致；缺欄時暫緩文件放行並記錄缺項。\n"
+            "沒有實際檢驗樣本、檢驗數值或放行結論，因此不得推論產品合格或不合格。\n"
+            "本案例只驗證文件欄位與處置流程，不能替代品質部門依正式規範執行的檢驗。"
+        ),
+        "delivery_coordination": (
+            "交期案例編號：SIM-DEL-SUP-001-01\n案例日期：2026-10-05\n"
+            "來源契約編號：SIM-CONTRACT-SUP-001-2026-TEST\n來源紀錄編號：SIM-REG-SUP-001-D01\n"
+            "適用關係：SUP-001 / MAT-001\n模擬 ORDERED 日期：2026-10-01\n"
+            "公司期望到貨日期：2026-10-04\n供應商初始承諾到貨日期：2026-10-05\n"
+            "最終承諾到貨日期：2026-10-05\n模擬實際到貨日期：2026-10-05\n案例狀態：SIMULATED_DELIVERED\n"
+            "案例事實：虛構窗口回覆需多一天整理批次附件，初始承諾日因此晚於公司依主檔交期計算的期望日。\n"
+            "追蹤處置：保留兩個日期並請點收窗口核對附件索引；本案例沒有實際收貨。\n"
+            "此登錄是排程演練，不是資料庫 PO，不計算供應商 KPI。"
+        ),
+        "cooperation_history": (
+            "來源契約編號：SIM-CONTRACT-SUP-001-2026-TEST\n此時間線呈現文件交接如何留下可追溯線索，非實際合作績效。\n"
+            "合作案例編號：SIM-HIST-SUP-001-01\n案例日期：2026-08-05\n來源契約編號：SIM-CONTRACT-SUP-001-2026-TEST\n"
+            "來源紀錄編號：SIM-REG-SUP-001-H01\n案例類型：標籤版次核對\n案例狀態：SIMULATED_COMPLETED\n"
+            "情境事實：3 張標籤樣稿中 1 張缺少版次欄；沒有交貨或檢驗事件。\n處理結果：補列版次並由窗口逐張複核。\n"
+            "合作案例編號：SIM-HIST-SUP-001-02\n案例日期：2026-08-20\n來源契約編號：SIM-CONTRACT-SUP-001-2026-TEST\n"
+            "來源紀錄編號：SIM-REG-SUP-001-H02\n案例類型：附件索引交接\n案例狀態：SIMULATED_COMPLETED\n"
+            "情境事實：24 筆演練清單有 2 筆附件檔名未對應版次。\n處理結果：拆分版次與檔名欄並完成桌面複核，未建立採購單。\n"
+            "物料脈絡：SUP-001 / MAT-001 紅茶萃取物。兩案都是虛構情境登錄，非資料庫 PO，不計算供應商 KPI。"
+        ),
+        "incident_improvement": (
+            "異常案例編號：SIM-INC-SUP-001-20260903-01\n發生日：2026-09-03\n"
+            "來源契約編號：SIM-CONTRACT-SUP-001-2026-TEST\n來源紀錄編號：SIM-REG-SUP-001-I01\n"
+            "案例狀態：SIMULATED_CLOSED\n關聯物料：MAT-001 紅茶萃取物\n虛構批次編號：SIM-LOT-SUP-001-20260903-A\n"
+            "可核對事實：24 張樣稿中 3 張未顯示版次欄，差異在文件放行前被抽查發現。\n"
+            "暫行處置：先停止該批演練文件流轉，保留差異頁並通知文件窗口。\n"
+            "根因證據：版面差異表 SIM-EVID-SUP-001-I01 顯示範本未把版次設為必填欄。\n"
+            "負責角色：虛構文件窗口。\n改善措施：版次欄改為必填，並用批次清單逐張核對。\n"
+            "改善期限：2026-09-08\n複核日期：2026-09-09\n複核結果：24 張演練樣稿均顯示版次；只驗證樣稿。\n"
+            "這是虛構事件，不是資料庫 PO，不計算供應商 KPI，也不代表產品品質結論。"
+        ),
+        "buyer_evaluation": (
+            "虛構內部主觀評價／非實際供應商評鑑結果\n評語角色：虛構採購窗口，僅評閱演練文件。\n"
+            "來源契約編號：SIM-CONTRACT-SUP-001-2026-TEST\n"
+            "可核對客觀來源：SIM-HIST-SUP-001-01、SIM-HIST-SUP-001-02、SIM-DEL-SUP-001-01、SIM-INC-SUP-001-20260903-01；均為虛構案例。\n"
+            "主觀評語：版次欄補齊後比較容易沿著附件索引追查，這是我對本次演練文件的印象。\n"
+            "客觀案件狀態：一筆交期案例標示為 SIMULATED_DELIVERED，一筆異常案例已附演練複核日期；不代表供應商整體表現。\n"
+            "非客觀績效聲明：未計分、排名、計算準時率或履約率，不宣稱任何供應商 KPI，也不推導自動推薦。\n"
+            "此評語是主觀印象，應與來源事實分開閱讀；正式採購仍須依有效文件及實際收貨、品質證據判斷。"
+        ),
+    }
+    footer = (
+        "\n主檔關聯物料：MAT-001 紅茶萃取物；由採購窗口核對供應商與物料主檔、文件版本、日期欄位及適用範圍。"
+        "若欄位互相矛盾，先保留原始資料並請負責窗口釐清，不以推測補足缺少的事實。"
+        "本套案例只供本機靜態驗證，沒有真實採購單、收貨、付款或檢驗紀錄，非資料庫 PO，不計算供應商 KPI。"
+        "主觀描述和可核對資料分開保存；日期、狀態、來源契約與情境登錄應相互一致，無法核對時標示資料不足。"
+        "查核時記下文件名稱、適用物料與閱讀日期；若後續補交修正版，須重新確認來源雜湊和引用關係，不沿用前版審核結論。"
+    )
+    if theme == "contract_terms":
+        footer += "\n非法律契約聲明：本文條款為虛構流程演練，不構成法律承諾。"
+    return header + bodies[theme] + footer + "\n"
+
+
 class DemoCorpusValidatorTests(unittest.TestCase):
     def setUp(self) -> None:
         self.temp = tempfile.TemporaryDirectory(dir=Path(__file__).resolve().parents[2])
@@ -22,7 +120,7 @@ class DemoCorpusValidatorTests(unittest.TestCase):
             "datasetVersion": "test-v1", "corpusVersion": "test-v1",
             "counts": {"suppliers": 1, "materials": 1, "supplierMaterials": 1,
                        "purchaseOrders": 1, "seedDocuments": 15, "manualUploadFixtures": 1},
-            "suppliers": [{"code": "SUP-001", "name": "山海原料", "currency": "TWD"}],
+            "suppliers": [{"code": "SUP-001", "name": "山海原料", "currency": "TWD", "status": "ACTIVE"}],
             "materials": [{"code": "MAT-001", "name": "紅茶萃取物", "unit": "KG", "currency": "TWD"}],
             "supplierMaterials": [{
                 "supplierCode": "SUP-001", "materialCode": "MAT-001", "unitPrice": "100",
@@ -80,7 +178,8 @@ class DemoCorpusValidatorTests(unittest.TestCase):
         materials = material_codes if material_codes is not None else (
             ["MAT-001"] if kind in {"QUOTATION", "PRODUCT_SPECIFICATION"} else [])
         document = {
-            "documentKey": key, "type": kind, "title": title, "version": "1.0",
+            "documentKey": key, "type": kind, "title": title,
+            "version": "2.0" if theme and not theme.startswith(("legacy_", "shared_")) else "1.0",
             "filename": filename, "supplierCodes": suppliers, "supplierNames": ["山海原料"] if suppliers else [],
             "materialCodes": materials, "materialNames": ["紅茶萃取物"] if materials else [],
             "sourceSha256": _canonical_sha(path),
@@ -138,24 +237,7 @@ class DemoCorpusValidatorTests(unittest.TestCase):
         for index, (theme, kind) in enumerate(themes, start=1):
             key = f"DOC-SUP-001-{theme.replace('_', '-').upper()}-SP907"
             title = f"山海原料 {theme} 示範紀錄"
-            body = (f"標題：{title}\n文件類型：{kind}\n版本：1.0\n文件日期：2026-10-25\n"
-                    "虛構展示資料：公司、人員、流程與事件均為虛構，不代表實際供應商結果。\n"
-                    f"SUP-001 山海原料就 MAT-001 紅茶萃取物的{theme}內容以 KG 為單位。"
-                    f"第{index}份文件記錄不同的業務主題、適用範圍、查核步驟與後續處置。"
-                    "採購窗口應核對供應關係及有效文件版本；資訊不足時不推測未載明的價格、認證或檢驗結果。"
-                    "本文提供獨立的主題事實與查詢線索，並與其他文件保持不同用途。")
-            if theme == "quotation":
-                body += "\n虛構展示報價有效期間為 2026-10-01 至 2026-10-30（含首尾日），有效 30 個曆日。"
-            if theme == "buyer_evaluation":
-                body += (
-                    "\n虛構內部主觀評價／非實際供應商評鑑結果\n"
-                    "評語角色：虛構資深採購角色（不具名）；以下為演練觀察，不是實際事件紀錄。\n"
-                    "溝通觀察：演練中應確認收件與變更原因，實際回覆時效未提供。\n"
-                    "交期觀察：依主檔記錄核對 ORDERED 起算的交期，未記載的交貨表現不推定。\n"
-                    "品質觀察：查核包裝與批次標示；沒有實際檢驗結果。\n"
-                    "配合觀察：按採購單狀態追蹤，不把草稿當成已交貨。\n"
-                    "合作風險觀察：驗證文件及期間資料不足，先補齊證據再作業務判斷。"
-                )
+            body = _scenario_body(theme)
             self._add_doc(key, kind, f"supplier-001-{theme}.txt", body, theme=theme,
                           supplier_codes=["SUP-001"], material_codes=["MAT-001"])
             if theme == "quotation":
@@ -444,11 +526,86 @@ class DemoCorpusValidatorTests(unittest.TestCase):
         catalog = copy.deepcopy(self.catalog)
         evaluation = next(doc for doc in catalog["documents"] if doc.get("themeKey") == "buyer_evaluation")
         source = self.documents / evaluation["filename"]
-        body = source.read_text(encoding="utf-8").replace("合作風險觀察：", "合作風險：")
+        body = source.read_text(encoding="utf-8").replace("非客觀績效聲明：", "績效聲明：")
         source.write_text(body, encoding="utf-8")
         evaluation["sourceSha256"] = _canonical_sha(source)
         errors = self._validate(catalog=catalog)
-        self.assertTrue(any("missing required fictional evaluation content" in error and "合作風險觀察" in error
+        self.assertTrue(any("missing required fictional evaluation content" in error and "非客觀績效聲明：" in error
+                            for error in errors), errors)
+
+    def test_incident_requires_a_substantive_root_cause_fact(self) -> None:
+        catalog = copy.deepcopy(self.catalog)
+        incident = next(doc for doc in catalog["documents"] if doc.get("themeKey") == "incident_improvement")
+        source = self.documents / incident["filename"]
+        body = source.read_text(encoding="utf-8").replace("根因證據：版面差異表 SIM-EVID-SUP-001-I01 顯示範本未把版次設為必填欄。", "根因證據：")
+        source.write_text(body, encoding="utf-8")
+        incident["sourceSha256"] = _canonical_sha(source)
+        errors = self._validate(catalog=catalog)
+        self.assertTrue(any("根因證據: missing required scenario fact" in error for error in errors), errors)
+
+    def test_history_requires_supplier_specific_scenario_registry_reference(self) -> None:
+        catalog = copy.deepcopy(self.catalog)
+        history = next(doc for doc in catalog["documents"] if doc.get("themeKey") == "cooperation_history")
+        source = self.documents / history["filename"]
+        body = source.read_text(encoding="utf-8").replace("SIM-REG-SUP-001-H01", "DEMO-PO-001")
+        source.write_text(body, encoding="utf-8")
+        history["sourceSha256"] = _canonical_sha(source)
+        errors = self._validate(catalog=catalog)
+        self.assertTrue(any("來源紀錄編號: must reference this supplier's fictional scenario registry" in error
+                            for error in errors), errors)
+        self.assertTrue(any("must not present a database DEMO-PO as an event source" in error for error in errors), errors)
+
+    def test_delivery_expected_date_must_match_master_lead_time(self) -> None:
+        catalog = copy.deepcopy(self.catalog)
+        delivery = next(doc for doc in catalog["documents"] if doc.get("themeKey") == "delivery_coordination")
+        source = self.documents / delivery["filename"]
+        body = source.read_text(encoding="utf-8").replace("公司期望到貨日期：2026-10-04", "公司期望到貨日期：2026-10-05")
+        source.write_text(body, encoding="utf-8")
+        delivery["sourceSha256"] = _canonical_sha(source)
+        errors = self._validate(catalog=catalog)
+        self.assertTrue(any("conflicts with ORDERED date plus the supplier-material master lead time" in error
+                            for error in errors), errors)
+
+    def test_open_incident_cannot_claim_completed_verification(self) -> None:
+        catalog = copy.deepcopy(self.catalog)
+        incident = next(doc for doc in catalog["documents"] if doc.get("themeKey") == "incident_improvement")
+        source = self.documents / incident["filename"]
+        body = source.read_text(encoding="utf-8").replace("案例狀態：SIMULATED_CLOSED", "案例狀態：SIMULATED_OPEN")
+        source.write_text(body, encoding="utf-8")
+        incident["sourceSha256"] = _canonical_sha(source)
+        errors = self._validate(catalog=catalog)
+        self.assertTrue(any("open incident must not claim a completed verification result" in error
+                            for error in errors), errors)
+
+    def test_generic_placeholder_is_rejected_for_scenario_documents(self) -> None:
+        catalog = copy.deepcopy(self.catalog)
+        capability = next(doc for doc in catalog["documents"] if doc.get("themeKey") == "supply_capability")
+        source = self.documents / capability["filename"]
+        body = source.read_text(encoding="utf-8").replace("能力演練案例編號", "案例內容待補\n能力演練案例編號", 1)
+        source.write_text(body, encoding="utf-8")
+        capability["sourceSha256"] = _canonical_sha(source)
+        errors = self._validate(catalog=catalog)
+        self.assertTrue(any("placeholder or template-only content" in error for error in errors), errors)
+
+    def test_duplicated_master_name_prefix_is_rejected(self) -> None:
+        catalog = copy.deepcopy(self.catalog)
+        profile = next(doc for doc in catalog["documents"] if doc.get("themeKey") == "supplier_profile")
+        source = self.documents / profile["filename"]
+        body = source.read_text(encoding="utf-8").replace("MAT-001 紅茶萃取物", "MAT-001 紅茶紅茶萃取物")
+        source.write_text(body, encoding="utf-8")
+        profile["sourceSha256"] = _canonical_sha(source)
+        errors = self._validate(catalog=catalog)
+        self.assertTrue(any("duplicates a prefix of MAT-001 master name" in error for error in errors), errors)
+
+    def test_subjective_evaluation_rejects_a_numeric_kpi_claim(self) -> None:
+        catalog = copy.deepcopy(self.catalog)
+        evaluation = next(doc for doc in catalog["documents"] if doc.get("themeKey") == "buyer_evaluation")
+        source = self.documents / evaluation["filename"]
+        body = source.read_text(encoding="utf-8") + "\n準時率為 98%。\n"
+        source.write_text(body, encoding="utf-8")
+        evaluation["sourceSha256"] = _canonical_sha(source)
+        errors = self._validate(catalog=catalog)
+        self.assertTrue(any("must not claim database PO facts or objective supplier KPIs" in error
                             for error in errors), errors)
 
 

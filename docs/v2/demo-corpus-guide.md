@@ -32,7 +32,7 @@ PO 範例由同一主檔的供應商、物料及 `SupplierMaterial` 條件交叉
 
 ## 信任邊界、審查、出站與索引
 
-`DemoCorpusSyncService` 只信任 demo profile 中 Repository 的目前 corpus catalog 和來源檔，並精確核對 dataset/version、document key、type/title/version、supplier code/name、theme、來源 filename/hash、approval/outbound policy 與完整 provenance。同步與系統核准共用 `DemoCorpusCatalogTrust`：catalog 必須是一般檔案（regular file）、不可為 symlink，且 UTF-8 文字將 CRLF/CR 正規化為 LF 後須符合固定 SHA-256 `8F7DD4A00A3CC17C079174035A0FAD42D3B1A792BA2D254163B86928F7EB1F8B`；改用自製同 envelope catalog 或只改 `samplesPath` 不會取得信任。內容 hash 同樣將換行正規化為 LF。同步會以 `(datasetKey, documentKey, version)` 和持久 provenance 做冪等比對，絕不只用標題判斷身分。
+`DemoCorpusSyncService` 只信任 demo profile 中 Repository 的目前 corpus catalog 和來源檔，並精確核對 dataset/version、document key、type/title/version、supplier code/name、theme、來源 filename/hash、approval/outbound policy 與完整 provenance。同步與系統核准共用 `DemoCorpusCatalogTrust`：catalog 必須是一般檔案（regular file）、不可為 symlink，且 UTF-8 文字將 CRLF/CR 正規化為 LF 後須符合固定 SHA-256 `E906CA49D8B1A4F3CEB58994A9E77B3E36EB29FE4BEFA1783ACA12086F1D3189`；改用自製同 envelope catalog 或只改 `samplesPath` 不會取得信任。內容 hash 同樣將換行正規化為 LF。同步會以 `(datasetKey, documentKey, version)` 和持久 provenance 做冪等比對，絕不只用標題判斷身分。
 
 無 provenance 的舊資料只會在唯一候選、type/title/version/supplier 完全相符，且資料庫保存來源的 canonical hash 與 catalog 相同時採用；檢查通過後才寫 provenance。重複候選、任何欄位或 source hash 不符、或既有 keyed baseline 被修改，會留下 sync conflict 並保留既有文件與來源，不會覆寫內容。有效人工審查 audit 也不會被 legacy adoption 覆蓋。
 
@@ -59,3 +59,23 @@ $digest = [System.Security.Cryptography.SHA256]::Create().ComputeHash($bytes)
 文件內容、標題或來源版本改變不會沿用舊審查。Catalog/Repository hash 改變時同步會標 conflict；需要更新資料時應按新版本和實際 policy 重新審查，不得複製舊核准或因 Fixture 曾出現 `APPROVED` 而恢復授權。durable worker 的既有退避與有限重試適用於暫時 provider/DB 失敗；超限狀態留待管理員安全查核或按既有操作重試。被 policy 阻擋或人工排除的來源不會自動重試出站。
 
 Fixture 的 `expectedStatus`、答案要點及引用條件是靜態驗證契約，不表示執行過 RAG、Browser、pgvector 或 Gemini。實際執行時應確認答案逐點有來源支持、引用標題及版本正確，並排除無關文件；缺少證據的題目應拒答，不得補寫推測。
+
+## Dataset Version 與 AUTO_SAFE 操作
+
+目前 `main` 的 `.env.demo.example` 仍以 `sp-906-zh-tw-v2` 為例；本功能分支的目標是 `sp-907-zh-tw-v3`，其 `.env.demo.example` 是可提交範例。`.env.demo` 是使用者本機設定，可能含有 Secret，不應提交，也不可用範例檔整份覆寫。
+
+此分支的後端 `AUTO_SAFE` 只接受目標版本 `sp-907-zh-tw-v3`。請保留既有 `DEMO_DATASET_UPGRADE_MODE=AUTO_SAFE`，並確認 Docker Compose 實際解析出的 Dataset Version 是 `sp-907-zh-tw-v3`。若解析結果仍是 `sp-906-zh-tw-v2`，請先停止啟動並在本機 `.env.demo` 將重複的 Dataset Version 設定整理成單一 `DEMO_DATASET_VERSION=sp-907-zh-tw-v3`；不要改寫其他 Secret。版本不相容時後端會拒絕啟動，不應藉由連接既有資料庫來試錯。
+
+從 Repository 根目錄可用以下 PowerShell 指令只檢查核准欄位；不要改成輸出完整 Compose Config：
+
+```powershell
+$resolvedDemoConfig = docker compose --env-file .env.demo -f compose.yaml -f compose.demo.yaml config --format json | ConvertFrom-Json
+$resolvedDemoBackend = $resolvedDemoConfig.services.backend
+[pscustomobject]@{
+  DatasetVersion = $resolvedDemoBackend.environment.DEMO_DATASET_VERSION
+  UpgradeMode = $resolvedDemoBackend.environment.DEMO_DATASET_UPGRADE_MODE
+  ActiveProfile = $resolvedDemoBackend.environment.SPRING_PROFILES_ACTIVE
+} | Format-List
+```
+
+本分支實作與驗證使用隔離的資料庫及測試 Volume；不會自動升級使用者既有 Demo 資料庫。

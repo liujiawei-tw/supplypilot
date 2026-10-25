@@ -4,10 +4,13 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Properties;
 import java.util.function.Supplier;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.jdbc.autoconfigure.JdbcConnectionDetails;
 import org.springframework.context.annotation.Profile;
+import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import org.springframework.jdbc.core.ConnectionCallback;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
@@ -18,21 +21,44 @@ import org.springframework.stereotype.Component;
 public class DemoCorpusSyncLock {
     private static final String LOCK_NAME = "supplypilot:SP-901:corpus-sync";
     private static final int WAIT_SECONDS = 300;
+    private static final int CONNECT_TIMEOUT_MILLIS = 5_000;
+    private static final int SOCKET_TIMEOUT_MILLIS = (WAIT_SECONDS + 10) * 1_000;
 
     private final JdbcTemplate jdbc;
     private final int waitSeconds;
 
     @Autowired
-    public DemoCorpusSyncLock(JdbcTemplate jdbc) {
-        this(jdbc, WAIT_SECONDS);
+    public DemoCorpusSyncLock(JdbcConnectionDetails connectionDetails) {
+        this(connectionDetails, WAIT_SECONDS);
     }
 
     DemoCorpusSyncLock(JdbcTemplate jdbc, int waitSeconds) {
+        this.jdbc = jdbc;
+        this.waitSeconds = requireValidWaitSeconds(waitSeconds);
+    }
+
+    DemoCorpusSyncLock(JdbcConnectionDetails connectionDetails, int waitSeconds) {
+        this(createLockJdbcTemplate(connectionDetails), waitSeconds);
+    }
+
+    private static int requireValidWaitSeconds(int waitSeconds) {
         if (waitSeconds < 0) {
             throw new IllegalArgumentException("waitSeconds must not be negative");
         }
-        this.jdbc = jdbc;
-        this.waitSeconds = waitSeconds;
+        return waitSeconds;
+    }
+
+    private static JdbcTemplate createLockJdbcTemplate(JdbcConnectionDetails connectionDetails) {
+        DriverManagerDataSource dataSource = new DriverManagerDataSource();
+        dataSource.setDriverClassName(connectionDetails.getDriverClassName());
+        dataSource.setUrl(connectionDetails.getJdbcUrl());
+        dataSource.setUsername(connectionDetails.getUsername());
+        dataSource.setPassword(connectionDetails.getPassword());
+        Properties connectionProperties = new Properties();
+        connectionProperties.setProperty("connectTimeout", Integer.toString(CONNECT_TIMEOUT_MILLIS));
+        connectionProperties.setProperty("socketTimeout", Integer.toString(SOCKET_TIMEOUT_MILLIS));
+        dataSource.setConnectionProperties(connectionProperties);
+        return new JdbcTemplate(dataSource);
     }
 
     public <T> T withLock(Supplier<T> operation) {

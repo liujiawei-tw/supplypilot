@@ -1,6 +1,8 @@
 package com.supplypilot.integration;
 
+import java.io.ByteArrayOutputStream;
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.time.Clock;
 import java.util.ArrayList;
 import java.util.List;
@@ -17,6 +19,7 @@ import com.supplypilot.supplier.repository.SupplierRepository;
 import com.supplypilot.user.domain.User;
 import com.supplypilot.user.domain.UserRole;
 import com.supplypilot.user.repository.UserRepository;
+import org.apache.poi.xwpf.usermodel.XWPFDocument;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -25,15 +28,18 @@ import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 class DocumentControllerIntegrationTests extends AbstractIntegrationTest {
 
@@ -83,7 +89,7 @@ class DocumentControllerIntegrationTests extends AbstractIntegrationTest {
                 .andExpect(jsonPath("$.supplierId").value(supplier.getId()))
                 .andExpect(jsonPath("$.status").value("PROCESSING"))
                 .andExpect(jsonPath("$.uploadedBy").value(staff.getId()))
-                .andExpect(jsonPath("$.storagePath").isString());
+                .andExpect(jsonPath("$.storagePath").doesNotExist());
 
         var saved = latestDocument();
         storedPaths.add(saved.getStoragePath());
@@ -216,6 +222,139 @@ class DocumentControllerIntegrationTests extends AbstractIntegrationTest {
         mockMvc.perform(get("/api/v1/documents").param("sort", "storagePath,asc")
                         .header("Authorization", bearer(manager)))
                 .andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("VALIDATION_FAILED"));
+    }
+
+    @Test
+    void previewsCompleteUtf8TextAndDownloadsOriginalFileForDocumentReaders() throws Exception {
+        String expected = "供應條件\r\n交期為 30 天\n報價僅供展示";
+        User staff = user(UserRole.PROCUREMENT_STAFF);
+        mockMvc.perform(upload(file("safe.txt", "text/plain", expected.getBytes(StandardCharsets.UTF_8)))
+                        .param("documentType", "PROCUREMENT_SOP")
+                        .param("title", "安全/文件\r\n預覽")
+                        .param("version", "v1")
+                        .header("Authorization", bearer(staff)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.storagePath").doesNotExist());
+        var saved = latestDocument();
+        storedPaths.add(saved.getStoragePath());
+        String documentUrl = "/api/v1/documents/" + saved.getId();
+
+        for (UserRole role : new UserRole[] {
+                UserRole.PROCUREMENT_STAFF, UserRole.PROCUREMENT_MANAGER, UserRole.ADMIN}) {
+            User reader = user(role);
+            streamGet(documentUrl + "/preview", reader)
+                    .andExpect(status().isOk())
+                    .andExpect(content().contentType("text/plain;charset=UTF-8"))
+                    .andExpect(content().string(expected))
+                    .andExpect(header().string("Content-Disposition", org.hamcrest.Matchers.containsString("inline")))
+                    .andExpect(header().string("Content-Disposition", org.hamcrest.Matchers.containsString(".txt")))
+                    .andExpect(header().string("Content-Disposition", org.hamcrest.Matchers.not(
+                            org.hamcrest.Matchers.containsString("\r"))))
+                    .andExpect(header().string("X-Content-Type-Options", "nosniff"))
+                    .andExpect(header().string("Cache-Control", org.hamcrest.Matchers.containsString("no-store")))
+                    .andExpect(header().string("Pragma", "no-cache"));
+
+            streamGet(documentUrl + "/file", reader)
+                    .andExpect(status().isOk())
+                    .andExpect(content().contentType("text/plain"))
+                    .andExpect(content().bytes(expected.getBytes(StandardCharsets.UTF_8)))
+                    .andExpect(header().string("Content-Disposition", org.hamcrest.Matchers.containsString("attachment")))
+                    .andExpect(header().string("X-Content-Type-Options", "nosniff"))
+                    .andExpect(header().string("Cache-Control", org.hamcrest.Matchers.containsString("no-store")));
+        }
+        User planner = user(UserRole.PRODUCTION_PLANNER);
+        mockMvc.perform(get(documentUrl + "/preview").header("Authorization", bearer(planner)))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("ACCESS_DENIED"));
+        mockMvc.perform(get(documentUrl + "/file"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("UNAUTHENTICATED"));
+    }
+
+    @Test
+    void previewsPdfBytesAndDocxBodyElementsInSourceOrder() throws Exception {
+        byte[] pdfBytes = "%PDF-1.7 original demo bytes".getBytes(StandardCharsets.UTF_8);
+        User staff = user(UserRole.PROCUREMENT_STAFF);
+        mockMvc.perform(upload(file("invoice.pdf", "application/pdf", pdfBytes))
+                        .param("documentType", "PROCUREMENT_SOP")
+                        .param("title", "PDF 原檔")
+                        .param("version", "v1")
+                        .header("Authorization", bearer(staff)))
+                .andExpect(status().isCreated());
+        var pdfDocument = latestDocument();
+        storedPaths.add(pdfDocument.getStoragePath());
+        streamGet("/api/v1/documents/" + pdfDocument.getId() + "/preview", staff)
+                .andExpect(status().isOk())
+                .andExpect(content().contentType("application/pdf"))
+                .andExpect(content().bytes(pdfBytes))
+                .andExpect(header().string("Content-Disposition", org.hamcrest.Matchers.containsString("inline")))
+                .andExpect(header().string("X-Content-Type-Options", "nosniff"));
+
+        byte[] docxBytes = docx("文件段落一", "表格甲", "表格乙", "文件段落二");
+        mockMvc.perform(upload(file("contract.docx",
+                        "application/vnd.openxmlformats-officedocument.wordprocessingml.document", docxBytes))
+                        .param("documentType", "SUPPLIER_CONTRACT")
+                        .param("title", "合約全文")
+                        .param("version", "v1")
+                        .header("Authorization", bearer(staff)))
+                .andExpect(status().isCreated());
+        var docxDocument = latestDocument();
+        storedPaths.add(docxDocument.getStoragePath());
+        streamGet("/api/v1/documents/" + docxDocument.getId() + "/preview", staff)
+                .andExpect(status().isOk())
+                .andExpect(content().contentType("text/plain;charset=UTF-8"))
+                .andExpect(content().string("文件段落一\n表格甲\t表格乙\n文件段落二\n"))
+                .andExpect(header().string("Content-Disposition", org.hamcrest.Matchers.containsString(".docx")));
+    }
+
+    @Test
+    void missingDocumentsMissingFilesAndInvalidTextReturnGenericExplicitErrors() throws Exception {
+        User manager = user(UserRole.PROCUREMENT_MANAGER);
+        mockMvc.perform(get("/api/v1/documents/99999999/preview")
+                        .header("Authorization", bearer(manager)))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("DOCUMENT_NOT_FOUND"));
+
+        byte[] invalidUtf8 = new byte[] {(byte) 0xC3, (byte) 0x28};
+        User staff = user(UserRole.PROCUREMENT_STAFF);
+        mockMvc.perform(upload(file("broken.txt", "text/plain", invalidUtf8))
+                        .param("documentType", "PROCUREMENT_SOP")
+                        .param("title", "Invalid UTF-8")
+                        .param("version", "v1")
+                        .header("Authorization", bearer(staff)))
+                .andExpect(status().isCreated());
+        var broken = latestDocument();
+        storedPaths.add(broken.getStoragePath());
+        mockMvc.perform(get("/api/v1/documents/{id}/preview", broken.getId())
+                        .header("Authorization", bearer(staff)))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.code").value("DOCUMENT_PREVIEW_INVALID"));
+
+        storageService.delete(broken.getStoragePath());
+        mockMvc.perform(get("/api/v1/documents/{id}/file", broken.getId())
+                        .header("Authorization", bearer(staff)))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("DOCUMENT_FILE_NOT_FOUND"))
+                .andExpect(jsonPath("$.message").value("Document file was not found."))
+                .andExpect(content().string(org.hamcrest.Matchers.not(
+                        org.hamcrest.Matchers.containsString(broken.getStoragePath()))));
+    }
+
+    private ResultActions streamGet(String url, User user) throws Exception {
+        return mockMvc.perform(get(url).header("Authorization", bearer(user)));
+    }
+
+    private byte[] docx(String before, String firstCell, String secondCell, String after) throws Exception {
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        try (XWPFDocument document = new XWPFDocument()) {
+            document.createParagraph().createRun().setText(before);
+            var table = document.createTable(1, 2);
+            table.getRow(0).getCell(0).setText(firstCell);
+            table.getRow(0).getCell(1).setText(secondCell);
+            document.createParagraph().createRun().setText(after);
+            document.write(output);
+        }
+        return output.toByteArray();
     }
 
     private org.springframework.test.web.servlet.request.MockMultipartHttpServletRequestBuilder validUpload(UserRole role) {

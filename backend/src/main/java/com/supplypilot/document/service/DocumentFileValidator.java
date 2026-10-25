@@ -12,7 +12,7 @@ import org.springframework.web.multipart.MultipartFile;
 @Component
 public class DocumentFileValidator {
 
-    static final long MAX_FILE_BYTES = 20L * 1024 * 1024;
+    public static final long MAX_FILE_BYTES = 20L * 1024 * 1024;
 
     private static final Map<String, Set<String>> CONTENT_TYPES_BY_EXTENSION = Map.of(
             ".pdf", Set.of("application/pdf"),

@@ -56,7 +56,6 @@ export interface DocumentResponse {
   supplierName: string | null;
   title: string;
   version: string;
-  storagePath: string;
   status: DocumentStatus;
   uploadedBy: number | null;
   uploadedAt: string;
@@ -83,12 +82,26 @@ export interface UploadDocumentRequest {
   file: File;
 }
 
+const DOCUMENT_FILE_REQUEST_TIMEOUT_MS = 120_000;
+
 export async function listDocuments(query: DocumentQuery): Promise<PageResponse<DocumentResponse>> {
   return (await axiosClient.get<PageResponse<DocumentResponse>>('/documents', { params: query })).data;
 }
 
 export async function getDocument(id: number): Promise<DocumentResponse> {
   return (await axiosClient.get<DocumentResponse>(`/documents/${id}`)).data;
+}
+
+export async function getDocumentPreview(id: number, signal?: AbortSignal) {
+  return axiosClient.get<Blob>('/documents/' + id + '/preview', {
+    responseType: 'blob', signal, timeout: DOCUMENT_FILE_REQUEST_TIMEOUT_MS,
+  });
+}
+
+export async function getDocumentFile(id: number, signal?: AbortSignal) {
+  return axiosClient.get<Blob>('/documents/' + id + '/file', {
+    responseType: 'blob', signal, timeout: DOCUMENT_FILE_REQUEST_TIMEOUT_MS,
+  });
 }
 
 export async function uploadDocument(request: UploadDocumentRequest): Promise<DocumentResponse> {

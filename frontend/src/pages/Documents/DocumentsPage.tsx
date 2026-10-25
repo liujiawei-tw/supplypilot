@@ -3,7 +3,7 @@ import {
   Alert, Button, Collapse, Descriptions, Drawer, Form, Input, InputNumber, Modal, Select, Space, Table, Tag, Typography,
   type TablePaginationConfig,
 } from 'antd';
-import { UploadOutlined } from '@ant-design/icons';
+import { EyeOutlined, UploadOutlined } from '@ant-design/icons';
 import { useSearchParams } from 'react-router-dom';
 import {
   getDocument, ingestDocument, listDocuments, updateDocument, uploadDocument,
@@ -21,6 +21,7 @@ import { approveOutbound, excludeOutbound, type OutboundReviewResponse } from '.
 import AiQueryPanel from '../../components/AiAssistant/AiQueryPanel';
 import { displayLabel } from '../../utils/displayLabels';
 import { listSuppliers, type SupplierResponse } from '../../api/supplier';
+import DocumentPreviewDrawer from './DocumentPreviewDrawer';
 
 const { Title, Text } = Typography;
 const REVIEW_UNKNOWN_KEY = 'supplypilot.semanticUnknownReviews';
@@ -56,6 +57,7 @@ export default function DocumentsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<ApiErrorResponse | null>(null);
   const [selected, setSelected] = useState<DocumentResponse | null>(null);
+  const [previewDocument, setPreviewDocument] = useState<DocumentResponse | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState<ApiErrorResponse | null>(null);
   const [uploadOpen, setUploadOpen] = useState(false);
@@ -313,6 +315,8 @@ export default function DocumentsPage() {
     { title: '上傳者', dataIndex: 'uploadedBy', key: 'uploadedBy' },
     { title: '上傳時間', dataIndex: 'uploadedAt', key: 'uploadedAt', render: formatInstant },
     { title: '更新時間', dataIndex: 'updatedAt', key: 'updatedAt', render: formatInstant },
+    { title: '操作', key: 'actions', render: (_: unknown, record: DocumentResponse) =>
+      <Button type="link" icon={<EyeOutlined aria-hidden="true" />} onClick={() => setPreviewDocument(record)}>預覽全文</Button> },
   ];
 
   return <>
@@ -360,10 +364,11 @@ export default function DocumentsPage() {
       </Form>
     </Modal>
 
-    <Drawer title="文件明細" open={requestedDocumentId !== null} onClose={closeDetail} width={520}>
+    <Drawer title="文件明細" open={requestedDocumentId !== null} onClose={closeDetail} size={520}>
       {detailError && requestedDocumentId !== null && <ErrorState title="文件明細載入失敗" error={detailError} onRetry={loadDetailForRetry} />}
       {(detailLoading || (requestedDocumentId !== null && !selectedMatchesUrl && !detailError)) && <Text>正在載入文件…</Text>}
       {selected && selectedMatchesUrl && <Space orientation="vertical" size="large" style={{ width: '100%' }}>
+        <Button type="primary" icon={<EyeOutlined aria-hidden="true" />} onClick={() => setPreviewDocument(selected)}>預覽全文</Button>
         <Button loading={detailLoading} disabled={detailLoading} onClick={() => void refreshDetail()}>重新取得文件資訊</Button>
         {actionError && <ErrorState title={selectedIngestionUnknown ? '索引結果待查核' : reviewUnknownKeys.includes(`${selected.id}:${selected.version}`) ? '出站審核結果待人工查核' : '文件操作訊息'} error={actionError}
           onRetry={selectedIngestionUnknown ? () => void verifyIngestionStatus() : reviewUnknownKeys.includes(`${selected.id}:${selected.version}`) ? undefined : () => void refreshDetail()}
@@ -418,6 +423,12 @@ export default function DocumentsPage() {
         {(selected.status === 'FAILED' || selected.status === 'INACTIVE') && <Alert type="info" showIcon title={`系統狀態「${displayLabel(selected.status)}」不允許從此介面直接重新解析。`} />}
       </Space>}
     </Drawer>
+
+    <DocumentPreviewDrawer
+      document={previewDocument}
+      open={previewDocument !== null}
+      onClose={() => setPreviewDocument(null)}
+    />
 
     <Modal title="確認解析與索引文件" open={ingestConfirm} okText="確認開始" confirmLoading={acting}
       onOk={() => void ingest()} onCancel={() => { if (!acting) setIngestConfirm(false); }} closable={!acting} mask={{ closable: !acting }}>

@@ -200,10 +200,17 @@ class DemoSeedSmokeIntegrationTests {
         assertThat(baselineDocuments).hasSize(115);
         assertThat(baselineDocuments).allMatch(document -> document.getStatus() == DocumentStatus.READY);
         assertThat(baselineDocuments).extracting(document -> document.getTitle()).hasSize(115);
+        assertThat(baselineDocuments.stream().filter(document -> "2.0".equals(document.getVersion())))
+                .as("V2 supplier corpus documents")
+                .hasSize(100);
+        assertThat(baselineDocuments.stream().filter(document -> "1.0".equals(document.getVersion())))
+                .as("unchanged baseline documents")
+                .hasSize(15);
         assertThat(baselineDocuments).noneMatch(document -> "UI-SUP-005-ADDENDUM"
                 .equals(document.getDemoDocumentKey()));
         assertThat(baselineDocuments).allSatisfy(document -> {
-            assertThat(document.getVersion()).isEqualTo("1.0");
+            String expectedVersion = document.getDemoDocumentKey().endsWith("-SP907") ? "2.0" : "1.0";
+            assertThat(document.getVersion()).isEqualTo(expectedVersion);
             assertThat(document.getSemanticReviewStatus()).isNotNull();
             assertThat(document.getSemanticReviewStatus())
                     .isEqualTo(com.supplypilot.document.domain.SemanticReviewStatus.REQUIRES_REVIEW);
@@ -253,7 +260,7 @@ class DemoSeedSmokeIntegrationTests {
             Path source = Path.of(System.getProperty("java.io.tmpdir"), "supplypilot-demo-seed-test-documents",
                     document.getStoragePath());
             String text = documentTextExtractor.extract(document.getStoragePath());
-            assertThat(text).contains("虛構展示文件", "標題：" + document.getTitle());
+            assertThat(text).contains("標題：" + document.getTitle());
             var chunks = documentChunks.findByDocumentIdOrderByChunkIndex(document.getId());
             assertThat(chunks).isNotEmpty();
             assertThat(chunks).allSatisfy(chunk -> {

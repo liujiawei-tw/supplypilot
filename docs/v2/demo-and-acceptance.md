@@ -35,7 +35,7 @@ Demo Profile 的 Compose 預設為 `DEMO_DATASET_VERSION=sp-907-zh-tw-v3`、`DEM
 
 ### 3.3 語料同步與完成 marker
 
-關聯式升級後，AUTO_SAFE 會呼叫 `DemoCorpusSyncService.synchronizeBaseline()`；目標版本已完成時也會重跑此冪等同步，以便恢復中斷的來源基線工作。同步先取得 MySQL named lock，讓共用 DEMO 資料庫的多個程序依序執行，最多等待 300 秒；同步只處理 `SP-901`、`sp-907-zh-tw-v3` Catalog 中 115 筆 `SEED_BASELINE` 來源；唯一 `MANUAL_UI_UPLOAD_ONLY` 項目不會被自動建立、採用或改動。來源檔雜湊、關聯供應商、文件身分或既有來源不符時記錄 source conflict，失敗時保留可重試狀態。
+關聯式升級後，AUTO_SAFE 會呼叫 `DemoCorpusSyncService.synchronizeBaseline()`；目標版本已完成時也會重跑此冪等同步，以便恢復中斷的來源基線工作。同步先以獨立 JDBC 連線取得 MySQL named lock，讓共用 DEMO 資料庫的多個程序依序執行，最多等待 300 秒；此鎖連線不占用應用程式連線池，單連線池仍可供同步交易使用。鎖連線建立最多等待 5 秒。同步只處理 `SP-901`、`sp-907-zh-tw-v3` Catalog 中 115 筆 `SEED_BASELINE` 來源；唯一 `MANUAL_UI_UPLOAD_ONLY` 項目不會被自動建立、採用或改動。來源檔雜湊、關聯供應商、文件身分或既有來源不符時記錄 source conflict，失敗時保留可重試狀態。
 
 資料集 marker 只有在目標版本的關聯式階段完成，且 115/115 來源已存在或採用、Ingestion 為 READY，並且沒有來源 conflict/failure 時才可成為 `COMPLETE`。這個 marker 不代表文件都已核准或語意索引已發布；核准政策、每份文件的索引狀態、排程與 pending/retry 由文件生命週期獨立追蹤。索引 pending 不會被冒充為索引完成，也不阻止關聯式/來源基線 marker 完成；Provider 未就緒不得讓採購核心不可用。
 

@@ -18,9 +18,11 @@ final class ErrorHttpStatusMapper {
                     PURCHASE_ORDER_NOT_FOUND,
                     RECOMMENDATION_NOT_FOUND,
                     DOCUMENT_NOT_FOUND,
+                    DOCUMENT_FILE_NOT_FOUND,
                     USER_NOT_FOUND,
                     INVENTORY_IMPORT_BATCH_NOT_FOUND,
                     AI_PROPOSAL_NOT_FOUND -> HttpStatus.NOT_FOUND;
+            case DOCUMENT_PREVIEW_INVALID -> HttpStatus.UNPROCESSABLE_ENTITY;
             case DUPLICATE_MATERIAL,
                     DUPLICATE_CODE,
                     DUPLICATE_USERNAME,

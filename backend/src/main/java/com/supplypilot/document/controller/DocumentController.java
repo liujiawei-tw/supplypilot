@@ -1,5 +1,9 @@
 package com.supplypilot.document.controller;
 
+import java.io.EOFException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.Set;
 
 import com.supplypilot.common.exception.BusinessException;
@@ -9,18 +13,26 @@ import com.supplypilot.document.domain.DocumentStatus;
 import com.supplypilot.document.domain.DocumentType;
 import com.supplypilot.document.dto.request.UpdateDocumentRequest;
 import com.supplypilot.document.dto.response.DocumentResponse;
-import com.supplypilot.document.service.DocumentService;
 import com.supplypilot.document.rag.DocumentIngestionService;
+import com.supplypilot.document.service.DocumentFileContent;
+import com.supplypilot.document.service.DocumentFileService;
+import com.supplypilot.document.service.DocumentService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
+import org.springframework.core.io.AbstractResource;
+import org.springframework.core.io.Resource;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
+import org.springframework.http.CacheControl;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -43,10 +55,16 @@ public class DocumentController {
             "id", "documentType", "supplier", "title", "version", "status", "uploadedAt", "updatedAt");
     private final DocumentService documentService;
     private final DocumentIngestionService ingestionService;
+    private final DocumentFileService documentFileService;
 
-    public DocumentController(DocumentService documentService, DocumentIngestionService ingestionService) {
+    public DocumentController(
+            DocumentService documentService,
+            DocumentIngestionService ingestionService,
+            DocumentFileService documentFileService
+    ) {
         this.documentService = documentService;
         this.ingestionService = ingestionService;
+        this.documentFileService = documentFileService;
     }
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -78,6 +96,16 @@ public class DocumentController {
         return documentService.get(id);
     }
 
+    @GetMapping("/{id}/preview")
+    public ResponseEntity<Resource> preview(@PathVariable Long id) {
+        return fileResponse(documentFileService.preview(id), false);
+    }
+
+    @GetMapping("/{id}/file")
+    public ResponseEntity<Resource> download(@PathVariable Long id) {
+        return fileResponse(documentFileService.download(id), true);
+    }
+
     @PostMapping("/{id}/ingestions")
     public DocumentResponse ingest(@PathVariable Long id) {
         return ingestionService.ingest(id);
@@ -99,5 +127,82 @@ public class DocumentController {
         String property = parts[0].equals("supplier") ? "supplier.id" : parts[0];
         Sort requested = Sort.by(direction, property);
         return parts[0].equals("id") ? requested : requested.and(Sort.by(Sort.Direction.ASC, "id"));
+    }
+
+    private ResponseEntity<Resource> fileResponse(DocumentFileContent file, boolean attachment) {
+        ContentDisposition disposition = (attachment ? ContentDisposition.attachment() : ContentDisposition.inline())
+                .filename(file.filename(), StandardCharsets.UTF_8)
+                .build();
+        return ResponseEntity.ok()
+                .contentType(file.mediaType())
+                .contentLength(file.contentLength())
+                .header(HttpHeaders.CONTENT_DISPOSITION, disposition.toString())
+                .header("X-Content-Type-Options", "nosniff")
+                .cacheControl(CacheControl.noStore())
+                .header(HttpHeaders.PRAGMA, "no-cache")
+                .header(HttpHeaders.EXPIRES, "0")
+                .body(new BoundedDocumentResource(file));
+    }
+
+    private static final class BoundedDocumentResource extends AbstractResource {
+
+        private final DocumentFileContent file;
+
+        private BoundedDocumentResource(DocumentFileContent file) {
+            this.file = file;
+        }
+
+        @Override
+        public InputStream getInputStream() throws IOException {
+            InputStream source = file.content().getInputStream();
+            return new InputStream() {
+                private long remaining = file.contentLength();
+
+                @Override
+                public int read() throws IOException {
+                    if (remaining == 0) {
+                        if (source.read() >= 0) throw new IOException("Stored document changed while streaming");
+                        return -1;
+                    }
+                    int value = source.read();
+                    if (value < 0) throw new EOFException("Stored document ended before the expected size");
+                    remaining--;
+                    return value;
+                }
+
+                @Override
+                public int read(byte[] buffer, int offset, int length) throws IOException {
+                    if (length == 0) return 0;
+                    if (remaining == 0) {
+                        if (source.read() >= 0) throw new IOException("Stored document changed while streaming");
+                        return -1;
+                    }
+                    int read = source.read(buffer, offset, (int) Math.min(length, remaining));
+                    if (read < 0) throw new EOFException("Stored document ended before the expected size");
+                    remaining -= read;
+                    return read;
+                }
+
+                @Override
+                public void close() throws IOException {
+                    source.close();
+                }
+            };
+        }
+
+        @Override
+        public long contentLength() {
+            return file.contentLength();
+        }
+
+        @Override
+        public String getFilename() {
+            return file.filename();
+        }
+
+        @Override
+        public String getDescription() {
+            return "Stored document content";
+        }
     }
 }

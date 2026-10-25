@@ -36,7 +36,6 @@ public class DocumentMapper {
                 document.getSupplier() == null ? null : document.getSupplier().getName(),
                 document.getTitle(),
                 document.getVersion(),
-                document.getStoragePath(),
                 document.getStatus(),
                 document.getUploadedByUserIdSnapshot(),
                 document.getUploadedAt(),

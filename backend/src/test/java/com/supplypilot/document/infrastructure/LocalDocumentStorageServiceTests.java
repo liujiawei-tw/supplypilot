@@ -32,6 +32,7 @@ class LocalDocumentStorageServiceTests {
         assertThat(storedPath).endsWith(".pdf").doesNotContain("client-contract");
         assertThat(Path.of(storedPath).isAbsolute()).isFalse();
         assertThat(Files.readString(tempDirectory.resolve(storedPath))).isEqualTo("content");
+        assertThat(storage.size(storedPath)).isEqualTo("content".length());
         try (InputStream input = storage.read(storedPath)) {
             assertThat(input.readAllBytes()).isEqualTo("content".getBytes());
         }
@@ -46,9 +47,24 @@ class LocalDocumentStorageServiceTests {
 
         assertThatThrownBy(() -> storage.delete("../outside.pdf")).isInstanceOf(BusinessException.class);
         assertThatThrownBy(() -> storage.read("../outside.pdf")).isInstanceOf(BusinessException.class);
+        assertThatThrownBy(() -> storage.size("../outside.pdf")).isInstanceOf(BusinessException.class);
         assertThatThrownBy(() -> storage.delete(tempDirectory.resolve("absolute.pdf").toString()))
                 .isInstanceOf(BusinessException.class);
         assertThat(tempDirectory.getParent().resolve("outside.pdf")).doesNotExist();
+    }
+
+    @Test
+    void missingStoredDocumentUsesGenericFileNotFoundError() {
+        LocalDocumentStorageService storage = new LocalDocumentStorageService(tempDirectory.toString());
+
+        assertThatThrownBy(() -> storage.size("missing.pdf"))
+                .isInstanceOfSatisfying(BusinessException.class,
+                        exception -> assertThat(exception.getErrorCode())
+                                .isEqualTo(ErrorCode.DOCUMENT_FILE_NOT_FOUND));
+        assertThatThrownBy(() -> storage.read("missing.pdf"))
+                .isInstanceOfSatisfying(BusinessException.class,
+                        exception -> assertThat(exception.getErrorCode())
+                                .isEqualTo(ErrorCode.DOCUMENT_FILE_NOT_FOUND));
     }
 
     @Test

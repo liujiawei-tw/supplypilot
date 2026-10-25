@@ -13,7 +13,6 @@ public record DocumentResponse(
         String supplierName,
         String title,
         String version,
-        String storagePath,
         DocumentStatus status,
         Long uploadedBy,
         Instant uploadedAt,

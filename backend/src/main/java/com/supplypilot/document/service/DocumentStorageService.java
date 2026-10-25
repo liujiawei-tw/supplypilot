@@ -11,5 +11,8 @@ public interface DocumentStorageService {
     /** Opens a server-owned stored document. Callers must close the returned stream. */
     InputStream read(String storagePath);
 
+    /** Returns the size of a server-owned stored document without exposing its path to API callers. */
+    long size(String storagePath);
+
     void delete(String storagePath);
 }
