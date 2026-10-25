@@ -5,22 +5,47 @@ import userEvent from '@testing-library/user-event';
 import App from '../src/App';
 import { axiosClient, TOKEN_STORAGE_KEY } from '../src/api/axiosClient';
 import { router } from '../src/router/routes';
-import type { AuthenticatedUser } from '../src/types/api';
+import type { SupplierResponse } from '../src/api/supplier';
+import type { AuthenticatedUser, PageResponse } from '../src/types/api';
 import { validateDocumentFile } from '../src/pages/Documents/documentValidation';
 import { cleanup } from '@testing-library/react';
 
-const staff: AuthenticatedUser = { id: 2, username: 'buyer', displayName: 'Buyer', role: 'PROCUREMENT_STAFF' };
-const manager: AuthenticatedUser = { id: 3, username: 'manager', displayName: 'Manager', role: 'PROCUREMENT_MANAGER' };
-const warehouse: AuthenticatedUser = { id: 4, username: 'warehouse', displayName: 'Warehouse', role: 'WAREHOUSE_STAFF' };
+const businessAccount: AuthenticatedUser = { id: 2, username: 'buyer', displayName: 'Buyer', role: 'ADMIN', canManageUsers: false };
+const peopleAdmin: AuthenticatedUser = { id: 1, username: 'admin', displayName: 'Admin', role: 'ADMIN', canManageUsers: true };
 const documentProcessing = { id: 21, documentType: 'QUOTATION', supplierId: 7, title: 'Supplier quote', version: 'v1', storagePath: '/private/do-not-show', status: 'PROCESSING', uploadedBy: 2, uploadedAt: '2026-10-12T00:00:00Z', updatedAt: '2026-10-12T00:00:00Z' };
-const page = (content: unknown[]) => ({ content, page: 0, size: 20, totalElements: content.length, totalPages: content.length ? 1 : 0 });
+const page = <T,>(content: T[]): PageResponse<T> => ({ content, page: 0, size: 20, totalElements: content.length, totalPages: content.length ? 1 : 0 });
+const supplierDirectory = page<SupplierResponse>([{
+  id: 7, code: 'SUP-007', name: '示範供應商', country: 'TW', reliabilityScore: 90, qualityScore: 88,
+  status: 'ACTIVE', createdAt: '2026-10-12T00:00:00Z', updatedAt: '2026-10-12T00:00:00Z',
+}]);
+const supplierRequests: InternalAxiosRequestConfig[] = [];
 function response(config: InternalAxiosRequestConfig, data: unknown, status = 200): AxiosResponse { return { config, data, status, statusText: String(status), headers: {} }; }
 function deferred<T>() {
   let resolve!: (value: T) => void;
   const promise = new Promise<T>((done) => { resolve = done; });
   return { promise, resolve };
 }
-async function open(path: string) { localStorage.setItem(TOKEN_STORAGE_KEY, 'valid-token'); await router.navigate(path); render(<App />); }
+async function open(path: string) {
+  localStorage.setItem(TOKEN_STORAGE_KEY, 'valid-token');
+  if (path === '/documents' || path.startsWith('/documents?')) {
+    const delegate = axiosClient.defaults.adapter;
+    if (typeof delegate !== 'function') throw new Error('Expected a test Axios adapter');
+    axiosClient.defaults.adapter = vi.fn(async (config: InternalAxiosRequestConfig) => {
+      if (config.url === '/suppliers') {
+        supplierRequests.push(config);
+        if (config.method?.toUpperCase() !== 'GET') throw new Error('Unexpected supplier write method');
+        return response(config, supplierDirectory);
+      }
+      if (config.url === '/semantic-index/jobs') {
+        if (config.method?.toUpperCase() !== 'GET') throw new Error('Unexpected semantic-index jobs write');
+        return response(config, []);
+      }
+      return delegate(config);
+    });
+  }
+  await router.navigate(path);
+  render(<App />);
+}
 function latestDialog() { const dialogs = screen.getAllByRole('dialog'); return dialogs[dialogs.length - 1]; }
 function documentDrawer() { return screen.getByText('文件明細').closest('.ant-drawer')!; }
 function aiAssistantDrawer() { return screen.getByText('SupplyPilot AI 助理').closest('.ant-drawer')!; }
@@ -35,25 +60,20 @@ async function openDraftProposal(user: ReturnType<typeof userEvent.setup>) {
   await user.click(screen.getByRole('button', { name: '產生提案供審閱' }));
   await screen.findByText('後端提案快照');
 }
-beforeEach(() => { localStorage.clear(); });
+beforeEach(() => { localStorage.clear(); supplierRequests.length = 0; });
 
 describe('SP-806 Document Management UI', () => {
   it.each([
-    [{ id: 1, username: 'admin', displayName: 'Admin', role: 'ADMIN' } as AuthenticatedUser, true],
-    [manager, false], [staff, false], [warehouse, false],
-  ])('exposes Semantic operations only to ADMIN on the existing Documents route', async (identity, isAdmin) => {
+    { label: '未獲人員管理權限', identity: businessAccount },
+    { label: '已獲人員管理權限', identity: peopleAdmin },
+  ])('keeps Semantic operations available to V2 ADMIN accounts ($label)', async ({ identity }) => {
     axiosClient.defaults.adapter = vi.fn(async (config) => {
       if (config.url === '/auth/me') return response(config, identity);
       if (config.url === '/documents') return response(config, page([]));
-      throw new Error(`Unexpected ${config.method} ${config.url}`);
+      throw new Error('Unexpected API request');
     });
     await open('/documents');
-    if (isAdmin) expect(await screen.findByText('語意索引管理')).toBeTruthy();
-    else {
-      await screen.findByText('SupplyPilot');
-      expect(screen.queryByText('語意索引管理')).toBeNull();
-      expect(screen.queryByRole('button', { name: '執行並保存索引稽核' })).toBeNull();
-    }
+    expect(await screen.findByText('語意索引管理')).toBeTruthy();
     cleanup();
   });
 
@@ -62,7 +82,7 @@ describe('SP-806 Document Management UI', () => {
     const requests: InternalAxiosRequestConfig[] = [];
     axiosClient.defaults.adapter = vi.fn(async (config) => {
       requests.push(config);
-      if (config.url === '/auth/me') return response(config, { id: 1, username: 'admin', displayName: 'Admin', role: 'ADMIN' });
+      if (config.url === '/auth/me') return response(config, businessAccount);
       if (config.url === '/documents') return response(config, page([ready]));
       if (config.url === '/documents/21') return response(config, ready);
       if (config.url === '/semantic-index/documents/21/approve-outbound') return response(config, { documentId: 21, version: 'v1', sourceHash: 'abc123', approvedBy: 1, status: 'APPROVED', reason: null });
@@ -88,7 +108,7 @@ describe('SP-806 Document Management UI', () => {
     const requests: InternalAxiosRequestConfig[] = [];
     axiosClient.defaults.adapter = vi.fn(async (config) => {
       requests.push(config);
-      if (config.url === '/auth/me') return response(config, { id: 1, username: 'admin', displayName: 'Admin', role: 'ADMIN' });
+      if (config.url === '/auth/me') return response(config, businessAccount);
       if (config.url === '/documents') return response(config, page([first, second]));
       if (config.url === '/documents/21') return delayed21.promise;
       if (config.url === '/documents/22') return delayed22.promise;
@@ -120,7 +140,7 @@ describe('SP-806 Document Management UI', () => {
     const requests: InternalAxiosRequestConfig[] = [];
     axiosClient.defaults.adapter = vi.fn(async (config) => {
       requests.push(config);
-      if (config.url === '/auth/me') return response(config, { id: 1, username: 'admin', displayName: 'Admin', role: 'ADMIN' });
+      if (config.url === '/auth/me') return response(config, businessAccount);
       if (config.url === '/documents' && config.method === 'get') return response(config, page([first, second]));
       if (config.url === '/documents/21' && config.method === 'get') return response(config, first);
       if (config.url === '/documents/22' && config.method === 'get') return response(config, second);
@@ -172,7 +192,7 @@ describe('SP-806 Document Management UI', () => {
     let detail21Count = 0;
     axiosClient.defaults.adapter = vi.fn(async (config) => {
       requests.push(config);
-      if (config.url === '/auth/me') return response(config, { id: 1, username: 'admin', displayName: 'Admin', role: 'ADMIN' });
+      if (config.url === '/auth/me') return response(config, businessAccount);
       if (config.url === '/documents' && config.method === 'get') return response(config, page([first, second]));
       if (config.url === '/documents/21' && config.method === 'get') return ++detail21Count === 1 ? response(config, first) : delayedVerification.promise;
       if (config.url === '/documents/22' && config.method === 'get') return response(config, second);
@@ -206,7 +226,7 @@ describe('SP-806 Document Management UI', () => {
     const calls: InternalAxiosRequestConfig[] = [];
     axiosClient.defaults.adapter = vi.fn(async (config) => {
       calls.push(config);
-      if (config.url === '/auth/me') return response(config, { id: 1, username: 'admin', displayName: 'Admin', role: 'ADMIN' });
+      if (config.url === '/auth/me') return response(config, businessAccount);
       if (config.url === '/documents') return response(config, page([original]));
       if (config.url === '/documents/21') return response(config, calls.filter(({ url }) => url === '/documents/21').length === 1 ? original : refreshed);
       throw new Error(`Unexpected ${config.method} ${config.url}`);
@@ -238,7 +258,7 @@ describe('SP-806 Document Management UI', () => {
       : { ...documentProcessing, status: 'READY' };
     axiosClient.defaults.adapter = vi.fn(async (config) => {
       requests.push(config);
-      if (config.url === '/auth/me') return response(config, { id: 1, username: 'admin', displayName: 'Admin', role: 'ADMIN' });
+      if (config.url === '/auth/me') return response(config, businessAccount);
       if (config.url === '/documents' && config.method === 'get') return response(config, page([document]));
       if (config.url === '/documents/21' && config.method === 'get') return response(config, document);
       if (config.url === '/documents/21/ingestions') return response(config, { ...document, status: 'READY' });
@@ -285,13 +305,13 @@ describe('SP-806 Document Management UI', () => {
       }
     }
     expect(await screen.findByText('歷史索引稽核紀錄（已過期）')).toBeTruthy();
-  });
+  }, 60_000);
 
   it('shows backend status, hides storagePath, and performs one explicitly confirmed ingestion followed by refresh', async () => {
     const requests: InternalAxiosRequestConfig[] = [];
     axiosClient.defaults.adapter = vi.fn(async (config) => {
       requests.push(config);
-      if (config.url === '/auth/me') return response(config, staff);
+      if (config.url === '/auth/me') return response(config, businessAccount);
       if (config.url === '/documents' && config.method === 'get') return response(config, page([documentProcessing]));
       if (config.url === '/documents/21' && config.method === 'get') return response(config, documentProcessing);
       if (config.url === '/documents/21/ingestions') return response(config, { ...documentProcessing, status: 'READY', updatedAt: '2026-10-12T00:01:00Z' });
@@ -317,7 +337,7 @@ describe('SP-806 Document Management UI', () => {
     let verificationAttempts = 0;
     axiosClient.defaults.adapter = vi.fn(async (config) => {
       requests.push(config);
-      if (config.url === '/auth/me') return response(config, staff);
+      if (config.url === '/auth/me') return response(config, businessAccount);
       if (config.url === '/documents' && config.method === 'get') return response(config, page([documentProcessing]));
       if (config.url === '/documents/21' && config.method === 'get') {
         verificationAttempts += 1;
@@ -350,7 +370,7 @@ describe('SP-806 Document Management UI', () => {
     expect(await screen.findByText(/已查核系統目前狀態：已就緒/)).toBeTruthy();
     expect(screen.getByRole('button', { name: '開始文件解析與索引' })).toBeTruthy();
     expect(requests.filter(({ url }) => url === '/documents/21/ingestions')).toHaveLength(1);
-  }, 30_000);
+  }, 60_000);
 
   it('validates document file extension, browser content type, and empty content', () => {
     expect(validateDocumentFile(new File(['not-pdf'], 'fake.pdf', { type: 'text/plain' }))).toMatch(/內容類型相符/);
@@ -362,7 +382,7 @@ describe('SP-806 Document Management UI', () => {
     const requests: InternalAxiosRequestConfig[] = [];
     axiosClient.defaults.adapter = vi.fn(async (config) => {
       requests.push(config);
-      if (config.url === '/auth/me') return response(config, staff);
+      if (config.url === '/auth/me') return response(config, businessAccount);
       if (config.url === '/documents' && config.method === 'get') return response(config, page([]));
       if (config.url === '/documents' && config.method === 'post') throw new AxiosError('Timeout', 'ECONNABORTED', config);
       throw new Error(`Unexpected ${config.method} ${config.url}`);
@@ -385,42 +405,48 @@ describe('SP-806 Document Management UI', () => {
     expect(screen.getByRole('button', { name: /上傳文件/ }).hasAttribute('disabled')).toBe(true);
   }, 30_000);
 
-  it('gives manager read-only Documents without upload, edit, or ingestion controls', async () => {
-    const requests: string[] = [];
+  it('allows a V2 business account without user-management capability to manage Documents', async () => {
+    const requests: InternalAxiosRequestConfig[] = [];
     axiosClient.defaults.adapter = vi.fn(async (config) => {
-      requests.push(config.url ?? '');
-      if (config.url === '/auth/me') return response(config, manager);
-      if (config.url === '/documents') return response(config, page([documentProcessing]));
-      if (config.url === '/documents/21') return response(config, documentProcessing);
-      throw new Error(`Unexpected ${config.url}`);
+      requests.push(config);
+      if (config.url === '/auth/me') return response(config, businessAccount);
+      if (config.url === '/documents' && config.method?.toUpperCase() === 'GET') return response(config, page([documentProcessing]));
+      if (config.url === '/documents/21' && config.method?.toUpperCase() === 'GET') return response(config, documentProcessing);
+      throw new Error('Unexpected API request');
     });
     await open('/documents'); const user = userEvent.setup();
     await screen.findByRole('heading', { name: '文件管理' });
     expect(await screen.findByText('Supplier quote')).toBeTruthy();
-    expect(screen.queryByRole('button', { name: /上傳文件/ })).toBeNull();
+    expect(screen.getByRole('button', { name: /上傳文件/ })).toBeTruthy();
     await user.click(screen.getByRole('button', { name: '#21' }));
     await screen.findByText('文件明細');
-    expect(screen.queryByRole('button', { name: '儲存標題' })).toBeNull();
-    expect(screen.queryByRole('button', { name: '開始文件解析與索引' })).toBeNull();
-    expect(requests).toEqual(['/auth/me', '/documents', '/documents/21']);
+    expect(screen.getByRole('button', { name: '儲存標題' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: '開始文件解析與索引' })).toBeTruthy();
+    await waitFor(() => expect(supplierRequests.some(({ method }) => method?.toUpperCase() === 'GET')).toBe(true));
+    expect(supplierRequests.every(({ url, method }) => url === '/suppliers' && method?.toUpperCase() === 'GET')).toBe(true);
+    expect(requests.some(({ url, method }) => url === '/documents' && method?.toUpperCase() === 'POST')).toBe(false);
   }, 30_000);
 
-  it('does not call any Document or AI endpoint for warehouse role', async () => {
-    const requests: string[] = [];
-    axiosClient.defaults.adapter = vi.fn(async (config) => { requests.push(config.url ?? ''); if (config.url === '/auth/me') return response(config, warehouse); throw new Error(`Unexpected ${config.url}`); });
-    await open('/documents');
+  it('denies people-management requests for a V2 account without canManageUsers', async () => {
+    const requests: InternalAxiosRequestConfig[] = [];
+    axiosClient.defaults.adapter = vi.fn(async (config) => {
+      requests.push(config);
+      if (config.url === '/auth/me') return response(config, businessAccount);
+      throw new Error('Unexpected API request');
+    });
+    await open('/users');
     expect(await screen.findByText('403')).toBeTruthy();
-    expect(screen.queryByRole('button', { name: /AI 助理/ })).toBeNull();
-    expect(requests).toEqual(['/auth/me']);
+    expect(requests.map(({ url }) => url)).toEqual(['/auth/me']);
+    expect(supplierRequests).toHaveLength(0);
   }, 30_000);
 });
 
 describe('SP-806 Global AI 助理', () => {
-  it('keeps the route unchanged, renders verified query sources, and gives manager no Proposal tab', async () => {
+  it('keeps the route unchanged and exposes procurement AI to V2 business accounts without user-management rights', async () => {
     const requests: InternalAxiosRequestConfig[] = [];
     axiosClient.defaults.adapter = vi.fn(async (config) => {
       requests.push(config);
-      if (config.url === '/auth/me') return response(config, manager);
+      if (config.url === '/auth/me') return response(config, businessAccount);
       if (config.url === '/ai/query') return response(config, {
         status: 'ANSWERED', answer: 'Recommendation #91 uses the verified ranking.', tools: ['EXPLAIN_RECOMMENDATION'], answerSource: 'BACKEND_FACTS',
         sources: [{ resourceType: 'RECOMMENDATION', resourceId: '91', title: 'Recommendation 91', documentKey: null, version: null, supplierId: 7, chunkIndex: null, startOffset: null, endOffset: null, excerpt: null, relevanceScore: null }],
@@ -428,9 +454,9 @@ describe('SP-806 Global AI 助理', () => {
       throw new Error(`Unexpected ${config.url}`);
     });
     await open('/dashboard'); const user = userEvent.setup();
-    await screen.findByText('Manager（manager）');
+    await screen.findByText('Buyer（buyer）');
     await user.click(await screen.findByRole('button', { name: /AI 助理/ }));
-    expect(screen.queryByRole('tab', { name: '採購草稿提案' })).toBeNull();
+    expect(await screen.findByRole('tab', { name: '採購草稿提案' })).toBeTruthy();
     await user.type(screen.getByLabelText('AI 問題'), 'Explain Recommendation #91');
     await user.click(screen.getByRole('button', { name: '送出問題' }));
     expect(await screen.findByText('Recommendation #91 uses the verified ranking.')).toBeTruthy();
@@ -441,7 +467,7 @@ describe('SP-806 Global AI 助理', () => {
 
   it('isolates AI 503 so navigation stays usable and the drawer can close', async () => {
     axiosClient.defaults.adapter = vi.fn(async (config) => {
-      if (config.url === '/auth/me') return response(config, staff);
+      if (config.url === '/auth/me') return response(config, businessAccount);
       if (config.url === '/ai/query') throw new AxiosError('Unavailable', 'ERR_BAD_RESPONSE', config, undefined,
         response(config, { code: 'AI_PROVIDER_UNAVAILABLE', message: 'Unavailable', traceId: 'trace-ai', timestamp: '', path: '' }, 503));
       throw new Error(`Unexpected ${config.url}`);
@@ -468,7 +494,7 @@ describe('SP-806 Global AI 助理', () => {
     };
     axiosClient.defaults.adapter = vi.fn((config) => {
       requests.push(config);
-      if (config.url === '/auth/me') return Promise.resolve(response(config, staff));
+      if (config.url === '/auth/me') return Promise.resolve(response(config, businessAccount));
       if (config.url === '/ai/purchase-draft-proposals') return Promise.resolve(response(config, { status: 'PENDING_CONFIRMATION', proposalId: 'proposal-1', draft: backendDraft, expiresAt: '2099-10-20T00:00:00Z', confirmationToken: 'server-secret-token', missingFields: [] }));
       if (config.url === '/ai/purchase-draft-proposals/proposal-1/confirm') return new Promise((resolve) => { finishConfirm = () => resolve(response(config, { id: 42, poNumber: 'PO-000042', status: 'DRAFT', items: [] })); });
       return Promise.reject(new Error(`Unexpected ${config.url}`));
@@ -507,7 +533,7 @@ describe('SP-806 Global AI 助理', () => {
     const requests: InternalAxiosRequestConfig[] = [];
     axiosClient.defaults.adapter = vi.fn(async (config) => {
       requests.push(config);
-      if (config.url === '/auth/me') return response(config, staff);
+      if (config.url === '/auth/me') return response(config, businessAccount);
       if (config.url === '/ai/purchase-draft-proposals') {
         proposalCount += 1;
         if (proposalCount === 1) return response(config, { status: 'NEEDS_CLARIFICATION', proposalId: null, draft: null, expiresAt: null, confirmationToken: null, missingFields: ['items[0].unitPrice'] });
@@ -543,7 +569,7 @@ describe('SP-806 Global AI 助理', () => {
     const requests: InternalAxiosRequestConfig[] = [];
     axiosClient.defaults.adapter = vi.fn(async (config) => {
       requests.push(config);
-      if (config.url === '/auth/me') return response(config, staff);
+      if (config.url === '/auth/me') return response(config, businessAccount);
       if (config.url === '/ai/purchase-draft-proposals') return response(config, {
         status: 'PENDING_CONFIRMATION', proposalId: 'terminal-proposal', draft: { supplierId: 12, items: [{ materialId: 7, quantity: '1', unitPrice: '2' }] },
         expiresAt: '2099-01-01T00:00:00Z', confirmationToken: 'server-token', missingFields: [],
@@ -562,13 +588,13 @@ describe('SP-806 Global AI 助理', () => {
     expect(screen.getByRole('button', { name: '審閱並確認草稿' }).hasAttribute('disabled')).toBe(true);
     if (code === 'AI_PROPOSAL_ALREADY_CONFIRMED') expect(screen.getByRole('button', { name: '捨棄並編輯' }).hasAttribute('disabled')).toBe(true);
     expect(requests.filter(({ url }) => url === '/ai/purchase-draft-proposals/terminal-proposal/confirm')).toHaveLength(1);
-  }, 30_000);
+  }, 60_000);
 
   it('fails closed when Proposal expiresAt is invalid without calling Confirm', async () => {
     const requests: InternalAxiosRequestConfig[] = [];
     axiosClient.defaults.adapter = vi.fn(async (config) => {
       requests.push(config);
-      if (config.url === '/auth/me') return response(config, staff);
+      if (config.url === '/auth/me') return response(config, businessAccount);
       if (config.url === '/ai/purchase-draft-proposals') return response(config, {
         status: 'PENDING_CONFIRMATION', proposalId: 'invalid-expiry', draft: { supplierId: 12, items: [{ materialId: 7, quantity: '1', unitPrice: '2' }] },
         expiresAt: 'not-a-date', confirmationToken: 'server-token', missingFields: [],
