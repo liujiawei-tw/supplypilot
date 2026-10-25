@@ -17,6 +17,26 @@ class DemoDatasetCoordinatorStateTests {
     }
 
     @Test
+    void autoSafeDefersCompleteAndRelationalReadyMarkersUntilConflictsAreChecked() {
+        // The same state/action pairs are used by normal startup and concurrent-seed recovery.
+        assertThat(DemoDatasetCoordinator.shouldDeferExistingBaselineSyncToAutoSafe(
+                "AUTO_SAFE", DemoDatasetCoordinator.ExistingDatasetAction.ALREADY_COMPLETE, "COMPLETE")).isTrue();
+        assertThat(DemoDatasetCoordinator.shouldDeferExistingBaselineSyncToAutoSafe(
+                "AUTO_SAFE", DemoDatasetCoordinator.ExistingDatasetAction.MANUAL_STEPS_INCOMPLETE,
+                "RELATIONAL_READY")).isTrue();
+        assertThat(DemoDatasetCoordinator.shouldDeferExistingBaselineSyncToAutoSafe(
+                "auto_safe", DemoDatasetCoordinator.ExistingDatasetAction.MANUAL_STEPS_INCOMPLETE,
+                "RELATIONAL_READY")).isTrue();
+        assertThat(DemoDatasetCoordinator.shouldDeferExistingBaselineSyncToAutoSafe(
+                "DISABLED", DemoDatasetCoordinator.ExistingDatasetAction.ALREADY_COMPLETE, "COMPLETE")).isFalse();
+        assertThat(DemoDatasetCoordinator.shouldDeferExistingBaselineSyncToAutoSafe(
+                null, DemoDatasetCoordinator.ExistingDatasetAction.ALREADY_COMPLETE, "COMPLETE")).isFalse();
+        assertThat(DemoDatasetCoordinator.shouldDeferExistingBaselineSyncToAutoSafe(
+                "AUTO_SAFE", DemoDatasetCoordinator.ExistingDatasetAction.MANUAL_STEPS_INCOMPLETE,
+                "UPDATE_REQUIRED")).isFalse();
+    }
+
+    @Test
     void completeLegalLegacyVersionPreservesRowsAndRequestsManualUpgrade() {
         assertThat(DemoDatasetCoordinator.classifyExistingDataset("COMPLETE", LEGACY, CURRENT))
                 .isEqualTo(DemoDatasetCoordinator.ExistingDatasetAction.LEGACY_UPDATE_REQUIRED);

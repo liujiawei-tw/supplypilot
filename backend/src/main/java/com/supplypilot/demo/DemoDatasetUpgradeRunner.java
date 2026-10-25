@@ -56,6 +56,11 @@ public class DemoDatasetUpgradeRunner implements ApplicationRunner {
             var relationalResult = upgradeService.autoSafe();
             log.warn("DEMO_DATASET_AUTO_SAFE_RELATIONAL_RESULT plan={}",
                     objectMapper.writeValueAsString(relationalResult));
+            if (!relationalResult.conflicts().isEmpty()) {
+                log.error("DEMO_DATASET_AUTO_SAFE_CORPUS_SYNC_BLOCKED conflicts={}",
+                        objectMapper.writeValueAsString(relationalResult.conflicts()));
+                return;
+            }
             var corpusResult = corpusSyncService.synchronizeBaseline();
             boolean relationalCompletion = coordinator.completeExistingUpgradeIfReady(corpusResult);
             log.warn("DEMO_DATASET_AUTO_SAFE_COMPLETION_RESULT completed={}", relationalCompletion);

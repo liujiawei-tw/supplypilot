@@ -3,12 +3,14 @@ package com.supplypilot.document.semantic;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.supplypilot.demo.DemoCorpusRagEligibility;
 import com.supplypilot.document.domain.DocumentChunk;
 import com.supplypilot.document.domain.DocumentMetadata;
 import com.supplypilot.document.domain.DocumentStatus;
 import com.supplypilot.document.repository.DocumentChunkRepository;
 import com.supplypilot.document.repository.DocumentMetadataRepository;
 import com.supplypilot.security.CurrentUserProvider;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
@@ -21,16 +23,27 @@ public class SemanticReadinessService {
     private final SemanticStore store;
     private final SemanticProperties properties;
     private final CurrentUserProvider currentUser;
+    private final DemoCorpusRagEligibility demoEligibility;
 
     public SemanticReadinessService(DocumentMetadataRepository documents, DocumentChunkRepository chunks,
                                     OutboundDocumentPolicy policy, SemanticStore store,
                                     SemanticProperties properties, CurrentUserProvider currentUser) {
+        this(documents, chunks, policy, store, properties, currentUser,
+                DemoCorpusRagEligibility.manualUploadsOnly());
+    }
+
+    @Autowired
+    public SemanticReadinessService(DocumentMetadataRepository documents, DocumentChunkRepository chunks,
+                                    OutboundDocumentPolicy policy, SemanticStore store,
+                                    SemanticProperties properties, CurrentUserProvider currentUser,
+                                    DemoCorpusRagEligibility demoEligibility) {
         this.documents = documents;
         this.chunks = chunks;
         this.policy = policy;
         this.store = store;
         this.properties = properties;
         this.currentUser = currentUser;
+        this.demoEligibility = demoEligibility;
     }
 
     @PreAuthorize("hasRole('ADMIN')")
@@ -64,10 +77,14 @@ public class SemanticReadinessService {
             if (page.isEmpty()) break;
             for (DocumentMetadata document : page) {
                 afterId = document.getId();
+                if (!demoEligibility.isEligible(document)) {
+                    skipped++;
+                    continue;
+                }
                 List<DocumentChunk> source = chunks.findByDocumentIdOrderByChunkIndex(document.getId());
                 String hash = SemanticBackfillService.sourceHash(source);
-                var decision = policy.inspect(document,
-                        source.stream().map(DocumentChunk::getContent).toList(), hash);
+                var decision = demoEligibility.inspectSource(document, source, hash,
+                        document.getSemanticIndexGeneration(), policy);
                 SemanticStore.IndexState index = store.state(document.getId(), document.getVersion());
                 String status = index == null ? "PENDING" : index.status();
                 String reason = index == null ? "NOT_INDEXED" : index.failureReason();

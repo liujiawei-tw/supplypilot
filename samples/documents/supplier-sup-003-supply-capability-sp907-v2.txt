@@ -8,10 +8,11 @@
 能力規劃情境：以 SUP-003/MAT-003 的 MOQ 加一個包裝倍數，設定 225 KG 的演練需求；不是月產能、庫存或供應承諾。
 目前接單狀態：僅依 ACTIVE 關係進入正式詢價流程；225 KG 是測試輸入，不是訂單。
 主檔供應材料關係：
-- SUP-003/MAT-001 阿薩姆紅茶萃取物：status=ACTIVE，單位 KG，MOQ 1000，包裝倍數 100，標準交期 10 個日曆日，幣別 TWD。
-- SUP-003/MAT-002 芒果濃縮汁：status=ACTIVE，單位 KG，MOQ 500，包裝倍數 75，標準交期 4 個日曆日，幣別 TWD。
-- SUP-003/MAT-003 果糖糖漿：status=ACTIVE，單位 KG，MOQ 200，包裝倍數 25，標準交期 5 個日曆日，幣別 TWD。
-- SUP-003/MAT-004 奶茶基底：status=ACTIVE，單位 KG，MOQ 300，包裝倍數 50，標準交期 6 個日曆日，幣別 TWD。
-- SUP-003/MAT-006 茉莉茶萃取物：status=ACTIVE，單位 KG，MOQ 400，包裝倍數 75，標準交期 7 個日曆日，幣別 TWD。
-- SUP-003/MAT-007 百香果泥：status=ACTIVE，單位 KG，MOQ 500，包裝倍數 25，標準交期 8 個日曆日，幣別 TWD。
+主檔供應材料關係摘要：本文件列出 6 筆 ACTIVE 關係與 0 筆 INACTIVE 關係。
+- SUP-003/MAT-001 阿薩姆紅茶萃取物：status=ACTIVE，單位 KG，MOQ 1000 KG，包裝倍數 100 KG，標準交期 10 個日曆日，幣別 TWD。
+- SUP-003/MAT-002 芒果濃縮汁：status=ACTIVE，單位 KG，MOQ 500 KG，包裝倍數 75 KG，標準交期 4 個日曆日，幣別 TWD。
+- SUP-003/MAT-003 果糖糖漿：status=ACTIVE，單位 KG，MOQ 200 KG，包裝倍數 25 KG，標準交期 5 個日曆日，幣別 TWD。
+- SUP-003/MAT-004 奶茶基底：status=ACTIVE，單位 KG，MOQ 300 KG，包裝倍數 50 KG，標準交期 6 個日曆日，幣別 TWD。
+- SUP-003/MAT-006 茉莉茶萃取物：status=ACTIVE，單位 KG，MOQ 400 KG，包裝倍數 75 KG，標準交期 7 個日曆日，幣別 TWD。
+- SUP-003/MAT-007 百香果泥：status=ACTIVE，單位 KG，MOQ 500 KG，包裝倍數 25 KG，標準交期 8 個日曆日，幣別 TWD。
 文件操作情境：窗口逐筆對照 MOQ、包裝倍數和標準交期，再詢問指定期間是否可承接。收到有效文件前，不將規劃量寫成可用庫存或已確認供應量。表格是主檔快照，不提供未列材料、日/月產能、備援產線或交付績效。

@@ -64,6 +64,19 @@ class DemoDatasetUpgradeServiceTests {
     }
 
     @Test
+    void trustedMasterDataPinAcceptsTrackedBytesAndRejectsSamePathContentChanges() throws Exception {
+        byte[] trackedMaster = Files.readAllBytes(Path.of("..", "samples", "demo-master-data.json"));
+        byte[] changedMaster = trackedMaster.clone();
+        changedMaster[0] ^= 1;
+
+        assertThat(DemoDatasetUpgradeService.isPinnedAutoSafeMasterData(trackedMaster)).isTrue();
+        assertThat(DemoDatasetUpgradeService.isPinnedAutoSafeMasterData(changedMaster)).isFalse();
+        assertThat(DemoDatasetCoordinator.isInitialSeedMasterDataTrusted("AUTO_SAFE", trackedMaster)).isTrue();
+        assertThat(DemoDatasetCoordinator.isInitialSeedMasterDataTrusted("auto_safe", changedMaster)).isFalse();
+        assertThat(DemoDatasetCoordinator.isInitialSeedMasterDataTrusted("DISABLED", changedMaster)).isTrue();
+    }
+
+    @Test
     void dryRunPlansNewSupplierAndItsLinksWithoutWriting() throws Exception {
         Path master = writeMaster(Map.of(
                 "suppliers", List.of(supplierSeed("SUP-007", "山嵐果萃食品", "台灣")),

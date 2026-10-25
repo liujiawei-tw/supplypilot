@@ -56,6 +56,10 @@ MONEY_RE = re.compile(
     re.IGNORECASE,
 )
 PRICE_VALUE_RE = re.compile(r"(?:單價|價格|報價金額|總價)(?:\s*(?:為|是|[:：]))?\s*(?:NT\$|TWD)?\s*([0-9][\d,]*(?:\.\d+)?)", re.IGNORECASE)
+FICTIONAL_QUOTE_PRICE_RE = re.compile(
+    r"^虛構(?:歷史)? Demo 報價單價[：:]\s*([0-9][\d,]*(?:\.\d+)?)\s+([A-Z]{3})\s*/\s*([A-Z]+)\b",
+    re.IGNORECASE | re.MULTILINE,
+)
 CURRENCY_RE = re.compile(r"\b(TWD|USD|EUR|JPY|CNY|RMB|HKD|AUD|CAD|GBP)\b", re.IGNORECASE)
 VALIDITY_RE = re.compile(
     r"(?:(\d{1,4})\s*(?:個)?(?:曆日|日|天)[^。\n；;]{0,12}(?:內)?有效|"
@@ -234,6 +238,53 @@ def _positive_decimal(value: Any) -> Decimal | None:
     except (InvalidOperation, ValueError):
         return None
     return parsed if parsed.is_finite() and parsed > 0 else None
+
+
+def _answer_factual_atoms(point: str, master: dict[str, Any]) -> list[tuple[str, str]]:
+    """Extract source-checkable identifiers, dates, amounts, names, and process states."""
+    atoms: list[tuple[str, str]] = []
+    for pattern, kind in ((r"\b(?:SUP|MAT)-\d{3}\b", "text"),
+                          (r"\bSIM-[A-Z0-9-]+\b", "text"),
+                          (r"\b\d{4}-\d{2}-\d{2}\b", "text")):
+        atoms.extend((kind, value) for value in re.findall(pattern, point, re.IGNORECASE))
+    remainder = re.sub(r"\b(?:SUP|MAT)-\d{3}\b|\bSIM-[A-Z0-9-]+\b|\b\d{4}-\d{2}-\d{2}\b", " ", point, flags=re.IGNORECASE)
+    atoms.extend(("number", value.replace(",", "")) for value in re.findall(r"\b\d[\d,]*(?:\.\d+)?\b", remainder))
+    atoms.extend(("text", value.upper()) for value in re.findall(r"\b(?:TWD|USD|EUR|JPY|CNY|RMB|HKD|AUD|CAD|GBP)\b", point, re.IGNORECASE))
+    state_words = {
+        "ACTIVE", "INACTIVE", "ORDERED", "DRAFT", "APPROVED", "REJECTED", "CANCELLED", "RECEIVED",
+        "NEW_REQUEST", "SOURCING", "APPROVAL", "APPROVED_PENDING_ORDER", "ORDER_FOLLOW_UP",
+        "RECEIVING_INSPECTION", "PAYMENT_RECONCILIATION", "COMPLETED", "SIMULATED_ACTIVE",
+        "SIMULATED_COMPLETED", "SIMULATED_CLOSED", "SIMULATED_OPEN", "SIMULATED_DELIVERED",
+    }
+    atoms.extend(("text", token) for token in re.findall(r"\b[A-Z][A-Z_]{2,}\b", point)
+                 if token in state_words)
+    for group in ("suppliers", "materials"):
+        for entity in _objects(master.get(group)):
+            name = _first(entity, "name", "supplierName", "materialName")
+            if isinstance(name, str) and name and name in point:
+                atoms.append(("text", name))
+    # Keep declaration order while removing repeated units and statuses.
+    return list(dict.fromkeys(atoms))
+
+
+def _answer_evidence_score(point: str, excerpt: str) -> float:
+    """Require an excerpt with meaningful lexical overlap, not merely a matching file key."""
+    def bigrams(value: str) -> set[str]:
+        compact = re.sub(r"[\s，。；：、,.!?！？（）()「」『』\[\]{}]", "", value).casefold()
+        grams = {compact[i:i + 2] for i in range(len(compact) - 1)
+                 if re.search(r"[\u3400-\u9fff]", compact[i:i + 2])}
+        words = {token.casefold() for token in re.findall(r"[A-Za-z][A-Za-z0-9_-]{1,}", value)}
+        return grams | words
+    target, evidence = bigrams(point), bigrams(excerpt)
+    if not target:
+        return 1.0
+    return len(target & evidence) / len(target)
+
+
+def _atom_present(kind: str, value: str, text: str) -> bool:
+    if kind == "number":
+        return value in {found.replace(",", "") for found in re.findall(r"\b\d[\d,]*(?:\.\d+)?\b", text)}
+    return value.casefold() in text.casefold()
 
 
 def _has_repeated_master_name_prefix(body: str, name: str) -> bool:
@@ -718,6 +769,7 @@ def validate_corpus(master: dict[str, Any], catalog: dict[str, Any], fixtures_da
     if not fixtures:
         errors.append("fixtures.fixtures: expected fixture entries")
     by_key: dict[str, dict[str, Any]] = {}
+    source_bodies: dict[str, str] = {}
     valid: dict[str, bool] = {}
     supplier_document_counts: dict[str, int] = {code: 0 for code in suppliers}
     supplier_theme_counts: dict[str, Counter[str]] = {code: Counter() for code in suppliers}
@@ -821,6 +873,8 @@ def validate_corpus(master: dict[str, Any], catalog: dict[str, Any], fixtures_da
                 valid[key] = False
             continue
         canonical_body = body.replace("\r\n", "\n").replace("\r", "\n")
+        if key:
+            source_bodies[key] = canonical_body
         actual_hash = hashlib.sha256(canonical_body.encode("utf-8")).hexdigest()
         previous_hash_owner = source_hashes.get(actual_hash)
         if previous_hash_owner:
@@ -982,8 +1036,8 @@ def validate_corpus(master: dict[str, Any], catalog: dict[str, Any], fixtures_da
                     errors.append(f"{path}.filename: specification omits master unit {unit}")
                     valid[key] = False
 
-        if MONEY_RE.search(body):
-            errors.append(f"{path}.filename: corpus must not carry price amounts")
+        if MONEY_RE.search(body) and kind != "QUOTATION":
+            errors.append(f"{path}.filename: non-quotation corpus documents must not carry price amounts")
             if key:
                 valid[key] = False
         if _has_price(doc):
@@ -996,6 +1050,70 @@ def validate_corpus(master: dict[str, Any], catalog: dict[str, Any], fixtures_da
                 errors.append(f"{path}: quotation must reference suppliers and materials")
                 if key:
                     valid[key] = False
+            is_v2_quote = doc.get("themeKey") == "quotation" and str(_first(doc, "version", "documentVersion")) == "2.0"
+            if is_v2_quote:
+                price_lines = list(FICTIONAL_QUOTE_PRICE_RE.finditer(body))
+                if len(price_lines) != 1:
+                    errors.append(f"{path}.filename: V2 quotation must have exactly one explicit fictional Demo unit-price line")
+                    if key:
+                        valid[key] = False
+                if "虛構 Demo 報價聲明" not in body or "不是真實供應商報價" not in body:
+                    errors.append(f"{path}.filename: V2 quotation must explicitly identify the price as fictional Demo data")
+                    if key:
+                        valid[key] = False
+                quote_date = re.search(r"^報價日期：(\d{4}-\d{2}-\d{2})\r?$", body, re.MULTILINE)
+                if not quote_date:
+                    errors.append(f"{path}.filename: V2 quotation must include a quote date")
+                    if key:
+                        valid[key] = False
+                elif DATE_RANGE_RE.search(body):
+                    try:
+                        if date.fromisoformat(quote_date.group(1)) > date.fromisoformat(DATE_RANGE_RE.search(body).group(1)):
+                            errors.append(f"{path}.filename: quote date must not follow the effective start date")
+                            if key:
+                                valid[key] = False
+                    except ValueError:
+                        errors.append(f"{path}.filename: invalid quote date")
+                        if key:
+                            valid[key] = False
+                required_quote_labels = (
+                    "報價案例編號：SIM-QUOTE-", "付款條件（案例假設）", "交付條件（案例假設）",
+                    "虛構 Demo 報價聲明", "ORDERED 起算", "基本計價單位 KG", "每 KG 計價",
+                )
+                for label in required_quote_labels:
+                    if label not in body:
+                        errors.append(f"{path}.filename: V2 quotation missing business term {label!r}")
+                        if key:
+                            valid[key] = False
+                if len(supplier_codes) != 1 or len(material_codes) != 1:
+                    errors.append(f"{path}: each V2 quotation must cover exactly one supplier/material pair")
+                    if key:
+                        valid[key] = False
+                if len(price_lines) == 1 and len(supplier_codes) == 1 and len(material_codes) == 1:
+                    price_match = price_lines[0]
+                    try:
+                        price = Decimal(price_match.group(1).replace(",", ""))
+                    except InvalidOperation:
+                        price = Decimal("-1")
+                    price_currency, price_unit = price_match.group(2).upper(), price_match.group(3).upper()
+                    supplier_code, material_code = supplier_codes[0], material_codes[0]
+                    linked = pairs.get((supplier_code, material_code))
+                    expected_unit = str(materials.get(material_code, {}).get("unit", "")).upper()
+                    if linked is None or linked.get("unitPrice") in (None, ""):
+                        errors.append(f"{path}.filename: fictional price has no versioned SupplierMaterial master source for {supplier_code}/{material_code}")
+                        if key:
+                            valid[key] = False
+                    else:
+                        try:
+                            expected_price = Decimal(str(linked["unitPrice"]))
+                        except InvalidOperation:
+                            expected_price = Decimal("-1")
+                        if price != expected_price or price_currency != str(linked.get("currency", "")).upper() or price_unit != expected_unit:
+                            errors.append(
+                                f"{path}.filename: fictional unit price {price} {price_currency}/{price_unit} conflicts with versioned master data for {supplier_code}/{material_code}"
+                            )
+                            if key:
+                                valid[key] = False
             for supplier_code in supplier_codes:
                 for material_code in material_codes:
                     if (supplier_code, material_code) not in pairs:
@@ -1224,6 +1342,50 @@ def validate_corpus(master: dict[str, Any], catalog: dict[str, Any], fixtures_da
                 source_suppliers = _codes(by_key.get(source_key, {}), "supplierCode", "supplierCodes")
                 if source_suppliers and supplier_codes and source_suppliers != supplier_codes:
                     errors.append(f"{path}.expectedSourceKeys: source {source_key} belongs to a different supplier")
+        if expected_status in {"ANSWER", "ANSWERABLE"}:
+            evidence = fixture.get("answerEvidence")
+            if not isinstance(evidence, list) or len(evidence) != len(points if isinstance(points, list) else []):
+                errors.append(f"{path}.answerEvidence: every answer point must have one source-evidence entry")
+                evidence = []
+            for point_index, point in enumerate(points if isinstance(points, list) else []):
+                evidence_path = f"{path}.answerEvidence[{point_index}]"
+                entry = evidence[point_index] if point_index < len(evidence) and isinstance(evidence[point_index], dict) else {}
+                evidence_sources = entry.get("sources")
+                if not isinstance(evidence_sources, list) or not evidence_sources:
+                    errors.append(f"{evidence_path}.sources: expected exact source excerpts for this answer point")
+                    continue
+                verified_excerpts: list[str] = []
+                for source_index, source_entry in enumerate(evidence_sources):
+                    source_path = f"{evidence_path}.sources[{source_index}]"
+                    if not isinstance(source_entry, dict):
+                        errors.append(f"{source_path}: expected a source object")
+                        continue
+                    evidence_key = source_entry.get("documentKey")
+                    excerpt = source_entry.get("excerpt")
+                    if evidence_key not in sources:
+                        errors.append(f"{source_path}.documentKey: evidence must cite one of expectedSourceKeys")
+                        continue
+                    if not isinstance(excerpt, str) or not excerpt.strip():
+                        errors.append(f"{source_path}.excerpt: expected a non-empty exact source excerpt")
+                        continue
+                    if len(excerpt) > 1200:
+                        errors.append(f"{source_path}.excerpt: source excerpt exceeds 1200 characters")
+                        continue
+                    source_body = source_bodies.get(evidence_key, "")
+                    if excerpt not in source_body:
+                        errors.append(f"{source_path}.excerpt: text is not an exact substring of {evidence_key}")
+                        continue
+                    verified_excerpts.append(excerpt)
+                joined_evidence = "\n".join(verified_excerpts)
+                if not verified_excerpts:
+                    continue
+                for atom_kind, atom in _answer_factual_atoms(point, master):
+                    if not _atom_present(atom_kind, atom, joined_evidence):
+                        errors.append(f"{evidence_path}: factual atom {atom!r} in expected answer is absent from its source excerpt")
+                if _answer_evidence_score(point, joined_evidence) < 0.15:
+                    errors.append(f"{evidence_path}: source excerpt has insufficient lexical support for the expected answer point")
+                if PRICE_VALUE_RE.search(point) and ("虛構" not in point or "Demo" not in point):
+                    errors.append(f"{evidence_path}: fictional Demo price answers must label the amount as fictional Demo data")
         if fixture_category == "SENSITIVEOUTBOUND":
             if (expected_status != "INSUFFICIENTEVIDENCE" or sources
                     or fixture.get("outboundExpectation") != "BLOCK"):

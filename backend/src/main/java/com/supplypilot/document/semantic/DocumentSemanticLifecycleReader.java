@@ -3,6 +3,7 @@ package com.supplypilot.document.semantic;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.supplypilot.demo.DemoCorpusRagEligibility;
 import com.supplypilot.document.domain.DocumentMetadata;
 import com.supplypilot.document.domain.DocumentStatus;
 import com.supplypilot.document.domain.SemanticReviewStatus;
@@ -12,6 +13,7 @@ import com.supplypilot.document.repository.DocumentMetadataRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataAccessException;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.Propagation;
@@ -29,10 +31,20 @@ public class DocumentSemanticLifecycleReader {
     private final OutboundDocumentPolicy policy;
     private final DocumentMetadataRepository documents;
     private final TransactionTemplate primaryTransactions;
+    private final DemoCorpusRagEligibility demoEligibility;
 
     public DocumentSemanticLifecycleReader(DocumentChunkRepository chunks, SemanticIndexJobRepository jobs,
             SemanticStore store, SemanticProperties properties, OutboundDocumentPolicy policy,
             DocumentMetadataRepository documents, PlatformTransactionManager transactionManager) {
+        this(chunks, jobs, store, properties, policy, documents, transactionManager,
+                DemoCorpusRagEligibility.manualUploadsOnly());
+    }
+
+    @Autowired
+    public DocumentSemanticLifecycleReader(DocumentChunkRepository chunks, SemanticIndexJobRepository jobs,
+            SemanticStore store, SemanticProperties properties, OutboundDocumentPolicy policy,
+            DocumentMetadataRepository documents, PlatformTransactionManager transactionManager,
+            DemoCorpusRagEligibility demoEligibility) {
         this.chunks = chunks;
         this.jobs = jobs;
         this.store = store;
@@ -40,6 +52,7 @@ public class DocumentSemanticLifecycleReader {
         this.policy = policy;
         this.documents = documents;
         this.primaryTransactions = new TransactionTemplate(transactionManager);
+        this.demoEligibility = demoEligibility;
     }
 
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
@@ -116,8 +129,12 @@ public class DocumentSemanticLifecycleReader {
             return immediate(response("STALE_APPROVAL", null, hash, source.size(), 0,
                     "SOURCE_OR_VERSION_CHANGED"));
         }
-        OutboundDocumentPolicy.Decision decision = policy.inspect(document,
-                source.stream().map(com.supplypilot.document.domain.DocumentChunk::getContent).toList(), hash);
+        if (!demoEligibility.isEligible(document)) {
+            return immediate(response("EXCLUDED", null, hash, source.size(), 0,
+                    "DEMO_CORPUS_VERSION_NOT_CURRENT"));
+        }
+        OutboundDocumentPolicy.Decision decision = demoEligibility.inspectSource(document, source, hash,
+                document.getSemanticIndexGeneration(), policy);
         if (!"APPROVED".equals(decision.status())) {
             return immediate(response("POLICY_RECHECK_REQUIRED", null, hash, source.size(), 0,
                     decision.reason()));

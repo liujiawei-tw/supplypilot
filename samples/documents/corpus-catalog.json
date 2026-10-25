@@ -189,7 +189,9 @@
         "DOC-SUP-002-CONTRACT"
       ],
       "outboundPolicy": "EVALUATE_EXISTING_POLICY",
-      "fixtureKeys": [],
+      "fixtureKeys": [
+        "RAG-018"
+      ],
       "quoteTerms": [
         {
           "periodStatus": "CURRENT",
@@ -668,7 +670,7 @@
       "title": "福爾摩沙原料工坊（SUP-001）｜供貨能力案例文件",
       "filename": "samples/documents/supplier-sup-001-supply-capability-sp907-v2.txt",
       "corpusVersion": "sp-907-zh-tw-v3",
-      "sourceSha256": "73336579d05fb63c0cefefe63bbf04a9596d97166e0db511ade180230894af6d",
+      "sourceSha256": "ca2d33afcd628b11139a3dae6fa8e56ea06ee65b86b5f6cf41956d4c0f0c1e96",
       "classification": "SEED_BASELINE",
       "supplierCodes": [
         "SUP-001"
@@ -712,7 +714,7 @@
       "title": "福爾摩沙原料工坊（SUP-001）｜供貨協議案例文件",
       "filename": "samples/documents/supplier-sup-001-contract-terms-sp907-v2.txt",
       "corpusVersion": "sp-907-zh-tw-v3",
-      "sourceSha256": "4ab1030eac654465b729a8096eddbc793c826ca42a97ec1f4ac8daf36d53d44e",
+      "sourceSha256": "ee7fb3acf9e7b2ef08679c380577cd00fbc42a3ca727a8aa2d04dd38edcc100b",
       "classification": "SEED_BASELINE",
       "supplierCodes": [
         "SUP-001"
@@ -757,7 +759,7 @@
       "title": "福爾摩沙原料工坊（SUP-001）｜報價案例文件",
       "filename": "samples/documents/supplier-sup-001-quotation-sp907-v2.txt",
       "corpusVersion": "sp-907-zh-tw-v3",
-      "sourceSha256": "4061cef5c8369cc83e73f6b4927515e6f658037b112a8006cd5fe809b5eccd19",
+      "sourceSha256": "fafaba28ebe6a9864bac52e864c29fb6ee90e8d215c17c09f8c078a581a4534a",
       "classification": "SEED_BASELINE",
       "supplierCodes": [
         "SUP-001"
@@ -1040,7 +1042,7 @@
       "title": "東港貿易社（SUP-002）｜供貨能力案例文件",
       "filename": "samples/documents/supplier-sup-002-supply-capability-sp907-v2.txt",
       "corpusVersion": "sp-907-zh-tw-v3",
-      "sourceSha256": "95f340ce0022c65d23bd4214588c0fb67dead0511cb82261baf12edc499f3b6e",
+      "sourceSha256": "c494e76ec8ee30e459ce639155193206c8f7b106c86f451c1b0ff2fab6470434",
       "classification": "SEED_BASELINE",
       "supplierCodes": [
         "SUP-002"
@@ -1084,7 +1086,7 @@
       "title": "東港貿易社（SUP-002）｜供貨協議案例文件",
       "filename": "samples/documents/supplier-sup-002-contract-terms-sp907-v2.txt",
       "corpusVersion": "sp-907-zh-tw-v3",
-      "sourceSha256": "88dfc33803579307afa0f9b7ee17e82b3d794aba4f9f6578d77bbc3fc79b4e47",
+      "sourceSha256": "11a101c102e233c8101d9c82bdad5a01562b1c650cfabf0a0c1d9ac27e56a88d",
       "classification": "SEED_BASELINE",
       "supplierCodes": [
         "SUP-002"
@@ -1129,7 +1131,7 @@
       "title": "東港貿易社（SUP-002）｜報價案例文件",
       "filename": "samples/documents/supplier-sup-002-quotation-sp907-v2.txt",
       "corpusVersion": "sp-907-zh-tw-v3",
-      "sourceSha256": "a42614982d396375cab41c0ac55ef721fc6bf63aa6a3af248bb202fcbdd1084d",
+      "sourceSha256": "57d1fe695465a7850203e8aed87e2e43166baaf3f68ee459e7ae92fd133b8c93",
       "classification": "SEED_BASELINE",
       "supplierCodes": [
         "SUP-002"
@@ -1415,7 +1417,7 @@
       "title": "青葉食材供應（SUP-003）｜供貨能力案例文件",
       "filename": "samples/documents/supplier-sup-003-supply-capability-sp907-v2.txt",
       "corpusVersion": "sp-907-zh-tw-v3",
-      "sourceSha256": "9dc06d897af71f13a0a5c0e557b4d53e3231feab3fd34c08d5b50a296aba46f1",
+      "sourceSha256": "579ae2f20a054831ee085f7ae86bc654a9ccb795acb3e7e4f7a3e0e6e80cc290",
       "classification": "SEED_BASELINE",
       "supplierCodes": [
         "SUP-003"
@@ -1459,7 +1461,7 @@
       "title": "青葉食材供應（SUP-003）｜供貨協議案例文件",
       "filename": "samples/documents/supplier-sup-003-contract-terms-sp907-v2.txt",
       "corpusVersion": "sp-907-zh-tw-v3",
-      "sourceSha256": "e7c7ba52162fa1778b4c13c949abfcbfa317a994a9c650ad35b7c077d933619a",
+      "sourceSha256": "ca96f31e3717169cca0c2d8ce7c7e12f249a8ec81c1981284b382f43858c53a8",
       "classification": "SEED_BASELINE",
       "supplierCodes": [
         "SUP-003"
@@ -1504,7 +1506,7 @@
       "title": "青葉食材供應（SUP-003）｜報價案例文件",
       "filename": "samples/documents/supplier-sup-003-quotation-sp907-v2.txt",
       "corpusVersion": "sp-907-zh-tw-v3",
-      "sourceSha256": "06875731b270de742cf6cdf3f8eba7365c83b7152d109f80048fccb0495bd106",
+      "sourceSha256": "e8c8e9e0ba0fa8f73bfcb3fb119abbab8e4169b5508f442dc025dcb94aede2c4",
       "classification": "SEED_BASELINE",
       "supplierCodes": [
         "SUP-003"
@@ -1785,7 +1787,7 @@
       "title": "舊港原料行（SUP-004）｜供貨能力案例文件",
       "filename": "samples/documents/supplier-sup-004-supply-capability-sp907-v2.txt",
       "corpusVersion": "sp-907-zh-tw-v3",
-      "sourceSha256": "e98af06a2689e8d7d64d8f345ef95927ed1fa00b6e52abdbb9b0f8997ca6ad44",
+      "sourceSha256": "a182daebfa6acf347d5ac2ffb00e52fd322fc732c1374a5aca6f027a3b1e4c44",
       "classification": "SEED_BASELINE",
       "supplierCodes": [
         "SUP-004"
@@ -1819,7 +1821,7 @@
       "title": "舊港原料行（SUP-004）｜供貨協議案例文件",
       "filename": "samples/documents/supplier-sup-004-contract-terms-sp907-v2.txt",
       "corpusVersion": "sp-907-zh-tw-v3",
-      "sourceSha256": "c42dca1e2a8a32f076962dbbbaf5d7670f8c0e194d7023eff5c062c1b91eb1c8",
+      "sourceSha256": "add054b4895363663c65accbb8ad2a9687aaf957c95ebe9b8764d74a234e9ef4",
       "classification": "SEED_BASELINE",
       "supplierCodes": [
         "SUP-004"
@@ -1854,7 +1856,7 @@
       "title": "舊港原料行（SUP-004）｜報價案例文件",
       "filename": "samples/documents/supplier-sup-004-quotation-sp907-v2.txt",
       "corpusVersion": "sp-907-zh-tw-v3",
-      "sourceSha256": "8751af032d0b703eec66014c4f4390fcaa20247f92994f4253a653d54b668f2a",
+      "sourceSha256": "536a1364330cdd83ee3244822a2dc190a2d4bd7e3d6a4ecf4e47d7d749b77e5d",
       "classification": "SEED_BASELINE",
       "supplierCodes": [
         "SUP-004"
@@ -2135,7 +2137,7 @@
       "title": "海岳食品素材（SUP-005）｜供貨能力案例文件",
       "filename": "samples/documents/supplier-sup-005-supply-capability-sp907-v2.txt",
       "corpusVersion": "sp-907-zh-tw-v3",
-      "sourceSha256": "70f1202d2327e57f5c9d3f5b6c547e0ef7388c62a503f5ef7198cd86796b5b9a",
+      "sourceSha256": "74595369e5c58369e1c732a257bec6f2d2e5f710f31bace1710a2f093f974234",
       "classification": "SEED_BASELINE",
       "supplierCodes": [
         "SUP-005"
@@ -2179,7 +2181,7 @@
       "title": "海岳食品素材（SUP-005）｜供貨協議案例文件",
       "filename": "samples/documents/supplier-sup-005-contract-terms-sp907-v2.txt",
       "corpusVersion": "sp-907-zh-tw-v3",
-      "sourceSha256": "51cde3b87ac564d5bcaeffe8ce902aa9486bc48d9acd877aff10248324ca59b1",
+      "sourceSha256": "b73a9238534a7c80ab805308b79d711d3e3d7fa43dba137cbdf457dd5b4d0c1a",
       "classification": "SEED_BASELINE",
       "supplierCodes": [
         "SUP-005"
@@ -2224,7 +2226,7 @@
       "title": "海岳食品素材（SUP-005）｜報價案例文件",
       "filename": "samples/documents/supplier-sup-005-quotation-sp907-v2.txt",
       "corpusVersion": "sp-907-zh-tw-v3",
-      "sourceSha256": "67af7b4ac31795818d71d57e217d5888a870e73941322ebe96671fdf73d943c1",
+      "sourceSha256": "eac237d121b3fc9238dad234d7c1cba2071a80b38293a4fc815ff77fd7125b7d",
       "classification": "SEED_BASELINE",
       "supplierCodes": [
         "SUP-005"
@@ -2505,7 +2507,7 @@
       "title": "金田貿易（SUP-006）｜供貨能力案例文件",
       "filename": "samples/documents/supplier-sup-006-supply-capability-sp907-v2.txt",
       "corpusVersion": "sp-907-zh-tw-v3",
-      "sourceSha256": "97487a945cd0076299acecfdb21607437e0533a82f6182adaa70429f3b193c6e",
+      "sourceSha256": "4fa44dec32aa6133a52a54d2504f55a20c6f8e97a74b53bb843aa5a6a920ccb3",
       "classification": "SEED_BASELINE",
       "supplierCodes": [
         "SUP-006"
@@ -2547,7 +2549,7 @@
       "title": "金田貿易（SUP-006）｜供貨協議案例文件",
       "filename": "samples/documents/supplier-sup-006-contract-terms-sp907-v2.txt",
       "corpusVersion": "sp-907-zh-tw-v3",
-      "sourceSha256": "4289ba71716b4e7d377939527d99163ed7a6cbd02918b90fd189871e93a1ee32",
+      "sourceSha256": "afe71f66dd887f127c9e21969f920ed8dc909af26d21b2fe50b028f6b3df0f63",
       "classification": "SEED_BASELINE",
       "supplierCodes": [
         "SUP-006"
@@ -2590,7 +2592,7 @@
       "title": "金田貿易（SUP-006）｜報價案例文件",
       "filename": "samples/documents/supplier-sup-006-quotation-sp907-v2.txt",
       "corpusVersion": "sp-907-zh-tw-v3",
-      "sourceSha256": "a1facbe03d3f4e5c39c9093629651ece48f461aaf3674287fc4fdaededfc7179",
+      "sourceSha256": "391f1bf1f1e917328cbf64e3ee7fe1e813abe85afd4139f62e33cd270c4b5ce0",
       "classification": "SEED_BASELINE",
       "supplierCodes": [
         "SUP-006"
@@ -2871,7 +2873,7 @@
       "title": "山嵐果萃食品（SUP-007）｜供貨能力案例文件",
       "filename": "samples/documents/supplier-sup-007-supply-capability-sp907-v2.txt",
       "corpusVersion": "sp-907-zh-tw-v3",
-      "sourceSha256": "0ae3005e6c9718838e561c920df87238d05caaf73f78fea0bc004b724d599f24",
+      "sourceSha256": "3d2b76e1fe6400d16a98ce066c3142f85789201a5517ff37700e6c12e124402e",
       "classification": "SEED_BASELINE",
       "supplierCodes": [
         "SUP-007"
@@ -2911,7 +2913,7 @@
       "title": "山嵐果萃食品（SUP-007）｜供貨協議案例文件",
       "filename": "samples/documents/supplier-sup-007-contract-terms-sp907-v2.txt",
       "corpusVersion": "sp-907-zh-tw-v3",
-      "sourceSha256": "405961f7579fa4f3de77e45b0c862b5ca109e1e08cbd12f6797ff4116e8e4a38",
+      "sourceSha256": "18ffe92b3fd9a9ae590e2d89af32a2f3307f1d6597e04916daa80359d4f39f2f",
       "classification": "SEED_BASELINE",
       "supplierCodes": [
         "SUP-007"
@@ -2952,7 +2954,7 @@
       "title": "山嵐果萃食品（SUP-007）｜報價案例文件",
       "filename": "samples/documents/supplier-sup-007-quotation-sp907-v2.txt",
       "corpusVersion": "sp-907-zh-tw-v3",
-      "sourceSha256": "f2f20e7500bc1e6288c15afeca6b8b6f1fcc21465a7b90cb2eaea10a16812706",
+      "sourceSha256": "14facf9c59601e72e77b0f5e892f877c10d43ae6449f6c493a6d6b1c468e00bc",
       "classification": "SEED_BASELINE",
       "supplierCodes": [
         "SUP-007"
@@ -3235,7 +3237,7 @@
       "title": "森川飲品原料（SUP-008）｜供貨能力案例文件",
       "filename": "samples/documents/supplier-sup-008-supply-capability-sp907-v2.txt",
       "corpusVersion": "sp-907-zh-tw-v3",
-      "sourceSha256": "be7e33ff3156d5912c39f121870355b73849774c84965ae8fdb8e947182fe954",
+      "sourceSha256": "aa3ccb2cfdfb884fd695cb16da4a6fd925f4ae94dc16d49853c12be7ea55bb26",
       "classification": "SEED_BASELINE",
       "supplierCodes": [
         "SUP-008"
@@ -3275,7 +3277,7 @@
       "title": "森川飲品原料（SUP-008）｜供貨協議案例文件",
       "filename": "samples/documents/supplier-sup-008-contract-terms-sp907-v2.txt",
       "corpusVersion": "sp-907-zh-tw-v3",
-      "sourceSha256": "86f7ec217d07a7d5c3937ea71ee527eb05844e8240b82920beb1a07653f47db8",
+      "sourceSha256": "f031575216fd4c34b6a08d44b4ab74f134ec77d0c6612bb7136e06310b0d4929",
       "classification": "SEED_BASELINE",
       "supplierCodes": [
         "SUP-008"
@@ -3316,7 +3318,7 @@
       "title": "森川飲品原料（SUP-008）｜報價案例文件",
       "filename": "samples/documents/supplier-sup-008-quotation-sp907-v2.txt",
       "corpusVersion": "sp-907-zh-tw-v3",
-      "sourceSha256": "745748efdbd52fd5813062982de8b9adf84812994e086402443ad1a1c6dc39ca",
+      "sourceSha256": "1e59b1ab497450464c9ee6f5e5ad3698accb98ae25b394b3e076269e8889ecd0",
       "classification": "SEED_BASELINE",
       "supplierCodes": [
         "SUP-008"
@@ -3597,7 +3599,7 @@
       "title": "昕川澱粉工坊（SUP-009）｜供貨能力案例文件",
       "filename": "samples/documents/supplier-sup-009-supply-capability-sp907-v2.txt",
       "corpusVersion": "sp-907-zh-tw-v3",
-      "sourceSha256": "8f20fefd78160d61220ec53b0acd8a74465b2a519a488c370963b67d05755621",
+      "sourceSha256": "d4b23ec5248128b9fd0522084d4598e8dec6b4fe3d90e8ed99952b45872351b9",
       "classification": "SEED_BASELINE",
       "supplierCodes": [
         "SUP-009"
@@ -3635,7 +3637,7 @@
       "title": "昕川澱粉工坊（SUP-009）｜供貨協議案例文件",
       "filename": "samples/documents/supplier-sup-009-contract-terms-sp907-v2.txt",
       "corpusVersion": "sp-907-zh-tw-v3",
-      "sourceSha256": "38a751281a469e8376f0bfaa9400c373bb8a8b7fb0a5103b518867119c36a986",
+      "sourceSha256": "a49da2d3bd7678f1e0b23b155f2a7e8ec1ff116a715ede47cb90a7377bda599c",
       "classification": "SEED_BASELINE",
       "supplierCodes": [
         "SUP-009"
@@ -3672,7 +3674,7 @@
       "title": "昕川澱粉工坊（SUP-009）｜報價案例文件",
       "filename": "samples/documents/supplier-sup-009-quotation-sp907-v2.txt",
       "corpusVersion": "sp-907-zh-tw-v3",
-      "sourceSha256": "b8d1f9223ba232a8f954d1fed79016b528c947a8c872436fda5076c50e7ba1ac",
+      "sourceSha256": "3b561bd3270858c60a737ac7d8b5690cbca531a530f90a48d90b23b315d7da65",
       "classification": "SEED_BASELINE",
       "supplierCodes": [
         "SUP-009"
@@ -3953,7 +3955,7 @@
       "title": "南島風味貿易（SUP-010）｜供貨能力案例文件",
       "filename": "samples/documents/supplier-sup-010-supply-capability-sp907-v2.txt",
       "corpusVersion": "sp-907-zh-tw-v3",
-      "sourceSha256": "8b35a668aa1838b1de75133ba67248851497af4b5a4e283933c216e690d154c4",
+      "sourceSha256": "24edc302b82ad3238ae375a4f2c389ddf235185d1bcf246048a3462fb39bc399",
       "classification": "SEED_BASELINE",
       "supplierCodes": [
         "SUP-010"
@@ -3993,7 +3995,7 @@
       "title": "南島風味貿易（SUP-010）｜供貨協議案例文件",
       "filename": "samples/documents/supplier-sup-010-contract-terms-sp907-v2.txt",
       "corpusVersion": "sp-907-zh-tw-v3",
-      "sourceSha256": "28a28dd906697385acfb9f89ce8fdc5dc4d9d7c2956f233f20c8c72374af654e",
+      "sourceSha256": "47c953c42ba34b8f7e921c42ab71fbe0960d3a1efbe86006b8cfea3caa49cfa8",
       "classification": "SEED_BASELINE",
       "supplierCodes": [
         "SUP-010"
@@ -4034,7 +4036,7 @@
       "title": "南島風味貿易（SUP-010）｜報價案例文件",
       "filename": "samples/documents/supplier-sup-010-quotation-sp907-v2.txt",
       "corpusVersion": "sp-907-zh-tw-v3",
-      "sourceSha256": "a3f40ccca6e14b0a4f50b43aeee054fbfcbdd0b6395fd8fbd039bf3e307cf29f",
+      "sourceSha256": "b0fc2d9657a01884e613bbf15c17b0da82c4f20fbfe7d64b63d0ce202d25266a",
       "classification": "SEED_BASELINE",
       "supplierCodes": [
         "SUP-010"

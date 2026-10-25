@@ -5,11 +5,13 @@ import java.util.List;
 
 import com.supplypilot.common.exception.BusinessException;
 import com.supplypilot.common.exception.ErrorCode;
+import com.supplypilot.demo.DemoCorpusRagEligibility;
 import com.supplypilot.document.domain.DocumentMetadata;
 import com.supplypilot.document.domain.DocumentStatus;
 import com.supplypilot.document.domain.SemanticReviewStatus;
 import com.supplypilot.document.repository.DocumentChunkRepository;
 import com.supplypilot.document.repository.DocumentMetadataRepository;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,11 +25,22 @@ public class SemanticIndexJobService {
     private final SemanticProperties semanticProperties;
     private final SemanticIndexingProperties indexingProperties;
     private final Clock clock;
+    private final DemoCorpusRagEligibility demoEligibility;
 
     public SemanticIndexJobService(SemanticIndexJobRepository jobs, DocumentMetadataRepository documents,
                                    DocumentChunkRepository chunks, OutboundDocumentPolicy policy,
                                    SemanticProperties semanticProperties,
                                    SemanticIndexingProperties indexingProperties, Clock clock) {
+        this(jobs, documents, chunks, policy, semanticProperties, indexingProperties, clock,
+                DemoCorpusRagEligibility.manualUploadsOnly());
+    }
+
+    @Autowired
+    public SemanticIndexJobService(SemanticIndexJobRepository jobs, DocumentMetadataRepository documents,
+                                   DocumentChunkRepository chunks, OutboundDocumentPolicy policy,
+                                   SemanticProperties semanticProperties,
+                                   SemanticIndexingProperties indexingProperties, Clock clock,
+                                   DemoCorpusRagEligibility demoEligibility) {
         this.jobs = jobs;
         this.documents = documents;
         this.chunks = chunks;
@@ -35,6 +48,7 @@ public class SemanticIndexJobService {
         this.semanticProperties = semanticProperties;
         this.indexingProperties = indexingProperties;
         this.clock = clock;
+        this.demoEligibility = demoEligibility;
     }
 
     @Transactional(readOnly = true)
@@ -65,14 +79,15 @@ public class SemanticIndexJobService {
         if (document.getStatus() != DocumentStatus.READY
                 || !document.getVersion().equals(job.version())
                 || document.getSemanticIndexGeneration() != job.documentGeneration()
-                || !semanticProperties.generationKey().equals(job.generationKey())) {
+                || !semanticProperties.generationKey().equals(job.generationKey())
+                || !demoEligibility.isEligible(document)) {
             throw new BusinessException(ErrorCode.VALIDATION_FAILED);
         }
         List<com.supplypilot.document.domain.DocumentChunk> source =
                 chunks.findByDocumentIdOrderByChunkIndex(job.documentId());
         String hash = SemanticBackfillService.sourceHash(source);
-        var decision = policy.inspect(document, source.stream()
-                .map(com.supplypilot.document.domain.DocumentChunk::getContent).toList(), hash);
+        var decision = demoEligibility.inspectSource(document, source, hash,
+                document.getSemanticIndexGeneration(), policy);
         if (!hash.equals(job.sourceHash()) || !"APPROVED".equals(decision.status())
                 || document.getSemanticReviewStatus() != SemanticReviewStatus.APPROVED) {
             throw new BusinessException(ErrorCode.VALIDATION_FAILED);

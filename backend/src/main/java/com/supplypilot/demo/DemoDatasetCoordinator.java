@@ -141,7 +141,12 @@ public class DemoDatasetCoordinator implements DemoDataCoordinator {
                 case ALREADY_COMPLETE -> {
                     log.info("DEMO_DATASET_ALREADY_COMPLETE key={} version={} baselineDate={}",
                             DATASET_KEY, existing.get("dataset_version"), existing.get("baseline_date"));
-                    synchronizeBaseline(false);
+                    if (shouldDeferExistingBaselineSyncToAutoSafe(properties.getUpgradeMode(), action,
+                            existing.get("status"))) {
+                        deferCorpusSyncToAutoSafe(existing.get("dataset_version"));
+                    } else {
+                        synchronizeBaseline(false);
+                    }
                 }
                 case LEGACY_UPDATE_REQUIRED -> log.warn("DEMO_DATASET_UPDATE_REQUIRED key={} currentVersion={} "
                                 + "currentStatus={} targetVersion={}; safe upgrade runner will preserve existing records",
@@ -149,7 +154,12 @@ public class DemoDatasetCoordinator implements DemoDataCoordinator {
                         properties.getDatasetVersion());
                 case MANUAL_STEPS_INCOMPLETE -> {
                     if ("RELATIONAL_READY".equals(existing.get("status"))) {
-                        synchronizeBaseline(true);
+                        if (shouldDeferExistingBaselineSyncToAutoSafe(properties.getUpgradeMode(), action,
+                                existing.get("status"))) {
+                            deferCorpusSyncToAutoSafe(existing.get("dataset_version"));
+                        } else {
+                            synchronizeBaseline(true);
+                        }
                     } else {
                         log.warn("DEMO_DATASET_UPDATE_REQUIRED key={} version={} status={} reason={}; "
                                         + "safe upgrade runner will resume eligible work",
@@ -184,12 +194,22 @@ public class DemoDatasetCoordinator implements DemoDataCoordinator {
                         concurrentState.get("status"), concurrentState.get("dataset_version"),
                         properties.getDatasetVersion());
                 if (concurrentAction == ExistingDatasetAction.ALREADY_COMPLETE) {
-                    synchronizeBaseline(false);
+                    if (shouldDeferExistingBaselineSyncToAutoSafe(properties.getUpgradeMode(), concurrentAction,
+                            concurrentState.get("status"))) {
+                        deferCorpusSyncToAutoSafe(concurrentState.get("dataset_version"));
+                    } else {
+                        synchronizeBaseline(false);
+                    }
                     return;
                 }
                 if (concurrentAction == ExistingDatasetAction.MANUAL_STEPS_INCOMPLETE
                         && "RELATIONAL_READY".equals(concurrentState.get("status"))) {
-                    synchronizeBaseline(true);
+                    if (shouldDeferExistingBaselineSyncToAutoSafe(properties.getUpgradeMode(), concurrentAction,
+                            concurrentState.get("status"))) {
+                        deferCorpusSyncToAutoSafe(concurrentState.get("dataset_version"));
+                    } else {
+                        synchronizeBaseline(true);
+                    }
                     return;
                 }
             }
@@ -220,6 +240,10 @@ public class DemoDatasetCoordinator implements DemoDataCoordinator {
             log.error("DEMO_CORPUS_SYNC_RETRY_REQUIRED key={} version={}",
                     DATASET_KEY, properties.getDatasetVersion(), exception);
         }
+    }
+
+    private void deferCorpusSyncToAutoSafe(Object version) {
+        log.info("DEMO_CORPUS_SYNC_DEFERRED_TO_AUTO_SAFE key={} version={}", DATASET_KEY, version);
     }
 
     /**
@@ -297,6 +321,20 @@ public class DemoDatasetCoordinator implements DemoDataCoordinator {
         };
     }
 
+    static boolean shouldDeferExistingBaselineSyncToAutoSafe(String upgradeMode,
+                                                              ExistingDatasetAction action,
+                                                              Object statusValue) {
+        if (!"AUTO_SAFE".equalsIgnoreCase(upgradeMode)) return false;
+        return (action == ExistingDatasetAction.ALREADY_COMPLETE && "COMPLETE".equals(statusValue))
+                || (action == ExistingDatasetAction.MANUAL_STEPS_INCOMPLETE
+                && "RELATIONAL_READY".equals(statusValue));
+    }
+
+    static boolean isInitialSeedMasterDataTrusted(String upgradeMode, byte[] content) {
+        return !"AUTO_SAFE".equalsIgnoreCase(upgradeMode)
+                || DemoDatasetUpgradeService.isPinnedAutoSafeMasterData(content);
+    }
+
     private static boolean isLegalDatasetVersion(String version) {
         return version != null && SUPPORTED_DATASET_VERSIONS.contains(version);
     }
@@ -336,7 +374,12 @@ public class DemoDatasetCoordinator implements DemoDataCoordinator {
             throw new IllegalStateException("Demo master data file is missing: " + path);
         }
         try {
-            JsonNode root = objectMapper.readTree(path.toFile());
+            byte[] content = Files.readAllBytes(path);
+            if (!isInitialSeedMasterDataTrusted(properties.getUpgradeMode(), content)) {
+                throw new IllegalStateException(
+                        "AUTO_SAFE packaged master data SHA-256 does not match the pinned sp907 content");
+            }
+            JsonNode root = objectMapper.readTree(content);
             if (!root.path("datasetKey").asText().equals(DATASET_KEY)
                     || !root.path("datasetVersion").asText().equals(properties.getDatasetVersion())) {
                 throw new IllegalStateException("Demo master data key/version does not match configured dataset");

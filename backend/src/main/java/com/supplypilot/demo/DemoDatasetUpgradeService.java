@@ -724,6 +724,10 @@ public class DemoDatasetUpgradeService {
         }
     }
 
+    static boolean isPinnedAutoSafeMasterData(byte[] content) {
+        return content != null && AUTO_SAFE_MASTER_DATA_SHA256.equals(sha256(content));
+    }
+
     private record MasterDataSnapshot(JsonNode root, String sha256) { }
 
     private record SafeSupplierProfile(String name, String country, String reliabilityScore,

@@ -13,6 +13,7 @@ import com.supplypilot.document.domain.DocumentType;
 import com.supplypilot.document.domain.SemanticReviewStatus;
 import com.supplypilot.document.repository.DocumentChunkRepository;
 import com.supplypilot.document.repository.DocumentMetadataRepository;
+import com.supplypilot.demo.DemoCorpusRagEligibility;
 import org.junit.jupiter.api.Test;
 import org.springframework.dao.DataAccessResourceFailureException;
 import org.springframework.transaction.PlatformTransactionManager;
@@ -37,6 +38,35 @@ class DocumentSemanticLifecycleReaderTests {
     private static final SemanticProperties PROPERTIES = new SemanticProperties(
             "jdbc:postgresql://localhost/test", "user", "password", "embedding-model", 3,
             "model-generation-v1", true, 5, 0.5, Duration.ofSeconds(2));
+
+    @Test
+    void supersededDemoDocumentIsExcludedFromLifecycleEvenWhenItsOldApprovalAndJobRemain() {
+        DocumentChunkRepository chunks = mock(DocumentChunkRepository.class);
+        SemanticIndexJobRepository jobs = mock(SemanticIndexJobRepository.class);
+        SemanticStore store = mock(SemanticStore.class);
+        OutboundDocumentPolicy policy = mock(OutboundDocumentPolicy.class);
+        DocumentMetadataRepository documents = mock(DocumentMetadataRepository.class);
+        DemoCorpusRagEligibility demoEligibility = mock(DemoCorpusRagEligibility.class);
+        PlatformTransactionManager transactions = mock(PlatformTransactionManager.class);
+        when(transactions.getTransaction(any(TransactionDefinition.class)))
+                .thenReturn(new SimpleTransactionStatus());
+
+        DocumentMetadata oldDocument = approvedDocument(5L, "Historical supplier profile is retained.");
+        when(oldDocument.isDemoBaseline()).thenReturn(true);
+        List<DocumentChunk> source = List.of(DocumentChunk.create(oldDocument, 0, 0,
+                oldDocument.getTitle().length(), oldDocument.getTitle(), "[0.0,0.0,0.0]", NOW));
+        when(documents.findForSemanticRead(5L)).thenReturn(Optional.of(oldDocument));
+        when(chunks.findByDocumentIdOrderByChunkIndex(5L)).thenReturn(source);
+        when(demoEligibility.isEligible(oldDocument)).thenReturn(false);
+
+        DocumentSemanticLifecycleReader reader = new DocumentSemanticLifecycleReader(
+                chunks, jobs, store, PROPERTIES, policy, documents, transactions, demoEligibility);
+        var lifecycle = reader.read(oldDocument);
+
+        assertThat(lifecycle.status()).isEqualTo("EXCLUDED");
+        assertThat(lifecycle.failureCode()).isEqualTo("DEMO_CORPUS_VERSION_NOT_CURRENT");
+        org.mockito.Mockito.verifyNoInteractions(jobs, store, policy);
+    }
 
     @Test
     void pgvectorOutageAfterSnapshotCommitShortCircuitsRemainingDocumentsAsUnavailable() {

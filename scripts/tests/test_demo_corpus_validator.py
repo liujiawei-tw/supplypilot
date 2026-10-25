@@ -41,10 +41,13 @@ def _scenario_body(theme: str) -> str:
             "本契約為虛構情境條款，不具法律效力、不取代正式契約，日期只供資料一致性檢查。"
         ),
         "quotation": (
-            "SUP-001 山海原料就 MAT-001 紅茶萃取物提供演練報價條件；幣別 TWD，MOQ 10 KG，包裝倍數 5 KG。\n"
+            "報價案例編號：SIM-QUOTE-SUP-001-TEST\n報價日期：2026-10-01\n"
+            "SUP-001 山海原料就 MAT-001 紅茶萃取物提供演練報價條件；幣別 TWD，基本計價單位 KG，MOQ 10 KG，包裝倍數 5 KG。\n"
+            "虛構 Demo 報價單價：100 TWD / KG；依每 KG 計價。\n"
             "標準交期為 3 個日曆日，從正式訂單進入 ORDERED 狀態起算。報價期間為 2026-10-01 至 2026-10-30（含首尾日），有效 30 個曆日。\n"
-            "本文件不含單價或總價；採購須在適用日期內核對物料關係、單位、MOQ 與包裝倍數。\n"
-            "以上數值僅供靜態驗證展示，不構成實際報價或供貨承諾。"
+            "付款條件（案例假設）：驗收後 30 個日曆日內付款；此條件僅供展示，未由主檔或系統設定支持。\n"
+            "交付條件（案例假設）：交貨地點未設定，不作假設；標準交期由 ORDERED 起算。\n"
+            "虛構 Demo 報價聲明：單價取自版本化 Repository 主資料 samples/demo-master-data.json，不是真實供應商報價或交易承諾。"
         ),
         "product_specification": (
             "供應商與物料：SUP-001 山海原料 / MAT-001 紅茶萃取物，基本單位為 KG。\n"
@@ -271,16 +274,30 @@ class DemoCorpusValidatorTests(unittest.TestCase):
             sensitive = category == "sensitive_outbound"
             insufficient = category in {"insufficient_evidence", "sensitive_outbound"}
             source = [] if insufficient else [supplier_docs[i % len(supplier_docs)]["documentKey"]]
-            fixtures.append({
+            answer_point = None
+            answer_evidence = None
+            if not insufficient:
+                source_doc = next(d for d in self.catalog["documents"] if d["documentKey"] == source[0])
+                source_body = (self.documents / source_doc["filename"]).read_text(encoding="utf-8")
+                source_lines = [line.strip() for line in source_body.splitlines() if line.strip()]
+                answer_point = next(
+                    line for line in source_lines
+                    if not line.startswith(("標題：", "文件類型：", "文件版本：", "文件日期：", "虛構展示來源："))
+                )
+                answer_evidence = [{"sources": [{"documentKey": source[0], "excerpt": answer_point}]}]
+            fixture = {
                 "fixtureKey": f"RAG-{i + 1:03}", "category": category,
                 "question": f"SUP-001 山海原料示範資料問題 {i + 1}？",
                 "supplierCodes": ["SUP-001"],
-                "expectedAnswerPoints": ["有來源時依來源作答；缺少證據時不得推測。"],
+                "expectedAnswerPoints": [answer_point or "缺少來源時不得推測未載明的事實。"],
                 "expectedSourceKeys": source,
                 "citationRequirements": ["引用預期來源文件標題與版本。"],
                 "expectedStatus": "INSUFFICIENT_EVIDENCE" if insufficient else "ANSWER",
                 **({"outboundExpectation": "BLOCK"} if sensitive else {}),
-            })
+            }
+            if answer_evidence is not None:
+                fixture["answerEvidence"] = answer_evidence
+            fixtures.append(fixture)
         self.fixtures["fixtures"] = fixtures
         for fixture in fixtures:
             for source_key in fixture["expectedSourceKeys"]:
@@ -335,8 +352,53 @@ class DemoCorpusValidatorTests(unittest.TestCase):
         catalog = copy.deepcopy(self.catalog)
         catalog["documents"][1]["sourceSha256"] = _canonical_sha(quote)
         errors = self._validate(catalog=catalog)
-        self.assertTrue(any("must not carry price amounts" in e for e in errors), errors)
         self.assertTrue(any("stated quotation amount conflicts with SupplierMaterial master data" in e for e in errors), errors)
+
+    def test_v2_quotation_price_must_match_versioned_master_data(self) -> None:
+        quote_doc = next(doc for doc in self.catalog["documents"] if doc.get("themeKey") == "quotation")
+        quote = self.documents / quote_doc["filename"]
+        quote.write_text(quote.read_text(encoding="utf-8").replace("100 TWD / KG", "999 TWD / KG"), encoding="utf-8")
+        catalog = copy.deepcopy(self.catalog)
+        next(doc for doc in catalog["documents"] if doc.get("themeKey") == "quotation")["sourceSha256"] = _canonical_sha(quote)
+        errors = self._validate(catalog=catalog)
+        self.assertTrue(any("fictional unit price 999 TWD/KG conflicts with versioned master data" in e for e in errors), errors)
+
+    def test_answer_fixture_rejects_factual_claim_not_supported_by_source(self) -> None:
+        fixtures = copy.deepcopy(self.fixtures)
+        answer = next(f for f in fixtures["fixtures"] if f["expectedStatus"] == "ANSWER")
+        answer["expectedAnswerPoints"] = ["SUP-001 下單數量為 999 KG。"]
+        errors = self._validate(fixtures=fixtures)
+        self.assertTrue(any("factual atom '999'" in e and "absent from its source excerpt" in e for e in errors), errors)
+
+    def test_answer_fixture_rejects_fabricated_evidence_excerpt(self) -> None:
+        fixtures = copy.deepcopy(self.fixtures)
+        answer = next(f for f in fixtures["fixtures"] if f["expectedStatus"] == "ANSWER")
+        answer["answerEvidence"][0]["sources"][0]["excerpt"] = "來源完全沒有的虛構主張。"
+        errors = self._validate(fixtures=fixtures)
+        self.assertTrue(any("text is not an exact substring" in e for e in errors), errors)
+
+    def test_answer_fixture_requires_source_evidence_for_each_point(self) -> None:
+        fixtures = copy.deepcopy(self.fixtures)
+        answer = next(f for f in fixtures["fixtures"] if f["expectedStatus"] == "ANSWER")
+        answer.pop("answerEvidence")
+        errors = self._validate(fixtures=fixtures)
+        self.assertTrue(any("every answer point must have one source-evidence entry" in e for e in errors), errors)
+
+    def test_price_answer_must_label_the_amount_as_fictional_demo_data(self) -> None:
+        catalog = copy.deepcopy(self.catalog)
+        fixtures = copy.deepcopy(self.fixtures)
+        quote_doc = next(doc for doc in catalog["documents"] if doc.get("themeKey") == "quotation")
+        quote = self.documents / quote_doc["filename"]
+        excerpt = next(line for line in quote.read_text(encoding="utf-8").splitlines()
+                       if line.startswith("虛構 Demo 報價單價："))
+        answer = next(f for f in fixtures["fixtures"] if f["expectedStatus"] == "ANSWER")
+        answer["expectedSourceKeys"] = [quote_doc["documentKey"]]
+        answer["expectedAnswerPoints"] = ["SUP-001 MAT-001 單價為 100 TWD / KG。"]
+        answer["answerEvidence"] = [{"sources": [{"documentKey": quote_doc["documentKey"], "excerpt": excerpt}]}]
+        self._refresh_fixture_backrefs(catalog, fixtures)
+        errors = self._validate(catalog=catalog, fixtures=fixtures)
+        self.assertTrue(any("fictional Demo price answers must label the amount as fictional Demo data" in e
+                            for e in errors), errors)
 
     def test_quotation_supplier_material_pair_must_exist(self) -> None:
         master = copy.deepcopy(self.master)
@@ -478,6 +540,11 @@ class DemoCorpusValidatorTests(unittest.TestCase):
         fixtures = copy.deepcopy(self.fixtures)
         fixtures["fixtures"][0]["category"] = "manual_upload_only"
         fixtures["fixtures"][0]["expectedSourceKeys"] = ["UI-SUP-001-ADDENDUM"]
+        fixtures["fixtures"][0]["expectedAnswerPoints"] = ["虛構展示資料。此檔案只模擬使用者在介面人工上傳的補充文件，不屬於自動 Seed。"]
+        fixtures["fixtures"][0]["answerEvidence"] = [{"sources": [{
+            "documentKey": "UI-SUP-001-ADDENDUM",
+            "excerpt": "虛構展示資料。此檔案只模擬使用者在介面人工上傳的補充文件，不屬於自動 Seed。",
+        }]}]
         self._refresh_fixture_backrefs(catalog, fixtures)
         errors = self._validate(catalog=catalog, fixtures=fixtures)
         self.assertEqual([], errors)

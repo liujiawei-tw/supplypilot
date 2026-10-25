@@ -32,6 +32,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -95,6 +96,7 @@ class DemoCorpusTrustedApprovalServiceTests {
         document = DocumentMetadata.demoBaselineProcessing(entry.type(), null,
                 entry.title(), entry.version(), "stored/source.txt", "SP-901", DOCUMENT_KEY,
                 entry.themeKey(), entry.corpusVersion(), entry.sourceSha256(), entry.provenanceOrigin(), NOW);
+        ReflectionTestUtils.setField(document, "id", 44L);
         document.markReady(NOW.plusSeconds(1));
         TextChunker chunker = new TextChunker();
         sourceChunks = chunker.chunk(source.trim()).stream().map(c -> DocumentChunk.create(document,
@@ -145,6 +147,7 @@ class DemoCorpusTrustedApprovalServiceTests {
         document = DocumentMetadata.demoBaselineProcessing(entry.type(), null,
                 entry.title(), entry.version(), "stored/source.txt", "SP-901", DOCUMENT_KEY,
                 entry.themeKey(), entry.corpusVersion(), entry.sourceSha256(), entry.provenanceOrigin(), NOW);
+        ReflectionTestUtils.setField(document, "id", 44L);
         document.markReady(NOW.plusSeconds(1));
         when(documents.findByIdForUpdateWithSupplier(44L)).thenReturn(Optional.of(document));
         var blocked = service("jdbc:postgresql://production.example/supplypilot_semantic_demo").review(44L, entry);

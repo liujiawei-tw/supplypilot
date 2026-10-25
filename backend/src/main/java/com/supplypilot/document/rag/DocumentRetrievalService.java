@@ -10,12 +10,14 @@ import java.util.Set;
 
 import com.supplypilot.common.exception.BusinessException;
 import com.supplypilot.common.exception.ErrorCode;
+import com.supplypilot.demo.DemoCorpusRagEligibility;
 import com.supplypilot.document.domain.DocumentChunk;
 import com.supplypilot.document.domain.DocumentMetadata;
 import com.supplypilot.document.domain.DocumentStatus;
 import com.supplypilot.document.repository.DocumentChunkRepository;
 import com.supplypilot.document.semantic.OutboundDocumentPolicy;
 import com.supplypilot.document.semantic.SemanticBackfillService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,12 +29,20 @@ public class DocumentRetrievalService {
     private final DocumentChunkRepository chunks;
     private final EmbeddingProvider embeddings;
     private final OutboundDocumentPolicy policy;
+    private final DemoCorpusRagEligibility demoEligibility;
 
     public DocumentRetrievalService(DocumentChunkRepository chunks, EmbeddingProvider embeddings,
                                     OutboundDocumentPolicy policy) {
+        this(chunks, embeddings, policy, DemoCorpusRagEligibility.manualUploadsOnly());
+    }
+
+    @Autowired
+    public DocumentRetrievalService(DocumentChunkRepository chunks, EmbeddingProvider embeddings,
+                                    OutboundDocumentPolicy policy, DemoCorpusRagEligibility demoEligibility) {
         this.chunks = chunks;
         this.embeddings = embeddings;
         this.policy = policy;
+        this.demoEligibility = demoEligibility;
     }
 
     @Transactional(readOnly = true)
@@ -41,7 +51,8 @@ public class DocumentRetrievalService {
         Map<Long, List<DocumentChunk>> byDocument = new LinkedHashMap<>();
         for (DocumentChunk chunk : chunks.findRetrievable(DocumentStatus.READY)) {
             DocumentMetadata document = chunk.getDocument();
-            if (document != null && document.getId() != null && document.getStatus() == DocumentStatus.READY) {
+            if (document != null && document.getId() != null && document.getStatus() == DocumentStatus.READY
+                    && demoEligibility.isEligible(document)) {
                 byDocument.computeIfAbsent(document.getId(), ignored -> new ArrayList<>()).add(chunk);
             }
         }
@@ -54,9 +65,9 @@ public class DocumentRetrievalService {
         for (List<DocumentChunk> source : byDocument.values()) {
             source.sort(Comparator.comparingInt(DocumentChunk::getChunkIndex));
             DocumentMetadata document = source.getFirst().getDocument();
-            List<String> originalChunks = source.stream().map(DocumentChunk::getContent).toList();
             String sourceHash = SemanticBackfillService.sourceHash(source);
-            OutboundDocumentPolicy.Decision decision = policy.inspect(document, originalChunks, sourceHash);
+            OutboundDocumentPolicy.Decision decision = demoEligibility.inspectSource(document, source, sourceHash,
+                    document.getSemanticIndexGeneration(), policy);
             if (!"APPROVED".equals(decision.status()) || decision.safeChunks().size() != source.size()) continue;
             if (!isSupplierDocumentCandidate(document, supplierIdentifiers, decision.safeChunks())) continue;
 
