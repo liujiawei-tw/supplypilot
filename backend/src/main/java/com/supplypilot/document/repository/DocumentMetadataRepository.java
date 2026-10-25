@@ -7,6 +7,7 @@ import com.supplypilot.document.domain.DocumentMetadata;
 import com.supplypilot.document.domain.DocumentStatus;
 import com.supplypilot.document.domain.DocumentType;
 import jakarta.persistence.LockModeType;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Lock;
@@ -15,6 +16,12 @@ import org.springframework.data.repository.query.Param;
 
 public interface DocumentMetadataRepository extends JpaRepository<DocumentMetadata, Long>,
         JpaSpecificationExecutor<DocumentMetadata> {
+
+    @Override
+    @EntityGraph(attributePaths = "supplier")
+    org.springframework.data.domain.Page<DocumentMetadata> findAll(
+            org.springframework.data.jpa.domain.Specification<DocumentMetadata> specification,
+            org.springframework.data.domain.Pageable pageable);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select document from DocumentMetadata document where document.id = :id")
@@ -37,7 +44,8 @@ public interface DocumentMetadataRepository extends JpaRepository<DocumentMetada
                                                        @Param("documentKey") String documentKey);
 
     @Query("select d from DocumentMetadata d left join fetch d.supplier "
-            + "where d.demoDatasetKey is null and "
+            + "where d.demoDatasetKey is null and d.uploadedBy is null "
+            + "and d.uploadedByUserIdSnapshot is null and "
             + "((d.documentType = :type and d.title = :title and d.version = :version) "
             + "or (d.documentType = :type and d.title = :title and "
             + "((:supplierId is null and d.supplier is null) or d.supplier.id = :supplierId)) "

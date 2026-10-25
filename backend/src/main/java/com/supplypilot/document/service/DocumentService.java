@@ -10,6 +10,9 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.nio.charset.StandardCharsets;
 import java.util.HexFormat;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import com.supplypilot.common.exception.BusinessException;
 import com.supplypilot.common.exception.ErrorCode;
@@ -19,6 +22,7 @@ import com.supplypilot.document.domain.DocumentStatus;
 import com.supplypilot.document.domain.DocumentType;
 import com.supplypilot.document.dto.request.UpdateDocumentRequest;
 import com.supplypilot.document.dto.response.DocumentResponse;
+import com.supplypilot.document.dto.response.DocumentSemanticIndexResponse;
 import com.supplypilot.document.mapper.DocumentMapper;
 import com.supplypilot.document.repository.DocumentMetadataRepository;
 import com.supplypilot.document.semantic.DocumentSemanticLifecycleReader;
@@ -33,6 +37,8 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -48,6 +54,7 @@ public class DocumentService {
     private final CurrentUserProvider currentUserProvider;
     private final Clock clock;
     private final DocumentSemanticLifecycleReader lifecycleReader;
+    private final TransactionTemplate primaryTransactions;
 
     public DocumentService(
             DocumentMetadataRepository documentRepository,
@@ -60,7 +67,22 @@ public class DocumentService {
             Clock clock
     ) {
         this(documentRepository, supplierRepository, userRepository, storageService, fileValidator,
-                documentMapper, currentUserProvider, clock, null);
+                documentMapper, currentUserProvider, clock, null, null);
+    }
+
+    public DocumentService(
+            DocumentMetadataRepository documentRepository,
+            SupplierRepository supplierRepository,
+            UserRepository userRepository,
+            DocumentStorageService storageService,
+            DocumentFileValidator fileValidator,
+            DocumentMapper documentMapper,
+            CurrentUserProvider currentUserProvider,
+            Clock clock,
+            DocumentSemanticLifecycleReader lifecycleReader
+    ) {
+        this(documentRepository, supplierRepository, userRepository, storageService, fileValidator,
+                documentMapper, currentUserProvider, clock, lifecycleReader, null);
     }
 
     @Autowired
@@ -73,7 +95,8 @@ public class DocumentService {
             DocumentMapper documentMapper,
             CurrentUserProvider currentUserProvider,
             Clock clock,
-            DocumentSemanticLifecycleReader lifecycleReader
+            DocumentSemanticLifecycleReader lifecycleReader,
+            PlatformTransactionManager transactionManager
     ) {
         this.documentRepository = documentRepository;
         this.supplierRepository = supplierRepository;
@@ -84,6 +107,7 @@ public class DocumentService {
         this.currentUserProvider = currentUserProvider;
         this.clock = clock;
         this.lifecycleReader = lifecycleReader;
+        this.primaryTransactions = transactionManager == null ? null : new TransactionTemplate(transactionManager);
     }
 
     @PreAuthorize("hasAnyRole('PROCUREMENT_STAFF', 'ADMIN')")
@@ -142,7 +166,6 @@ public class DocumentService {
         }
     }
 
-    @Transactional(readOnly = true)
     @PreAuthorize("hasAnyRole('PROCUREMENT_STAFF', 'PROCUREMENT_MANAGER', 'ADMIN')")
     public PageResponse<DocumentResponse> list(
             DocumentType documentType,
@@ -164,21 +187,36 @@ public class DocumentService {
                     (root, query, builder) -> builder.equal(root.get("status"), status));
         }
         Page<DocumentMetadata> page = documentRepository.findAll(specification, pageable);
-        return PageResponse.from(page.map(this::toResponse));
+        Map<Long, DocumentSemanticIndexResponse> lifecycleByDocument = new HashMap<>();
+        if (lifecycleReader != null) {
+            List<DocumentSemanticIndexResponse> lifecycle = lifecycleReader.readAll(page.getContent());
+            for (int i = 0; i < lifecycle.size(); i++) {
+                lifecycleByDocument.put(page.getContent().get(i).getId(), lifecycle.get(i));
+            }
+        }
+        return PageResponse.from(page.map(document -> documentMapper.toResponse(
+                document, lifecycleByDocument.get(document.getId()))));
     }
 
-    @Transactional(readOnly = true)
     @PreAuthorize("hasAnyRole('PROCUREMENT_STAFF', 'PROCUREMENT_MANAGER', 'ADMIN')")
     public DocumentResponse get(Long id) {
         return toResponse(findDocument(id));
     }
 
-    @Transactional
     @PreAuthorize("hasAnyRole('PROCUREMENT_STAFF', 'ADMIN')")
     public DocumentResponse update(Long id, UpdateDocumentRequest request) {
-        DocumentMetadata document = findDocumentForUpdate(id);
+        DocumentMetadata updated = primaryTransactions == null
+                ? updateWithinTransaction(id, request)
+                : primaryTransactions.execute(status -> updateWithinTransaction(id, request));
+        if (updated == null) throw new IllegalStateException("Document update transaction returned no result");
+        return toResponse(updated);
+    }
+
+    private DocumentMetadata updateWithinTransaction(Long id, UpdateDocumentRequest request) {
+        DocumentMetadata document = documentRepository.findByIdForUpdateWithSupplier(id)
+                .orElseThrow(() -> new BusinessException(ErrorCode.DOCUMENT_NOT_FOUND));
         document.updateMetadata(request.title(), request.status(), clock.instant());
-        return toResponse(documentRepository.save(document));
+        return documentRepository.save(document);
     }
 
     private DocumentResponse toResponse(DocumentMetadata document) {
@@ -187,12 +225,7 @@ public class DocumentService {
     }
 
     private DocumentMetadata findDocument(Long id) {
-        return documentRepository.findById(id)
-                .orElseThrow(() -> new BusinessException(ErrorCode.DOCUMENT_NOT_FOUND));
-    }
-
-    private DocumentMetadata findDocumentForUpdate(Long id) {
-        return documentRepository.findByIdForUpdate(id)
+        return documentRepository.findForSemanticRead(id)
                 .orElseThrow(() -> new BusinessException(ErrorCode.DOCUMENT_NOT_FOUND));
     }
 

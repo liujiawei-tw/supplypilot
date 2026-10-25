@@ -103,6 +103,29 @@ class DocumentMetadataRepositoryTests extends AbstractIntegrationTest {
     }
 
     @Test
+    void legacyBaselineCandidatesExcludeUserUploadsWithMatchingIdentity() {
+        User uploader = user();
+        Supplier supplier = supplierRepository.saveAndFlush(Supplier.create(
+                unique("SUP-LEGACY-CANDIDATE"), "Legacy Candidate Supplier", null,
+                BigDecimal.ZERO, BigDecimal.ZERO, clock.instant()));
+        String title = "Legacy supplier contract";
+        String version = "1.0";
+        String legacyPath = unique("legacy-seed");
+        String uploadPath = unique("user-upload");
+        Long legacyId = insertLegacyCandidate(supplier.getId(), title, version, legacyPath);
+        DocumentMetadata userUpload = documentRepository.saveAndFlush(DocumentMetadata.processing(
+                DocumentType.SUPPLIER_CONTRACT, supplier, title, version, uploadPath, uploader, clock.instant()));
+
+        List<DocumentMetadata> candidates = documentRepository.findPossibleLegacyDemoBaselines(
+                DocumentType.SUPPLIER_CONTRACT, title, version, supplier.getId());
+
+        assertThat(candidates).extracting(DocumentMetadata::getId).containsExactly(legacyId);
+        assertThat(candidates.getFirst().getUploadedBy()).isNull();
+        assertThat(candidates.getFirst().getUploadedByUserIdSnapshot()).isNull();
+        assertThat(userUpload.getUploadedByUserIdSnapshot()).isEqualTo(uploader.getId());
+    }
+
+    @Test
     void v33RejectsPartialNullableProvenanceAndSystemReviewTuples() {
         User actor = user();
         assertThatThrownBy(() -> jdbcTemplate.update("""
@@ -130,6 +153,18 @@ class DocumentMetadataRepositoryTests extends AbstractIntegrationTest {
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """, "SUPPLIER_CONTRACT", supplierId, "Raw Document", "v1", storagePath,
                 "PROCESSING", uploadedBy, clock.instant(), clock.instant());
+    }
+
+    private Long insertLegacyCandidate(Long supplierId, String title, String version, String storagePath) {
+        jdbcTemplate.update("""
+                INSERT INTO document_metadata
+                    (document_type, supplier_id, title, version, storage_path, status, uploaded_by,
+                     uploaded_by_user_id_snapshot, uploaded_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, 'READY', NULL, NULL, ?, ?)
+                """, DocumentType.SUPPLIER_CONTRACT.name(), supplierId, title, version, storagePath,
+                clock.instant(), clock.instant());
+        return jdbcTemplate.queryForObject(
+                "SELECT id FROM document_metadata WHERE storage_path = ?", Long.class, storagePath);
     }
 
     private User user() {
