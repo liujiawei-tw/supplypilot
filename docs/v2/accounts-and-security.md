@@ -47,6 +47,13 @@
 - 能在 MySQL 內搜尋原文，不代表已取得向 Google Gemini Chat/Embedding 傳遞原文的授權；任何準備外送的內容仍須符合已核准文檔及既有 outbound policy。
 - 禁止把「單一 ADMIN 業務角色」理解為無條件允許上傳敏感公司真實資料、外送 Google，或公開高權限 Demo 帳號。
 
+### 文件原文預覽與下載
+
+- `GET /api/v1/documents/{id}/preview` 與 `GET /api/v1/documents/{id}/file` 使用文件 ID 尋址，沿用文件讀取角色 `PROCUREMENT_STAFF`、`PROCUREMENT_MANAGER`、`ADMIN`。未登入回 401；其他角色回 403。
+- API 不提供任意儲存路徑讀取，也不在文件 Response DTO 暴露本機 `storagePath`。後端只解析資料庫內的 server-owned 相對位置，並維持文件儲存根目錄限制。
+- PDF 預覽 inline 回傳原始 PDF bytes；TXT／DOCX 預覽只回傳有大小上限的 UTF-8 文字，不經過 Gemini、索引工作或審核流程。下載端點回傳原始檔案並設定 attachment。
+- 預覽與下載回應使用 `no-store`、`nosniff` 及安全檔名，避免快取及瀏覽器內容嗅探；缺少原檔只回通用檔案缺失錯誤，不回傳內部儲存位置。
+
 ## 5. 驗收矩陣
 
 - 不具 canManageUsers 的正常採購帳號，採購業務 API 成功，人員管理 API 403。

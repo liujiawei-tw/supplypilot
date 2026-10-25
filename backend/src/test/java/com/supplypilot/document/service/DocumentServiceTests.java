@@ -13,8 +13,10 @@ import com.supplypilot.document.domain.DocumentMetadata;
 import com.supplypilot.document.domain.DocumentStatus;
 import com.supplypilot.document.domain.DocumentType;
 import com.supplypilot.document.dto.request.UpdateDocumentRequest;
+import com.supplypilot.document.dto.response.DocumentSemanticIndexResponse;
 import com.supplypilot.document.mapper.DocumentMapper;
 import com.supplypilot.document.repository.DocumentMetadataRepository;
+import com.supplypilot.document.semantic.DocumentSemanticLifecycleReader;
 import com.supplypilot.security.CurrentUserProvider;
 import com.supplypilot.supplier.domain.Supplier;
 import com.supplypilot.supplier.repository.SupplierRepository;
@@ -31,11 +33,16 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionDefinition;
+import org.springframework.transaction.support.SimpleTransactionStatus;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -128,8 +135,8 @@ class DocumentServiceTests {
     @Test
     void getsListsFiltersAndUpdatesOnlyAllowedMetadata() {
         DocumentMetadata document = document();
-        when(documentRepository.findById(1L)).thenReturn(Optional.of(document));
-        when(documentRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(document));
+        when(documentRepository.findForSemanticRead(1L)).thenReturn(Optional.of(document));
+        when(documentRepository.findByIdForUpdateWithSupplier(1L)).thenReturn(Optional.of(document));
         when(documentRepository.save(document)).thenReturn(document);
         assertThat(service.get(1L).title()).isEqualTo("SOP");
 
@@ -146,10 +153,38 @@ class DocumentServiceTests {
 
     @Test
     void missingDocumentReturnsDocumentNotFound() {
-        when(documentRepository.findById(99L)).thenReturn(Optional.empty());
+        when(documentRepository.findForSemanticRead(99L)).thenReturn(Optional.empty());
         assertThatThrownBy(() -> service.get(99L))
                 .isInstanceOf(BusinessException.class)
                 .extracting("errorCode").isEqualTo(ErrorCode.DOCUMENT_NOT_FOUND);
+    }
+
+    @Test
+    void updateReleasesMySqlWriteTransactionBeforeCheckingSemanticPublication() {
+        List<String> events = new java.util.ArrayList<>();
+        PlatformTransactionManager transactions = mock(PlatformTransactionManager.class);
+        DocumentSemanticLifecycleReader lifecycleReader = mock(DocumentSemanticLifecycleReader.class);
+        when(transactions.getTransaction(any(TransactionDefinition.class)))
+                .thenReturn(new SimpleTransactionStatus());
+        doAnswer(invocation -> {
+            events.add("mysql-commit");
+            return null;
+        }).when(transactions).commit(any());
+        DocumentMetadata document = document();
+        when(documentRepository.findByIdForUpdateWithSupplier(1L)).thenReturn(Optional.of(document));
+        when(documentRepository.save(document)).thenReturn(document);
+        when(lifecycleReader.read(document)).thenAnswer(invocation -> {
+            events.add("semantic-publication-read");
+            return new DocumentSemanticIndexResponse("UNAVAILABLE", null, null, 0, 0,
+                    "INDEX_STORE_UNAVAILABLE", "generation-v1", null);
+        });
+        DocumentService transactionalService = new DocumentService(documentRepository, supplierRepository,
+                userRepository, storageService, new DocumentFileValidator(), new DocumentMapper(),
+                currentUserProvider, Clock.fixed(NOW, ZoneOffset.UTC), lifecycleReader, transactions);
+
+        transactionalService.update(1L, new UpdateDocumentRequest("Archived", DocumentStatus.INACTIVE));
+
+        assertThat(events).containsExactly("mysql-commit", "semantic-publication-read");
     }
 
     private DocumentMetadata document() {

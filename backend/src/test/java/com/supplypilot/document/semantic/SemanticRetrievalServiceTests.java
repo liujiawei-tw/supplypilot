@@ -78,6 +78,10 @@ class SemanticRetrievalServiceTests {
         when(document.getSemanticReviewStatus()).thenReturn(SemanticReviewStatus.APPROVED);
         when(document.getSemanticApprovedBy()).thenReturn(7L);
         when(document.getSemanticApprovedAt()).thenReturn(Instant.EPOCH);
+        when(document.getSemanticReviewActorType()).thenReturn("USER");
+        when(document.getSemanticReviewActor()).thenReturn("7");
+        when(document.getSemanticReviewTrigger()).thenReturn("ADMIN_OUTBOUND_REVIEW");
+        when(document.getSemanticReviewPolicyDecision()).thenReturn("APPROVED");
         when(embeddings.query(QUESTION)).thenReturn(QUERY_VECTOR);
         when(store.search(QUERY_VECTOR, properties.topK() * 5, 0)).thenReturn(List.of(
                 new SemanticStore.Candidate(DOCUMENT_ID, candidateVersion, 0, 0, CONTENT.length(), CONTENT, 0.92)));

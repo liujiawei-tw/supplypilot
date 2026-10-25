@@ -3,6 +3,8 @@ package com.supplypilot.document.rag;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 
 import com.supplypilot.document.service.DocumentStorageService;
 import org.apache.pdfbox.pdmodel.PDDocument;
@@ -59,6 +61,61 @@ class DocumentTextExtractorTests {
         }
         when(storage.read("fixture.docx")).thenReturn(new ByteArrayInputStream(output.toByteArray()));
         assertThat(extractor.extract("fixture.docx")).contains("AQL 1.0", "inspection before delivery");
+    }
+
+    @Test
+    void docxPreviewPreservesInterleavedBodyOrderWithoutChangingRagExtractionOrder() throws Exception {
+        byte[] source;
+        try (XWPFDocument document = new XWPFDocument(); ByteArrayOutputStream output = new ByteArrayOutputStream()) {
+            document.createParagraph().createRun().setText("paragraph before table");
+            var table = document.createTable(1, 1);
+            table.getRow(0).getCell(0).setText("middle table cell");
+            document.createParagraph().createRun().setText("paragraph after table");
+            document.write(output);
+            source = output.toByteArray();
+        }
+        when(storage.read("ordered.docx")).thenAnswer(invocation -> new ByteArrayInputStream(source));
+
+        assertThat(extractor.extractPreviewText("ordered.docx"))
+                .isEqualTo("paragraph before table\nmiddle table cell\nparagraph after table\n");
+        // Keep the existing ingestion contract: paragraphs are extracted before top-level tables.
+        assertThat(extractor.extract("ordered.docx"))
+                .isEqualTo("paragraph before table\nparagraph after table\nmiddle table cell");
+    }
+
+    @Test
+    void previewReturnsCompleteUtf8TextWithoutWhitespaceNormalization() {
+        String source = "  第一行  \r\n第二行\t保持\n";
+        when(storage.read("complete.txt"))
+                .thenReturn(new ByteArrayInputStream(source.getBytes(StandardCharsets.UTF_8)));
+
+        assertThat(extractor.extractPreviewText("complete.txt")).isEqualTo(source);
+    }
+
+    @Test
+    void previewRejectsInvalidUtf8() {
+        when(storage.read("invalid-utf8.txt"))
+                .thenReturn(new ByteArrayInputStream(new byte[] {(byte) 0xC3, (byte) 0x28}));
+
+        assertThatThrownBy(() -> extractor.extractPreviewText("invalid-utf8.txt"))
+                .isInstanceOf(DocumentParsingException.class);
+    }
+
+    @Test
+    void docxPreviewRejectsPackagesWithTooManyEntries() throws Exception {
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        try (ZipOutputStream zip = new ZipOutputStream(output)) {
+            for (int index = 0; index < 4_097; index++) {
+                zip.putNextEntry(new ZipEntry("part-" + index));
+                zip.closeEntry();
+            }
+        }
+        when(storage.read("many-entries.docx"))
+                .thenReturn(new ByteArrayInputStream(output.toByteArray()));
+
+        assertThatThrownBy(() -> extractor.extractPreviewText("many-entries.docx"))
+                .isInstanceOf(DocumentParsingException.class)
+                .hasMessageContaining("too many entries");
     }
 
     @Test

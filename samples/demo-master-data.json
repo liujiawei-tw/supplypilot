@@ -1,8 +1,8 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "datasetKey": "SP-901",
-  "datasetVersion": "sp-906-zh-tw-v2",
-  "corpusVersion": "sp-906-zh-tw-v2",
+  "datasetVersion": "sp-907-zh-tw-v3",
+  "corpusVersion": "sp-907-zh-tw-v3",
   "fictionalBuyer": {
     "code": "BUYER-DEMO-001",
     "name": "澄野茶飲製造有限公司",
@@ -14,7 +14,7 @@
     "materials": 12,
     "supplierMaterials": 45,
     "purchaseOrders": 10,
-    "seedDocuments": 15,
+    "seedDocuments": 115,
     "manualUploadFixtures": 1
   },
   "suppliers": [
@@ -757,11 +757,31 @@
     }
   ],
   "documentPolicy": {
-    "documentCurrencyAmountsIncluded": false,
-    "initialReviewStatus": "REQUIRES_ADMIN_REVIEW",
-    "automaticApproval": false,
+    "documentCurrencyAmountsIncluded": true,
+    "manualUploadInitialReviewStatus": "REQUIRES_ADMIN_REVIEW",
+    "automaticApproval": {
+      "enabled": true,
+      "scope": "TRUSTED_REPOSITORY_DEMO_BASELINE",
+      "afterSuccessfulIngestion": true,
+      "requiresOutboundPolicyAllow": true
+    },
     "automaticGeminiIndexingBeforeApproval": false,
-    "sensitivePricesRemainInStructuredMasterData": true
+    "automaticIndexingAfterApproval": true,
+    "sensitivePricesRemainInStructuredMasterData": true,
+    "trustedDemoQuotationPriceException": {
+      "enabled": true,
+      "scope": "PINNED_TRUSTED_REPOSITORY_DEMO_V2_QUOTATION",
+      "priceSource": "VERSIONED_REPOSITORY_MASTER_DATA_SUPPLIER_MATERIAL",
+      "requiresPinnedCatalog": true,
+      "requiresRepositorySourceHash": true,
+      "requiresTrustedDemoProvenance": true,
+      "requiresAllowedDemoTargets": true,
+      "requiresRepositoryMasterPriceCurrencyAndUnitMatch": true,
+      "requiresOutboundPolicyAllow": true,
+      "ordinaryDocumentsEligible": false,
+      "manualUploadsEligible": false,
+      "credentialsBankDataAndPersonalDataExempt": false
+    }
   },
   "manualUploadFixtures": [
     {

@@ -8,6 +8,7 @@ import javax.sql.DataSource;
 import com.supplypilot.common.exception.BusinessException;
 import com.supplypilot.common.exception.ErrorCode;
 import org.flywaydb.core.Flyway;
+import org.springframework.dao.DataAccessResourceFailureException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
@@ -84,6 +85,42 @@ public class SemanticStore {
                         rs.getString(4), rs.getInt(5), rs.getLong(6)),
                 documentId, version, properties.generationKey());
         return rows.isEmpty() ? null : rows.getFirst();
+    }
+
+    /** Read-only publication check for the Documents API; it never runs Flyway or creates tables. */
+    public PublicationCheck inspectPublication(long documentId, String version, String generationKey,
+                                               String sourceHash, long documentGeneration,
+                                               List<SourceChunk> expectedSource) {
+        if (jdbc == null) throw new DataAccessResourceFailureException("Semantic database is not configured");
+        List<IndexState> states = jdbc.query("""
+                SELECT status, source_hash, expected_chunk_count, failure_reason, attempts,
+                       publication_generation
+                  FROM semantic_document_indexes
+                 WHERE document_id = ? AND document_version = ? AND generation_key = ?
+                """, (rs, row) -> new IndexState(rs.getString(1), rs.getString(2), rs.getInt(3),
+                rs.getString(4), rs.getInt(5), rs.getLong(6)), documentId, version, generationKey);
+        if (states.isEmpty()) return new PublicationCheck(null, false, 0);
+        IndexState state = states.getFirst();
+        List<SourceChunk> actual = jdbc.query("""
+                SELECT chunk_index, start_offset, end_offset, content
+                  FROM semantic_chunks
+                 WHERE document_id = ? AND document_version = ? AND generation_key = ?
+                 ORDER BY chunk_index
+                """, (rs, row) -> new SourceChunk(rs.getInt(1), rs.getInt(2),
+                rs.getInt(3), rs.getString(4)), documentId, version, generationKey);
+        Integer count = jdbc.queryForObject("""
+                SELECT CASE WHEN count(*) = count(*) FILTER (WHERE vector_dims(embedding) = ?)
+                            THEN count(*) ELSE -1 END
+                  FROM semantic_chunks
+                 WHERE document_id = ? AND document_version = ? AND generation_key = ?
+                """, Integer.class, properties.dimensions(), documentId, version, generationKey);
+        boolean current = "READY".equals(state.status())
+                && sourceHash.equals(state.sourceHash())
+                && state.expectedCount() == expectedSource.size()
+                && state.publicationGeneration() == documentGeneration
+                && actual.equals(expectedSource)
+                && count != null && count == expectedSource.size();
+        return new PublicationCheck(state, current, count == null ? 0 : Math.max(0, count));
     }
 
     public void mark(long documentId, String version, String status, String reason,
@@ -278,6 +315,7 @@ public class SemanticStore {
             this(status, sourceHash, expectedCount, failureReason, attempts, 0);
         }
     }
+    public record PublicationCheck(IndexState state, boolean current, int publishedChunks) { }
     public record SafeChunk(int index, int startOffset, int endOffset, String content,
                             List<Float> embedding) { }
     public record SourceChunk(int index, int startOffset, int endOffset, String content) { }

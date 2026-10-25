@@ -7,6 +7,7 @@ import java.util.concurrent.TimeUnit;
 
 import com.supplypilot.common.exception.BusinessException;
 import com.supplypilot.common.exception.ErrorCode;
+import com.supplypilot.demo.DemoCorpusRagEligibility;
 import com.supplypilot.document.domain.DocumentChunk;
 import com.supplypilot.document.domain.DocumentMetadata;
 import com.supplypilot.document.domain.DocumentStatus;
@@ -17,6 +18,7 @@ import io.micrometer.core.instrument.DistributionSummary;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
 import org.springframework.stereotype.Service;
+import org.springframework.beans.factory.annotation.Autowired;
 
 @Service
 public class SemanticRetrievalService {
@@ -26,6 +28,7 @@ public class SemanticRetrievalService {
     private final SemanticProperties properties;
     private final DocumentMetadataRepository documents;
     private final DocumentChunkRepository chunks;
+    private final DemoCorpusRagEligibility demoEligibility;
     private final Timer searchTimer;
     private final DistributionSummary candidatesMeter;
 
@@ -33,12 +36,22 @@ public class SemanticRetrievalService {
                                     OutboundDocumentPolicy policy, SemanticProperties properties,
                                     DocumentMetadataRepository documents, DocumentChunkRepository chunks,
                                     MeterRegistry meters) {
+        this(store, embeddings, policy, properties, documents, chunks, meters,
+                DemoCorpusRagEligibility.manualUploadsOnly());
+    }
+
+    @Autowired
+    public SemanticRetrievalService(SemanticStore store, SemanticEmbeddingService embeddings,
+                                    OutboundDocumentPolicy policy, SemanticProperties properties,
+                                    DocumentMetadataRepository documents, DocumentChunkRepository chunks,
+                                    MeterRegistry meters, DemoCorpusRagEligibility demoEligibility) {
         this.store = store;
         this.embeddings = embeddings;
         this.policy = policy;
         this.properties = properties;
         this.documents = documents;
         this.chunks = chunks;
+        this.demoEligibility = demoEligibility;
         this.searchTimer = Timer.builder("supplypilot.semantic.search.latency")
                 .description("Exact pgvector search and MySQL source validation latency")
                 .register(meters);
@@ -68,7 +81,9 @@ public class SemanticRetrievalService {
                     }
                     DocumentMetadata document = documents.findForSemanticRead(candidate.documentId()).orElse(null);
                     if (document == null || document.getStatus() != DocumentStatus.READY
-                            || !document.getVersion().equals(candidate.version())) continue;
+                            || !document.getVersion().equals(candidate.version())
+                            || !demoEligibility.isEligible(document)
+                            || !demoEligibility.isApplicableToQuery(document, question)) continue;
                     List<DocumentChunk> source = chunks.findByDocumentIdOrderByChunkIndex(candidate.documentId());
                     SemanticStore.IndexState index = store.state(candidate.documentId(), candidate.version());
                     if (index == null || !"READY".equals(index.status())
@@ -76,8 +91,8 @@ public class SemanticRetrievalService {
                             || index.expectedCount() != source.size()
                             || store.chunkCount(candidate.documentId(), candidate.version()) != source.size()
                             || !SemanticBackfillService.sourceHash(source).equals(index.sourceHash())) continue;
-                    var decision = policy.inspect(document, source.stream().map(DocumentChunk::getContent).toList(),
-                            index.sourceHash());
+                    var decision = demoEligibility.inspectSource(document, source, index.sourceHash(),
+                            document.getSemanticIndexGeneration(), policy);
                     if (!"APPROVED".equals(decision.status())) continue;
                     int position = -1;
                     for (int i = 0; i < source.size(); i++) {
@@ -86,8 +101,11 @@ public class SemanticRetrievalService {
                     if (position < 0 || source.get(position).getStartOffset() != candidate.startOffset()
                             || source.get(position).getEndOffset() != candidate.endOffset()
                             || !decision.safeChunks().get(position).equals(candidate.content())) continue;
+                    String applicableContent = demoEligibility.restrictBusinessFactContent(document, question,
+                            candidate.content());
+                    if (applicableContent == null || applicableContent.isBlank()) continue;
                     DocumentChunk safe = DocumentChunk.create(document, candidate.chunkIndex(),
-                            candidate.startOffset(), candidate.endOffset(), candidate.content(), "", Instant.now());
+                            candidate.startOffset(), candidate.endOffset(), applicableContent, "", Instant.now());
                     result.add(new RetrievedChunk(safe, candidate.score()));
                     if (result.size() == properties.topK()) break;
                 }

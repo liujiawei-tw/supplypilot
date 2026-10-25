@@ -56,6 +56,45 @@ class DocumentMetadataTests {
     }
 
     @Test
+    void trustedSystemReviewDoesNotImpersonateAdminAndIdenticalRetryPreservesAuditTime() {
+        String hash = "c".repeat(64);
+        DocumentMetadata document = DocumentMetadata.demoBaselineProcessing(DocumentType.SUPPLIER_PROFILE,
+                null, "Supplier profile", "v1", "baseline.txt", "SP-901", "DOC-SUP-001-PROFILE",
+                "supplier_profile", "sp-907-zh-tw-v3", hash, "ADDED_SP907", UPLOADED_AT);
+        document.markReady(UPLOADED_AT.plusSeconds(1));
+
+        assertThat(document.reviewTrustedDemoSemanticOutbound(hash, UPLOADED_AT.plusSeconds(2),
+                SemanticReviewStatus.APPROVED, null)).isEqualTo(1);
+        Instant reviewedAt = document.getSemanticApprovedAt();
+        Instant updatedAt = document.getUpdatedAt();
+        assertThat(document.getSemanticApprovedBy()).isNull();
+        assertThat(document.getSemanticReviewActorType()).isEqualTo("SYSTEM");
+        assertThat(document.getSemanticReviewActor()).isEqualTo("TRUSTED_DEMO_CORPUS");
+        assertThat(document.getSemanticReviewPolicyDecision()).isEqualTo("APPROVED");
+
+        assertThat(document.reviewTrustedDemoSemanticOutbound(hash, UPLOADED_AT.plusSeconds(60),
+                SemanticReviewStatus.APPROVED, null)).isEqualTo(1);
+        assertThat(document.getSemanticApprovedAt()).isEqualTo(reviewedAt);
+        assertThat(document.getUpdatedAt()).isEqualTo(updatedAt);
+    }
+
+    @Test
+    void metadataChangeInvalidatesAStoredReviewAndAdvancesGeneration() {
+        DocumentMetadata document = DocumentMetadata.demoBaselineProcessing(DocumentType.SUPPLIER_PROFILE,
+                null, "Supplier profile", "v1", "baseline.txt", "SP-901", "DOC-SUP-001-PROFILE",
+                "supplier_profile", "sp-907-zh-tw-v3", "d".repeat(64), "ADDED_SP907", UPLOADED_AT);
+        document.markReady(UPLOADED_AT.plusSeconds(1));
+        document.reviewTrustedDemoSemanticOutbound("e".repeat(64), UPLOADED_AT.plusSeconds(2),
+                SemanticReviewStatus.APPROVED, null);
+
+        document.updateMetadata("Changed profile", null, UPLOADED_AT.plusSeconds(3));
+
+        assertThat(document.getSemanticIndexGeneration()).isEqualTo(2);
+        assertThat(document.getSemanticReviewInvalidatedAt()).isEqualTo(UPLOADED_AT.plusSeconds(3));
+        assertThat(document.getSemanticReviewInvalidationReason()).isEqualTo("DOCUMENT_METADATA_CHANGED");
+    }
+
+    @Test
     void ingestionTransitionsOnlyFromProcessing() {
         DocumentMetadata ready = document();
         ready.markReady(UPLOADED_AT.plusSeconds(1));

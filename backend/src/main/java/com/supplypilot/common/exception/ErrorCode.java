@@ -12,6 +12,7 @@ public enum ErrorCode {
     PURCHASE_ORDER_ALREADY_ASSIGNED("Purchase order is already assigned."),
     RECOMMENDATION_NOT_FOUND("Recommendation was not found."),
     DOCUMENT_NOT_FOUND("Document was not found."),
+    DOCUMENT_FILE_NOT_FOUND("Document file was not found."),
     USER_NOT_FOUND("User was not found."),
     INVENTORY_IMPORT_BATCH_NOT_FOUND("Inventory import batch was not found."),
 
@@ -49,6 +50,7 @@ public enum ErrorCode {
     INVALID_FILE_FORMAT("File format is invalid."),
     FILE_EMPTY("File is empty."),
     FILE_TOO_LARGE("File is too large."),
+    DOCUMENT_PREVIEW_INVALID("Document preview is unavailable because the file format is invalid."),
     CONCURRENT_MODIFICATION("The resource was modified by another request. Refresh and try again."),
 
     INVALID_RECOMMENDATION_REFERENCE("Recommendation reference is invalid."),

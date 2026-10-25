@@ -4,6 +4,7 @@ public record AiSourceResponse(
         String resourceType,
         String resourceId,
         String title,
+        String documentKey,
         String version,
         Long supplierId,
         Integer chunkIndex,
@@ -13,7 +14,7 @@ public record AiSourceResponse(
         Double relevanceScore
 ) {
     public static AiSourceResponse resource(String resourceType, Object resourceId, String title) {
-        return new AiSourceResponse(resourceType, String.valueOf(resourceId), title, null,
+        return new AiSourceResponse(resourceType, String.valueOf(resourceId), title, null, null,
                 null, null, null, null, null, null);
     }
 }

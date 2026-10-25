@@ -152,6 +152,7 @@ describe('AI query panel response contract', () => {
         resourceType: 'PURCHASE_ORDER',
         resourceId: '101',
         title: 'PO-101',
+        documentKey: null,
         version: null,
         supplierId: 4,
         chunkIndex: null,
@@ -163,6 +164,7 @@ describe('AI query panel response contract', () => {
         resourceType: 'DOCUMENT',
         resourceId: '42',
         title: '採購流程手冊',
+        documentKey: 'DOC-SUP-001-PROCUREMENT-SOP',
         version: 'v1',
         supplierId: 5,
         chunkIndex: 3,
@@ -189,6 +191,8 @@ describe('AI query panel response contract', () => {
     expect(screen.queryByText('PURCHASE_ORDER')).toBeNull();
     expect(screen.getByRole('link', { name: '42' }).getAttribute('href')).toBe('/documents?documentId=42');
     expect(screen.getByText('文件')).toBeTruthy();
+    expect(screen.getByText('Document Key')).toBeTruthy();
+    expect(screen.getByText('DOC-SUP-001-PROCUREMENT-SOP')).toBeTruthy();
     expect(screen.getByText('來源片段序號').parentElement?.textContent).toContain('3');
     expect(screen.getByText('原文位置').parentElement?.textContent).toContain('10–20');
     expect(screen.queryByText('DOCUMENT')).toBeNull();

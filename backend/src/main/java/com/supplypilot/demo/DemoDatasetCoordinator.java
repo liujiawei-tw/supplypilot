@@ -1,33 +1,25 @@
 package com.supplypilot.demo;
 
 import java.math.BigDecimal;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.security.MessageDigest;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.EnumSet;
-import java.util.HexFormat;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.Supplier;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import com.supplypilot.demand.repository.DemandRepository;
-import com.supplypilot.document.domain.DocumentStatus;
 import com.supplypilot.document.domain.DocumentType;
-import com.supplypilot.document.dto.response.DocumentResponse;
-import com.supplypilot.document.rag.DocumentIngestionService;
 import com.supplypilot.document.repository.DocumentMetadataRepository;
 import com.supplypilot.document.semantic.SemanticProperties;
 import com.supplypilot.document.semantic.SemanticStore;
-import com.supplypilot.document.service.DocumentService;
 import com.supplypilot.document.service.DocumentStorageService;
 import com.supplypilot.inventory.domain.Inventory;
 import com.supplypilot.inventory.domain.StockTransaction;
@@ -41,7 +33,6 @@ import com.supplypilot.procurement.domain.PurchaseOrder;
 import com.supplypilot.procurement.domain.PurchaseOrderItem;
 import com.supplypilot.procurement.domain.PurchaseOrderStatus;
 import com.supplypilot.procurement.repository.PurchaseOrderRepository;
-import com.supplypilot.security.AuthenticatedUser;
 import com.supplypilot.supplier.domain.Currency;
 import com.supplypilot.supplier.domain.SupplierMaterial;
 import com.supplypilot.supplier.domain.SupplierMaterialStatus;
@@ -57,9 +48,6 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.context.SecurityContext;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.PlatformTransactionManager;
@@ -72,9 +60,11 @@ public class DemoDatasetCoordinator implements DemoDataCoordinator {
     static final String DATASET_KEY = "SP-901";
     static final String RESET_CONFIRMATION = "RESET-SP-901-DEMO";
     private static final String LEGACY_DATASET_VERSION = "sp-905-zh-tw-v1";
-    private static final String CURRENT_DATASET_VERSION = "sp-906-zh-tw-v2";
+    private static final String PREVIOUS_DATASET_VERSION = "sp-906-zh-tw-v2";
+    private static final String CURRENT_DATASET_VERSION = "sp-907-zh-tw-v3";
+    private static final int CURRENT_BASELINE_DOCUMENT_COUNT = 115;
     private static final Set<String> SUPPORTED_DATASET_VERSIONS = Set.of(
-            LEGACY_DATASET_VERSION, CURRENT_DATASET_VERSION);
+            LEGACY_DATASET_VERSION, PREVIOUS_DATASET_VERSION, CURRENT_DATASET_VERSION);
     private static final Logger log = LoggerFactory.getLogger(DemoDatasetCoordinator.class);
 
     private final DemoProperties properties;
@@ -92,9 +82,8 @@ public class DemoDatasetCoordinator implements DemoDataCoordinator {
     private final PurchaseOrderRepository purchaseOrders;
     private final StockTransactionRepository stockTransactions;
     private final DocumentMetadataRepository documents;
-    private final DocumentService documentService;
-    private final DocumentIngestionService ingestionService;
     private final DocumentStorageService documentStorage;
+    private final DemoCorpusSyncService corpusSync;
     private final SemanticStore semanticStore;
     private final SemanticProperties semanticProperties;
     private final Path documentStorageRoot;
@@ -105,9 +94,8 @@ public class DemoDatasetCoordinator implements DemoDataCoordinator {
             InventoryRepository inventories, SupplierRepository suppliers,
             SupplierMaterialRepository supplierMaterials, DemandRepository demands,
             PurchaseOrderRepository purchaseOrders, StockTransactionRepository stockTransactions,
-            DocumentMetadataRepository documents, DocumentService documentService,
-            DocumentIngestionService ingestionService, DocumentStorageService documentStorage,
-            SemanticStore semanticStore, SemanticProperties semanticProperties,
+            DocumentMetadataRepository documents, DocumentStorageService documentStorage,
+            DemoCorpusSyncService corpusSync, SemanticStore semanticStore, SemanticProperties semanticProperties,
             @Value("${supplypilot.document-storage.path:./data/demo-documents}") String documentStoragePath, ObjectMapper objectMapper) {
         this.properties = properties;
         this.objectMapper = objectMapper;
@@ -124,9 +112,8 @@ public class DemoDatasetCoordinator implements DemoDataCoordinator {
         this.purchaseOrders = purchaseOrders;
         this.stockTransactions = stockTransactions;
         this.documents = documents;
-        this.documentService = documentService;
-        this.ingestionService = ingestionService;
         this.documentStorage = documentStorage;
+        this.corpusSync = corpusSync;
         this.semanticStore = semanticStore;
         this.semanticProperties = semanticProperties;
         this.documentStorageRoot = Path.of(documentStoragePath).toAbsolutePath().normalize();
@@ -146,47 +133,156 @@ public class DemoDatasetCoordinator implements DemoDataCoordinator {
     }
 
     private void initializeBaseline() {
-        Map<String, Object> state = state();
-        if (state != null) {
+        Map<String, Object> existing = state();
+        if (existing != null) {
             ExistingDatasetAction action = classifyExistingDataset(
-                    state.get("status"), state.get("dataset_version"), properties.getDatasetVersion());
+                    existing.get("status"), existing.get("dataset_version"), properties.getDatasetVersion());
             switch (action) {
-                case ALREADY_COMPLETE -> log.info("DEMO_DATASET_ALREADY_COMPLETE key={} version={} baselineDate={}",
-                        DATASET_KEY, state.get("dataset_version"), state.get("baseline_date"));
+                case ALREADY_COMPLETE -> {
+                    log.info("DEMO_DATASET_ALREADY_COMPLETE key={} version={} baselineDate={}",
+                            DATASET_KEY, existing.get("dataset_version"), existing.get("baseline_date"));
+                    if (shouldDeferExistingBaselineSyncToAutoSafe(properties.getUpgradeMode(), action,
+                            existing.get("status"))) {
+                        deferCorpusSyncToAutoSafe(existing.get("dataset_version"));
+                    } else {
+                        synchronizeBaseline(false);
+                    }
+                }
                 case LEGACY_UPDATE_REQUIRED -> log.warn("DEMO_DATASET_UPDATE_REQUIRED key={} currentVersion={} "
-                                + "currentStatus=COMPLETE targetVersion={}; legacy records are preserved and no reset "
-                                + "or automatic upgrade was performed",
-                        DATASET_KEY, state.get("dataset_version"), properties.getDatasetVersion());
-                case MANUAL_STEPS_INCOMPLETE -> log.warn("DEMO_DATASET_UPDATE_REQUIRED key={} version={} "
-                                + "manualStepsIncomplete=true reason={}; startup seeding preserved all records",
-                        DATASET_KEY, state.get("dataset_version"), state.get("failure_reason"));
+                                + "currentStatus={} targetVersion={}; safe upgrade runner will preserve existing records",
+                        DATASET_KEY, existing.get("dataset_version"), existing.get("status"),
+                        properties.getDatasetVersion());
+                case MANUAL_STEPS_INCOMPLETE -> {
+                    if ("RELATIONAL_READY".equals(existing.get("status"))) {
+                        if (shouldDeferExistingBaselineSyncToAutoSafe(properties.getUpgradeMode(), action,
+                                existing.get("status"))) {
+                            deferCorpusSyncToAutoSafe(existing.get("dataset_version"));
+                        } else {
+                            synchronizeBaseline(true);
+                        }
+                    } else {
+                        log.warn("DEMO_DATASET_UPDATE_REQUIRED key={} version={} status={} reason={}; "
+                                        + "safe upgrade runner will resume eligible work",
+                                DATASET_KEY, existing.get("dataset_version"), existing.get("status"),
+                                existing.get("failure_reason"));
+                    }
+                }
             }
             return;
         }
+
         requireEmptyDatabase();
         LocalDate baselineDate = baselineDate();
         Instant now = clock.instant();
-        jdbc.update("""
-                INSERT INTO demo_dataset_state
-                    (dataset_key, dataset_version, baseline_date, status, created_at)
-                VALUES (?, ?, ?, 'INITIALIZING', ?)
-                """, DATASET_KEY, properties.getDatasetVersion(), baselineDate, now);
         try {
-            transactions.executeWithoutResult(transaction -> seedRelational(baselineDate, now));
-            jdbc.update("UPDATE demo_dataset_state SET status = 'RELATIONAL_READY' WHERE dataset_key = ?", DATASET_KEY);
-            bootstrapDocuments();
-            jdbc.update("""
-                    UPDATE demo_dataset_state SET status = 'COMPLETE', completed_at = ?, failure_reason = NULL
-                    WHERE dataset_key = ?
-                    """, clock.instant(), DATASET_KEY);
-            log.info("DEMO_DATASET_COMPLETE key={} version={} baselineDate={}", DATASET_KEY,
-                    properties.getDatasetVersion(), baselineDate);
+            // The marker and relational seed share one transaction. A crash cannot leave an
+            // INITIALIZING marker that ambiguously describes a partially written baseline.
+            transactions.executeWithoutResult(transaction -> {
+                jdbc.update("""
+                        INSERT INTO demo_dataset_state
+                            (dataset_key, dataset_version, baseline_date, status, created_at)
+                        VALUES (?, ?, ?, 'RELATIONAL_READY', ?)
+                        """, DATASET_KEY, properties.getDatasetVersion(), baselineDate, now);
+                seedRelational(baselineDate, now);
+            });
         } catch (RuntimeException exception) {
-            String reason = exception.getClass().getSimpleName();
-            jdbc.update("UPDATE demo_dataset_state SET status = 'FAILED', failure_reason = ? WHERE dataset_key = ?",
-                    reason.substring(0, Math.min(reason.length(), 120)), DATASET_KEY);
+            // Concurrent application starts may race on the unique dataset marker. Continue
+            // only when the winning transaction committed a recognized, safe state.
+            Map<String, Object> concurrentState = state();
+            if (concurrentState != null) {
+                ExistingDatasetAction concurrentAction = classifyExistingDataset(
+                        concurrentState.get("status"), concurrentState.get("dataset_version"),
+                        properties.getDatasetVersion());
+                if (concurrentAction == ExistingDatasetAction.ALREADY_COMPLETE) {
+                    if (shouldDeferExistingBaselineSyncToAutoSafe(properties.getUpgradeMode(), concurrentAction,
+                            concurrentState.get("status"))) {
+                        deferCorpusSyncToAutoSafe(concurrentState.get("dataset_version"));
+                    } else {
+                        synchronizeBaseline(false);
+                    }
+                    return;
+                }
+                if (concurrentAction == ExistingDatasetAction.MANUAL_STEPS_INCOMPLETE
+                        && "RELATIONAL_READY".equals(concurrentState.get("status"))) {
+                    if (shouldDeferExistingBaselineSyncToAutoSafe(properties.getUpgradeMode(), concurrentAction,
+                            concurrentState.get("status"))) {
+                        deferCorpusSyncToAutoSafe(concurrentState.get("dataset_version"));
+                    } else {
+                        synchronizeBaseline(true);
+                    }
+                    return;
+                }
+            }
             throw exception;
         }
+        synchronizeBaseline(true);
+    }
+
+    private void synchronizeBaseline(boolean completeRelationalMarkerWhenReady) {
+        try {
+            DemoCorpusSyncService.SyncReport report = corpusSync.synchronizeBaseline();
+            if (completeRelationalMarkerWhenReady) {
+                completeExistingUpgradeIfReady(report);
+            }
+            log.info("DEMO_CORPUS_SYNC key={} version={} status={} total={} created={} adopted={} unchanged={} ready={} "
+                            + "approved={} indexQueued={} indexPending={} policyBlocked={} conflicts={} failures={}",
+                    DATASET_KEY, properties.getDatasetVersion(), report.status(), report.total(), report.created(),
+                    report.adopted(), report.unchanged(), report.ready(), report.approved(), report.indexQueued(),
+                    report.pendingIndex(), report.policyBlocked(), report.conflicts(), report.failures());
+        } catch (RuntimeException exception) {
+            if (completeRelationalMarkerWhenReady) {
+                jdbc.update("""
+                        UPDATE demo_dataset_state SET failure_reason = ?
+                        WHERE dataset_key = ? AND status = 'RELATIONAL_READY'
+                        """, "Baseline document sync retry required: "
+                        + exception.getClass().getSimpleName(), DATASET_KEY);
+            }
+            log.error("DEMO_CORPUS_SYNC_RETRY_REQUIRED key={} version={}",
+                    DATASET_KEY, properties.getDatasetVersion(), exception);
+        }
+    }
+
+    private void deferCorpusSyncToAutoSafe(Object version) {
+        log.info("DEMO_CORPUS_SYNC_DEFERRED_TO_AUTO_SAFE key={} version={}", DATASET_KEY, version);
+    }
+
+    /**
+     * Completes the relational dataset marker only after the repository baseline sources are
+     * present and locally READY. Approval and semantic publication remain independent lifecycle
+     * states and are intentionally not prerequisites for procurement availability.
+     */
+    public boolean completeExistingUpgradeIfReady(DemoCorpusSyncService.SyncReport report) {
+        if (report == null || !CURRENT_DATASET_VERSION.equals(report.corpusVersion())) return false;
+        return Boolean.TRUE.equals(transactions.execute(transaction -> {
+            // AUTO_SAFE also locks this marker before changing failure_reason. Read it with the same
+            // lock so completion cannot overwrite a conflict committed while this call was waiting.
+            Map<String, Object> current = state(true);
+            if (current == null || !CURRENT_DATASET_VERSION.equals(current.get("dataset_version"))) return false;
+            String status = String.valueOf(current.get("status"));
+            String failureReason = current.get("failure_reason") instanceof String value ? value : null;
+            boolean relationalConflict = failureReason != null
+                    && failureReason.startsWith("AUTO_SAFE preserved relational conflicts");
+            if ("COMPLETE".equals(status)) return !relationalConflict;
+            if (!"UPDATE_REQUIRED".equals(status) && !"RELATIONAL_READY".equals(status)) return false;
+
+            boolean sourcesReady = report.status() == DemoCorpusSyncService.SyncStatus.COMPLETE
+                    && report.total() == CURRENT_BASELINE_DOCUMENT_COUNT && report.ready() == report.total()
+                    && report.conflicts() == 0 && report.failures() == 0;
+            if (!sourcesReady || relationalConflict) {
+                if ("RELATIONAL_READY".equals(status) && !relationalConflict) {
+                    jdbc.update("""
+                            UPDATE demo_dataset_state SET failure_reason = ?
+                            WHERE dataset_key = ? AND status = 'RELATIONAL_READY'
+                            """, "Baseline document reconciliation requires retry", DATASET_KEY);
+                }
+                return false;
+            }
+            return jdbc.update("""
+                    UPDATE demo_dataset_state
+                    SET status = 'COMPLETE', completed_at = ?, failure_reason = NULL
+                    WHERE dataset_key = ? AND dataset_version = ? AND status = ?
+                    """, clock.instant(), DATASET_KEY, CURRENT_DATASET_VERSION, status) == 1;
+        }));
     }
 
     static ExistingDatasetAction classifyExistingDataset(Object statusValue, Object versionValue,
@@ -206,16 +302,37 @@ public class DemoDatasetCoordinator implements DemoDataCoordinator {
                 }
                 yield ExistingDatasetAction.LEGACY_UPDATE_REQUIRED;
             }
+            case "RELATIONAL_READY" -> {
+                if (version.equals(targetVersion)) yield ExistingDatasetAction.MANUAL_STEPS_INCOMPLETE;
+                if (!isOlderDatasetVersion(version, targetVersion)) {
+                    throw new IllegalStateException("RELATIONAL_READY demo dataset version is not older than the configured version");
+                }
+                yield ExistingDatasetAction.LEGACY_UPDATE_REQUIRED;
+            }
             case "UPDATE_REQUIRED" -> {
                 if (!version.equals(targetVersion)) {
                     throw new IllegalStateException("UPDATE_REQUIRED demo dataset must use the configured version");
                 }
                 yield ExistingDatasetAction.MANUAL_STEPS_INCOMPLETE;
             }
-            case "INITIALIZING", "RELATIONAL_READY", "FAILED" -> throw new IllegalStateException(
+            case "INITIALIZING", "FAILED" -> throw new IllegalStateException(
                     "Demo dataset is not complete; refusing to treat status " + status + " as a baseline");
             default -> throw new IllegalStateException("Unknown demo dataset status: " + status);
         };
+    }
+
+    static boolean shouldDeferExistingBaselineSyncToAutoSafe(String upgradeMode,
+                                                              ExistingDatasetAction action,
+                                                              Object statusValue) {
+        if (!"AUTO_SAFE".equalsIgnoreCase(upgradeMode)) return false;
+        return (action == ExistingDatasetAction.ALREADY_COMPLETE && "COMPLETE".equals(statusValue))
+                || (action == ExistingDatasetAction.MANUAL_STEPS_INCOMPLETE
+                && "RELATIONAL_READY".equals(statusValue));
+    }
+
+    static boolean isInitialSeedMasterDataTrusted(String upgradeMode, byte[] content) {
+        return !"AUTO_SAFE".equalsIgnoreCase(upgradeMode)
+                || DemoDatasetUpgradeService.isPinnedAutoSafeMasterData(content);
     }
 
     private static boolean isLegalDatasetVersion(String version) {
@@ -223,7 +340,16 @@ public class DemoDatasetCoordinator implements DemoDataCoordinator {
     }
 
     private static boolean isOlderDatasetVersion(String candidate, String target) {
-        return LEGACY_DATASET_VERSION.equals(candidate) && CURRENT_DATASET_VERSION.equals(target);
+        int candidateRank = datasetVersionRank(candidate);
+        int targetRank = datasetVersionRank(target);
+        return candidateRank >= 0 && targetRank >= 0 && candidateRank < targetRank;
+    }
+
+    private static int datasetVersionRank(String version) {
+        if (LEGACY_DATASET_VERSION.equals(version)) return 1;
+        if (PREVIOUS_DATASET_VERSION.equals(version)) return 2;
+        if (CURRENT_DATASET_VERSION.equals(version)) return 3;
+        return -1;
     }
 
     enum ExistingDatasetAction {
@@ -248,7 +374,12 @@ public class DemoDatasetCoordinator implements DemoDataCoordinator {
             throw new IllegalStateException("Demo master data file is missing: " + path);
         }
         try {
-            JsonNode root = objectMapper.readTree(path.toFile());
+            byte[] content = Files.readAllBytes(path);
+            if (!isInitialSeedMasterDataTrusted(properties.getUpgradeMode(), content)) {
+                throw new IllegalStateException(
+                        "AUTO_SAFE packaged master data SHA-256 does not match the pinned sp907 content");
+            }
+            JsonNode root = objectMapper.readTree(content);
             if (!root.path("datasetKey").asText().equals(DATASET_KEY)
                     || !root.path("datasetVersion").asText().equals(properties.getDatasetVersion())) {
                 throw new IllegalStateException("Demo master data key/version does not match configured dataset");
@@ -410,67 +541,6 @@ public class DemoDatasetCoordinator implements DemoDataCoordinator {
         purchaseOrders.saveAndFlush(order);
     }
 
-    private void bootstrapDocuments() {
-        User admin = users.findByUsername("admin").orElseThrow();
-        Path root = Path.of(properties.getSamplesPath()).toAbsolutePath().normalize();
-        Path catalogPath = root.resolve("corpus-catalog.json");
-        if (!Files.isRegularFile(catalogPath)) {
-            throw new IllegalStateException("Demo corpus catalog is missing: " + catalogPath);
-        }
-
-        try {
-            JsonNode catalog = objectMapper.readTree(catalogPath.toFile());
-            if (!catalog.path("datasetKey").asText().equals(DATASET_KEY)
-                    || !catalog.path("corpusVersion").asText().equals(properties.getDatasetVersion())) {
-                throw new IllegalStateException("Demo corpus catalog key/version does not match configured dataset");
-            }
-            List<JsonNode> seedDocuments = requireValidSeedDocuments(catalog);
-
-            for (JsonNode seed : seedDocuments) {
-                String filename = Path.of(seed.path("filename").asText()).getFileName().toString();
-                DocumentSeed document = new DocumentSeed(filename,
-                        DocumentType.valueOf(seed.path("type").asText()),
-                        seed.path("title").asText(), seed.path("version").asText(),
-                        seed.path("supplierCodes").isArray() && !seed.path("supplierCodes").isEmpty()
-                                ? seed.path("supplierCodes").get(0).asText() : null,
-                        seed.path("sourceSha256").asText());
-                if (!"REQUIRES_ADMIN_REVIEW".equals(seed.path("firstReviewStatus").asText())
-                        || !"SEED_BASELINE".equals(seed.path("classification").asText())) {
-                    throw new IllegalStateException("Demo corpus seed must require first admin review");
-                }
-                if (documents.existsByDocumentTypeAndTitleAndVersion(
-                        document.type(), document.title(), document.version())) {
-                    throw new IllegalStateException("Unexpected duplicate demo document: " + document.filename());
-                }
-                Path source = root.resolve(document.filename()).normalize();
-                if (!source.startsWith(root) || !Files.isRegularFile(source)) {
-                    throw new IllegalStateException("Demo source document is missing: " + document.filename());
-                }
-                String actualHash = canonicalLfSha256(Files.readString(source, StandardCharsets.UTF_8));
-                if (!actualHash.equalsIgnoreCase(document.sourceSha256())) {
-                    throw new IllegalStateException("Demo source hash does not match catalog: " + document.filename());
-                }
-                Long supplierId = document.supplierCode() == null ? null
-                        : suppliers.findByCode(document.supplierCode()).orElseThrow().getId();
-                DocumentResponse uploaded = withUser(admin, () -> {
-                    try {
-                        return documentService.upload(document.type(), supplierId, document.title(), document.version(),
-                                new DemoMultipartFile(source, "text/plain"));
-                    } catch (java.io.IOException exception) {
-                        throw new IllegalStateException("Cannot read demo source document", exception);
-                    }
-                });
-                DocumentResponse ready = withUser(admin, () -> ingestionService.ingest(uploaded.id()));
-                if (ready.status() != DocumentStatus.READY) {
-                    throw new IllegalStateException("Demo document ingestion did not become READY: "
-                            + document.filename());
-                }
-            }
-        } catch (java.io.IOException exception) {
-            throw new IllegalStateException("Cannot read demo corpus catalog", exception);
-        }
-    }
-
     static List<JsonNode> requireValidSeedDocuments(JsonNode catalog) {
         if (!catalog.path("documents").isArray()) {
             throw new IllegalStateException("Demo corpus catalog documents must be an array");
@@ -501,29 +571,6 @@ public class DemoDatasetCoordinator implements DemoDataCoordinator {
             throw new IllegalStateException("Demo corpus is missing required seed document types: " + missingTypes);
         }
         return List.copyOf(seedDocuments);
-    }
-
-    private static String canonicalLfSha256(String text) {
-        try {
-            byte[] canonical = text.replace("\r\n", "\n").replace('\r', '\n').getBytes(StandardCharsets.UTF_8);
-            return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(canonical));
-        } catch (java.security.NoSuchAlgorithmException exception) {
-            throw new IllegalStateException("SHA-256 is unavailable", exception);
-        }
-    }
-
-    private <T> T withUser(User user, Supplier<T> action) {
-        SecurityContext previous = SecurityContextHolder.getContext();
-        try {
-            AuthenticatedUser principal = new AuthenticatedUser(user.getId(), user.getUsername(), user.getRole());
-            SecurityContext context = SecurityContextHolder.createEmptyContext();
-            context.setAuthentication(new UsernamePasswordAuthenticationToken(
-                    principal, null, principal.getAuthorities()));
-            SecurityContextHolder.setContext(context);
-            return action.get();
-        } finally {
-            SecurityContextHolder.setContext(previous);
-        }
     }
 
     private void reset() {
@@ -568,7 +615,7 @@ public class DemoDatasetCoordinator implements DemoDataCoordinator {
     private void requireEmptyDatabase() {
         if (users.count() != 0 || materials.count() != 0 || inventories.count() != 0 || suppliers.count() != 0
                 || supplierMaterials.count() != 0 || demands.count() != 0 || purchaseOrders.count() != 0
-                || documents.count() != 0) {
+                || stockTransactions.count() != 0 || documents.count() != 0) {
             throw new IllegalStateException("Refusing to seed a non-empty database without a demo dataset marker");
         }
     }
@@ -579,8 +626,14 @@ public class DemoDatasetCoordinator implements DemoDataCoordinator {
     }
 
     private Map<String, Object> state() {
+        return state(false);
+    }
+
+    private Map<String, Object> state(boolean forUpdate) {
+        String lockClause = forUpdate ? " FOR UPDATE" : "";
         List<Map<String, Object>> rows = jdbc.queryForList(
-                "SELECT dataset_version, baseline_date, status, failure_reason FROM demo_dataset_state WHERE dataset_key = ?",
+                "SELECT dataset_version, baseline_date, status, failure_reason FROM demo_dataset_state WHERE dataset_key = ?"
+                        + lockClause,
                 DATASET_KEY);
         return rows.isEmpty() ? null : rows.getFirst();
     }
@@ -593,6 +646,4 @@ public class DemoDatasetCoordinator implements DemoDataCoordinator {
 
     private static BigDecimal decimal(String value) { return new BigDecimal(value); }
 
-    private record DocumentSeed(String filename, DocumentType type, String title, String version,
-                                String supplierCode, String sourceSha256) { }
 }

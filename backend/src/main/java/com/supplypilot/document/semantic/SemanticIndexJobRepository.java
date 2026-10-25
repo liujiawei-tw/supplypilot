@@ -56,6 +56,21 @@ public class SemanticIndexJobRepository {
                 """, id);
     }
 
+    @Transactional(readOnly = true)
+    public Optional<SemanticIndexJob> findCurrent(long documentId, String version, String sourceHash,
+                                                  String generationKey, long documentGeneration) {
+        List<SemanticIndexJob> jobs = jdbc.query("""
+                SELECT id, document_id, document_version, source_hash, generation_key,
+                       document_generation, status, attempts, retry_count, next_attempt_at,
+                       lease_until, failure_code, created_at, updated_at
+                  FROM semantic_index_jobs
+                 WHERE document_id = ? AND document_version = ? AND source_hash = ?
+                   AND generation_key = ? AND document_generation = ?
+                 ORDER BY id DESC LIMIT 1
+                """, JOB_MAPPER, documentId, version, sourceHash, generationKey, documentGeneration);
+        return jobs.stream().findFirst();
+    }
+
     @Transactional
     public Optional<SemanticIndexJob> findByIdForUpdate(long id) {
         return one("""

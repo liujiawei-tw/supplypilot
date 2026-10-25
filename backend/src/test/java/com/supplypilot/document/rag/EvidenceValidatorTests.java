@@ -129,6 +129,9 @@ class EvidenceValidatorTests {
                 "SUP-001 supplies MAT-001\nMAT-001 標準交期為採購單轉為 ORDERED 後 5 個曆日。", 0.82);
         assertSupported("How long is SUP-002's quotation valid?",
                 "SUP-002 的報價自開立日起 30 個曆日內有效。", 0.79);
+        assertSupported("SUP-002 的 MAT-002 報價有效期限到哪一天？",
+                "【歷史條件】來源範圍 SUP-002 MAT-002。本文件所載上一期展示條件適用於 "
+                        + "2025-03-01 至 2025-06-30，於 2025-06-30 屆滿。", 0.79);
         assertSupported("MAT-001 的基本單位及儲存條件為何？",
                 "MAT-001 基本單位為 KG。請存放於陰涼乾燥處，避免陽光直射。", 0.77);
         assertSupported("哪些狀況需要隔離批次？",
@@ -171,10 +174,10 @@ class EvidenceValidatorTests {
 
         assertThat(validator.isSemanticallySufficient(question, List.of(source), 0.45)).isTrue();
         assertThat(validator.supportedExcerpt(question, content))
-                .contains("若批次缺少批次識別、封條破損、受到污染或物料不符，須將該批隔離")
+                .contains("如發現物料代碼不符、批次標籤缺失、容器破損、封口異常、可見污染或交付數量短少，應將該批隔離")
                 .doesNotContain("問答：", "預期依據：");
         assertThat(new ExtractiveAnswerProvider(validator).answer(question, List.of(source)))
-                .contains("缺少批次識別", "封條破損", "受到污染", "物料不符", "隔離")
+                .contains("批次標籤缺失", "容器破損", "可見污染", "物料代碼不符", "隔離")
                 .doesNotContain("問答：", "預期依據：");
     }
 

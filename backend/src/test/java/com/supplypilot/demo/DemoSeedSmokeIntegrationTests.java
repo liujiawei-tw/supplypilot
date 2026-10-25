@@ -14,6 +14,9 @@ import java.math.BigDecimal;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -26,6 +29,7 @@ import com.supplypilot.document.domain.DocumentType;
 import com.supplypilot.document.repository.DocumentMetadataRepository;
 import com.supplypilot.document.repository.DocumentChunkRepository;
 import com.supplypilot.document.rag.DocumentTextExtractor;
+import com.supplypilot.document.semantic.DocumentSemanticLifecycleReader;
 import com.supplypilot.demand.domain.Demand;
 import com.supplypilot.demand.repository.DemandRepository;
 import com.supplypilot.material.domain.Material;
@@ -57,9 +61,10 @@ import org.springframework.transaction.annotation.Transactional;
 @SpringBootTest(properties = {
         "spring.config.import=",
         "supplypilot.demo.allowed-database=supplypilot_demo_test",
-        "supplypilot.demo.dataset-version=sp-906-zh-tw-v2",
+        "supplypilot.demo.dataset-version=sp-907-zh-tw-v3",
         "supplypilot.demo.samples-path=../samples/documents",
         "supplypilot.document-storage.path=${java.io.tmpdir}/supplypilot-demo-seed-test-documents",
+        "supplypilot.semantic.jdbc-url=",
         "supplypilot.jwt.secret=dGVzdC1zZWNyZXQtZm9yLWRlbW8tc2VlZC10ZXN0cy1hdC1sZWFzdC0yNTYtYml0cw==",
         "supplypilot.frontend-origin=http://localhost:5173"
 })
@@ -85,6 +90,7 @@ class DemoSeedSmokeIntegrationTests {
     @Autowired private DocumentMetadataRepository documents;
     @Autowired private DocumentChunkRepository documentChunks;
     @Autowired private DocumentTextExtractor documentTextExtractor;
+    @Autowired private DocumentSemanticLifecycleReader semanticLifecycleReader;
     @Autowired private DemoDataCoordinator coordinator;
     @Autowired private com.supplypilot.security.DemoBaselineCredentialAuthenticator demoAuthenticator;
     @Autowired private DemoProperties demoProperties;
@@ -92,7 +98,41 @@ class DemoSeedSmokeIntegrationTests {
     @Autowired private JdbcTemplate jdbc;
     @Autowired private MockMvc mockMvc;
     @Autowired private ObjectMapper objectMapper;
+    @Autowired private DemoCorpusSyncLock corpusSyncLock;
 
+    @Test
+    void corpusSyncLockRejectsAnotherSessionUntilReleased() throws Exception {
+        CountDownLatch firstEntered = new CountDownLatch(1);
+        CountDownLatch releaseFirst = new CountDownLatch(1);
+        DemoCorpusSyncLock zeroWaitLock = new DemoCorpusSyncLock(jdbc, 0);
+        try (var executor = Executors.newSingleThreadExecutor()) {
+            var first = executor.submit(() -> corpusSyncLock.withLock(() -> {
+                firstEntered.countDown();
+                awaitLatch(releaseFirst);
+                return "first";
+            }));
+            assertThat(firstEntered.await(5, TimeUnit.SECONDS)).isTrue();
+            assertThatThrownBy(() -> zeroWaitLock.withLock(() -> "unexpected"))
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessageContaining("Timed out waiting for the DEMO corpus synchronization lock");
+            releaseFirst.countDown();
+            assertThat(first.get(5, TimeUnit.SECONDS)).isEqualTo("first");
+            assertThat(zeroWaitLock.withLock(() -> "second")).isEqualTo("second");
+        } finally {
+            releaseFirst.countDown();
+        }
+    }
+
+    private static void awaitLatch(CountDownLatch latch) {
+        try {
+            if (!latch.await(5, TimeUnit.SECONDS)) {
+                throw new IllegalStateException("Timed out waiting to release the first corpus lock holder");
+            }
+        } catch (InterruptedException exception) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("Interrupted while waiting for corpus lock test", exception);
+        }
+    }
     @Test
     void onlyAdminBaselineAccountUsesConfiguredPassword() throws Exception {
         assertLogin("admin", PASSWORD, 200, "ADMIN");
@@ -155,26 +195,72 @@ class DemoSeedSmokeIntegrationTests {
         assertThat(supplierMaterials.count()).isEqualTo(45);
         assertThat(demands.count()).isZero();
         assertThat(purchaseOrders.count()).isEqualTo(10);
-        assertThat(documents.count()).isEqualTo(15);
-        assertThat(documents.findAll()).allMatch(document -> document.getStatus() == DocumentStatus.READY);
-        assertThat(documents.findAll()).extracting(document -> document.getTitle()).hasSize(15);
-        for (DocumentType type : DocumentType.values()) {
-            assertThat(documents.findAll().stream().filter(document -> document.getDocumentType() == type)).hasSize(3);
-        }
-        assertThat(documents.findAll()).allSatisfy(document -> {
-            assertThat(document.getVersion()).isEqualTo("1.0");
-            assertThat(document.getSemanticReviewStatus()).isNull();
+        var baselineDocuments = documents.findAll().stream().filter(document -> document.isDemoBaseline()).toList();
+        assertThat(documents.count()).isEqualTo(115);
+        assertThat(baselineDocuments).hasSize(115);
+        assertThat(baselineDocuments).allMatch(document -> document.getStatus() == DocumentStatus.READY);
+        assertThat(baselineDocuments).extracting(document -> document.getTitle()).hasSize(115);
+        assertThat(baselineDocuments.stream().filter(document -> "2.0".equals(document.getVersion())))
+                .as("V2 supplier corpus documents")
+                .hasSize(100);
+        assertThat(baselineDocuments.stream().filter(document -> "1.0".equals(document.getVersion())))
+                .as("unchanged baseline documents")
+                .hasSize(15);
+        assertThat(baselineDocuments).noneMatch(document -> "UI-SUP-005-ADDENDUM"
+                .equals(document.getDemoDocumentKey()));
+        assertThat(baselineDocuments).allSatisfy(document -> {
+            String expectedVersion = document.getDemoDocumentKey().endsWith("-SP907") ? "2.0" : "1.0";
+            assertThat(document.getVersion()).isEqualTo(expectedVersion);
+            assertThat(document.getSemanticReviewStatus()).isNotNull();
+            assertThat(document.getSemanticReviewStatus())
+                    .isEqualTo(com.supplypilot.document.domain.SemanticReviewStatus.REQUIRES_REVIEW);
+            assertThat(document.getSemanticReviewActorType()).isEqualTo("SYSTEM");
+            assertThat(document.getSemanticReviewActor()).isEqualTo("TRUSTED_DEMO_CORPUS");
+            assertThat(document.getSemanticReviewTrigger()).isEqualTo("TRUSTED_DEMO_CORPUS_AUTO_REVIEW");
             assertThat(Path.of(System.getProperty("java.io.tmpdir"), "supplypilot-demo-seed-test-documents",
                     document.getStoragePath())).isRegularFile();
         });
-        assertThat(documents.findAll()).noneMatch(document -> document.getTitle().contains("SUP-005") && document.getDocumentType() == DocumentType.SUPPLIER_CONTRACT);
+        Map<DocumentType, Integer> expectedTypeCounts = Map.of(
+                DocumentType.SUPPLIER_CONTRACT, 13,
+                DocumentType.QUOTATION, 13,
+                DocumentType.PROCUREMENT_SOP, 3,
+                DocumentType.PRODUCT_SPECIFICATION, 13,
+                DocumentType.QUALITY_REQUIREMENT, 13,
+                DocumentType.SUPPLIER_PROFILE, 20,
+                DocumentType.SUPPLIER_COOPERATION_RECORD, 30,
+                DocumentType.SUPPLIER_EVALUATION, 10);
+        for (var entry : expectedTypeCounts.entrySet()) {
+            assertThat(baselineDocuments.stream()
+                    .filter(document -> document.getDocumentType() == entry.getKey())).hasSize(entry.getValue());
+        }
+        for (int index = 1; index <= 10; index++) {
+            String supplierCode = "SUP-%03d".formatted(index);
+            Long supplierId = suppliers.findByCode(supplierCode).orElseThrow().getId();
+            Long supplierDocumentCount = jdbc.queryForObject("""
+                    SELECT COUNT(*) FROM document_metadata
+                    WHERE demo_dataset_key = 'SP-901' AND supplier_id = ?
+                    """, Long.class, supplierId);
+            assertThat(supplierDocumentCount).as("supplier-specific database documents for %s", supplierCode)
+                    .isGreaterThanOrEqualTo(10L);
+        }
+        assertThat(jdbc.queryForObject("""
+                SELECT ready_documents FROM demo_corpus_sync_state
+                WHERE dataset_key = 'SP-901' AND corpus_version = 'sp-907-zh-tw-v3'
+                """, Integer.class)).isEqualTo(115);
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM semantic_index_jobs", Integer.class)).isZero();
+        assertThat(baselineDocuments).allSatisfy(document -> {
+            var lifecycle = semanticLifecycleReader.read(
+                    documents.findForSemanticRead(document.getId()).orElseThrow());
+            assertThat(lifecycle.status()).isEqualTo("REVIEW_REQUIRED");
+            assertThat(lifecycle.status()).isNotEqualTo("INDEXED");
+        });
         assertThat(jdbc.queryForObject("SELECT dataset_version FROM demo_dataset_state WHERE dataset_key = 'SP-901'", String.class))
-                .isEqualTo("sp-906-zh-tw-v2");
-        assertThat(documents.findAll()).allSatisfy(document -> {
+                .isEqualTo("sp-907-zh-tw-v3");
+        assertThat(baselineDocuments).allSatisfy(document -> {
             Path source = Path.of(System.getProperty("java.io.tmpdir"), "supplypilot-demo-seed-test-documents",
                     document.getStoragePath());
             String text = documentTextExtractor.extract(document.getStoragePath());
-            assertThat(text).contains("虛構展示文件", "標題：" + document.getTitle());
+            assertThat(text).contains("標題：" + document.getTitle());
             var chunks = documentChunks.findByDocumentIdOrderByChunkIndex(document.getId());
             assertThat(chunks).isNotEmpty();
             assertThat(chunks).allSatisfy(chunk -> {
@@ -219,17 +305,17 @@ class DemoSeedSmokeIntegrationTests {
         coordinator.initialize();
         assertThat(users.count()).isEqualTo(1);
         assertThat(purchaseOrders.count()).isEqualTo(10);
-        assertThat(documents.count()).isEqualTo(15);
+        assertThat(documents.count()).isEqualTo(115);
 
         demoProperties.setDatasetVersion("sp-901-v1");
         assertThatThrownBy(coordinator::initialize)
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("Configured demo dataset version is invalid");
-        assertThat(documents.count()).isEqualTo(15);
+        assertThat(documents.count()).isEqualTo(115);
         assertThat(jdbc.queryForObject(
                 "SELECT dataset_version FROM demo_dataset_state WHERE dataset_key = 'SP-901'", String.class))
-                .isEqualTo("sp-906-zh-tw-v2");
-        demoProperties.setDatasetVersion("sp-906-zh-tw-v2");
+                .isEqualTo("sp-907-zh-tw-v3");
+        demoProperties.setDatasetVersion("sp-907-zh-tw-v3");
     }
 
     @Test

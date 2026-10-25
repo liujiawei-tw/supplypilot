@@ -1,0 +1,11 @@
+標題：東港貿易社（SUP-002）｜採購合作歷程展示文件
+文件類型：SUPPLIER_COOPERATION_RECORD
+文件版本：1.0
+文件日期：2026-10-25
+虛構展示文件：供應商、物料、流程紀錄與評語均為 SupplyPilot 展示資料，不代表真實公司、報價、品質結果或交易承諾。
+
+東港貿易社（SUP-002）的合作歷程僅整理虛構主檔 已列紀錄。展示主檔 列有以下 purchaseOrderExamples：
+DEMO-PO-002：SUP-002／MAT-002 芒果濃縮汁，400 KG，status=DRAFT，stage=SOURCING。
+DEMO-PO-004：SUP-002／MAT-001 阿薩姆紅茶萃取物，500 KG，status=APPROVED，stage=APPROVED_PENDING_ORDER。
+DEMO-PO-010：SUP-002／MAT-001 阿薩姆紅茶萃取物，500 KG，status=CANCELLED，stage=null。取消原因：需求時程調整，撤銷尚未下單的採購單；未異動庫存。
+草稿、核准待下單、取消或駁回均不可記作已完成交貨。主檔沒有完整往來日期、準時率、履約率或交易金額；不得從 PO 狀態推算供應商整體表現。

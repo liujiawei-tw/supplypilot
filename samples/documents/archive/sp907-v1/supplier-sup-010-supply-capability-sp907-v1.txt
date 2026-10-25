@@ -1,0 +1,12 @@
+標題：南島風味貿易（SUP-010）｜供貨關係與能力範圍展示文件
+文件類型：SUPPLIER_PROFILE
+文件版本：1.0
+文件日期：2026-10-25
+虛構展示文件：供應商、物料、流程紀錄與評語均為 SupplyPilot 展示資料，不代表真實公司、報價、品質結果或交易承諾。
+
+南島風味貿易（SUP-010）的供貨範圍依 展示主檔 的 supplierMaterials 關係。主檔列有 4 筆 ACTIVE 關係；以下列值僅反映展示主檔。
+- SUP-010/MAT-001 阿薩姆紅茶萃取物：status=ACTIVE，單位 KG，MOQ 800 KG，包裝倍數 100 KG，標準交期 5 個日曆日，幣別 TWD。
+- SUP-010/MAT-006 茉莉茶萃取物：status=ACTIVE，單位 KG，MOQ 100 KG，包裝倍數 25 KG，標準交期 5 個日曆日，幣別 TWD。
+- SUP-010/MAT-007 百香果泥：status=ACTIVE，單位 KG，MOQ 100 KG，包裝倍數 25 KG，標準交期 8 個日曆日，幣別 TWD。
+- SUP-010/MAT-012 椰奶基底：status=ACTIVE，單位 KG，MOQ 100 KG，包裝倍數 25 KG，標準交期 7 個日曆日，幣別 TWD。
+主檔沒有產能上限、可用庫存、認證或品質檢驗結果；不得將 MOQ、包裝倍數或交期解讀為產能承諾。INACTIVE 關係不可視為現行可下單條件。

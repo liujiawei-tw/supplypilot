@@ -1,0 +1,9 @@
+標題：森川飲品原料（SUP-008）｜交期協調紀錄展示文件
+文件類型：SUPPLIER_COOPERATION_RECORD
+文件版本：1.0
+文件日期：2026-10-25
+虛構展示文件：供應商、物料、流程紀錄與評語均為 SupplyPilot 展示資料，不代表真實公司、報價、品質結果或交易承諾。
+
+森川飲品原料（SUP-008）的交期協調應區分標準交期與 PO 階段。MAT-003 果糖糖漿 ACTIVE 關係的標準交期為 3 個日曆日，採購單進入 ORDERED 後起算。展示主檔 列有以下 purchaseOrderExamples：
+DEMO-PO-007：SUP-008／MAT-004 奶茶基底，150 KG，status=RECEIVED，stage=PAYMENT_RECONCILIATION。
+公司期望到貨日與供應商承諾到貨日分開保存；目前資料未提供具體承諾日期，不能換算或推定實際到貨日。

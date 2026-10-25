@@ -5,6 +5,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
+import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.nio.file.StandardOpenOption;
@@ -68,9 +69,32 @@ public class LocalDocumentStorageService implements DocumentStorageService {
         try {
             Path target = resolveWithinRoot(prepareStorageRoot(), storagePath);
             if (!Files.isRegularFile(target, LinkOption.NOFOLLOW_LINKS) || Files.isSymbolicLink(target)) {
+                if (!Files.exists(target, LinkOption.NOFOLLOW_LINKS)) {
+                    throw new NoSuchFileException(target.toString());
+                }
                 throw new IOException("Stored document is not a regular file");
             }
             return Files.newInputStream(target, StandardOpenOption.READ, LinkOption.NOFOLLOW_LINKS);
+        } catch (NoSuchFileException exception) {
+            throw new BusinessException(ErrorCode.DOCUMENT_FILE_NOT_FOUND);
+        } catch (IOException exception) {
+            throw new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    @Override
+    public long size(String storagePath) {
+        try {
+            Path target = resolveWithinRoot(prepareStorageRoot(), storagePath);
+            if (!Files.isRegularFile(target, LinkOption.NOFOLLOW_LINKS) || Files.isSymbolicLink(target)) {
+                if (!Files.exists(target, LinkOption.NOFOLLOW_LINKS)) {
+                    throw new NoSuchFileException(target.toString());
+                }
+                throw new IOException("Stored document is not a regular file");
+            }
+            return Files.size(target);
+        } catch (NoSuchFileException exception) {
+            throw new BusinessException(ErrorCode.DOCUMENT_FILE_NOT_FOUND);
         } catch (IOException exception) {
             throw new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR);
         }

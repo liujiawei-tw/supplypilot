@@ -18,9 +18,10 @@ class DemoDatasetCoordinatorCatalogTests {
     void catalogCanExpandBeyondTheFormerFixedSeedCountWhenCoverageIsComplete() {
         JsonNode catalog = catalog(List.of(
                 seed("SUPPLIER_CONTRACT"), seed("SUPPLIER_CONTRACT"), seed("QUOTATION"),
-                seed("PROCUREMENT_SOP"), seed("PRODUCT_SPECIFICATION"), seed("QUALITY_REQUIREMENT")));
+                seed("PROCUREMENT_SOP"), seed("PRODUCT_SPECIFICATION"), seed("QUALITY_REQUIREMENT"),
+                seed("SUPPLIER_PROFILE"), seed("SUPPLIER_COOPERATION_RECORD"), seed("SUPPLIER_EVALUATION")));
 
-        assertThat(DemoDatasetCoordinator.requireValidSeedDocuments(catalog)).hasSize(6);
+        assertThat(DemoDatasetCoordinator.requireValidSeedDocuments(catalog)).hasSize(9);
     }
 
     @Test

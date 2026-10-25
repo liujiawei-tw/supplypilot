@@ -8,11 +8,13 @@ import java.util.HexFormat;
 import java.util.List;
 
 import com.supplypilot.common.exception.BusinessException;
+import com.supplypilot.demo.DemoCorpusRagEligibility;
 import com.supplypilot.document.domain.DocumentChunk;
 import com.supplypilot.document.domain.DocumentMetadata;
 import com.supplypilot.document.domain.DocumentStatus;
 import com.supplypilot.document.repository.DocumentChunkRepository;
 import com.supplypilot.document.repository.DocumentMetadataRepository;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
@@ -24,15 +26,24 @@ public class SemanticBackfillService {
     private final OutboundDocumentPolicy policy;
     private final SemanticEmbeddingService embeddings;
     private final SemanticStore store;
+    private final DemoCorpusRagEligibility demoEligibility;
 
     public SemanticBackfillService(DocumentMetadataRepository documents, DocumentChunkRepository chunks,
                                    OutboundDocumentPolicy policy, SemanticEmbeddingService embeddings,
                                    SemanticStore store) {
+        this(documents, chunks, policy, embeddings, store, DemoCorpusRagEligibility.manualUploadsOnly());
+    }
+
+    @Autowired
+    public SemanticBackfillService(DocumentMetadataRepository documents, DocumentChunkRepository chunks,
+                                   OutboundDocumentPolicy policy, SemanticEmbeddingService embeddings,
+                                   SemanticStore store, DemoCorpusRagEligibility demoEligibility) {
         this.documents = documents;
         this.chunks = chunks;
         this.policy = policy;
         this.embeddings = embeddings;
         this.store = store;
+        this.demoEligibility = demoEligibility;
     }
 
     @PreAuthorize("hasRole('ADMIN')")
@@ -58,10 +69,11 @@ public class SemanticBackfillService {
     }
 
     String reindex(DocumentMetadata document) {
+        if (!demoEligibility.isEligible(document)) return "SKIPPED";
         List<DocumentChunk> source = chunks.findByDocumentIdOrderByChunkIndex(document.getId());
         String hash = sourceHash(source);
-        OutboundDocumentPolicy.Decision decision = policy.inspect(document,
-                source.stream().map(DocumentChunk::getContent).toList(), hash);
+        OutboundDocumentPolicy.Decision decision = demoEligibility.inspectSource(document, source, hash,
+                document.getSemanticIndexGeneration(), policy);
         if (!decision.status().equals("APPROVED")) {
             store.mark(document.getId(), document.getVersion(), decision.status(),
                     decision.reason(), hash, source.size(), document.getSemanticIndexGeneration());

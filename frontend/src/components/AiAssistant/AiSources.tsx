@@ -29,6 +29,7 @@ export default function AiSources({ sources }: { sources: AiSourceResponse[] }) 
         title={<Space wrap><Tag>{displayLabel(source.resourceType)}</Tag><Text>{source.title}</Text></Space>}>
         <Descriptions size="small" column={1} items={[
           { key: 'id', label: '來源 ID', children: link ? <Link to={link}>{source.resourceId}</Link> : source.resourceId },
+          ...(source.documentKey ? [{ key: 'documentKey', label: 'Document Key', children: source.documentKey }] : []),
           ...(source.version ? [{ key: 'version', label: '文件版本', children: source.version }] : []),
           ...(source.supplierId !== null ? [{ key: 'supplier', label: '供應商 ID', children: source.supplierId }] : []),
           ...(source.chunkIndex !== null ? [{ key: 'chunk', label: '來源片段序號', children: source.chunkIndex }] : []),

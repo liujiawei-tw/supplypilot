@@ -195,7 +195,7 @@ class AiAssistantServiceTests {
         AiToolResult missingSource = new AiToolResult(AiToolType.SEARCH_DOCUMENTS,
                 AiQueryStatus.ANSWERED, clause, List.of());
         assertContractQuestionInsufficient(List.of(missingSource));
-        AiSourceResponse badOffset = new AiSourceResponse("DOCUMENT", "1", "測試合約", "1.0", 1L,
+        AiSourceResponse badOffset = new AiSourceResponse("DOCUMENT", "1", "測試合約", null, "1.0", 1L,
                 0, 0, clause.length() + 1, clause, 0.9);
         assertContractQuestionInsufficient(List.of(new AiToolResult(AiToolType.SEARCH_DOCUMENTS,
                 AiQueryStatus.ANSWERED, clause, List.of(badOffset))));
@@ -243,7 +243,7 @@ class AiAssistantServiceTests {
 
     private AiToolResult document(String clause, String id) {
         return new AiToolResult(AiToolType.SEARCH_DOCUMENTS, AiQueryStatus.ANSWERED, clause,
-                List.of(new AiSourceResponse("DOCUMENT", id, "測試合約", "1.0", 1L,
+                List.of(new AiSourceResponse("DOCUMENT", id, "測試合約", null, "1.0", 1L,
                         0, 0, clause.length(), clause, 0.9)));
     }
 

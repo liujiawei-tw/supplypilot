@@ -25,7 +25,7 @@ public class EvidenceValidator {
             "(?<=[。！？!?])\\s*|(?<!\\d)\\.(?!\\d)\\s*|\\r?\\n+");
     private static final Pattern QUESTION_HINT = Pattern.compile("(?i)^(?:問答\\s*[:：]|預期依據\\s*[:：]|q\\s*&\\s*a\\s*[:：])");
     private static final Pattern CONDITION_LEAD = Pattern.compile(
-            "(?i)(?:若|如果|假如|倘若|當|凡是|凡發生|\\bif\\b|\\bwhen\\b|\\bunless\\b|"
+            "(?i)(?:若|如果|假如|倘若|如|當|凡是|凡發生|\\bif\\b|\\bwhen\\b|\\bunless\\b|"
                     + "\\bprovided\\s+that\\b|\\bin\\s+case\\b)");
     private static final Pattern CONDITION_REFERENCE = Pattern.compile(
             "(?i)(?:這些(?:情況|狀況|條件)|上述(?:情況|狀況|條件)?|以上(?:情況|狀況|條件)?|"
@@ -93,7 +93,7 @@ public class EvidenceValidator {
             new Topic("delivery", "lead time", "delivery time", "standard delivery", "standard lead time",
                     "交期", "交貨期", "標準交期"),
             new Topic("quotation validity", "quotation", "quote", "validity", "valid",
-                    "報價", "有效期限", "有效期"),
+                    "報價", "報價期間", "有效期限", "有效期", "有效期間", "有效至", "屆滿", "到期"),
             new Topic("storage", "storage", "stored", "store", "storage condition",
                     "儲存", "存放", "保存"),
             new Topic("unit", "base unit", "unit", "基本單位", "單位"),

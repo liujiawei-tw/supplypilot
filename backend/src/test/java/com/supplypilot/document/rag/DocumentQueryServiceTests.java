@@ -177,7 +177,7 @@ class DocumentQueryServiceTests {
         var result = service.query(question);
 
         assertThat(result.status()).isEqualTo(DocumentQueryStatus.ANSWERED);
-        assertThat(result.answer()).contains("缺少批次識別", "封條破損", "受到污染", "物料不符", "隔離")
+        assertThat(result.answer()).contains("批次標籤缺失", "封口異常", "可見污染", "物料代碼不符", "隔離")
                 .doesNotContain("問答：", "預期依據：");
         assertThat(result.sources()).singleElement().satisfies(citation -> {
             assertThat(citation.documentId()).isEqualTo(5L);

@@ -1,6 +1,18 @@
 package com.supplypilot.document.service;
 
 import java.time.Clock;
+import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.nio.charset.StandardCharsets;
+import java.util.HexFormat;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import com.supplypilot.common.exception.BusinessException;
 import com.supplypilot.common.exception.ErrorCode;
@@ -10,8 +22,10 @@ import com.supplypilot.document.domain.DocumentStatus;
 import com.supplypilot.document.domain.DocumentType;
 import com.supplypilot.document.dto.request.UpdateDocumentRequest;
 import com.supplypilot.document.dto.response.DocumentResponse;
+import com.supplypilot.document.dto.response.DocumentSemanticIndexResponse;
 import com.supplypilot.document.mapper.DocumentMapper;
 import com.supplypilot.document.repository.DocumentMetadataRepository;
+import com.supplypilot.document.semantic.DocumentSemanticLifecycleReader;
 import com.supplypilot.security.CurrentUserProvider;
 import com.supplypilot.supplier.domain.Supplier;
 import com.supplypilot.supplier.repository.SupplierRepository;
@@ -21,7 +35,10 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -36,6 +53,8 @@ public class DocumentService {
     private final DocumentMapper documentMapper;
     private final CurrentUserProvider currentUserProvider;
     private final Clock clock;
+    private final DocumentSemanticLifecycleReader lifecycleReader;
+    private final TransactionTemplate primaryTransactions;
 
     public DocumentService(
             DocumentMetadataRepository documentRepository,
@@ -47,6 +66,38 @@ public class DocumentService {
             CurrentUserProvider currentUserProvider,
             Clock clock
     ) {
+        this(documentRepository, supplierRepository, userRepository, storageService, fileValidator,
+                documentMapper, currentUserProvider, clock, null, null);
+    }
+
+    public DocumentService(
+            DocumentMetadataRepository documentRepository,
+            SupplierRepository supplierRepository,
+            UserRepository userRepository,
+            DocumentStorageService storageService,
+            DocumentFileValidator fileValidator,
+            DocumentMapper documentMapper,
+            CurrentUserProvider currentUserProvider,
+            Clock clock,
+            DocumentSemanticLifecycleReader lifecycleReader
+    ) {
+        this(documentRepository, supplierRepository, userRepository, storageService, fileValidator,
+                documentMapper, currentUserProvider, clock, lifecycleReader, null);
+    }
+
+    @Autowired
+    public DocumentService(
+            DocumentMetadataRepository documentRepository,
+            SupplierRepository supplierRepository,
+            UserRepository userRepository,
+            DocumentStorageService storageService,
+            DocumentFileValidator fileValidator,
+            DocumentMapper documentMapper,
+            CurrentUserProvider currentUserProvider,
+            Clock clock,
+            DocumentSemanticLifecycleReader lifecycleReader,
+            PlatformTransactionManager transactionManager
+    ) {
         this.documentRepository = documentRepository;
         this.supplierRepository = supplierRepository;
         this.userRepository = userRepository;
@@ -55,6 +106,8 @@ public class DocumentService {
         this.documentMapper = documentMapper;
         this.currentUserProvider = currentUserProvider;
         this.clock = clock;
+        this.lifecycleReader = lifecycleReader;
+        this.primaryTransactions = transactionManager == null ? null : new TransactionTemplate(transactionManager);
     }
 
     @PreAuthorize("hasAnyRole('PROCUREMENT_STAFF', 'ADMIN')")
@@ -75,7 +128,7 @@ public class DocumentService {
         try {
             DocumentMetadata document = DocumentMetadata.processing(
                     documentType, supplier, title, version, storagePath, uploadedBy, clock.instant());
-            return documentMapper.toResponse(documentRepository.saveAndFlush(document));
+            return toResponse(documentRepository.saveAndFlush(document));
         } catch (RuntimeException persistenceFailure) {
             try {
                 storageService.delete(storagePath);
@@ -86,7 +139,33 @@ public class DocumentService {
         }
     }
 
-    @Transactional(readOnly = true)
+    /** Creates a server-owned trusted DEMO baseline without assigning a human uploader. */
+    @Transactional
+    public DocumentResponse createTrustedDemoBaseline(
+            DocumentType documentType, Long supplierId, String title, String version, byte[] source,
+            String datasetKey, String documentKey, String themeKey, String corpusVersion,
+            String sourceSha256, String provenanceOrigin) {
+        if (source == null || source.length == 0 || source.length > DocumentFileValidator.MAX_FILE_BYTES
+                || !canonicalSha256(source).equalsIgnoreCase(sourceSha256)) {
+            throw new BusinessException(ErrorCode.VALIDATION_FAILED);
+        }
+        Supplier supplier = supplierId == null ? null : supplierRepository.findById(supplierId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.SUPPLIER_NOT_FOUND));
+        MultipartFile file = new ByteArrayMultipartFile("corpus.txt", source);
+        String extension = fileValidator.validate(file);
+        String storagePath = storageService.store(file, extension);
+        try {
+            DocumentMetadata document = DocumentMetadata.demoBaselineProcessing(documentType, supplier,
+                    title, version, storagePath, datasetKey, documentKey, themeKey, corpusVersion,
+                    sourceSha256, provenanceOrigin, clock.instant());
+            return toResponse(documentRepository.saveAndFlush(document));
+        } catch (RuntimeException persistenceFailure) {
+            try { storageService.delete(storagePath); }
+            catch (RuntimeException compensationFailure) { persistenceFailure.addSuppressed(compensationFailure); }
+            throw persistenceFailure;
+        }
+    }
+
     @PreAuthorize("hasAnyRole('PROCUREMENT_STAFF', 'PROCUREMENT_MANAGER', 'ADMIN')")
     public PageResponse<DocumentResponse> list(
             DocumentType documentType,
@@ -108,30 +187,77 @@ public class DocumentService {
                     (root, query, builder) -> builder.equal(root.get("status"), status));
         }
         Page<DocumentMetadata> page = documentRepository.findAll(specification, pageable);
-        return PageResponse.from(page.map(documentMapper::toResponse));
+        Map<Long, DocumentSemanticIndexResponse> lifecycleByDocument = new HashMap<>();
+        if (lifecycleReader != null) {
+            List<DocumentSemanticIndexResponse> lifecycle = lifecycleReader.readAll(page.getContent());
+            for (int i = 0; i < lifecycle.size(); i++) {
+                lifecycleByDocument.put(page.getContent().get(i).getId(), lifecycle.get(i));
+            }
+        }
+        return PageResponse.from(page.map(document -> documentMapper.toResponse(
+                document, lifecycleByDocument.get(document.getId()))));
     }
 
-    @Transactional(readOnly = true)
     @PreAuthorize("hasAnyRole('PROCUREMENT_STAFF', 'PROCUREMENT_MANAGER', 'ADMIN')")
     public DocumentResponse get(Long id) {
-        return documentMapper.toResponse(findDocument(id));
+        return toResponse(findDocument(id));
     }
 
-    @Transactional
     @PreAuthorize("hasAnyRole('PROCUREMENT_STAFF', 'ADMIN')")
     public DocumentResponse update(Long id, UpdateDocumentRequest request) {
-        DocumentMetadata document = findDocumentForUpdate(id);
+        DocumentMetadata updated = primaryTransactions == null
+                ? updateWithinTransaction(id, request)
+                : primaryTransactions.execute(status -> updateWithinTransaction(id, request));
+        if (updated == null) throw new IllegalStateException("Document update transaction returned no result");
+        return toResponse(updated);
+    }
+
+    private DocumentMetadata updateWithinTransaction(Long id, UpdateDocumentRequest request) {
+        DocumentMetadata document = documentRepository.findByIdForUpdateWithSupplier(id)
+                .orElseThrow(() -> new BusinessException(ErrorCode.DOCUMENT_NOT_FOUND));
         document.updateMetadata(request.title(), request.status(), clock.instant());
-        return documentMapper.toResponse(documentRepository.save(document));
+        return documentRepository.save(document);
+    }
+
+    private DocumentResponse toResponse(DocumentMetadata document) {
+        return documentMapper.toResponse(document,
+                lifecycleReader == null ? null : lifecycleReader.read(document));
     }
 
     private DocumentMetadata findDocument(Long id) {
-        return documentRepository.findById(id)
+        return documentRepository.findForSemanticRead(id)
                 .orElseThrow(() -> new BusinessException(ErrorCode.DOCUMENT_NOT_FOUND));
     }
 
-    private DocumentMetadata findDocumentForUpdate(Long id) {
-        return documentRepository.findByIdForUpdate(id)
-                .orElseThrow(() -> new BusinessException(ErrorCode.DOCUMENT_NOT_FOUND));
+    private static String canonicalSha256(byte[] source) {
+        try {
+            String text = StandardCharsets.UTF_8.newDecoder()
+                    .onMalformedInput(java.nio.charset.CodingErrorAction.REPORT)
+                    .onUnmappableCharacter(java.nio.charset.CodingErrorAction.REPORT)
+                    .decode(java.nio.ByteBuffer.wrap(source)).toString();
+            byte[] canonical = text.replace("\r\n", "\n").replace('\r', '\n').getBytes(StandardCharsets.UTF_8);
+            return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(canonical));
+        } catch (java.nio.charset.CharacterCodingException | NoSuchAlgorithmException exception) {
+            throw new BusinessException(ErrorCode.VALIDATION_FAILED);
+        }
+    }
+
+    private static final class ByteArrayMultipartFile implements MultipartFile {
+        private final String filename;
+        private final byte[] bytes;
+
+        private ByteArrayMultipartFile(String filename, byte[] bytes) {
+            this.filename = filename;
+            this.bytes = bytes.clone();
+        }
+
+        @Override public String getName() { return "file"; }
+        @Override public String getOriginalFilename() { return filename; }
+        @Override public String getContentType() { return "text/plain"; }
+        @Override public boolean isEmpty() { return bytes.length == 0; }
+        @Override public long getSize() { return bytes.length; }
+        @Override public byte[] getBytes() { return bytes.clone(); }
+        @Override public InputStream getInputStream() { return new ByteArrayInputStream(bytes); }
+        @Override public void transferTo(File destination) throws IOException { Files.write(destination.toPath(), bytes); }
     }
 }

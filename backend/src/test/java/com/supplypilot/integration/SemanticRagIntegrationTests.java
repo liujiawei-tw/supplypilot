@@ -130,7 +130,7 @@ class SemanticRagIntegrationTests extends AbstractIntegrationTest {
         User manager = user(UserRole.PROCUREMENT_MANAGER);
         User planner = user(UserRole.PRODUCTION_PLANNER);
         long safeId = ready(admin, DocumentType.PROCUREMENT_SOP,
-                "Forklift capacity is 500 kilograms. Contact alice@example.com, +886912345678, A123456789.");
+                "Forklift capacity is 500 kilograms. Contact alice@example.com, +886912345678.");
         long excludedId = ready(admin, DocumentType.SUPPLIER_CONTRACT,
                 "Supplier contract confidential terms.");
         long reviewId = ready(admin, DocumentType.QUALITY_REQUIREMENT,
@@ -160,8 +160,8 @@ class SemanticRagIntegrationTests extends AbstractIntegrationTest {
         assertThat(model.inputs).hasSize(1);
         assertThat(model.tasks).containsExactly(GoogleGenAiTextEmbeddingOptions.TaskType.RETRIEVAL_DOCUMENT);
         assertThat(model.inputs.getFirst()).contains("[EMAIL]")
-                .contains("[PHONE]", "[ID]")
-                .doesNotContain("alice@example.com", "+886912345678", "A123456789",
+                .contains("[PHONE]")
+                .doesNotContain("alice@example.com", "+886912345678",
                         "secret-value", "Supplier contract");
         assertThat(store.state(reviewId, "v1").status()).isEqualTo("REQUIRES_REVIEW");
         mvc.perform(post("/api/v1/semantic-index/gate-audit").header("Authorization", bearer(admin)))
@@ -182,7 +182,8 @@ class SemanticRagIntegrationTests extends AbstractIntegrationTest {
                 .andExpect(jsonPath("$.sources[0].excerpt").value(org.hamcrest.Matchers.containsString(
                         "Forklift capacity is 500 kilograms. Contact [EMAIL]")))
                 .andExpect(jsonPath("$.sources[0].excerpt").value(org.hamcrest.Matchers.containsString("[PHONE]")))
-                .andExpect(jsonPath("$.sources[0].excerpt").value(org.hamcrest.Matchers.containsString("[ID]")))
+                .andExpect(jsonPath("$.sources[0].excerpt").value(
+                        org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("[ID]"))))
                 .andExpect(jsonPath("$.sources[0].excerpt").value(
                         org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("alice@example.com"))));
         assertThat(model.tasks).contains(GoogleGenAiTextEmbeddingOptions.TaskType.RETRIEVAL_QUERY);

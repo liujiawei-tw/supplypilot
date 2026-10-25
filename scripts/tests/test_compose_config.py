@@ -128,11 +128,11 @@ class ComposeConfigurationTests(unittest.TestCase):
                          demo["services"]["backend"]["environment"]["DOCUMENT_STORAGE_PATH"])
         self.assertEqual("/app/samples/demo-documents",
                          demo["services"]["backend"]["environment"]["DEMO_SAMPLES_PATH"])
-        self.assertEqual("sp-906-zh-tw-v2",
+        self.assertEqual("sp-907-zh-tw-v3",
                          demo["services"]["backend"]["environment"]["DEMO_DATASET_VERSION"])
         self.assertEqual("/app/samples/demo-master-data.json",
                          demo["services"]["backend"]["environment"]["DEMO_MASTER_DATA_PATH"])
-        self.assertEqual("DISABLED", demo["services"]["backend"]["environment"]["DEMO_DATASET_UPGRADE_MODE"])
+        self.assertEqual("AUTO_SAFE", demo["services"]["backend"]["environment"]["DEMO_DATASET_UPGRADE_MODE"])
         self.assertEqual("sp903-document-storage", demo_document_mounts[0]["source"])
         self.assertEqual("supplypilot-sp903-local-demo-documents",
                          demo["volumes"]["sp903-document-storage"]["name"])
@@ -158,6 +158,27 @@ class ComposeConfigurationTests(unittest.TestCase):
         self.assertNotEqual(prod["volumes"]["mysql-data"]["name"], demo["volumes"]["sp903-mysql-data"]["name"])
         self.assertNotEqual(prod["volumes"]["pgvector-data"]["name"], demo["volumes"]["sp903-pgvector-data"]["name"])
         self.assertNotEqual(prod["volumes"]["document-storage"]["name"], demo["volumes"]["sp903-document-storage"]["name"])
+
+    def test_demo_auto_safe_is_default_and_existing_modes_remain_configurable(self):
+        default_config = compose_config(self.demo_env, demo=True)
+        self.assertEqual(
+            "AUTO_SAFE",
+            default_config["services"]["backend"]["environment"]["DEMO_DATASET_UPGRADE_MODE"],
+        )
+        self.assertEqual(
+            "sp-907-zh-tw-v3",
+            default_config["services"]["backend"]["environment"]["DEMO_DATASET_VERSION"],
+        )
+
+        for mode in ("DISABLED", "DRY_RUN", "APPLY"):
+            with self.subTest(mode=mode):
+                config = compose_config(
+                    self.demo_env, demo=True, environment={"DEMO_DATASET_UPGRADE_MODE": mode}
+                )
+                self.assertEqual(
+                    mode,
+                    config["services"]["backend"]["environment"]["DEMO_DATASET_UPGRADE_MODE"],
+                )
 
     def test_mysql_host_ports_can_be_overridden_per_environment(self):
         prod = compose_config(

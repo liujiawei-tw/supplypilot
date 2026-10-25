@@ -27,13 +27,19 @@ public class DemoDatasetUpgradeRunner implements ApplicationRunner {
     private final Environment environment;
     private final DemoProperties properties;
     private final DemoDatasetUpgradeService upgradeService;
+    private final DemoCorpusSyncService corpusSyncService;
+    private final DemoDatasetCoordinator coordinator;
     private final ObjectMapper objectMapper;
 
     public DemoDatasetUpgradeRunner(Environment environment, DemoProperties properties,
-                                    DemoDatasetUpgradeService upgradeService, ObjectMapper objectMapper) {
+                                    DemoDatasetUpgradeService upgradeService,
+                                    DemoCorpusSyncService corpusSyncService,
+                                    DemoDatasetCoordinator coordinator, ObjectMapper objectMapper) {
         this.environment = environment;
         this.properties = properties;
         this.upgradeService = upgradeService;
+        this.corpusSyncService = corpusSyncService;
+        this.coordinator = coordinator;
         this.objectMapper = objectMapper;
     }
 
@@ -46,6 +52,22 @@ public class DemoDatasetUpgradeRunner implements ApplicationRunner {
             throw new IllegalStateException("Demo dataset update requires demo profile and forbids prod profile");
         }
 
+        if ("AUTO_SAFE".equalsIgnoreCase(mode)) {
+            var relationalResult = upgradeService.autoSafe();
+            log.warn("DEMO_DATASET_AUTO_SAFE_RELATIONAL_RESULT plan={}",
+                    objectMapper.writeValueAsString(relationalResult));
+            if (!relationalResult.conflicts().isEmpty()) {
+                log.error("DEMO_DATASET_AUTO_SAFE_CORPUS_SYNC_BLOCKED conflicts={}",
+                        objectMapper.writeValueAsString(relationalResult.conflicts()));
+                return;
+            }
+            var corpusResult = corpusSyncService.synchronizeBaseline();
+            boolean relationalCompletion = coordinator.completeExistingUpgradeIfReady(corpusResult);
+            log.warn("DEMO_DATASET_AUTO_SAFE_COMPLETION_RESULT completed={}", relationalCompletion);
+            log.warn("DEMO_DATASET_AUTO_SAFE_CORPUS_SYNC_RESULT report={}",
+                    objectMapper.writeValueAsString(corpusResult));
+            return;
+        }
         if ("DRY_RUN".equalsIgnoreCase(mode)) {
             log.warn("DEMO_DATASET_UPGRADE_DRY_RUN plan={}", objectMapper.writeValueAsString(upgradeService.dryRun()));
             return;

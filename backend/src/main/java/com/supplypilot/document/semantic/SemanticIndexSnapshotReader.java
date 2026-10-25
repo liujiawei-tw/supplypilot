@@ -3,12 +3,14 @@ package com.supplypilot.document.semantic;
 import java.time.Instant;
 import java.util.List;
 
+import com.supplypilot.demo.DemoCorpusRagEligibility;
 import com.supplypilot.document.domain.DocumentChunk;
 import com.supplypilot.document.domain.DocumentMetadata;
 import com.supplypilot.document.domain.DocumentStatus;
 import com.supplypilot.document.domain.SemanticReviewStatus;
 import com.supplypilot.document.repository.DocumentChunkRepository;
 import com.supplypilot.document.repository.DocumentMetadataRepository;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,13 +21,22 @@ public class SemanticIndexSnapshotReader {
     private final DocumentChunkRepository chunks;
     private final OutboundDocumentPolicy policy;
     private final SemanticProperties properties;
+    private final DemoCorpusRagEligibility demoEligibility;
 
     public SemanticIndexSnapshotReader(DocumentMetadataRepository documents, DocumentChunkRepository chunks,
                                        OutboundDocumentPolicy policy, SemanticProperties properties) {
+        this(documents, chunks, policy, properties, DemoCorpusRagEligibility.manualUploadsOnly());
+    }
+
+    @Autowired
+    public SemanticIndexSnapshotReader(DocumentMetadataRepository documents, DocumentChunkRepository chunks,
+                                       OutboundDocumentPolicy policy, SemanticProperties properties,
+                                       DemoCorpusRagEligibility demoEligibility) {
         this.documents = documents;
         this.chunks = chunks;
         this.policy = policy;
         this.properties = properties;
+        this.demoEligibility = demoEligibility;
     }
 
     @Transactional(readOnly = true)
@@ -33,6 +44,7 @@ public class SemanticIndexSnapshotReader {
         DocumentMetadata document = documents.findForSemanticRead(job.documentId()).orElse(null);
         if (document == null) return Result.rejected("DOCUMENT_MISSING");
         if (document.getStatus() != DocumentStatus.READY) return Result.rejected("DOCUMENT_NOT_READY");
+        if (!demoEligibility.isEligible(document)) return Result.rejected("DEMO_CORPUS_VERSION_NOT_CURRENT");
         if (!document.getVersion().equals(job.version())) return Result.rejected("VERSION_CHANGED");
         if (document.getSemanticIndexGeneration() != job.documentGeneration()) {
             return Result.rejected("GENERATION_CHANGED");
@@ -49,7 +61,8 @@ public class SemanticIndexSnapshotReader {
         if (source.isEmpty()) return Result.rejected("SOURCE_EMPTY");
         String hash = SemanticBackfillService.sourceHash(source);
         if (!job.sourceHash().equals(hash)) return Result.rejected("SOURCE_CHANGED");
-        var decision = policy.inspect(document, source.stream().map(DocumentChunk::getContent).toList(), hash);
+        var decision = demoEligibility.inspectSource(document, source, hash,
+                document.getSemanticIndexGeneration(), policy);
         if (!"APPROVED".equals(decision.status())) return Result.rejected("OUTBOUND_POLICY_BLOCKED");
         if (decision.safeChunks().size() != source.size()) return Result.rejected("SOURCE_CHANGED");
 

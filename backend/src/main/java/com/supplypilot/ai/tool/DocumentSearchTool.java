@@ -24,7 +24,7 @@ public class DocumentSearchTool {
         }
         List<AiSourceResponse> sources = result.sources().stream()
                 .map(source -> new AiSourceResponse(
-                        "DOCUMENT", String.valueOf(source.documentId()), source.title(), source.version(),
+                        "DOCUMENT", String.valueOf(source.documentId()), source.title(), source.documentKey(), source.version(),
                         source.supplierId(), source.chunkIndex(), source.startOffset(), source.endOffset(),
                         source.excerpt(), source.relevanceScore()))
                 .toList();
