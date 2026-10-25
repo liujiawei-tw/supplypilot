@@ -101,31 +101,23 @@ class DemoSeedSmokeIntegrationTests {
     @Autowired private DemoCorpusSyncLock corpusSyncLock;
 
     @Test
-    void corpusSyncLockSerializesConcurrentDatabaseSessions() throws Exception {
+    void corpusSyncLockRejectsAnotherSessionUntilReleased() throws Exception {
         CountDownLatch firstEntered = new CountDownLatch(1);
         CountDownLatch releaseFirst = new CountDownLatch(1);
-        CountDownLatch secondStarted = new CountDownLatch(1);
-        CountDownLatch secondEntered = new CountDownLatch(1);
-        try (var executor = Executors.newFixedThreadPool(2)) {
+        DemoCorpusSyncLock zeroWaitLock = new DemoCorpusSyncLock(jdbc, 0);
+        try (var executor = Executors.newSingleThreadExecutor()) {
             var first = executor.submit(() -> corpusSyncLock.withLock(() -> {
                 firstEntered.countDown();
                 awaitLatch(releaseFirst);
                 return "first";
             }));
             assertThat(firstEntered.await(5, TimeUnit.SECONDS)).isTrue();
-            var second = executor.submit(() -> {
-                secondStarted.countDown();
-                return corpusSyncLock.withLock(() -> {
-                    secondEntered.countDown();
-                    return "second";
-                });
-            });
-            assertThat(secondStarted.await(5, TimeUnit.SECONDS)).isTrue();
-            assertThat(secondEntered.await(250, TimeUnit.MILLISECONDS)).isFalse();
+            assertThatThrownBy(() -> zeroWaitLock.withLock(() -> "unexpected"))
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessageContaining("Timed out waiting for the DEMO corpus synchronization lock");
             releaseFirst.countDown();
             assertThat(first.get(5, TimeUnit.SECONDS)).isEqualTo("first");
-            assertThat(secondEntered.await(5, TimeUnit.SECONDS)).isTrue();
-            assertThat(second.get(5, TimeUnit.SECONDS)).isEqualTo("second");
+            assertThat(zeroWaitLock.withLock(() -> "second")).isEqualTo("second");
         } finally {
             releaseFirst.countDown();
         }
