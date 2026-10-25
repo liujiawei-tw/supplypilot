@@ -742,7 +742,7 @@
       "title": "福爾摩沙原料工坊（SUP-001）｜報價與供貨條件摘要展示文件",
       "filename": "samples/documents/supplier-sup-001-quotation-sp907-v1.txt",
       "corpusVersion": "sp-907-zh-tw-v3",
-      "sourceSha256": "81d8c0ad9fa20b681c1709bbe617813dc0d3fdc793b9663355ce07e15691b128",
+      "sourceSha256": "714b1467a8159b2a4278e19e45e1a288988fb498e7a83d64bc8a365071caee07",
       "classification": "SEED_BASELINE",
       "supplierCodes": [
         "SUP-001"
@@ -767,6 +767,21 @@
       "fixtureKeys": [
         "RAG-002",
         "RAG-030"
+      ],
+      "quoteTerms": [
+        {
+          "periodStatus": "CURRENT",
+          "packageMultiple": "100",
+          "leadTimeDays": 5,
+          "currency": "TWD",
+          "validFrom": "2026-10-01",
+          "supplierCode": "SUP-001",
+          "materialCode": "MAT-001",
+          "leadTimeUnit": "CALENDAR_DAYS",
+          "moq": "800",
+          "validUntil": "2026-12-31",
+          "validityDays": 92
+        }
       ]
     },
     {
@@ -1086,7 +1101,7 @@
       "title": "東港貿易社（SUP-002）｜報價與供貨條件摘要展示文件",
       "filename": "samples/documents/supplier-sup-002-quotation-sp907-v1.txt",
       "corpusVersion": "sp-907-zh-tw-v3",
-      "sourceSha256": "cb61a5cafdb985a1822adb1a33357bc1cc25e9f9a9be27b532ce62af544801b5",
+      "sourceSha256": "478283eb6399766a74d81891d988ee66614268f88bc1283391711b54aec35509",
       "classification": "SEED_BASELINE",
       "supplierCodes": [
         "SUP-002"
@@ -1114,6 +1129,21 @@
         "RAG-018",
         "RAG-019",
         "RAG-040"
+      ],
+      "quoteTerms": [
+        {
+          "periodStatus": "CURRENT",
+          "packageMultiple": "50",
+          "leadTimeDays": 3,
+          "currency": "TWD",
+          "validFrom": "2026-10-01",
+          "supplierCode": "SUP-002",
+          "materialCode": "MAT-001",
+          "leadTimeUnit": "CALENDAR_DAYS",
+          "moq": "500",
+          "validUntil": "2026-12-31",
+          "validityDays": 92
+        }
       ]
     },
     {
@@ -1439,7 +1469,7 @@
       "title": "青葉食材供應（SUP-003）｜報價與供貨條件摘要展示文件",
       "filename": "samples/documents/supplier-sup-003-quotation-sp907-v1.txt",
       "corpusVersion": "sp-907-zh-tw-v3",
-      "sourceSha256": "f955e7ee0274388b295aac008c719215d80fa2d8d2c31aac9519c4b903f112f2",
+      "sourceSha256": "e862e1dbfd26d7f72931816b0c6bb72b5e009bcdd4b47b2d9ac678ee0f6f363e",
       "classification": "SEED_BASELINE",
       "supplierCodes": [
         "SUP-003"
@@ -1463,6 +1493,21 @@
       "outboundPolicy": "EVALUATE_EXISTING_POLICY",
       "fixtureKeys": [
         "RAG-050"
+      ],
+      "quoteTerms": [
+        {
+          "periodStatus": "CURRENT",
+          "packageMultiple": "100",
+          "leadTimeDays": 10,
+          "currency": "TWD",
+          "validFrom": "2026-10-01",
+          "supplierCode": "SUP-003",
+          "materialCode": "MAT-001",
+          "leadTimeUnit": "CALENDAR_DAYS",
+          "moq": "1000",
+          "validUntil": "2026-12-31",
+          "validityDays": 92
+        }
       ]
     },
     {
@@ -1778,7 +1823,7 @@
       "title": "舊港原料行（SUP-004）｜報價與供貨條件摘要展示文件",
       "filename": "samples/documents/supplier-sup-004-quotation-sp907-v1.txt",
       "corpusVersion": "sp-907-zh-tw-v3",
-      "sourceSha256": "91f474d7bc595c0de138fba2b08c28a2b5cedbdac3626f7cf07317be10f440bd",
+      "sourceSha256": "53b0a52b3b63418b82b1f79bd763dc6ad840bf1cd3dee6c487e1a90c58f918b9",
       "classification": "SEED_BASELINE",
       "supplierCodes": [
         "SUP-004"
@@ -1802,6 +1847,21 @@
       "outboundPolicy": "EVALUATE_EXISTING_POLICY",
       "fixtureKeys": [
         "RAG-060"
+      ],
+      "quoteTerms": [
+        {
+          "periodStatus": "HISTORICAL",
+          "packageMultiple": "50",
+          "leadTimeDays": 2,
+          "currency": "TWD",
+          "validFrom": "2025-03-01",
+          "supplierCode": "SUP-004",
+          "materialCode": "MAT-001",
+          "leadTimeUnit": "CALENDAR_DAYS",
+          "moq": "500",
+          "validUntil": "2025-06-30",
+          "validityDays": 122
+        }
       ]
     },
     {
@@ -2113,7 +2173,7 @@
       "title": "海岳食品素材（SUP-005）｜報價與供貨條件摘要展示文件",
       "filename": "samples/documents/supplier-sup-005-quotation-sp907-v1.txt",
       "corpusVersion": "sp-907-zh-tw-v3",
-      "sourceSha256": "f075621780fa06062dec7cdab0b127657da16334032d170932f557322863705b",
+      "sourceSha256": "a148e91a582c150d938e507862c516aa2edde994d3ca057af71e3da841f755bc",
       "classification": "SEED_BASELINE",
       "supplierCodes": [
         "SUP-005"
@@ -2137,6 +2197,21 @@
       "outboundPolicy": "EVALUATE_EXISTING_POLICY",
       "fixtureKeys": [
         "RAG-070"
+      ],
+      "quoteTerms": [
+        {
+          "periodStatus": "CURRENT",
+          "packageMultiple": "100",
+          "leadTimeDays": 7,
+          "currency": "TWD",
+          "validFrom": "2026-10-01",
+          "supplierCode": "SUP-005",
+          "materialCode": "MAT-001",
+          "leadTimeUnit": "CALENDAR_DAYS",
+          "moq": "600",
+          "validUntil": "2026-12-31",
+          "validityDays": 92
+        }
       ]
     },
     {
@@ -2446,7 +2521,7 @@
       "title": "金田貿易（SUP-006）｜報價與供貨條件摘要展示文件",
       "filename": "samples/documents/supplier-sup-006-quotation-sp907-v1.txt",
       "corpusVersion": "sp-907-zh-tw-v3",
-      "sourceSha256": "2d9b03716af1779ff8a865713e7ea3492f907f10c3e5cb369fec4f26de69f904",
+      "sourceSha256": "2594ab624c4590a84aa899b9d521751118651e6cdc7b15a451555fc015b7b607",
       "classification": "SEED_BASELINE",
       "supplierCodes": [
         "SUP-006"
@@ -2470,6 +2545,21 @@
       "outboundPolicy": "EVALUATE_EXISTING_POLICY",
       "fixtureKeys": [
         "RAG-080"
+      ],
+      "quoteTerms": [
+        {
+          "periodStatus": "CURRENT",
+          "packageMultiple": "25",
+          "leadTimeDays": 5,
+          "currency": "TWD",
+          "validFrom": "2026-10-01",
+          "supplierCode": "SUP-006",
+          "materialCode": "MAT-002",
+          "leadTimeUnit": "CALENDAR_DAYS",
+          "moq": "300",
+          "validUntil": "2026-12-31",
+          "validityDays": 92
+        }
       ]
     },
     {
@@ -2787,7 +2877,7 @@
       "title": "山嵐果萃食品（SUP-007）｜報價與供貨條件摘要展示文件",
       "filename": "samples/documents/supplier-sup-007-quotation-sp907-v1.txt",
       "corpusVersion": "sp-907-zh-tw-v3",
-      "sourceSha256": "4dec9d5c7c30a5f2b944955e2eaee1b2a5550877e1445a797dab005ae36fa4af",
+      "sourceSha256": "e2147986dfba22cdbc59bd84e07792064197e2658cfc00254fd8a4b35a38b745",
       "classification": "SEED_BASELINE",
       "supplierCodes": [
         "SUP-007"
@@ -2812,6 +2902,21 @@
       "fixtureKeys": [
         "RAG-005",
         "RAG-090"
+      ],
+      "quoteTerms": [
+        {
+          "periodStatus": "CURRENT",
+          "packageMultiple": "25",
+          "leadTimeDays": 6,
+          "currency": "TWD",
+          "validFrom": "2026-10-01",
+          "supplierCode": "SUP-007",
+          "materialCode": "MAT-002",
+          "leadTimeUnit": "CALENDAR_DAYS",
+          "moq": "100",
+          "validUntil": "2026-12-31",
+          "validityDays": 92
+        }
       ]
     },
     {
@@ -3129,7 +3234,7 @@
       "title": "森川飲品原料（SUP-008）｜報價與供貨條件摘要展示文件",
       "filename": "samples/documents/supplier-sup-008-quotation-sp907-v1.txt",
       "corpusVersion": "sp-907-zh-tw-v3",
-      "sourceSha256": "89627f1ec90c036b3e9ea1250f6c41592982fe770278c6feda2d87ca58e86807",
+      "sourceSha256": "4ab76e10d66ae01f0467b8d1448f423f7732e16e5824f0c15c2f91d87e2482be",
       "classification": "SEED_BASELINE",
       "supplierCodes": [
         "SUP-008"
@@ -3153,6 +3258,21 @@
       "outboundPolicy": "EVALUATE_EXISTING_POLICY",
       "fixtureKeys": [
         "RAG-100"
+      ],
+      "quoteTerms": [
+        {
+          "periodStatus": "CURRENT",
+          "packageMultiple": "100",
+          "leadTimeDays": 3,
+          "currency": "TWD",
+          "validFrom": "2026-10-01",
+          "supplierCode": "SUP-008",
+          "materialCode": "MAT-003",
+          "leadTimeUnit": "CALENDAR_DAYS",
+          "moq": "200",
+          "validUntil": "2026-12-31",
+          "validityDays": 92
+        }
       ]
     },
     {
@@ -3468,7 +3588,7 @@
       "title": "昕川澱粉工坊（SUP-009）｜報價與供貨條件摘要展示文件",
       "filename": "samples/documents/supplier-sup-009-quotation-sp907-v1.txt",
       "corpusVersion": "sp-907-zh-tw-v3",
-      "sourceSha256": "df1eeadd01c04442e2a944a8dee7084c613cb4fd276b43ec5274ae8b03c37c52",
+      "sourceSha256": "7c1747a6ae1e352dcec670442105637f04732843950dd82843373db9d140fb0d",
       "classification": "SEED_BASELINE",
       "supplierCodes": [
         "SUP-009"
@@ -3492,6 +3612,21 @@
       "outboundPolicy": "EVALUATE_EXISTING_POLICY",
       "fixtureKeys": [
         "RAG-110"
+      ],
+      "quoteTerms": [
+        {
+          "periodStatus": "CURRENT",
+          "packageMultiple": "25",
+          "leadTimeDays": 5,
+          "currency": "TWD",
+          "validFrom": "2026-10-01",
+          "supplierCode": "SUP-009",
+          "materialCode": "MAT-008",
+          "leadTimeUnit": "CALENDAR_DAYS",
+          "moq": "100",
+          "validUntil": "2026-12-31",
+          "validityDays": 92
+        }
       ]
     },
     {
@@ -3799,7 +3934,7 @@
       "title": "南島風味貿易（SUP-010）｜報價與供貨條件摘要展示文件",
       "filename": "samples/documents/supplier-sup-010-quotation-sp907-v1.txt",
       "corpusVersion": "sp-907-zh-tw-v3",
-      "sourceSha256": "0e1f2f901d9437ea43d8868c8d2a840492920ea0e3160e75817e238bda9c0a8c",
+      "sourceSha256": "f2cbb5b10004ca15ba6b964f6ba7fe3795b6f36538c73bb74e328899ac8970fb",
       "classification": "SEED_BASELINE",
       "supplierCodes": [
         "SUP-010"
@@ -3823,6 +3958,21 @@
       "outboundPolicy": "EVALUATE_EXISTING_POLICY",
       "fixtureKeys": [
         "RAG-120"
+      ],
+      "quoteTerms": [
+        {
+          "periodStatus": "CURRENT",
+          "packageMultiple": "100",
+          "leadTimeDays": 5,
+          "currency": "TWD",
+          "validFrom": "2026-10-01",
+          "supplierCode": "SUP-010",
+          "materialCode": "MAT-001",
+          "leadTimeUnit": "CALENDAR_DAYS",
+          "moq": "800",
+          "validUntil": "2026-12-31",
+          "validityDays": 92
+        }
       ]
     },
     {

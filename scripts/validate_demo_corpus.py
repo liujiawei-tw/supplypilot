@@ -719,6 +719,14 @@ def validate_corpus(master: dict[str, Any], catalog: dict[str, Any], fixtures_da
                 except ValueError:
                     errors.append(f"{path}.filename: invalid quotation effective date")
                     valid[key] = False
+            if not body_ranges:
+                errors.append(f"{path}.filename: quotation must include an effective date range")
+                if key:
+                    valid[key] = False
+            if not terms:
+                errors.append(f"{path}.quoteTerms: quotation must include effective date metadata")
+                if key:
+                    valid[key] = False
             for term in terms:
                 validity = _first(term, "validityDays", "validForDays", "effectiveDays")
                 if validity is not None and source_validities:
@@ -730,6 +738,10 @@ def validate_corpus(master: dict[str, Any], catalog: dict[str, Any], fixtures_da
                         errors.append(f"{path}.quoteTerms.validityDays: invalid value {validity!r}")
                         valid[key] = False
                 start, end = _first(term, "validFrom", "effectiveFrom"), _first(term, "validUntil", "effectiveUntil", "expiresOn")
+                if not start or not end:
+                    errors.append(f"{path}.quoteTerms: quotation terms must include validFrom and validUntil")
+                    if key:
+                        valid[key] = False
                 if start and end:
                     try:
                         start_date, end_date = date.fromisoformat(str(start)), date.fromisoformat(str(end))

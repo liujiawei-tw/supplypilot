@@ -10,7 +10,7 @@ import java.security.NoSuchAlgorithmException;
 import java.util.HexFormat;
 
 final class DemoCorpusCatalogTrust {
-    static final String PINNED_SHA256 = "EA11CD69DC5311836845ECA3B282A9325C74F9159CB9987FE945FE41E45B9114";
+    static final String PINNED_SHA256 = "8F7DD4A00A3CC17C079174035A0FAD42D3B1A792BA2D254163B86928F7EB1F8B";
     private static final long MAX_CATALOG_BYTES = 20L * 1024 * 1024;
 
     private DemoCorpusCatalogTrust() { }

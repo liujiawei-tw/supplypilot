@@ -8,6 +8,7 @@ import javax.sql.DataSource;
 import com.supplypilot.common.exception.BusinessException;
 import com.supplypilot.common.exception.ErrorCode;
 import org.flywaydb.core.Flyway;
+import org.springframework.dao.DataAccessResourceFailureException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
@@ -90,7 +91,7 @@ public class SemanticStore {
     public PublicationCheck inspectPublication(long documentId, String version, String generationKey,
                                                String sourceHash, long documentGeneration,
                                                List<SourceChunk> expectedSource) {
-        if (jdbc == null) throw new IllegalStateException("Semantic database is not configured");
+        if (jdbc == null) throw new DataAccessResourceFailureException("Semantic database is not configured");
         List<IndexState> states = jdbc.query("""
                 SELECT status, source_hash, expected_chunk_count, failure_reason, attempts,
                        publication_generation

@@ -39,9 +39,11 @@ public interface DocumentMetadataRepository extends JpaRepository<DocumentMetada
 
     @Query("select d from DocumentMetadata d left join fetch d.supplier "
             + "where d.demoDatasetKey = :datasetKey and d.demoDocumentKey = :documentKey "
+            + "and d.version = :version "
             + "order by d.id")
     List<DocumentMetadata> findDemoBaselineCandidates(@Param("datasetKey") String datasetKey,
-                                                       @Param("documentKey") String documentKey);
+                                                       @Param("documentKey") String documentKey,
+                                                       @Param("version") String version);
 
     @Query("select d from DocumentMetadata d left join fetch d.supplier "
             + "where d.demoDatasetKey is null and d.uploadedBy is null "

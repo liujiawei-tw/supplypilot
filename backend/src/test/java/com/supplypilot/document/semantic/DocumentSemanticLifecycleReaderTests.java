@@ -14,11 +14,13 @@ import com.supplypilot.document.domain.SemanticReviewStatus;
 import com.supplypilot.document.repository.DocumentChunkRepository;
 import com.supplypilot.document.repository.DocumentMetadataRepository;
 import org.junit.jupiter.api.Test;
+import org.springframework.dao.DataAccessResourceFailureException;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.support.SimpleTransactionStatus;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyList;
@@ -72,7 +74,7 @@ class DocumentSemanticLifecycleReaderTests {
         }
         doAnswer(invocation -> {
             events.add("pgvector-query");
-            throw new IllegalStateException("database unavailable");
+            throw new DataAccessResourceFailureException("database unavailable");
         }).when(store).inspectPublication(anyLong(), anyString(), anyString(), anyString(),
                 anyLong(), anyList());
 
@@ -86,6 +88,39 @@ class DocumentSemanticLifecycleReaderTests {
         assertThat(events).containsExactly("mysql-commit", "pgvector-query");
         verify(store, times(1)).inspectPublication(anyLong(), anyString(), anyString(), anyString(),
                 anyLong(), anyList());
+    }
+
+    @Test
+    void unexpectedPublicationCheckFailureIsNotReportedAsAStoreOutage() {
+        DocumentChunkRepository chunks = mock(DocumentChunkRepository.class);
+        SemanticIndexJobRepository jobs = mock(SemanticIndexJobRepository.class);
+        SemanticStore store = mock(SemanticStore.class);
+        OutboundDocumentPolicy policy = mock(OutboundDocumentPolicy.class);
+        DocumentMetadataRepository documents = mock(DocumentMetadataRepository.class);
+        PlatformTransactionManager transactions = mock(PlatformTransactionManager.class);
+        when(transactions.getTransaction(any(TransactionDefinition.class)))
+                .thenReturn(new SimpleTransactionStatus());
+
+        DocumentMetadata document = approvedDocument(4L, "Material inspection record is retained.");
+        when(documents.findForSemanticRead(4L)).thenReturn(Optional.of(document));
+        List<DocumentChunk> source = List.of(DocumentChunk.create(document, 0, 0,
+                document.getTitle().length(), document.getTitle(), "[0.0,0.0,0.0]", NOW));
+        when(chunks.findByDocumentIdOrderByChunkIndex(4L)).thenReturn(source);
+        String hash = SemanticBackfillService.sourceHash(source);
+        String title = document.getTitle();
+        when(policy.inspect(any(), anyList(), anyString())).thenReturn(
+                new OutboundDocumentPolicy.Decision("APPROVED", null, List.of(title)));
+        when(jobs.findCurrent(4L, "v1", hash, PROPERTIES.generationKey(), 7L))
+                .thenReturn(Optional.of(succeededJob(4L, hash, 7L)));
+        when(store.inspectPublication(anyLong(), anyString(), anyString(), anyString(), anyLong(), anyList()))
+                .thenThrow(new IllegalStateException("unexpected state"));
+
+        DocumentSemanticLifecycleReader reader = new DocumentSemanticLifecycleReader(
+                chunks, jobs, store, PROPERTIES, policy, documents, transactions);
+
+        assertThatThrownBy(() -> reader.read(document))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("unexpected state");
     }
 
     @Test

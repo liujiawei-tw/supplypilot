@@ -105,8 +105,14 @@ class DemoCorpusValidatorTests(unittest.TestCase):
                       "標題：DOC-CONTRACT 文件\n文件版本：1.0\n文件日期：2026-10-25\n虛構展示資料。\nSUP-001 山海原料提供 MAT-001 紅茶萃取物。",
                       theme="legacy_contract")
         self._add_doc("DOC-QUOTE", "QUOTATION", "quote.txt",
-                      "標題：DOC-QUOTE 文件\n文件版本：1.0\n文件日期：2026-10-25\n虛構展示資料。\nSUP-001 山海原料報價適用 MAT-001 紅茶萃取物。報價自開立日起 30 個曆日內有效；MAT-001 標準交期為 3 個曆日。",
+                      "標題：DOC-QUOTE 文件\n文件版本：1.0\n文件日期：2026-10-25\n虛構展示資料。\nSUP-001 山海原料報價適用 MAT-001 紅茶萃取物。報價期間為 2026-10-01 至 2026-10-30（含首尾日），有效 30 個曆日；MAT-001 標準交期為 3 個曆日。",
                       theme="legacy_quotation")
+        self.catalog["documents"][1]["quoteTerms"] = [{
+            "supplierCode": "SUP-001", "materialCode": "MAT-001", "currency": "TWD",
+            "moq": "10", "packageMultiple": "5", "leadTimeDays": 3,
+            "leadTimeUnit": "CALENDAR_DAYS", "validFrom": "2026-10-01",
+            "validUntil": "2026-10-30", "validityDays": 30,
+        }]
         self._add_doc("DOC-SOP", "PROCUREMENT_SOP", "sop.txt",
                       "標題：DOC-SOP 文件\n文件版本：1.0\n文件日期：2026-10-25\n虛構展示資料。\n採購單依正式流程建立與核准。",
                       theme="shared_procurement_sop", supplier_codes=[], material_codes=[])
@@ -138,6 +144,8 @@ class DemoCorpusValidatorTests(unittest.TestCase):
                     f"第{index}份文件記錄不同的業務主題、適用範圍、查核步驟與後續處置。"
                     "採購窗口應核對供應關係及有效文件版本；資訊不足時不推測未載明的價格、認證或檢驗結果。"
                     "本文提供獨立的主題事實與查詢線索，並與其他文件保持不同用途。")
+            if theme == "quotation":
+                body += "\n虛構展示報價有效期間為 2026-10-01 至 2026-10-30（含首尾日），有效 30 個曆日。"
             if theme == "buyer_evaluation":
                 body += (
                     "\n虛構內部主觀評價／非實際供應商評鑑結果\n"
@@ -150,6 +158,13 @@ class DemoCorpusValidatorTests(unittest.TestCase):
                 )
             self._add_doc(key, kind, f"supplier-001-{theme}.txt", body, theme=theme,
                           supplier_codes=["SUP-001"], material_codes=["MAT-001"])
+            if theme == "quotation":
+                self.catalog["documents"][-1]["quoteTerms"] = [{
+                    "supplierCode": "SUP-001", "materialCode": "MAT-001", "currency": "TWD",
+                    "moq": "10", "packageMultiple": "5", "leadTimeDays": 3,
+                    "leadTimeUnit": "CALENDAR_DAYS", "validFrom": "2026-10-01",
+                    "validUntil": "2026-10-30", "validityDays": 30,
+                }]
 
         self._add_doc("UI-SUP-001-ADDENDUM", "SUPPLIER_CONTRACT", "manual.txt",
                       "標題：SUP-001 山海原料人工補充資料\n文件版本：1.0\n文件日期：2026-10-25\n"
@@ -234,7 +249,7 @@ class DemoCorpusValidatorTests(unittest.TestCase):
 
     def test_quotation_price_amount_is_reported(self) -> None:
         quote = self.documents / "quote.txt"
-        quote.write_text("文件版本：1.0\nSUP-001 報價適用 MAT-001；MAT-001 單價為 999 TWD。報價自開立日起 30 個曆日內有效。", encoding="utf-8")
+        quote.write_text("文件版本：1.0\nSUP-001 報價適用 MAT-001；MAT-001 單價為 999 TWD。報價期間為 2026-10-01 至 2026-10-30，有效 30 個曆日。", encoding="utf-8")
         catalog = copy.deepcopy(self.catalog)
         catalog["documents"][1]["sourceSha256"] = _canonical_sha(quote)
         errors = self._validate(catalog=catalog)
@@ -261,6 +276,23 @@ class DemoCorpusValidatorTests(unittest.TestCase):
         catalog["documents"][1]["quoteTerms"] = [{"validityDays": 20}]
         errors = self._validate(catalog=catalog)
         self.assertTrue(any("validityDays: 20 conflicts with source 30" in e for e in errors), errors)
+
+    def test_quotation_requires_an_effective_date_range(self) -> None:
+        quote = self.documents / "quote.txt"
+        quote.write_text(
+            "文件版本：1.0\nSUP-001 山海原料報價適用 MAT-001 紅茶萃取物。有效 30 個曆日。",
+            encoding="utf-8",
+        )
+        catalog = copy.deepcopy(self.catalog)
+        catalog["documents"][1]["sourceSha256"] = _canonical_sha(quote)
+        errors = self._validate(catalog=catalog)
+        self.assertTrue(any("quotation must include an effective date range" in e for e in errors), errors)
+
+    def test_quotation_requires_effective_date_metadata(self) -> None:
+        catalog = copy.deepcopy(self.catalog)
+        catalog["documents"][1].pop("quoteTerms")
+        errors = self._validate(catalog=catalog)
+        self.assertTrue(any("quotation must include effective date metadata" in e for e in errors), errors)
     def test_quotation_effective_date_metadata_must_match_source(self) -> None:
         quote = self.documents / "quote.txt"
         quote.write_text(

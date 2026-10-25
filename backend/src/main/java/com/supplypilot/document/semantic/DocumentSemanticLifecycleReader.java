@@ -1,7 +1,7 @@
 package com.supplypilot.document.semantic;
 
-import java.util.List;
 import java.util.ArrayList;
+import java.util.List;
 
 import com.supplypilot.document.domain.DocumentMetadata;
 import com.supplypilot.document.domain.DocumentStatus;
@@ -9,14 +9,19 @@ import com.supplypilot.document.domain.SemanticReviewStatus;
 import com.supplypilot.document.dto.response.DocumentSemanticIndexResponse;
 import com.supplypilot.document.repository.DocumentChunkRepository;
 import com.supplypilot.document.repository.DocumentMetadataRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataAccessException;
+import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
-import org.springframework.stereotype.Service;
 
 @Service
 public class DocumentSemanticLifecycleReader {
+    private static final Logger logger = LoggerFactory.getLogger(DocumentSemanticLifecycleReader.class);
+
     private final DocumentChunkRepository chunks;
     private final SemanticIndexJobRepository jobs;
     private final SemanticStore store;
@@ -74,8 +79,10 @@ public class DocumentSemanticLifecycleReader {
                             publication.state() == null ? "PUBLISHED_INDEX_MISSING" : "PUBLISHED_INDEX_STALE",
                             publication.state() == null ? null : publication.state().publicationGeneration()));
                 }
-            } catch (RuntimeException unavailable) {
+            } catch (DataAccessException unavailable) {
                 publicationStoreUnavailable = true;
+                logger.warn("Semantic publication check unavailable: documentId={}, exceptionType={}",
+                        snapshot.documentId(), unavailable.getClass().getSimpleName());
                 result.add(unavailable(snapshot));
             }
         }

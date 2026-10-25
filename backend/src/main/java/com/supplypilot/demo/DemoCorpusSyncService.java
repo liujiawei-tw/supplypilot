@@ -140,7 +140,8 @@ public class DemoCorpusSyncService {
             return conflict(entry, null, SyncAction.NONE, "SUPPLIER_REFERENCE_MISMATCH", c);
         }
 
-        List<DocumentMetadata> keyed = documents.findDemoBaselineCandidates(DATASET_KEY, entry.documentKey());
+        List<DocumentMetadata> keyed = documents.findDemoBaselineCandidates(
+                DATASET_KEY, entry.documentKey(), entry.version());
         DocumentMetadata document;
         SyncAction action;
         if (keyed.size() > 1) return conflict(entry, null, SyncAction.NONE, "DUPLICATE_DEMO_DOCUMENT_KEY", c);

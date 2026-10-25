@@ -126,6 +126,28 @@ class DocumentMetadataRepositoryTests extends AbstractIntegrationTest {
     }
 
     @Test
+    void demoBaselineLookupSelectsExactVersionAndAllowsNewVersionAlongsideHistory() {
+        String documentKey = unique("DOC-CORPUS-VERSION").toUpperCase(java.util.Locale.ROOT);
+        DocumentMetadata previous = demoBaseline(documentKey, "1.0", "a".repeat(64));
+        DocumentMetadata current = demoBaseline(documentKey, "2.0", "b".repeat(64));
+        documentRepository.saveAllAndFlush(List.of(previous, current));
+
+        List<DocumentMetadata> v1 = documentRepository.findDemoBaselineCandidates(
+                "SP-901", documentKey, "1.0");
+        List<DocumentMetadata> v2 = documentRepository.findDemoBaselineCandidates(
+                "SP-901", documentKey, "2.0");
+
+        assertThat(v1).extracting(DocumentMetadata::getVersion).containsExactly("1.0");
+        assertThat(v2).extracting(DocumentMetadata::getVersion).containsExactly("2.0");
+    }
+
+    private DocumentMetadata demoBaseline(String documentKey, String version, String hash) {
+        return DocumentMetadata.demoBaselineProcessing(DocumentType.PROCUREMENT_SOP, null,
+                "Corpus version history", version, unique("demo-baseline-version"), "SP-901", documentKey,
+                "operations", "sp-907-zh-tw-v3", hash, "ADDED_SP907", clock.instant());
+    }
+
+    @Test
     void v33RejectsPartialNullableProvenanceAndSystemReviewTuples() {
         User actor = user();
         assertThatThrownBy(() -> jdbcTemplate.update("""
