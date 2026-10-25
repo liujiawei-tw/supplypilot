@@ -379,7 +379,7 @@ class SpringAiProviderClientTests {
 
     @Test
     void emptyFinalTextDoesNotFallbackForMalformedDocumentCitation() {
-        AiSourceResponse source = new AiSourceResponse("DOCUMENT", "1", "文件", "1.0",
+        AiSourceResponse source = new AiSourceResponse("DOCUMENT", "1", "文件", null, "1.0",
                 null, 0, 0, 99, "只有短摘錄", 0.9);
         assertEmptyFinalDoesNotFallback(new AiToolResult(AiToolType.SEARCH_DOCUMENTS,
                 AiQueryStatus.ANSWERED, "有文件事實。", List.of(source)));
@@ -451,7 +451,7 @@ class SpringAiProviderClientTests {
         AiToolRegistry registry = mock(AiToolRegistry.class);
         when(registry.execute(any())).thenReturn(new AiToolResult(AiToolType.SEARCH_DOCUMENTS,
                 AiQueryStatus.ANSWERED, injectedEvidence,
-                List.of(new AiSourceResponse("DOCUMENT", "1", "交付條款", "1.0", 1L,
+                List.of(new AiSourceResponse("DOCUMENT", "1", "交付條款", null, "1.0", 1L,
                         0, 0, injectedEvidence.length(), injectedEvidence, 0.9))));
         ChatModel model = fakeModel(prompt -> hasToolResponse(prompt)
                 ? toolCall("APPROVE_PO", "{\"id\":1}")
@@ -820,7 +820,7 @@ class SpringAiProviderClientTests {
 
     private AiToolResult documentResult(AiQueryStatus status, String facts) {
         return new AiToolResult(AiToolType.SEARCH_DOCUMENTS, status, facts,
-                List.of(new AiSourceResponse("DOCUMENT", "1", "SUP-001 交付條款", "1.0",
+                List.of(new AiSourceResponse("DOCUMENT", "1", "SUP-001 交付條款", null, "1.0",
                         1L, 0, 0, facts == null ? 0 : facts.length(),
                         facts == null ? "" : facts, 0.9)));
     }

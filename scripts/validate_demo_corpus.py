@@ -703,10 +703,10 @@ def _validate_supplier_scenarios(docs: list[dict[str, Any]], suppliers: dict[str
 
 def _validate_business_fact_applicability(catalog: dict[str, Any], documents: list[dict[str, Any]],
                                           expected_version: Any, errors: list[str]) -> None:
-    if type(catalog.get("schemaVersion")) is not int or catalog.get("schemaVersion") != 3:
-        errors.append("catalog.schemaVersion: expected business-fact applicability schema version 3")
-    if type(catalog.get("businessFactApplicabilityVersion")) is not int or catalog.get("businessFactApplicabilityVersion") != 1:
-        errors.append("catalog.businessFactApplicabilityVersion: expected 1")
+    if type(catalog.get("schemaVersion")) is not int or catalog.get("schemaVersion") != 4:
+        errors.append("catalog.schemaVersion: expected business-fact applicability schema version 4")
+    if type(catalog.get("businessFactApplicabilityVersion")) is not int or catalog.get("businessFactApplicabilityVersion") != 2:
+        errors.append("catalog.businessFactApplicabilityVersion: expected 2")
     rules = catalog.get("businessFactApplicability")
     if not isinstance(rules, list):
         errors.append("catalog.businessFactApplicability: expected an array")
@@ -767,8 +767,16 @@ def _validate_business_fact_applicability(catalog: dict[str, Any], documents: li
         if scope in scopes:
             errors.append(f"{path}: duplicate business fact scope {supplier}/{material}/{fact_type}")
         scopes.add(scope)
-        current = validate_source(rule.get("currentSource"), "currentSource", supplier, material,
-                                  f"{path}.currentSource")
+        current_value = rule.get("currentSource")
+        if current_value is None:
+            if rule.get("currentSourceUnavailableReason") != "NO_AUTHORITATIVE_CURRENT_QUOTATION":
+                errors.append(f"{path}.currentSource: null requires an explicit no-authoritative-quotation reason")
+            current = None
+        else:
+            if rule.get("currentSourceUnavailableReason") is not None:
+                errors.append(f"{path}.currentSourceUnavailableReason: must be omitted when a current source exists")
+            current = validate_source(current_value, "currentSource", supplier, material,
+                                     f"{path}.currentSource")
         for role in ("historicalSources", "supersededSources"):
             sources = rule.get(role)
             if not isinstance(sources, list):
@@ -791,9 +799,9 @@ def _validate_business_fact_applicability(catalog: dict[str, Any], documents: li
                 (("DOC-SUP-001-QUOTATION", "1.0", "2026-10-01", "2026-12-31"),),
             ),
             ("SUP-002", "MAT-001"): (
-                ("DOC-SUP-002-QUOTATION", "1.0", "2026-10-01", "2026-12-31"),
+                None,
                 (("DOC-SUP-002-QUOTATION", "1.0", "2025-03-01", "2025-06-30"),),
-                (),
+                (("DOC-SUP-002-QUOTATION", "1.0", "2026-10-01", "2026-12-31"),),
             ),
             ("SUP-002", "MAT-002"): (
                 ("DOC-SUP-002-QUOTATION-SP907", "2.0", "2026-10-01", "2026-11-30"),
@@ -811,10 +819,12 @@ def _validate_business_fact_applicability(catalog: dict[str, Any], documents: li
             if not isinstance(rule, dict):
                 continue
             key = (rule.get("supplierCode"), rule.get("materialCode"))
-            current_source = rule.get("currentSource") if isinstance(rule.get("currentSource"), dict) else {}
+            current_source = rule.get("currentSource")
+            current_tuple = ((current_source.get("documentKey"), current_source.get("documentVersion"),
+                              current_source.get("effectiveFrom"), current_source.get("effectiveUntil"))
+                             if isinstance(current_source, dict) else None)
             actual[key] = (
-                (current_source.get("documentKey"), current_source.get("documentVersion"),
-                 current_source.get("effectiveFrom"), current_source.get("effectiveUntil")),
+                current_tuple,
                 tuple((source.get("documentKey"), source.get("documentVersion"),
                        source.get("effectiveFrom"), source.get("effectiveUntil"))
                       for source in rule.get("historicalSources", []) if isinstance(source, dict)),
@@ -825,6 +835,88 @@ def _validate_business_fact_applicability(catalog: dict[str, Any], documents: li
         for key, expected_value in expected.items():
             if actual.get(key) != expected_value:
                 errors.append(f"catalog.businessFactApplicability: {key[0]}/{key[1]} applicability sources or periods do not match reviewed corpus facts")
+
+
+
+def _validate_temporal_fixture_eligibility(catalog: dict[str, Any], fixtures: list[dict[str, Any]],
+                                           errors: list[str]) -> None:
+    """Ensure temporal quote fixtures cite sources authorized for the same supplier/material period."""
+    rules = catalog.get("businessFactApplicability")
+    if not isinstance(rules, list):
+        return
+    documents = {_key(row): row for row in _objects(catalog.get("documents")) if _key(row)}
+    for fixture in fixtures:
+        question = str(fixture.get("question", ""))
+        years = {int(value) for value in re.findall(r"(?<!\d)(?:19|20)\d{2}(?!\d)", question)}
+        current = bool(re.search(r"目前|現在|現行|當前|最新|\bcurrent(?:ly)?\b|\blatest\b", question, re.I))
+        historical = bool(years or re.search(r"歷史|過去|以前|先前|\bhistorical\b|\bprevious\b", question, re.I))
+        requests_v2 = bool(re.search(r"\bv2\b|2\.0|第二版|新版", question, re.I))
+        quotation_question = bool(re.search(r"報價|有效期限|\bquotation\b|\bquote\b", question, re.I))
+        if not (years or current or historical or requests_v2 or quotation_question):
+            continue
+
+        suppliers = set(fixture.get("supplierCodes") or re.findall(r"(?i)\bSUP-\d{3}\b", question))
+        materials = set(fixture.get("materialCodes") or re.findall(r"(?i)\bMAT-\d{3}\b", question))
+        scoped_rules = [rule for rule in rules if isinstance(rule, dict)
+                        and (not suppliers or rule.get("supplierCode") in suppliers)
+                        and (not materials or rule.get("materialCode") in materials)]
+        expected_keys = set(fixture.get("expectedSourceKeys", []))
+        quote_keys = {key for key in expected_keys
+                      if key in documents and _type(documents[key]) == "QUOTATION"}
+        key = fixture.get("fixtureKey", "<unknown>")
+        status = fixture.get("expectedStatus")
+
+        def source_covers_year(source: Any, year: int) -> bool:
+            if not isinstance(source, dict):
+                return False
+            try:
+                start, end = date.fromisoformat(source["effectiveFrom"]), date.fromisoformat(source["effectiveUntil"])
+                return start <= date(year, 12, 31) and end >= date(year, 1, 1)
+            except (KeyError, TypeError, ValueError):
+                return False
+
+        if status == "ANSWER" and current and years:
+            def scope_covers_year(rule: dict[str, Any], year: int) -> bool:
+                sources = [rule.get("currentSource"), *rule.get("historicalSources", [])]
+                return any(isinstance(source, dict) and source.get("documentKey") in quote_keys
+                           and source_covers_year(source, year) for source in sources)
+
+            common_scope = any(
+                isinstance(rule.get("currentSource"), dict)
+                and rule["currentSource"].get("documentKey") in quote_keys
+                and all(scope_covers_year(rule, year) for year in years)
+                for rule in scoped_rules
+            )
+            if not common_scope:
+                errors.append(f"fixtures.{key}: history/current answer requires all explicit periods from one supplier/material scope")
+        elif status == "ANSWER" and years:
+            eligible = any(all(
+                any(isinstance(source, dict) and source.get("documentKey") in quote_keys
+                    and source_covers_year(source, year)
+                    for source in [rule.get("currentSource"), *rule.get("historicalSources", [])])
+                for year in years)
+                for rule in scoped_rules
+            )
+            if not eligible:
+                errors.append(f"fixtures.{key}: historical/year answer has no expected source eligible for every supplier/material period")
+        elif status == "ANSWER" and (current or quotation_question):
+            eligible = any(isinstance(rule.get("currentSource"), dict)
+                           and rule["currentSource"].get("documentKey") in quote_keys
+                           for rule in scoped_rules)
+            if not eligible:
+                errors.append(f"fixtures.{key}: current answer has no authoritative expected quotation source")
+
+        if status == "INSUFFICIENT_EVIDENCE" and current and requests_v2 and materials:
+            absent_current = any(rule.get("currentSource") is None for rule in scoped_rules)
+            if not absent_current:
+                errors.append(f"fixtures.{key}: insufficient V2 answer must correspond to a scope without an authoritative current quotation")
+
+        if materials:
+            for evidence_group in fixture.get("answerEvidence", []):
+                for source in evidence_group.get("sources", []):
+                    excerpt_materials = set(re.findall(r"(?i)\bMAT-\d{3}\b", source.get("excerpt", "")))
+                    if excerpt_materials - materials:
+                        errors.append(f"fixtures.{key}: answer evidence contains a material outside the requested scope")
 
 
 def validate_corpus(master: dict[str, Any], catalog: dict[str, Any], fixtures_data: dict[str, Any], documents_dir: Path) -> list[str]:
@@ -921,6 +1013,7 @@ def validate_corpus(master: dict[str, Any], catalog: dict[str, Any], fixtures_da
 
     docs, fixtures = _documents(catalog), _fixtures(fixtures_data)
     _validate_business_fact_applicability(catalog, docs, expected_version, errors)
+    _validate_temporal_fixture_eligibility(catalog, fixtures, errors)
     if not docs:
         errors.append("catalog.documents: expected document entries")
     if not fixtures:

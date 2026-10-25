@@ -423,7 +423,7 @@ describe('SP-806 Global AI 助理', () => {
       if (config.url === '/auth/me') return response(config, manager);
       if (config.url === '/ai/query') return response(config, {
         status: 'ANSWERED', answer: 'Recommendation #91 uses the verified ranking.', tools: ['EXPLAIN_RECOMMENDATION'], answerSource: 'BACKEND_FACTS',
-        sources: [{ resourceType: 'RECOMMENDATION', resourceId: '91', title: 'Recommendation 91', version: null, supplierId: 7, chunkIndex: null, startOffset: null, endOffset: null, excerpt: null, relevanceScore: null }],
+        sources: [{ resourceType: 'RECOMMENDATION', resourceId: '91', title: 'Recommendation 91', documentKey: null, version: null, supplierId: 7, chunkIndex: null, startOffset: null, endOffset: null, excerpt: null, relevanceScore: null }],
       });
       throw new Error(`Unexpected ${config.url}`);
     });

@@ -4,6 +4,7 @@ import com.supplypilot.document.domain.DocumentType;
 
 public record DocumentSourceResponse(
         Long documentId,
+        String documentKey,
         DocumentType documentType,
         String title,
         String version,

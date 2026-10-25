@@ -23,7 +23,7 @@
 | SUP-002 | MAT-001 | 現行報價及有效期間 | 無 V2 報價來源。V2 contract-terms 與 supply-capability 可支持主資料快照（ACTIVE、MOQ 500 KG、包裝 50 KG、交期 3 日、TWD），但不提供此物料的 V2 報價期限。 | DOC-SUP-002-QUOTATION v1.0，quotation-sup-002-v1.txt:6,8,12,15：2026 段落仍自稱現行至 12-31；另列 2025-03-01 至 2025-06-30 歷史段落。 | 舊檔保留一項沒有 V2 報價對應的「現行」期限；目前主資料條件快照不能證明存在有效報價。 | 查詢現行報價期限時回覆資料不足；查詢 MOQ／包裝／交期時可引用可信且現行的結構化條件來源，清楚說明它不是報價。舊文件的 2026「現行」段落不能作現行報價證據。 |
 | SUP-007 | MAT-010 | 報價有效期間 | DOC-SUP-007-QUOTATION-SP907 v2.0，supplier-sup-007-quotation-sp907-v2.txt:10：2026-10-01 至 2026-12-05 | DOC-SUP-007-QUOTATION v1.0，quotation-sup-007-v1.txt:6：同日起稱有效至 2026-12-31 | 兩期間重疊但截止日不同；MOQ 150 KG、包裝 50 KG、交期 4 日相同 | 現行期限採 V2 的 2026-12-05；舊版保留供追溯但不作現行有效期證據。 |
 
-corpus-catalog.json schema 3 加入 `businessFactApplicability`，以 Supplier、Material、Fact Type、來源文件版本及精確有效期間表達跨 Document Key 的 current、historical 與 superseded 關係。適用性來源必須綁定 Catalog 內的報價文件及相符 quoteTerms；`SUPERSEDED` 描述跨文件關係，來源原始 quoteTerms 仍可保留文件發布時的 `CURRENT` 狀態。MySQL lexical 與 PostgreSQL/pgvector 共用同一 eligibility 判斷，只有明確年份的歷史查詢可取用吻合期間的歷史來源；現行查詢排除 superseded 來源，含糊的歷史或同時要求 current/historical 的查詢 fail closed。歷史原檔、核准狀態、audit、chunks 與 semantic index 不因 RAG 不適用而刪除；普通無 Demo provenance 上傳不套用此規則。
+corpus-catalog.json schema 4 加入 `businessFactApplicability`，以 Supplier、Material、Fact Type、來源文件版本及精確有效期間表達跨 Document Key 的 current、historical 與 superseded 關係。適用性來源必須綁定 Catalog 內的報價文件及相符 quoteTerms；`SUPERSEDED` 描述跨文件關係，來源原始 quoteTerms 仍可保留文件發布時的 `CURRENT` 狀態。MySQL lexical 與 PostgreSQL/pgvector 共用同一 eligibility 判斷，目前／最新查詢只取用涵蓋今天的 current source；明確年份、日期或期間可取用相符來源；同一 supplier/material 的明確歷史／現行比較須具備兩側來源，無法對應共同 scope 或缺少任一側即 fail closed。含糊歷史查詢亦 fail closed。歷史原檔、核准狀態、audit、chunks 與 semantic index 不因 RAG 不適用而刪除；普通無 Demo provenance 上傳不套用此規則。
 
 ## 指定 RAG Fixtures 複查
 
@@ -31,14 +31,14 @@ corpus-catalog.json schema 3 加入 `businessFactApplicability`，以 Supplier�
 |---|---|---|
 | RAG-002 (rag-fixtures.json:41) | SUP-001/MAT-001 MOQ 800 KG、包裝 100 KG、期限 2026-11-29；來源 DOC-SUP-001-QUOTATION-SP907 v2.0 | 答案點均有新版報價原文支持，日期及供應關係資料相符。舊 v1 的 2026-12-31 條件已在 Catalog 明列 superseded，現行 eligibility 會排除舊來源。 |
 | RAG-003 (rag-fixtures.json:85) | 問題限定 SUP-002 的 V2 報價是否提供 MAT-001 MOQ／包裝／交期；來源列 DOC-SUP-002-QUOTATION-SP907 v2.0，預期資料不足 | 正確：該 V2 報價只列 MAT-002。主檔目前有 SUP-002/MAT-001 的供應條件快照 500/50/3，但不等於 MAT-001 報價，不能據此補出報價期限或 V2 報價。 |
-| RAG-018 (rag-fixtures.json:625) | SUP-002 2025 歷史期限 2025-06-30，現行 V2 報價期限 2026-11-30；來源分別是 DOC-SUP-002-QUOTATION v1.0 及 DOC-SUP-002-QUOTATION-SP907 v2.0 | 日期與來源版本相符。歷史答案證據摘錄限於明確標示 2025 歷史期間的原句；帶年份的歷史查詢只會取用吻合期間的 v1，候選 excerpt 會去掉 2026-12-31 舊現行段落。MySQL／pgvector 整合測試分別檢查兩條路徑的來源版本與摘錄。 |
+| RAG-018 (rag-fixtures.json:625) | SUP-002 2025 歷史期限 2025-06-30，現行 V2 報價期限 2026-11-30；來源分別是 DOC-SUP-002-QUOTATION v1.0 及 DOC-SUP-002-QUOTATION-SP907 v2.0 | 日期與來源版本相符。原問題未列物料代碼；跨文件適用性只找到 SUP-002/MAT-002 同時具有 2025 歷史來源與現行 V2 來源，因此比較只使用 v1 的歷史到期句及 v2 的 2026-11-30 現行證據。舊 v1 的 2026-12-31 期限、其他 MAT-001 條件及混合物料歷史條件不得進入摘錄；MySQL／pgvector 整合測試分別檢查兩條路徑。 |
 | RAG-019 (rag-fixtures.json:670) | SUP-002/MAT-002 虛構 Demo 報價為 73 TWD/KG、每 KG 計價；來源 DOC-SUP-002-QUOTATION-SP907 v2.0 | 答案點與 V2 報價原文及版本化主資料相符，且清楚標示虛構價格。只有通過 Catalog、source hash、provenance、Demo target 及 outbound policy 檢查的可信 Demo 報價能使用價格例外。 |
 
 ## 審查界線
 
 ### 可機械驗證
 
-文件數、文件版本及 Catalog 來源、來源 hash、供應商／物料主檔欄位、報價日期字面期間、Fixture key 與來源 key、答案點的字面證據支持、歷史案例欄位和案例日期規則均可由靜態檢查核對。適用性驗證器另檢查 Catalog 明列的四個跨文件 scope 及其來源 quoteTerms。上述三組有效期衝突是來源原文中可直接比較的日期事實。
+文件數、文件版本及 Catalog 來源、來源 hash、供應商／物料主檔欄位、報價日期字面期間、Fixture key 與來源 key、答案點的字面證據支持、歷史案例欄位和案例日期規則均可由靜態檢查核對。適用性驗證器另檢查 Catalog 明列的四個跨文件 scope、來源 quoteTerms、無現行來源理由與歷史／現行 Fixture 的同 scope 來源資格。上述三組有效期衝突是來源原文中可直接比較的日期事實。
 
 ### 需人工語意審查
 

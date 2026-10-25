@@ -84,7 +84,7 @@ class AiReadToolBoundaryTests {
     @Test
     void documentSearchPreservesSourceVersionAndEvidenceStatus() {
         DocumentSourceResponse source = new DocumentSourceResponse(
-                3L, DocumentType.SUPPLIER_CONTRACT, "Contract", "v2", 9L,
+                3L, "DOC-SUP-009-CONTRACT", DocumentType.SUPPLIER_CONTRACT, "Contract", "v2", 9L,
                 "SUP-009", "Supplier Nine", 1, 10, 30, "evidence", 0.95);
         when(documents.query("付款條件")).thenReturn(new DocumentQueryResponse(
                 DocumentQueryStatus.ANSWERED, "付款條件為月結。", List.of(source)));
@@ -92,6 +92,7 @@ class AiReadToolBoundaryTests {
                 new AiQueryPlan(AiToolType.SEARCH_DOCUMENTS, null, null, "付款條件"));
         assertThat(result.sources()).singleElement().satisfies(mapped -> {
             assertThat(mapped.resourceId()).isEqualTo("3");
+            assertThat(mapped.documentKey()).isEqualTo("DOC-SUP-009-CONTRACT");
             assertThat(mapped.version()).isEqualTo("v2");
             assertThat(mapped.excerpt()).isEqualTo("evidence");
         });

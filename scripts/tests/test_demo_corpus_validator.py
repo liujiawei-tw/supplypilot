@@ -2,11 +2,12 @@ from __future__ import annotations
 
 import copy
 import hashlib
+import json
 import tempfile
 import unittest
 from pathlib import Path
 
-from scripts.validate_demo_corpus import validate_corpus
+from scripts.validate_demo_corpus import _validate_temporal_fixture_eligibility, validate_corpus
 
 def _canonical_sha(path: Path) -> str:
     text = path.read_text(encoding="utf-8-sig").replace("\r\n", "\n").replace("\r", "\n")
@@ -164,7 +165,7 @@ class DemoCorpusValidatorTests(unittest.TestCase):
                 },
             },
         }
-        self.catalog = {"schemaVersion": 3, "businessFactApplicabilityVersion": 1,
+        self.catalog = {"schemaVersion": 4, "businessFactApplicabilityVersion": 2,
                         "businessFactApplicability": [], "datasetKey": "SP-901", "corpusVersion": "test-v1",
                         "documentCount": 16, "seedDocumentCount": 15, "manualUiUploadCount": 1,
                         "documents": []}
@@ -362,6 +363,44 @@ class DemoCorpusValidatorTests(unittest.TestCase):
         }]
         errors = self._validate(catalog=catalog)
         self.assertTrue(any("exact catalog quotation, supplier and material" in error for error in errors), errors)
+
+    def test_business_fact_applicability_allows_explicit_missing_current_quote(self) -> None:
+        catalog = copy.deepcopy(self.catalog)
+        catalog["businessFactApplicability"] = [{
+            "supplierCode": "SUP-001", "materialCode": "MAT-001", "factType": "QUOTATION_TERMS",
+            "currentSource": None, "currentSourceUnavailableReason": "NO_AUTHORITATIVE_CURRENT_QUOTATION",
+            "historicalSources": [], "supersededSources": [],
+        }]
+        self.assertEqual([], self._validate(catalog=catalog))
+
+        catalog["businessFactApplicability"][0]["currentSourceUnavailableReason"] = "UNKNOWN"
+        errors = self._validate(catalog=catalog)
+        self.assertTrue(any("explicit no-authoritative-quotation reason" in error for error in errors), errors)
+
+    def test_history_current_fixture_requires_both_sources_for_one_scope(self) -> None:
+        root = Path(__file__).resolve().parents[2]
+        catalog = json.loads((root / "samples/documents/corpus-catalog.json").read_text(encoding="utf-8"))
+        fixtures = json.loads((root / "samples/documents/rag-fixtures.json").read_text(encoding="utf-8"))["fixtures"]
+        fixture = copy.deepcopy(next(row for row in fixtures if row["fixtureKey"] == "RAG-018"))
+        fixture["question"] = "SUP-002 的 2025 和 2026 年歷史條件與目前條件分別到哪一天屆滿？"
+        errors: list[str] = []
+        _validate_temporal_fixture_eligibility(catalog, [fixture], errors)
+        self.assertEqual([], errors)
+
+        fixture["expectedSourceKeys"].remove("DOC-SUP-002-QUOTATION")
+        errors.clear()
+        _validate_temporal_fixture_eligibility(catalog, [fixture], errors)
+        self.assertTrue(any("all explicit periods from one supplier/material scope" in error for error in errors), errors)
+
+        fixture = copy.deepcopy(next(row for row in fixtures if row["fixtureKey"] == "RAG-018"))
+        fixture["question"] = "SUP-002 的 MAT-002 在 2025 和 2026 年報價有效期限差異為何？"
+        errors.clear()
+        _validate_temporal_fixture_eligibility(catalog, [fixture], errors)
+        self.assertEqual([], errors)
+        fixture["expectedSourceKeys"].remove("DOC-SUP-002-QUOTATION-SP907")
+        errors.clear()
+        _validate_temporal_fixture_eligibility(catalog, [fixture], errors)
+        self.assertTrue(any("eligible for every supplier/material period" in error for error in errors), errors)
 
     def test_catalog_requires_business_fact_schema_version(self) -> None:
         catalog = copy.deepcopy(self.catalog)

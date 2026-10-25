@@ -93,7 +93,7 @@ public class EvidenceValidator {
             new Topic("delivery", "lead time", "delivery time", "standard delivery", "standard lead time",
                     "交期", "交貨期", "標準交期"),
             new Topic("quotation validity", "quotation", "quote", "validity", "valid",
-                    "報價", "有效期限", "有效期"),
+                    "報價", "報價期間", "有效期限", "有效期", "有效期間", "有效至", "屆滿", "到期"),
             new Topic("storage", "storage", "stored", "store", "storage condition",
                     "儲存", "存放", "保存"),
             new Topic("unit", "base unit", "unit", "基本單位", "單位"),

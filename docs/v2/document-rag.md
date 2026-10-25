@@ -5,7 +5,7 @@
 ## 1. 保留的三種使用情境
 
 1. 公司採購 SOP／採購權限或流程文件查詢。
-2. 歷史合約或供應商文件**單份條款內容查詢**；不做跨合約比較、缺少條款判定。
+2. 歷史合約或供應商文件單份條款查詢；不做跨合約比較或缺少條款判定。報價文件可依 Catalog 同一供應商／物料／事實類型做明確期間的歷史與現行比較。
 3. 供應商評鑑、投訴與歷史報告**文件查詢與有來源摘要**；不憑文件自動計算客觀可靠度或交期 KPI。
 
 僅以文件能提供的證據作答；若查不到足夠段落應回 INSUFFICIENT_EVIDENCE，而非虛構。
@@ -50,13 +50,13 @@ Documents API 會分開回傳文件 ingestion `status`、持久化 `semanticRevi
 
 ## 5. Demo 語料與首次審查
 
-- Demo Seed 使用 `samples/documents/corpus-catalog.json` 記錄文件鍵、類型、theme、版本、標題、供應商/物料關聯、`SP-901` corpus provenance 與來源 SHA-256；`samples/documents/rag-fixtures.json` 記錄靜態問答及預期引用。Catalog schema 3 另以 `businessFactApplicability` 對 supplier/material/fact type/effective period 表達跨 Document Key 的現行、歷史與已取代來源，供兩種 retrieval 共用；這些欄位只建立可信來源清單；它本身不記錄或授予核准結果，也不能證明資料已傳送或索引已發布。
-- `DemoCorpusSyncService` 只讀取 demo Repository corpus 的 catalog 與來源，固定核對 schema 3、business fact applicability version、dataset key、corpus version、文件鍵、類型、標題、版本、supplier 關聯、政策、provenance 和 canonical-LF source hash。同步與系統核准共用 `DemoCorpusCatalogTrust`，要求 catalog 為一般檔案且非 symlink，且 UTF-8 內容換行正規化為 LF 後符合固定 SHA-256 `25E7878ADF8B3D6D9B9299B7A3E81667DB9C1BD020289A728369819D21D166D7`；外部自製同 envelope catalog 不受信任。重跑以 `(datasetKey, documentKey, version)` 和持久 provenance 辨識基線，絕不只靠標題合併。
+- Demo Seed 使用 `samples/documents/corpus-catalog.json` 記錄文件鍵、類型、theme、版本、標題、供應商/物料關聯、`SP-901` corpus provenance 與來源 SHA-256；`samples/documents/rag-fixtures.json` 記錄靜態問答及預期引用。Catalog schema 4 另以 `businessFactApplicability` 對 supplier/material/fact type/effective period 表達跨 Document Key 的現行、歷史與已取代來源，供兩種 retrieval 共用；這些欄位只建立可信來源清單；它本身不記錄或授予核准結果，也不能證明資料已傳送或索引已發布。
+- `DemoCorpusSyncService` 只讀取 demo Repository corpus 的 catalog 與來源，固定核對 schema 4、business fact applicability version 2、dataset key、corpus version、文件鍵、類型、標題、版本、supplier 關聯、政策、provenance 和 canonical-LF source hash。同步與系統核准共用 `DemoCorpusCatalogTrust`，要求 catalog 為一般檔案且非 symlink，且 UTF-8 內容換行正規化為 LF 後符合固定 SHA-256 `A831EB8B21771E39F525668972EE4526F124090AB1CCB416A551608DEB7DBDAD`；外部自製同 envelope catalog 不受信任。重跑以 `(datasetKey, documentKey, version)` 和持久 provenance 辨識基線，絕不只靠標題合併。
 - 無 provenance 的舊 Seed 只有在 type/title/version/supplier 與 catalog 完全相符、唯一候選且資料庫儲存來源的 canonical-LF hash 完全相符時才可採用並寫入 provenance。候選歧義、來源或欄位不同、已存在 keyed baseline 被改動時，建立同步 conflict 並保留原文件；不覆寫其來源，也不覆蓋有效人工審查 audit。
 - 只有 demo profile、明確允許的 MySQL DEMO 資料庫、demo 文件儲存根目錄、相符 Repository catalog entry、READY chunks/source proof 及當下 `OutboundDocumentPolicy` 都通過時，專用 system approval seam 才能記錄 `SYSTEM / TRUSTED_DEMO_CORPUS` 審查和 enqueue 現有 durable job。它不偽裝管理員，沒有 HTTP 授權入口；一般上傳與一般 API 仍走使用者既有審查流程。需審查或政策阻擋的結果會保留原因，不排索引工作。Policy 依具體敏感值與上下文判斷，不因單獨出現「姓名」「地址」「銀行」等詞而拒絕。只有固定 Catalog、原文 SHA、文件 provenance、報價主資料及雙資料庫目標均通過伺服器驗證的虛構 Demo 文件，才可略過商業金額規則；憑證、銀行帳戶、個資仍照常攔截，普通 Upload 不可自我宣稱 Demo。
 - Semantic PostgreSQL URL 必須指向設定的 demo database，host 僅允許 Compose `pgvector` 或 loopback (`localhost`、`127.0.0.1`、`::1`)。URL 缺少或目標不符時保留文件 READY、記錄 `REQUIRES_REVIEW` 且不 enqueue；已驗證為 demo 的目標暫時不可連線時，durable job 可等待既有 worker 重試，API 必須顯示待處理/不可用，直到 PostgreSQL 發布證明核對成功。
 - 純文字來源的 `sourceSha256` 使用 UTF-8 文字將 CRLF/CR 換行正規化為 LF 後計算；`samples/documents/*.txt` 固定以 LF 儲存，確保跨平台 hash 穩定。
-- `SEED_BASELINE` 是唯一可能進入受限 system approval 的分類；policy 不允許時仍須人工處理。跨文件事實適用性按 Catalog 明確列出的 supplier、material、fact type 與期間篩選；現行查詢不會使用相同事實的已取代來源，歷史查詢必須提供年份且只收錄吻合期間的來源。含混的歷史問題 fail closed，候選內容也會移除同一 chunk 內已取代期限的句子。舊文件 metadata、原文、核准與 audit 保留；普通無 provenance Upload 不套用這項 Demo 專屬規則。SUP-005 人工 UI Upload 文件為 `MANUAL_UI_UPLOAD_ONLY`，沒有可信 provenance，不得被 Seeder 建立、採用或引用為 baseline fixture。
+- `SEED_BASELINE` 是唯一可能進入受限 system approval 的分類；policy 不允許時仍須人工處理。跨文件事實適用性按 Catalog 明確列出的 supplier、material、fact type 與期間篩選；預設、current 或 latest 查詢只使用 Catalog 指定且涵蓋今天的現行來源；缺少現行來源或來源已到期時回覆資料不足。歷史查詢可用明確年份、日期或期間，並依精確有效日期篩選。明確的歷史與現行比較要求同一 supplier/material/fact type 同時具備兩側來源，引用摘錄分別標示期間；含糊的以前及缺少任一側證據時 fail closed。受管制文件的 scope 不匹配時一律排除，歷史摘錄只保留相符期間證據及不含其他物料條件的句子。舊文件 metadata、原文、核准與 audit 保留；普通無 provenance Upload 不套用這項 Demo 專屬規則。SUP-005 人工 UI Upload 文件為 `MANUAL_UI_UPLOAD_ONLY`，沒有可信 provenance，不得被 Seeder 建立、採用或引用為 baseline fixture。
 - Catalog/source 更新若與資料庫既有來源不同，sync 保留並標記衝突；一般文件仍由正常上傳、審查與版本流程處理。標題變更會讓舊 review 失效，不能複製舊核准。
 - 靜態 Fixture PASS 只代表檔案、來源關聯及預期格式通過檢查，不表示 Gemini RAG 回答品質 PASS。
 

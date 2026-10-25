@@ -25,7 +25,9 @@ import com.supplypilot.document.domain.DocumentMetadata;
 import com.supplypilot.document.domain.DocumentStatus;
 import com.supplypilot.document.domain.DocumentType;
 import com.supplypilot.document.domain.SemanticReviewStatus;
+import com.supplypilot.document.dto.response.DocumentQueryStatus;
 import com.supplypilot.document.rag.DocumentIngestionService;
+import com.supplypilot.document.rag.DocumentQueryService;
 import com.supplypilot.document.rag.DocumentRetrievalService;
 import com.supplypilot.document.rag.EmbeddingProvider;
 import com.supplypilot.document.rag.RetrievedChunk;
@@ -70,6 +72,7 @@ import org.springframework.context.annotation.Primary;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.mock.env.MockEnvironment;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
@@ -144,11 +147,13 @@ class DemoCorpusRagVersionIsolationIntegrationTests {
     @Autowired private DocumentSemanticLifecycleReader lifecycleReader;
     @Autowired private OutboundDocumentPolicy policy;
     @Autowired private DemoCorpusRagEligibility eligibility;
+    @Autowired private DocumentQueryService documentQueryService;
     @Autowired private DemoCorpusSyncService sync;
     @Autowired private DocumentRetrievalService lexicalRetrieval;
     @Autowired private SemanticRetrievalService semanticRetrieval;
 
     @Test
+    @WithMockUser(roles = "PROCUREMENT_STAFF")
     void importingCurrentCatalogRetainsSupersededApprovedVersionButOnlyCurrentAndManualAreRetrievable()
             throws Exception {
         semanticStore.ensureSchema();
@@ -287,6 +292,13 @@ class DemoCorpusRagVersionIsolationIntegrationTests {
         publishApprovedDemoDocument(currentSup002Quote);
 
         String currentQuoteQuestion = "SUP-002 的 MAT-002 現行報價有效到哪一天？";
+        DocumentMetadata supplierContract = syncedDocument(firstSync, "DOC-SUP-002-CONTRACT");
+        String supplierContractContent = chunks.findByDocumentIdOrderByChunkIndex(supplierContract.getId())
+                .getFirst().getContent();
+        assertThat(eligibility.restrictBusinessFactContent(
+                supplierContract, currentQuoteQuestion, supplierContractContent)).isEmpty();
+        assertThat(eligibility.restrictBusinessFactContent(supplierContract,
+                "SUP-002 的 MAT-002 標準交期為何？", supplierContractContent)).isNotBlank();
         List<RetrievedChunk> lexicalCurrentQuote = lexicalRetrieval.retrieve(currentQuoteQuestion).stream()
                 .filter(result -> result.chunk().getDocument().getDocumentType() == DocumentType.QUOTATION).toList();
         assertThat(lexicalCurrentQuote).isNotEmpty().allSatisfy(result -> {
@@ -305,9 +317,15 @@ class DemoCorpusRagVersionIsolationIntegrationTests {
         });
 
         String historicalQuoteQuestion = "SUP-002 在 2025 年的歷史供貨條件有效到何時？";
-        List<RetrievedChunk> lexicalHistoricalQuote = lexicalRetrieval.retrieve(historicalQuoteQuestion).stream()
+        List<RetrievedChunk> lexicalHistoricalCandidates = lexicalRetrieval.retrieve(historicalQuoteQuestion);
+        List<RetrievedChunk> lexicalHistoricalQuote = lexicalHistoricalCandidates.stream()
                 .filter(result -> result.chunk().getDocument().getDocumentType() == DocumentType.QUOTATION).toList();
-        assertThat(lexicalHistoricalQuote).isNotEmpty().allSatisfy(result -> {
+        assertThat(lexicalHistoricalQuote)
+                .as("Lexical candidates: %s", lexicalHistoricalCandidates.stream()
+                        .map(result -> "%s score=%.3f %s".formatted(
+                                result.chunk().getDocument().getDemoDocumentKey(), result.score(),
+                                result.chunk().getContent())).toList())
+                .isNotEmpty().allSatisfy(result -> {
             assertThat(result.chunk().getDocument().getDemoDocumentKey()).isEqualTo("DOC-SUP-002-QUOTATION");
             assertThat(result.chunk().getDocument().getVersion()).isEqualTo("1.0");
             assertThat(result.chunk().getContent()).contains("【歷史條件】", "2025-06-30")
@@ -324,21 +342,189 @@ class DemoCorpusRagVersionIsolationIntegrationTests {
                             "芒果濃縮汁（MAT-002", "問答：");
         });
 
-        String ambiguousQuoteQuestion = "SUP-002 的 MAT-002 在 2025 年的歷史與現行報價有效期限為何？";
-        assertThat(eligibility.isApplicableToQuery(legacySup002Quote, ambiguousQuoteQuestion)).isFalse();
-        assertThat(eligibility.isApplicableToQuery(currentSup002Quote, ambiguousQuoteQuestion)).isFalse();
-        assertThat(lexicalRetrieval.retrieve(ambiguousQuoteQuestion).stream()
-                .filter(result -> result.chunk().getDocument().getDocumentType() == DocumentType.QUOTATION))
-                .isEmpty();
-        assertThat(semanticRetrieval.retrieve(ambiguousQuoteQuestion).stream()
-                .filter(result -> result.chunk().getDocument().getDocumentType() == DocumentType.QUOTATION))
-                .isEmpty();
+        String ambiguousQuoteQuestion = "SUP-002 的 2025 年歷史條件和目前條件分別到哪一天屆滿？";
+        assertThat(eligibility.isApplicableToQuery(legacySup002Quote, ambiguousQuoteQuestion)).isTrue();
+        assertThat(eligibility.isApplicableToQuery(currentSup002Quote, ambiguousQuoteQuestion)).isTrue();
+        List<RetrievedChunk> lexicalComparison = lexicalRetrieval.retrieve(ambiguousQuoteQuestion).stream()
+                .filter(result -> result.chunk().getDocument().getDocumentType() == DocumentType.QUOTATION).toList();
+        assertThat(lexicalComparison).extracting(result -> result.chunk().getDocument().getDemoDocumentKey())
+                .contains("DOC-SUP-002-QUOTATION", "DOC-SUP-002-QUOTATION-SP907");
+        assertThat(lexicalComparison).filteredOn(result -> "DOC-SUP-002-QUOTATION"
+                .equals(result.chunk().getDocument().getDemoDocumentKey())).allSatisfy(result ->
+                assertThat(result.chunk().getContent()).contains("2025-06-30")
+                        .doesNotContain("2026-12-31", "MAT-001").contains("MAT-002"));
+        assertThat(lexicalComparison).filteredOn(result -> "DOC-SUP-002-QUOTATION-SP907"
+                .equals(result.chunk().getDocument().getDemoDocumentKey())).allSatisfy(result ->
+                assertThat(result.chunk().getContent()).contains("2026-11-30").doesNotContain("2026-12-31"));
+
+        List<RetrievedChunk> semanticComparison = semanticRetrieval.retrieve(ambiguousQuoteQuestion).stream()
+                .filter(result -> result.chunk().getDocument().getDocumentType() == DocumentType.QUOTATION).toList();
+        assertThat(semanticComparison).extracting(result -> result.chunk().getDocument().getDemoDocumentKey())
+                .contains("DOC-SUP-002-QUOTATION", "DOC-SUP-002-QUOTATION-SP907");
+        assertThat(semanticComparison).filteredOn(result -> "DOC-SUP-002-QUOTATION"
+                .equals(result.chunk().getDocument().getDemoDocumentKey())).allSatisfy(result ->
+                assertThat(result.chunk().getContent()).contains("2025-06-30")
+                        .doesNotContain("2026-12-31", "MAT-001").contains("MAT-002"));
+        assertThat(semanticComparison).filteredOn(result -> "DOC-SUP-002-QUOTATION-SP907"
+                .equals(result.chunk().getDocument().getDemoDocumentKey())).allSatisfy(result ->
+                assertThat(result.chunk().getContent()).contains("2026-11-30").doesNotContain("2026-12-31"));
+
+        var comparisonResponse = documentQueryService.query(ambiguousQuoteQuestion);
+        assertThat(comparisonResponse.status()).isEqualTo(DocumentQueryStatus.ANSWERED);
+        assertThat(comparisonResponse.answer()).contains("2025-06-30", "2026-11-30")
+                .doesNotContain("2026-12-31");
+        assertThat(comparisonResponse.sources()).extracting(source -> source.documentKey())
+                .contains("DOC-SUP-002-QUOTATION", "DOC-SUP-002-QUOTATION-SP907");
+        assertThat(comparisonResponse.sources()).filteredOn(source ->
+                "DOC-SUP-002-QUOTATION".equals(source.documentKey())).allSatisfy(source -> {
+            assertThat(source.title()).isNotBlank();
+            assertThat(source.version()).isEqualTo("1.0");
+            assertThat(source.excerpt()).contains("2025-06-30").doesNotContain("2026-12-31", "MAT-001");
+        });
+        assertThat(comparisonResponse.sources()).filteredOn(source ->
+                "DOC-SUP-002-QUOTATION-SP907".equals(source.documentKey())).allSatisfy(source -> {
+            assertThat(source.title()).isNotBlank();
+            assertThat(source.version()).isEqualTo("2.0");
+            assertThat(source.excerpt()).contains("2026-11-30").doesNotContain("2026-12-31");
+        });
 
         assertThat(eligibility.isApplicableToQuery(legacySup002Quote, currentQuoteQuestion)).isFalse();
+        String mat001CurrentQuotation = "SUP-002 的 MAT-001 現行報價有效期限為何？";
+        assertThat(eligibility.isApplicableToQuery(legacySup002Quote, mat001CurrentQuotation)).isFalse();
         assertThat(eligibility.isApplicableToQuery(legacySup002Quote,
-                "SUP-002 的 MAT-001 現行供貨條件為何？")).isTrue();
+                "SUP-002 的 MAT-001 目前報價有效期限為何？")).isFalse();
         assertThat(eligibility.isApplicableToQuery(legacySup002Quote,
                 "SUP-002 的 MAT-001 V2 報價是否提供 MOQ？")).isFalse();
+        assertThat(eligibility.isApplicableToQuery(legacySup002Quote,
+                "SUP-002 的 MAT-001 在 2025 年的報價有效期限為何？")).isTrue();
+        assertThat(eligibility.isApplicableToQuery(legacySup002Quote,
+                "SUP-002 的 MAT-001 在 2025-05-01 的報價條件為何？")).isTrue();
+        assertThat(eligibility.isApplicableToQuery(legacySup002Quote,
+                "SUP-002 的 MAT-001 以前的報價有效期限為何？")).isFalse();
+        assertThat(eligibility.isApplicableToQuery(currentSup002Quote,
+                "SUP-002 的 MAT-002 在 2026-10-15 的報價有效期限為何？")).isTrue();
+        assertThat(eligibility.isApplicableToQuery(currentSup002Quote,
+                "SUP-002 的 MAT-002 在 2026-12-10 的報價有效期限為何？")).isFalse();
+        String twoYearComparison = "SUP-002 的 MAT-002 在 2025 和 2026 年的報價有效期限差異為何？";
+        assertThat(eligibility.isApplicableToQuery(legacySup002Quote, twoYearComparison)).isTrue();
+        assertThat(eligibility.isApplicableToQuery(currentSup002Quote, twoYearComparison)).isTrue();
+        List<RetrievedChunk> lexicalTwoYear = lexicalRetrieval.retrieve(twoYearComparison).stream()
+                .filter(result -> result.chunk().getDocument().getDocumentType() == DocumentType.QUOTATION).toList();
+        assertThat(lexicalTwoYear).extracting(result -> result.chunk().getDocument().getDemoDocumentKey())
+                .contains("DOC-SUP-002-QUOTATION", "DOC-SUP-002-QUOTATION-SP907");
+        List<RetrievedChunk> semanticTwoYear = semanticRetrieval.retrieve(twoYearComparison).stream()
+                .filter(result -> result.chunk().getDocument().getDocumentType() == DocumentType.QUOTATION).toList();
+        assertThat(semanticTwoYear).extracting(result -> result.chunk().getDocument().getDemoDocumentKey())
+                .contains("DOC-SUP-002-QUOTATION", "DOC-SUP-002-QUOTATION-SP907");
+        var twoYearResponse = documentQueryService.query(twoYearComparison);
+        assertThat(twoYearResponse.status()).isEqualTo(DocumentQueryStatus.ANSWERED);
+        assertThat(twoYearResponse.answer()).contains("2025-06-30", "2026-11-30").doesNotContain("2026-12-31");
+
+        String twoDatesWithinHistoricalPeriod =
+                "SUP-002 的 MAT-002 在 2025-04-01 和 2025-06-15 的歷史報價條件為何？";
+        List<RetrievedChunk> sameSourcePeriods = lexicalRetrieval.retrieve(twoDatesWithinHistoricalPeriod).stream()
+                .filter(result -> result.chunk().getDocument().getDocumentType() == DocumentType.QUOTATION).toList();
+        assertThat(sameSourcePeriods).isNotEmpty().allSatisfy(result -> {
+            assertThat(result.chunk().getDocument().getDemoDocumentKey()).isEqualTo("DOC-SUP-002-QUOTATION");
+            assertThat(result.chunk().getContent()).contains("【期間 2025-04-01】", "【期間 2025-06-15】")
+                    .doesNotContain("2026-12-31", "MAT-001");
+        });
+        assertThat(eligibility.hasCompleteTemporalEvidence(twoDatesWithinHistoricalPeriod,
+                sameSourcePeriods.stream().map(result -> result.chunk().getContent()).toList(), true)).isTrue();
+
+        String mismatchedSupplierQuestion = "SUP-001 的 MAT-001 現行報價有效期限為何？";
+        assertThat(eligibility.isApplicableToQuery(currentSup002Quote, mismatchedSupplierQuestion)).isFalse();
+        assertThat(eligibility.isApplicableToQuery(legacySup002Quote, mismatchedSupplierQuestion)).isFalse();
+        String mismatchedMaterialQuestion = "SUP-002 的 MAT-001 現行報價有效期限為何？";
+        assertThat(eligibility.isApplicableToQuery(currentSup002Quote, mismatchedMaterialQuestion)).isFalse();
+        assertThat(lexicalRetrieval.retrieve(mismatchedSupplierQuestion).stream()
+                .filter(result -> "DOC-SUP-002-QUOTATION-SP907"
+                        .equals(result.chunk().getDocument().getDemoDocumentKey()))).isEmpty();
+        assertThat(semanticRetrieval.retrieve(mismatchedSupplierQuestion).stream()
+                .filter(result -> "DOC-SUP-002-QUOTATION-SP907"
+                        .equals(result.chunk().getDocument().getDemoDocumentKey()))).isEmpty();
+        assertThat(lexicalRetrieval.retrieve(mismatchedMaterialQuestion).stream()
+                .filter(result -> "DOC-SUP-002-QUOTATION-SP907"
+                        .equals(result.chunk().getDocument().getDemoDocumentKey()))).isEmpty();
+        assertThat(semanticRetrieval.retrieve(mismatchedMaterialQuestion).stream()
+                .filter(result -> "DOC-SUP-002-QUOTATION-SP907"
+                        .equals(result.chunk().getDocument().getDemoDocumentKey()))).isEmpty();
+
+        String latestQuoteQuestion = "SUP-002 的 MAT-002 最新報價有效期限為何？";
+        assertThat(eligibility.isApplicableToQuery(legacySup002Quote, latestQuoteQuestion)).isFalse();
+        assertThat(eligibility.isApplicableToQuery(currentSup002Quote, latestQuoteQuestion)).isTrue();
+        assertThat(lexicalRetrieval.retrieve(latestQuoteQuestion).stream()
+                .filter(result -> result.chunk().getDocument().getDocumentType() == DocumentType.QUOTATION)
+                .map(result -> result.chunk().getDocument().getDemoDocumentKey()))
+                .containsOnly("DOC-SUP-002-QUOTATION-SP907");
+        assertThat(semanticRetrieval.retrieve(latestQuoteQuestion).stream()
+                .filter(result -> result.chunk().getDocument().getDocumentType() == DocumentType.QUOTATION)
+                .map(result -> result.chunk().getDocument().getDemoDocumentKey()))
+                .containsOnly("DOC-SUP-002-QUOTATION-SP907");
+
+        String yearOnlyHistory = "SUP-002 的 MAT-002 在 2025 年報價有效期限為何？";
+        assertThat(lexicalRetrieval.retrieve(yearOnlyHistory).stream()
+                .filter(result -> result.chunk().getDocument().getDocumentType() == DocumentType.QUOTATION)
+                .map(result -> result.chunk().getDocument().getDemoDocumentKey()))
+                .contains("DOC-SUP-002-QUOTATION");
+        assertThat(semanticRetrieval.retrieve(yearOnlyHistory).stream()
+                .filter(result -> result.chunk().getDocument().getDocumentType() == DocumentType.QUOTATION)
+                .map(result -> result.chunk().getDocument().getDemoDocumentKey()))
+                .contains("DOC-SUP-002-QUOTATION");
+
+        String exactHistoricalDate = "SUP-002 的 MAT-002 在 2025-05-01 歷史報價有效期限為何？";
+        assertThat(lexicalRetrieval.retrieve(exactHistoricalDate).stream()
+                .filter(result -> result.chunk().getDocument().getDocumentType() == DocumentType.QUOTATION)
+                .toList()).isNotEmpty().allSatisfy(result -> {
+            assertThat(result.chunk().getDocument().getDemoDocumentKey()).isEqualTo("DOC-SUP-002-QUOTATION");
+            assertThat(result.chunk().getContent()).contains("【期間 2025-05-01】", "2025-06-30")
+                    .doesNotContain("2026-12-31", "MAT-001");
+        });
+        assertThat(semanticRetrieval.retrieve(exactHistoricalDate).stream()
+                .filter(result -> result.chunk().getDocument().getDocumentType() == DocumentType.QUOTATION)
+                .toList()).isNotEmpty().allSatisfy(result -> {
+            assertThat(result.chunk().getDocument().getDemoDocumentKey()).isEqualTo("DOC-SUP-002-QUOTATION");
+            assertThat(result.chunk().getContent()).contains("【期間 2025-05-01】", "2025-06-30")
+                    .doesNotContain("2026-12-31", "MAT-001");
+        });
+
+        String exactCurrentDate = "SUP-002 的 MAT-002 在 2026-10-15 的報價有效期限為何？";
+        assertThat(lexicalRetrieval.retrieve(exactCurrentDate).stream()
+                .filter(result -> result.chunk().getDocument().getDocumentType() == DocumentType.QUOTATION)
+                .toList()).isNotEmpty().allSatisfy(result -> {
+            assertThat(result.chunk().getDocument().getDemoDocumentKey()).isEqualTo("DOC-SUP-002-QUOTATION-SP907");
+            assertThat(result.chunk().getContent()).contains("【期間 2026-10-15】", "2026-11-30")
+                    .doesNotContain("2026-12-31");
+        });
+        assertThat(semanticRetrieval.retrieve(exactCurrentDate).stream()
+                .filter(result -> result.chunk().getDocument().getDocumentType() == DocumentType.QUOTATION)
+                .toList()).isNotEmpty().allSatisfy(result -> {
+            assertThat(result.chunk().getDocument().getDemoDocumentKey()).isEqualTo("DOC-SUP-002-QUOTATION-SP907");
+            assertThat(result.chunk().getContent()).contains("【期間 2026-10-15】", "2026-11-30")
+                    .doesNotContain("2026-12-31");
+        });
+
+        String expiredDateQuestion = "SUP-002 的 MAT-002 在 2026-12-10 的報價有效期限為何？";
+        assertThat(lexicalRetrieval.retrieve(expiredDateQuestion).stream()
+                .filter(result -> result.chunk().getDocument().getDocumentType() == DocumentType.QUOTATION)).isEmpty();
+        assertThat(semanticRetrieval.retrieve(expiredDateQuestion).stream()
+                .filter(result -> result.chunk().getDocument().getDocumentType() == DocumentType.QUOTATION)).isEmpty();
+
+        var missingMat001Quote = documentQueryService.query(mat001CurrentQuotation);
+        assertThat(missingMat001Quote.status()).isEqualTo(DocumentQueryStatus.INSUFFICIENT_EVIDENCE);
+        assertThat(missingMat001Quote.sources()).isEmpty();
+
+        String exactMaterialHistory = "SUP-002 的 MAT-002 在 2025 年歷史報價有效到何日？";
+        assertThat(lexicalRetrieval.retrieve(exactMaterialHistory).stream()
+                .filter(result -> "DOC-SUP-002-QUOTATION".equals(
+                        result.chunk().getDocument().getDemoDocumentKey())).toList()).isNotEmpty().allSatisfy(result ->
+                assertThat(result.chunk().getContent()).contains("2025-06-30")
+                        .doesNotContain("MAT-001", "500 KG", "50 KG", "3 個日曆日", "2026-12-31"));
+        assertThat(semanticRetrieval.retrieve(exactMaterialHistory).stream()
+                .filter(result -> "DOC-SUP-002-QUOTATION".equals(
+                        result.chunk().getDocument().getDemoDocumentKey())).toList()).isNotEmpty().allSatisfy(result ->
+                assertThat(result.chunk().getContent()).contains("2025-06-30")
+                        .doesNotContain("MAT-001", "500 KG", "50 KG", "3 個日曆日", "2026-12-31"));
         assertThat(eligibility.isApplicableToQuery(manual.document(), currentQuoteQuestion)).isTrue();
         assertThat(eligibility.isApplicableToQuery(current, currentQuoteQuestion)).isTrue();
         assertThat(eligibility.isApplicableToQuery(legacySup002Quote,
@@ -354,7 +540,7 @@ class DemoCorpusRagVersionIsolationIntegrationTests {
         productionEnvironment.setActiveProfiles("demo", "prod");
         DemoCorpusRagEligibility productionEligibility = new DemoCorpusRagEligibility(objectMapper,
                 "../samples/documents", STORAGE_ROOT, MYSQL_DATABASE, SEMANTIC_DATABASE,
-                semanticProperties.jdbcUrl(), productionEnvironment, jdbc);
+                semanticProperties.jdbcUrl(), productionEnvironment, jdbc, clock);
         assertThat(productionEligibility.isEligible(current)).isFalse();
         assertThat(productionEligibility.isEligible(manual.document())).isTrue();
 
@@ -362,15 +548,15 @@ class DemoCorpusRagVersionIsolationIntegrationTests {
         demoEnvironment.setActiveProfiles("demo");
         DemoCorpusRagEligibility rejectedSemanticTarget = new DemoCorpusRagEligibility(objectMapper,
                 "../samples/documents", STORAGE_ROOT, MYSQL_DATABASE, "supplypilot_semantic_prod",
-                semanticProperties.jdbcUrl(), demoEnvironment, jdbc);
+                semanticProperties.jdbcUrl(), demoEnvironment, jdbc, clock);
         assertThat(rejectedSemanticTarget.isEligible(current)).isFalse();
         DemoCorpusRagEligibility rejectedSemanticHost = new DemoCorpusRagEligibility(objectMapper,
                 "../samples/documents", STORAGE_ROOT, MYSQL_DATABASE, SEMANTIC_DATABASE,
-                "jdbc:postgresql://untrusted.example:5432/" + SEMANTIC_DATABASE, demoEnvironment, jdbc);
+                "jdbc:postgresql://untrusted.example:5432/" + SEMANTIC_DATABASE, demoEnvironment, jdbc, clock);
         assertThat(rejectedSemanticHost.isEligible(current)).isFalse();
         DemoCorpusRagEligibility rejectedMysqlTarget = new DemoCorpusRagEligibility(objectMapper,
                 "../samples/documents", STORAGE_ROOT, "supplypilot_demo_other_test", SEMANTIC_DATABASE,
-                semanticProperties.jdbcUrl(), demoEnvironment, jdbc);
+                semanticProperties.jdbcUrl(), demoEnvironment, jdbc, clock);
         assertThat(rejectedMysqlTarget.isEligible(current)).isFalse();
     }
 

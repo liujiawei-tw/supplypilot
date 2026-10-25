@@ -52,6 +52,7 @@ Demo Profile 的 Compose 預設為 `DEMO_DATASET_VERSION=sp-907-zh-tw-v3`、`DEM
 - Document READY 代表上傳及解析完成，不代表可供語意查詢或已發布索引。
 - 一般新增文件須經管理員對特定來源版本/hash 審查；符合固定可信 Seed 清單者由 Demo 專用系統審核 seam 依出站政策決定是否核准。核准後依 #146 持久化非同步索引流程執行。
 - 真實 Gemini Embedding、pgvector 發布、引用來源及回答品質只有在實際執行並保存證據後才可標示 PASS。靜態 Fixture 或 Fake Provider 不代表 RAG 品質 PASS。
+- Demo 報價查詢依 Catalog 的供應商、物料、事實類型與有效期間隔離來源；目前/最新只採仍有效的權威報價，明確歷史查詢可採相符舊版，明確新舊比較需同一組 scope 的兩側證據。缺少現行來源（例如 SUP-002/MAT-001）時回覆資料不足，不以已取代報價補位。回答引用須顯示文件名稱、Document Key、版本與支持摘錄；MySQL lexical 與 PostgreSQL/pgvector 使用相同資格規則。
 - Gemini 不可用、限流或中斷時，不能宣稱索引或查詢驗收完成；採購核心流程仍須可用。
 
 ## 5. V2 驗收矩陣摘要
@@ -65,7 +66,7 @@ Demo Profile 的 Compose 預設為 `DEMO_DATASET_VERSION=sp-907-zh-tw-v3`、`DEM
 | 收貨付款 | 5→6 無入庫、異常留第 6 欄、6→7 原子整筆收貨、7→8 人工付款、不得重複入庫 |
 | 交期 | 期望日期核准後不可改、承諾日期獨立可改、逾期不隨承諾日期消失 |
 | 搜尋 | PO/供應商/物料文字條件及原有日期/狀態，含 101 筆以上分頁與安全查詢 |
-| RAG | MySQL+pgvector 查詢融合、文件名稱/版本/原文摘錄、無證據拒答、敏感出站不繞過 |
+| RAG | MySQL+pgvector 查詢融合；文件名稱/Document Key/版本/原文摘錄；現行、歷史及比較期間的供應商/物料隔離；缺少可信現行報價時拒答；敏感出站不繞過 |
 | 索引 | 新文件未索引/失敗不阻斷已發布文件；核准後自動 Job、Retry、Reboot 恢復與 admin Retry |
 | Demo | 種子資料/語料契約一致；可信 Seed 依系統審核及出站政策處理，一般新增文件待管理員審查；既有資料升級具 Demo 隔離、Dry Run、目標確認及冪等性 |
 | UI | 繁中、時區、RWD、金額格式、只保留使用者確認的功能範圍 |

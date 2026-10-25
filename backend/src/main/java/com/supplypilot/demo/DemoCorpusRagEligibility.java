@@ -5,7 +5,9 @@ import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
+import java.time.Clock;
 import java.time.LocalDate;
+import java.time.DateTimeException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -41,6 +43,13 @@ import org.springframework.stereotype.Component;
 public class DemoCorpusRagEligibility {
     private static final Logger logger = LoggerFactory.getLogger(DemoCorpusRagEligibility.class);
     private static final Pattern YEAR = Pattern.compile("(?<!\\d)(?:19|20)\\d{2}(?!\\d)");
+    private static final Pattern EXACT_DATE = Pattern.compile(
+            "(?<!\\d)(?:19|20)\\d{2}-\\d{2}-\\d{2}(?!\\d)");
+    private static final Pattern DATE_RANGE = Pattern.compile(
+            "(?<!\\d)((?:19|20)\\d{2}-\\d{2}-\\d{2})(?!\\d)\\s*"
+                    + "(?:至|到|~|～|–|—|to|through)\\s*"
+                    + "((?:19|20)\\d{2}-\\d{2}-\\d{2})(?!\\d)",
+            Pattern.CASE_INSENSITIVE);
     private static final Pattern SUPPLIER_CODE = Pattern.compile("(?i)\\bSUP-\\d{3}\\b");
     private static final Pattern MATERIAL_CODE = Pattern.compile("(?i)\\bMAT-\\d{3}\\b");
 
@@ -49,6 +58,7 @@ public class DemoCorpusRagEligibility {
     private final Path documentStorageRoot;
     private final Environment environment;
     private final JdbcTemplate jdbc;
+    private final Clock clock;
     private final String allowedDatabase;
     private final String allowedSemanticDatabase;
     private final String semanticJdbcUrl;
@@ -66,7 +76,7 @@ public class DemoCorpusRagEligibility {
             @Value("${supplypilot.demo.allowed-semantic-database:supplypilot_semantic_demo}")
                     String allowedSemanticDatabase,
             @Value("${supplypilot.semantic.jdbc-url:}") String semanticJdbcUrl,
-            Environment environment, JdbcTemplate jdbc) {
+            Environment environment, JdbcTemplate jdbc, Clock clock) {
         this.objectMapper = objectMapper;
         this.samplesRoot = Path.of(samplesPath).toAbsolutePath().normalize();
         this.documentStorageRoot = Path.of(documentStoragePath).toAbsolutePath().normalize();
@@ -75,6 +85,7 @@ public class DemoCorpusRagEligibility {
         this.semanticJdbcUrl = semanticJdbcUrl;
         this.environment = environment;
         this.jdbc = jdbc;
+        this.clock = clock;
         this.allowUnattributedNoProvenance = false;
     }
 
@@ -84,6 +95,7 @@ public class DemoCorpusRagEligibility {
         this.documentStorageRoot = null;
         this.environment = null;
         this.jdbc = null;
+        this.clock = null;
         this.allowedDatabase = null;
         this.allowedSemanticDatabase = null;
         this.semanticJdbcUrl = null;
@@ -103,84 +115,171 @@ public class DemoCorpusRagEligibility {
     }
 
     /**
-     * Applies the pinned supplier/material business-fact scope after source trust validation.
-     * Historical evidence is eligible only for an explicit year; ambiguous historical requests fail closed.
+     * Applies pinned supplier/material/fact/period scope after source trust validation.
+     * An explicitly dated query can use only sources whose catalog period covers that date.
      */
     public boolean isApplicableToQuery(DocumentMetadata document, String question) {
         if (document == null) return false;
         if (hasNoDemoProvenance(document)) return true;
         Optional<CurrentDemoCatalogIdentity> identity = currentIdentity(document);
         if (identity.isEmpty()) return false;
+        List<BusinessFactApplicability> managedPolicies = managedPolicies(identity.get());
+        if (managedPolicies.isEmpty()) return true;
+        TemporalQuery temporal = temporalQuery(question);
+        if (!temporal.supported()) return false;
         if (document.getDocumentType() == DocumentType.QUOTATION && requestsVersionTwo(question)
+                && temporal.intent() != TemporalIntent.HISTORICAL_VS_CURRENT
                 && !"2.0".equals(identity.get().version())) return false;
 
-        List<BusinessFactApplicability> applicablePolicies = policiesFor(identity.get(), question);
-        if (applicablePolicies.isEmpty()) return true;
-        TemporalQuery temporal = temporalQuery(question);
-        if (temporal.historical() && temporal.current()) return false;
-        if (temporal.historical() && temporal.year() == null) return false;
-        Set<String> supplierCodes = codes(question, SUPPLIER_CODE);
-        Set<String> materialCodes = codes(question, MATERIAL_CODE);
-        boolean exactMaterialScope = !materialCodes.isEmpty();
-        boolean ambiguousSupersededSource = !exactMaterialScope && applicablePolicies.stream()
-                .anyMatch(policy -> policy.supersededSources().stream().anyMatch(source -> source.matches(identity.get())));
+        List<BusinessFactApplicability> candidates = policiesFor(identity.get(), question);
+        if (candidates.isEmpty()) return false;
+        candidates = policiesForTemporalIntent(candidates, temporal);
+        if (candidates.isEmpty()) return false;
 
-        for (BusinessFactApplicability policy : applicablePolicies) {
-            if (policy.currentSource().matches(identity.get())
-                    && currentSourceAllowed(policy.currentSource(), temporal, ambiguousSupersededSource)) return true;
-            if (policy.historicalSources().stream().anyMatch(source -> source.matches(identity.get())
+        for (BusinessFactApplicability fact : candidates) {
+            FactSource current = fact.currentSource();
+            if (current != null && current.matches(identity.get())
+                    && currentSourceAllowed(current, temporal)) return true;
+            if (fact.historicalSources().stream().anyMatch(source -> source.matches(identity.get())
                     && historicalSourceAllowed(source, temporal))) return true;
         }
         return false;
     }
 
-    /** Removes clauses that disclose a current or superseded period from a historical source excerpt. */
+    /** Reject unresolved temporal language and comparisons missing a required evidence period. */
+    public boolean hasCompleteTemporalEvidence(String question, List<String> evidence, boolean hasDemoEvidence) {
+        TemporalQuery temporal = temporalQuery(question);
+        if (!temporal.supported()) return false;
+        if (!hasDemoEvidence) return true;
+        if (temporal.intent() == TemporalIntent.HISTORICAL_VS_CURRENT) {
+            return containsMarker(evidence, "【歷史條件】") && containsMarker(evidence, "【現行條件】")
+                    && temporal.periods().stream()
+                            .allMatch(period -> containsMarker(evidence, periodMarker(period)));
+        }
+        if (temporal.intent() == TemporalIntent.HISTORICAL_AS_OF && temporal.periods().size() > 1) {
+            return temporal.periods().stream().allMatch(period -> containsMarker(evidence, periodMarker(period)));
+        }
+        return true;
+    }
+
+    private boolean containsMarker(List<String> evidence, String marker) {
+        return evidence != null && evidence.stream().anyMatch(value -> value != null && value.contains(marker));
+    }
+
+    /** Retains only source text that is safe for the selected fact scope and period. */
     public String restrictBusinessFactContent(DocumentMetadata document, String question, String content) {
         if (content == null || content.isBlank() || document == null || hasNoDemoProvenance(document)) return content;
         Optional<CurrentDemoCatalogIdentity> identity = currentIdentity(document);
         if (identity.isEmpty()) return "";
-        List<BusinessFactApplicability> relevant = policiesFor(identity.get(), question);
-        if (relevant.isEmpty()) return content;
-        TemporalQuery temporal = temporalQuery(question);
-        if (temporal.historical() && temporal.current()) return "";
-        if (temporal.historical() && temporal.year() == null) return "";
-
-        boolean hasHistoricalSource = relevant.stream().anyMatch(policy -> policy.historicalSources().stream()
-                .anyMatch(source -> source.matches(identity.get())));
-        boolean hasCurrentAndHistoricalSource = relevant.stream().anyMatch(policy ->
-                policy.currentSource().matches(identity.get()) && policy.historicalSources().stream()
-                        .anyMatch(source -> source.matches(identity.get())));
-        if (temporal.historical()) {
-            if (!hasHistoricalSource) return "";
-            content = explicitPeriodSection(content, "【歷史條件】", "問答：");
-        } else if (hasCurrentAndHistoricalSource) {
-            content = explicitPeriodSection(content, "【現行條件】", "【歷史條件】", "問答：");
+        List<BusinessFactApplicability> managed = managedPolicies(identity.get());
+        if (managed.isEmpty()) {
+            return document.isDemoBaseline() && requiresCatalogQuotationPeriod(question) ? "" : content;
         }
-        if (content.isBlank() || temporal.year() == null || !temporal.historical()) return content;
+        if (!isApplicableToQuery(document, question)) return "";
 
-        Set<String> excludedEndDates = new HashSet<>();
-        Set<String> materialCodes = codes(question, MATERIAL_CODE);
-        boolean ambiguousSupersededSource = materialCodes.isEmpty() && relevant.stream()
-                .anyMatch(policy -> policy.supersededSources().stream().anyMatch(source -> source.matches(identity.get())));
-        for (BusinessFactApplicability policy : relevant) {
-            FactSource current = policy.currentSource();
-            if (current.matches(identity.get())
-                    && !currentSourceAllowed(current, temporal, ambiguousSupersededSource)) {
-                excludedEndDates.add(current.effectiveUntil().toString());
+        TemporalQuery temporal = temporalQuery(question);
+        List<BusinessFactApplicability> applicable = policiesForTemporalIntent(
+                policiesFor(identity.get(), question), temporal);
+        if (applicable.isEmpty()) return "";
+
+        Set<String> safeExcerpts = new java.util.LinkedHashSet<>();
+        for (BusinessFactApplicability fact : applicable) {
+            FactSource current = fact.currentSource();
+            if (current != null && current.matches(identity.get()) && currentSourceAllowed(current, temporal)) {
+                String safe = currentExcerpt(content, fact);
+                if (!safe.isBlank()) safeExcerpts.add(prefixPeriod(safe, false, current, fact, temporal, question));
             }
-            for (FactSource historical : policy.historicalSources()) {
-                if (historical.matches(identity.get()) && !historicalSourceAllowed(historical, temporal)) {
-                    excludedEndDates.add(historical.effectiveUntil().toString());
+            for (FactSource historical : fact.historicalSources()) {
+                if (historical.matches(identity.get()) && historicalSourceAllowed(historical, temporal)) {
+                    String safe = historicalExcerpt(content, historical, fact, question);
+                    if (!safe.isBlank()) safeExcerpts.add(prefixPeriod(safe, true, historical, fact, temporal, question));
                 }
             }
-            for (FactSource superseded : policy.supersededSources()) {
-                if (superseded.matches(identity.get())) excludedEndDates.add(superseded.effectiveUntil().toString());
-            }
         }
-        if (excludedEndDates.isEmpty()) return content;
-        List<String> clauses = List.of(content.split("(?<=[。！？!?])\\s*|\\r?\\n"));
-        return clauses.stream().filter(clause -> excludedEndDates.stream().noneMatch(clause::contains))
-                .collect(java.util.stream.Collectors.joining(" ")).trim();
+        return String.join("\n", safeExcerpts).trim();
+    }
+
+    private String prefixPeriod(String content, boolean historical, FactSource source,
+            BusinessFactApplicability fact, TemporalQuery temporal, String question) {
+        String role = historical ? "【歷史條件】" : "【現行條件】";
+        String period = temporal.periods().stream().filter(slot -> slot.matches(source))
+                .map(this::periodMarker).distinct().collect(java.util.stream.Collectors.joining(" "));
+        boolean identifyScope = !codes(question, MATERIAL_CODE).isEmpty()
+                || temporal.intent() == TemporalIntent.HISTORICAL_VS_CURRENT || temporal.periods().size() > 1;
+        String scope = "來源範圍 " + fact.supplierCode()
+                + (identifyScope ? " " + fact.materialCode() : "") + "。";
+        return role + (period.isBlank() ? "" : " " + period) + " " + scope + content;
+    }
+
+    private boolean requiresCatalogQuotationPeriod(String question) {
+        String normalized = question == null ? "" : question.toLowerCase(Locale.ROOT);
+        boolean asksPeriodEnd = containsAny(normalized, "有效期限", "有效期間", "有效到", "有效至",
+                "期限", "屆滿", "到期", "截止", "valid until", "expiry", "expiration", "expires");
+        boolean asksQuotationCondition = containsAny(normalized, "報價", "quotation", "供貨條件", "條件");
+        return asksPeriodEnd && asksQuotationCondition;
+    }
+
+    private String periodMarker(TimePeriod period) {
+        return "【期間 " + period.label() + "】";
+    }
+
+    private String historicalExcerpt(String content, FactSource source, BusinessFactApplicability fact,
+            String question) {
+        String section = explicitPeriodSection(content, "【歷史條件】", "問答：");
+        if (section.isBlank()) return "";
+        Set<String> requestedMaterials = codes(question, MATERIAL_CODE);
+        Set<String> requestedSuppliers = codes(question, SUPPLIER_CODE);
+        List<String> safe = clauses(section).stream().filter(clause -> {
+            Set<String> mentioned = codes(clause, MATERIAL_CODE);
+            Set<String> mentionedSuppliers = codes(clause, SUPPLIER_CODE);
+            if (mentioned.size() > 1 || mentioned.stream().anyMatch(code -> !code.equals(fact.materialCode()))) {
+                return false;
+            }
+            if (mentionedSuppliers.size() > 1
+                    || mentionedSuppliers.stream().anyMatch(code -> !code.equals(fact.supplierCode()))) return false;
+            if (!clause.contains(source.effectiveUntil().toString())
+                    && !clause.contains(source.effectiveFrom().toString())) return false;
+            Matcher dates = EXACT_DATE.matcher(clause);
+            while (dates.find()) {
+                String value = dates.group();
+                if (!value.equals(source.effectiveFrom().toString())
+                        && !value.equals(source.effectiveUntil().toString())) return false;
+            }
+            return (requestedMaterials.isEmpty() || mentioned.isEmpty()
+                    || requestedMaterials.contains(fact.materialCode()))
+                    && (requestedSuppliers.isEmpty() || mentionedSuppliers.isEmpty()
+                            || requestedSuppliers.contains(fact.supplierCode()));
+        }).toList();
+        return String.join("。", safe).trim();
+    }
+
+    private String currentExcerpt(String content, BusinessFactApplicability fact) {
+        int end = content.length();
+        for (String marker : List.of("【歷史條件】", "問答：")) {
+            int markerIndex = content.indexOf(marker);
+            if (markerIndex >= 0) end = Math.min(end, markerIndex);
+        }
+        String currentSection = content.substring(0, end);
+        int currentMarker = currentSection.indexOf("【現行條件】");
+        if (currentMarker >= 0) currentSection = currentSection.substring(currentMarker);
+        Set<String> excludedDates = new HashSet<>();
+        fact.supersededSources().stream().map(FactSource::effectiveUntil).map(LocalDate::toString)
+                .forEach(excludedDates::add);
+        return clauses(currentSection).stream().filter(clause -> {
+            if (excludedDates.stream().anyMatch(clause::contains)) return false;
+            Set<String> mentioned = codes(clause, MATERIAL_CODE);
+            Set<String> mentionedSuppliers = codes(clause, SUPPLIER_CODE);
+            boolean materialMatches = mentioned.isEmpty()
+                    || mentioned.size() == 1 && mentioned.contains(fact.materialCode());
+            boolean supplierMatches = mentionedSuppliers.isEmpty()
+                    || mentionedSuppliers.size() == 1 && mentionedSuppliers.contains(fact.supplierCode());
+            return materialMatches && supplierMatches;
+        }).collect(java.util.stream.Collectors.joining(" ")).trim();
+    }
+
+    private List<String> clauses(String content) {
+        return java.util.Arrays.stream(content.split("(?<=[。！？!?])\\s*|[；;]\\s*|\\r?\\n"))
+                .map(String::trim).filter(clause -> !clause.isBlank()).toList();
     }
 
     private String explicitPeriodSection(String content, String startMarker, String... endMarkers) {
@@ -300,8 +399,8 @@ public class DemoCorpusRagEligibility {
         }
         Path root = samplesRoot.toRealPath();
         JsonNode catalog = objectMapper.readTree(DemoCorpusCatalogTrust.readPinnedCatalog(root));
-        if (catalog == null || catalog.path("schemaVersion").asInt(-1) != 3
-                || catalog.path("businessFactApplicabilityVersion").asInt(-1) != 1
+        if (catalog == null || catalog.path("schemaVersion").asInt(-1) != 4
+                || catalog.path("businessFactApplicabilityVersion").asInt(-1) != 2
                 || !DemoCorpusSyncService.DATASET_KEY.equals(text(catalog, "datasetKey"))
                 || !DemoCorpusSyncService.CORPUS_VERSION.equals(text(catalog, "corpusVersion"))
                 || !catalog.path("documents").isArray()) {
@@ -377,8 +476,18 @@ public class DemoCorpusRagEligibility {
                     || !scopes.add(supplierCode + "/" + materialCode + "/" + factType)) {
                 throw new IllegalStateException("TRUSTED_FACT_APPLICABILITY_SCOPE_INVALID");
             }
-            FactSource current = parseFactSource(row.path("currentSource"), SourceApplicability.CURRENT,
-                    supplierCode, materialCode, catalogRows);
+            JsonNode currentNode = row.get("currentSource");
+            FactSource current = null;
+            if (currentNode != null && !currentNode.isNull()) {
+                current = parseFactSource(currentNode, SourceApplicability.CURRENT,
+                        supplierCode, materialCode, catalogRows);
+                if (row.hasNonNull("currentSourceUnavailableReason")) {
+                    throw new IllegalStateException("TRUSTED_FACT_APPLICABILITY_SOURCE_INVALID");
+                }
+            } else if (!"NO_AUTHORITATIVE_CURRENT_QUOTATION"
+                    .equals(text(row, "currentSourceUnavailableReason"))) {
+                throw new IllegalStateException("TRUSTED_FACT_APPLICABILITY_SOURCE_INVALID");
+            }
             List<FactSource> historical = parseFactSources(row.path("historicalSources"),
                     SourceApplicability.HISTORICAL, supplierCode, materialCode, catalogRows);
             List<FactSource> superseded = parseFactSources(row.path("supersededSources"),
@@ -432,41 +541,102 @@ public class DemoCorpusRagEligibility {
         return false;
     }
 
+    private List<BusinessFactApplicability> managedPolicies(CurrentDemoCatalogIdentity identity) {
+        return businessFactApplicability.stream().filter(policy -> policy.contains(identity)).toList();
+    }
+
     private List<BusinessFactApplicability> policiesFor(CurrentDemoCatalogIdentity identity, String question) {
         Set<String> suppliers = codes(question, SUPPLIER_CODE);
         Set<String> materials = codes(question, MATERIAL_CODE);
-        return businessFactApplicability.stream()
+        return managedPolicies(identity).stream()
                 .filter(policy -> (suppliers.isEmpty() || suppliers.contains(policy.supplierCode()))
-                        && (materials.isEmpty() || materials.contains(policy.materialCode()))
-                        && policy.contains(identity))
+                        && (materials.isEmpty() || materials.contains(policy.materialCode())))
                 .toList();
     }
 
-    private boolean currentSourceAllowed(FactSource source, TemporalQuery temporal, boolean ambiguousSupersededSource) {
-        if (ambiguousSupersededSource) return false;
-        if (temporal.historical() && temporal.year() == null) return false;
-        if (temporal.year() == null) return !temporal.historical();
-        if (temporal.historical() && !temporal.current()) return false;
-        return overlapsYear(source, temporal.year());
+    private List<BusinessFactApplicability> policiesForTemporalIntent(
+            List<BusinessFactApplicability> policies, TemporalQuery temporal) {
+        if (!temporal.supported()) return List.of();
+        if (temporal.intent() == TemporalIntent.HISTORICAL_VS_CURRENT) {
+            return policies.stream().filter(policy -> policy.currentSource() != null
+                    && policy.currentSource().effectiveOn(LocalDate.now(clock))
+                    && temporal.periods().stream().allMatch(period -> sourceSupportsPeriod(policy, period)))
+                    .toList();
+        }
+        if (temporal.intent() == TemporalIntent.HISTORICAL_AS_OF && temporal.periods().size() > 1) {
+            return policies.stream().filter(policy -> temporal.periods().stream()
+                    .allMatch(period -> sourceSupportsPeriod(policy, period))).toList();
+        }
+        return policies;
+    }
+
+    private boolean sourceSupportsPeriod(BusinessFactApplicability policy, TimePeriod period) {
+        return policy.currentSource() != null && period.matches(policy.currentSource())
+                || policy.historicalSources().stream().anyMatch(period::matches);
+    }
+
+    private boolean currentSourceAllowed(FactSource source, TemporalQuery temporal) {
+        return switch (temporal.intent()) {
+            case CURRENT_ONLY, HISTORICAL_VS_CURRENT -> source.effectiveOn(LocalDate.now(clock));
+            case HISTORICAL_AS_OF -> temporal.periods().stream().anyMatch(period -> period.matches(source));
+            case AMBIGUOUS_TEMPORAL, UNSUPPORTED_OR_CONFLICTING -> false;
+        };
     }
 
     private boolean historicalSourceAllowed(FactSource source, TemporalQuery temporal) {
-        return temporal.historical() && temporal.year() != null && overlapsYear(source, temporal.year());
-    }
-
-    private boolean overlapsYear(FactSource source, int year) {
-        LocalDate start = LocalDate.of(year, 1, 1);
-        LocalDate end = LocalDate.of(year, 12, 31);
-        return !source.effectiveUntil().isBefore(start) && !source.effectiveFrom().isAfter(end);
+        return (temporal.intent() == TemporalIntent.HISTORICAL_AS_OF
+                || temporal.intent() == TemporalIntent.HISTORICAL_VS_CURRENT)
+                && temporal.periods().stream().anyMatch(period -> period.matches(source));
     }
 
     private TemporalQuery temporalQuery(String question) {
         String normalized = question == null ? "" : question.toLowerCase(Locale.ROOT);
-        Matcher yearMatcher = YEAR.matcher(normalized);
-        Integer year = yearMatcher.find() ? Integer.parseInt(yearMatcher.group()) : null;
-        boolean historical = containsAny(normalized, "歷史", "過去", "先前", "舊條件", "historical", "previous", "past");
-        boolean current = containsAny(normalized, "現行", "目前", "當前", "現在", "current", "currently", "present");
-        return new TemporalQuery(year, historical, current);
+        boolean historicalLanguage = containsAny(normalized, "歷史", "過去", "以前", "以往", "先前",
+                "過往", "舊條件", "historical", "previous", "past");
+        boolean current = containsAny(normalized, "現行", "目前", "當前", "現在", "最新",
+                "current", "currently", "present", "latest");
+        List<TimePeriod> periods = new ArrayList<>();
+        Set<String> datesUsedByRange = new HashSet<>();
+        Matcher rangeMatcher = DATE_RANGE.matcher(normalized);
+        try {
+            while (rangeMatcher.find()) {
+                LocalDate from = LocalDate.parse(rangeMatcher.group(1));
+                LocalDate until = LocalDate.parse(rangeMatcher.group(2));
+                if (until.isBefore(from)) return TemporalQuery.unsupported();
+                datesUsedByRange.add(rangeMatcher.group(1));
+                datesUsedByRange.add(rangeMatcher.group(2));
+                periods.add(new TimePeriod(from, until, PeriodPrecision.RANGE, from + " 至 " + until));
+            }
+            Matcher dateMatcher = EXACT_DATE.matcher(normalized);
+            Set<String> dateYears = new HashSet<>();
+            while (dateMatcher.find()) {
+                String value = dateMatcher.group();
+                LocalDate date = LocalDate.parse(value);
+                dateYears.add(Integer.toString(date.getYear()));
+                if (!datesUsedByRange.contains(value)) {
+                    periods.add(new TimePeriod(date, date, PeriodPrecision.DAY, value));
+                }
+            }
+            Matcher yearMatcher = YEAR.matcher(normalized);
+            Set<Integer> years = new java.util.TreeSet<>();
+            while (yearMatcher.find()) {
+                int year = Integer.parseInt(yearMatcher.group());
+                if (!dateYears.contains(Integer.toString(year))) years.add(year);
+            }
+            for (int year : years) {
+                periods.add(new TimePeriod(LocalDate.of(year, 1, 1), LocalDate.of(year, 12, 31),
+                        PeriodPrecision.YEAR, Integer.toString(year)));
+            }
+        } catch (DateTimeException invalidDate) {
+            return TemporalQuery.unsupported();
+        }
+        periods.sort(java.util.Comparator.comparing(TimePeriod::from).thenComparing(TimePeriod::until));
+        if (periods.isEmpty()) {
+            return new TemporalQuery(historicalLanguage ? TemporalIntent.AMBIGUOUS_TEMPORAL
+                    : TemporalIntent.CURRENT_ONLY, List.of());
+        }
+        return new TemporalQuery(current ? TemporalIntent.HISTORICAL_VS_CURRENT
+                : TemporalIntent.HISTORICAL_AS_OF, List.copyOf(periods));
     }
 
     private boolean requestsVersionTwo(String question) {
@@ -538,18 +708,47 @@ public class DemoCorpusRagEligibility {
         private boolean matches(CurrentDemoCatalogIdentity identity) {
             return documentKey.equals(identity.documentKey()) && version.equals(identity.version());
         }
+
+        private boolean effectiveOn(LocalDate date) {
+            return date != null && !effectiveFrom.isAfter(date) && !effectiveUntil.isBefore(date);
+        }
     }
 
     private record BusinessFactApplicability(String supplierCode, String materialCode, String factType,
             FactSource currentSource, List<FactSource> historicalSources, List<FactSource> supersededSources) {
         private boolean contains(CurrentDemoCatalogIdentity identity) {
-            return currentSource.matches(identity)
+            return currentSource != null && currentSource.matches(identity)
                     || historicalSources.stream().anyMatch(source -> source.matches(identity))
                     || supersededSources.stream().anyMatch(source -> source.matches(identity));
         }
     }
 
-    private record TemporalQuery(Integer year, boolean historical, boolean current) { }
+    private enum TemporalIntent {
+        CURRENT_ONLY, HISTORICAL_AS_OF, HISTORICAL_VS_CURRENT, AMBIGUOUS_TEMPORAL, UNSUPPORTED_OR_CONFLICTING
+    }
+
+    private enum PeriodPrecision { DAY, RANGE, YEAR }
+
+    private record TimePeriod(LocalDate from, LocalDate until, PeriodPrecision precision, String label) {
+        private boolean matches(FactSource source) {
+            return switch (precision) {
+                case DAY -> source.effectiveOn(from);
+                case RANGE -> !source.effectiveFrom().isAfter(from) && !source.effectiveUntil().isBefore(until);
+                case YEAR -> !source.effectiveUntil().isBefore(from) && !source.effectiveFrom().isAfter(until);
+            };
+        }
+    }
+
+    private record TemporalQuery(TemporalIntent intent, List<TimePeriod> periods) {
+        private static TemporalQuery unsupported() {
+            return new TemporalQuery(TemporalIntent.UNSUPPORTED_OR_CONFLICTING, List.of());
+        }
+
+        private boolean supported() {
+            return intent != TemporalIntent.AMBIGUOUS_TEMPORAL
+                    && intent != TemporalIntent.UNSUPPORTED_OR_CONFLICTING;
+        }
+    }
 
     /**
      * Catalog membership witness for internal server-side trust checks. It is not outbound approval by itself.

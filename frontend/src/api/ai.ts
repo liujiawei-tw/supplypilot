@@ -15,6 +15,7 @@ export interface AiSourceResponse {
   resourceType: string;
   resourceId: string;
   title: string;
+  documentKey: string | null;
   version: string | null;
   supplierId: number | null;
   chunkIndex: number | null;

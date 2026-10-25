@@ -298,8 +298,8 @@ public class DemoCorpusTrustedApprovalService {
         } catch (IOException exception) {
             throw new IllegalStateException("TRUSTED_REPOSITORY_CATALOG_UNREADABLE", exception);
         }
-        if (catalog == null || catalog.path("schemaVersion").asInt(-1) != 3
-                || catalog.path("businessFactApplicabilityVersion").asInt(-1) != 1
+        if (catalog == null || catalog.path("schemaVersion").asInt(-1) != 4
+                || catalog.path("businessFactApplicabilityVersion").asInt(-1) != 2
                 || !DATASET_KEY.equals(text(catalog, "datasetKey"))
                 || !CORPUS_VERSION.equals(text(catalog, "corpusVersion"))
                 || !catalog.path("documents").isArray()) {

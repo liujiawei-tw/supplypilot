@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 3,
+  "schemaVersion": 4,
   "datasetKey": "SP-901",
   "corpusVersion": "sp-907-zh-tw-v3",
   "documentCount": 116,
@@ -4286,7 +4286,7 @@
     "newVersionRequiresFreshSourceReview": true,
     "newVersionRequiresFreshSemanticPublicationEvidence": true
   },
-  "businessFactApplicabilityVersion": 1,
+  "businessFactApplicabilityVersion": 2,
   "businessFactApplicability": [
     {
       "supplierCode": "SUP-001",
@@ -4312,12 +4312,7 @@
       "supplierCode": "SUP-002",
       "materialCode": "MAT-001",
       "factType": "QUOTATION_TERMS",
-      "currentSource": {
-        "documentKey": "DOC-SUP-002-QUOTATION",
-        "documentVersion": "1.0",
-        "effectiveFrom": "2026-10-01",
-        "effectiveUntil": "2026-12-31"
-      },
+      "currentSource": null,
       "historicalSources": [
         {
           "documentKey": "DOC-SUP-002-QUOTATION",
@@ -4326,7 +4321,15 @@
           "effectiveUntil": "2025-06-30"
         }
       ],
-      "supersededSources": []
+      "supersededSources": [
+        {
+          "documentKey": "DOC-SUP-002-QUOTATION",
+          "documentVersion": "1.0",
+          "effectiveFrom": "2026-10-01",
+          "effectiveUntil": "2026-12-31"
+        }
+      ],
+      "currentSourceUnavailableReason": "NO_AUTHORITATIVE_CURRENT_QUOTATION"
     },
     {
       "supplierCode": "SUP-002",
