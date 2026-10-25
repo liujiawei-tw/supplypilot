@@ -5,12 +5,12 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @ConfigurationProperties(prefix = "supplypilot.demo")
 public class DemoProperties {
     private String baselineDate;
-    private String datasetVersion = "sp-906-zh-tw-v2";
+    private String datasetVersion = "sp-907-zh-tw-v3";
     private String masterDataPath = "../samples/demo-master-data.json";
     private String samplesPath = "../samples/documents";
     private String resetConfirmation;
     private String allowedDatabase = "supplypilot_demo";
-    private String upgradeMode = "DISABLED";
+    private String upgradeMode = "AUTO_SAFE";
     private String upgradeConfirmation;
     private String upgradeApprovedPlanSha256;
     private String allowedSemanticDatabase = "supplypilot_semantic_demo";

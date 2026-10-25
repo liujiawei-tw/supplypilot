@@ -1,9 +1,9 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "datasetKey": "SP-901",
-  "corpusVersion": "sp-906-zh-tw-v2",
-  "documentCount": 16,
-  "seedDocumentCount": 15,
+  "corpusVersion": "sp-907-zh-tw-v3",
+  "documentCount": 116,
+  "seedDocumentCount": 115,
   "manualUiUploadCount": 1,
   "documents": [
     {
@@ -12,7 +12,7 @@
       "version": "1.0",
       "title": "SUP-001 阿薩姆紅茶萃取物交付協議",
       "filename": "samples/documents/supplier-contract-sup-001-v1.txt",
-      "corpusVersion": "sp-906-zh-tw-v2",
+      "corpusVersion": "sp-907-zh-tw-v3",
       "sourceSha256": "e07a3c774863908d1b271225e36d9bdb12ba8cd857a42727ee7b742318a65f24",
       "classification": "SEED_BASELINE",
       "supplierCodes": [
@@ -25,10 +25,7 @@
         "DOC-SUP-001-QUOTATION",
         "DOC-QUALITY-MAT-001"
       ],
-      "firstReviewStatus": "REQUIRES_ADMIN_REVIEW",
-      "firstReviewBasis": "首次人工管理員審查尚待執行；本目錄只追蹤語料，不授予出站核准。",
-      "outboundPolicy": "REQUIRES_REVIEW",
-      "indexingExpectation": "須先完成該文件版本與 SHA-256 的人工審查，再依現行政策進入非同步索引流程；本文未核准、未索引，也未執行 Gemini。",
+      "outboundPolicy": "EVALUATE_EXISTING_POLICY",
       "fixtureKeys": [
         "RAG-001",
         "RAG-017"
@@ -38,7 +35,15 @@
       ],
       "materialNames": [
         "阿薩姆紅茶萃取物"
-      ]
+      ],
+      "themeKey": "legacy_contract",
+      "provenance": {
+        "kind": "REPOSITORY_DEMO_CORPUS",
+        "datasetKey": "SP-901",
+        "corpusVersion": "sp-907-zh-tw-v3",
+        "origin": "LEGACY_SP906"
+      },
+      "approvalPolicy": "TRUSTED_DEMO_SYSTEM_APPROVAL_IF_POLICY_ALLOWS"
     },
     {
       "documentKey": "DOC-SUP-002-CONTRACT",
@@ -46,7 +51,7 @@
       "version": "1.0",
       "title": "SUP-002 阿薩姆紅茶與芒果濃縮汁供貨協議",
       "filename": "samples/documents/supplier-contract-sup-002-v1.txt",
-      "corpusVersion": "sp-906-zh-tw-v2",
+      "corpusVersion": "sp-907-zh-tw-v3",
       "sourceSha256": "08264ff70040434eab8937b43dd0a53d8f2c5cf8e1bc777f5c8ebd3be57b32d3",
       "classification": "SEED_BASELINE",
       "supplierCodes": [
@@ -59,10 +64,7 @@
       "relatedDocumentKeys": [
         "DOC-SUP-002-QUOTATION"
       ],
-      "firstReviewStatus": "REQUIRES_ADMIN_REVIEW",
-      "firstReviewBasis": "首次人工管理員審查尚待執行；本目錄只追蹤語料，不授予出站核准。",
-      "outboundPolicy": "REQUIRES_REVIEW",
-      "indexingExpectation": "須先完成該文件版本與 SHA-256 的人工審查，再依現行政策進入非同步索引流程；本文未核准、未索引，也未執行 Gemini。",
+      "outboundPolicy": "EVALUATE_EXISTING_POLICY",
       "fixtureKeys": [],
       "supplierNames": [
         "東港貿易社"
@@ -70,7 +72,15 @@
       "materialNames": [
         "阿薩姆紅茶萃取物",
         "芒果濃縮汁"
-      ]
+      ],
+      "themeKey": "legacy_contract",
+      "provenance": {
+        "kind": "REPOSITORY_DEMO_CORPUS",
+        "datasetKey": "SP-901",
+        "corpusVersion": "sp-907-zh-tw-v3",
+        "origin": "LEGACY_SP906"
+      },
+      "approvalPolicy": "TRUSTED_DEMO_SYSTEM_APPROVAL_IF_POLICY_ALLOWS"
     },
     {
       "documentKey": "DOC-SUP-010-CONTRACT",
@@ -78,7 +88,7 @@
       "version": "1.0",
       "title": "SUP-010 椰奶基底交付作業協議",
       "filename": "samples/documents/supplier-contract-sup-010-v1.txt",
-      "corpusVersion": "sp-906-zh-tw-v2",
+      "corpusVersion": "sp-907-zh-tw-v3",
       "sourceSha256": "42130e4483055f2c426753704ca5afe55808defbcf334cb9eb6cbba0c1faec98",
       "classification": "SEED_BASELINE",
       "supplierCodes": [
@@ -90,10 +100,7 @@
       "relatedDocumentKeys": [
         "DOC-SOP-DELIVERY-DATE"
       ],
-      "firstReviewStatus": "REQUIRES_ADMIN_REVIEW",
-      "firstReviewBasis": "首次人工管理員審查尚待執行；本目錄只追蹤語料，不授予出站核准。",
-      "outboundPolicy": "REQUIRES_REVIEW",
-      "indexingExpectation": "須先完成該文件版本與 SHA-256 的人工審查，再依現行政策進入非同步索引流程；本文未核准、未索引，也未執行 Gemini。",
+      "outboundPolicy": "EVALUATE_EXISTING_POLICY",
       "fixtureKeys": [
         "RAG-022",
         "RAG-023"
@@ -103,7 +110,15 @@
       ],
       "materialNames": [
         "椰奶基底"
-      ]
+      ],
+      "themeKey": "legacy_contract",
+      "provenance": {
+        "kind": "REPOSITORY_DEMO_CORPUS",
+        "datasetKey": "SP-901",
+        "corpusVersion": "sp-907-zh-tw-v3",
+        "origin": "LEGACY_SP906"
+      },
+      "approvalPolicy": "TRUSTED_DEMO_SYSTEM_APPROVAL_IF_POLICY_ALLOWS"
     },
     {
       "documentKey": "DOC-SUP-001-QUOTATION",
@@ -111,7 +126,7 @@
       "version": "1.0",
       "title": "SUP-001 阿薩姆紅茶萃取物供貨條件",
       "filename": "samples/documents/quotation-sup-001-v1.txt",
-      "corpusVersion": "sp-906-zh-tw-v2",
+      "corpusVersion": "sp-907-zh-tw-v3",
       "sourceSha256": "2379fc594d8b41ac7647ff0269560b4f006f509ec76c7253c106d3e02bd35c97",
       "classification": "SEED_BASELINE",
       "supplierCodes": [
@@ -123,13 +138,8 @@
       "relatedDocumentKeys": [
         "DOC-SUP-001-CONTRACT"
       ],
-      "firstReviewStatus": "REQUIRES_ADMIN_REVIEW",
-      "firstReviewBasis": "首次人工管理員審查尚待執行；本目錄只追蹤語料，不授予出站核准。",
-      "outboundPolicy": "REQUIRES_REVIEW",
-      "indexingExpectation": "須先完成該文件版本與 SHA-256 的人工審查，再依現行政策進入非同步索引流程；本文未核准、未索引，也未執行 Gemini。",
-      "fixtureKeys": [
-        "RAG-002"
-      ],
+      "outboundPolicy": "EVALUATE_EXISTING_POLICY",
+      "fixtureKeys": [],
       "quoteTerms": [
         {
           "packageMultiple": "100",
@@ -149,7 +159,15 @@
       ],
       "materialNames": [
         "阿薩姆紅茶萃取物"
-      ]
+      ],
+      "themeKey": "legacy_quotation",
+      "provenance": {
+        "kind": "REPOSITORY_DEMO_CORPUS",
+        "datasetKey": "SP-901",
+        "corpusVersion": "sp-907-zh-tw-v3",
+        "origin": "LEGACY_SP906"
+      },
+      "approvalPolicy": "TRUSTED_DEMO_SYSTEM_APPROVAL_IF_POLICY_ALLOWS"
     },
     {
       "documentKey": "DOC-SUP-002-QUOTATION",
@@ -157,7 +175,7 @@
       "version": "1.0",
       "title": "SUP-002 MAT-001 與 MAT-002 供貨條件及期間紀錄",
       "filename": "samples/documents/quotation-sup-002-v1.txt",
-      "corpusVersion": "sp-906-zh-tw-v2",
+      "corpusVersion": "sp-907-zh-tw-v3",
       "sourceSha256": "3d70da59e5f723ab4052959b5f3b967a7bbac55cc8928fb2f393c79239ba36e6",
       "classification": "SEED_BASELINE",
       "supplierCodes": [
@@ -170,16 +188,8 @@
       "relatedDocumentKeys": [
         "DOC-SUP-002-CONTRACT"
       ],
-      "firstReviewStatus": "REQUIRES_ADMIN_REVIEW",
-      "firstReviewBasis": "首次人工管理員審查尚待執行；本目錄只追蹤語料，不授予出站核准。",
-      "outboundPolicy": "REQUIRES_REVIEW",
-      "indexingExpectation": "須先完成該文件版本與 SHA-256 的人工審查，再依現行政策進入非同步索引流程；本文未核准、未索引，也未執行 Gemini。",
-      "fixtureKeys": [
-        "RAG-003",
-        "RAG-004",
-        "RAG-018",
-        "RAG-019"
-      ],
+      "outboundPolicy": "EVALUATE_EXISTING_POLICY",
+      "fixtureKeys": [],
       "quoteTerms": [
         {
           "periodStatus": "CURRENT",
@@ -240,7 +250,15 @@
       "materialNames": [
         "阿薩姆紅茶萃取物",
         "芒果濃縮汁"
-      ]
+      ],
+      "themeKey": "legacy_quotation",
+      "provenance": {
+        "kind": "REPOSITORY_DEMO_CORPUS",
+        "datasetKey": "SP-901",
+        "corpusVersion": "sp-907-zh-tw-v3",
+        "origin": "LEGACY_SP906"
+      },
+      "approvalPolicy": "TRUSTED_DEMO_SYSTEM_APPROVAL_IF_POLICY_ALLOWS"
     },
     {
       "documentKey": "DOC-SUP-007-QUOTATION",
@@ -248,7 +266,7 @@
       "version": "1.0",
       "title": "SUP-007 檸檬汁濃縮液供貨條件",
       "filename": "samples/documents/quotation-sup-007-v1.txt",
-      "corpusVersion": "sp-906-zh-tw-v2",
+      "corpusVersion": "sp-907-zh-tw-v3",
       "sourceSha256": "21ac10b71b01d6ffaa6c38b5b4057f2297c6c8cd8e25106b490137408ca57c5e",
       "classification": "SEED_BASELINE",
       "supplierCodes": [
@@ -260,13 +278,8 @@
       "relatedDocumentKeys": [
         "DOC-QUALITY-MAT-010"
       ],
-      "firstReviewStatus": "REQUIRES_ADMIN_REVIEW",
-      "firstReviewBasis": "首次人工管理員審查尚待執行；本目錄只追蹤語料，不授予出站核准。",
-      "outboundPolicy": "REQUIRES_REVIEW",
-      "indexingExpectation": "須先完成該文件版本與 SHA-256 的人工審查，再依現行政策進入非同步索引流程；本文未核准、未索引，也未執行 Gemini。",
-      "fixtureKeys": [
-        "RAG-005"
-      ],
+      "outboundPolicy": "EVALUATE_EXISTING_POLICY",
+      "fixtureKeys": [],
       "quoteTerms": [
         {
           "packageMultiple": "50",
@@ -286,7 +299,15 @@
       ],
       "materialNames": [
         "檸檬汁濃縮液"
-      ]
+      ],
+      "themeKey": "legacy_quotation",
+      "provenance": {
+        "kind": "REPOSITORY_DEMO_CORPUS",
+        "datasetKey": "SP-901",
+        "corpusVersion": "sp-907-zh-tw-v3",
+        "origin": "LEGACY_SP906"
+      },
+      "approvalPolicy": "TRUSTED_DEMO_SYSTEM_APPROVAL_IF_POLICY_ALLOWS"
     },
     {
       "documentKey": "DOC-SOP-LIFECYCLE",
@@ -294,7 +315,7 @@
       "version": "1.0",
       "title": "SupplyPilot 展示採購生命週期作業程序",
       "filename": "samples/documents/procurement-sop-v1.txt",
-      "corpusVersion": "sp-906-zh-tw-v2",
+      "corpusVersion": "sp-907-zh-tw-v3",
       "sourceSha256": "1a6db8e08b379944cfe2aac15c4b8c11762dc315ddf8a8c71c4f8d35c2d20dcc",
       "classification": "SEED_BASELINE",
       "supplierCodes": [],
@@ -303,16 +324,21 @@
         "DOC-SOP-KANBAN",
         "DOC-SOP-DELIVERY-DATE"
       ],
-      "firstReviewStatus": "REQUIRES_ADMIN_REVIEW",
-      "firstReviewBasis": "首次人工管理員審查尚待執行；本目錄只追蹤語料，不授予出站核准。",
-      "outboundPolicy": "REQUIRES_REVIEW",
-      "indexingExpectation": "須先完成該文件版本與 SHA-256 的人工審查，再依現行政策進入非同步索引流程；本文未核准、未索引，也未執行 Gemini。",
+      "outboundPolicy": "EVALUATE_EXISTING_POLICY",
       "fixtureKeys": [
         "RAG-013",
         "RAG-014"
       ],
       "supplierNames": [],
-      "materialNames": []
+      "materialNames": [],
+      "themeKey": "shared_procurement_sop",
+      "provenance": {
+        "kind": "REPOSITORY_DEMO_CORPUS",
+        "datasetKey": "SP-901",
+        "corpusVersion": "sp-907-zh-tw-v3",
+        "origin": "LEGACY_SP906"
+      },
+      "approvalPolicy": "TRUSTED_DEMO_SYSTEM_APPROVAL_IF_POLICY_ALLOWS"
     },
     {
       "documentKey": "DOC-SOP-KANBAN",
@@ -320,7 +346,7 @@
       "version": "1.0",
       "title": "採購單終止與看板階段處理程序",
       "filename": "samples/documents/procurement-sop-kanban-v1.txt",
-      "corpusVersion": "sp-906-zh-tw-v2",
+      "corpusVersion": "sp-907-zh-tw-v3",
       "sourceSha256": "7522e447a548eb6390eaee9b62db139a81a28b32b59d70073cdc6f0a17db15db",
       "classification": "SEED_BASELINE",
       "supplierCodes": [],
@@ -328,16 +354,21 @@
       "relatedDocumentKeys": [
         "DOC-SOP-LIFECYCLE"
       ],
-      "firstReviewStatus": "REQUIRES_ADMIN_REVIEW",
-      "firstReviewBasis": "首次人工管理員審查尚待執行；本目錄只追蹤語料，不授予出站核准。",
-      "outboundPolicy": "REQUIRES_REVIEW",
-      "indexingExpectation": "須先完成該文件版本與 SHA-256 的人工審查，再依現行政策進入非同步索引流程；本文未核准、未索引，也未執行 Gemini。",
+      "outboundPolicy": "EVALUATE_EXISTING_POLICY",
       "fixtureKeys": [
         "RAG-015",
         "RAG-025"
       ],
       "supplierNames": [],
-      "materialNames": []
+      "materialNames": [],
+      "themeKey": "shared_procurement_sop",
+      "provenance": {
+        "kind": "REPOSITORY_DEMO_CORPUS",
+        "datasetKey": "SP-901",
+        "corpusVersion": "sp-907-zh-tw-v3",
+        "origin": "LEGACY_SP906"
+      },
+      "approvalPolicy": "TRUSTED_DEMO_SYSTEM_APPROVAL_IF_POLICY_ALLOWS"
     },
     {
       "documentKey": "DOC-SOP-DELIVERY-DATE",
@@ -345,7 +376,7 @@
       "version": "1.0",
       "title": "採購交期欄位與異動作業程序",
       "filename": "samples/documents/procurement-sop-delivery-date-v1.txt",
-      "corpusVersion": "sp-906-zh-tw-v2",
+      "corpusVersion": "sp-907-zh-tw-v3",
       "sourceSha256": "f084cedbbcef54e917a6b07f116a664678c9784664f81cf13ff26fe1f07dfef6",
       "classification": "SEED_BASELINE",
       "supplierCodes": [],
@@ -354,16 +385,21 @@
         "DOC-SOP-LIFECYCLE",
         "DOC-SUP-010-CONTRACT"
       ],
-      "firstReviewStatus": "REQUIRES_ADMIN_REVIEW",
-      "firstReviewBasis": "首次人工管理員審查尚待執行；本目錄只追蹤語料，不授予出站核准。",
-      "outboundPolicy": "REQUIRES_REVIEW",
-      "indexingExpectation": "須先完成該文件版本與 SHA-256 的人工審查，再依現行政策進入非同步索引流程；本文未核准、未索引，也未執行 Gemini。",
+      "outboundPolicy": "EVALUATE_EXISTING_POLICY",
       "fixtureKeys": [
         "RAG-016",
         "RAG-023"
       ],
       "supplierNames": [],
-      "materialNames": []
+      "materialNames": [],
+      "themeKey": "shared_procurement_sop",
+      "provenance": {
+        "kind": "REPOSITORY_DEMO_CORPUS",
+        "datasetKey": "SP-901",
+        "corpusVersion": "sp-907-zh-tw-v3",
+        "origin": "LEGACY_SP906"
+      },
+      "approvalPolicy": "TRUSTED_DEMO_SYSTEM_APPROVAL_IF_POLICY_ALLOWS"
     },
     {
       "documentKey": "DOC-MAT-001-SPEC",
@@ -371,7 +407,7 @@
       "version": "1.0",
       "title": "MAT-001 阿薩姆紅茶萃取物規格",
       "filename": "samples/documents/product-specification-mat-001-v1.txt",
-      "corpusVersion": "sp-906-zh-tw-v2",
+      "corpusVersion": "sp-907-zh-tw-v3",
       "sourceSha256": "0a3962fa578188cae9db20a261d8f8da9d6656b6a9637e67b5be8d9fa1a5101b",
       "classification": "SEED_BASELINE",
       "supplierCodes": [],
@@ -382,10 +418,7 @@
         "DOC-QUALITY-MAT-001",
         "DOC-SUP-001-CONTRACT"
       ],
-      "firstReviewStatus": "REQUIRES_ADMIN_REVIEW",
-      "firstReviewBasis": "首次人工管理員審查尚待執行；本目錄只追蹤語料，不授予出站核准。",
-      "outboundPolicy": "REQUIRES_REVIEW",
-      "indexingExpectation": "須先完成該文件版本與 SHA-256 的人工審查，再依現行政策進入非同步索引流程；本文未核准、未索引，也未執行 Gemini。",
+      "outboundPolicy": "EVALUATE_EXISTING_POLICY",
       "fixtureKeys": [
         "RAG-006",
         "RAG-020"
@@ -393,7 +426,15 @@
       "supplierNames": [],
       "materialNames": [
         "阿薩姆紅茶萃取物"
-      ]
+      ],
+      "themeKey": "shared_product_specification",
+      "provenance": {
+        "kind": "REPOSITORY_DEMO_CORPUS",
+        "datasetKey": "SP-901",
+        "corpusVersion": "sp-907-zh-tw-v3",
+        "origin": "LEGACY_SP906"
+      },
+      "approvalPolicy": "TRUSTED_DEMO_SYSTEM_APPROVAL_IF_POLICY_ALLOWS"
     },
     {
       "documentKey": "DOC-MAT-002-SPEC",
@@ -401,7 +442,7 @@
       "version": "1.0",
       "title": "MAT-002 芒果濃縮汁規格",
       "filename": "samples/documents/product-specification-mat-002-v1.txt",
-      "corpusVersion": "sp-906-zh-tw-v2",
+      "corpusVersion": "sp-907-zh-tw-v3",
       "sourceSha256": "427946615828ae81a60c276b151c4e8d6ceeb17d4a77cd895012732e9f492a97",
       "classification": "SEED_BASELINE",
       "supplierCodes": [],
@@ -412,10 +453,7 @@
         "DOC-SUP-002-CONTRACT",
         "DOC-SUP-002-QUOTATION"
       ],
-      "firstReviewStatus": "REQUIRES_ADMIN_REVIEW",
-      "firstReviewBasis": "首次人工管理員審查尚待執行；本目錄只追蹤語料，不授予出站核准。",
-      "outboundPolicy": "REQUIRES_REVIEW",
-      "indexingExpectation": "須先完成該文件版本與 SHA-256 的人工審查，再依現行政策進入非同步索引流程；本文未核准、未索引，也未執行 Gemini。",
+      "outboundPolicy": "EVALUATE_EXISTING_POLICY",
       "fixtureKeys": [
         "RAG-007",
         "RAG-008"
@@ -423,7 +461,15 @@
       "supplierNames": [],
       "materialNames": [
         "芒果濃縮汁"
-      ]
+      ],
+      "themeKey": "shared_product_specification",
+      "provenance": {
+        "kind": "REPOSITORY_DEMO_CORPUS",
+        "datasetKey": "SP-901",
+        "corpusVersion": "sp-907-zh-tw-v3",
+        "origin": "LEGACY_SP906"
+      },
+      "approvalPolicy": "TRUSTED_DEMO_SYSTEM_APPROVAL_IF_POLICY_ALLOWS"
     },
     {
       "documentKey": "DOC-MAT-006-SPEC",
@@ -431,7 +477,7 @@
       "version": "1.0",
       "title": "MAT-006 茉莉茶萃取物規格",
       "filename": "samples/documents/product-specification-mat-006-v1.txt",
-      "corpusVersion": "sp-906-zh-tw-v2",
+      "corpusVersion": "sp-907-zh-tw-v3",
       "sourceSha256": "b8e085efa6174f5e23f65663e8138ec6777cb9c0657aa2564aec4fb01c3d92ca",
       "classification": "SEED_BASELINE",
       "supplierCodes": [],
@@ -439,17 +485,22 @@
         "MAT-006"
       ],
       "relatedDocumentKeys": [],
-      "firstReviewStatus": "REQUIRES_ADMIN_REVIEW",
-      "firstReviewBasis": "首次人工管理員審查尚待執行；本目錄只追蹤語料，不授予出站核准。",
-      "outboundPolicy": "REQUIRES_REVIEW",
-      "indexingExpectation": "須先完成該文件版本與 SHA-256 的人工審查，再依現行政策進入非同步索引流程；本文未核准、未索引，也未執行 Gemini。",
+      "outboundPolicy": "EVALUATE_EXISTING_POLICY",
       "fixtureKeys": [
         "RAG-009"
       ],
       "supplierNames": [],
       "materialNames": [
         "茉莉茶萃取物"
-      ]
+      ],
+      "themeKey": "shared_product_specification",
+      "provenance": {
+        "kind": "REPOSITORY_DEMO_CORPUS",
+        "datasetKey": "SP-901",
+        "corpusVersion": "sp-907-zh-tw-v3",
+        "origin": "LEGACY_SP906"
+      },
+      "approvalPolicy": "TRUSTED_DEMO_SYSTEM_APPROVAL_IF_POLICY_ALLOWS"
     },
     {
       "documentKey": "DOC-QUALITY-GENERAL",
@@ -457,7 +508,7 @@
       "version": "1.0",
       "title": "原料收貨品質與異常隔離要求",
       "filename": "samples/documents/quality-requirement-v1.txt",
-      "corpusVersion": "sp-906-zh-tw-v2",
+      "corpusVersion": "sp-907-zh-tw-v3",
       "sourceSha256": "ef2d1baf3d3e46a679bca319171a6582dcbabb993e08091f6fe14216220b689e",
       "classification": "SEED_BASELINE",
       "supplierCodes": [],
@@ -467,15 +518,20 @@
         "DOC-QUALITY-MAT-010",
         "DOC-SOP-LIFECYCLE"
       ],
-      "firstReviewStatus": "REQUIRES_ADMIN_REVIEW",
-      "firstReviewBasis": "首次人工管理員審查尚待執行；本目錄只追蹤語料，不授予出站核准。",
-      "outboundPolicy": "REQUIRES_REVIEW",
-      "indexingExpectation": "須先完成該文件版本與 SHA-256 的人工審查，再依現行政策進入非同步索引流程；本文未核准、未索引，也未執行 Gemini。",
+      "outboundPolicy": "EVALUATE_EXISTING_POLICY",
       "fixtureKeys": [
         "RAG-010"
       ],
       "supplierNames": [],
-      "materialNames": []
+      "materialNames": [],
+      "themeKey": "shared_quality_requirement",
+      "provenance": {
+        "kind": "REPOSITORY_DEMO_CORPUS",
+        "datasetKey": "SP-901",
+        "corpusVersion": "sp-907-zh-tw-v3",
+        "origin": "LEGACY_SP906"
+      },
+      "approvalPolicy": "TRUSTED_DEMO_SYSTEM_APPROVAL_IF_POLICY_ALLOWS"
     },
     {
       "documentKey": "DOC-QUALITY-MAT-001",
@@ -483,7 +539,7 @@
       "version": "1.0",
       "title": "MAT-001 批次標示與收貨檢查要求",
       "filename": "samples/documents/quality-requirement-mat-001-v1.txt",
-      "corpusVersion": "sp-906-zh-tw-v2",
+      "corpusVersion": "sp-907-zh-tw-v3",
       "sourceSha256": "143ae137bb7a5b1b70f25641b43dd1d89adeca72130fe251e224e1a97fb0cadf",
       "classification": "SEED_BASELINE",
       "supplierCodes": [],
@@ -494,10 +550,7 @@
         "DOC-MAT-001-SPEC",
         "DOC-SUP-001-CONTRACT"
       ],
-      "firstReviewStatus": "REQUIRES_ADMIN_REVIEW",
-      "firstReviewBasis": "首次人工管理員審查尚待執行；本目錄只追蹤語料，不授予出站核准。",
-      "outboundPolicy": "REQUIRES_REVIEW",
-      "indexingExpectation": "須先完成該文件版本與 SHA-256 的人工審查，再依現行政策進入非同步索引流程；本文未核准、未索引，也未執行 Gemini。",
+      "outboundPolicy": "EVALUATE_EXISTING_POLICY",
       "fixtureKeys": [
         "RAG-011",
         "RAG-017"
@@ -505,7 +558,15 @@
       "supplierNames": [],
       "materialNames": [
         "阿薩姆紅茶萃取物"
-      ]
+      ],
+      "themeKey": "shared_quality_requirement",
+      "provenance": {
+        "kind": "REPOSITORY_DEMO_CORPUS",
+        "datasetKey": "SP-901",
+        "corpusVersion": "sp-907-zh-tw-v3",
+        "origin": "LEGACY_SP906"
+      },
+      "approvalPolicy": "TRUSTED_DEMO_SYSTEM_APPROVAL_IF_POLICY_ALLOWS"
     },
     {
       "documentKey": "DOC-QUALITY-MAT-010",
@@ -513,7 +574,7 @@
       "version": "1.0",
       "title": "MAT-010 檸檬汁濃縮液收貨品質要求",
       "filename": "samples/documents/quality-requirement-mat-010-v1.txt",
-      "corpusVersion": "sp-906-zh-tw-v2",
+      "corpusVersion": "sp-907-zh-tw-v3",
       "sourceSha256": "77cb63615b62bb7f3d378bc192afacaf637f9a0f0a0595d1af4f9838e97c0ecd",
       "classification": "SEED_BASELINE",
       "supplierCodes": [],
@@ -523,17 +584,22 @@
       "relatedDocumentKeys": [
         "DOC-SUP-007-QUOTATION"
       ],
-      "firstReviewStatus": "REQUIRES_ADMIN_REVIEW",
-      "firstReviewBasis": "首次人工管理員審查尚待執行；本目錄只追蹤語料，不授予出站核准。",
-      "outboundPolicy": "REQUIRES_REVIEW",
-      "indexingExpectation": "須先完成該文件版本與 SHA-256 的人工審查，再依現行政策進入非同步索引流程；本文未核准、未索引，也未執行 Gemini。",
+      "outboundPolicy": "EVALUATE_EXISTING_POLICY",
       "fixtureKeys": [
         "RAG-012"
       ],
       "supplierNames": [],
       "materialNames": [
         "檸檬汁濃縮液"
-      ]
+      ],
+      "themeKey": "shared_quality_requirement",
+      "provenance": {
+        "kind": "REPOSITORY_DEMO_CORPUS",
+        "datasetKey": "SP-901",
+        "corpusVersion": "sp-907-zh-tw-v3",
+        "origin": "LEGACY_SP906"
+      },
+      "approvalPolicy": "TRUSTED_DEMO_SYSTEM_APPROVAL_IF_POLICY_ALLOWS"
     },
     {
       "documentKey": "UI-SUP-005-ADDENDUM",
@@ -541,7 +607,6 @@
       "version": "1.0",
       "title": "SUP-005 海岳食品素材季節性交期補充條款",
       "filename": "samples/documents/ui-upload-sup-005-v1.txt",
-      "corpusVersion": "sp-906-zh-tw-v2",
       "sourceSha256": "84f0dd681f91c08dc84fe666ced45bf75c3c02b61022bea06fa7bb334d3ce411",
       "classification": "MANUAL_UI_UPLOAD_ONLY",
       "supplierCodes": [
@@ -550,9 +615,7 @@
       "materialCodes": [],
       "relatedDocumentKeys": [],
       "firstReviewStatus": "REQUIRES_ADMIN_REVIEW",
-      "firstReviewBasis": "首次人工管理員審查尚待執行；本目錄只追蹤語料，不授予出站核准。",
-      "outboundPolicy": "REQUIRES_REVIEW",
-      "indexingExpectation": "僅由人工 UI 上傳；Coordinator 不得自動 Seed。首次人工審查與出站政策仍適用；本文未核准、未索引，也未執行 Gemini。",
+      "outboundPolicy": "REQUIRES_ADMIN_REVIEW",
       "fixtureKeys": [
         "RAG-021"
       ],
@@ -561,6 +624,3408 @@
         "海岳食品素材"
       ],
       "materialNames": []
+    },
+    {
+      "documentKey": "DOC-SUP-001-SUPPLIER-PROFILE-SP907",
+      "type": "SUPPLIER_PROFILE",
+      "themeKey": "supplier_profile",
+      "version": "1.0",
+      "title": "福爾摩沙原料工坊（SUP-001）｜供應商基本資料展示文件",
+      "filename": "samples/documents/supplier-sup-001-supplier-profile-sp907-v1.txt",
+      "corpusVersion": "sp-907-zh-tw-v3",
+      "sourceSha256": "15289dbbe4d18a92b6de6d03a213a0a2b63d3b9b53ff8e9f687a83e66387f7d7",
+      "classification": "SEED_BASELINE",
+      "supplierCodes": [
+        "SUP-001"
+      ],
+      "supplierNames": [
+        "福爾摩沙原料工坊"
+      ],
+      "materialCodes": [],
+      "materialNames": [],
+      "provenance": {
+        "kind": "REPOSITORY_DEMO_CORPUS",
+        "datasetKey": "SP-901",
+        "corpusVersion": "sp-907-zh-tw-v3",
+        "origin": "ADDED_SP907"
+      },
+      "approvalPolicy": "TRUSTED_DEMO_SYSTEM_APPROVAL_IF_POLICY_ALLOWS",
+      "outboundPolicy": "EVALUATE_EXISTING_POLICY",
+      "fixtureKeys": [
+        "RAG-026",
+        "RAG-034"
+      ]
+    },
+    {
+      "documentKey": "DOC-SUP-001-SUPPLY-CAPABILITY-SP907",
+      "type": "SUPPLIER_PROFILE",
+      "themeKey": "supply_capability",
+      "version": "1.0",
+      "title": "福爾摩沙原料工坊（SUP-001）｜供貨關係與能力範圍展示文件",
+      "filename": "samples/documents/supplier-sup-001-supply-capability-sp907-v1.txt",
+      "corpusVersion": "sp-907-zh-tw-v3",
+      "sourceSha256": "9a488d1552eb163e1d9c18b39f23a39399dd74bec95cb48aff0fb209711288e8",
+      "classification": "SEED_BASELINE",
+      "supplierCodes": [
+        "SUP-001"
+      ],
+      "supplierNames": [
+        "福爾摩沙原料工坊"
+      ],
+      "materialCodes": [
+        "MAT-001",
+        "MAT-002",
+        "MAT-003",
+        "MAT-004",
+        "MAT-006",
+        "MAT-007"
+      ],
+      "materialNames": [
+        "阿薩姆紅茶萃取物",
+        "芒果濃縮汁",
+        "果糖糖漿",
+        "奶茶基底",
+        "茉莉茶萃取物",
+        "百香果泥"
+      ],
+      "provenance": {
+        "kind": "REPOSITORY_DEMO_CORPUS",
+        "datasetKey": "SP-901",
+        "corpusVersion": "sp-907-zh-tw-v3",
+        "origin": "ADDED_SP907"
+      },
+      "approvalPolicy": "TRUSTED_DEMO_SYSTEM_APPROVAL_IF_POLICY_ALLOWS",
+      "outboundPolicy": "EVALUATE_EXISTING_POLICY",
+      "fixtureKeys": [
+        "RAG-027"
+      ]
+    },
+    {
+      "documentKey": "DOC-SUP-001-CONTRACT-TERMS-SP907",
+      "type": "SUPPLIER_CONTRACT",
+      "themeKey": "contract_terms",
+      "version": "1.0",
+      "title": "福爾摩沙原料工坊（SUP-001）｜供貨協議條件展示文件",
+      "filename": "samples/documents/supplier-sup-001-contract-terms-sp907-v1.txt",
+      "corpusVersion": "sp-907-zh-tw-v3",
+      "sourceSha256": "3b0be619204d3e4a88aca81fff5d914f845169fb31976dd83dd0e611c0edf6d9",
+      "classification": "SEED_BASELINE",
+      "supplierCodes": [
+        "SUP-001"
+      ],
+      "supplierNames": [
+        "福爾摩沙原料工坊"
+      ],
+      "materialCodes": [
+        "MAT-001"
+      ],
+      "materialNames": [
+        "阿薩姆紅茶萃取物"
+      ],
+      "provenance": {
+        "kind": "REPOSITORY_DEMO_CORPUS",
+        "datasetKey": "SP-901",
+        "corpusVersion": "sp-907-zh-tw-v3",
+        "origin": "ADDED_SP907"
+      },
+      "approvalPolicy": "TRUSTED_DEMO_SYSTEM_APPROVAL_IF_POLICY_ALLOWS",
+      "outboundPolicy": "EVALUATE_EXISTING_POLICY",
+      "fixtureKeys": [
+        "RAG-029"
+      ]
+    },
+    {
+      "documentKey": "DOC-SUP-001-QUOTATION-SP907",
+      "type": "QUOTATION",
+      "themeKey": "quotation",
+      "version": "1.0",
+      "title": "福爾摩沙原料工坊（SUP-001）｜報價與供貨條件摘要展示文件",
+      "filename": "samples/documents/supplier-sup-001-quotation-sp907-v1.txt",
+      "corpusVersion": "sp-907-zh-tw-v3",
+      "sourceSha256": "81d8c0ad9fa20b681c1709bbe617813dc0d3fdc793b9663355ce07e15691b128",
+      "classification": "SEED_BASELINE",
+      "supplierCodes": [
+        "SUP-001"
+      ],
+      "supplierNames": [
+        "福爾摩沙原料工坊"
+      ],
+      "materialCodes": [
+        "MAT-001"
+      ],
+      "materialNames": [
+        "阿薩姆紅茶萃取物"
+      ],
+      "provenance": {
+        "kind": "REPOSITORY_DEMO_CORPUS",
+        "datasetKey": "SP-901",
+        "corpusVersion": "sp-907-zh-tw-v3",
+        "origin": "ADDED_SP907"
+      },
+      "approvalPolicy": "TRUSTED_DEMO_SYSTEM_APPROVAL_IF_POLICY_ALLOWS",
+      "outboundPolicy": "EVALUATE_EXISTING_POLICY",
+      "fixtureKeys": [
+        "RAG-002",
+        "RAG-030"
+      ]
+    },
+    {
+      "documentKey": "DOC-SUP-001-PRODUCT-SPECIFICATION-SP907",
+      "type": "PRODUCT_SPECIFICATION",
+      "themeKey": "product_specification",
+      "version": "1.0",
+      "title": "福爾摩沙原料工坊（SUP-001）｜物料規格參照展示文件",
+      "filename": "samples/documents/supplier-sup-001-product-specification-sp907-v1.txt",
+      "corpusVersion": "sp-907-zh-tw-v3",
+      "sourceSha256": "8f3f64f98d944b2468128c2198d275ab65fe906168046961c76a260445a539e8",
+      "classification": "SEED_BASELINE",
+      "supplierCodes": [
+        "SUP-001"
+      ],
+      "supplierNames": [
+        "福爾摩沙原料工坊"
+      ],
+      "materialCodes": [
+        "MAT-001"
+      ],
+      "materialNames": [
+        "阿薩姆紅茶萃取物"
+      ],
+      "provenance": {
+        "kind": "REPOSITORY_DEMO_CORPUS",
+        "datasetKey": "SP-901",
+        "corpusVersion": "sp-907-zh-tw-v3",
+        "origin": "ADDED_SP907"
+      },
+      "approvalPolicy": "TRUSTED_DEMO_SYSTEM_APPROVAL_IF_POLICY_ALLOWS",
+      "outboundPolicy": "EVALUATE_EXISTING_POLICY",
+      "fixtureKeys": []
+    },
+    {
+      "documentKey": "DOC-SUP-001-QUALITY-REQUIREMENTS-SP907",
+      "type": "QUALITY_REQUIREMENT",
+      "themeKey": "quality_requirements",
+      "version": "1.0",
+      "title": "福爾摩沙原料工坊（SUP-001）｜品質與收貨查核展示文件",
+      "filename": "samples/documents/supplier-sup-001-quality-requirements-sp907-v1.txt",
+      "corpusVersion": "sp-907-zh-tw-v3",
+      "sourceSha256": "811ada9b345957c44b08c8392a359d81a1a857a1616d2be9736dc4b2f878665a",
+      "classification": "SEED_BASELINE",
+      "supplierCodes": [
+        "SUP-001"
+      ],
+      "supplierNames": [
+        "福爾摩沙原料工坊"
+      ],
+      "materialCodes": [
+        "MAT-001"
+      ],
+      "materialNames": [
+        "阿薩姆紅茶萃取物"
+      ],
+      "provenance": {
+        "kind": "REPOSITORY_DEMO_CORPUS",
+        "datasetKey": "SP-901",
+        "corpusVersion": "sp-907-zh-tw-v3",
+        "origin": "ADDED_SP907"
+      },
+      "approvalPolicy": "TRUSTED_DEMO_SYSTEM_APPROVAL_IF_POLICY_ALLOWS",
+      "outboundPolicy": "EVALUATE_EXISTING_POLICY",
+      "fixtureKeys": [
+        "RAG-031"
+      ]
+    },
+    {
+      "documentKey": "DOC-SUP-001-DELIVERY-COORDINATION-SP907",
+      "type": "SUPPLIER_COOPERATION_RECORD",
+      "themeKey": "delivery_coordination",
+      "version": "1.0",
+      "title": "福爾摩沙原料工坊（SUP-001）｜交期協調紀錄展示文件",
+      "filename": "samples/documents/supplier-sup-001-delivery-coordination-sp907-v1.txt",
+      "corpusVersion": "sp-907-zh-tw-v3",
+      "sourceSha256": "7c002a5cc4ecbec67d46b3fdc9a2943652bc27306df0ac0cc2230285ccee47d5",
+      "classification": "SEED_BASELINE",
+      "supplierCodes": [
+        "SUP-001"
+      ],
+      "supplierNames": [
+        "福爾摩沙原料工坊"
+      ],
+      "materialCodes": [
+        "MAT-001"
+      ],
+      "materialNames": [
+        "阿薩姆紅茶萃取物"
+      ],
+      "provenance": {
+        "kind": "REPOSITORY_DEMO_CORPUS",
+        "datasetKey": "SP-901",
+        "corpusVersion": "sp-907-zh-tw-v3",
+        "origin": "ADDED_SP907"
+      },
+      "approvalPolicy": "TRUSTED_DEMO_SYSTEM_APPROVAL_IF_POLICY_ALLOWS",
+      "outboundPolicy": "EVALUATE_EXISTING_POLICY",
+      "fixtureKeys": [
+        "RAG-028"
+      ]
+    },
+    {
+      "documentKey": "DOC-SUP-001-COOPERATION-HISTORY-SP907",
+      "type": "SUPPLIER_COOPERATION_RECORD",
+      "themeKey": "cooperation_history",
+      "version": "1.0",
+      "title": "福爾摩沙原料工坊（SUP-001）｜採購合作歷程展示文件",
+      "filename": "samples/documents/supplier-sup-001-cooperation-history-sp907-v1.txt",
+      "corpusVersion": "sp-907-zh-tw-v3",
+      "sourceSha256": "1e149c5e3077441caca452a15508f924cd40af379c4913e132689df9547d35c7",
+      "classification": "SEED_BASELINE",
+      "supplierCodes": [
+        "SUP-001"
+      ],
+      "supplierNames": [
+        "福爾摩沙原料工坊"
+      ],
+      "materialCodes": [
+        "MAT-001"
+      ],
+      "materialNames": [
+        "阿薩姆紅茶萃取物"
+      ],
+      "provenance": {
+        "kind": "REPOSITORY_DEMO_CORPUS",
+        "datasetKey": "SP-901",
+        "corpusVersion": "sp-907-zh-tw-v3",
+        "origin": "ADDED_SP907"
+      },
+      "approvalPolicy": "TRUSTED_DEMO_SYSTEM_APPROVAL_IF_POLICY_ALLOWS",
+      "outboundPolicy": "EVALUATE_EXISTING_POLICY",
+      "fixtureKeys": [
+        "RAG-032"
+      ]
+    },
+    {
+      "documentKey": "DOC-SUP-001-INCIDENT-IMPROVEMENT-SP907",
+      "type": "SUPPLIER_COOPERATION_RECORD",
+      "themeKey": "incident_improvement",
+      "version": "1.0",
+      "title": "福爾摩沙原料工坊（SUP-001）｜異常改善追蹤展示文件",
+      "filename": "samples/documents/supplier-sup-001-incident-improvement-sp907-v1.txt",
+      "corpusVersion": "sp-907-zh-tw-v3",
+      "sourceSha256": "eff9c02c38a4c95c86027e50244fe2b549d587a16c18edd53ffd6780c1bcd540",
+      "classification": "SEED_BASELINE",
+      "supplierCodes": [
+        "SUP-001"
+      ],
+      "supplierNames": [
+        "福爾摩沙原料工坊"
+      ],
+      "materialCodes": [
+        "MAT-001"
+      ],
+      "materialNames": [
+        "阿薩姆紅茶萃取物"
+      ],
+      "provenance": {
+        "kind": "REPOSITORY_DEMO_CORPUS",
+        "datasetKey": "SP-901",
+        "corpusVersion": "sp-907-zh-tw-v3",
+        "origin": "ADDED_SP907"
+      },
+      "approvalPolicy": "TRUSTED_DEMO_SYSTEM_APPROVAL_IF_POLICY_ALLOWS",
+      "outboundPolicy": "EVALUATE_EXISTING_POLICY",
+      "fixtureKeys": []
+    },
+    {
+      "documentKey": "DOC-SUP-001-BUYER-EVALUATION-SP907",
+      "type": "SUPPLIER_EVALUATION",
+      "themeKey": "buyer_evaluation",
+      "version": "1.0",
+      "title": "福爾摩沙原料工坊（SUP-001）｜採購端主觀評語展示文件",
+      "filename": "samples/documents/supplier-sup-001-buyer-evaluation-sp907-v1.txt",
+      "corpusVersion": "sp-907-zh-tw-v3",
+      "sourceSha256": "7cbdaca9793599385f5cbfe9b5dcc339dcf011583f16471784fe6bb1bbdfa25a",
+      "classification": "SEED_BASELINE",
+      "supplierCodes": [
+        "SUP-001"
+      ],
+      "supplierNames": [
+        "福爾摩沙原料工坊"
+      ],
+      "materialCodes": [
+        "MAT-001"
+      ],
+      "materialNames": [
+        "阿薩姆紅茶萃取物"
+      ],
+      "provenance": {
+        "kind": "REPOSITORY_DEMO_CORPUS",
+        "datasetKey": "SP-901",
+        "corpusVersion": "sp-907-zh-tw-v3",
+        "origin": "ADDED_SP907"
+      },
+      "approvalPolicy": "TRUSTED_DEMO_SYSTEM_APPROVAL_IF_POLICY_ALLOWS",
+      "outboundPolicy": "EVALUATE_EXISTING_POLICY",
+      "fixtureKeys": [
+        "RAG-033"
+      ]
+    },
+    {
+      "documentKey": "DOC-SUP-002-SUPPLIER-PROFILE-SP907",
+      "type": "SUPPLIER_PROFILE",
+      "themeKey": "supplier_profile",
+      "version": "1.0",
+      "title": "東港貿易社（SUP-002）｜供應商基本資料展示文件",
+      "filename": "samples/documents/supplier-sup-002-supplier-profile-sp907-v1.txt",
+      "corpusVersion": "sp-907-zh-tw-v3",
+      "sourceSha256": "5bcf78409f235146e07b527569052521add93d63de96a69f39532f4af7d6d3a1",
+      "classification": "SEED_BASELINE",
+      "supplierCodes": [
+        "SUP-002"
+      ],
+      "supplierNames": [
+        "東港貿易社"
+      ],
+      "materialCodes": [],
+      "materialNames": [],
+      "provenance": {
+        "kind": "REPOSITORY_DEMO_CORPUS",
+        "datasetKey": "SP-901",
+        "corpusVersion": "sp-907-zh-tw-v3",
+        "origin": "ADDED_SP907"
+      },
+      "approvalPolicy": "TRUSTED_DEMO_SYSTEM_APPROVAL_IF_POLICY_ALLOWS",
+      "outboundPolicy": "EVALUATE_EXISTING_POLICY",
+      "fixtureKeys": [
+        "RAG-036",
+        "RAG-044"
+      ]
+    },
+    {
+      "documentKey": "DOC-SUP-002-SUPPLY-CAPABILITY-SP907",
+      "type": "SUPPLIER_PROFILE",
+      "themeKey": "supply_capability",
+      "version": "1.0",
+      "title": "東港貿易社（SUP-002）｜供貨關係與能力範圍展示文件",
+      "filename": "samples/documents/supplier-sup-002-supply-capability-sp907-v1.txt",
+      "corpusVersion": "sp-907-zh-tw-v3",
+      "sourceSha256": "78eb4d9412a16934f9d19f03aeabd7bb19779a031debbba55db84a394fb244d0",
+      "classification": "SEED_BASELINE",
+      "supplierCodes": [
+        "SUP-002"
+      ],
+      "supplierNames": [
+        "東港貿易社"
+      ],
+      "materialCodes": [
+        "MAT-001",
+        "MAT-002",
+        "MAT-003",
+        "MAT-004",
+        "MAT-006",
+        "MAT-007"
+      ],
+      "materialNames": [
+        "阿薩姆紅茶萃取物",
+        "芒果濃縮汁",
+        "果糖糖漿",
+        "奶茶基底",
+        "茉莉茶萃取物",
+        "百香果泥"
+      ],
+      "provenance": {
+        "kind": "REPOSITORY_DEMO_CORPUS",
+        "datasetKey": "SP-901",
+        "corpusVersion": "sp-907-zh-tw-v3",
+        "origin": "ADDED_SP907"
+      },
+      "approvalPolicy": "TRUSTED_DEMO_SYSTEM_APPROVAL_IF_POLICY_ALLOWS",
+      "outboundPolicy": "EVALUATE_EXISTING_POLICY",
+      "fixtureKeys": [
+        "RAG-037"
+      ]
+    },
+    {
+      "documentKey": "DOC-SUP-002-CONTRACT-TERMS-SP907",
+      "type": "SUPPLIER_CONTRACT",
+      "themeKey": "contract_terms",
+      "version": "1.0",
+      "title": "東港貿易社（SUP-002）｜供貨協議條件展示文件",
+      "filename": "samples/documents/supplier-sup-002-contract-terms-sp907-v1.txt",
+      "corpusVersion": "sp-907-zh-tw-v3",
+      "sourceSha256": "4dda5ede51f0f45445e1ba363dd757880c4fc44b50abc16ac4a060baa735ddb0",
+      "classification": "SEED_BASELINE",
+      "supplierCodes": [
+        "SUP-002"
+      ],
+      "supplierNames": [
+        "東港貿易社"
+      ],
+      "materialCodes": [
+        "MAT-001"
+      ],
+      "materialNames": [
+        "阿薩姆紅茶萃取物"
+      ],
+      "provenance": {
+        "kind": "REPOSITORY_DEMO_CORPUS",
+        "datasetKey": "SP-901",
+        "corpusVersion": "sp-907-zh-tw-v3",
+        "origin": "ADDED_SP907"
+      },
+      "approvalPolicy": "TRUSTED_DEMO_SYSTEM_APPROVAL_IF_POLICY_ALLOWS",
+      "outboundPolicy": "EVALUATE_EXISTING_POLICY",
+      "fixtureKeys": [
+        "RAG-039"
+      ]
+    },
+    {
+      "documentKey": "DOC-SUP-002-QUOTATION-SP907",
+      "type": "QUOTATION",
+      "themeKey": "quotation",
+      "version": "1.0",
+      "title": "東港貿易社（SUP-002）｜報價與供貨條件摘要展示文件",
+      "filename": "samples/documents/supplier-sup-002-quotation-sp907-v1.txt",
+      "corpusVersion": "sp-907-zh-tw-v3",
+      "sourceSha256": "cb61a5cafdb985a1822adb1a33357bc1cc25e9f9a9be27b532ce62af544801b5",
+      "classification": "SEED_BASELINE",
+      "supplierCodes": [
+        "SUP-002"
+      ],
+      "supplierNames": [
+        "東港貿易社"
+      ],
+      "materialCodes": [
+        "MAT-001"
+      ],
+      "materialNames": [
+        "阿薩姆紅茶萃取物"
+      ],
+      "provenance": {
+        "kind": "REPOSITORY_DEMO_CORPUS",
+        "datasetKey": "SP-901",
+        "corpusVersion": "sp-907-zh-tw-v3",
+        "origin": "ADDED_SP907"
+      },
+      "approvalPolicy": "TRUSTED_DEMO_SYSTEM_APPROVAL_IF_POLICY_ALLOWS",
+      "outboundPolicy": "EVALUATE_EXISTING_POLICY",
+      "fixtureKeys": [
+        "RAG-003",
+        "RAG-004",
+        "RAG-018",
+        "RAG-019",
+        "RAG-040"
+      ]
+    },
+    {
+      "documentKey": "DOC-SUP-002-PRODUCT-SPECIFICATION-SP907",
+      "type": "PRODUCT_SPECIFICATION",
+      "themeKey": "product_specification",
+      "version": "1.0",
+      "title": "東港貿易社（SUP-002）｜物料規格參照展示文件",
+      "filename": "samples/documents/supplier-sup-002-product-specification-sp907-v1.txt",
+      "corpusVersion": "sp-907-zh-tw-v3",
+      "sourceSha256": "b27817db11d02dd5162fccbf7352ae12e0cca60545fa622d05fca13b0fe97b1b",
+      "classification": "SEED_BASELINE",
+      "supplierCodes": [
+        "SUP-002"
+      ],
+      "supplierNames": [
+        "東港貿易社"
+      ],
+      "materialCodes": [
+        "MAT-001"
+      ],
+      "materialNames": [
+        "阿薩姆紅茶萃取物"
+      ],
+      "provenance": {
+        "kind": "REPOSITORY_DEMO_CORPUS",
+        "datasetKey": "SP-901",
+        "corpusVersion": "sp-907-zh-tw-v3",
+        "origin": "ADDED_SP907"
+      },
+      "approvalPolicy": "TRUSTED_DEMO_SYSTEM_APPROVAL_IF_POLICY_ALLOWS",
+      "outboundPolicy": "EVALUATE_EXISTING_POLICY",
+      "fixtureKeys": []
+    },
+    {
+      "documentKey": "DOC-SUP-002-QUALITY-REQUIREMENTS-SP907",
+      "type": "QUALITY_REQUIREMENT",
+      "themeKey": "quality_requirements",
+      "version": "1.0",
+      "title": "東港貿易社（SUP-002）｜品質與收貨查核展示文件",
+      "filename": "samples/documents/supplier-sup-002-quality-requirements-sp907-v1.txt",
+      "corpusVersion": "sp-907-zh-tw-v3",
+      "sourceSha256": "3d168ec893b0d99b8edb5f1f022376ac8937a0e6af1d1cb9c59b8eaf001676ac",
+      "classification": "SEED_BASELINE",
+      "supplierCodes": [
+        "SUP-002"
+      ],
+      "supplierNames": [
+        "東港貿易社"
+      ],
+      "materialCodes": [
+        "MAT-001"
+      ],
+      "materialNames": [
+        "阿薩姆紅茶萃取物"
+      ],
+      "provenance": {
+        "kind": "REPOSITORY_DEMO_CORPUS",
+        "datasetKey": "SP-901",
+        "corpusVersion": "sp-907-zh-tw-v3",
+        "origin": "ADDED_SP907"
+      },
+      "approvalPolicy": "TRUSTED_DEMO_SYSTEM_APPROVAL_IF_POLICY_ALLOWS",
+      "outboundPolicy": "EVALUATE_EXISTING_POLICY",
+      "fixtureKeys": [
+        "RAG-041"
+      ]
+    },
+    {
+      "documentKey": "DOC-SUP-002-DELIVERY-COORDINATION-SP907",
+      "type": "SUPPLIER_COOPERATION_RECORD",
+      "themeKey": "delivery_coordination",
+      "version": "1.0",
+      "title": "東港貿易社（SUP-002）｜交期協調紀錄展示文件",
+      "filename": "samples/documents/supplier-sup-002-delivery-coordination-sp907-v1.txt",
+      "corpusVersion": "sp-907-zh-tw-v3",
+      "sourceSha256": "af6f40a749257b7c7e41bee7d867406d76b3f542474da174a8d4a5212e261240",
+      "classification": "SEED_BASELINE",
+      "supplierCodes": [
+        "SUP-002"
+      ],
+      "supplierNames": [
+        "東港貿易社"
+      ],
+      "materialCodes": [
+        "MAT-001",
+        "MAT-002"
+      ],
+      "materialNames": [
+        "阿薩姆紅茶萃取物",
+        "芒果濃縮汁"
+      ],
+      "provenance": {
+        "kind": "REPOSITORY_DEMO_CORPUS",
+        "datasetKey": "SP-901",
+        "corpusVersion": "sp-907-zh-tw-v3",
+        "origin": "ADDED_SP907"
+      },
+      "approvalPolicy": "TRUSTED_DEMO_SYSTEM_APPROVAL_IF_POLICY_ALLOWS",
+      "outboundPolicy": "EVALUATE_EXISTING_POLICY",
+      "fixtureKeys": [
+        "RAG-038"
+      ]
+    },
+    {
+      "documentKey": "DOC-SUP-002-COOPERATION-HISTORY-SP907",
+      "type": "SUPPLIER_COOPERATION_RECORD",
+      "themeKey": "cooperation_history",
+      "version": "1.0",
+      "title": "東港貿易社（SUP-002）｜採購合作歷程展示文件",
+      "filename": "samples/documents/supplier-sup-002-cooperation-history-sp907-v1.txt",
+      "corpusVersion": "sp-907-zh-tw-v3",
+      "sourceSha256": "1f64d05e6b248099ca81458872fd1ff8b38a832c661362d3ac8fdbc4f713ead1",
+      "classification": "SEED_BASELINE",
+      "supplierCodes": [
+        "SUP-002"
+      ],
+      "supplierNames": [
+        "東港貿易社"
+      ],
+      "materialCodes": [
+        "MAT-002",
+        "MAT-001"
+      ],
+      "materialNames": [
+        "芒果濃縮汁",
+        "阿薩姆紅茶萃取物"
+      ],
+      "provenance": {
+        "kind": "REPOSITORY_DEMO_CORPUS",
+        "datasetKey": "SP-901",
+        "corpusVersion": "sp-907-zh-tw-v3",
+        "origin": "ADDED_SP907"
+      },
+      "approvalPolicy": "TRUSTED_DEMO_SYSTEM_APPROVAL_IF_POLICY_ALLOWS",
+      "outboundPolicy": "EVALUATE_EXISTING_POLICY",
+      "fixtureKeys": [
+        "RAG-042"
+      ]
+    },
+    {
+      "documentKey": "DOC-SUP-002-INCIDENT-IMPROVEMENT-SP907",
+      "type": "SUPPLIER_COOPERATION_RECORD",
+      "themeKey": "incident_improvement",
+      "version": "1.0",
+      "title": "東港貿易社（SUP-002）｜異常改善追蹤展示文件",
+      "filename": "samples/documents/supplier-sup-002-incident-improvement-sp907-v1.txt",
+      "corpusVersion": "sp-907-zh-tw-v3",
+      "sourceSha256": "eb9421c5bb6af5b423fd40ab68b35b1f44e413c080296eccd08982706007215d",
+      "classification": "SEED_BASELINE",
+      "supplierCodes": [
+        "SUP-002"
+      ],
+      "supplierNames": [
+        "東港貿易社"
+      ],
+      "materialCodes": [
+        "MAT-001"
+      ],
+      "materialNames": [
+        "阿薩姆紅茶萃取物"
+      ],
+      "provenance": {
+        "kind": "REPOSITORY_DEMO_CORPUS",
+        "datasetKey": "SP-901",
+        "corpusVersion": "sp-907-zh-tw-v3",
+        "origin": "ADDED_SP907"
+      },
+      "approvalPolicy": "TRUSTED_DEMO_SYSTEM_APPROVAL_IF_POLICY_ALLOWS",
+      "outboundPolicy": "EVALUATE_EXISTING_POLICY",
+      "fixtureKeys": []
+    },
+    {
+      "documentKey": "DOC-SUP-002-BUYER-EVALUATION-SP907",
+      "type": "SUPPLIER_EVALUATION",
+      "themeKey": "buyer_evaluation",
+      "version": "1.0",
+      "title": "東港貿易社（SUP-002）｜採購端主觀評語展示文件",
+      "filename": "samples/documents/supplier-sup-002-buyer-evaluation-sp907-v1.txt",
+      "corpusVersion": "sp-907-zh-tw-v3",
+      "sourceSha256": "ea3bad6369d253ade5f7b066bc1abf60e862b789525377af95b93fdc5fa88961",
+      "classification": "SEED_BASELINE",
+      "supplierCodes": [
+        "SUP-002"
+      ],
+      "supplierNames": [
+        "東港貿易社"
+      ],
+      "materialCodes": [
+        "MAT-002",
+        "MAT-001"
+      ],
+      "materialNames": [
+        "芒果濃縮汁",
+        "阿薩姆紅茶萃取物"
+      ],
+      "provenance": {
+        "kind": "REPOSITORY_DEMO_CORPUS",
+        "datasetKey": "SP-901",
+        "corpusVersion": "sp-907-zh-tw-v3",
+        "origin": "ADDED_SP907"
+      },
+      "approvalPolicy": "TRUSTED_DEMO_SYSTEM_APPROVAL_IF_POLICY_ALLOWS",
+      "outboundPolicy": "EVALUATE_EXISTING_POLICY",
+      "fixtureKeys": [
+        "RAG-043"
+      ]
+    },
+    {
+      "documentKey": "DOC-SUP-003-SUPPLIER-PROFILE-SP907",
+      "type": "SUPPLIER_PROFILE",
+      "themeKey": "supplier_profile",
+      "version": "1.0",
+      "title": "青葉食材供應（SUP-003）｜供應商基本資料展示文件",
+      "filename": "samples/documents/supplier-sup-003-supplier-profile-sp907-v1.txt",
+      "corpusVersion": "sp-907-zh-tw-v3",
+      "sourceSha256": "dbb836e67fa7f3b0df5896a2ad603eb600310d772069a3c74db5eb5eb9afd6da",
+      "classification": "SEED_BASELINE",
+      "supplierCodes": [
+        "SUP-003"
+      ],
+      "supplierNames": [
+        "青葉食材供應"
+      ],
+      "materialCodes": [],
+      "materialNames": [],
+      "provenance": {
+        "kind": "REPOSITORY_DEMO_CORPUS",
+        "datasetKey": "SP-901",
+        "corpusVersion": "sp-907-zh-tw-v3",
+        "origin": "ADDED_SP907"
+      },
+      "approvalPolicy": "TRUSTED_DEMO_SYSTEM_APPROVAL_IF_POLICY_ALLOWS",
+      "outboundPolicy": "EVALUATE_EXISTING_POLICY",
+      "fixtureKeys": [
+        "RAG-046",
+        "RAG-054"
+      ]
+    },
+    {
+      "documentKey": "DOC-SUP-003-SUPPLY-CAPABILITY-SP907",
+      "type": "SUPPLIER_PROFILE",
+      "themeKey": "supply_capability",
+      "version": "1.0",
+      "title": "青葉食材供應（SUP-003）｜供貨關係與能力範圍展示文件",
+      "filename": "samples/documents/supplier-sup-003-supply-capability-sp907-v1.txt",
+      "corpusVersion": "sp-907-zh-tw-v3",
+      "sourceSha256": "612db2d55c5c66be436a584b87ec026d04d8e900966db7060370f68332a4e81a",
+      "classification": "SEED_BASELINE",
+      "supplierCodes": [
+        "SUP-003"
+      ],
+      "supplierNames": [
+        "青葉食材供應"
+      ],
+      "materialCodes": [
+        "MAT-001",
+        "MAT-002",
+        "MAT-003",
+        "MAT-004",
+        "MAT-006",
+        "MAT-007"
+      ],
+      "materialNames": [
+        "阿薩姆紅茶萃取物",
+        "芒果濃縮汁",
+        "果糖糖漿",
+        "奶茶基底",
+        "茉莉茶萃取物",
+        "百香果泥"
+      ],
+      "provenance": {
+        "kind": "REPOSITORY_DEMO_CORPUS",
+        "datasetKey": "SP-901",
+        "corpusVersion": "sp-907-zh-tw-v3",
+        "origin": "ADDED_SP907"
+      },
+      "approvalPolicy": "TRUSTED_DEMO_SYSTEM_APPROVAL_IF_POLICY_ALLOWS",
+      "outboundPolicy": "EVALUATE_EXISTING_POLICY",
+      "fixtureKeys": [
+        "RAG-047"
+      ]
+    },
+    {
+      "documentKey": "DOC-SUP-003-CONTRACT-TERMS-SP907",
+      "type": "SUPPLIER_CONTRACT",
+      "themeKey": "contract_terms",
+      "version": "1.0",
+      "title": "青葉食材供應（SUP-003）｜供貨協議條件展示文件",
+      "filename": "samples/documents/supplier-sup-003-contract-terms-sp907-v1.txt",
+      "corpusVersion": "sp-907-zh-tw-v3",
+      "sourceSha256": "122ed735058c33a0733c9da182c3848e3927eb9d2411bf1bb37c8e4b3d236347",
+      "classification": "SEED_BASELINE",
+      "supplierCodes": [
+        "SUP-003"
+      ],
+      "supplierNames": [
+        "青葉食材供應"
+      ],
+      "materialCodes": [
+        "MAT-001"
+      ],
+      "materialNames": [
+        "阿薩姆紅茶萃取物"
+      ],
+      "provenance": {
+        "kind": "REPOSITORY_DEMO_CORPUS",
+        "datasetKey": "SP-901",
+        "corpusVersion": "sp-907-zh-tw-v3",
+        "origin": "ADDED_SP907"
+      },
+      "approvalPolicy": "TRUSTED_DEMO_SYSTEM_APPROVAL_IF_POLICY_ALLOWS",
+      "outboundPolicy": "EVALUATE_EXISTING_POLICY",
+      "fixtureKeys": [
+        "RAG-049"
+      ]
+    },
+    {
+      "documentKey": "DOC-SUP-003-QUOTATION-SP907",
+      "type": "QUOTATION",
+      "themeKey": "quotation",
+      "version": "1.0",
+      "title": "青葉食材供應（SUP-003）｜報價與供貨條件摘要展示文件",
+      "filename": "samples/documents/supplier-sup-003-quotation-sp907-v1.txt",
+      "corpusVersion": "sp-907-zh-tw-v3",
+      "sourceSha256": "f955e7ee0274388b295aac008c719215d80fa2d8d2c31aac9519c4b903f112f2",
+      "classification": "SEED_BASELINE",
+      "supplierCodes": [
+        "SUP-003"
+      ],
+      "supplierNames": [
+        "青葉食材供應"
+      ],
+      "materialCodes": [
+        "MAT-001"
+      ],
+      "materialNames": [
+        "阿薩姆紅茶萃取物"
+      ],
+      "provenance": {
+        "kind": "REPOSITORY_DEMO_CORPUS",
+        "datasetKey": "SP-901",
+        "corpusVersion": "sp-907-zh-tw-v3",
+        "origin": "ADDED_SP907"
+      },
+      "approvalPolicy": "TRUSTED_DEMO_SYSTEM_APPROVAL_IF_POLICY_ALLOWS",
+      "outboundPolicy": "EVALUATE_EXISTING_POLICY",
+      "fixtureKeys": [
+        "RAG-050"
+      ]
+    },
+    {
+      "documentKey": "DOC-SUP-003-PRODUCT-SPECIFICATION-SP907",
+      "type": "PRODUCT_SPECIFICATION",
+      "themeKey": "product_specification",
+      "version": "1.0",
+      "title": "青葉食材供應（SUP-003）｜物料規格參照展示文件",
+      "filename": "samples/documents/supplier-sup-003-product-specification-sp907-v1.txt",
+      "corpusVersion": "sp-907-zh-tw-v3",
+      "sourceSha256": "db48e181aba4b503c7735f8f5ba92d1064161828120e37c1eaeaa01917458af3",
+      "classification": "SEED_BASELINE",
+      "supplierCodes": [
+        "SUP-003"
+      ],
+      "supplierNames": [
+        "青葉食材供應"
+      ],
+      "materialCodes": [
+        "MAT-001"
+      ],
+      "materialNames": [
+        "阿薩姆紅茶萃取物"
+      ],
+      "provenance": {
+        "kind": "REPOSITORY_DEMO_CORPUS",
+        "datasetKey": "SP-901",
+        "corpusVersion": "sp-907-zh-tw-v3",
+        "origin": "ADDED_SP907"
+      },
+      "approvalPolicy": "TRUSTED_DEMO_SYSTEM_APPROVAL_IF_POLICY_ALLOWS",
+      "outboundPolicy": "EVALUATE_EXISTING_POLICY",
+      "fixtureKeys": []
+    },
+    {
+      "documentKey": "DOC-SUP-003-QUALITY-REQUIREMENTS-SP907",
+      "type": "QUALITY_REQUIREMENT",
+      "themeKey": "quality_requirements",
+      "version": "1.0",
+      "title": "青葉食材供應（SUP-003）｜品質與收貨查核展示文件",
+      "filename": "samples/documents/supplier-sup-003-quality-requirements-sp907-v1.txt",
+      "corpusVersion": "sp-907-zh-tw-v3",
+      "sourceSha256": "99c79a8326258945a056bd03adcb4c8d5b7e847d06fc68fc078e6f9c74983ff8",
+      "classification": "SEED_BASELINE",
+      "supplierCodes": [
+        "SUP-003"
+      ],
+      "supplierNames": [
+        "青葉食材供應"
+      ],
+      "materialCodes": [
+        "MAT-001"
+      ],
+      "materialNames": [
+        "阿薩姆紅茶萃取物"
+      ],
+      "provenance": {
+        "kind": "REPOSITORY_DEMO_CORPUS",
+        "datasetKey": "SP-901",
+        "corpusVersion": "sp-907-zh-tw-v3",
+        "origin": "ADDED_SP907"
+      },
+      "approvalPolicy": "TRUSTED_DEMO_SYSTEM_APPROVAL_IF_POLICY_ALLOWS",
+      "outboundPolicy": "EVALUATE_EXISTING_POLICY",
+      "fixtureKeys": [
+        "RAG-051"
+      ]
+    },
+    {
+      "documentKey": "DOC-SUP-003-DELIVERY-COORDINATION-SP907",
+      "type": "SUPPLIER_COOPERATION_RECORD",
+      "themeKey": "delivery_coordination",
+      "version": "1.0",
+      "title": "青葉食材供應（SUP-003）｜交期協調紀錄展示文件",
+      "filename": "samples/documents/supplier-sup-003-delivery-coordination-sp907-v1.txt",
+      "corpusVersion": "sp-907-zh-tw-v3",
+      "sourceSha256": "a9a5b17a2f67f1a7bee40ecbdcb11bb7c8448118b097f86f6023d93d8ce1c61c",
+      "classification": "SEED_BASELINE",
+      "supplierCodes": [
+        "SUP-003"
+      ],
+      "supplierNames": [
+        "青葉食材供應"
+      ],
+      "materialCodes": [
+        "MAT-001",
+        "MAT-003"
+      ],
+      "materialNames": [
+        "阿薩姆紅茶萃取物",
+        "果糖糖漿"
+      ],
+      "provenance": {
+        "kind": "REPOSITORY_DEMO_CORPUS",
+        "datasetKey": "SP-901",
+        "corpusVersion": "sp-907-zh-tw-v3",
+        "origin": "ADDED_SP907"
+      },
+      "approvalPolicy": "TRUSTED_DEMO_SYSTEM_APPROVAL_IF_POLICY_ALLOWS",
+      "outboundPolicy": "EVALUATE_EXISTING_POLICY",
+      "fixtureKeys": [
+        "RAG-048"
+      ]
+    },
+    {
+      "documentKey": "DOC-SUP-003-COOPERATION-HISTORY-SP907",
+      "type": "SUPPLIER_COOPERATION_RECORD",
+      "themeKey": "cooperation_history",
+      "version": "1.0",
+      "title": "青葉食材供應（SUP-003）｜採購合作歷程展示文件",
+      "filename": "samples/documents/supplier-sup-003-cooperation-history-sp907-v1.txt",
+      "corpusVersion": "sp-907-zh-tw-v3",
+      "sourceSha256": "868a4948867069af0f28e7047a9e9dde34e9ed2a5d6c8fd78e59e6a0411ad1e7",
+      "classification": "SEED_BASELINE",
+      "supplierCodes": [
+        "SUP-003"
+      ],
+      "supplierNames": [
+        "青葉食材供應"
+      ],
+      "materialCodes": [
+        "MAT-003",
+        "MAT-001"
+      ],
+      "materialNames": [
+        "果糖糖漿",
+        "阿薩姆紅茶萃取物"
+      ],
+      "provenance": {
+        "kind": "REPOSITORY_DEMO_CORPUS",
+        "datasetKey": "SP-901",
+        "corpusVersion": "sp-907-zh-tw-v3",
+        "origin": "ADDED_SP907"
+      },
+      "approvalPolicy": "TRUSTED_DEMO_SYSTEM_APPROVAL_IF_POLICY_ALLOWS",
+      "outboundPolicy": "EVALUATE_EXISTING_POLICY",
+      "fixtureKeys": [
+        "RAG-052"
+      ]
+    },
+    {
+      "documentKey": "DOC-SUP-003-INCIDENT-IMPROVEMENT-SP907",
+      "type": "SUPPLIER_COOPERATION_RECORD",
+      "themeKey": "incident_improvement",
+      "version": "1.0",
+      "title": "青葉食材供應（SUP-003）｜異常改善追蹤展示文件",
+      "filename": "samples/documents/supplier-sup-003-incident-improvement-sp907-v1.txt",
+      "corpusVersion": "sp-907-zh-tw-v3",
+      "sourceSha256": "76bae43d2dea8c6a34f1be949a215e35034167f45d9a7df7dd5fea9425e0d7c7",
+      "classification": "SEED_BASELINE",
+      "supplierCodes": [
+        "SUP-003"
+      ],
+      "supplierNames": [
+        "青葉食材供應"
+      ],
+      "materialCodes": [
+        "MAT-001"
+      ],
+      "materialNames": [
+        "阿薩姆紅茶萃取物"
+      ],
+      "provenance": {
+        "kind": "REPOSITORY_DEMO_CORPUS",
+        "datasetKey": "SP-901",
+        "corpusVersion": "sp-907-zh-tw-v3",
+        "origin": "ADDED_SP907"
+      },
+      "approvalPolicy": "TRUSTED_DEMO_SYSTEM_APPROVAL_IF_POLICY_ALLOWS",
+      "outboundPolicy": "EVALUATE_EXISTING_POLICY",
+      "fixtureKeys": []
+    },
+    {
+      "documentKey": "DOC-SUP-003-BUYER-EVALUATION-SP907",
+      "type": "SUPPLIER_EVALUATION",
+      "themeKey": "buyer_evaluation",
+      "version": "1.0",
+      "title": "青葉食材供應（SUP-003）｜採購端主觀評語展示文件",
+      "filename": "samples/documents/supplier-sup-003-buyer-evaluation-sp907-v1.txt",
+      "corpusVersion": "sp-907-zh-tw-v3",
+      "sourceSha256": "a0da7cb78f1211de1a8b0078e84a335c4856ab8379f99276ebdb2a91d98c6889",
+      "classification": "SEED_BASELINE",
+      "supplierCodes": [
+        "SUP-003"
+      ],
+      "supplierNames": [
+        "青葉食材供應"
+      ],
+      "materialCodes": [
+        "MAT-003",
+        "MAT-001"
+      ],
+      "materialNames": [
+        "果糖糖漿",
+        "阿薩姆紅茶萃取物"
+      ],
+      "provenance": {
+        "kind": "REPOSITORY_DEMO_CORPUS",
+        "datasetKey": "SP-901",
+        "corpusVersion": "sp-907-zh-tw-v3",
+        "origin": "ADDED_SP907"
+      },
+      "approvalPolicy": "TRUSTED_DEMO_SYSTEM_APPROVAL_IF_POLICY_ALLOWS",
+      "outboundPolicy": "EVALUATE_EXISTING_POLICY",
+      "fixtureKeys": [
+        "RAG-053"
+      ]
+    },
+    {
+      "documentKey": "DOC-SUP-004-SUPPLIER-PROFILE-SP907",
+      "type": "SUPPLIER_PROFILE",
+      "themeKey": "supplier_profile",
+      "version": "1.0",
+      "title": "舊港原料行（SUP-004）｜供應商基本資料展示文件",
+      "filename": "samples/documents/supplier-sup-004-supplier-profile-sp907-v1.txt",
+      "corpusVersion": "sp-907-zh-tw-v3",
+      "sourceSha256": "e2df389f90aa8db3b6e7299d7f9978b9503f1e4d9cad8b9c77473d9c40f5c944",
+      "classification": "SEED_BASELINE",
+      "supplierCodes": [
+        "SUP-004"
+      ],
+      "supplierNames": [
+        "舊港原料行"
+      ],
+      "materialCodes": [],
+      "materialNames": [],
+      "provenance": {
+        "kind": "REPOSITORY_DEMO_CORPUS",
+        "datasetKey": "SP-901",
+        "corpusVersion": "sp-907-zh-tw-v3",
+        "origin": "ADDED_SP907"
+      },
+      "approvalPolicy": "TRUSTED_DEMO_SYSTEM_APPROVAL_IF_POLICY_ALLOWS",
+      "outboundPolicy": "EVALUATE_EXISTING_POLICY",
+      "fixtureKeys": [
+        "RAG-056",
+        "RAG-064"
+      ]
+    },
+    {
+      "documentKey": "DOC-SUP-004-SUPPLY-CAPABILITY-SP907",
+      "type": "SUPPLIER_PROFILE",
+      "themeKey": "supply_capability",
+      "version": "1.0",
+      "title": "舊港原料行（SUP-004）｜供貨關係與能力範圍展示文件",
+      "filename": "samples/documents/supplier-sup-004-supply-capability-sp907-v1.txt",
+      "corpusVersion": "sp-907-zh-tw-v3",
+      "sourceSha256": "be0dd4027df3c45c53b0e06737fae1c69e5ad09cb65152a7b511d21a27296859",
+      "classification": "SEED_BASELINE",
+      "supplierCodes": [
+        "SUP-004"
+      ],
+      "supplierNames": [
+        "舊港原料行"
+      ],
+      "materialCodes": [
+        "MAT-001"
+      ],
+      "materialNames": [
+        "阿薩姆紅茶萃取物"
+      ],
+      "provenance": {
+        "kind": "REPOSITORY_DEMO_CORPUS",
+        "datasetKey": "SP-901",
+        "corpusVersion": "sp-907-zh-tw-v3",
+        "origin": "ADDED_SP907"
+      },
+      "approvalPolicy": "TRUSTED_DEMO_SYSTEM_APPROVAL_IF_POLICY_ALLOWS",
+      "outboundPolicy": "EVALUATE_EXISTING_POLICY",
+      "fixtureKeys": [
+        "RAG-057"
+      ]
+    },
+    {
+      "documentKey": "DOC-SUP-004-CONTRACT-TERMS-SP907",
+      "type": "SUPPLIER_CONTRACT",
+      "themeKey": "contract_terms",
+      "version": "1.0",
+      "title": "舊港原料行（SUP-004）｜供貨協議條件展示文件",
+      "filename": "samples/documents/supplier-sup-004-contract-terms-sp907-v1.txt",
+      "corpusVersion": "sp-907-zh-tw-v3",
+      "sourceSha256": "1b2215b4ce9f0c224cafe36bac5f37504b7134c0796bf49a373a04f1387b6d58",
+      "classification": "SEED_BASELINE",
+      "supplierCodes": [
+        "SUP-004"
+      ],
+      "supplierNames": [
+        "舊港原料行"
+      ],
+      "materialCodes": [
+        "MAT-001"
+      ],
+      "materialNames": [
+        "阿薩姆紅茶萃取物"
+      ],
+      "provenance": {
+        "kind": "REPOSITORY_DEMO_CORPUS",
+        "datasetKey": "SP-901",
+        "corpusVersion": "sp-907-zh-tw-v3",
+        "origin": "ADDED_SP907"
+      },
+      "approvalPolicy": "TRUSTED_DEMO_SYSTEM_APPROVAL_IF_POLICY_ALLOWS",
+      "outboundPolicy": "EVALUATE_EXISTING_POLICY",
+      "fixtureKeys": [
+        "RAG-059"
+      ]
+    },
+    {
+      "documentKey": "DOC-SUP-004-QUOTATION-SP907",
+      "type": "QUOTATION",
+      "themeKey": "quotation",
+      "version": "1.0",
+      "title": "舊港原料行（SUP-004）｜報價與供貨條件摘要展示文件",
+      "filename": "samples/documents/supplier-sup-004-quotation-sp907-v1.txt",
+      "corpusVersion": "sp-907-zh-tw-v3",
+      "sourceSha256": "91f474d7bc595c0de138fba2b08c28a2b5cedbdac3626f7cf07317be10f440bd",
+      "classification": "SEED_BASELINE",
+      "supplierCodes": [
+        "SUP-004"
+      ],
+      "supplierNames": [
+        "舊港原料行"
+      ],
+      "materialCodes": [
+        "MAT-001"
+      ],
+      "materialNames": [
+        "阿薩姆紅茶萃取物"
+      ],
+      "provenance": {
+        "kind": "REPOSITORY_DEMO_CORPUS",
+        "datasetKey": "SP-901",
+        "corpusVersion": "sp-907-zh-tw-v3",
+        "origin": "ADDED_SP907"
+      },
+      "approvalPolicy": "TRUSTED_DEMO_SYSTEM_APPROVAL_IF_POLICY_ALLOWS",
+      "outboundPolicy": "EVALUATE_EXISTING_POLICY",
+      "fixtureKeys": [
+        "RAG-060"
+      ]
+    },
+    {
+      "documentKey": "DOC-SUP-004-PRODUCT-SPECIFICATION-SP907",
+      "type": "PRODUCT_SPECIFICATION",
+      "themeKey": "product_specification",
+      "version": "1.0",
+      "title": "舊港原料行（SUP-004）｜物料規格參照展示文件",
+      "filename": "samples/documents/supplier-sup-004-product-specification-sp907-v1.txt",
+      "corpusVersion": "sp-907-zh-tw-v3",
+      "sourceSha256": "2ef6140956e77a7518b19ea080c8e7bf0f0e2a96d55287bc842b5fde1b83cb0a",
+      "classification": "SEED_BASELINE",
+      "supplierCodes": [
+        "SUP-004"
+      ],
+      "supplierNames": [
+        "舊港原料行"
+      ],
+      "materialCodes": [
+        "MAT-001"
+      ],
+      "materialNames": [
+        "阿薩姆紅茶萃取物"
+      ],
+      "provenance": {
+        "kind": "REPOSITORY_DEMO_CORPUS",
+        "datasetKey": "SP-901",
+        "corpusVersion": "sp-907-zh-tw-v3",
+        "origin": "ADDED_SP907"
+      },
+      "approvalPolicy": "TRUSTED_DEMO_SYSTEM_APPROVAL_IF_POLICY_ALLOWS",
+      "outboundPolicy": "EVALUATE_EXISTING_POLICY",
+      "fixtureKeys": []
+    },
+    {
+      "documentKey": "DOC-SUP-004-QUALITY-REQUIREMENTS-SP907",
+      "type": "QUALITY_REQUIREMENT",
+      "themeKey": "quality_requirements",
+      "version": "1.0",
+      "title": "舊港原料行（SUP-004）｜品質與收貨查核展示文件",
+      "filename": "samples/documents/supplier-sup-004-quality-requirements-sp907-v1.txt",
+      "corpusVersion": "sp-907-zh-tw-v3",
+      "sourceSha256": "be863699495c83102ba9e0d3b54aaa38a7153bacd9db67a3a768775c1b64f89c",
+      "classification": "SEED_BASELINE",
+      "supplierCodes": [
+        "SUP-004"
+      ],
+      "supplierNames": [
+        "舊港原料行"
+      ],
+      "materialCodes": [
+        "MAT-001"
+      ],
+      "materialNames": [
+        "阿薩姆紅茶萃取物"
+      ],
+      "provenance": {
+        "kind": "REPOSITORY_DEMO_CORPUS",
+        "datasetKey": "SP-901",
+        "corpusVersion": "sp-907-zh-tw-v3",
+        "origin": "ADDED_SP907"
+      },
+      "approvalPolicy": "TRUSTED_DEMO_SYSTEM_APPROVAL_IF_POLICY_ALLOWS",
+      "outboundPolicy": "EVALUATE_EXISTING_POLICY",
+      "fixtureKeys": [
+        "RAG-061"
+      ]
+    },
+    {
+      "documentKey": "DOC-SUP-004-DELIVERY-COORDINATION-SP907",
+      "type": "SUPPLIER_COOPERATION_RECORD",
+      "themeKey": "delivery_coordination",
+      "version": "1.0",
+      "title": "舊港原料行（SUP-004）｜交期協調紀錄展示文件",
+      "filename": "samples/documents/supplier-sup-004-delivery-coordination-sp907-v1.txt",
+      "corpusVersion": "sp-907-zh-tw-v3",
+      "sourceSha256": "d5fd1a2a08974fe802ee59f190598b7aa10c9aa56eddac3304e396455c6ecf87",
+      "classification": "SEED_BASELINE",
+      "supplierCodes": [
+        "SUP-004"
+      ],
+      "supplierNames": [
+        "舊港原料行"
+      ],
+      "materialCodes": [
+        "MAT-001"
+      ],
+      "materialNames": [
+        "阿薩姆紅茶萃取物"
+      ],
+      "provenance": {
+        "kind": "REPOSITORY_DEMO_CORPUS",
+        "datasetKey": "SP-901",
+        "corpusVersion": "sp-907-zh-tw-v3",
+        "origin": "ADDED_SP907"
+      },
+      "approvalPolicy": "TRUSTED_DEMO_SYSTEM_APPROVAL_IF_POLICY_ALLOWS",
+      "outboundPolicy": "EVALUATE_EXISTING_POLICY",
+      "fixtureKeys": [
+        "RAG-058"
+      ]
+    },
+    {
+      "documentKey": "DOC-SUP-004-COOPERATION-HISTORY-SP907",
+      "type": "SUPPLIER_COOPERATION_RECORD",
+      "themeKey": "cooperation_history",
+      "version": "1.0",
+      "title": "舊港原料行（SUP-004）｜採購合作歷程展示文件",
+      "filename": "samples/documents/supplier-sup-004-cooperation-history-sp907-v1.txt",
+      "corpusVersion": "sp-907-zh-tw-v3",
+      "sourceSha256": "d04b1b96c077573ba8c62d11e845114d95a1e4e095e6d15f759ce3bca0e20265",
+      "classification": "SEED_BASELINE",
+      "supplierCodes": [
+        "SUP-004"
+      ],
+      "supplierNames": [
+        "舊港原料行"
+      ],
+      "materialCodes": [],
+      "materialNames": [],
+      "provenance": {
+        "kind": "REPOSITORY_DEMO_CORPUS",
+        "datasetKey": "SP-901",
+        "corpusVersion": "sp-907-zh-tw-v3",
+        "origin": "ADDED_SP907"
+      },
+      "approvalPolicy": "TRUSTED_DEMO_SYSTEM_APPROVAL_IF_POLICY_ALLOWS",
+      "outboundPolicy": "EVALUATE_EXISTING_POLICY",
+      "fixtureKeys": [
+        "RAG-062"
+      ]
+    },
+    {
+      "documentKey": "DOC-SUP-004-INCIDENT-IMPROVEMENT-SP907",
+      "type": "SUPPLIER_COOPERATION_RECORD",
+      "themeKey": "incident_improvement",
+      "version": "1.0",
+      "title": "舊港原料行（SUP-004）｜異常改善追蹤展示文件",
+      "filename": "samples/documents/supplier-sup-004-incident-improvement-sp907-v1.txt",
+      "corpusVersion": "sp-907-zh-tw-v3",
+      "sourceSha256": "eeaaaa5dc73161754aaa7ab71a0bd7b258cead96262f4f05e4572b7fe7303859",
+      "classification": "SEED_BASELINE",
+      "supplierCodes": [
+        "SUP-004"
+      ],
+      "supplierNames": [
+        "舊港原料行"
+      ],
+      "materialCodes": [
+        "MAT-001"
+      ],
+      "materialNames": [
+        "阿薩姆紅茶萃取物"
+      ],
+      "provenance": {
+        "kind": "REPOSITORY_DEMO_CORPUS",
+        "datasetKey": "SP-901",
+        "corpusVersion": "sp-907-zh-tw-v3",
+        "origin": "ADDED_SP907"
+      },
+      "approvalPolicy": "TRUSTED_DEMO_SYSTEM_APPROVAL_IF_POLICY_ALLOWS",
+      "outboundPolicy": "EVALUATE_EXISTING_POLICY",
+      "fixtureKeys": []
+    },
+    {
+      "documentKey": "DOC-SUP-004-BUYER-EVALUATION-SP907",
+      "type": "SUPPLIER_EVALUATION",
+      "themeKey": "buyer_evaluation",
+      "version": "1.0",
+      "title": "舊港原料行（SUP-004）｜採購端主觀評語展示文件",
+      "filename": "samples/documents/supplier-sup-004-buyer-evaluation-sp907-v1.txt",
+      "corpusVersion": "sp-907-zh-tw-v3",
+      "sourceSha256": "d8fbfa3dd78f37e3ebde507be3acb35f4a9d950f04940cc3d194195554788ad9",
+      "classification": "SEED_BASELINE",
+      "supplierCodes": [
+        "SUP-004"
+      ],
+      "supplierNames": [
+        "舊港原料行"
+      ],
+      "materialCodes": [],
+      "materialNames": [],
+      "provenance": {
+        "kind": "REPOSITORY_DEMO_CORPUS",
+        "datasetKey": "SP-901",
+        "corpusVersion": "sp-907-zh-tw-v3",
+        "origin": "ADDED_SP907"
+      },
+      "approvalPolicy": "TRUSTED_DEMO_SYSTEM_APPROVAL_IF_POLICY_ALLOWS",
+      "outboundPolicy": "EVALUATE_EXISTING_POLICY",
+      "fixtureKeys": [
+        "RAG-063"
+      ]
+    },
+    {
+      "documentKey": "DOC-SUP-005-SUPPLIER-PROFILE-SP907",
+      "type": "SUPPLIER_PROFILE",
+      "themeKey": "supplier_profile",
+      "version": "1.0",
+      "title": "海岳食品素材（SUP-005）｜供應商基本資料展示文件",
+      "filename": "samples/documents/supplier-sup-005-supplier-profile-sp907-v1.txt",
+      "corpusVersion": "sp-907-zh-tw-v3",
+      "sourceSha256": "bf068de0a57e8d63c06362331d649dd44680c820fba292527e9d584965155b92",
+      "classification": "SEED_BASELINE",
+      "supplierCodes": [
+        "SUP-005"
+      ],
+      "supplierNames": [
+        "海岳食品素材"
+      ],
+      "materialCodes": [],
+      "materialNames": [],
+      "provenance": {
+        "kind": "REPOSITORY_DEMO_CORPUS",
+        "datasetKey": "SP-901",
+        "corpusVersion": "sp-907-zh-tw-v3",
+        "origin": "ADDED_SP907"
+      },
+      "approvalPolicy": "TRUSTED_DEMO_SYSTEM_APPROVAL_IF_POLICY_ALLOWS",
+      "outboundPolicy": "EVALUATE_EXISTING_POLICY",
+      "fixtureKeys": [
+        "RAG-066",
+        "RAG-074"
+      ]
+    },
+    {
+      "documentKey": "DOC-SUP-005-SUPPLY-CAPABILITY-SP907",
+      "type": "SUPPLIER_PROFILE",
+      "themeKey": "supply_capability",
+      "version": "1.0",
+      "title": "海岳食品素材（SUP-005）｜供貨關係與能力範圍展示文件",
+      "filename": "samples/documents/supplier-sup-005-supply-capability-sp907-v1.txt",
+      "corpusVersion": "sp-907-zh-tw-v3",
+      "sourceSha256": "61c193c47e486701331f76a9c384e259393714c8796c639336ad726bfeba3c9b",
+      "classification": "SEED_BASELINE",
+      "supplierCodes": [
+        "SUP-005"
+      ],
+      "supplierNames": [
+        "海岳食品素材"
+      ],
+      "materialCodes": [
+        "MAT-001",
+        "MAT-002",
+        "MAT-003",
+        "MAT-004",
+        "MAT-006",
+        "MAT-007"
+      ],
+      "materialNames": [
+        "阿薩姆紅茶萃取物",
+        "芒果濃縮汁",
+        "果糖糖漿",
+        "奶茶基底",
+        "茉莉茶萃取物",
+        "百香果泥"
+      ],
+      "provenance": {
+        "kind": "REPOSITORY_DEMO_CORPUS",
+        "datasetKey": "SP-901",
+        "corpusVersion": "sp-907-zh-tw-v3",
+        "origin": "ADDED_SP907"
+      },
+      "approvalPolicy": "TRUSTED_DEMO_SYSTEM_APPROVAL_IF_POLICY_ALLOWS",
+      "outboundPolicy": "EVALUATE_EXISTING_POLICY",
+      "fixtureKeys": [
+        "RAG-067"
+      ]
+    },
+    {
+      "documentKey": "DOC-SUP-005-CONTRACT-TERMS-SP907",
+      "type": "SUPPLIER_CONTRACT",
+      "themeKey": "contract_terms",
+      "version": "1.0",
+      "title": "海岳食品素材（SUP-005）｜供貨協議條件展示文件",
+      "filename": "samples/documents/supplier-sup-005-contract-terms-sp907-v1.txt",
+      "corpusVersion": "sp-907-zh-tw-v3",
+      "sourceSha256": "85388d82d98b3ed845b5eff8f837885234f9db106bc9df1eac8030e67af1221a",
+      "classification": "SEED_BASELINE",
+      "supplierCodes": [
+        "SUP-005"
+      ],
+      "supplierNames": [
+        "海岳食品素材"
+      ],
+      "materialCodes": [
+        "MAT-001"
+      ],
+      "materialNames": [
+        "阿薩姆紅茶萃取物"
+      ],
+      "provenance": {
+        "kind": "REPOSITORY_DEMO_CORPUS",
+        "datasetKey": "SP-901",
+        "corpusVersion": "sp-907-zh-tw-v3",
+        "origin": "ADDED_SP907"
+      },
+      "approvalPolicy": "TRUSTED_DEMO_SYSTEM_APPROVAL_IF_POLICY_ALLOWS",
+      "outboundPolicy": "EVALUATE_EXISTING_POLICY",
+      "fixtureKeys": [
+        "RAG-069"
+      ]
+    },
+    {
+      "documentKey": "DOC-SUP-005-QUOTATION-SP907",
+      "type": "QUOTATION",
+      "themeKey": "quotation",
+      "version": "1.0",
+      "title": "海岳食品素材（SUP-005）｜報價與供貨條件摘要展示文件",
+      "filename": "samples/documents/supplier-sup-005-quotation-sp907-v1.txt",
+      "corpusVersion": "sp-907-zh-tw-v3",
+      "sourceSha256": "f075621780fa06062dec7cdab0b127657da16334032d170932f557322863705b",
+      "classification": "SEED_BASELINE",
+      "supplierCodes": [
+        "SUP-005"
+      ],
+      "supplierNames": [
+        "海岳食品素材"
+      ],
+      "materialCodes": [
+        "MAT-001"
+      ],
+      "materialNames": [
+        "阿薩姆紅茶萃取物"
+      ],
+      "provenance": {
+        "kind": "REPOSITORY_DEMO_CORPUS",
+        "datasetKey": "SP-901",
+        "corpusVersion": "sp-907-zh-tw-v3",
+        "origin": "ADDED_SP907"
+      },
+      "approvalPolicy": "TRUSTED_DEMO_SYSTEM_APPROVAL_IF_POLICY_ALLOWS",
+      "outboundPolicy": "EVALUATE_EXISTING_POLICY",
+      "fixtureKeys": [
+        "RAG-070"
+      ]
+    },
+    {
+      "documentKey": "DOC-SUP-005-PRODUCT-SPECIFICATION-SP907",
+      "type": "PRODUCT_SPECIFICATION",
+      "themeKey": "product_specification",
+      "version": "1.0",
+      "title": "海岳食品素材（SUP-005）｜物料規格參照展示文件",
+      "filename": "samples/documents/supplier-sup-005-product-specification-sp907-v1.txt",
+      "corpusVersion": "sp-907-zh-tw-v3",
+      "sourceSha256": "2e9d8014952f192acafe4c8a1a2b815d3502e04f7fb0d9a639fb2e8e8127a398",
+      "classification": "SEED_BASELINE",
+      "supplierCodes": [
+        "SUP-005"
+      ],
+      "supplierNames": [
+        "海岳食品素材"
+      ],
+      "materialCodes": [
+        "MAT-001"
+      ],
+      "materialNames": [
+        "阿薩姆紅茶萃取物"
+      ],
+      "provenance": {
+        "kind": "REPOSITORY_DEMO_CORPUS",
+        "datasetKey": "SP-901",
+        "corpusVersion": "sp-907-zh-tw-v3",
+        "origin": "ADDED_SP907"
+      },
+      "approvalPolicy": "TRUSTED_DEMO_SYSTEM_APPROVAL_IF_POLICY_ALLOWS",
+      "outboundPolicy": "EVALUATE_EXISTING_POLICY",
+      "fixtureKeys": []
+    },
+    {
+      "documentKey": "DOC-SUP-005-QUALITY-REQUIREMENTS-SP907",
+      "type": "QUALITY_REQUIREMENT",
+      "themeKey": "quality_requirements",
+      "version": "1.0",
+      "title": "海岳食品素材（SUP-005）｜品質與收貨查核展示文件",
+      "filename": "samples/documents/supplier-sup-005-quality-requirements-sp907-v1.txt",
+      "corpusVersion": "sp-907-zh-tw-v3",
+      "sourceSha256": "40d50a570b17e345d17a702431ddb804a4015b287565830c22332e23b1c3f9fa",
+      "classification": "SEED_BASELINE",
+      "supplierCodes": [
+        "SUP-005"
+      ],
+      "supplierNames": [
+        "海岳食品素材"
+      ],
+      "materialCodes": [
+        "MAT-001"
+      ],
+      "materialNames": [
+        "阿薩姆紅茶萃取物"
+      ],
+      "provenance": {
+        "kind": "REPOSITORY_DEMO_CORPUS",
+        "datasetKey": "SP-901",
+        "corpusVersion": "sp-907-zh-tw-v3",
+        "origin": "ADDED_SP907"
+      },
+      "approvalPolicy": "TRUSTED_DEMO_SYSTEM_APPROVAL_IF_POLICY_ALLOWS",
+      "outboundPolicy": "EVALUATE_EXISTING_POLICY",
+      "fixtureKeys": [
+        "RAG-071"
+      ]
+    },
+    {
+      "documentKey": "DOC-SUP-005-DELIVERY-COORDINATION-SP907",
+      "type": "SUPPLIER_COOPERATION_RECORD",
+      "themeKey": "delivery_coordination",
+      "version": "1.0",
+      "title": "海岳食品素材（SUP-005）｜交期協調紀錄展示文件",
+      "filename": "samples/documents/supplier-sup-005-delivery-coordination-sp907-v1.txt",
+      "corpusVersion": "sp-907-zh-tw-v3",
+      "sourceSha256": "b89a99d009c5e2d4c23f3556b16b334188f91f20c85be054895fec2737caa953",
+      "classification": "SEED_BASELINE",
+      "supplierCodes": [
+        "SUP-005"
+      ],
+      "supplierNames": [
+        "海岳食品素材"
+      ],
+      "materialCodes": [
+        "MAT-001"
+      ],
+      "materialNames": [
+        "阿薩姆紅茶萃取物"
+      ],
+      "provenance": {
+        "kind": "REPOSITORY_DEMO_CORPUS",
+        "datasetKey": "SP-901",
+        "corpusVersion": "sp-907-zh-tw-v3",
+        "origin": "ADDED_SP907"
+      },
+      "approvalPolicy": "TRUSTED_DEMO_SYSTEM_APPROVAL_IF_POLICY_ALLOWS",
+      "outboundPolicy": "EVALUATE_EXISTING_POLICY",
+      "fixtureKeys": [
+        "RAG-068"
+      ]
+    },
+    {
+      "documentKey": "DOC-SUP-005-COOPERATION-HISTORY-SP907",
+      "type": "SUPPLIER_COOPERATION_RECORD",
+      "themeKey": "cooperation_history",
+      "version": "1.0",
+      "title": "海岳食品素材（SUP-005）｜採購合作歷程展示文件",
+      "filename": "samples/documents/supplier-sup-005-cooperation-history-sp907-v1.txt",
+      "corpusVersion": "sp-907-zh-tw-v3",
+      "sourceSha256": "2eb600d2612ee6c3a0dd00fdd07a588cfde6a6f8e0d81b39236cceba3c1c43e7",
+      "classification": "SEED_BASELINE",
+      "supplierCodes": [
+        "SUP-005"
+      ],
+      "supplierNames": [
+        "海岳食品素材"
+      ],
+      "materialCodes": [],
+      "materialNames": [],
+      "provenance": {
+        "kind": "REPOSITORY_DEMO_CORPUS",
+        "datasetKey": "SP-901",
+        "corpusVersion": "sp-907-zh-tw-v3",
+        "origin": "ADDED_SP907"
+      },
+      "approvalPolicy": "TRUSTED_DEMO_SYSTEM_APPROVAL_IF_POLICY_ALLOWS",
+      "outboundPolicy": "EVALUATE_EXISTING_POLICY",
+      "fixtureKeys": [
+        "RAG-072"
+      ]
+    },
+    {
+      "documentKey": "DOC-SUP-005-INCIDENT-IMPROVEMENT-SP907",
+      "type": "SUPPLIER_COOPERATION_RECORD",
+      "themeKey": "incident_improvement",
+      "version": "1.0",
+      "title": "海岳食品素材（SUP-005）｜異常改善追蹤展示文件",
+      "filename": "samples/documents/supplier-sup-005-incident-improvement-sp907-v1.txt",
+      "corpusVersion": "sp-907-zh-tw-v3",
+      "sourceSha256": "92fc95e9073755515422df91c79f82e5c6b477acec4a7bced6710d1fb56548c3",
+      "classification": "SEED_BASELINE",
+      "supplierCodes": [
+        "SUP-005"
+      ],
+      "supplierNames": [
+        "海岳食品素材"
+      ],
+      "materialCodes": [
+        "MAT-001"
+      ],
+      "materialNames": [
+        "阿薩姆紅茶萃取物"
+      ],
+      "provenance": {
+        "kind": "REPOSITORY_DEMO_CORPUS",
+        "datasetKey": "SP-901",
+        "corpusVersion": "sp-907-zh-tw-v3",
+        "origin": "ADDED_SP907"
+      },
+      "approvalPolicy": "TRUSTED_DEMO_SYSTEM_APPROVAL_IF_POLICY_ALLOWS",
+      "outboundPolicy": "EVALUATE_EXISTING_POLICY",
+      "fixtureKeys": []
+    },
+    {
+      "documentKey": "DOC-SUP-005-BUYER-EVALUATION-SP907",
+      "type": "SUPPLIER_EVALUATION",
+      "themeKey": "buyer_evaluation",
+      "version": "1.0",
+      "title": "海岳食品素材（SUP-005）｜採購端主觀評語展示文件",
+      "filename": "samples/documents/supplier-sup-005-buyer-evaluation-sp907-v1.txt",
+      "corpusVersion": "sp-907-zh-tw-v3",
+      "sourceSha256": "47cbf54229fd54a4203c05c6d16c6cf1aa8098d4cd46bc51827371f64f7d2aec",
+      "classification": "SEED_BASELINE",
+      "supplierCodes": [
+        "SUP-005"
+      ],
+      "supplierNames": [
+        "海岳食品素材"
+      ],
+      "materialCodes": [],
+      "materialNames": [],
+      "provenance": {
+        "kind": "REPOSITORY_DEMO_CORPUS",
+        "datasetKey": "SP-901",
+        "corpusVersion": "sp-907-zh-tw-v3",
+        "origin": "ADDED_SP907"
+      },
+      "approvalPolicy": "TRUSTED_DEMO_SYSTEM_APPROVAL_IF_POLICY_ALLOWS",
+      "outboundPolicy": "EVALUATE_EXISTING_POLICY",
+      "fixtureKeys": [
+        "RAG-073"
+      ]
+    },
+    {
+      "documentKey": "DOC-SUP-006-SUPPLIER-PROFILE-SP907",
+      "type": "SUPPLIER_PROFILE",
+      "themeKey": "supplier_profile",
+      "version": "1.0",
+      "title": "金田貿易（SUP-006）｜供應商基本資料展示文件",
+      "filename": "samples/documents/supplier-sup-006-supplier-profile-sp907-v1.txt",
+      "corpusVersion": "sp-907-zh-tw-v3",
+      "sourceSha256": "1c9346a86c9b581769a270496c2e19f2e97224cd3ae6d0beb92798055c4add51",
+      "classification": "SEED_BASELINE",
+      "supplierCodes": [
+        "SUP-006"
+      ],
+      "supplierNames": [
+        "金田貿易"
+      ],
+      "materialCodes": [],
+      "materialNames": [],
+      "provenance": {
+        "kind": "REPOSITORY_DEMO_CORPUS",
+        "datasetKey": "SP-901",
+        "corpusVersion": "sp-907-zh-tw-v3",
+        "origin": "ADDED_SP907"
+      },
+      "approvalPolicy": "TRUSTED_DEMO_SYSTEM_APPROVAL_IF_POLICY_ALLOWS",
+      "outboundPolicy": "EVALUATE_EXISTING_POLICY",
+      "fixtureKeys": [
+        "RAG-076",
+        "RAG-084"
+      ]
+    },
+    {
+      "documentKey": "DOC-SUP-006-SUPPLY-CAPABILITY-SP907",
+      "type": "SUPPLIER_PROFILE",
+      "themeKey": "supply_capability",
+      "version": "1.0",
+      "title": "金田貿易（SUP-006）｜供貨關係與能力範圍展示文件",
+      "filename": "samples/documents/supplier-sup-006-supply-capability-sp907-v1.txt",
+      "corpusVersion": "sp-907-zh-tw-v3",
+      "sourceSha256": "62532907aac6db82c933167d108c04286923d8a26ae08ae6f1aeb1629c5d39fa",
+      "classification": "SEED_BASELINE",
+      "supplierCodes": [
+        "SUP-006"
+      ],
+      "supplierNames": [
+        "金田貿易"
+      ],
+      "materialCodes": [
+        "MAT-002",
+        "MAT-003",
+        "MAT-004",
+        "MAT-006",
+        "MAT-007"
+      ],
+      "materialNames": [
+        "芒果濃縮汁",
+        "果糖糖漿",
+        "奶茶基底",
+        "茉莉茶萃取物",
+        "百香果泥"
+      ],
+      "provenance": {
+        "kind": "REPOSITORY_DEMO_CORPUS",
+        "datasetKey": "SP-901",
+        "corpusVersion": "sp-907-zh-tw-v3",
+        "origin": "ADDED_SP907"
+      },
+      "approvalPolicy": "TRUSTED_DEMO_SYSTEM_APPROVAL_IF_POLICY_ALLOWS",
+      "outboundPolicy": "EVALUATE_EXISTING_POLICY",
+      "fixtureKeys": [
+        "RAG-077"
+      ]
+    },
+    {
+      "documentKey": "DOC-SUP-006-CONTRACT-TERMS-SP907",
+      "type": "SUPPLIER_CONTRACT",
+      "themeKey": "contract_terms",
+      "version": "1.0",
+      "title": "金田貿易（SUP-006）｜供貨協議條件展示文件",
+      "filename": "samples/documents/supplier-sup-006-contract-terms-sp907-v1.txt",
+      "corpusVersion": "sp-907-zh-tw-v3",
+      "sourceSha256": "f48aa120617f0742283dd9eded434f9b28a838454f91beef0f18102b479d4885",
+      "classification": "SEED_BASELINE",
+      "supplierCodes": [
+        "SUP-006"
+      ],
+      "supplierNames": [
+        "金田貿易"
+      ],
+      "materialCodes": [
+        "MAT-002"
+      ],
+      "materialNames": [
+        "芒果濃縮汁"
+      ],
+      "provenance": {
+        "kind": "REPOSITORY_DEMO_CORPUS",
+        "datasetKey": "SP-901",
+        "corpusVersion": "sp-907-zh-tw-v3",
+        "origin": "ADDED_SP907"
+      },
+      "approvalPolicy": "TRUSTED_DEMO_SYSTEM_APPROVAL_IF_POLICY_ALLOWS",
+      "outboundPolicy": "EVALUATE_EXISTING_POLICY",
+      "fixtureKeys": [
+        "RAG-079"
+      ]
+    },
+    {
+      "documentKey": "DOC-SUP-006-QUOTATION-SP907",
+      "type": "QUOTATION",
+      "themeKey": "quotation",
+      "version": "1.0",
+      "title": "金田貿易（SUP-006）｜報價與供貨條件摘要展示文件",
+      "filename": "samples/documents/supplier-sup-006-quotation-sp907-v1.txt",
+      "corpusVersion": "sp-907-zh-tw-v3",
+      "sourceSha256": "2d9b03716af1779ff8a865713e7ea3492f907f10c3e5cb369fec4f26de69f904",
+      "classification": "SEED_BASELINE",
+      "supplierCodes": [
+        "SUP-006"
+      ],
+      "supplierNames": [
+        "金田貿易"
+      ],
+      "materialCodes": [
+        "MAT-002"
+      ],
+      "materialNames": [
+        "芒果濃縮汁"
+      ],
+      "provenance": {
+        "kind": "REPOSITORY_DEMO_CORPUS",
+        "datasetKey": "SP-901",
+        "corpusVersion": "sp-907-zh-tw-v3",
+        "origin": "ADDED_SP907"
+      },
+      "approvalPolicy": "TRUSTED_DEMO_SYSTEM_APPROVAL_IF_POLICY_ALLOWS",
+      "outboundPolicy": "EVALUATE_EXISTING_POLICY",
+      "fixtureKeys": [
+        "RAG-080"
+      ]
+    },
+    {
+      "documentKey": "DOC-SUP-006-PRODUCT-SPECIFICATION-SP907",
+      "type": "PRODUCT_SPECIFICATION",
+      "themeKey": "product_specification",
+      "version": "1.0",
+      "title": "金田貿易（SUP-006）｜物料規格參照展示文件",
+      "filename": "samples/documents/supplier-sup-006-product-specification-sp907-v1.txt",
+      "corpusVersion": "sp-907-zh-tw-v3",
+      "sourceSha256": "7406e2a1579af426f8cad7174a8ce125b1a7ac70f08197e8ef0d38ccaa2fdea6",
+      "classification": "SEED_BASELINE",
+      "supplierCodes": [
+        "SUP-006"
+      ],
+      "supplierNames": [
+        "金田貿易"
+      ],
+      "materialCodes": [
+        "MAT-002"
+      ],
+      "materialNames": [
+        "芒果濃縮汁"
+      ],
+      "provenance": {
+        "kind": "REPOSITORY_DEMO_CORPUS",
+        "datasetKey": "SP-901",
+        "corpusVersion": "sp-907-zh-tw-v3",
+        "origin": "ADDED_SP907"
+      },
+      "approvalPolicy": "TRUSTED_DEMO_SYSTEM_APPROVAL_IF_POLICY_ALLOWS",
+      "outboundPolicy": "EVALUATE_EXISTING_POLICY",
+      "fixtureKeys": []
+    },
+    {
+      "documentKey": "DOC-SUP-006-QUALITY-REQUIREMENTS-SP907",
+      "type": "QUALITY_REQUIREMENT",
+      "themeKey": "quality_requirements",
+      "version": "1.0",
+      "title": "金田貿易（SUP-006）｜品質與收貨查核展示文件",
+      "filename": "samples/documents/supplier-sup-006-quality-requirements-sp907-v1.txt",
+      "corpusVersion": "sp-907-zh-tw-v3",
+      "sourceSha256": "3b5e81b808508a6e81a98ebd7344b1c18f940b7459ecf65a951da3b91b1375b6",
+      "classification": "SEED_BASELINE",
+      "supplierCodes": [
+        "SUP-006"
+      ],
+      "supplierNames": [
+        "金田貿易"
+      ],
+      "materialCodes": [
+        "MAT-002"
+      ],
+      "materialNames": [
+        "芒果濃縮汁"
+      ],
+      "provenance": {
+        "kind": "REPOSITORY_DEMO_CORPUS",
+        "datasetKey": "SP-901",
+        "corpusVersion": "sp-907-zh-tw-v3",
+        "origin": "ADDED_SP907"
+      },
+      "approvalPolicy": "TRUSTED_DEMO_SYSTEM_APPROVAL_IF_POLICY_ALLOWS",
+      "outboundPolicy": "EVALUATE_EXISTING_POLICY",
+      "fixtureKeys": [
+        "RAG-081"
+      ]
+    },
+    {
+      "documentKey": "DOC-SUP-006-DELIVERY-COORDINATION-SP907",
+      "type": "SUPPLIER_COOPERATION_RECORD",
+      "themeKey": "delivery_coordination",
+      "version": "1.0",
+      "title": "金田貿易（SUP-006）｜交期協調紀錄展示文件",
+      "filename": "samples/documents/supplier-sup-006-delivery-coordination-sp907-v1.txt",
+      "corpusVersion": "sp-907-zh-tw-v3",
+      "sourceSha256": "dafe796cc48b68fad37df6cc10f767df72014c1f4de4574d528dba1e64e40137",
+      "classification": "SEED_BASELINE",
+      "supplierCodes": [
+        "SUP-006"
+      ],
+      "supplierNames": [
+        "金田貿易"
+      ],
+      "materialCodes": [
+        "MAT-002",
+        "MAT-006"
+      ],
+      "materialNames": [
+        "芒果濃縮汁",
+        "茉莉茶萃取物"
+      ],
+      "provenance": {
+        "kind": "REPOSITORY_DEMO_CORPUS",
+        "datasetKey": "SP-901",
+        "corpusVersion": "sp-907-zh-tw-v3",
+        "origin": "ADDED_SP907"
+      },
+      "approvalPolicy": "TRUSTED_DEMO_SYSTEM_APPROVAL_IF_POLICY_ALLOWS",
+      "outboundPolicy": "EVALUATE_EXISTING_POLICY",
+      "fixtureKeys": [
+        "RAG-078"
+      ]
+    },
+    {
+      "documentKey": "DOC-SUP-006-COOPERATION-HISTORY-SP907",
+      "type": "SUPPLIER_COOPERATION_RECORD",
+      "themeKey": "cooperation_history",
+      "version": "1.0",
+      "title": "金田貿易（SUP-006）｜採購合作歷程展示文件",
+      "filename": "samples/documents/supplier-sup-006-cooperation-history-sp907-v1.txt",
+      "corpusVersion": "sp-907-zh-tw-v3",
+      "sourceSha256": "29a2900eb50b761d84dc6d3f7b1dcf3e4a3d752d36e7b6a413ecb798ea7d8241",
+      "classification": "SEED_BASELINE",
+      "supplierCodes": [
+        "SUP-006"
+      ],
+      "supplierNames": [
+        "金田貿易"
+      ],
+      "materialCodes": [
+        "MAT-006"
+      ],
+      "materialNames": [
+        "茉莉茶萃取物"
+      ],
+      "provenance": {
+        "kind": "REPOSITORY_DEMO_CORPUS",
+        "datasetKey": "SP-901",
+        "corpusVersion": "sp-907-zh-tw-v3",
+        "origin": "ADDED_SP907"
+      },
+      "approvalPolicy": "TRUSTED_DEMO_SYSTEM_APPROVAL_IF_POLICY_ALLOWS",
+      "outboundPolicy": "EVALUATE_EXISTING_POLICY",
+      "fixtureKeys": [
+        "RAG-082"
+      ]
+    },
+    {
+      "documentKey": "DOC-SUP-006-INCIDENT-IMPROVEMENT-SP907",
+      "type": "SUPPLIER_COOPERATION_RECORD",
+      "themeKey": "incident_improvement",
+      "version": "1.0",
+      "title": "金田貿易（SUP-006）｜異常改善追蹤展示文件",
+      "filename": "samples/documents/supplier-sup-006-incident-improvement-sp907-v1.txt",
+      "corpusVersion": "sp-907-zh-tw-v3",
+      "sourceSha256": "bd59eb5081724736870fe20dcf132454b41f12e37f37aac52e5308efc4f745aa",
+      "classification": "SEED_BASELINE",
+      "supplierCodes": [
+        "SUP-006"
+      ],
+      "supplierNames": [
+        "金田貿易"
+      ],
+      "materialCodes": [
+        "MAT-002"
+      ],
+      "materialNames": [
+        "芒果濃縮汁"
+      ],
+      "provenance": {
+        "kind": "REPOSITORY_DEMO_CORPUS",
+        "datasetKey": "SP-901",
+        "corpusVersion": "sp-907-zh-tw-v3",
+        "origin": "ADDED_SP907"
+      },
+      "approvalPolicy": "TRUSTED_DEMO_SYSTEM_APPROVAL_IF_POLICY_ALLOWS",
+      "outboundPolicy": "EVALUATE_EXISTING_POLICY",
+      "fixtureKeys": []
+    },
+    {
+      "documentKey": "DOC-SUP-006-BUYER-EVALUATION-SP907",
+      "type": "SUPPLIER_EVALUATION",
+      "themeKey": "buyer_evaluation",
+      "version": "1.0",
+      "title": "金田貿易（SUP-006）｜採購端主觀評語展示文件",
+      "filename": "samples/documents/supplier-sup-006-buyer-evaluation-sp907-v1.txt",
+      "corpusVersion": "sp-907-zh-tw-v3",
+      "sourceSha256": "e44302149dada6aa7795a1e75d7eee0ddb07474e9dffa3972b4a4f289215e234",
+      "classification": "SEED_BASELINE",
+      "supplierCodes": [
+        "SUP-006"
+      ],
+      "supplierNames": [
+        "金田貿易"
+      ],
+      "materialCodes": [
+        "MAT-006"
+      ],
+      "materialNames": [
+        "茉莉茶萃取物"
+      ],
+      "provenance": {
+        "kind": "REPOSITORY_DEMO_CORPUS",
+        "datasetKey": "SP-901",
+        "corpusVersion": "sp-907-zh-tw-v3",
+        "origin": "ADDED_SP907"
+      },
+      "approvalPolicy": "TRUSTED_DEMO_SYSTEM_APPROVAL_IF_POLICY_ALLOWS",
+      "outboundPolicy": "EVALUATE_EXISTING_POLICY",
+      "fixtureKeys": [
+        "RAG-083"
+      ]
+    },
+    {
+      "documentKey": "DOC-SUP-007-SUPPLIER-PROFILE-SP907",
+      "type": "SUPPLIER_PROFILE",
+      "themeKey": "supplier_profile",
+      "version": "1.0",
+      "title": "山嵐果萃食品（SUP-007）｜供應商基本資料展示文件",
+      "filename": "samples/documents/supplier-sup-007-supplier-profile-sp907-v1.txt",
+      "corpusVersion": "sp-907-zh-tw-v3",
+      "sourceSha256": "1f45d72515da91f043c95222b1917553ed67e9a29da57d088f99d0974f406355",
+      "classification": "SEED_BASELINE",
+      "supplierCodes": [
+        "SUP-007"
+      ],
+      "supplierNames": [
+        "山嵐果萃食品"
+      ],
+      "materialCodes": [],
+      "materialNames": [],
+      "provenance": {
+        "kind": "REPOSITORY_DEMO_CORPUS",
+        "datasetKey": "SP-901",
+        "corpusVersion": "sp-907-zh-tw-v3",
+        "origin": "ADDED_SP907"
+      },
+      "approvalPolicy": "TRUSTED_DEMO_SYSTEM_APPROVAL_IF_POLICY_ALLOWS",
+      "outboundPolicy": "EVALUATE_EXISTING_POLICY",
+      "fixtureKeys": [
+        "RAG-086",
+        "RAG-094"
+      ]
+    },
+    {
+      "documentKey": "DOC-SUP-007-SUPPLY-CAPABILITY-SP907",
+      "type": "SUPPLIER_PROFILE",
+      "themeKey": "supply_capability",
+      "version": "1.0",
+      "title": "山嵐果萃食品（SUP-007）｜供貨關係與能力範圍展示文件",
+      "filename": "samples/documents/supplier-sup-007-supply-capability-sp907-v1.txt",
+      "corpusVersion": "sp-907-zh-tw-v3",
+      "sourceSha256": "e561d1d17efa4c3118f96cb78584efababa66b7467f8fcd34aebe3c97718c6dd",
+      "classification": "SEED_BASELINE",
+      "supplierCodes": [
+        "SUP-007"
+      ],
+      "supplierNames": [
+        "山嵐果萃食品"
+      ],
+      "materialCodes": [
+        "MAT-002",
+        "MAT-007",
+        "MAT-010",
+        "MAT-012"
+      ],
+      "materialNames": [
+        "芒果濃縮汁",
+        "百香果泥",
+        "檸檬汁濃縮液",
+        "椰奶基底"
+      ],
+      "provenance": {
+        "kind": "REPOSITORY_DEMO_CORPUS",
+        "datasetKey": "SP-901",
+        "corpusVersion": "sp-907-zh-tw-v3",
+        "origin": "ADDED_SP907"
+      },
+      "approvalPolicy": "TRUSTED_DEMO_SYSTEM_APPROVAL_IF_POLICY_ALLOWS",
+      "outboundPolicy": "EVALUATE_EXISTING_POLICY",
+      "fixtureKeys": [
+        "RAG-087"
+      ]
+    },
+    {
+      "documentKey": "DOC-SUP-007-CONTRACT-TERMS-SP907",
+      "type": "SUPPLIER_CONTRACT",
+      "themeKey": "contract_terms",
+      "version": "1.0",
+      "title": "山嵐果萃食品（SUP-007）｜供貨協議條件展示文件",
+      "filename": "samples/documents/supplier-sup-007-contract-terms-sp907-v1.txt",
+      "corpusVersion": "sp-907-zh-tw-v3",
+      "sourceSha256": "c973eafbe12bbe8198d8f55ecc7806eb8609a7b0b4fbbf7dadbfa416b2121cfa",
+      "classification": "SEED_BASELINE",
+      "supplierCodes": [
+        "SUP-007"
+      ],
+      "supplierNames": [
+        "山嵐果萃食品"
+      ],
+      "materialCodes": [
+        "MAT-002"
+      ],
+      "materialNames": [
+        "芒果濃縮汁"
+      ],
+      "provenance": {
+        "kind": "REPOSITORY_DEMO_CORPUS",
+        "datasetKey": "SP-901",
+        "corpusVersion": "sp-907-zh-tw-v3",
+        "origin": "ADDED_SP907"
+      },
+      "approvalPolicy": "TRUSTED_DEMO_SYSTEM_APPROVAL_IF_POLICY_ALLOWS",
+      "outboundPolicy": "EVALUATE_EXISTING_POLICY",
+      "fixtureKeys": [
+        "RAG-089"
+      ]
+    },
+    {
+      "documentKey": "DOC-SUP-007-QUOTATION-SP907",
+      "type": "QUOTATION",
+      "themeKey": "quotation",
+      "version": "1.0",
+      "title": "山嵐果萃食品（SUP-007）｜報價與供貨條件摘要展示文件",
+      "filename": "samples/documents/supplier-sup-007-quotation-sp907-v1.txt",
+      "corpusVersion": "sp-907-zh-tw-v3",
+      "sourceSha256": "4dec9d5c7c30a5f2b944955e2eaee1b2a5550877e1445a797dab005ae36fa4af",
+      "classification": "SEED_BASELINE",
+      "supplierCodes": [
+        "SUP-007"
+      ],
+      "supplierNames": [
+        "山嵐果萃食品"
+      ],
+      "materialCodes": [
+        "MAT-002"
+      ],
+      "materialNames": [
+        "芒果濃縮汁"
+      ],
+      "provenance": {
+        "kind": "REPOSITORY_DEMO_CORPUS",
+        "datasetKey": "SP-901",
+        "corpusVersion": "sp-907-zh-tw-v3",
+        "origin": "ADDED_SP907"
+      },
+      "approvalPolicy": "TRUSTED_DEMO_SYSTEM_APPROVAL_IF_POLICY_ALLOWS",
+      "outboundPolicy": "EVALUATE_EXISTING_POLICY",
+      "fixtureKeys": [
+        "RAG-005",
+        "RAG-090"
+      ]
+    },
+    {
+      "documentKey": "DOC-SUP-007-PRODUCT-SPECIFICATION-SP907",
+      "type": "PRODUCT_SPECIFICATION",
+      "themeKey": "product_specification",
+      "version": "1.0",
+      "title": "山嵐果萃食品（SUP-007）｜物料規格參照展示文件",
+      "filename": "samples/documents/supplier-sup-007-product-specification-sp907-v1.txt",
+      "corpusVersion": "sp-907-zh-tw-v3",
+      "sourceSha256": "cd3a71d4d1dfd1d1a7573c19a91803e5cb925786f3a71d9f6b9ed2c54d6bab5b",
+      "classification": "SEED_BASELINE",
+      "supplierCodes": [
+        "SUP-007"
+      ],
+      "supplierNames": [
+        "山嵐果萃食品"
+      ],
+      "materialCodes": [
+        "MAT-002"
+      ],
+      "materialNames": [
+        "芒果濃縮汁"
+      ],
+      "provenance": {
+        "kind": "REPOSITORY_DEMO_CORPUS",
+        "datasetKey": "SP-901",
+        "corpusVersion": "sp-907-zh-tw-v3",
+        "origin": "ADDED_SP907"
+      },
+      "approvalPolicy": "TRUSTED_DEMO_SYSTEM_APPROVAL_IF_POLICY_ALLOWS",
+      "outboundPolicy": "EVALUATE_EXISTING_POLICY",
+      "fixtureKeys": []
+    },
+    {
+      "documentKey": "DOC-SUP-007-QUALITY-REQUIREMENTS-SP907",
+      "type": "QUALITY_REQUIREMENT",
+      "themeKey": "quality_requirements",
+      "version": "1.0",
+      "title": "山嵐果萃食品（SUP-007）｜品質與收貨查核展示文件",
+      "filename": "samples/documents/supplier-sup-007-quality-requirements-sp907-v1.txt",
+      "corpusVersion": "sp-907-zh-tw-v3",
+      "sourceSha256": "62e0f7b718246496d3fac8787253473ad35271e8d2df327fe6df8bb3f97d327f",
+      "classification": "SEED_BASELINE",
+      "supplierCodes": [
+        "SUP-007"
+      ],
+      "supplierNames": [
+        "山嵐果萃食品"
+      ],
+      "materialCodes": [
+        "MAT-002"
+      ],
+      "materialNames": [
+        "芒果濃縮汁"
+      ],
+      "provenance": {
+        "kind": "REPOSITORY_DEMO_CORPUS",
+        "datasetKey": "SP-901",
+        "corpusVersion": "sp-907-zh-tw-v3",
+        "origin": "ADDED_SP907"
+      },
+      "approvalPolicy": "TRUSTED_DEMO_SYSTEM_APPROVAL_IF_POLICY_ALLOWS",
+      "outboundPolicy": "EVALUATE_EXISTING_POLICY",
+      "fixtureKeys": [
+        "RAG-091"
+      ]
+    },
+    {
+      "documentKey": "DOC-SUP-007-DELIVERY-COORDINATION-SP907",
+      "type": "SUPPLIER_COOPERATION_RECORD",
+      "themeKey": "delivery_coordination",
+      "version": "1.0",
+      "title": "山嵐果萃食品（SUP-007）｜交期協調紀錄展示文件",
+      "filename": "samples/documents/supplier-sup-007-delivery-coordination-sp907-v1.txt",
+      "corpusVersion": "sp-907-zh-tw-v3",
+      "sourceSha256": "ac017f662af23c3d04ade4c295eebb9f0e3796d8bf574ecae7b000c9a4fd87a4",
+      "classification": "SEED_BASELINE",
+      "supplierCodes": [
+        "SUP-007"
+      ],
+      "supplierNames": [
+        "山嵐果萃食品"
+      ],
+      "materialCodes": [
+        "MAT-002",
+        "MAT-010"
+      ],
+      "materialNames": [
+        "芒果濃縮汁",
+        "檸檬汁濃縮液"
+      ],
+      "provenance": {
+        "kind": "REPOSITORY_DEMO_CORPUS",
+        "datasetKey": "SP-901",
+        "corpusVersion": "sp-907-zh-tw-v3",
+        "origin": "ADDED_SP907"
+      },
+      "approvalPolicy": "TRUSTED_DEMO_SYSTEM_APPROVAL_IF_POLICY_ALLOWS",
+      "outboundPolicy": "EVALUATE_EXISTING_POLICY",
+      "fixtureKeys": [
+        "RAG-088"
+      ]
+    },
+    {
+      "documentKey": "DOC-SUP-007-COOPERATION-HISTORY-SP907",
+      "type": "SUPPLIER_COOPERATION_RECORD",
+      "themeKey": "cooperation_history",
+      "version": "1.0",
+      "title": "山嵐果萃食品（SUP-007）｜採購合作歷程展示文件",
+      "filename": "samples/documents/supplier-sup-007-cooperation-history-sp907-v1.txt",
+      "corpusVersion": "sp-907-zh-tw-v3",
+      "sourceSha256": "5cde124e50a6b015c951c40a8cbb35c6d0d31b9316b5fe045a6424aa69e5f04e",
+      "classification": "SEED_BASELINE",
+      "supplierCodes": [
+        "SUP-007"
+      ],
+      "supplierNames": [
+        "山嵐果萃食品"
+      ],
+      "materialCodes": [
+        "MAT-010"
+      ],
+      "materialNames": [
+        "檸檬汁濃縮液"
+      ],
+      "provenance": {
+        "kind": "REPOSITORY_DEMO_CORPUS",
+        "datasetKey": "SP-901",
+        "corpusVersion": "sp-907-zh-tw-v3",
+        "origin": "ADDED_SP907"
+      },
+      "approvalPolicy": "TRUSTED_DEMO_SYSTEM_APPROVAL_IF_POLICY_ALLOWS",
+      "outboundPolicy": "EVALUATE_EXISTING_POLICY",
+      "fixtureKeys": [
+        "RAG-092"
+      ]
+    },
+    {
+      "documentKey": "DOC-SUP-007-INCIDENT-IMPROVEMENT-SP907",
+      "type": "SUPPLIER_COOPERATION_RECORD",
+      "themeKey": "incident_improvement",
+      "version": "1.0",
+      "title": "山嵐果萃食品（SUP-007）｜異常改善追蹤展示文件",
+      "filename": "samples/documents/supplier-sup-007-incident-improvement-sp907-v1.txt",
+      "corpusVersion": "sp-907-zh-tw-v3",
+      "sourceSha256": "0955775ede535f292121a5ab5277d92a587c747bb9dab83bb1dc047e9ca06f6f",
+      "classification": "SEED_BASELINE",
+      "supplierCodes": [
+        "SUP-007"
+      ],
+      "supplierNames": [
+        "山嵐果萃食品"
+      ],
+      "materialCodes": [
+        "MAT-002"
+      ],
+      "materialNames": [
+        "芒果濃縮汁"
+      ],
+      "provenance": {
+        "kind": "REPOSITORY_DEMO_CORPUS",
+        "datasetKey": "SP-901",
+        "corpusVersion": "sp-907-zh-tw-v3",
+        "origin": "ADDED_SP907"
+      },
+      "approvalPolicy": "TRUSTED_DEMO_SYSTEM_APPROVAL_IF_POLICY_ALLOWS",
+      "outboundPolicy": "EVALUATE_EXISTING_POLICY",
+      "fixtureKeys": []
+    },
+    {
+      "documentKey": "DOC-SUP-007-BUYER-EVALUATION-SP907",
+      "type": "SUPPLIER_EVALUATION",
+      "themeKey": "buyer_evaluation",
+      "version": "1.0",
+      "title": "山嵐果萃食品（SUP-007）｜採購端主觀評語展示文件",
+      "filename": "samples/documents/supplier-sup-007-buyer-evaluation-sp907-v1.txt",
+      "corpusVersion": "sp-907-zh-tw-v3",
+      "sourceSha256": "8863d526f4a8a9b25d24c10b02b56baf80d23f7265c31cff75d0f2dc85e72500",
+      "classification": "SEED_BASELINE",
+      "supplierCodes": [
+        "SUP-007"
+      ],
+      "supplierNames": [
+        "山嵐果萃食品"
+      ],
+      "materialCodes": [
+        "MAT-010"
+      ],
+      "materialNames": [
+        "檸檬汁濃縮液"
+      ],
+      "provenance": {
+        "kind": "REPOSITORY_DEMO_CORPUS",
+        "datasetKey": "SP-901",
+        "corpusVersion": "sp-907-zh-tw-v3",
+        "origin": "ADDED_SP907"
+      },
+      "approvalPolicy": "TRUSTED_DEMO_SYSTEM_APPROVAL_IF_POLICY_ALLOWS",
+      "outboundPolicy": "EVALUATE_EXISTING_POLICY",
+      "fixtureKeys": [
+        "RAG-093"
+      ]
+    },
+    {
+      "documentKey": "DOC-SUP-008-SUPPLIER-PROFILE-SP907",
+      "type": "SUPPLIER_PROFILE",
+      "themeKey": "supplier_profile",
+      "version": "1.0",
+      "title": "森川飲品原料（SUP-008）｜供應商基本資料展示文件",
+      "filename": "samples/documents/supplier-sup-008-supplier-profile-sp907-v1.txt",
+      "corpusVersion": "sp-907-zh-tw-v3",
+      "sourceSha256": "bfd07b65b3cfb5a19d837e024e541d0fa6a3fa0b40016392bcaf1d7a09e9cea1",
+      "classification": "SEED_BASELINE",
+      "supplierCodes": [
+        "SUP-008"
+      ],
+      "supplierNames": [
+        "森川飲品原料"
+      ],
+      "materialCodes": [],
+      "materialNames": [],
+      "provenance": {
+        "kind": "REPOSITORY_DEMO_CORPUS",
+        "datasetKey": "SP-901",
+        "corpusVersion": "sp-907-zh-tw-v3",
+        "origin": "ADDED_SP907"
+      },
+      "approvalPolicy": "TRUSTED_DEMO_SYSTEM_APPROVAL_IF_POLICY_ALLOWS",
+      "outboundPolicy": "EVALUATE_EXISTING_POLICY",
+      "fixtureKeys": [
+        "RAG-096",
+        "RAG-104"
+      ]
+    },
+    {
+      "documentKey": "DOC-SUP-008-SUPPLY-CAPABILITY-SP907",
+      "type": "SUPPLIER_PROFILE",
+      "themeKey": "supply_capability",
+      "version": "1.0",
+      "title": "森川飲品原料（SUP-008）｜供貨關係與能力範圍展示文件",
+      "filename": "samples/documents/supplier-sup-008-supply-capability-sp907-v1.txt",
+      "corpusVersion": "sp-907-zh-tw-v3",
+      "sourceSha256": "6ed927566e6f1644aabc7c3a31ae1e987761fe0295c17c6117d9a6efe6d2e84c",
+      "classification": "SEED_BASELINE",
+      "supplierCodes": [
+        "SUP-008"
+      ],
+      "supplierNames": [
+        "森川飲品原料"
+      ],
+      "materialCodes": [
+        "MAT-003",
+        "MAT-004",
+        "MAT-006",
+        "MAT-011"
+      ],
+      "materialNames": [
+        "果糖糖漿",
+        "奶茶基底",
+        "茉莉茶萃取物",
+        "烏龍茶萃取物"
+      ],
+      "provenance": {
+        "kind": "REPOSITORY_DEMO_CORPUS",
+        "datasetKey": "SP-901",
+        "corpusVersion": "sp-907-zh-tw-v3",
+        "origin": "ADDED_SP907"
+      },
+      "approvalPolicy": "TRUSTED_DEMO_SYSTEM_APPROVAL_IF_POLICY_ALLOWS",
+      "outboundPolicy": "EVALUATE_EXISTING_POLICY",
+      "fixtureKeys": [
+        "RAG-097"
+      ]
+    },
+    {
+      "documentKey": "DOC-SUP-008-CONTRACT-TERMS-SP907",
+      "type": "SUPPLIER_CONTRACT",
+      "themeKey": "contract_terms",
+      "version": "1.0",
+      "title": "森川飲品原料（SUP-008）｜供貨協議條件展示文件",
+      "filename": "samples/documents/supplier-sup-008-contract-terms-sp907-v1.txt",
+      "corpusVersion": "sp-907-zh-tw-v3",
+      "sourceSha256": "52d2ca07b1304faea02df41827bce35bef5a409e0b05c2af6109b371ed64b4dc",
+      "classification": "SEED_BASELINE",
+      "supplierCodes": [
+        "SUP-008"
+      ],
+      "supplierNames": [
+        "森川飲品原料"
+      ],
+      "materialCodes": [
+        "MAT-003"
+      ],
+      "materialNames": [
+        "果糖糖漿"
+      ],
+      "provenance": {
+        "kind": "REPOSITORY_DEMO_CORPUS",
+        "datasetKey": "SP-901",
+        "corpusVersion": "sp-907-zh-tw-v3",
+        "origin": "ADDED_SP907"
+      },
+      "approvalPolicy": "TRUSTED_DEMO_SYSTEM_APPROVAL_IF_POLICY_ALLOWS",
+      "outboundPolicy": "EVALUATE_EXISTING_POLICY",
+      "fixtureKeys": [
+        "RAG-099"
+      ]
+    },
+    {
+      "documentKey": "DOC-SUP-008-QUOTATION-SP907",
+      "type": "QUOTATION",
+      "themeKey": "quotation",
+      "version": "1.0",
+      "title": "森川飲品原料（SUP-008）｜報價與供貨條件摘要展示文件",
+      "filename": "samples/documents/supplier-sup-008-quotation-sp907-v1.txt",
+      "corpusVersion": "sp-907-zh-tw-v3",
+      "sourceSha256": "89627f1ec90c036b3e9ea1250f6c41592982fe770278c6feda2d87ca58e86807",
+      "classification": "SEED_BASELINE",
+      "supplierCodes": [
+        "SUP-008"
+      ],
+      "supplierNames": [
+        "森川飲品原料"
+      ],
+      "materialCodes": [
+        "MAT-003"
+      ],
+      "materialNames": [
+        "果糖糖漿"
+      ],
+      "provenance": {
+        "kind": "REPOSITORY_DEMO_CORPUS",
+        "datasetKey": "SP-901",
+        "corpusVersion": "sp-907-zh-tw-v3",
+        "origin": "ADDED_SP907"
+      },
+      "approvalPolicy": "TRUSTED_DEMO_SYSTEM_APPROVAL_IF_POLICY_ALLOWS",
+      "outboundPolicy": "EVALUATE_EXISTING_POLICY",
+      "fixtureKeys": [
+        "RAG-100"
+      ]
+    },
+    {
+      "documentKey": "DOC-SUP-008-PRODUCT-SPECIFICATION-SP907",
+      "type": "PRODUCT_SPECIFICATION",
+      "themeKey": "product_specification",
+      "version": "1.0",
+      "title": "森川飲品原料（SUP-008）｜物料規格參照展示文件",
+      "filename": "samples/documents/supplier-sup-008-product-specification-sp907-v1.txt",
+      "corpusVersion": "sp-907-zh-tw-v3",
+      "sourceSha256": "365d5e1cf56d8636eb8d89b28df26bcd5568019efcde7a56edadf5e0e11a2683",
+      "classification": "SEED_BASELINE",
+      "supplierCodes": [
+        "SUP-008"
+      ],
+      "supplierNames": [
+        "森川飲品原料"
+      ],
+      "materialCodes": [
+        "MAT-003"
+      ],
+      "materialNames": [
+        "果糖糖漿"
+      ],
+      "provenance": {
+        "kind": "REPOSITORY_DEMO_CORPUS",
+        "datasetKey": "SP-901",
+        "corpusVersion": "sp-907-zh-tw-v3",
+        "origin": "ADDED_SP907"
+      },
+      "approvalPolicy": "TRUSTED_DEMO_SYSTEM_APPROVAL_IF_POLICY_ALLOWS",
+      "outboundPolicy": "EVALUATE_EXISTING_POLICY",
+      "fixtureKeys": []
+    },
+    {
+      "documentKey": "DOC-SUP-008-QUALITY-REQUIREMENTS-SP907",
+      "type": "QUALITY_REQUIREMENT",
+      "themeKey": "quality_requirements",
+      "version": "1.0",
+      "title": "森川飲品原料（SUP-008）｜品質與收貨查核展示文件",
+      "filename": "samples/documents/supplier-sup-008-quality-requirements-sp907-v1.txt",
+      "corpusVersion": "sp-907-zh-tw-v3",
+      "sourceSha256": "d953d1dcef078768130f0b70eeb1a2c4cb1750966937940115ed1153c367b4b6",
+      "classification": "SEED_BASELINE",
+      "supplierCodes": [
+        "SUP-008"
+      ],
+      "supplierNames": [
+        "森川飲品原料"
+      ],
+      "materialCodes": [
+        "MAT-003"
+      ],
+      "materialNames": [
+        "果糖糖漿"
+      ],
+      "provenance": {
+        "kind": "REPOSITORY_DEMO_CORPUS",
+        "datasetKey": "SP-901",
+        "corpusVersion": "sp-907-zh-tw-v3",
+        "origin": "ADDED_SP907"
+      },
+      "approvalPolicy": "TRUSTED_DEMO_SYSTEM_APPROVAL_IF_POLICY_ALLOWS",
+      "outboundPolicy": "EVALUATE_EXISTING_POLICY",
+      "fixtureKeys": [
+        "RAG-101"
+      ]
+    },
+    {
+      "documentKey": "DOC-SUP-008-DELIVERY-COORDINATION-SP907",
+      "type": "SUPPLIER_COOPERATION_RECORD",
+      "themeKey": "delivery_coordination",
+      "version": "1.0",
+      "title": "森川飲品原料（SUP-008）｜交期協調紀錄展示文件",
+      "filename": "samples/documents/supplier-sup-008-delivery-coordination-sp907-v1.txt",
+      "corpusVersion": "sp-907-zh-tw-v3",
+      "sourceSha256": "45dc9a9c48e02cbf9fd5b9bb688b00caa915f30b2da47640d902c6e84a79e63b",
+      "classification": "SEED_BASELINE",
+      "supplierCodes": [
+        "SUP-008"
+      ],
+      "supplierNames": [
+        "森川飲品原料"
+      ],
+      "materialCodes": [
+        "MAT-003",
+        "MAT-004"
+      ],
+      "materialNames": [
+        "果糖糖漿",
+        "奶茶基底"
+      ],
+      "provenance": {
+        "kind": "REPOSITORY_DEMO_CORPUS",
+        "datasetKey": "SP-901",
+        "corpusVersion": "sp-907-zh-tw-v3",
+        "origin": "ADDED_SP907"
+      },
+      "approvalPolicy": "TRUSTED_DEMO_SYSTEM_APPROVAL_IF_POLICY_ALLOWS",
+      "outboundPolicy": "EVALUATE_EXISTING_POLICY",
+      "fixtureKeys": [
+        "RAG-098"
+      ]
+    },
+    {
+      "documentKey": "DOC-SUP-008-COOPERATION-HISTORY-SP907",
+      "type": "SUPPLIER_COOPERATION_RECORD",
+      "themeKey": "cooperation_history",
+      "version": "1.0",
+      "title": "森川飲品原料（SUP-008）｜採購合作歷程展示文件",
+      "filename": "samples/documents/supplier-sup-008-cooperation-history-sp907-v1.txt",
+      "corpusVersion": "sp-907-zh-tw-v3",
+      "sourceSha256": "80dee602acdaadd30f88ef3025e3a163ee7597ba6dc9fea60f48140a5f2e2e42",
+      "classification": "SEED_BASELINE",
+      "supplierCodes": [
+        "SUP-008"
+      ],
+      "supplierNames": [
+        "森川飲品原料"
+      ],
+      "materialCodes": [
+        "MAT-004"
+      ],
+      "materialNames": [
+        "奶茶基底"
+      ],
+      "provenance": {
+        "kind": "REPOSITORY_DEMO_CORPUS",
+        "datasetKey": "SP-901",
+        "corpusVersion": "sp-907-zh-tw-v3",
+        "origin": "ADDED_SP907"
+      },
+      "approvalPolicy": "TRUSTED_DEMO_SYSTEM_APPROVAL_IF_POLICY_ALLOWS",
+      "outboundPolicy": "EVALUATE_EXISTING_POLICY",
+      "fixtureKeys": [
+        "RAG-102"
+      ]
+    },
+    {
+      "documentKey": "DOC-SUP-008-INCIDENT-IMPROVEMENT-SP907",
+      "type": "SUPPLIER_COOPERATION_RECORD",
+      "themeKey": "incident_improvement",
+      "version": "1.0",
+      "title": "森川飲品原料（SUP-008）｜異常改善追蹤展示文件",
+      "filename": "samples/documents/supplier-sup-008-incident-improvement-sp907-v1.txt",
+      "corpusVersion": "sp-907-zh-tw-v3",
+      "sourceSha256": "3253bb0b9acc21a577b32556cfd236a5bf22b14caa3a02078e83776041e49f46",
+      "classification": "SEED_BASELINE",
+      "supplierCodes": [
+        "SUP-008"
+      ],
+      "supplierNames": [
+        "森川飲品原料"
+      ],
+      "materialCodes": [
+        "MAT-003"
+      ],
+      "materialNames": [
+        "果糖糖漿"
+      ],
+      "provenance": {
+        "kind": "REPOSITORY_DEMO_CORPUS",
+        "datasetKey": "SP-901",
+        "corpusVersion": "sp-907-zh-tw-v3",
+        "origin": "ADDED_SP907"
+      },
+      "approvalPolicy": "TRUSTED_DEMO_SYSTEM_APPROVAL_IF_POLICY_ALLOWS",
+      "outboundPolicy": "EVALUATE_EXISTING_POLICY",
+      "fixtureKeys": []
+    },
+    {
+      "documentKey": "DOC-SUP-008-BUYER-EVALUATION-SP907",
+      "type": "SUPPLIER_EVALUATION",
+      "themeKey": "buyer_evaluation",
+      "version": "1.0",
+      "title": "森川飲品原料（SUP-008）｜採購端主觀評語展示文件",
+      "filename": "samples/documents/supplier-sup-008-buyer-evaluation-sp907-v1.txt",
+      "corpusVersion": "sp-907-zh-tw-v3",
+      "sourceSha256": "00a4da23c9540412e36cafb970d65698d5923aee209c018c30ab9b5fa286a214",
+      "classification": "SEED_BASELINE",
+      "supplierCodes": [
+        "SUP-008"
+      ],
+      "supplierNames": [
+        "森川飲品原料"
+      ],
+      "materialCodes": [
+        "MAT-004"
+      ],
+      "materialNames": [
+        "奶茶基底"
+      ],
+      "provenance": {
+        "kind": "REPOSITORY_DEMO_CORPUS",
+        "datasetKey": "SP-901",
+        "corpusVersion": "sp-907-zh-tw-v3",
+        "origin": "ADDED_SP907"
+      },
+      "approvalPolicy": "TRUSTED_DEMO_SYSTEM_APPROVAL_IF_POLICY_ALLOWS",
+      "outboundPolicy": "EVALUATE_EXISTING_POLICY",
+      "fixtureKeys": [
+        "RAG-103"
+      ]
+    },
+    {
+      "documentKey": "DOC-SUP-009-SUPPLIER-PROFILE-SP907",
+      "type": "SUPPLIER_PROFILE",
+      "themeKey": "supplier_profile",
+      "version": "1.0",
+      "title": "昕川澱粉工坊（SUP-009）｜供應商基本資料展示文件",
+      "filename": "samples/documents/supplier-sup-009-supplier-profile-sp907-v1.txt",
+      "corpusVersion": "sp-907-zh-tw-v3",
+      "sourceSha256": "53f4b6eef5bf92066d96b97d3ce008d79197e72862d43726b5c1dfb1e762cc22",
+      "classification": "SEED_BASELINE",
+      "supplierCodes": [
+        "SUP-009"
+      ],
+      "supplierNames": [
+        "昕川澱粉工坊"
+      ],
+      "materialCodes": [],
+      "materialNames": [],
+      "provenance": {
+        "kind": "REPOSITORY_DEMO_CORPUS",
+        "datasetKey": "SP-901",
+        "corpusVersion": "sp-907-zh-tw-v3",
+        "origin": "ADDED_SP907"
+      },
+      "approvalPolicy": "TRUSTED_DEMO_SYSTEM_APPROVAL_IF_POLICY_ALLOWS",
+      "outboundPolicy": "EVALUATE_EXISTING_POLICY",
+      "fixtureKeys": [
+        "RAG-106",
+        "RAG-114"
+      ]
+    },
+    {
+      "documentKey": "DOC-SUP-009-SUPPLY-CAPABILITY-SP907",
+      "type": "SUPPLIER_PROFILE",
+      "themeKey": "supply_capability",
+      "version": "1.0",
+      "title": "昕川澱粉工坊（SUP-009）｜供貨關係與能力範圍展示文件",
+      "filename": "samples/documents/supplier-sup-009-supply-capability-sp907-v1.txt",
+      "corpusVersion": "sp-907-zh-tw-v3",
+      "sourceSha256": "27256776f65e795feb0f868df2de249a5b0cefabb710b05c359f4dccf8c7fd4e",
+      "classification": "SEED_BASELINE",
+      "supplierCodes": [
+        "SUP-009"
+      ],
+      "supplierNames": [
+        "昕川澱粉工坊"
+      ],
+      "materialCodes": [
+        "MAT-005",
+        "MAT-008",
+        "MAT-009"
+      ],
+      "materialNames": [
+        "珍珠風味粉",
+        "黑糖糖漿",
+        "芋頭風味粉"
+      ],
+      "provenance": {
+        "kind": "REPOSITORY_DEMO_CORPUS",
+        "datasetKey": "SP-901",
+        "corpusVersion": "sp-907-zh-tw-v3",
+        "origin": "ADDED_SP907"
+      },
+      "approvalPolicy": "TRUSTED_DEMO_SYSTEM_APPROVAL_IF_POLICY_ALLOWS",
+      "outboundPolicy": "EVALUATE_EXISTING_POLICY",
+      "fixtureKeys": [
+        "RAG-107"
+      ]
+    },
+    {
+      "documentKey": "DOC-SUP-009-CONTRACT-TERMS-SP907",
+      "type": "SUPPLIER_CONTRACT",
+      "themeKey": "contract_terms",
+      "version": "1.0",
+      "title": "昕川澱粉工坊（SUP-009）｜供貨協議條件展示文件",
+      "filename": "samples/documents/supplier-sup-009-contract-terms-sp907-v1.txt",
+      "corpusVersion": "sp-907-zh-tw-v3",
+      "sourceSha256": "8ebe10583f90ec7d514a489682b153625ba2e885ea3dfec18ce79dc43ab74c49",
+      "classification": "SEED_BASELINE",
+      "supplierCodes": [
+        "SUP-009"
+      ],
+      "supplierNames": [
+        "昕川澱粉工坊"
+      ],
+      "materialCodes": [
+        "MAT-008"
+      ],
+      "materialNames": [
+        "黑糖糖漿"
+      ],
+      "provenance": {
+        "kind": "REPOSITORY_DEMO_CORPUS",
+        "datasetKey": "SP-901",
+        "corpusVersion": "sp-907-zh-tw-v3",
+        "origin": "ADDED_SP907"
+      },
+      "approvalPolicy": "TRUSTED_DEMO_SYSTEM_APPROVAL_IF_POLICY_ALLOWS",
+      "outboundPolicy": "EVALUATE_EXISTING_POLICY",
+      "fixtureKeys": [
+        "RAG-109"
+      ]
+    },
+    {
+      "documentKey": "DOC-SUP-009-QUOTATION-SP907",
+      "type": "QUOTATION",
+      "themeKey": "quotation",
+      "version": "1.0",
+      "title": "昕川澱粉工坊（SUP-009）｜報價與供貨條件摘要展示文件",
+      "filename": "samples/documents/supplier-sup-009-quotation-sp907-v1.txt",
+      "corpusVersion": "sp-907-zh-tw-v3",
+      "sourceSha256": "df1eeadd01c04442e2a944a8dee7084c613cb4fd276b43ec5274ae8b03c37c52",
+      "classification": "SEED_BASELINE",
+      "supplierCodes": [
+        "SUP-009"
+      ],
+      "supplierNames": [
+        "昕川澱粉工坊"
+      ],
+      "materialCodes": [
+        "MAT-008"
+      ],
+      "materialNames": [
+        "黑糖糖漿"
+      ],
+      "provenance": {
+        "kind": "REPOSITORY_DEMO_CORPUS",
+        "datasetKey": "SP-901",
+        "corpusVersion": "sp-907-zh-tw-v3",
+        "origin": "ADDED_SP907"
+      },
+      "approvalPolicy": "TRUSTED_DEMO_SYSTEM_APPROVAL_IF_POLICY_ALLOWS",
+      "outboundPolicy": "EVALUATE_EXISTING_POLICY",
+      "fixtureKeys": [
+        "RAG-110"
+      ]
+    },
+    {
+      "documentKey": "DOC-SUP-009-PRODUCT-SPECIFICATION-SP907",
+      "type": "PRODUCT_SPECIFICATION",
+      "themeKey": "product_specification",
+      "version": "1.0",
+      "title": "昕川澱粉工坊（SUP-009）｜物料規格參照展示文件",
+      "filename": "samples/documents/supplier-sup-009-product-specification-sp907-v1.txt",
+      "corpusVersion": "sp-907-zh-tw-v3",
+      "sourceSha256": "632af6fc664a582ae826cc51cc4e6fbf00bd10fd97cbaf17dd4aeea7a0a66f6a",
+      "classification": "SEED_BASELINE",
+      "supplierCodes": [
+        "SUP-009"
+      ],
+      "supplierNames": [
+        "昕川澱粉工坊"
+      ],
+      "materialCodes": [
+        "MAT-008"
+      ],
+      "materialNames": [
+        "黑糖糖漿"
+      ],
+      "provenance": {
+        "kind": "REPOSITORY_DEMO_CORPUS",
+        "datasetKey": "SP-901",
+        "corpusVersion": "sp-907-zh-tw-v3",
+        "origin": "ADDED_SP907"
+      },
+      "approvalPolicy": "TRUSTED_DEMO_SYSTEM_APPROVAL_IF_POLICY_ALLOWS",
+      "outboundPolicy": "EVALUATE_EXISTING_POLICY",
+      "fixtureKeys": []
+    },
+    {
+      "documentKey": "DOC-SUP-009-QUALITY-REQUIREMENTS-SP907",
+      "type": "QUALITY_REQUIREMENT",
+      "themeKey": "quality_requirements",
+      "version": "1.0",
+      "title": "昕川澱粉工坊（SUP-009）｜品質與收貨查核展示文件",
+      "filename": "samples/documents/supplier-sup-009-quality-requirements-sp907-v1.txt",
+      "corpusVersion": "sp-907-zh-tw-v3",
+      "sourceSha256": "6ebeda7f59df20eeec68baf73dab6c371312f6cebb0fdcd3f34e38905fa52d4b",
+      "classification": "SEED_BASELINE",
+      "supplierCodes": [
+        "SUP-009"
+      ],
+      "supplierNames": [
+        "昕川澱粉工坊"
+      ],
+      "materialCodes": [
+        "MAT-008"
+      ],
+      "materialNames": [
+        "黑糖糖漿"
+      ],
+      "provenance": {
+        "kind": "REPOSITORY_DEMO_CORPUS",
+        "datasetKey": "SP-901",
+        "corpusVersion": "sp-907-zh-tw-v3",
+        "origin": "ADDED_SP907"
+      },
+      "approvalPolicy": "TRUSTED_DEMO_SYSTEM_APPROVAL_IF_POLICY_ALLOWS",
+      "outboundPolicy": "EVALUATE_EXISTING_POLICY",
+      "fixtureKeys": [
+        "RAG-111"
+      ]
+    },
+    {
+      "documentKey": "DOC-SUP-009-DELIVERY-COORDINATION-SP907",
+      "type": "SUPPLIER_COOPERATION_RECORD",
+      "themeKey": "delivery_coordination",
+      "version": "1.0",
+      "title": "昕川澱粉工坊（SUP-009）｜交期協調紀錄展示文件",
+      "filename": "samples/documents/supplier-sup-009-delivery-coordination-sp907-v1.txt",
+      "corpusVersion": "sp-907-zh-tw-v3",
+      "sourceSha256": "e63bdc2f9420cee13b77e7dac9a36a37848b2386a2d1ddfa85ae955135baa13a",
+      "classification": "SEED_BASELINE",
+      "supplierCodes": [
+        "SUP-009"
+      ],
+      "supplierNames": [
+        "昕川澱粉工坊"
+      ],
+      "materialCodes": [
+        "MAT-008"
+      ],
+      "materialNames": [
+        "黑糖糖漿"
+      ],
+      "provenance": {
+        "kind": "REPOSITORY_DEMO_CORPUS",
+        "datasetKey": "SP-901",
+        "corpusVersion": "sp-907-zh-tw-v3",
+        "origin": "ADDED_SP907"
+      },
+      "approvalPolicy": "TRUSTED_DEMO_SYSTEM_APPROVAL_IF_POLICY_ALLOWS",
+      "outboundPolicy": "EVALUATE_EXISTING_POLICY",
+      "fixtureKeys": [
+        "RAG-108"
+      ]
+    },
+    {
+      "documentKey": "DOC-SUP-009-COOPERATION-HISTORY-SP907",
+      "type": "SUPPLIER_COOPERATION_RECORD",
+      "themeKey": "cooperation_history",
+      "version": "1.0",
+      "title": "昕川澱粉工坊（SUP-009）｜採購合作歷程展示文件",
+      "filename": "samples/documents/supplier-sup-009-cooperation-history-sp907-v1.txt",
+      "corpusVersion": "sp-907-zh-tw-v3",
+      "sourceSha256": "512f663b18f032ba00e226656655b9998da6ebe9e70b78b71042b70c3466fd71",
+      "classification": "SEED_BASELINE",
+      "supplierCodes": [
+        "SUP-009"
+      ],
+      "supplierNames": [
+        "昕川澱粉工坊"
+      ],
+      "materialCodes": [],
+      "materialNames": [],
+      "provenance": {
+        "kind": "REPOSITORY_DEMO_CORPUS",
+        "datasetKey": "SP-901",
+        "corpusVersion": "sp-907-zh-tw-v3",
+        "origin": "ADDED_SP907"
+      },
+      "approvalPolicy": "TRUSTED_DEMO_SYSTEM_APPROVAL_IF_POLICY_ALLOWS",
+      "outboundPolicy": "EVALUATE_EXISTING_POLICY",
+      "fixtureKeys": [
+        "RAG-112"
+      ]
+    },
+    {
+      "documentKey": "DOC-SUP-009-INCIDENT-IMPROVEMENT-SP907",
+      "type": "SUPPLIER_COOPERATION_RECORD",
+      "themeKey": "incident_improvement",
+      "version": "1.0",
+      "title": "昕川澱粉工坊（SUP-009）｜異常改善追蹤展示文件",
+      "filename": "samples/documents/supplier-sup-009-incident-improvement-sp907-v1.txt",
+      "corpusVersion": "sp-907-zh-tw-v3",
+      "sourceSha256": "df362d7fef9f8cc3e7a3e8b905e4d958b0645fda1ae8b29807aa946a1fed30bc",
+      "classification": "SEED_BASELINE",
+      "supplierCodes": [
+        "SUP-009"
+      ],
+      "supplierNames": [
+        "昕川澱粉工坊"
+      ],
+      "materialCodes": [
+        "MAT-008"
+      ],
+      "materialNames": [
+        "黑糖糖漿"
+      ],
+      "provenance": {
+        "kind": "REPOSITORY_DEMO_CORPUS",
+        "datasetKey": "SP-901",
+        "corpusVersion": "sp-907-zh-tw-v3",
+        "origin": "ADDED_SP907"
+      },
+      "approvalPolicy": "TRUSTED_DEMO_SYSTEM_APPROVAL_IF_POLICY_ALLOWS",
+      "outboundPolicy": "EVALUATE_EXISTING_POLICY",
+      "fixtureKeys": []
+    },
+    {
+      "documentKey": "DOC-SUP-009-BUYER-EVALUATION-SP907",
+      "type": "SUPPLIER_EVALUATION",
+      "themeKey": "buyer_evaluation",
+      "version": "1.0",
+      "title": "昕川澱粉工坊（SUP-009）｜採購端主觀評語展示文件",
+      "filename": "samples/documents/supplier-sup-009-buyer-evaluation-sp907-v1.txt",
+      "corpusVersion": "sp-907-zh-tw-v3",
+      "sourceSha256": "2844a61da1aecbf7d0fe58e9670d6b5b2a292b7c587fb9522c1b653283df4064",
+      "classification": "SEED_BASELINE",
+      "supplierCodes": [
+        "SUP-009"
+      ],
+      "supplierNames": [
+        "昕川澱粉工坊"
+      ],
+      "materialCodes": [],
+      "materialNames": [],
+      "provenance": {
+        "kind": "REPOSITORY_DEMO_CORPUS",
+        "datasetKey": "SP-901",
+        "corpusVersion": "sp-907-zh-tw-v3",
+        "origin": "ADDED_SP907"
+      },
+      "approvalPolicy": "TRUSTED_DEMO_SYSTEM_APPROVAL_IF_POLICY_ALLOWS",
+      "outboundPolicy": "EVALUATE_EXISTING_POLICY",
+      "fixtureKeys": [
+        "RAG-113"
+      ]
+    },
+    {
+      "documentKey": "DOC-SUP-010-SUPPLIER-PROFILE-SP907",
+      "type": "SUPPLIER_PROFILE",
+      "themeKey": "supplier_profile",
+      "version": "1.0",
+      "title": "南島風味貿易（SUP-010）｜供應商基本資料展示文件",
+      "filename": "samples/documents/supplier-sup-010-supplier-profile-sp907-v1.txt",
+      "corpusVersion": "sp-907-zh-tw-v3",
+      "sourceSha256": "29fc4b8f7458b2215487ab64cac5ab6fb07204fdedb0d146095aa26e65f05ab7",
+      "classification": "SEED_BASELINE",
+      "supplierCodes": [
+        "SUP-010"
+      ],
+      "supplierNames": [
+        "南島風味貿易"
+      ],
+      "materialCodes": [],
+      "materialNames": [],
+      "provenance": {
+        "kind": "REPOSITORY_DEMO_CORPUS",
+        "datasetKey": "SP-901",
+        "corpusVersion": "sp-907-zh-tw-v3",
+        "origin": "ADDED_SP907"
+      },
+      "approvalPolicy": "TRUSTED_DEMO_SYSTEM_APPROVAL_IF_POLICY_ALLOWS",
+      "outboundPolicy": "EVALUATE_EXISTING_POLICY",
+      "fixtureKeys": [
+        "RAG-116",
+        "RAG-124"
+      ]
+    },
+    {
+      "documentKey": "DOC-SUP-010-SUPPLY-CAPABILITY-SP907",
+      "type": "SUPPLIER_PROFILE",
+      "themeKey": "supply_capability",
+      "version": "1.0",
+      "title": "南島風味貿易（SUP-010）｜供貨關係與能力範圍展示文件",
+      "filename": "samples/documents/supplier-sup-010-supply-capability-sp907-v1.txt",
+      "corpusVersion": "sp-907-zh-tw-v3",
+      "sourceSha256": "302760a21c7e405ebfea7c517d4574a023e0df47021494ed2ffbce537f5f3cd8",
+      "classification": "SEED_BASELINE",
+      "supplierCodes": [
+        "SUP-010"
+      ],
+      "supplierNames": [
+        "南島風味貿易"
+      ],
+      "materialCodes": [
+        "MAT-001",
+        "MAT-006",
+        "MAT-007",
+        "MAT-012"
+      ],
+      "materialNames": [
+        "阿薩姆紅茶萃取物",
+        "茉莉茶萃取物",
+        "百香果泥",
+        "椰奶基底"
+      ],
+      "provenance": {
+        "kind": "REPOSITORY_DEMO_CORPUS",
+        "datasetKey": "SP-901",
+        "corpusVersion": "sp-907-zh-tw-v3",
+        "origin": "ADDED_SP907"
+      },
+      "approvalPolicy": "TRUSTED_DEMO_SYSTEM_APPROVAL_IF_POLICY_ALLOWS",
+      "outboundPolicy": "EVALUATE_EXISTING_POLICY",
+      "fixtureKeys": [
+        "RAG-117"
+      ]
+    },
+    {
+      "documentKey": "DOC-SUP-010-CONTRACT-TERMS-SP907",
+      "type": "SUPPLIER_CONTRACT",
+      "themeKey": "contract_terms",
+      "version": "1.0",
+      "title": "南島風味貿易（SUP-010）｜供貨協議條件展示文件",
+      "filename": "samples/documents/supplier-sup-010-contract-terms-sp907-v1.txt",
+      "corpusVersion": "sp-907-zh-tw-v3",
+      "sourceSha256": "df1a92ed97c0c9c1bfbc27bca10c2539dc12703e0cf0dacf8ab4d16e79cb3a21",
+      "classification": "SEED_BASELINE",
+      "supplierCodes": [
+        "SUP-010"
+      ],
+      "supplierNames": [
+        "南島風味貿易"
+      ],
+      "materialCodes": [
+        "MAT-001"
+      ],
+      "materialNames": [
+        "阿薩姆紅茶萃取物"
+      ],
+      "provenance": {
+        "kind": "REPOSITORY_DEMO_CORPUS",
+        "datasetKey": "SP-901",
+        "corpusVersion": "sp-907-zh-tw-v3",
+        "origin": "ADDED_SP907"
+      },
+      "approvalPolicy": "TRUSTED_DEMO_SYSTEM_APPROVAL_IF_POLICY_ALLOWS",
+      "outboundPolicy": "EVALUATE_EXISTING_POLICY",
+      "fixtureKeys": [
+        "RAG-119"
+      ]
+    },
+    {
+      "documentKey": "DOC-SUP-010-QUOTATION-SP907",
+      "type": "QUOTATION",
+      "themeKey": "quotation",
+      "version": "1.0",
+      "title": "南島風味貿易（SUP-010）｜報價與供貨條件摘要展示文件",
+      "filename": "samples/documents/supplier-sup-010-quotation-sp907-v1.txt",
+      "corpusVersion": "sp-907-zh-tw-v3",
+      "sourceSha256": "0e1f2f901d9437ea43d8868c8d2a840492920ea0e3160e75817e238bda9c0a8c",
+      "classification": "SEED_BASELINE",
+      "supplierCodes": [
+        "SUP-010"
+      ],
+      "supplierNames": [
+        "南島風味貿易"
+      ],
+      "materialCodes": [
+        "MAT-001"
+      ],
+      "materialNames": [
+        "阿薩姆紅茶萃取物"
+      ],
+      "provenance": {
+        "kind": "REPOSITORY_DEMO_CORPUS",
+        "datasetKey": "SP-901",
+        "corpusVersion": "sp-907-zh-tw-v3",
+        "origin": "ADDED_SP907"
+      },
+      "approvalPolicy": "TRUSTED_DEMO_SYSTEM_APPROVAL_IF_POLICY_ALLOWS",
+      "outboundPolicy": "EVALUATE_EXISTING_POLICY",
+      "fixtureKeys": [
+        "RAG-120"
+      ]
+    },
+    {
+      "documentKey": "DOC-SUP-010-PRODUCT-SPECIFICATION-SP907",
+      "type": "PRODUCT_SPECIFICATION",
+      "themeKey": "product_specification",
+      "version": "1.0",
+      "title": "南島風味貿易（SUP-010）｜物料規格參照展示文件",
+      "filename": "samples/documents/supplier-sup-010-product-specification-sp907-v1.txt",
+      "corpusVersion": "sp-907-zh-tw-v3",
+      "sourceSha256": "52037a23aad5c4cc82f426d0feea5dd839eb5f4a13bf9a7c7fc40374febe538b",
+      "classification": "SEED_BASELINE",
+      "supplierCodes": [
+        "SUP-010"
+      ],
+      "supplierNames": [
+        "南島風味貿易"
+      ],
+      "materialCodes": [
+        "MAT-001"
+      ],
+      "materialNames": [
+        "阿薩姆紅茶萃取物"
+      ],
+      "provenance": {
+        "kind": "REPOSITORY_DEMO_CORPUS",
+        "datasetKey": "SP-901",
+        "corpusVersion": "sp-907-zh-tw-v3",
+        "origin": "ADDED_SP907"
+      },
+      "approvalPolicy": "TRUSTED_DEMO_SYSTEM_APPROVAL_IF_POLICY_ALLOWS",
+      "outboundPolicy": "EVALUATE_EXISTING_POLICY",
+      "fixtureKeys": []
+    },
+    {
+      "documentKey": "DOC-SUP-010-QUALITY-REQUIREMENTS-SP907",
+      "type": "QUALITY_REQUIREMENT",
+      "themeKey": "quality_requirements",
+      "version": "1.0",
+      "title": "南島風味貿易（SUP-010）｜品質與收貨查核展示文件",
+      "filename": "samples/documents/supplier-sup-010-quality-requirements-sp907-v1.txt",
+      "corpusVersion": "sp-907-zh-tw-v3",
+      "sourceSha256": "31b575856d49e5c4bbcc8314e3613f662eebe60e39e094a70c301b44befffbe0",
+      "classification": "SEED_BASELINE",
+      "supplierCodes": [
+        "SUP-010"
+      ],
+      "supplierNames": [
+        "南島風味貿易"
+      ],
+      "materialCodes": [
+        "MAT-001"
+      ],
+      "materialNames": [
+        "阿薩姆紅茶萃取物"
+      ],
+      "provenance": {
+        "kind": "REPOSITORY_DEMO_CORPUS",
+        "datasetKey": "SP-901",
+        "corpusVersion": "sp-907-zh-tw-v3",
+        "origin": "ADDED_SP907"
+      },
+      "approvalPolicy": "TRUSTED_DEMO_SYSTEM_APPROVAL_IF_POLICY_ALLOWS",
+      "outboundPolicy": "EVALUATE_EXISTING_POLICY",
+      "fixtureKeys": [
+        "RAG-121"
+      ]
+    },
+    {
+      "documentKey": "DOC-SUP-010-DELIVERY-COORDINATION-SP907",
+      "type": "SUPPLIER_COOPERATION_RECORD",
+      "themeKey": "delivery_coordination",
+      "version": "1.0",
+      "title": "南島風味貿易（SUP-010）｜交期協調紀錄展示文件",
+      "filename": "samples/documents/supplier-sup-010-delivery-coordination-sp907-v1.txt",
+      "corpusVersion": "sp-907-zh-tw-v3",
+      "sourceSha256": "110a50446d130c889b651cdb8c1a78151760561b18407c886dd0d30bf552715d",
+      "classification": "SEED_BASELINE",
+      "supplierCodes": [
+        "SUP-010"
+      ],
+      "supplierNames": [
+        "南島風味貿易"
+      ],
+      "materialCodes": [
+        "MAT-001",
+        "MAT-012"
+      ],
+      "materialNames": [
+        "阿薩姆紅茶萃取物",
+        "椰奶基底"
+      ],
+      "provenance": {
+        "kind": "REPOSITORY_DEMO_CORPUS",
+        "datasetKey": "SP-901",
+        "corpusVersion": "sp-907-zh-tw-v3",
+        "origin": "ADDED_SP907"
+      },
+      "approvalPolicy": "TRUSTED_DEMO_SYSTEM_APPROVAL_IF_POLICY_ALLOWS",
+      "outboundPolicy": "EVALUATE_EXISTING_POLICY",
+      "fixtureKeys": [
+        "RAG-118"
+      ]
+    },
+    {
+      "documentKey": "DOC-SUP-010-COOPERATION-HISTORY-SP907",
+      "type": "SUPPLIER_COOPERATION_RECORD",
+      "themeKey": "cooperation_history",
+      "version": "1.0",
+      "title": "南島風味貿易（SUP-010）｜採購合作歷程展示文件",
+      "filename": "samples/documents/supplier-sup-010-cooperation-history-sp907-v1.txt",
+      "corpusVersion": "sp-907-zh-tw-v3",
+      "sourceSha256": "1d8cbae67e8429b8aeee6f049df411a15b1a479188657cd73f8f139f52baa17d",
+      "classification": "SEED_BASELINE",
+      "supplierCodes": [
+        "SUP-010"
+      ],
+      "supplierNames": [
+        "南島風味貿易"
+      ],
+      "materialCodes": [
+        "MAT-012"
+      ],
+      "materialNames": [
+        "椰奶基底"
+      ],
+      "provenance": {
+        "kind": "REPOSITORY_DEMO_CORPUS",
+        "datasetKey": "SP-901",
+        "corpusVersion": "sp-907-zh-tw-v3",
+        "origin": "ADDED_SP907"
+      },
+      "approvalPolicy": "TRUSTED_DEMO_SYSTEM_APPROVAL_IF_POLICY_ALLOWS",
+      "outboundPolicy": "EVALUATE_EXISTING_POLICY",
+      "fixtureKeys": [
+        "RAG-122"
+      ]
+    },
+    {
+      "documentKey": "DOC-SUP-010-INCIDENT-IMPROVEMENT-SP907",
+      "type": "SUPPLIER_COOPERATION_RECORD",
+      "themeKey": "incident_improvement",
+      "version": "1.0",
+      "title": "南島風味貿易（SUP-010）｜異常改善追蹤展示文件",
+      "filename": "samples/documents/supplier-sup-010-incident-improvement-sp907-v1.txt",
+      "corpusVersion": "sp-907-zh-tw-v3",
+      "sourceSha256": "02744775c2f951e48d20760c832cd829b5692efb8cd0ff36482f00251936c022",
+      "classification": "SEED_BASELINE",
+      "supplierCodes": [
+        "SUP-010"
+      ],
+      "supplierNames": [
+        "南島風味貿易"
+      ],
+      "materialCodes": [
+        "MAT-001"
+      ],
+      "materialNames": [
+        "阿薩姆紅茶萃取物"
+      ],
+      "provenance": {
+        "kind": "REPOSITORY_DEMO_CORPUS",
+        "datasetKey": "SP-901",
+        "corpusVersion": "sp-907-zh-tw-v3",
+        "origin": "ADDED_SP907"
+      },
+      "approvalPolicy": "TRUSTED_DEMO_SYSTEM_APPROVAL_IF_POLICY_ALLOWS",
+      "outboundPolicy": "EVALUATE_EXISTING_POLICY",
+      "fixtureKeys": []
+    },
+    {
+      "documentKey": "DOC-SUP-010-BUYER-EVALUATION-SP907",
+      "type": "SUPPLIER_EVALUATION",
+      "themeKey": "buyer_evaluation",
+      "version": "1.0",
+      "title": "南島風味貿易（SUP-010）｜採購端主觀評語展示文件",
+      "filename": "samples/documents/supplier-sup-010-buyer-evaluation-sp907-v1.txt",
+      "corpusVersion": "sp-907-zh-tw-v3",
+      "sourceSha256": "54af98ee79e0d8227d84ca54e8e72327f23e300ec78d3491f13b66752fedf8e8",
+      "classification": "SEED_BASELINE",
+      "supplierCodes": [
+        "SUP-010"
+      ],
+      "supplierNames": [
+        "南島風味貿易"
+      ],
+      "materialCodes": [
+        "MAT-012"
+      ],
+      "materialNames": [
+        "椰奶基底"
+      ],
+      "provenance": {
+        "kind": "REPOSITORY_DEMO_CORPUS",
+        "datasetKey": "SP-901",
+        "corpusVersion": "sp-907-zh-tw-v3",
+        "origin": "ADDED_SP907"
+      },
+      "approvalPolicy": "TRUSTED_DEMO_SYSTEM_APPROVAL_IF_POLICY_ALLOWS",
+      "outboundPolicy": "EVALUATE_EXISTING_POLICY",
+      "fixtureKeys": [
+        "RAG-123"
+      ]
     }
   ]
 }

@@ -40,10 +40,11 @@ public class OutboundDocumentPolicy {
     private static final Pattern PHONE = Pattern.compile("(?<!\\d)(?:\\+?886[- ]?)?0?9\\d{2}[- ]?\\d{3}[- ]?\\d{3}(?!\\d)");
 
     public Decision inspect(DocumentMetadata document, List<String> chunks, String sourceHash) {
-        if (!sourceHash.equals(document.getSemanticApprovedSourceHash())
+        if (document.getSemanticReviewInvalidatedAt() != null
+                || !sourceHash.equals(document.getSemanticApprovedSourceHash())
                 || !document.getVersion().equals(document.getSemanticReviewVersion())
-                || document.getSemanticApprovedBy() == null || document.getSemanticApprovedAt() == null
-                || document.getSemanticReviewStatus() == null) {
+                || document.getSemanticApprovedAt() == null || document.getSemanticReviewStatus() == null
+                || !hasValidReviewAudit(document)) {
             return new Decision("REQUIRES_REVIEW", "OUTBOUND_APPROVAL_REQUIRED", List.of());
         }
         if (document.getSemanticReviewStatus() == SemanticReviewStatus.SKIPPED) {
@@ -55,7 +56,21 @@ public class OutboundDocumentPolicy {
         return inspectContents(chunks);
     }
 
-    Decision inspectContents(List<String> chunks) {
+    private boolean hasValidReviewAudit(DocumentMetadata document) {
+        if ("USER".equals(document.getSemanticReviewActorType())) {
+            return document.getSemanticApprovedBy() != null
+                    && document.getSemanticApprovedBy().toString().equals(document.getSemanticReviewActor())
+                    && "ADMIN_OUTBOUND_REVIEW".equals(document.getSemanticReviewTrigger());
+        }
+        return document.isDemoBaseline()
+                && document.getSemanticApprovedBy() == null
+                && "SYSTEM".equals(document.getSemanticReviewActorType())
+                && "TRUSTED_DEMO_CORPUS".equals(document.getSemanticReviewActor())
+                && "TRUSTED_DEMO_CORPUS_AUTO_REVIEW".equals(document.getSemanticReviewTrigger())
+                && document.getSemanticReviewStatus().name().equals(document.getSemanticReviewPolicyDecision());
+    }
+
+    public Decision inspectContents(List<String> chunks) {
         if (chunks.isEmpty() || chunks.stream().anyMatch(text -> text == null || text.isBlank())) {
             return new Decision("REQUIRES_REVIEW", "NO_SAFE_CHUNKS", List.of());
         }

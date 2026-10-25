@@ -46,13 +46,18 @@
 
 **重試：** 429、逾時及暫時性外部 5xx 自動有限次、退避重試；Retry-After 是最短等待時間，本地指數退避以 maxRetryDelay 封頂。若伺服器要求的等待超出 MySQL DATETIME(6) 可保存範圍，工作轉為 FAILED 供管理員查核，不會提前自動重試。審核拒絕／違反敏感政策等不可自動重試。超過上限 FAILED 並提供管理員安全錯誤資訊及手動重試入口。重啟後任務狀態可復原；同一文件多次觸發必須冪等，舊代次或舊 hash 不可發布覆蓋新版。
 
+Documents API 會分開回傳文件 ingestion `status`、持久化 `semanticReview` 與 `semanticIndex`。只有本機文字抽取和 chunks 驗證完成才標示 Document `READY`；只有持久 worker 工作成功且 PostgreSQL 已發布的來源、hash、generation、chunk 及向量維度證明全數吻合，Semantic 狀態才是 `INDEXED`（UI 顯示「已發布」）。缺少索引資料回 `PENDING`；PostgreSQL/provider 暫不可用回 `UNAVAILABLE` 或持續待處理，不能將外部索引推定為成功，也不能讓採購核心 API 因外部索引狀態故障而報錯。
+
 ## 5. Demo 語料與首次審查
 
-- Demo Seed 使用 samples/documents/corpus-catalog.json 記錄文件邏輯鍵、類型、版本、標題、來源 SHA-256 與資料關聯；samples/documents/rag-fixtures.json 記錄靜態問答及預期引用。
-- Catalog 只追蹤與驗證來源；它不代表管理員核准、已對外傳送或已發布索引。所有新文件及新來源版本都須先經管理員審查。
-- 純文字來源的 sourceSha256 使用 UTF-8 文字將 CRLF/CR 換行正規化為 LF 後計算；samples/documents/*.txt 固定以 LF 儲存，確保跨平台 hash 穩定。
-- SEED_BASELINE 文件隨空資料庫初始 Seed 建立並維持未審核狀態。SUP-005 人工 UI Upload 文件標記 MANUAL_UI_UPLOAD_ONLY，不得被 Seeder 建立或引用為基線 Fixture。
-- 舊資料更新時保留既有文件、來源 hash 及審核狀態。同名同版但來源改變的文件必須由管理員走正常的新版本上傳及審查流程；不得複製舊核准或直接改寫審核資料。
+- Demo Seed 使用 `samples/documents/corpus-catalog.json` 記錄文件鍵、類型、theme、版本、標題、供應商/物料關聯、`SP-901` corpus provenance 與來源 SHA-256；`samples/documents/rag-fixtures.json` 記錄靜態問答及預期引用。Catalog 欄位只建立可信來源清單；它本身不記錄或授予核准結果，也不能證明資料已傳送或索引已發布。
+- `DemoCorpusSyncService` 只讀取 demo Repository corpus 的 catalog 與來源，固定核對 schema、dataset key、corpus version、文件鍵、類型、標題、版本、supplier 關聯、政策、provenance 和 canonical-LF source hash。同步與系統核准共用 `DemoCorpusCatalogTrust`，要求 catalog 為一般檔案且非 symlink，且 UTF-8 內容換行正規化為 LF 後符合固定 SHA-256 `EA11CD69DC5311836845ECA3B282A9325C74F9159CB9987FE945FE41E45B9114`；外部自製同 envelope catalog 不受信任。重跑以 `(datasetKey, documentKey, version)` 和持久 provenance 辨識基線，絕不只靠標題合併。
+- 無 provenance 的舊 Seed 只有在 type/title/version/supplier 與 catalog 完全相符、唯一候選且資料庫儲存來源的 canonical-LF hash 完全相符時才可採用並寫入 provenance。候選歧義、來源或欄位不同、已存在 keyed baseline 被改動時，建立同步 conflict 並保留原文件；不覆寫其來源，也不覆蓋有效人工審查 audit。
+- 只有 demo profile、明確允許的 MySQL DEMO 資料庫、demo 文件儲存根目錄、相符 Repository catalog entry、READY chunks/source proof 及當下 `OutboundDocumentPolicy` 都通過時，專用 system approval seam 才能記錄 `SYSTEM / TRUSTED_DEMO_CORPUS` 審查和 enqueue 現有 durable job。它不偽裝管理員，沒有 HTTP 授權入口；一般上傳與一般 API 仍走使用者既有審查流程。需審查或政策阻擋的結果會保留原因，不排索引工作。
+- Semantic PostgreSQL URL 必須指向設定的 demo database，host 僅允許 Compose `pgvector` 或 loopback (`localhost`、`127.0.0.1`、`::1`)。URL 缺少或目標不符時保留文件 READY、記錄 `REQUIRES_REVIEW` 且不 enqueue；已驗證為 demo 的目標暫時不可連線時，durable job 可等待既有 worker 重試，API 必須顯示待處理/不可用，直到 PostgreSQL 發布證明核對成功。
+- 純文字來源的 `sourceSha256` 使用 UTF-8 文字將 CRLF/CR 換行正規化為 LF 後計算；`samples/documents/*.txt` 固定以 LF 儲存，確保跨平台 hash 穩定。
+- `SEED_BASELINE` 是唯一可能進入受限 system approval 的分類；policy 不允許時仍須人工處理。SUP-005 人工 UI Upload 文件為 `MANUAL_UI_UPLOAD_ONLY`，沒有可信 provenance，不得被 Seeder 建立、採用或引用為 baseline fixture。
+- Catalog/source 更新若與資料庫既有來源不同，sync 保留並標記衝突；一般文件仍由正常上傳、審查與版本流程處理。標題變更會讓舊 review 失效，不能複製舊核准。
 - 靜態 Fixture PASS 只代表檔案、來源關聯及預期格式通過檢查，不表示 Gemini RAG 回答品質 PASS。
 
 ## 6. 明確不做
@@ -69,4 +74,4 @@
 - 回答有真實文件名稱、版本與引用原文；無證據不回答實質細節。
 - 未核准/敏感文件不經任何路徑送入 Gemini；Provider 故障不阻斷核心採購 MySQL 業務。
 - 新文件排隊、失敗、重試、手動再索引不影響既有可查文件；管理員不需日常全域 Gate 操作。
-- Demo Catalog 版本/hash 不符時不得自動核准或發布索引；須依正常人工審查與 #146 索引流程處理。
+- Demo Catalog 版本/hash 不符時不得自動核准或發布索引；衝突必須保留並由人工查核。文件 `READY`、政策核准、durable job 狀態及 Semantic `INDEXED` 必須各自有真實證據，不得互相推定。

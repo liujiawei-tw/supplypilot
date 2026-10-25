@@ -25,7 +25,7 @@ public class EvidenceValidator {
             "(?<=[。！？!?])\\s*|(?<!\\d)\\.(?!\\d)\\s*|\\r?\\n+");
     private static final Pattern QUESTION_HINT = Pattern.compile("(?i)^(?:問答\\s*[:：]|預期依據\\s*[:：]|q\\s*&\\s*a\\s*[:：])");
     private static final Pattern CONDITION_LEAD = Pattern.compile(
-            "(?i)(?:若|如果|假如|倘若|當|凡是|凡發生|\\bif\\b|\\bwhen\\b|\\bunless\\b|"
+            "(?i)(?:若|如果|假如|倘若|如|當|凡是|凡發生|\\bif\\b|\\bwhen\\b|\\bunless\\b|"
                     + "\\bprovided\\s+that\\b|\\bin\\s+case\\b)");
     private static final Pattern CONDITION_REFERENCE = Pattern.compile(
             "(?i)(?:這些(?:情況|狀況|條件)|上述(?:情況|狀況|條件)?|以上(?:情況|狀況|條件)?|"

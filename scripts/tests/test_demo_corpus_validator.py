@@ -18,7 +18,10 @@ class DemoCorpusValidatorTests(unittest.TestCase):
         self.temp = tempfile.TemporaryDirectory(dir=Path(__file__).resolve().parents[2])
         self.documents = Path(self.temp.name)
         self.master = {
-            "corpusVersion": "test-v1", "counts": {"seedDocuments": 5, "manualUploadFixtures": 1},
+            "schemaVersion": 2, "datasetKey": "SP-901",
+            "datasetVersion": "test-v1", "corpusVersion": "test-v1",
+            "counts": {"suppliers": 1, "materials": 1, "supplierMaterials": 1,
+                       "purchaseOrders": 1, "seedDocuments": 15, "manualUploadFixtures": 1},
             "suppliers": [{"code": "SUP-001", "name": "山海原料", "currency": "TWD"}],
             "materials": [{"code": "MAT-001", "name": "紅茶萃取物", "unit": "KG", "currency": "TWD"}],
             "supplierMaterials": [{
@@ -33,8 +36,20 @@ class DemoCorpusValidatorTests(unittest.TestCase):
                 "documentKey": "UI-SUP-001-ADDENDUM", "filename": "manual.txt",
                 "seedBaseline": False, "requiredAction": "MANUAL_UI_UPLOAD",
             }],
+            "documentPolicy": {
+                "automaticApproval": {
+                    "enabled": True,
+                    "scope": "TRUSTED_REPOSITORY_DEMO_BASELINE",
+                    "afterSuccessfulIngestion": True,
+                    "requiresOutboundPolicyAllow": True,
+                },
+                "automaticGeminiIndexingBeforeApproval": False,
+                "automaticIndexingAfterApproval": True,
+            },
         }
-        self.catalog = {"corpusVersion": "test-v1", "documents": []}
+        self.catalog = {"schemaVersion": 2, "datasetKey": "SP-901", "corpusVersion": "test-v1",
+                        "documentCount": 16, "seedDocumentCount": 15, "manualUiUploadCount": 1,
+                        "documents": []}
         self.fixtures = {"corpusVersion": "test-v1", "fixtures": []}
         self._make_documents()
         self._make_fixtures()
@@ -42,41 +57,152 @@ class DemoCorpusValidatorTests(unittest.TestCase):
     def tearDown(self) -> None:
         self.temp.cleanup()
 
-    def _add_doc(self, key: str, kind: str, filename: str, body: str, classification: str = "SEED_BASELINE") -> None:
+    def _add_doc(self, key: str, kind: str, filename: str, body: str,
+                 classification: str = "SEED_BASELINE", theme: str | None = None,
+                 supplier_codes: list[str] | None = None, material_codes: list[str] | None = None,
+                 title: str | None = None) -> None:
+        if title is None:
+            import re
+            match = re.search(r"^標題[：:](.+)$", body, re.MULTILINE)
+            title = match.group(1).strip() if match else f"{key} 文件"
+        if classification == "SEED_BASELINE" and len(body.strip()) < 250:
+            body += (
+                "\n展示用途：本文件為虛構採購流程範例，內容僅說明適用範圍、資料核對方式與作業責任。"
+                "使用者應以主檔中有效的供應商、物料與供貨關係為準；文件未載明的承諾、檢驗結果或金額不可推定。"
+                "若主檔狀態或來源版本不同，應先確認適用性再採取後續作業。"
+                "本文件提供足夠的展示脈絡，供測試文件辨識、版本引用、供應商隔離及不足證據處理；"
+                "若查詢問題超出本文與主檔明確記載範圍，應標示資料不足並要求人工確認，不可自行補造業務事實。"
+            )
         path = self.documents / filename
         path.write_text(body, encoding="utf-8")
-        suppliers = ["SUP-001"] if kind in {"SUPPLIER_CONTRACT", "QUOTATION"} else []
-        materials = ["MAT-001"] if kind in {"QUOTATION", "PRODUCT_SPECIFICATION"} else []
-        self.catalog["documents"].append({
-            "documentKey": key, "type": kind, "title": f"{key} 文件", "version": "1.0",
+        suppliers = supplier_codes if supplier_codes is not None else (
+            ["SUP-001"] if kind in {"SUPPLIER_CONTRACT", "QUOTATION"} else [])
+        materials = material_codes if material_codes is not None else (
+            ["MAT-001"] if kind in {"QUOTATION", "PRODUCT_SPECIFICATION"} else [])
+        document = {
+            "documentKey": key, "type": kind, "title": title, "version": "1.0",
             "filename": filename, "supplierCodes": suppliers, "supplierNames": ["山海原料"] if suppliers else [],
             "materialCodes": materials, "materialNames": ["紅茶萃取物"] if materials else [],
             "sourceSha256": _canonical_sha(path),
-            "classification": classification, "firstReviewStatus": "REQUIRES_ADMIN_REVIEW",
-            "outboundPolicy": "REQUIRES_REVIEW", "fixtureKeys": [],
-        })
+            "classification": classification, "fixtureKeys": [],
+        }
+        if theme:
+            document["themeKey"] = theme
+        if classification == "SEED_BASELINE":
+            document.update({
+                "corpusVersion": "test-v1",
+                "provenance": {"kind": "REPOSITORY_DEMO_CORPUS", "datasetKey": "SP-901",
+                               "corpusVersion": "test-v1", "origin": "ADDED_SP907"},
+                "approvalPolicy": "TRUSTED_DEMO_SYSTEM_APPROVAL_IF_POLICY_ALLOWS",
+                "outboundPolicy": "EVALUATE_EXISTING_POLICY",
+            })
+        else:
+            document["firstReviewStatus"] = "REQUIRES_ADMIN_REVIEW"
+        self.catalog["documents"].append(document)
 
     def _make_documents(self) -> None:
-        self._add_doc("DOC-CONTRACT", "SUPPLIER_CONTRACT", "contract.txt", "文件版本：1.0\nSUP-001 山海原料提供 MAT-001 紅茶萃取物。")
-        self._add_doc("DOC-QUOTE", "QUOTATION", "quote.txt", "文件版本：1.0\nSUP-001 山海原料報價適用 MAT-001 紅茶萃取物。報價自開立日起 30 個曆日內有效；MAT-001 標準交期為 3 個曆日。")
-        self._add_doc("DOC-SOP", "PROCUREMENT_SOP", "sop.txt", "文件版本：1.0\n採購單依正式流程建立與核准。")
-        self._add_doc("DOC-SPEC", "PRODUCT_SPECIFICATION", "spec.txt", "文件版本：1.0\nMAT-001 紅茶萃取物，基本單位為 KG。")
-        self._add_doc("DOC-QUALITY", "QUALITY_REQUIREMENT", "quality.txt", "文件版本：1.0\n收貨須檢查包裝與批次標示。")
-        self._add_doc("UI-SUP-001-ADDENDUM", "SUPPLIER_CONTRACT", "manual.txt", "SUP-001 山海原料補充資料。", "MANUAL_UI_UPLOAD_ONLY")
+        self._add_doc("DOC-CONTRACT", "SUPPLIER_CONTRACT", "contract.txt",
+                      "標題：DOC-CONTRACT 文件\n文件版本：1.0\n文件日期：2026-10-25\n虛構展示資料。\nSUP-001 山海原料提供 MAT-001 紅茶萃取物。",
+                      theme="legacy_contract")
+        self._add_doc("DOC-QUOTE", "QUOTATION", "quote.txt",
+                      "標題：DOC-QUOTE 文件\n文件版本：1.0\n文件日期：2026-10-25\n虛構展示資料。\nSUP-001 山海原料報價適用 MAT-001 紅茶萃取物。報價自開立日起 30 個曆日內有效；MAT-001 標準交期為 3 個曆日。",
+                      theme="legacy_quotation")
+        self._add_doc("DOC-SOP", "PROCUREMENT_SOP", "sop.txt",
+                      "標題：DOC-SOP 文件\n文件版本：1.0\n文件日期：2026-10-25\n虛構展示資料。\n採購單依正式流程建立與核准。",
+                      theme="shared_procurement_sop", supplier_codes=[], material_codes=[])
+        self._add_doc("DOC-SPEC", "PRODUCT_SPECIFICATION", "spec.txt",
+                      "標題：DOC-SPEC 文件\n文件版本：1.0\n文件日期：2026-10-25\n虛構展示資料。\nMAT-001 紅茶萃取物，基本單位為 KG。",
+                      theme="shared_product_specification", supplier_codes=[], material_codes=["MAT-001"])
+        self._add_doc("DOC-QUALITY", "QUALITY_REQUIREMENT", "quality.txt",
+                      "標題：DOC-QUALITY 文件\n文件版本：1.0\n文件日期：2026-10-25\n虛構展示資料。\n收貨須檢查包裝與批次標示。",
+                      theme="shared_quality_requirement", supplier_codes=[], material_codes=[])
+
+        themes = [
+            ("supplier_profile", "SUPPLIER_PROFILE"),
+            ("supply_capability", "SUPPLIER_PROFILE"),
+            ("contract_terms", "SUPPLIER_CONTRACT"),
+            ("quotation", "QUOTATION"),
+            ("product_specification", "PRODUCT_SPECIFICATION"),
+            ("quality_requirements", "QUALITY_REQUIREMENT"),
+            ("delivery_coordination", "SUPPLIER_COOPERATION_RECORD"),
+            ("cooperation_history", "SUPPLIER_COOPERATION_RECORD"),
+            ("incident_improvement", "SUPPLIER_COOPERATION_RECORD"),
+            ("buyer_evaluation", "SUPPLIER_EVALUATION"),
+        ]
+        for index, (theme, kind) in enumerate(themes, start=1):
+            key = f"DOC-SUP-001-{theme.replace('_', '-').upper()}-SP907"
+            title = f"山海原料 {theme} 示範紀錄"
+            body = (f"標題：{title}\n文件類型：{kind}\n版本：1.0\n文件日期：2026-10-25\n"
+                    "虛構展示資料：公司、人員、流程與事件均為虛構，不代表實際供應商結果。\n"
+                    f"SUP-001 山海原料就 MAT-001 紅茶萃取物的{theme}內容以 KG 為單位。"
+                    f"第{index}份文件記錄不同的業務主題、適用範圍、查核步驟與後續處置。"
+                    "採購窗口應核對供應關係及有效文件版本；資訊不足時不推測未載明的價格、認證或檢驗結果。"
+                    "本文提供獨立的主題事實與查詢線索，並與其他文件保持不同用途。")
+            if theme == "buyer_evaluation":
+                body += (
+                    "\n虛構內部主觀評價／非實際供應商評鑑結果\n"
+                    "評語角色：虛構資深採購角色（不具名）；以下為演練觀察，不是實際事件紀錄。\n"
+                    "溝通觀察：演練中應確認收件與變更原因，實際回覆時效未提供。\n"
+                    "交期觀察：依主檔記錄核對 ORDERED 起算的交期，未記載的交貨表現不推定。\n"
+                    "品質觀察：查核包裝與批次標示；沒有實際檢驗結果。\n"
+                    "配合觀察：按採購單狀態追蹤，不把草稿當成已交貨。\n"
+                    "合作風險觀察：驗證文件及期間資料不足，先補齊證據再作業務判斷。"
+                )
+            self._add_doc(key, kind, f"supplier-001-{theme}.txt", body, theme=theme,
+                          supplier_codes=["SUP-001"], material_codes=["MAT-001"])
+
+        self._add_doc("UI-SUP-001-ADDENDUM", "SUPPLIER_CONTRACT", "manual.txt",
+                      "標題：SUP-001 山海原料人工補充資料\n文件版本：1.0\n文件日期：2026-10-25\n"
+                      "虛構展示資料。此檔案只模擬使用者在介面人工上傳的補充文件，不屬於自動 Seed。",
+                      "MANUAL_UI_UPLOAD_ONLY", title="SUP-001 山海原料人工補充資料")
 
     def _make_fixtures(self) -> None:
         seeds = [d["documentKey"] for d in self.catalog["documents"] if d["classification"] == "SEED_BASELINE"]
-        self.fixtures["fixtures"] = [{
-            "fixtureKey": f"RAG-{i:02}", "question": f"測試問題 {i}？",
-            "expectedAnswerPoints": [f"答案依據 {i}"], "expectedSourceKeys": [seeds[i % len(seeds)]],
-            "citationRequirements": ["引用預期來源文件"], "expectedStatus": "ANSWER", "category": "single_document",
-        } for i in range(1, 16)]
+        required_categories = [
+            "supplier_profile", "supplier_materials", "delivery", "moq", "contract_terms",
+            "quality", "history", "subjective_evaluation", "cross_supplier_isolation",
+            "insufficient_evidence", "sensitive_outbound",
+        ]
+        supplier_docs = [d for d in self.catalog["documents"] if d.get("themeKey") in {
+            "supplier_profile", "supply_capability", "contract_terms", "quotation",
+            "product_specification", "quality_requirements", "delivery_coordination",
+            "cooperation_history", "incident_improvement", "buyer_evaluation",
+        }]
+        fixtures = []
+        for i in range(50):
+            category = required_categories[i % len(required_categories)]
+            sensitive = category == "sensitive_outbound"
+            insufficient = category in {"insufficient_evidence", "sensitive_outbound"}
+            source = [] if insufficient else [supplier_docs[i % len(supplier_docs)]["documentKey"]]
+            fixtures.append({
+                "fixtureKey": f"RAG-{i + 1:03}", "category": category,
+                "question": f"SUP-001 山海原料示範資料問題 {i + 1}？",
+                "supplierCodes": ["SUP-001"],
+                "expectedAnswerPoints": ["有來源時依來源作答；缺少證據時不得推測。"],
+                "expectedSourceKeys": source,
+                "citationRequirements": ["引用預期來源文件標題與版本。"],
+                "expectedStatus": "INSUFFICIENT_EVIDENCE" if insufficient else "ANSWER",
+                **({"outboundExpectation": "BLOCK"} if sensitive else {}),
+            })
+        self.fixtures["fixtures"] = fixtures
+        for fixture in fixtures:
+            for source_key in fixture["expectedSourceKeys"]:
+                next(d for d in self.catalog["documents"] if d["documentKey"] == source_key)["fixtureKeys"].append(fixture["fixtureKey"])
 
     def _validate(self, master=None, catalog=None, fixtures=None):
         return validate_corpus(
             self.master if master is None else master, self.catalog if catalog is None else catalog,
             self.fixtures if fixtures is None else fixtures, self.documents,
         )
+
+    def _refresh_fixture_backrefs(self, catalog, fixtures) -> None:
+        for document in catalog["documents"]:
+            document["fixtureKeys"] = []
+        by_key = {document["documentKey"]: document for document in catalog["documents"]}
+        for fixture in fixtures["fixtures"]:
+            for source_key in fixture["expectedSourceKeys"]:
+                if source_key in by_key:
+                    by_key[source_key]["fixtureKeys"].append(fixture["fixtureKey"])
 
     def test_valid_static_corpus_passes(self) -> None:
         self.assertEqual([], self._validate())
@@ -226,23 +352,29 @@ class DemoCorpusValidatorTests(unittest.TestCase):
         self.assertTrue(any("payment cannot be confirmed before RECEIVED/COMPLETED" in e for e in errors), errors)
 
     def test_fixture_cannot_cite_manual_upload(self) -> None:
+        catalog = copy.deepcopy(self.catalog)
         fixtures = copy.deepcopy(self.fixtures)
         fixtures["fixtures"][0]["expectedSourceKeys"] = ["UI-SUP-001-ADDENDUM"]
+        self._refresh_fixture_backrefs(catalog, fixtures)
         errors = self._validate(fixtures=fixtures)
         self.assertTrue(any("is not an automatic Seed document" in e for e in errors), errors)
 
     def test_manual_upload_fixture_can_cite_manual_document(self) -> None:
+        catalog = copy.deepcopy(self.catalog)
         fixtures = copy.deepcopy(self.fixtures)
         fixtures["fixtures"][0]["category"] = "manual_upload_only"
         fixtures["fixtures"][0]["expectedSourceKeys"] = ["UI-SUP-001-ADDENDUM"]
-        errors = self._validate(fixtures=fixtures)
+        self._refresh_fixture_backrefs(catalog, fixtures)
+        errors = self._validate(catalog=catalog, fixtures=fixtures)
         self.assertEqual([], errors)
 
     def test_insufficient_evidence_fixture_can_have_no_source(self) -> None:
+        catalog = copy.deepcopy(self.catalog)
         fixtures = copy.deepcopy(self.fixtures)
         fixtures["fixtures"][0]["expectedStatus"] = "INSUFFICIENT_EVIDENCE"
         fixtures["fixtures"][0]["expectedSourceKeys"] = []
-        errors = self._validate(fixtures=fixtures)
+        self._refresh_fixture_backrefs(catalog, fixtures)
+        errors = self._validate(catalog=catalog, fixtures=fixtures)
         self.assertEqual([], errors)
 
     def test_catalog_cannot_claim_gemini_ready_or_admin_approval(self) -> None:
@@ -260,6 +392,32 @@ class DemoCorpusValidatorTests(unittest.TestCase):
         catalog["documents"][3]["sourceSha256"] = _canonical_sha(spec)
         errors = self._validate(catalog=catalog)
         self.assertTrue(any("unit conflicts" in e for e in errors), errors)
+
+    def test_supplier_baseline_requires_ten_distinct_required_themes(self) -> None:
+        catalog = copy.deepcopy(self.catalog)
+        catalog["documents"] = catalog["documents"][:9] + catalog["documents"][10:]
+        errors = self._validate(catalog=catalog)
+        self.assertTrue(any("expected at least 10 required supplier-theme documents" in e for e in errors), errors)
+
+    def test_supplier_baseline_rejects_duplicate_content(self) -> None:
+        catalog = copy.deepcopy(self.catalog)
+        duplicate = copy.deepcopy(catalog["documents"][0])
+        duplicate["documentKey"] = "DOC-DUPLICATE-CONTENT"
+        duplicate["title"] = "另一個標題"
+        catalog["documents"].append(duplicate)
+        errors = self._validate(catalog=catalog)
+        self.assertTrue(any("duplicate source content" in e for e in errors), errors)
+
+    def test_supplier_evaluation_requires_explicit_fictional_observations(self) -> None:
+        catalog = copy.deepcopy(self.catalog)
+        evaluation = next(doc for doc in catalog["documents"] if doc.get("themeKey") == "buyer_evaluation")
+        source = self.documents / evaluation["filename"]
+        body = source.read_text(encoding="utf-8").replace("合作風險觀察：", "合作風險：")
+        source.write_text(body, encoding="utf-8")
+        evaluation["sourceSha256"] = _canonical_sha(source)
+        errors = self._validate(catalog=catalog)
+        self.assertTrue(any("missing required fictional evaluation content" in error and "合作風險觀察" in error
+                            for error in errors), errors)
 
 
 if __name__ == "__main__":

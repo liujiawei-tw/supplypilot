@@ -1,0 +1,11 @@
+標題：東港貿易社（SUP-002）｜交期協調紀錄展示文件
+文件類型：SUPPLIER_COOPERATION_RECORD
+文件版本：1.0
+文件日期：2026-10-25
+虛構展示文件：供應商、物料、流程紀錄與評語均為 SupplyPilot 展示資料，不代表真實公司、報價、品質結果或交易承諾。
+
+東港貿易社（SUP-002）的交期協調應區分標準交期與 PO 階段。MAT-001 阿薩姆紅茶萃取物 ACTIVE 關係的標準交期為 3 個日曆日，採購單進入 ORDERED 後起算。展示主檔 列有以下 purchaseOrderExamples：
+DEMO-PO-002：SUP-002／MAT-002 芒果濃縮汁，400 KG，status=DRAFT，stage=SOURCING。
+DEMO-PO-004：SUP-002／MAT-001 阿薩姆紅茶萃取物，500 KG，status=APPROVED，stage=APPROVED_PENDING_ORDER。
+DEMO-PO-010：SUP-002／MAT-001 阿薩姆紅茶萃取物，500 KG，status=CANCELLED，stage=null。取消原因：需求時程調整，撤銷尚未下單的採購單；未異動庫存。
+公司期望到貨日與供應商承諾到貨日分開保存；目前資料未提供具體承諾日期，不能換算或推定實際到貨日。

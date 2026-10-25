@@ -1,0 +1,9 @@
+標題：森川飲品原料（SUP-008）｜採購合作歷程展示文件
+文件類型：SUPPLIER_COOPERATION_RECORD
+文件版本：1.0
+文件日期：2026-10-25
+虛構展示文件：供應商、物料、流程紀錄與評語均為 SupplyPilot 展示資料，不代表真實公司、報價、品質結果或交易承諾。
+
+森川飲品原料（SUP-008）的合作歷程僅整理虛構主檔 已列紀錄。展示主檔 列有以下 purchaseOrderExamples：
+DEMO-PO-007：SUP-008／MAT-004 奶茶基底，150 KG，status=RECEIVED，stage=PAYMENT_RECONCILIATION。
+草稿、核准待下單、取消或駁回均不可記作已完成交貨。主檔沒有完整往來日期、準時率、履約率或交易金額；不得從 PO 狀態推算供應商整體表現。

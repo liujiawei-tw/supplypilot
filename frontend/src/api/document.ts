@@ -6,21 +6,64 @@ export type DocumentType =
   | 'QUOTATION'
   | 'PROCUREMENT_SOP'
   | 'PRODUCT_SPECIFICATION'
-  | 'QUALITY_REQUIREMENT';
+  | 'QUALITY_REQUIREMENT'
+  | 'SUPPLIER_PROFILE'
+  | 'SUPPLIER_COOPERATION_RECORD'
+  | 'SUPPLIER_EVALUATION';
 
 export type DocumentStatus = 'PROCESSING' | 'READY' | 'FAILED' | 'INACTIVE';
+
+export interface DocumentDemoProvenance {
+  datasetKey: string;
+  documentKey: string;
+  themeKey: string;
+  corpusVersion: string;
+  sourceSha256: string;
+  origin: 'LEGACY_SP906' | 'ADDED_SP907' | string;
+}
+
+export interface DocumentSemanticReview {
+  status: 'APPROVED' | 'REQUIRES_REVIEW' | 'SKIPPED';
+  sourceHash: string;
+  version: string;
+  reason: string | null;
+  actorType: 'USER' | 'SYSTEM' | string;
+  actor: string;
+  trigger: string;
+  policyDecision: string;
+  reviewedAt: string;
+  valid: boolean;
+  invalidatedAt: string | null;
+  invalidationReason: string | null;
+}
+
+export interface DocumentSemanticIndex {
+  status: string;
+  jobId: number | null;
+  sourceHash: string | null;
+  expectedChunks: number;
+  publishedChunks: number;
+  failureCode: string | null;
+  generationKey: string;
+  publicationGeneration: number | null;
+}
 
 export interface DocumentResponse {
   id: number;
   documentType: DocumentType;
   supplierId: number | null;
+  supplierCode: string | null;
+  supplierName: string | null;
   title: string;
   version: string;
   storagePath: string;
   status: DocumentStatus;
-  uploadedBy: number;
+  uploadedBy: number | null;
   uploadedAt: string;
   updatedAt: string;
+  demoProvenance: DocumentDemoProvenance | null;
+  semanticReview: DocumentSemanticReview | null;
+  semanticIndex: DocumentSemanticIndex | null;
 }
 
 export interface DocumentQuery {

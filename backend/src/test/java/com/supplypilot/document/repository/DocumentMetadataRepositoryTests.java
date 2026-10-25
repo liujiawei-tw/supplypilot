@@ -8,6 +8,7 @@ import java.util.UUID;
 import com.supplypilot.document.domain.DocumentMetadata;
 import com.supplypilot.document.domain.DocumentStatus;
 import com.supplypilot.document.domain.DocumentType;
+import com.supplypilot.document.domain.SemanticReviewStatus;
 import com.supplypilot.integration.AbstractIntegrationTest;
 import com.supplypilot.supplier.domain.Supplier;
 import com.supplypilot.supplier.repository.SupplierRepository;
@@ -74,6 +75,54 @@ class DocumentMetadataRepositoryTests extends AbstractIntegrationTest {
                 "idx_document_metadata_uploaded_at");
     }
 
+    @Test
+    void v33AllowsSystemBaselineAndPersistsProvenanceAndReviewAudit() {
+        String hash = "a".repeat(64);
+        DocumentMetadata baseline = DocumentMetadata.demoBaselineProcessing(DocumentType.SUPPLIER_PROFILE,
+                null, "供應商檔案", "1.0", "demo-baseline.txt", "SP-901", "DOC-SUP-001-PROFILE-SP907",
+                "supplier_profile", "sp-907-zh-tw-v3", hash, "ADDED_SP907", clock.instant());
+        baseline.markReady(clock.instant().plusSeconds(1));
+        baseline.reviewTrustedDemoSemanticOutbound(hash, clock.instant().plusSeconds(2),
+                SemanticReviewStatus.REQUIRES_REVIEW, "SENSITIVE_BUSINESS_OR_CREDENTIAL_DATA");
+        DocumentMetadata saved = documentRepository.saveAndFlush(baseline);
+        DocumentMetadata reloaded = documentRepository.findForSemanticRead(saved.getId()).orElseThrow();
+
+        assertThat(reloaded.getUploadedBy()).isNull();
+        assertThat(reloaded.getUploadedByUserIdSnapshot()).isNull();
+        assertThat(reloaded.getDemoDatasetKey()).isEqualTo("SP-901");
+        assertThat(reloaded.getDemoDocumentKey()).isEqualTo("DOC-SUP-001-PROFILE-SP907");
+        assertThat(reloaded.getSemanticReviewActorType()).isEqualTo("SYSTEM");
+        assertThat(reloaded.getSemanticReviewActor()).isEqualTo("TRUSTED_DEMO_CORPUS");
+        assertThat(reloaded.getSemanticReviewPolicyDecision()).isEqualTo("REQUIRES_REVIEW");
+        String nullable = jdbcTemplate.queryForObject("""
+                SELECT is_nullable FROM information_schema.columns
+                 WHERE table_schema = DATABASE() AND table_name = 'document_metadata'
+                   AND column_name = 'uploaded_by'
+                """, String.class);
+        assertThat(nullable).isEqualTo("YES");
+    }
+
+    @Test
+    void v33RejectsPartialNullableProvenanceAndSystemReviewTuples() {
+        User actor = user();
+        assertThatThrownBy(() -> jdbcTemplate.update("""
+                INSERT INTO document_metadata
+                    (document_type, title, version, storage_path, status, uploaded_by, uploaded_at, updated_at,
+                     demo_dataset_key)
+                VALUES ('SUPPLIER_CONTRACT', 'Partial provenance', 'v1', ?, 'PROCESSING', ?, CURRENT_TIMESTAMP(6), CURRENT_TIMESTAMP(6), 'SP-901')
+                """, unique("partial-provenance"), actor.getId()))
+                .isInstanceOf(DataAccessException.class)
+                .hasMessageContaining("chk_document_demo_provenance");
+
+        assertThatThrownBy(() -> jdbcTemplate.update("""
+                INSERT INTO document_metadata
+                    (document_type, title, version, storage_path, status, uploaded_by, uploaded_at, updated_at,
+                     semantic_review_actor_type)
+                VALUES ('SUPPLIER_CONTRACT', 'Partial system review', 'v1', ?, 'PROCESSING', ?, CURRENT_TIMESTAMP(6), CURRENT_TIMESTAMP(6), 'SYSTEM')
+                """, unique("partial-review"), actor.getId()))
+                .isInstanceOf(DataAccessException.class)
+                .hasMessageContaining("chk_document_semantic_review_actor_type");
+    }
     private int insertRaw(Long supplierId, Long uploadedBy, String storagePath) {
         return jdbcTemplate.update("""
                 INSERT INTO document_metadata

@@ -8,12 +8,44 @@ import hashlib
 import json
 import re
 import sys
+from collections import Counter
 from datetime import date
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
 from typing import Any, Iterable
 
-DOCUMENT_TYPES = {"SUPPLIER_CONTRACT", "QUOTATION", "PROCUREMENT_SOP", "PRODUCT_SPECIFICATION", "QUALITY_REQUIREMENT"}
+DOCUMENT_TYPES = {
+    "SUPPLIER_CONTRACT", "QUOTATION", "PROCUREMENT_SOP", "PRODUCT_SPECIFICATION",
+    "QUALITY_REQUIREMENT", "SUPPLIER_PROFILE", "SUPPLIER_COOPERATION_RECORD", "SUPPLIER_EVALUATION",
+}
+SUPPLIER_THEME_TYPES = {
+    "supplier_profile": "SUPPLIER_PROFILE",
+    "supply_capability": "SUPPLIER_PROFILE",
+    "contract_terms": "SUPPLIER_CONTRACT",
+    "quotation": "QUOTATION",
+    "product_specification": "PRODUCT_SPECIFICATION",
+    "quality_requirements": "QUALITY_REQUIREMENT",
+    "delivery_coordination": "SUPPLIER_COOPERATION_RECORD",
+    "cooperation_history": "SUPPLIER_COOPERATION_RECORD",
+    "incident_improvement": "SUPPLIER_COOPERATION_RECORD",
+    "buyer_evaluation": "SUPPLIER_EVALUATION",
+}
+LEGACY_THEME_KEYS = {
+    "legacy_contract", "legacy_quotation", "shared_procurement_sop",
+    "shared_product_specification", "shared_quality_requirement",
+}
+SUPPLIER_FIXTURE_CATEGORIES = {
+    "SUPPLIERPROFILE", "SUPPLIERMATERIALS", "DELIVERY", "MOQ", "CONTRACTTERMS",
+    "QUALITY", "HISTORY", "SUBJECTIVEEVALUATION", "CROSSSUPPLIERISOLATION",
+    "INSUFFICIENTEVIDENCE",
+}
+REQUIRED_FIXTURE_CATEGORIES = SUPPLIER_FIXTURE_CATEGORIES | {"SENSITIVEOUTBOUND"}
+REQUIRED_PROVENANCE_KIND = "REPOSITORY_DEMO_CORPUS"
+REQUIRED_APPROVAL_POLICY = "TRUSTED_DEMO_SYSTEM_APPROVAL_IF_POLICY_ALLOWS"
+REQUIRED_OUTBOUND_POLICY = "EVALUATE_EXISTING_POLICY"
+MIN_DOCUMENTS_PER_SUPPLIER = 10
+MIN_FIXTURES = 50
+MIN_SEED_SOURCE_CHARACTERS = 250
 VERSION_RE = re.compile(r"^\d+(?:\.\d+){1,2}(?:[-+][0-9A-Za-z.-]+)?$")
 SHA256_RE = re.compile(r"^[0-9a-fA-F]{64}$")
 CODE_RE = re.compile(r"\b(SUP-\d{3}|MAT-\d{3})\b")
@@ -30,6 +62,8 @@ VALIDITY_RE = re.compile(
     r"(?:有效|效期|有效期間)[^。\n；;]{0,16}?(\d{1,4})\s*(?:個)?(?:曆日|日|天))"
 )
 VERSION_LINE_RE = re.compile(r"(?:文件)?版本\s*[：:]\s*([0-9A-Za-z.+-]+)")
+TITLE_LINE_RE = re.compile(r"^標題\s*[：:]\s*(.+?)\s*$", re.MULTILINE)
+DOCUMENT_DATE_RE = re.compile(r"^文件日期\s*[：:]\s*\d{4}-\d{2}-\d{2}\s*$", re.MULTILINE)
 DATE_RANGE_RE = re.compile(r"(\d{4}-\d{2}-\d{2})\s*(?:至|到|～|~|—)\s*(\d{4}-\d{2}-\d{2})")
 UNIT_RE = re.compile(r"(?:基本單位|單位)\s*(?:(?:為|是|[：:])\s*|\s+)([A-Za-z][A-Za-z0-9_-]*)", re.IGNORECASE)
 PRICE_KEYS = {"price", "unitprice", "amount", "totalprice", "quotedprice", "priceamount"}
@@ -296,9 +330,14 @@ def validate_corpus(master: dict[str, Any], catalog: dict[str, Any], fixtures_da
     if not all(isinstance(x, dict) for x in (master, catalog, fixtures_data)):
         return ["master, catalog, and fixtures must each be JSON objects"]
     expected_version = master.get("corpusVersion")
+    if master.get("datasetVersion") != expected_version:
+        errors.append(f"master.datasetVersion: expected corpusVersion {expected_version!r}, got {master.get('datasetVersion')!r}")
     for label, value in (("catalog", catalog.get("corpusVersion")), ("fixtures", fixtures_data.get("corpusVersion"))):
         if value != expected_version:
             errors.append(f"{label}.corpusVersion: expected {expected_version!r}, got {value!r}")
+    dataset_key = master.get("datasetKey")
+    if catalog.get("datasetKey") != dataset_key:
+        errors.append(f"catalog.datasetKey: expected {dataset_key!r}, got {catalog.get('datasetKey')!r}")
 
     suppliers = {x.get("code"): x for x in _objects(master.get("suppliers")) if isinstance(x.get("code"), str)}
     materials = {x.get("code"): x for x in _objects(master.get("materials")) if isinstance(x.get("code"), str)}
@@ -325,6 +364,29 @@ def validate_corpus(master: dict[str, Any], catalog: dict[str, Any], fixtures_da
 
     _validate_purchase_orders(master, suppliers, materials, pairs, errors)
 
+    counts = master.get("counts")
+    if isinstance(counts, dict):
+        for count_key, actual in (("suppliers", len(suppliers)), ("materials", len(materials)),
+                                  ("supplierMaterials", len(_objects(master.get("supplierMaterials"))))):
+            if counts.get(count_key) is not None and counts[count_key] != actual:
+                errors.append(f"master.counts.{count_key}: expected {counts[count_key]}, found {actual}")
+
+    policy = master.get("documentPolicy")
+    if not isinstance(policy, dict):
+        errors.append("master.documentPolicy: expected a policy object")
+    else:
+        approval = policy.get("automaticApproval")
+        if not isinstance(approval, dict) or approval.get("enabled") is not True:
+            errors.append("master.documentPolicy.automaticApproval: trusted Demo baseline auto approval must be enabled")
+        elif (approval.get("scope") != "TRUSTED_REPOSITORY_DEMO_BASELINE"
+              or approval.get("afterSuccessfulIngestion") is not True
+              or approval.get("requiresOutboundPolicyAllow") is not True):
+            errors.append("master.documentPolicy.automaticApproval: scope must be trusted baseline after ingestion and outbound allow")
+        if policy.get("automaticGeminiIndexingBeforeApproval") is not False:
+            errors.append("master.documentPolicy.automaticGeminiIndexingBeforeApproval: must remain false")
+        if policy.get("automaticIndexingAfterApproval") is not True:
+            errors.append("master.documentPolicy.automaticIndexingAfterApproval: must be enabled")
+
     docs, fixtures = _documents(catalog), _fixtures(fixtures_data)
     if not docs:
         errors.append("catalog.documents: expected document entries")
@@ -332,6 +394,11 @@ def validate_corpus(master: dict[str, Any], catalog: dict[str, Any], fixtures_da
         errors.append("fixtures.fixtures: expected fixture entries")
     by_key: dict[str, dict[str, Any]] = {}
     valid: dict[str, bool] = {}
+    supplier_document_counts: dict[str, int] = {code: 0 for code in suppliers}
+    supplier_theme_counts: dict[str, Counter[str]] = {code: Counter() for code in suppliers}
+    source_hashes: dict[str, str] = {}
+    normalized_contents: dict[str, str] = {}
+    filenames: set[str] = set()
     for i, doc in enumerate(docs):
         path, key, kind = f"catalog.documents[{i}]", _key(doc), _type(doc)
         if not key:
@@ -360,11 +427,42 @@ def validate_corpus(master: dict[str, Any], catalog: dict[str, Any], fixtures_da
             errors.append(f"{path}.classification: expected SEED_BASELINE or MANUAL_UI_UPLOAD_ONLY")
             if key:
                 valid[key] = False
-        review = _first(doc, "firstReviewStatus", "initialReviewStatus", "reviewStatus")
-        if _norm(review) != "REQUIRESADMINREVIEW":
-            errors.append(f"{path}.firstReviewStatus: must remain REQUIRES_ADMIN_REVIEW")
-            if key:
-                valid[key] = False
+        if classification is True:
+            if any(field in doc for field in ("firstReviewStatus", "initialReviewStatus", "reviewStatus")):
+                errors.append(f"{path}: repository catalog must not encode a runtime review result")
+                if key:
+                    valid[key] = False
+            if doc.get("corpusVersion") != expected_version:
+                errors.append(f"{path}.corpusVersion: must match corpus version {expected_version!r}")
+                if key:
+                    valid[key] = False
+            provenance = doc.get("provenance")
+            if (not isinstance(provenance, dict)
+                    or provenance.get("kind") != REQUIRED_PROVENANCE_KIND
+                    or provenance.get("datasetKey") != dataset_key
+                    or provenance.get("corpusVersion") != expected_version
+                    or provenance.get("origin") not in {"LEGACY_SP906", "ADDED_SP907"}):
+                errors.append(f"{path}.provenance: must identify the trusted repository corpus, dataset, version, and origin")
+                if key:
+                    valid[key] = False
+            if doc.get("approvalPolicy") != REQUIRED_APPROVAL_POLICY:
+                errors.append(f"{path}.approvalPolicy: expected {REQUIRED_APPROVAL_POLICY}")
+                if key:
+                    valid[key] = False
+            if doc.get("outboundPolicy") != REQUIRED_OUTBOUND_POLICY:
+                errors.append(f"{path}.outboundPolicy: must defer to the existing outbound policy")
+                if key:
+                    valid[key] = False
+        else:
+            review = _first(doc, "firstReviewStatus", "initialReviewStatus", "reviewStatus")
+            if _norm(review) != "REQUIRESADMINREVIEW":
+                errors.append(f"{path}.firstReviewStatus: manual UI upload must remain REQUIRES_ADMIN_REVIEW")
+                if key:
+                    valid[key] = False
+            if any(field in doc for field in ("provenance", "approvalPolicy")):
+                errors.append(f"{path}: MANUAL_UI_UPLOAD_ONLY must not carry trusted baseline provenance")
+                if key:
+                    valid[key] = False
 
         filename = _first(doc, "filename", "sourceFile", "file", "path")
         if not isinstance(filename, str) or not filename.strip():
@@ -372,6 +470,12 @@ def validate_corpus(master: dict[str, Any], catalog: dict[str, Any], fixtures_da
             if key:
                 valid[key] = False
             continue
+        filename_key = filename.casefold()
+        if filename_key in filenames:
+            errors.append(f"{path}.filename: duplicate catalog source filename {filename}")
+            if key:
+                valid[key] = False
+        filenames.add(filename_key)
         source = _source_path(filename, documents_dir)
         if source is None:
             errors.append(f"{path}.filename: source path escapes documents directory")
@@ -391,23 +495,100 @@ def validate_corpus(master: dict[str, Any], catalog: dict[str, Any], fixtures_da
             if key:
                 valid[key] = False
             continue
+        canonical_body = body.replace("\r\n", "\n").replace("\r", "\n")
+        actual_hash = hashlib.sha256(canonical_body.encode("utf-8")).hexdigest()
+        previous_hash_owner = source_hashes.get(actual_hash)
+        if previous_hash_owner:
+            errors.append(f"{path}.filename: duplicate source content also used by {previous_hash_owner}")
+            if key:
+                valid[key] = False
+        else:
+            source_hashes[actual_hash] = key or filename
+        normalized_content = re.sub(r"\s+", "", canonical_body).casefold()
+        previous_content_owner = normalized_contents.get(normalized_content)
+        if previous_content_owner and previous_content_owner != key:
+            errors.append(f"{path}.filename: duplicate source content also used by {previous_content_owner}")
+            if key:
+                valid[key] = False
+        else:
+            normalized_contents[normalized_content] = key or filename
+
+        title_match = TITLE_LINE_RE.search(body)
+        if not title_match or title_match.group(1) != title:
+            errors.append(f"{path}.filename: source title must match the catalog title")
+            if key:
+                valid[key] = False
+        provenance = doc.get("provenance")
+        is_added_corpus_source = (
+            classification is True and isinstance(provenance, dict)
+            and provenance.get("origin") == "ADDED_SP907"
+        )
+        if is_added_corpus_source and not DOCUMENT_DATE_RE.search(body):
+            errors.append(f"{path}.filename: new corpus source must include a document date")
+            if key:
+                valid[key] = False
+        if "虛構" not in body:
+            errors.append(f"{path}.filename: source must identify its fictional demo provenance")
+            if key:
+                valid[key] = False
+        if classification is True and len(body.strip()) < MIN_SEED_SOURCE_CHARACTERS:
+            errors.append(f"{path}.filename: seed source is too short to be a complete business document")
+            if key:
+                valid[key] = False
         digest = _first(doc, "sourceSha256", "sha256", "sourceHash", "contentSha256")
         if not isinstance(digest, str) or not SHA256_RE.fullmatch(digest):
             errors.append(f"{path}.sourceSha256: expected 64-character SHA-256")
             if key:
                 valid[key] = False
-        elif hashlib.sha256(body.replace("\r\n", "\n").replace("\r", "\n").encode("utf-8")).hexdigest().lower() != digest.lower():
+        elif actual_hash.lower() != digest.lower():
             errors.append(f"{path}.sourceSha256: canonical-LF hash drift for {filename}")
             if key:
                 valid[key] = False
         version_match = VERSION_LINE_RE.search(body)
-        if version_match and isinstance(version, str) and version_match.group(1) != version:
+        if not version_match:
+            errors.append(f"{path}.filename: source is missing its version line")
+            if key:
+                valid[key] = False
+        elif isinstance(version, str) and version_match.group(1) != version:
             errors.append(f"{path}.version: source says {version_match.group(1)!r}, catalog says {version!r}")
             if key:
                 valid[key] = False
 
         supplier_codes = _codes(doc, "supplierCode", "supplierCodes")
         material_codes = _codes(doc, "materialCode", "materialCodes")
+        if len(supplier_codes) > 1:
+            errors.append(f"{path}.supplierCodes: a document may belong to only one supplier")
+            if key:
+                valid[key] = False
+        theme = doc.get("themeKey")
+        if classification is True:
+            if theme in SUPPLIER_THEME_TYPES:
+                if kind != SUPPLIER_THEME_TYPES[theme]:
+                    errors.append(f"{path}.type: theme {theme} requires {SUPPLIER_THEME_TYPES[theme]}")
+                    if key:
+                        valid[key] = False
+                if len(supplier_codes) != 1:
+                    errors.append(f"{path}.supplierCodes: required supplier theme {theme} must be linked to exactly one supplier")
+                    if key:
+                        valid[key] = False
+                elif supplier_codes[0] in supplier_document_counts:
+                    supplier_document_counts[supplier_codes[0]] += 1
+                    supplier_theme_counts[supplier_codes[0]][theme] += 1
+                    stable_key = f"DOC-{supplier_codes[0]}-{theme.replace('_', '-').upper()}-SP907"
+                    if key != stable_key:
+                        errors.append(f"{path}.documentKey: expected stable theme key {stable_key}")
+                        valid[key] = False
+            elif theme not in LEGACY_THEME_KEYS:
+                errors.append(f"{path}.themeKey: expected a required supplier theme or a named legacy/shared theme")
+                if key:
+                    valid[key] = False
+                for code in set(supplier_codes):
+                    if code in supplier_document_counts:
+                        supplier_document_counts[code] += 1
+            else:
+                for code in set(supplier_codes):
+                    if code in supplier_document_counts:
+                        supplier_document_counts[code] += 1
         for code in set(supplier_codes):
             if code not in suppliers:
                 errors.append(f"{path}.supplierCodes: unknown supplier {code}")
@@ -423,6 +604,21 @@ def validate_corpus(master: dict[str, Any], catalog: dict[str, Any], fixtures_da
             if code.startswith("MAT-") and code not in materials:
                 errors.append(f"{path}.filename: source references unknown material {code}")
                 valid[key] = False
+
+        if classification is True and kind == "SUPPLIER_EVALUATION":
+            evaluation_markers = (
+                "虛構內部主觀評價／非實際供應商評鑑結果",
+                "虛構資深採購角色（不具名）",
+                "溝通觀察：", "交期觀察：", "品質觀察：", "配合觀察：", "合作風險觀察：",
+            )
+            missing_markers = [marker for marker in evaluation_markers if marker not in body]
+            if missing_markers:
+                errors.append(
+                    f"{path}.filename: SUPPLIER_EVALUATION is missing required fictional evaluation content: "
+                    + ", ".join(missing_markers)
+                )
+                if key:
+                    valid[key] = False
 
         for field, codes, names, master_data in (
             ("supplierNames", supplier_codes, _first(doc, "supplierNames", "supplierName"), suppliers),
@@ -540,9 +736,6 @@ def validate_corpus(master: dict[str, Any], catalog: dict[str, Any], fixtures_da
                         if body_ranges and (str(start), str(end)) not in body_ranges:
                             errors.append(f"{path}.quoteTerms: effective dates conflict with source document")
                             valid[key] = False
-                        if body_ranges and (str(start), str(end)) not in body_ranges:
-                            errors.append(f"{path}.quoteTerms: effective dates conflict with source document")
-                            valid[key] = False
                         if end_date < start_date:
                             errors.append(f"{path}.quoteTerms: validUntil precedes validFrom")
                             valid[key] = False
@@ -595,6 +788,18 @@ def validate_corpus(master: dict[str, Any], catalog: dict[str, Any], fixtures_da
         if not any(_type(doc) == kind and _seed(doc) is True and valid.get(_key(doc), False) for doc in docs):
             errors.append(f"catalog.documents: no valid SEED_BASELINE document for {kind}")
 
+    required_supplier_docs = sum(supplier_theme_counts[code].total() for code in suppliers)
+    required_supplier_minimum = MIN_DOCUMENTS_PER_SUPPLIER * len(suppliers)
+    if required_supplier_docs < required_supplier_minimum:
+        errors.append(f"catalog.documents: expected at least {required_supplier_minimum} required supplier-theme documents, found {required_supplier_docs}")
+    for supplier_code in suppliers:
+        total = supplier_document_counts[supplier_code]
+        if total < MIN_DOCUMENTS_PER_SUPPLIER:
+            errors.append(f"supplier {supplier_code}: requires at least {MIN_DOCUMENTS_PER_SUPPLIER} supplier-specific baseline documents, found {total}")
+        missing_themes = sorted(set(SUPPLIER_THEME_TYPES) - set(supplier_theme_counts[supplier_code]))
+        if missing_themes:
+            errors.append(f"supplier {supplier_code}: missing required baseline themes {', '.join(missing_themes)}")
+
     by_key = {_key(doc): doc for doc in docs if _key(doc)}
     for i, manual in enumerate(_objects(master.get("manualUploadFixtures"))):
         key = manual.get("documentKey")
@@ -613,6 +818,8 @@ def validate_corpus(master: dict[str, Any], catalog: dict[str, Any], fixtures_da
             errors.append(f"master.manualUploadFixtures[{i}].requiredAction: expected MANUAL_UI_UPLOAD")
 
     fixture_keys: set[str] = set()
+    fixture_categories: set[str] = set()
+    fixture_categories_by_supplier: dict[str, set[str]] = {code: set() for code in suppliers}
     for i, fixture in enumerate(fixtures):
         path = f"fixtures.fixtures[{i}]"
         key = _first(fixture, "fixtureKey", "key")
@@ -634,6 +841,22 @@ def validate_corpus(master: dict[str, Any], catalog: dict[str, Any], fixtures_da
         fixture_category = _norm(fixture.get("category"))
         manual_fixture = fixture_category in {"MANUALUPLOADONLY", "MANUALUIUPLOAD"}
         expected_status = _norm(fixture.get("expectedStatus"))
+        fixture_categories.add(fixture_category)
+        supplier_codes = _codes(fixture, "supplierCode", "supplierCodes")
+        if not supplier_codes and isinstance(fixture.get("question"), str):
+            supplier_codes = [code for code in CODE_RE.findall(fixture["question"]) if code.startswith("SUP-")]
+        if not supplier_codes:
+            supplier_codes = sorted({
+                code for source_key in sources if source_key in by_key
+                for code in _codes(by_key[source_key], "supplierCode", "supplierCodes")
+            })
+        if len(supplier_codes) != len(set(supplier_codes)):
+            errors.append(f"{path}.supplierCodes: duplicate supplier code")
+        for supplier_code in supplier_codes:
+            if supplier_code not in suppliers:
+                errors.append(f"{path}.supplierCodes: unknown supplier {supplier_code}")
+            elif fixture_category in SUPPLIER_FIXTURE_CATEGORIES:
+                fixture_categories_by_supplier[supplier_code].add(fixture_category)
         if not sources and expected_status != "INSUFFICIENTEVIDENCE":
             errors.append(f"{path}.expectedSourceKeys: expected at least one source key for an answerable fixture")
         if manual_fixture and not sources:
@@ -651,13 +874,50 @@ def validate_corpus(master: dict[str, Any], catalog: dict[str, Any], fixtures_da
             errors.append(f"{path}.citationRequirements: missing citation requirements")
         if expected_status not in {"ANSWER", "ANSWERABLE", "INSUFFICIENTEVIDENCE"}:
             errors.append(f"{path}.expectedStatus: expected ANSWER or INSUFFICIENT_EVIDENCE")
+        if fixture_category == "INSUFFICIENTEVIDENCE" and expected_status != "INSUFFICIENTEVIDENCE":
+            errors.append(f"{path}.expectedStatus: insufficient_evidence fixtures must refuse unsupported claims")
+        if fixture_category == "CROSSSUPPLIERISOLATION":
+            if len(supplier_codes) != 1:
+                errors.append(f"{path}.supplierCodes: cross-supplier isolation fixture must target exactly one supplier")
+            for source_key in sources:
+                source_suppliers = _codes(by_key.get(source_key, {}), "supplierCode", "supplierCodes")
+                if source_suppliers and supplier_codes and source_suppliers != supplier_codes:
+                    errors.append(f"{path}.expectedSourceKeys: source {source_key} belongs to a different supplier")
+        if fixture_category == "SENSITIVEOUTBOUND":
+            if (expected_status != "INSUFFICIENTEVIDENCE" or sources
+                    or fixture.get("outboundExpectation") != "BLOCK"):
+                errors.append(f"{path}: sensitive outbound fixtures must have no sources, refuse, and expect BLOCK")
 
-    if len(fixtures) < 15:
-        errors.append(f"fixtures.fixtures: expected at least 15 RAG fixtures, found {len(fixtures)}")
+    if len(fixtures) < MIN_FIXTURES:
+        errors.append(f"fixtures.fixtures: expected at least {MIN_FIXTURES} RAG fixtures, found {len(fixtures)}")
+    missing_categories = sorted(REQUIRED_FIXTURE_CATEGORIES - fixture_categories)
+    if missing_categories:
+        errors.append(f"fixtures.fixtures: missing required categories {', '.join(missing_categories)}")
+    for supplier_code in suppliers:
+        missing_supplier_categories = sorted(
+            SUPPLIER_FIXTURE_CATEGORIES - fixture_categories_by_supplier[supplier_code]
+        )
+        if missing_supplier_categories:
+            errors.append(f"supplier {supplier_code}: missing RAG fixture categories {', '.join(missing_supplier_categories)}")
+    if isinstance(fixtures_data.get("fixtureCount"), int) and fixtures_data["fixtureCount"] != len(fixtures):
+        errors.append(f"fixtures.fixtureCount: expected {fixtures_data['fixtureCount']}, found {len(fixtures)}")
+    source_fixture_keys: dict[str, set[str]] = {key: set() for key in by_key}
+    for fixture in fixtures:
+        fixture_key = _first(fixture, "fixtureKey", "key")
+        if not isinstance(fixture_key, str) or not fixture_key:
+            continue
+        for source_key in _items(_first(fixture, "expectedSourceKeys", "sourceKeys")):
+            if isinstance(source_key, str) and source_key in source_fixture_keys:
+                source_fixture_keys[source_key].add(fixture_key)
     for i, doc in enumerate(docs):
         for fixture_key in _items(doc.get("fixtureKeys")):
             if fixture_key not in fixture_keys:
                 errors.append(f"catalog.documents[{i}].fixtureKeys: unknown fixture {fixture_key!r}")
+        key = _key(doc)
+        declared_fixture_keys = set(_items(doc.get("fixtureKeys")))
+        expected_fixture_keys = source_fixture_keys.get(key, set())
+        if declared_fixture_keys != expected_fixture_keys:
+            errors.append(f"catalog.documents[{i}].fixtureKeys: must exactly match fixture source references")
 
     _claims(catalog, "catalog", errors)
     _claims(fixtures_data, "fixtures", errors)
@@ -669,6 +929,12 @@ def validate_corpus(master: dict[str, Any], catalog: dict[str, Any], fixtures_da
             errors.append(f"master.counts.seedDocuments: expected {counts['seedDocuments']}, catalog has {seed_count}")
         if counts.get("manualUploadFixtures") is not None and counts["manualUploadFixtures"] != manual_count:
             errors.append(f"master.counts.manualUploadFixtures: expected {counts['manualUploadFixtures']}, catalog has {manual_count}")
+    catalog_counts = (("documentCount", len(docs)),
+                      ("seedDocumentCount", sum(_seed(doc) is True for doc in docs)),
+                      ("manualUiUploadCount", sum(_seed(doc) is False for doc in docs)))
+    for count_key, actual in catalog_counts:
+        if catalog.get(count_key) != actual:
+            errors.append(f"catalog.{count_key}: expected {catalog.get(count_key)!r}, found {actual}")
     return errors
 
 

@@ -38,9 +38,9 @@ function SemanticReport({ report, title, saved, stale = false, navigate }: { rep
 
   return <Card size="small" title={title}>
     <Space direction="vertical" style={{ width: '100%' }} size="middle">
-      {saved && stale && <Alert type="warning" showIcon title="歷史 Gate 稽核回應（已過期）" description={`這筆正式稽核當時${report.passed ? '通過' : '未通過'}，但之後發生文件或 Semantic 變更；不能代表目前 Gate 狀態。重新執行 Gate 稽核才會取得新的正式稽核回應。`} />}
-      {saved && !stale && <Alert type={report.passed ? 'success' : 'error'} showIcon title={report.passed ? '本次 Gate 稽核通過' : '本次 Gate 稽核未通過'} description={report.passed ? 'Gate 通過不會自動啟用 Semantic Read。' : '請依 Findings 處理原因後，再重新檢查並執行稽核。'} />}
-      {!saved && <Alert type={report.passed ? 'success' : 'warning'} showIcon title={report.passed ? '就緒條件目前符合' : '就緒條件尚未符合'} description="這是目前計算狀態，不代表已保存 Gate 稽核，也不能證明先前 POST 的結果。依 Findings 的 Status／Reason 修正資料、授權或服務問題；不可將所有狀態一律當作重新 Backfill 即可修復。" />}
+      {saved && stale && <Alert type="warning" showIcon title="歷史索引稽核紀錄（已過期）" description={`這筆正式稽核當時${report.passed ? '通過' : '未通過'}，但之後發生文件或語意索引變更；不能代表目前檢核狀態。重新執行索引稽核才會取得新的正式稽核回應。`} />}
+      {saved && !stale && <Alert type={report.passed ? 'success' : 'error'} showIcon title={report.passed ? '本次索引稽核通過' : '本次索引稽核未通過'} description={report.passed ? '檢核通過不會自動啟用語意查詢。' : '請依檢查結果處理原因後，再重新檢查並執行稽核。'} />}
+      {!saved && <Alert type={report.passed ? 'success' : 'warning'} showIcon title={report.passed ? '就緒條件目前符合' : '就緒條件尚未符合'} description="這是目前計算狀態，不代表已保存索引稽核，也不能證明先前送出操作的結果。依檢查結果中的狀態與原因修正資料、授權或服務問題；不可將所有狀態一律當作重新補建索引即可修復。" />}
       <Row gutter={[16, 16]}>
         {([['READY', report.ready], ['SKIPPED', report.skipped], ['FAILED', report.failed], ['REQUIRES_REVIEW', report.requiresReview], ['PENDING', report.pending]] as const).map(([label, value]) => <Col xs={12} sm={8} md={4} key={label}><Statistic title={displayLabel(label)} value={value} /></Col>)}
       </Row>
@@ -50,7 +50,7 @@ function SemanticReport({ report, title, saved, stale = false, navigate }: { rep
         { key: 'generation', label: '生成識別碼', children: report.generationKey || '—' },
         ...(saved ? [{ key: 'auditId', label: '稽核編號', children: report.auditId ?? '回應未提供' }] : []),
       ]} />
-      <div><Text strong>檢查結果</Text><Table size="small" rowKey="key" pagination={{ pageSize: 5, hideOnSinglePage: true }} scroll={{ x: 600 }} columns={columns} dataSource={rows} locale={{ emptyText: <EmptyState simple description="後端未回傳檢查結果" /> }} /></div>
+      <div><Text strong>檢查結果</Text><Table size="small" rowKey="key" pagination={{ pageSize: 5, hideOnSinglePage: true }} scroll={{ x: 600 }} columns={columns} dataSource={rows} locale={{ emptyText: <EmptyState simple description="系統未回傳檢查結果" /> }} /></div>
     </Space>
   </Card>;
 }
@@ -168,38 +168,38 @@ export default function SemanticOperationsPanel({ documentMutationVersion = 0 }:
     finally { readinessBusyRef.current = false; setLoading((current) => current === 'readiness' ? null : current); }
   };
 
-  return <Card title={<Space direction="vertical" size={0}><Title level={4} style={{ margin: 0 }}>Semantic 索引管理</Title><Text type="secondary">文件核准後會自動排入逐文件索引；每份文件獨立發布，Gate 報表提供環境診斷。</Text></Space>}>
+  return <Card title={<Space direction="vertical" size={0}><Title level={4} style={{ margin: 0 }}>語意索引管理</Title><Text type="secondary">文件核准後會自動排入逐份索引；每份文件分別發布，檢核報表可用於診斷環境。</Text></Space>}>
     <Space direction="vertical" size="large" style={{ width: '100%' }}>
-      {error && <ErrorState title={unknown.length > 0 ? '操作結果未知，已鎖定重送' : 'Semantic 操作失敗'} error={error} operation={errorIsRead ? 'read' : 'mutation'} onRetry={errorIsRead ? () => void refreshReadiness() : undefined} />}
-      {unknown.map((operation) => <Alert key={operation} type="warning" showIcon title={`${operation === 'audit' ? 'Gate 稽核' : 'Backfill'} 結果未知；不會自動重送`}
-        description={operation === 'audit' ? '就緒狀態無法證明稽核是否已保存；本 API 沒有 Audit 查詢端點。請依後端稽核紀錄人工確認。' : '就緒狀態可顯示目前索引計算狀態，但不能證明先前批次是否已完成。請先查核索引／後端紀錄。'}
+      {error && <ErrorState title={unknown.length > 0 ? '操作結果未知，已鎖定重送' : '語意索引操作失敗'} error={error} operation={errorIsRead ? 'read' : 'mutation'} onRetry={errorIsRead ? () => void refreshReadiness() : undefined} />}
+      {unknown.map((operation) => <Alert key={operation} type="warning" showIcon title={`${operation === 'audit' ? '索引稽核' : '索引補建'} 結果未知；不會自動重送`}
+        description={operation === 'audit' ? '目前狀態無法證明稽核是否已保存；系統尚無查詢稽核紀錄的功能。請依系統稽核紀錄人工確認。' : '目前狀態可顯示索引計算結果，但不能證明先前批次是否已完成。請先查核索引與系統紀錄。'}
         action={<Button size="small" onClick={() => setConfirmUnknownClear(operation)}>我已完成人工查核</Button>} />)}
 
-      <Card size="small" title="語意索引補建（Backfill）">
+      <Card size="small" title="語意索引補建">
         <Space wrap align="end">
-          <label>起始編號 afterId<InputNumber aria-label="回填起始編號" min={0} precision={0} value={afterId} onChange={(value) => setAfterId(value ?? 0)} /></label>
-          <label>每批上限<InputNumber aria-label="每批回填上限" min={1} max={100} precision={0} value={limit} onChange={(value) => setLimit(value ?? 25)} /></label>
+          <label>起始文件編號（afterId）<InputNumber aria-label="補建起始文件編號" min={0} precision={0} value={afterId} onChange={(value) => setAfterId(value ?? 0)} /></label>
+          <label>每批上限<InputNumber aria-label="每批補建上限" min={1} max={100} precision={0} value={limit} onChange={(value) => setLimit(value ?? 25)} /></label>
           <Button type="primary" loading={loading === 'backfill'} disabled={unknown.includes('backfill') || (loading !== null && loading !== 'readiness')} onClick={() => void start('backfill', () => runBackfill(afterId, limit), (result) => { setBatch(result); })}>執行一批</Button>
         </Space>
-        <Text type="secondary" style={{ display: 'block', marginTop: 8 }}>每次最多 100 份；不會自動連續執行。以 後端 回傳的 lastId 做下一批游標。</Text>
+        <Text type="secondary" style={{ display: 'block', marginTop: 8 }}>每批最多 100 份，不會自動連續執行。請使用系統回傳的最後文件編號作為下一批起點。</Text>
         {batch && <div style={{ marginTop: 16 }}>
-          <Alert type={batch.failed || batch.requiresReview ? 'warning' : 'success'} showIcon title={`本批處理 ${batch.processed} 份`} description={`READY ${batch.ready} · FAILED ${batch.failed} · SKIPPED ${batch.skipped} · REQUIRES_REVIEW ${batch.requiresReview} · lastId ${batch.lastId} · morePossible ${String(batch.morePossible)}`} />
+          <Alert type={batch.failed || batch.requiresReview ? 'warning' : 'success'} showIcon title={`本批處理 ${batch.processed} 份`} description={`已就緒 ${batch.ready} · 失敗 ${batch.failed} · 略過 ${batch.skipped} · 需人工審核 ${batch.requiresReview} · 最後編號 ${batch.lastId} · 還有下一批：${batch.morePossible ? '有' : '沒有'}`} />
           {(batch.failed > 0 || batch.requiresReview > 0) && <Alert style={{ marginTop: 12 }} type="info" showIcon title="依狀態處理後再決定是否執行下一批" description={[
-            ...(batch.failed > 0 ? ['FAILED：讀取 就緒狀態調查結果 的失敗原因，檢查 Provider／服務狀態與錯誤代碼；不保證重跑可解決。'] : []),
-            ...(batch.requiresReview > 0 ? ['REQUIRES_REVIEW：需先由管理員依出站政策人工處理；重跑 Backfill 不會解除審核需求。'] : []),
+            ...(batch.failed > 0 ? ['處理失敗：查看就緒狀態檢查中的原因，確認外部向量服務狀態與錯誤代碼；重試不保證能解決問題。'] : []),
+            ...(batch.requiresReview > 0 ? ['需人工審核：請管理員依出站政策處理；重新補建索引不會解除審核要求。'] : []),
           ].join(' ')} />}
-          {batch.morePossible && <Button style={{ marginTop: 12 }} disabled={loading !== null || unknown.includes('backfill')} onClick={() => setAfterId(batch.lastId)}>使用 lastId {batch.lastId} 作為下一批 afterId</Button>}
+          {batch.morePossible && <Button style={{ marginTop: 12 }} disabled={loading !== null || unknown.includes('backfill')} onClick={() => setAfterId(batch.lastId)}>以編號 {batch.lastId} 作為下一批起點</Button>}
         </div>}
       </Card>
 
       <Card size="small" title="就緒狀態檢查" extra={<Button loading={loading === 'readiness'} disabled={loading !== null && loading !== 'readiness'} onClick={() => void refreshReadiness()}>讀取目前就緒狀態</Button>}>
-        <Text type="secondary">GET 只計算目前索引完整性，不會保存稽核，也不會確認先前 Approval／Audit POST 是否成功。</Text>
+        <Text type="secondary">讀取操作只計算目前索引完整性，不會保存稽核，也不會確認先前核准或稽核送出的結果。</Text>
         {readiness && <div style={{ marginTop: 16 }}><SemanticReport report={readiness} title="目前就緒狀態（即時計算）" saved={false} navigate={navigate} /></div>}
-        {!readiness && errorIsRead && <Alert style={{ marginTop: 16 }} type="warning" showIcon title="無法確認目前就緒狀態" description="最新就緒狀態查詢失敗；先前回應已清除，不可視為目前 Gate 狀態。" />}
+        {!readiness && errorIsRead && <Alert style={{ marginTop: 16 }} type="warning" showIcon title="無法確認目前就緒狀態" description="最新就緒狀態查詢失敗；先前回應已清除，不可視為目前檢核狀態。" />}
       </Card>
 
-      <Card size="small" title="逐文件索引工作" extra={<Button loading={jobsLoading} onClick={() => void refreshJobs()}>重新整理</Button>}>
-        <Text type="secondary">核准後的索引由背景工作執行。FAILED 工作可由管理員手動重試；錯誤欄位只顯示安全代碼。</Text>
+      <Card size="small" title="逐份文件索引工作" extra={<Button loading={jobsLoading} onClick={() => void refreshJobs()}>重新整理</Button>}>
+        <Text type="secondary">核准後的索引由背景工作執行。失敗工作可由管理員手動重試；錯誤欄位只顯示安全代碼。</Text>
         {jobError && <ErrorState title="索引工作查詢或重試失敗" error={jobError} operation="read" onRetry={() => void refreshJobs()} />}
         <Table size="small" rowKey="id" loading={jobsLoading} scroll={{ x: 760 }}
           dataSource={jobs}
@@ -217,17 +217,17 @@ export default function SemanticOperationsPanel({ documentMutationVersion = 0 }:
           ]} />
       </Card>
 
-      <Card size="small" title="Gate 稽核">
+      <Card size="small" title="索引稽核">
         <Space direction="vertical" style={{ width: '100%' }}>
-          <Alert type="info" showIcon title="Gate 稽核會保存正式稽核結果" description="Gate 稽核是整體環境的診斷紀錄，不是逐文件發布條件或每次查詢的全域阻擋。請以各文件工作狀態和目前核准版本為準。" />
-          <Button danger disabled={(loading !== null && loading !== 'readiness') || unknown.includes('audit')} loading={loading === 'audit'} onClick={() => setConfirmAudit(true)}>執行並保存 Gate 稽核</Button>
-          {audit && <SemanticReport report={audit} title={auditStale ? '歷史 Gate 稽核回應' : '本頁最近取得的稽核回應'} saved stale={auditStale} navigate={navigate} />}
+          <Alert type="info" showIcon title="索引稽核會保存正式稽核結果" description="索引稽核是整體環境的診斷紀錄，不是逐份文件的發布條件或每次查詢的全域阻擋。請以各文件工作狀態和目前核准版本為準。" />
+          <Button danger disabled={(loading !== null && loading !== 'readiness') || unknown.includes('audit')} loading={loading === 'audit'} onClick={() => setConfirmAudit(true)}>執行並保存索引稽核</Button>
+          {audit && <SemanticReport report={audit} title={auditStale ? '歷史索引稽核回應' : '本頁最近取得的稽核回應'} saved stale={auditStale} navigate={navigate} />}
         </Space>
       </Card>
-      <Alert type="warning" showIcon title="Semantic Read 由部署設定控制" description="SEMANTIC_READ_ENABLED 仍由部署環境管理；Gate 稽核不會逐文件啟用或關閉已發布文件的查詢。此頁不會顯示或推定環境開關已啟用。" />
+      <Alert type="warning" showIcon title="語意查詢由部署設定控制" description="SEMANTIC_READ_ENABLED 仍由部署環境管理；索引稽核不會逐文件啟用或關閉已發布文件的查詢。此頁不會顯示或推定環境開關已啟用。" />
     </Space>
 
-    <Modal title="確認執行 Gate 稽核" open={confirmAudit} okText="確認並保存稽核結果" confirmLoading={loading === 'audit'} onOk={() => { setConfirmAudit(false); void start('audit', runSemanticGateAudit, (report) => setAudit(report)); }} onCancel={() => setConfirmAudit(false)}>
+    <Modal title="確認執行索引稽核" open={confirmAudit} okText="確認並保存稽核結果" confirmLoading={loading === 'audit'} onOk={() => { setConfirmAudit(false); void start('audit', runSemanticGateAudit, (report) => setAudit(report)); }} onCancel={() => setConfirmAudit(false)}>
       <Alert type="warning" showIcon title="這是會保存稽核紀錄的操作" description="稽核依執行當下資料計算並持久化結果。若逾時或連線中斷，結果可能未知且不會自動重送。" />
     </Modal>
     <Modal title="解除未知結果鎖定" open={confirmUnknownClear !== null} okText="確認已人工查核" onOk={() => {
@@ -238,7 +238,7 @@ export default function SemanticOperationsPanel({ documentMutationVersion = 0 }:
       });
       setConfirmUnknownClear(null); setError(null);
     }} onCancel={() => setConfirmUnknownClear(null)}>
-      <Alert type="warning" showIcon title="請先查核正式紀錄" description="請確認後端稽核／索引記錄或由系統管理員查核，就緒狀態不足以證明原 POST 結果。只有人工查核後才解除本頁的防重鎖定。" />
+      <Alert type="warning" showIcon title="請先查核正式紀錄" description="請確認系統稽核與索引記錄或由系統管理員查核，就緒狀態不足以證明原操作結果。只有人工查核後才解除本頁的防重鎖定。" />
     </Modal>
   </Card>;
 }

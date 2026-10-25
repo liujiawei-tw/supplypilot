@@ -54,6 +54,10 @@ class DocumentRetrievalServiceTests {
         when(document.getSemanticApprovedBy()).thenReturn(1L);
         when(document.getSemanticApprovedAt()).thenReturn(Instant.EPOCH);
         when(document.getSemanticReviewStatus()).thenReturn(SemanticReviewStatus.APPROVED);
+        when(document.getSemanticReviewActorType()).thenReturn("USER");
+        when(document.getSemanticReviewActor()).thenReturn("1");
+        when(document.getSemanticReviewTrigger()).thenReturn("ADMIN_OUTBOUND_REVIEW");
+        when(document.getSemanticReviewPolicyDecision()).thenReturn("APPROVED");
 
         DocumentRetrievalService retrieval = new DocumentRetrievalService(
                 chunks, embeddings, new OutboundDocumentPolicy());
@@ -224,6 +228,10 @@ class DocumentRetrievalServiceTests {
         when(document.getSemanticApprovedBy()).thenReturn(1L);
         when(document.getSemanticApprovedAt()).thenReturn(Instant.EPOCH);
         when(document.getSemanticReviewStatus()).thenReturn(SemanticReviewStatus.APPROVED);
+        when(document.getSemanticReviewActorType()).thenReturn("USER");
+        when(document.getSemanticReviewActor()).thenReturn("1");
+        when(document.getSemanticReviewTrigger()).thenReturn("ADMIN_OUTBOUND_REVIEW");
+        when(document.getSemanticReviewPolicyDecision()).thenReturn("APPROVED");
         return document;
     }
 

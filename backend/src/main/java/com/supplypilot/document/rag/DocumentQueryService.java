@@ -65,7 +65,9 @@ public class DocumentQueryService {
         var document = chunk.getDocument();
         return new DocumentSourceResponse(
                 document.getId(), document.getDocumentType(), document.getTitle(), document.getVersion(),
-                document.getSupplier() == null ? null : document.getSupplier().getId(), chunk.getChunkIndex(),
+                document.getSupplier() == null ? null : document.getSupplier().getId(),
+                document.getSupplier() == null ? null : document.getSupplier().getCode(),
+                document.getSupplier() == null ? null : document.getSupplier().getName(), chunk.getChunkIndex(),
                 chunk.getStartOffset(), chunk.getEndOffset(), chunk.getContent(), result.score());
     }
 }

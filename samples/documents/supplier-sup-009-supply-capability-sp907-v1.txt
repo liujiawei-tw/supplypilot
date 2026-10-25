@@ -1,0 +1,11 @@
+標題：昕川澱粉工坊（SUP-009）｜供貨關係與能力範圍展示文件
+文件類型：SUPPLIER_PROFILE
+文件版本：1.0
+文件日期：2026-10-25
+虛構展示文件：供應商、物料、流程紀錄與評語均為 SupplyPilot 展示資料，不代表真實公司、報價、品質結果或交易承諾。
+
+昕川澱粉工坊（SUP-009）的供貨範圍依 展示主檔 的 supplierMaterials 關係。主檔列有 2 筆 ACTIVE 關係；以下列值僅反映展示主檔。
+- SUP-009/MAT-005 珍珠風味粉：status=INACTIVE，單位 KG，MOQ 50 KG，包裝倍數 25 KG，標準交期 7 個日曆日，幣別 TWD。
+- SUP-009/MAT-008 黑糖糖漿：status=ACTIVE，單位 KG，MOQ 100 KG，包裝倍數 25 KG，標準交期 5 個日曆日，幣別 TWD。
+- SUP-009/MAT-009 芋頭風味粉：status=ACTIVE，單位 KG，MOQ 80 KG，包裝倍數 20 KG，標準交期 6 個日曆日，幣別 TWD。
+主檔沒有產能上限、可用庫存、認證或品質檢驗結果；不得將 MOQ、包裝倍數或交期解讀為產能承諾。INACTIVE 關係不可視為現行可下單條件。

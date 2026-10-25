@@ -15,23 +15,35 @@
 
 - Demo 使用與 prod profile 隔離的虛構企業資料。保留 MySQL、Semantic DB、文件儲存路徑與 Flyway/Storage Guard。
 - samples/demo-master-data.json 是供應商、物料、SupplierMaterial、PO 範例與數量的結構化資料契約；samples/documents/corpus-catalog.json 與 rag-fixtures.json 記錄文件來源及驗證情境。
-- 初始 Seed 建立 10 家供應商、12 項物料、45 組供應關係、10 張具 V2 PO 狀態/看板階段的範例採購單，以及 15 份文件；不建立 V1 Demand／自動 Recommendation 範例。SUP-005 人工 UI Upload 文件獨立於 Seed。
+- sp-907 初始基線建立 10 家供應商、12 項物料、45 組供應關係、10 張具 V2 PO 狀態/看板階段的範例採購單，以及 115 份 `SEED_BASELINE` 文件；另有 1 項 `MANUAL_UI_UPLOAD_ONLY` 文件保持獨立且不由基線同步改動。不建立 V1 Demand／自動 Recommendation 範例。
 - 文件 Catalog 的分類、審核文字、Fixture 或 hash 只作追溯與靜態驗證，不構成管理員授權、出站核准或已索引證據。
-- 新文件及新來源版本首次都要依正常管理員流程審查；來源內容或 hash 改變時不得繼承舊審核。
+- `SEED_BASELINE` 僅從固定 Catalog 與來源 hash 同步，並依可信 Demo 系統審核政策及既有出站政策決定核准或 `REQUIRES_REVIEW`；雜湊或來源身分不符時記錄 conflict，不繼承舊審核。`MANUAL_UI_UPLOAD_ONLY` 及其他一般上傳仍按管理員流程，針對特定來源版本/hash 審查。
 
 ## 3. 既有 Demo 更新
 
-啟動時依資料集狀態採 Fail-Closed 判斷：`COMPLETE` 且版本相同時略過 Seed；目前只承認 `sp-905-zh-tw-v1` 為可升級舊版、`sp-906-zh-tw-v2` 為目前版。歷史 `sp-901-v1` 不代表同一份語料，也不列為可升級版本。`COMPLETE` 且為已知舊版本時保留資料並標示 `DEMO_DATASET_UPDATE_REQUIRED`，不 Reset、不自動升級；`UPDATE_REQUIRED` 且版本相同時保留資料並標示文件及看板人工步驟仍未完成。格式正確但未登記的版本、`INITIALIZING`、`RELATIONAL_READY`、`FAILED`、未知狀態、未來版本或不合法版本組合均拒絕當成完整基線。
+### 3.1 版本與狀態判定
 
-Compose Demo 將 master data 與文件目錄唯讀掛載，並固定讀取 `sp-906-zh-tw-v2`。更新工具預設 `DISABLED`；維護者需將 `DEMO_DATASET_UPGRADE_MODE` 設為 `DRY_RUN`，核對輸出的資料庫名稱、來源/目標版本、變更明細、衝突、人工步驟及計畫 SHA-256。計畫雜湊包含主檔原始內容 SHA-256、待套用值、資料庫狀態及相關供應商、物料、供應關係前置條件。DRY_RUN 只讀取資料庫與主檔，不執行資料寫入。
+截至 2026-10-25，Demo 目標資料集為 `sp-907-zh-tw-v3`。啟動時仍採 Fail-Closed 判斷：已知舊版 `sp-905-zh-tw-v1`、`sp-906-zh-tw-v2` 可進入既有資料升級流程；`sp-901-v1` 不代表相同語料，不列為可升級版本。未知或未來版本、`INITIALIZING`、`FAILED`、未知狀態及不合法版本/狀態組合不得視為完整基線。目標版本 `UPDATE_REQUIRED` 或 `RELATIONAL_READY` 會安全重試尚未完成的升級/語料同步；目標版本 `COMPLETE` 不重做關聯式變更，但每次仍以冪等方式核對語料基線，並在結構化計畫中檢查 master 外的額外資料列。
 
-確認計畫後，切換到 `APPLY` 時服務在目標鎖定後重新產生計畫；只有 `DEMO_DATASET_UPGRADE_PLAN_SHA256=<本次 DRY_RUN 的 SHA-256>` 與 `DEMO_DATASET_UPGRADE_CONFIRMATION=UPDATE-SP-901@<database>@sp-906-zh-tw-v2` 均符合時才套用。APPLY 讀取一次主檔，核對其內容雜湊後使用同一份快照套用，不會核准或套用另一份主檔；供應商、物料、供應關係或資料集狀態在 DRY_RUN 後改變時會拒絕舊 SHA。資料列鎖定與資料更新位於同一交易，發生錯誤時整筆更新回滾。套用後標記為 `UPDATE_REQUIRED`，表示後續文件及看板人工步驟仍未完成；工具不會替文件核准／索引，也不會修改既有 PO、庫存、使用者或文件審核。Compose 範例預設保持 `DISABLED`，不得在本 Issue 對既有 Demo 資料庫執行。
+### 3.2 `AUTO_SAFE` 關聯式升級
 
-自動更新僅能將仍符合舊基線值的供應商/物料展示名稱改為繁中，新增缺少的非核心供應商與供應關係，並保留既有狀態、庫存、價格、PO 快照、使用者資料、V1 Demand 與文件審核。既有 SupplierMaterial 價格／條件差異、已被使用者修改的值、缺少的既有物料/庫存或資料衝突會列為人工處理。更新後狀態為 UPDATE_REQUIRED，表示文件與看板資料仍待人工完成，不會冒稱與全新 Seed 完全一致。
+Demo Profile 的 Compose 預設為 `DEMO_DATASET_VERSION=sp-907-zh-tw-v3`、`DEMO_DATASET_UPGRADE_MODE=AUTO_SAFE`；Runner 只允許 `demo` 且不允許同時啟用 `prod`。主檔唯讀掛載。AUTO_SAFE 固定驗證 `samples/demo-master-data.json` 的 SHA-256：`6f66e13c66d7a42df96eda3e0b7abde5ba8872db6e53a7555961b0c356ea8245`。目標版本或雜湊不符時拒絕任何關聯式變更。
 
-既有 PO 不透過資料庫直接改 Stage 或重建；需保留歷史採購快照。若展示需要八階段案例，請透過正式 UI/API 操作建立新的範例單。既有同名同版文件保留原檔、hash 及審核狀態，新的來源版本由管理員按正常流程上傳及審查。新增文件不得自動核准或在核准前送 Gemini。
+雜湊檢查、資料集 marker 與資料列鎖定、鎖定後的計畫及前置條件比對、允許的更新與 marker 寫入都在同一資料庫交易中執行。鎖定順序固定為資料集 marker、供應商、物料、供應關係。AUTO_SAFE 的新增/更新只限已固定主檔與明確 allowlist：既有供應商只將精確舊值的展示名稱/國別改成 sp-907 值；既有物料只將精確舊名稱改成目標名稱；只可新增 SUP-007 至 SUP-010 的完整核准供應商資料及 15 組固定供應關係，每組需符合完整價格、MOQ、包裝倍數、交期、幣別及狀態欄位。
 
-更新適用範圍只限有明確 Demo 隔離標記的資料庫及文件儲存路徑。不得對正式環境執行更新或將這套機制解讀為 Reset。
+資料庫中已被使用者修改的既有資料、非 allowlist 的新增/差異、master 未列出的額外供應商/物料/供應關係、缺少的既有基線實體，以及任何欄位不符都會列為 conflict。這些資料一律保留，不會自動新增、覆寫或刪除；已知且安全的 allowlist 變更可與 conflict 一起記錄，但 marker 會留在待處理狀態，不能因此標記完成。AUTO_SAFE 不會修改庫存、價格或既有供應關係條件、PO/快照、使用者資料或文件審核決策。
+
+### 3.3 語料同步與完成 marker
+
+關聯式升級後，AUTO_SAFE 會呼叫 `DemoCorpusSyncService.synchronizeBaseline()`；目標版本已完成時也會重跑此冪等同步，以便恢復中斷的來源基線工作。同步只處理 `SP-901`、`sp-907-zh-tw-v3` Catalog 中 115 筆 `SEED_BASELINE` 來源；唯一 `MANUAL_UI_UPLOAD_ONLY` 項目不會被自動建立、採用或改動。來源檔雜湊、關聯供應商、文件身分或既有來源不符時記錄 source conflict，失敗時保留可重試狀態。
+
+資料集 marker 只有在目標版本的關聯式階段完成，且 115/115 來源已存在或採用、Ingestion 為 READY，並且沒有來源 conflict/failure 時才可成為 `COMPLETE`。這個 marker 不代表文件都已核准或語意索引已發布；核准政策、每份文件的索引狀態、排程與 pending/retry 由文件生命週期獨立追蹤。索引 pending 不會被冒充為索引完成，也不阻止關聯式/來源基線 marker 完成；Provider 未就緒不得讓採購核心不可用。
+
+### 3.4 手動模式及保留資料
+
+`DISABLED`、`DRY_RUN`、`APPLY` 仍可明確覆寫 Compose 預設。`DISABLED` 不執行升級或同步；`DRY_RUN` 只讀取資料庫與主檔，輸出資料庫名稱、來源/目標版本、變更明細、衝突、人工步驟及計畫 SHA-256。`APPLY` 維持人工確認流程：需同時提供本次計畫 SHA-256 與精確確認字串 `UPDATE-SP-901@<database>@sp-907-zh-tw-v3`；服務在鎖定資料列後重新產生計畫，主檔/資料庫前置條件改變就拒絕舊 SHA。APPLY 只處理關聯式計畫並保留待完成 marker，不替代 AUTO_SAFE 語料同步。
+
+既有 PO 不透過資料庫直接改 Stage 或重建；需保留歷史採購快照。若展示需要八階段案例，請透過正式 UI/API 操作建立新的範例單。手動上傳項目仍由使用者透過 UI 建立並遵循一般審核流程；既有文件與審核狀態不因同步而被覆寫。更新範圍只限有明確 Demo 隔離標記的資料庫及文件儲存路徑，不得對正式環境執行更新或將這套機制解讀為 Reset。
 
 ## 4. RAG 文件與索引驗收
 

@@ -162,10 +162,10 @@ class DocumentRagIntegrationTests extends AbstractIntegrationTest {
                         .header("Authorization", bearer(admin)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("ANSWERED"))
-                .andExpect(jsonPath("$.answer").value(org.hamcrest.Matchers.containsString("缺少批次識別")))
-                .andExpect(jsonPath("$.answer").value(org.hamcrest.Matchers.containsString("封條破損")))
-                .andExpect(jsonPath("$.answer").value(org.hamcrest.Matchers.containsString("受到污染")))
-                .andExpect(jsonPath("$.answer").value(org.hamcrest.Matchers.containsString("物料不符")))
+                .andExpect(jsonPath("$.answer").value(org.hamcrest.Matchers.containsString("批次標籤缺失")))
+                .andExpect(jsonPath("$.answer").value(org.hamcrest.Matchers.containsString("封口異常")))
+                .andExpect(jsonPath("$.answer").value(org.hamcrest.Matchers.containsString("可見污染")))
+                .andExpect(jsonPath("$.answer").value(org.hamcrest.Matchers.containsString("物料代碼不符")))
                 .andReturn().getResponse().getContentAsString();
         JsonNode answer = objectMapper.readTree(answerResponse);
         JsonNode source = answer.path("sources").get(0);

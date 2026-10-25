@@ -22,6 +22,7 @@ import com.supplypilot.material.domain.BaseUnit;
 import com.supplypilot.material.domain.Material;
 import com.supplypilot.material.repository.MaterialRepository;
 import com.supplypilot.supplier.domain.Supplier;
+import com.supplypilot.supplier.repository.SupplierMaterialRepository;
 import com.supplypilot.supplier.repository.SupplierRepository;
 import com.supplypilot.testsupport.FixedClockConfiguration;
 import org.junit.jupiter.api.BeforeEach;
@@ -45,7 +46,7 @@ import org.testcontainers.utility.DockerImageName;
         "spring.config.import=",
         "supplypilot.demo-data-enabled=false",
         "supplypilot.demo.allowed-database=supplypilot_demo_upgrade_test",
-        "supplypilot.demo.dataset-version=sp-906-zh-tw-v2",
+        "supplypilot.demo.dataset-version=sp-907-zh-tw-v3",
         "supplypilot.demo.account-password=Demo-Password-For-Tests-901!",
         "supplypilot.document-storage.path=${java.io.tmpdir}/supplypilot-demo-upgrade-test-documents",
         "supplypilot.semantic.indexing.worker-enabled=false",
@@ -56,7 +57,7 @@ import org.testcontainers.utility.DockerImageName;
 @Testcontainers
 class DemoDatasetUpgradeServiceIntegrationTests {
     private static final String DATABASE = "supplypilot_demo_upgrade_test";
-    private static final String CURRENT_VERSION = "sp-906-zh-tw-v2";
+    private static final String CURRENT_VERSION = "sp-907-zh-tw-v3";
     private static final String CONFIRMATION = "UPDATE-SP-901@" + DATABASE + "@" + CURRENT_VERSION;
     private static final Instant LEGACY_COMPLETED_AT = Instant.parse("2026-10-20T12:00:00Z");
     private static final Instant NOW = Instant.parse("2026-10-25T00:00:00Z");
@@ -78,8 +79,10 @@ class DemoDatasetUpgradeServiceIntegrationTests {
     Path tempDirectory;
 
     @Autowired private DemoDatasetUpgradeService upgradeService;
+    @Autowired private DemoDatasetCoordinator coordinator;
     @Autowired private DemoProperties demoProperties;
     @Autowired private SupplierRepository suppliers;
+    @Autowired private SupplierMaterialRepository supplierMaterials;
     @Autowired private MaterialRepository materials;
     @Autowired private JdbcTemplate jdbc;
     @Autowired private ObjectMapper objectMapper;
@@ -187,6 +190,184 @@ class DemoDatasetUpgradeServiceIntegrationTests {
         assertThat(jdbc.queryForObject(
                 "SELECT status FROM demo_dataset_state WHERE dataset_key = ?", String.class,
                 DemoDatasetCoordinator.DATASET_KEY)).isEqualTo("UPDATE_REQUIRED");
+    }
+
+    @Test
+    void concurrentAutoSafeStartsApplyOnlyTheAllowlistedAdditionOnce() throws Exception {
+        seedSp907BaselineWithoutSupplier007();
+        CountDownLatch firstApplyReturned = new CountDownLatch(1);
+        CountDownLatch releaseFirstTransaction = new CountDownLatch(1);
+        CountDownLatch secondApplyStarted = new CountDownLatch(1);
+        ExecutorService executor = Executors.newFixedThreadPool(2);
+        try {
+            Future<DemoDatasetUpgradeService.UpdatePlan> first = executor.submit(() ->
+                    new TransactionTemplate(transactionManager).execute(status -> {
+                        DemoDatasetUpgradeService.UpdatePlan result = upgradeService.autoSafe();
+                        firstApplyReturned.countDown();
+                        try {
+                            if (!releaseFirstTransaction.await(10, TimeUnit.SECONDS)) {
+                                throw new IllegalStateException("Timed out waiting to commit the first AUTO_SAFE transaction");
+                            }
+                        } catch (InterruptedException exception) {
+                            Thread.currentThread().interrupt();
+                            throw new IllegalStateException("Interrupted while holding the first AUTO_SAFE transaction",
+                                    exception);
+                        }
+                        return result;
+                    }));
+
+            assertThat(firstApplyReturned.await(10, TimeUnit.SECONDS)).isTrue();
+            Future<DemoDatasetUpgradeService.UpdatePlan> second = executor.submit(() -> {
+                secondApplyStarted.countDown();
+                return upgradeService.autoSafe();
+            });
+            assertThat(secondApplyStarted.await(10, TimeUnit.SECONDS)).isTrue();
+            assertThatThrownBy(() -> second.get(1, TimeUnit.SECONDS)).isInstanceOf(TimeoutException.class);
+
+            releaseFirstTransaction.countDown();
+            DemoDatasetUpgradeService.UpdatePlan firstPlan = first.get(10, TimeUnit.SECONDS);
+            assertThat(firstPlan.actions()).containsExactlyInAnyOrder(
+                    "ADD_SUPPLIER:SUP-007",
+                    "ADD_LINK:SUP-007:MAT-002",
+                    "ADD_LINK:SUP-007:MAT-007",
+                    "ADD_LINK:SUP-007:MAT-010",
+                    "ADD_LINK:SUP-007:MAT-012");
+            assertThat(firstPlan.conflicts()).isEmpty();
+            assertThat(second.get(10, TimeUnit.SECONDS).actions()).isEmpty();
+        } finally {
+            releaseFirstTransaction.countDown();
+            executor.shutdownNow();
+        }
+
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM suppliers WHERE code = ?", Long.class, "SUP-007"))
+                .isEqualTo(1L);
+        assertThat(jdbc.queryForObject("""
+                SELECT COUNT(*) FROM supplier_materials sm
+                JOIN suppliers s ON s.id = sm.supplier_id
+                WHERE s.code = ?
+                """, Long.class, "SUP-007")).isEqualTo(4L);
+        Map<String, Object> marker = jdbc.queryForMap(
+                "SELECT dataset_version, status FROM demo_dataset_state WHERE dataset_key = ?",
+                DemoDatasetCoordinator.DATASET_KEY);
+        assertThat(marker.get("dataset_version")).isEqualTo(CURRENT_VERSION);
+        assertThat(marker.get("status")).isEqualTo("UPDATE_REQUIRED");
+    }
+
+    @Test
+    void completionWaitsForMarkerLockAndPreservesConcurrentAutoSafeConflict() throws Exception {
+        String conflictReason = "AUTO_SAFE preserved relational conflicts; manual review remains required";
+        jdbc.update("""
+                INSERT INTO demo_dataset_state
+                    (dataset_key, dataset_version, baseline_date, status, created_at, completed_at, failure_reason)
+                VALUES (?, ?, ?, 'UPDATE_REQUIRED', ?, NULL, NULL)
+                """, DemoDatasetCoordinator.DATASET_KEY, CURRENT_VERSION, LocalDate.of(2026, 10, 20),
+                Timestamp.from(NOW));
+
+        CountDownLatch writerLocked = new CountDownLatch(1);
+        CountDownLatch releaseWriter = new CountDownLatch(1);
+        CountDownLatch completionStarted = new CountDownLatch(1);
+        ExecutorService executor = Executors.newFixedThreadPool(2);
+        Future<?> conflictWriter = executor.submit(() -> new TransactionTemplate(transactionManager)
+                .executeWithoutResult(transaction -> {
+                    jdbc.queryForObject("SELECT dataset_key FROM demo_dataset_state WHERE dataset_key = ? FOR UPDATE",
+                            String.class, DemoDatasetCoordinator.DATASET_KEY);
+                    jdbc.update("UPDATE demo_dataset_state SET failure_reason = ? WHERE dataset_key = ?",
+                            conflictReason, DemoDatasetCoordinator.DATASET_KEY);
+                    writerLocked.countDown();
+                    try {
+                        if (!releaseWriter.await(10, TimeUnit.SECONDS)) {
+                            throw new IllegalStateException("Timed out waiting to release conflict marker lock");
+                        }
+                    } catch (InterruptedException exception) {
+                        Thread.currentThread().interrupt();
+                        throw new IllegalStateException("Interrupted while holding conflict marker lock", exception);
+                    }
+                }));
+        try {
+            assertThat(writerLocked.await(10, TimeUnit.SECONDS)).isTrue();
+            Future<Boolean> completion = executor.submit(() -> {
+                completionStarted.countDown();
+                return coordinator.completeExistingUpgradeIfReady(readyCorpusReport());
+            });
+            assertThat(completionStarted.await(10, TimeUnit.SECONDS)).isTrue();
+            assertThatThrownBy(() -> completion.get(1, TimeUnit.SECONDS))
+                    .isInstanceOf(TimeoutException.class);
+
+            releaseWriter.countDown();
+            conflictWriter.get(10, TimeUnit.SECONDS);
+            assertThat(completion.get(10, TimeUnit.SECONDS)).isFalse();
+        } finally {
+            releaseWriter.countDown();
+            executor.shutdownNow();
+        }
+
+        Map<String, Object> marker = jdbc.queryForMap(
+                "SELECT status, failure_reason FROM demo_dataset_state WHERE dataset_key = ?",
+                DemoDatasetCoordinator.DATASET_KEY);
+        assertThat(marker.get("status")).isEqualTo("UPDATE_REQUIRED");
+        assertThat(marker.get("failure_reason")).isEqualTo(conflictReason);
+    }
+
+    private DemoCorpusSyncService.SyncReport readyCorpusReport() {
+        return new DemoCorpusSyncService.SyncReport(DemoDatasetCoordinator.DATASET_KEY, CURRENT_VERSION,
+                "upgrade-lock-test", DemoCorpusSyncService.SyncStatus.COMPLETE, NOW, NOW,
+                115, 0, 0, 115, 115, 0, 0, 0, 0, 0, 0, List.of());
+    }
+
+    private void seedSp907BaselineWithoutSupplier007() throws Exception {
+        Path packagedMaster = Path.of("..", "samples", "demo-master-data.json").toAbsolutePath().normalize();
+        Path testMaster = Path.of(demoProperties.getMasterDataPath());
+        java.nio.file.Files.copy(packagedMaster, testMaster, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+        var master = objectMapper.readTree(packagedMaster.toFile());
+        demoProperties.setMasterDataPath(testMaster.toString());
+
+        java.util.Map<String, Supplier> supplierByCode = new java.util.HashMap<>();
+        for (var seed : master.path("suppliers")) {
+            String code = seed.path("code").asText();
+            if ("SUP-007".equals(code)) continue;
+            Supplier supplier = Supplier.create(code, seed.path("name").asText(), seed.path("country").asText(),
+                    new BigDecimal(seed.path("reliabilityScore").asText()),
+                    new BigDecimal(seed.path("qualityScore").asText()), NOW);
+            var status = com.supplypilot.supplier.domain.SupplierStatus.valueOf(seed.path("status").asText());
+            if (status != com.supplypilot.supplier.domain.SupplierStatus.ACTIVE) {
+                supplier.update(null, null, null, null, status, NOW);
+            }
+            supplierByCode.put(code, suppliers.saveAndFlush(supplier));
+        }
+
+        java.util.Map<String, Material> materialByCode = new java.util.HashMap<>();
+        for (var seed : master.path("materials")) {
+            Material material = Material.create(seed.path("code").asText(), seed.path("name").asText(),
+                    BaseUnit.valueOf(seed.path("unit").asText()),
+                    new BigDecimal(seed.path("safetyStock").asText()), NOW);
+            var status = com.supplypilot.material.domain.MaterialStatus.valueOf(seed.path("status").asText());
+            if (status != com.supplypilot.material.domain.MaterialStatus.ACTIVE) {
+                material.update(null, null, status, NOW);
+            }
+            materialByCode.put(material.getCode(), materials.saveAndFlush(material));
+        }
+
+        for (var seed : master.path("supplierMaterials")) {
+            if ("SUP-007".equals(seed.path("supplierCode").asText())) continue;
+            var supplier = supplierByCode.get(seed.path("supplierCode").asText());
+            var material = materialByCode.get(seed.path("materialCode").asText());
+            var relation = com.supplypilot.supplier.domain.SupplierMaterial.create(supplier, material,
+                    new BigDecimal(seed.path("unitPrice").asText()), new BigDecimal(seed.path("moq").asText()),
+                    new BigDecimal(seed.path("packageMultiple").asText()), seed.path("leadTimeDays").asInt(),
+                    com.supplypilot.supplier.domain.Currency.valueOf(seed.path("currency").asText()), NOW);
+            var status = com.supplypilot.supplier.domain.SupplierMaterialStatus.valueOf(seed.path("status").asText());
+            if (status != com.supplypilot.supplier.domain.SupplierMaterialStatus.ACTIVE) {
+                relation.update(null, null, null, null, status, NOW);
+            }
+            supplierMaterials.saveAndFlush(relation);
+        }
+
+        jdbc.update("""
+                INSERT INTO demo_dataset_state
+                    (dataset_key, dataset_version, baseline_date, status, created_at, completed_at)
+                VALUES (?, ?, ?, 'COMPLETE', ?, ?)
+                """, DemoDatasetCoordinator.DATASET_KEY, "sp-906-zh-tw-v2", LocalDate.of(2026, 10, 20),
+                Timestamp.from(LEGACY_COMPLETED_AT), Timestamp.from(LEGACY_COMPLETED_AT));
     }
 
     private void seedLegacyBaseline() {

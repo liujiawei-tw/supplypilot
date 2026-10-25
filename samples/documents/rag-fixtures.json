@@ -1,6 +1,6 @@
 {
-  "schemaVersion": 1,
-  "corpusVersion": "sp-906-zh-tw-v2",
+  "schemaVersion": 2,
+  "corpusVersion": "sp-907-zh-tw-v3",
   "fixtures": [
     {
       "fixtureKey": "RAG-001",
@@ -29,7 +29,7 @@
         "供貨條件有效至 2026-12-31（含當日）。"
       ],
       "expectedSourceKeys": [
-        "DOC-SUP-001-QUOTATION"
+        "DOC-SUP-001-QUOTATION-SP907"
       ],
       "citationRequirements": [
         "引用報價文件標題與版號。",
@@ -47,7 +47,7 @@
         "ORDERED 後 3 個日曆日。"
       ],
       "expectedSourceKeys": [
-        "DOC-SUP-002-QUOTATION"
+        "DOC-SUP-002-QUOTATION-SP907"
       ],
       "citationRequirements": [
         "引用同一現行供貨條件段落。",
@@ -65,7 +65,7 @@
         "ORDERED 後 8 個日曆日。"
       ],
       "expectedSourceKeys": [
-        "DOC-SUP-002-QUOTATION"
+        "DOC-SUP-002-QUOTATION-SP907"
       ],
       "citationRequirements": [
         "引用 SUP-002 報價文件與版本。",
@@ -83,7 +83,7 @@
         "ORDERED 後 4 個日曆日。"
       ],
       "expectedSourceKeys": [
-        "DOC-SUP-007-QUOTATION"
+        "DOC-SUP-007-QUOTATION-SP907"
       ],
       "citationRequirements": [
         "引用 SUP-007 現行展示條件及版號。",
@@ -307,7 +307,7 @@
         "不得把已屆滿的歷史期間當成現行條件。"
       ],
       "expectedSourceKeys": [
-        "DOC-SUP-002-QUOTATION"
+        "DOC-SUP-002-QUOTATION-SP907"
       ],
       "citationRequirements": [
         "引用同一文件中清楚標示歷史與現行的段落。",
@@ -324,7 +324,7 @@
         "不得從 MOQ、交期或其他文件推算價格。"
       ],
       "expectedSourceKeys": [
-        "DOC-SUP-002-QUOTATION"
+        "DOC-SUP-002-QUOTATION-SP907"
       ],
       "citationRequirements": [
         "僅可引用該文件說明未記載金額的原文。",
@@ -431,6 +431,1805 @@
         "不得將已收貨後的庫存規則混用。"
       ],
       "expectedStatus": "ANSWER"
+    },
+    {
+      "fixtureKey": "RAG-026",
+      "category": "supplier_profile",
+      "question": "SUP-001 的展示供應商名稱、國別及主檔狀態為何？",
+      "supplierCodes": [
+        "SUP-001"
+      ],
+      "expectedAnswerPoints": [
+        "福爾摩沙原料工坊，國別 台灣，supplierStatus=ACTIVE。"
+      ],
+      "expectedSourceKeys": [
+        "DOC-SUP-001-SUPPLIER-PROFILE-SP907"
+      ],
+      "citationRequirements": [
+        "只引用 DOC-SUP-001-SUPPLIER-PROFILE 的標題、版本及支持回答的原文。"
+      ],
+      "expectedStatus": "ANSWER"
+    },
+    {
+      "fixtureKey": "RAG-027",
+      "category": "supplier_materials",
+      "question": "SUP-001 在主檔列有哪些供貨關係？",
+      "supplierCodes": [
+        "SUP-001"
+      ],
+      "expectedAnswerPoints": [
+        "主檔列有 6 筆 ACTIVE supplierMaterials 關係。"
+      ],
+      "expectedSourceKeys": [
+        "DOC-SUP-001-SUPPLY-CAPABILITY-SP907"
+      ],
+      "citationRequirements": [
+        "只引用 DOC-SUP-001-SUPPLY-CAPABILITY 的標題、版本及支持回答的原文。"
+      ],
+      "expectedStatus": "ANSWER"
+    },
+    {
+      "fixtureKey": "RAG-028",
+      "category": "delivery",
+      "question": "SUP-001 對 MAT-001 的標準交期為何？",
+      "supplierCodes": [
+        "SUP-001"
+      ],
+      "expectedAnswerPoints": [
+        "ACTIVE 關係交期 5 個日曆日，從 ORDERED 起算。"
+      ],
+      "expectedSourceKeys": [
+        "DOC-SUP-001-DELIVERY-COORDINATION-SP907"
+      ],
+      "citationRequirements": [
+        "只引用 DOC-SUP-001-DELIVERY-COORDINATION 的標題、版本及支持回答的原文。"
+      ],
+      "expectedStatus": "ANSWER"
+    },
+    {
+      "fixtureKey": "RAG-029",
+      "category": "moq",
+      "question": "SUP-001 的 MAT-001 MOQ 和包裝倍數為何？",
+      "supplierCodes": [
+        "SUP-001"
+      ],
+      "expectedAnswerPoints": [
+        "MOQ 800 KG；包裝倍數 100 KG。"
+      ],
+      "expectedSourceKeys": [
+        "DOC-SUP-001-CONTRACT-TERMS-SP907"
+      ],
+      "citationRequirements": [
+        "只引用 DOC-SUP-001-CONTRACT-TERMS 的標題、版本及支持回答的原文。"
+      ],
+      "expectedStatus": "ANSWER"
+    },
+    {
+      "fixtureKey": "RAG-030",
+      "category": "contract_terms",
+      "question": "SUP-001 的 MAT-001 供貨條件有效至哪一天？",
+      "supplierCodes": [
+        "SUP-001"
+      ],
+      "expectedAnswerPoints": [
+        "主檔未提供有效起訖日，不可推定有效期限。"
+      ],
+      "expectedSourceKeys": [
+        "DOC-SUP-001-QUOTATION-SP907"
+      ],
+      "citationRequirements": [
+        "只引用 DOC-SUP-001-QUOTATION 的標題、版本及支持回答的原文。"
+      ],
+      "expectedStatus": "ANSWER"
+    },
+    {
+      "fixtureKey": "RAG-031",
+      "category": "quality",
+      "question": "SUP-001 的 MAT-001 到貨查核哪些項目？有實際檢驗結果嗎？",
+      "supplierCodes": [
+        "SUP-001"
+      ],
+      "expectedAnswerPoints": [
+        "核對代碼、名稱、數量、包裝、批次及可見異常；展示資料沒有實際檢驗結果。"
+      ],
+      "expectedSourceKeys": [
+        "DOC-SUP-001-QUALITY-REQUIREMENTS-SP907"
+      ],
+      "citationRequirements": [
+        "只引用 DOC-SUP-001-QUALITY-REQUIREMENTS 的標題、版本及支持回答的原文。"
+      ],
+      "expectedStatus": "ANSWER"
+    },
+    {
+      "fixtureKey": "RAG-032",
+      "category": "history",
+      "question": "SUP-001 的展示主檔包含哪些採購單歷程？",
+      "supplierCodes": [
+        "SUP-001"
+      ],
+      "expectedAnswerPoints": [
+        "列有 1 筆 PO 範例，需依各筆 status/stage 區分流程位置。"
+      ],
+      "expectedSourceKeys": [
+        "DOC-SUP-001-COOPERATION-HISTORY-SP907"
+      ],
+      "citationRequirements": [
+        "只引用 DOC-SUP-001-COOPERATION-HISTORY 的標題、版本及支持回答的原文。"
+      ],
+      "expectedStatus": "ANSWER"
+    },
+    {
+      "fixtureKey": "RAG-033",
+      "category": "subjective_evaluation",
+      "question": "SUP-001 的主檔分數是否等於正式評鑑或採購排名？",
+      "supplierCodes": [
+        "SUP-001"
+      ],
+      "expectedAnswerPoints": [
+        "reliabilityScore=92、qualityScore=90；僅為虛構主檔值，不代表正式評鑑、核准或排名。"
+      ],
+      "expectedSourceKeys": [
+        "DOC-SUP-001-BUYER-EVALUATION-SP907"
+      ],
+      "citationRequirements": [
+        "只引用 DOC-SUP-001-BUYER-EVALUATION 的標題、版本及支持回答的原文。"
+      ],
+      "expectedStatus": "ANSWER"
+    },
+    {
+      "fixtureKey": "RAG-034",
+      "category": "cross_supplier_isolation",
+      "question": "查詢 SUP-001 基本資料時應回覆哪個供應商並排除其他文件？",
+      "supplierCodes": [
+        "SUP-001"
+      ],
+      "expectedAnswerPoints": [
+        "只回覆 SUP-001 福爾摩沙原料工坊 的資料，不混入其他 supplierCode 文件。"
+      ],
+      "expectedSourceKeys": [
+        "DOC-SUP-001-SUPPLIER-PROFILE-SP907"
+      ],
+      "citationRequirements": [
+        "只引用 DOC-SUP-001-SUPPLIER-PROFILE 的標題、版本及支持回答的原文。"
+      ],
+      "expectedStatus": "ANSWER"
+    },
+    {
+      "fixtureKey": "RAG-035",
+      "category": "insufficient_evidence",
+      "question": "SUP-001 的 MAT-001 保存期限為幾天？",
+      "supplierCodes": [
+        "SUP-001"
+      ],
+      "expectedAnswerPoints": [
+        "未提供 MAT-001 保存期限；應回覆資料不足，不可推測。"
+      ],
+      "expectedSourceKeys": [],
+      "citationRequirements": [
+        "無來源時拒答，不附虛構引用或套用其他物料資料。"
+      ],
+      "expectedStatus": "INSUFFICIENT_EVIDENCE"
+    },
+    {
+      "fixtureKey": "RAG-036",
+      "category": "supplier_profile",
+      "question": "SUP-002 的展示供應商名稱、國別及主檔狀態為何？",
+      "supplierCodes": [
+        "SUP-002"
+      ],
+      "expectedAnswerPoints": [
+        "東港貿易社，國別 台灣，supplierStatus=ACTIVE。"
+      ],
+      "expectedSourceKeys": [
+        "DOC-SUP-002-SUPPLIER-PROFILE-SP907"
+      ],
+      "citationRequirements": [
+        "只引用 DOC-SUP-002-SUPPLIER-PROFILE 的標題、版本及支持回答的原文。"
+      ],
+      "expectedStatus": "ANSWER"
+    },
+    {
+      "fixtureKey": "RAG-037",
+      "category": "supplier_materials",
+      "question": "SUP-002 在主檔列有哪些供貨關係？",
+      "supplierCodes": [
+        "SUP-002"
+      ],
+      "expectedAnswerPoints": [
+        "主檔列有 6 筆 ACTIVE supplierMaterials 關係。"
+      ],
+      "expectedSourceKeys": [
+        "DOC-SUP-002-SUPPLY-CAPABILITY-SP907"
+      ],
+      "citationRequirements": [
+        "只引用 DOC-SUP-002-SUPPLY-CAPABILITY 的標題、版本及支持回答的原文。"
+      ],
+      "expectedStatus": "ANSWER"
+    },
+    {
+      "fixtureKey": "RAG-038",
+      "category": "delivery",
+      "question": "SUP-002 對 MAT-001 的標準交期為何？",
+      "supplierCodes": [
+        "SUP-002"
+      ],
+      "expectedAnswerPoints": [
+        "ACTIVE 關係交期 3 個日曆日，從 ORDERED 起算。"
+      ],
+      "expectedSourceKeys": [
+        "DOC-SUP-002-DELIVERY-COORDINATION-SP907"
+      ],
+      "citationRequirements": [
+        "只引用 DOC-SUP-002-DELIVERY-COORDINATION 的標題、版本及支持回答的原文。"
+      ],
+      "expectedStatus": "ANSWER"
+    },
+    {
+      "fixtureKey": "RAG-039",
+      "category": "moq",
+      "question": "SUP-002 的 MAT-001 MOQ 和包裝倍數為何？",
+      "supplierCodes": [
+        "SUP-002"
+      ],
+      "expectedAnswerPoints": [
+        "MOQ 500 KG；包裝倍數 50 KG。"
+      ],
+      "expectedSourceKeys": [
+        "DOC-SUP-002-CONTRACT-TERMS-SP907"
+      ],
+      "citationRequirements": [
+        "只引用 DOC-SUP-002-CONTRACT-TERMS 的標題、版本及支持回答的原文。"
+      ],
+      "expectedStatus": "ANSWER"
+    },
+    {
+      "fixtureKey": "RAG-040",
+      "category": "contract_terms",
+      "question": "SUP-002 的 MAT-001 供貨條件有效至哪一天？",
+      "supplierCodes": [
+        "SUP-002"
+      ],
+      "expectedAnswerPoints": [
+        "主檔未提供有效起訖日，不可推定有效期限。"
+      ],
+      "expectedSourceKeys": [
+        "DOC-SUP-002-QUOTATION-SP907"
+      ],
+      "citationRequirements": [
+        "只引用 DOC-SUP-002-QUOTATION 的標題、版本及支持回答的原文。"
+      ],
+      "expectedStatus": "ANSWER"
+    },
+    {
+      "fixtureKey": "RAG-041",
+      "category": "quality",
+      "question": "SUP-002 的 MAT-001 到貨查核哪些項目？有實際檢驗結果嗎？",
+      "supplierCodes": [
+        "SUP-002"
+      ],
+      "expectedAnswerPoints": [
+        "核對代碼、名稱、數量、包裝、批次及可見異常；展示資料沒有實際檢驗結果。"
+      ],
+      "expectedSourceKeys": [
+        "DOC-SUP-002-QUALITY-REQUIREMENTS-SP907"
+      ],
+      "citationRequirements": [
+        "只引用 DOC-SUP-002-QUALITY-REQUIREMENTS 的標題、版本及支持回答的原文。"
+      ],
+      "expectedStatus": "ANSWER"
+    },
+    {
+      "fixtureKey": "RAG-042",
+      "category": "history",
+      "question": "SUP-002 的展示主檔包含哪些採購單歷程？",
+      "supplierCodes": [
+        "SUP-002"
+      ],
+      "expectedAnswerPoints": [
+        "列有 3 筆 PO 範例，需依各筆 status/stage 區分流程位置。"
+      ],
+      "expectedSourceKeys": [
+        "DOC-SUP-002-COOPERATION-HISTORY-SP907"
+      ],
+      "citationRequirements": [
+        "只引用 DOC-SUP-002-COOPERATION-HISTORY 的標題、版本及支持回答的原文。"
+      ],
+      "expectedStatus": "ANSWER"
+    },
+    {
+      "fixtureKey": "RAG-043",
+      "category": "subjective_evaluation",
+      "question": "SUP-002 的主檔分數是否等於正式評鑑或採購排名？",
+      "supplierCodes": [
+        "SUP-002"
+      ],
+      "expectedAnswerPoints": [
+        "reliabilityScore=85、qualityScore=91；僅為虛構主檔值，不代表正式評鑑、核准或排名。"
+      ],
+      "expectedSourceKeys": [
+        "DOC-SUP-002-BUYER-EVALUATION-SP907"
+      ],
+      "citationRequirements": [
+        "只引用 DOC-SUP-002-BUYER-EVALUATION 的標題、版本及支持回答的原文。"
+      ],
+      "expectedStatus": "ANSWER"
+    },
+    {
+      "fixtureKey": "RAG-044",
+      "category": "cross_supplier_isolation",
+      "question": "查詢 SUP-002 基本資料時應回覆哪個供應商並排除其他文件？",
+      "supplierCodes": [
+        "SUP-002"
+      ],
+      "expectedAnswerPoints": [
+        "只回覆 SUP-002 東港貿易社 的資料，不混入其他 supplierCode 文件。"
+      ],
+      "expectedSourceKeys": [
+        "DOC-SUP-002-SUPPLIER-PROFILE-SP907"
+      ],
+      "citationRequirements": [
+        "只引用 DOC-SUP-002-SUPPLIER-PROFILE 的標題、版本及支持回答的原文。"
+      ],
+      "expectedStatus": "ANSWER"
+    },
+    {
+      "fixtureKey": "RAG-045",
+      "category": "insufficient_evidence",
+      "question": "SUP-002 的 MAT-001 保存期限為幾天？",
+      "supplierCodes": [
+        "SUP-002"
+      ],
+      "expectedAnswerPoints": [
+        "未提供 MAT-001 保存期限；應回覆資料不足，不可推測。"
+      ],
+      "expectedSourceKeys": [],
+      "citationRequirements": [
+        "無來源時拒答，不附虛構引用或套用其他物料資料。"
+      ],
+      "expectedStatus": "INSUFFICIENT_EVIDENCE"
+    },
+    {
+      "fixtureKey": "RAG-046",
+      "category": "supplier_profile",
+      "question": "SUP-003 的展示供應商名稱、國別及主檔狀態為何？",
+      "supplierCodes": [
+        "SUP-003"
+      ],
+      "expectedAnswerPoints": [
+        "青葉食材供應，國別 台灣，supplierStatus=ACTIVE。"
+      ],
+      "expectedSourceKeys": [
+        "DOC-SUP-003-SUPPLIER-PROFILE-SP907"
+      ],
+      "citationRequirements": [
+        "只引用 DOC-SUP-003-SUPPLIER-PROFILE 的標題、版本及支持回答的原文。"
+      ],
+      "expectedStatus": "ANSWER"
+    },
+    {
+      "fixtureKey": "RAG-047",
+      "category": "supplier_materials",
+      "question": "SUP-003 在主檔列有哪些供貨關係？",
+      "supplierCodes": [
+        "SUP-003"
+      ],
+      "expectedAnswerPoints": [
+        "主檔列有 6 筆 ACTIVE supplierMaterials 關係。"
+      ],
+      "expectedSourceKeys": [
+        "DOC-SUP-003-SUPPLY-CAPABILITY-SP907"
+      ],
+      "citationRequirements": [
+        "只引用 DOC-SUP-003-SUPPLY-CAPABILITY 的標題、版本及支持回答的原文。"
+      ],
+      "expectedStatus": "ANSWER"
+    },
+    {
+      "fixtureKey": "RAG-048",
+      "category": "delivery",
+      "question": "SUP-003 對 MAT-001 的標準交期為何？",
+      "supplierCodes": [
+        "SUP-003"
+      ],
+      "expectedAnswerPoints": [
+        "ACTIVE 關係交期 10 個日曆日，從 ORDERED 起算。"
+      ],
+      "expectedSourceKeys": [
+        "DOC-SUP-003-DELIVERY-COORDINATION-SP907"
+      ],
+      "citationRequirements": [
+        "只引用 DOC-SUP-003-DELIVERY-COORDINATION 的標題、版本及支持回答的原文。"
+      ],
+      "expectedStatus": "ANSWER"
+    },
+    {
+      "fixtureKey": "RAG-049",
+      "category": "moq",
+      "question": "SUP-003 的 MAT-001 MOQ 和包裝倍數為何？",
+      "supplierCodes": [
+        "SUP-003"
+      ],
+      "expectedAnswerPoints": [
+        "MOQ 1000 KG；包裝倍數 100 KG。"
+      ],
+      "expectedSourceKeys": [
+        "DOC-SUP-003-CONTRACT-TERMS-SP907"
+      ],
+      "citationRequirements": [
+        "只引用 DOC-SUP-003-CONTRACT-TERMS 的標題、版本及支持回答的原文。"
+      ],
+      "expectedStatus": "ANSWER"
+    },
+    {
+      "fixtureKey": "RAG-050",
+      "category": "contract_terms",
+      "question": "SUP-003 的 MAT-001 供貨條件有效至哪一天？",
+      "supplierCodes": [
+        "SUP-003"
+      ],
+      "expectedAnswerPoints": [
+        "主檔未提供有效起訖日，不可推定有效期限。"
+      ],
+      "expectedSourceKeys": [
+        "DOC-SUP-003-QUOTATION-SP907"
+      ],
+      "citationRequirements": [
+        "只引用 DOC-SUP-003-QUOTATION 的標題、版本及支持回答的原文。"
+      ],
+      "expectedStatus": "ANSWER"
+    },
+    {
+      "fixtureKey": "RAG-051",
+      "category": "quality",
+      "question": "SUP-003 的 MAT-001 到貨查核哪些項目？有實際檢驗結果嗎？",
+      "supplierCodes": [
+        "SUP-003"
+      ],
+      "expectedAnswerPoints": [
+        "核對代碼、名稱、數量、包裝、批次及可見異常；展示資料沒有實際檢驗結果。"
+      ],
+      "expectedSourceKeys": [
+        "DOC-SUP-003-QUALITY-REQUIREMENTS-SP907"
+      ],
+      "citationRequirements": [
+        "只引用 DOC-SUP-003-QUALITY-REQUIREMENTS 的標題、版本及支持回答的原文。"
+      ],
+      "expectedStatus": "ANSWER"
+    },
+    {
+      "fixtureKey": "RAG-052",
+      "category": "history",
+      "question": "SUP-003 的展示主檔包含哪些採購單歷程？",
+      "supplierCodes": [
+        "SUP-003"
+      ],
+      "expectedAnswerPoints": [
+        "列有 2 筆 PO 範例，需依各筆 status/stage 區分流程位置。"
+      ],
+      "expectedSourceKeys": [
+        "DOC-SUP-003-COOPERATION-HISTORY-SP907"
+      ],
+      "citationRequirements": [
+        "只引用 DOC-SUP-003-COOPERATION-HISTORY 的標題、版本及支持回答的原文。"
+      ],
+      "expectedStatus": "ANSWER"
+    },
+    {
+      "fixtureKey": "RAG-053",
+      "category": "subjective_evaluation",
+      "question": "SUP-003 的主檔分數是否等於正式評鑑或採購排名？",
+      "supplierCodes": [
+        "SUP-003"
+      ],
+      "expectedAnswerPoints": [
+        "reliabilityScore=88、qualityScore=86；僅為虛構主檔值，不代表正式評鑑、核准或排名。"
+      ],
+      "expectedSourceKeys": [
+        "DOC-SUP-003-BUYER-EVALUATION-SP907"
+      ],
+      "citationRequirements": [
+        "只引用 DOC-SUP-003-BUYER-EVALUATION 的標題、版本及支持回答的原文。"
+      ],
+      "expectedStatus": "ANSWER"
+    },
+    {
+      "fixtureKey": "RAG-054",
+      "category": "cross_supplier_isolation",
+      "question": "查詢 SUP-003 基本資料時應回覆哪個供應商並排除其他文件？",
+      "supplierCodes": [
+        "SUP-003"
+      ],
+      "expectedAnswerPoints": [
+        "只回覆 SUP-003 青葉食材供應 的資料，不混入其他 supplierCode 文件。"
+      ],
+      "expectedSourceKeys": [
+        "DOC-SUP-003-SUPPLIER-PROFILE-SP907"
+      ],
+      "citationRequirements": [
+        "只引用 DOC-SUP-003-SUPPLIER-PROFILE 的標題、版本及支持回答的原文。"
+      ],
+      "expectedStatus": "ANSWER"
+    },
+    {
+      "fixtureKey": "RAG-055",
+      "category": "insufficient_evidence",
+      "question": "SUP-003 的 MAT-001 保存期限為幾天？",
+      "supplierCodes": [
+        "SUP-003"
+      ],
+      "expectedAnswerPoints": [
+        "未提供 MAT-001 保存期限；應回覆資料不足，不可推測。"
+      ],
+      "expectedSourceKeys": [],
+      "citationRequirements": [
+        "無來源時拒答，不附虛構引用或套用其他物料資料。"
+      ],
+      "expectedStatus": "INSUFFICIENT_EVIDENCE"
+    },
+    {
+      "fixtureKey": "RAG-056",
+      "category": "supplier_profile",
+      "question": "SUP-004 的展示供應商名稱、國別及主檔狀態為何？",
+      "supplierCodes": [
+        "SUP-004"
+      ],
+      "expectedAnswerPoints": [
+        "舊港原料行，國別 台灣，supplierStatus=INACTIVE。"
+      ],
+      "expectedSourceKeys": [
+        "DOC-SUP-004-SUPPLIER-PROFILE-SP907"
+      ],
+      "citationRequirements": [
+        "只引用 DOC-SUP-004-SUPPLIER-PROFILE 的標題、版本及支持回答的原文。"
+      ],
+      "expectedStatus": "ANSWER"
+    },
+    {
+      "fixtureKey": "RAG-057",
+      "category": "supplier_materials",
+      "question": "SUP-004 在主檔列有哪些供貨關係？",
+      "supplierCodes": [
+        "SUP-004"
+      ],
+      "expectedAnswerPoints": [
+        "沒有 ACTIVE 關係；SUP-004/MAT-001 唯一連結為 INACTIVE。"
+      ],
+      "expectedSourceKeys": [
+        "DOC-SUP-004-SUPPLY-CAPABILITY-SP907"
+      ],
+      "citationRequirements": [
+        "只引用 DOC-SUP-004-SUPPLY-CAPABILITY 的標題、版本及支持回答的原文。"
+      ],
+      "expectedStatus": "ANSWER"
+    },
+    {
+      "fixtureKey": "RAG-058",
+      "category": "delivery",
+      "question": "SUP-004 對 MAT-001 的標準交期為何？",
+      "supplierCodes": [
+        "SUP-004"
+      ],
+      "expectedAnswerPoints": [
+        "2 日只屬於 INACTIVE 歷史值，無目前承諾。"
+      ],
+      "expectedSourceKeys": [
+        "DOC-SUP-004-DELIVERY-COORDINATION-SP907"
+      ],
+      "citationRequirements": [
+        "只引用 DOC-SUP-004-DELIVERY-COORDINATION 的標題、版本及支持回答的原文。"
+      ],
+      "expectedStatus": "ANSWER"
+    },
+    {
+      "fixtureKey": "RAG-059",
+      "category": "moq",
+      "question": "SUP-004 的 MAT-001 MOQ 和包裝倍數為何？",
+      "supplierCodes": [
+        "SUP-004"
+      ],
+      "expectedAnswerPoints": [
+        "歷史 MOQ 500 KG、倍數 50 KG；關係已停用。"
+      ],
+      "expectedSourceKeys": [
+        "DOC-SUP-004-CONTRACT-TERMS-SP907"
+      ],
+      "citationRequirements": [
+        "只引用 DOC-SUP-004-CONTRACT-TERMS 的標題、版本及支持回答的原文。"
+      ],
+      "expectedStatus": "ANSWER"
+    },
+    {
+      "fixtureKey": "RAG-060",
+      "category": "contract_terms",
+      "question": "SUP-004 的 MAT-001 供貨條件有效至哪一天？",
+      "supplierCodes": [
+        "SUP-004"
+      ],
+      "expectedAnswerPoints": [
+        "主檔未提供有效起訖日，不可推定有效期限。"
+      ],
+      "expectedSourceKeys": [
+        "DOC-SUP-004-QUOTATION-SP907"
+      ],
+      "citationRequirements": [
+        "只引用 DOC-SUP-004-QUOTATION 的標題、版本及支持回答的原文。"
+      ],
+      "expectedStatus": "ANSWER"
+    },
+    {
+      "fixtureKey": "RAG-061",
+      "category": "quality",
+      "question": "SUP-004 的 MAT-001 到貨查核哪些項目？有實際檢驗結果嗎？",
+      "supplierCodes": [
+        "SUP-004"
+      ],
+      "expectedAnswerPoints": [
+        "核對代碼、名稱、數量、包裝、批次及可見異常；展示資料沒有實際檢驗結果。"
+      ],
+      "expectedSourceKeys": [
+        "DOC-SUP-004-QUALITY-REQUIREMENTS-SP907"
+      ],
+      "citationRequirements": [
+        "只引用 DOC-SUP-004-QUALITY-REQUIREMENTS 的標題、版本及支持回答的原文。"
+      ],
+      "expectedStatus": "ANSWER"
+    },
+    {
+      "fixtureKey": "RAG-062",
+      "category": "history",
+      "question": "SUP-004 的展示主檔包含哪些採購單歷程？",
+      "supplierCodes": [
+        "SUP-004"
+      ],
+      "expectedAnswerPoints": [
+        "樣本沒有 PO 範例，不代表實際沒有合作或交易。"
+      ],
+      "expectedSourceKeys": [
+        "DOC-SUP-004-COOPERATION-HISTORY-SP907"
+      ],
+      "citationRequirements": [
+        "只引用 DOC-SUP-004-COOPERATION-HISTORY 的標題、版本及支持回答的原文。"
+      ],
+      "expectedStatus": "ANSWER"
+    },
+    {
+      "fixtureKey": "RAG-063",
+      "category": "subjective_evaluation",
+      "question": "SUP-004 的主檔分數是否等於正式評鑑或採購排名？",
+      "supplierCodes": [
+        "SUP-004"
+      ],
+      "expectedAnswerPoints": [
+        "reliabilityScore=70、qualityScore=72；僅為虛構主檔值，不代表正式評鑑、核准或排名。"
+      ],
+      "expectedSourceKeys": [
+        "DOC-SUP-004-BUYER-EVALUATION-SP907"
+      ],
+      "citationRequirements": [
+        "只引用 DOC-SUP-004-BUYER-EVALUATION 的標題、版本及支持回答的原文。"
+      ],
+      "expectedStatus": "ANSWER"
+    },
+    {
+      "fixtureKey": "RAG-064",
+      "category": "cross_supplier_isolation",
+      "question": "查詢 SUP-004 基本資料時應回覆哪個供應商並排除其他文件？",
+      "supplierCodes": [
+        "SUP-004"
+      ],
+      "expectedAnswerPoints": [
+        "只回覆 SUP-004 舊港原料行 的資料，不混入其他 supplierCode 文件。"
+      ],
+      "expectedSourceKeys": [
+        "DOC-SUP-004-SUPPLIER-PROFILE-SP907"
+      ],
+      "citationRequirements": [
+        "只引用 DOC-SUP-004-SUPPLIER-PROFILE 的標題、版本及支持回答的原文。"
+      ],
+      "expectedStatus": "ANSWER"
+    },
+    {
+      "fixtureKey": "RAG-065",
+      "category": "insufficient_evidence",
+      "question": "SUP-004 的 MAT-001 保存期限為幾天？",
+      "supplierCodes": [
+        "SUP-004"
+      ],
+      "expectedAnswerPoints": [
+        "未提供 MAT-001 保存期限；應回覆資料不足，不可推測。"
+      ],
+      "expectedSourceKeys": [],
+      "citationRequirements": [
+        "無來源時拒答，不附虛構引用或套用其他物料資料。"
+      ],
+      "expectedStatus": "INSUFFICIENT_EVIDENCE"
+    },
+    {
+      "fixtureKey": "RAG-066",
+      "category": "supplier_profile",
+      "question": "SUP-005 的展示供應商名稱、國別及主檔狀態為何？",
+      "supplierCodes": [
+        "SUP-005"
+      ],
+      "expectedAnswerPoints": [
+        "海岳食品素材，國別 日本，supplierStatus=ACTIVE。"
+      ],
+      "expectedSourceKeys": [
+        "DOC-SUP-005-SUPPLIER-PROFILE-SP907"
+      ],
+      "citationRequirements": [
+        "只引用 DOC-SUP-005-SUPPLIER-PROFILE 的標題、版本及支持回答的原文。"
+      ],
+      "expectedStatus": "ANSWER"
+    },
+    {
+      "fixtureKey": "RAG-067",
+      "category": "supplier_materials",
+      "question": "SUP-005 在主檔列有哪些供貨關係？",
+      "supplierCodes": [
+        "SUP-005"
+      ],
+      "expectedAnswerPoints": [
+        "主檔列有 6 筆 ACTIVE supplierMaterials 關係。"
+      ],
+      "expectedSourceKeys": [
+        "DOC-SUP-005-SUPPLY-CAPABILITY-SP907"
+      ],
+      "citationRequirements": [
+        "只引用 DOC-SUP-005-SUPPLY-CAPABILITY 的標題、版本及支持回答的原文。"
+      ],
+      "expectedStatus": "ANSWER"
+    },
+    {
+      "fixtureKey": "RAG-068",
+      "category": "delivery",
+      "question": "SUP-005 對 MAT-001 的標準交期為何？",
+      "supplierCodes": [
+        "SUP-005"
+      ],
+      "expectedAnswerPoints": [
+        "ACTIVE 關係交期 7 個日曆日，從 ORDERED 起算。"
+      ],
+      "expectedSourceKeys": [
+        "DOC-SUP-005-DELIVERY-COORDINATION-SP907"
+      ],
+      "citationRequirements": [
+        "只引用 DOC-SUP-005-DELIVERY-COORDINATION 的標題、版本及支持回答的原文。"
+      ],
+      "expectedStatus": "ANSWER"
+    },
+    {
+      "fixtureKey": "RAG-069",
+      "category": "moq",
+      "question": "SUP-005 的 MAT-001 MOQ 和包裝倍數為何？",
+      "supplierCodes": [
+        "SUP-005"
+      ],
+      "expectedAnswerPoints": [
+        "MOQ 600 KG；包裝倍數 100 KG。"
+      ],
+      "expectedSourceKeys": [
+        "DOC-SUP-005-CONTRACT-TERMS-SP907"
+      ],
+      "citationRequirements": [
+        "只引用 DOC-SUP-005-CONTRACT-TERMS 的標題、版本及支持回答的原文。"
+      ],
+      "expectedStatus": "ANSWER"
+    },
+    {
+      "fixtureKey": "RAG-070",
+      "category": "contract_terms",
+      "question": "SUP-005 的 MAT-001 供貨條件有效至哪一天？",
+      "supplierCodes": [
+        "SUP-005"
+      ],
+      "expectedAnswerPoints": [
+        "主檔未提供有效起訖日，不可推定有效期限。"
+      ],
+      "expectedSourceKeys": [
+        "DOC-SUP-005-QUOTATION-SP907"
+      ],
+      "citationRequirements": [
+        "只引用 DOC-SUP-005-QUOTATION 的標題、版本及支持回答的原文。"
+      ],
+      "expectedStatus": "ANSWER"
+    },
+    {
+      "fixtureKey": "RAG-071",
+      "category": "quality",
+      "question": "SUP-005 的 MAT-001 到貨查核哪些項目？有實際檢驗結果嗎？",
+      "supplierCodes": [
+        "SUP-005"
+      ],
+      "expectedAnswerPoints": [
+        "核對代碼、名稱、數量、包裝、批次及可見異常；展示資料沒有實際檢驗結果。"
+      ],
+      "expectedSourceKeys": [
+        "DOC-SUP-005-QUALITY-REQUIREMENTS-SP907"
+      ],
+      "citationRequirements": [
+        "只引用 DOC-SUP-005-QUALITY-REQUIREMENTS 的標題、版本及支持回答的原文。"
+      ],
+      "expectedStatus": "ANSWER"
+    },
+    {
+      "fixtureKey": "RAG-072",
+      "category": "history",
+      "question": "SUP-005 的展示主檔包含哪些採購單歷程？",
+      "supplierCodes": [
+        "SUP-005"
+      ],
+      "expectedAnswerPoints": [
+        "樣本沒有 PO 範例，不代表實際沒有合作或交易。"
+      ],
+      "expectedSourceKeys": [
+        "DOC-SUP-005-COOPERATION-HISTORY-SP907"
+      ],
+      "citationRequirements": [
+        "只引用 DOC-SUP-005-COOPERATION-HISTORY 的標題、版本及支持回答的原文。"
+      ],
+      "expectedStatus": "ANSWER"
+    },
+    {
+      "fixtureKey": "RAG-073",
+      "category": "subjective_evaluation",
+      "question": "SUP-005 的主檔分數是否等於正式評鑑或採購排名？",
+      "supplierCodes": [
+        "SUP-005"
+      ],
+      "expectedAnswerPoints": [
+        "reliabilityScore=94、qualityScore=93；僅為虛構主檔值，不代表正式評鑑、核准或排名。"
+      ],
+      "expectedSourceKeys": [
+        "DOC-SUP-005-BUYER-EVALUATION-SP907"
+      ],
+      "citationRequirements": [
+        "只引用 DOC-SUP-005-BUYER-EVALUATION 的標題、版本及支持回答的原文。"
+      ],
+      "expectedStatus": "ANSWER"
+    },
+    {
+      "fixtureKey": "RAG-074",
+      "category": "cross_supplier_isolation",
+      "question": "查詢 SUP-005 基本資料時應回覆哪個供應商並排除其他文件？",
+      "supplierCodes": [
+        "SUP-005"
+      ],
+      "expectedAnswerPoints": [
+        "只回覆 SUP-005 海岳食品素材 的資料，不混入其他 supplierCode 文件。"
+      ],
+      "expectedSourceKeys": [
+        "DOC-SUP-005-SUPPLIER-PROFILE-SP907"
+      ],
+      "citationRequirements": [
+        "只引用 DOC-SUP-005-SUPPLIER-PROFILE 的標題、版本及支持回答的原文。"
+      ],
+      "expectedStatus": "ANSWER"
+    },
+    {
+      "fixtureKey": "RAG-075",
+      "category": "insufficient_evidence",
+      "question": "SUP-005 的 MAT-001 保存期限為幾天？",
+      "supplierCodes": [
+        "SUP-005"
+      ],
+      "expectedAnswerPoints": [
+        "未提供 MAT-001 保存期限；應回覆資料不足，不可推測。"
+      ],
+      "expectedSourceKeys": [],
+      "citationRequirements": [
+        "無來源時拒答，不附虛構引用或套用其他物料資料。"
+      ],
+      "expectedStatus": "INSUFFICIENT_EVIDENCE"
+    },
+    {
+      "fixtureKey": "RAG-076",
+      "category": "supplier_profile",
+      "question": "SUP-006 的展示供應商名稱、國別及主檔狀態為何？",
+      "supplierCodes": [
+        "SUP-006"
+      ],
+      "expectedAnswerPoints": [
+        "金田貿易，國別 泰國，supplierStatus=ACTIVE。"
+      ],
+      "expectedSourceKeys": [
+        "DOC-SUP-006-SUPPLIER-PROFILE-SP907"
+      ],
+      "citationRequirements": [
+        "只引用 DOC-SUP-006-SUPPLIER-PROFILE 的標題、版本及支持回答的原文。"
+      ],
+      "expectedStatus": "ANSWER"
+    },
+    {
+      "fixtureKey": "RAG-077",
+      "category": "supplier_materials",
+      "question": "SUP-006 在主檔列有哪些供貨關係？",
+      "supplierCodes": [
+        "SUP-006"
+      ],
+      "expectedAnswerPoints": [
+        "主檔列有 5 筆 ACTIVE supplierMaterials 關係。"
+      ],
+      "expectedSourceKeys": [
+        "DOC-SUP-006-SUPPLY-CAPABILITY-SP907"
+      ],
+      "citationRequirements": [
+        "只引用 DOC-SUP-006-SUPPLY-CAPABILITY 的標題、版本及支持回答的原文。"
+      ],
+      "expectedStatus": "ANSWER"
+    },
+    {
+      "fixtureKey": "RAG-078",
+      "category": "delivery",
+      "question": "SUP-006 對 MAT-002 的標準交期為何？",
+      "supplierCodes": [
+        "SUP-006"
+      ],
+      "expectedAnswerPoints": [
+        "ACTIVE 關係交期 5 個日曆日，從 ORDERED 起算。"
+      ],
+      "expectedSourceKeys": [
+        "DOC-SUP-006-DELIVERY-COORDINATION-SP907"
+      ],
+      "citationRequirements": [
+        "只引用 DOC-SUP-006-DELIVERY-COORDINATION 的標題、版本及支持回答的原文。"
+      ],
+      "expectedStatus": "ANSWER"
+    },
+    {
+      "fixtureKey": "RAG-079",
+      "category": "moq",
+      "question": "SUP-006 的 MAT-002 MOQ 和包裝倍數為何？",
+      "supplierCodes": [
+        "SUP-006"
+      ],
+      "expectedAnswerPoints": [
+        "MOQ 300 KG；包裝倍數 25 KG。"
+      ],
+      "expectedSourceKeys": [
+        "DOC-SUP-006-CONTRACT-TERMS-SP907"
+      ],
+      "citationRequirements": [
+        "只引用 DOC-SUP-006-CONTRACT-TERMS 的標題、版本及支持回答的原文。"
+      ],
+      "expectedStatus": "ANSWER"
+    },
+    {
+      "fixtureKey": "RAG-080",
+      "category": "contract_terms",
+      "question": "SUP-006 的 MAT-002 供貨條件有效至哪一天？",
+      "supplierCodes": [
+        "SUP-006"
+      ],
+      "expectedAnswerPoints": [
+        "主檔未提供有效起訖日，不可推定有效期限。"
+      ],
+      "expectedSourceKeys": [
+        "DOC-SUP-006-QUOTATION-SP907"
+      ],
+      "citationRequirements": [
+        "只引用 DOC-SUP-006-QUOTATION 的標題、版本及支持回答的原文。"
+      ],
+      "expectedStatus": "ANSWER"
+    },
+    {
+      "fixtureKey": "RAG-081",
+      "category": "quality",
+      "question": "SUP-006 的 MAT-002 到貨查核哪些項目？有實際檢驗結果嗎？",
+      "supplierCodes": [
+        "SUP-006"
+      ],
+      "expectedAnswerPoints": [
+        "核對代碼、名稱、數量、包裝、批次及可見異常；展示資料沒有實際檢驗結果。"
+      ],
+      "expectedSourceKeys": [
+        "DOC-SUP-006-QUALITY-REQUIREMENTS-SP907"
+      ],
+      "citationRequirements": [
+        "只引用 DOC-SUP-006-QUALITY-REQUIREMENTS 的標題、版本及支持回答的原文。"
+      ],
+      "expectedStatus": "ANSWER"
+    },
+    {
+      "fixtureKey": "RAG-082",
+      "category": "history",
+      "question": "SUP-006 的展示主檔包含哪些採購單歷程？",
+      "supplierCodes": [
+        "SUP-006"
+      ],
+      "expectedAnswerPoints": [
+        "列有 1 筆 PO 範例，需依各筆 status/stage 區分流程位置。"
+      ],
+      "expectedSourceKeys": [
+        "DOC-SUP-006-COOPERATION-HISTORY-SP907"
+      ],
+      "citationRequirements": [
+        "只引用 DOC-SUP-006-COOPERATION-HISTORY 的標題、版本及支持回答的原文。"
+      ],
+      "expectedStatus": "ANSWER"
+    },
+    {
+      "fixtureKey": "RAG-083",
+      "category": "subjective_evaluation",
+      "question": "SUP-006 的主檔分數是否等於正式評鑑或採購排名？",
+      "supplierCodes": [
+        "SUP-006"
+      ],
+      "expectedAnswerPoints": [
+        "reliabilityScore=82、qualityScore=89；僅為虛構主檔值，不代表正式評鑑、核准或排名。"
+      ],
+      "expectedSourceKeys": [
+        "DOC-SUP-006-BUYER-EVALUATION-SP907"
+      ],
+      "citationRequirements": [
+        "只引用 DOC-SUP-006-BUYER-EVALUATION 的標題、版本及支持回答的原文。"
+      ],
+      "expectedStatus": "ANSWER"
+    },
+    {
+      "fixtureKey": "RAG-084",
+      "category": "cross_supplier_isolation",
+      "question": "查詢 SUP-006 基本資料時應回覆哪個供應商並排除其他文件？",
+      "supplierCodes": [
+        "SUP-006"
+      ],
+      "expectedAnswerPoints": [
+        "只回覆 SUP-006 金田貿易 的資料，不混入其他 supplierCode 文件。"
+      ],
+      "expectedSourceKeys": [
+        "DOC-SUP-006-SUPPLIER-PROFILE-SP907"
+      ],
+      "citationRequirements": [
+        "只引用 DOC-SUP-006-SUPPLIER-PROFILE 的標題、版本及支持回答的原文。"
+      ],
+      "expectedStatus": "ANSWER"
+    },
+    {
+      "fixtureKey": "RAG-085",
+      "category": "insufficient_evidence",
+      "question": "SUP-006 的 MAT-002 保存期限為幾天？",
+      "supplierCodes": [
+        "SUP-006"
+      ],
+      "expectedAnswerPoints": [
+        "未提供 MAT-002 保存期限；應回覆資料不足，不可推測。"
+      ],
+      "expectedSourceKeys": [],
+      "citationRequirements": [
+        "無來源時拒答，不附虛構引用或套用其他物料資料。"
+      ],
+      "expectedStatus": "INSUFFICIENT_EVIDENCE"
+    },
+    {
+      "fixtureKey": "RAG-086",
+      "category": "supplier_profile",
+      "question": "SUP-007 的展示供應商名稱、國別及主檔狀態為何？",
+      "supplierCodes": [
+        "SUP-007"
+      ],
+      "expectedAnswerPoints": [
+        "山嵐果萃食品，國別 台灣，supplierStatus=ACTIVE。"
+      ],
+      "expectedSourceKeys": [
+        "DOC-SUP-007-SUPPLIER-PROFILE-SP907"
+      ],
+      "citationRequirements": [
+        "只引用 DOC-SUP-007-SUPPLIER-PROFILE 的標題、版本及支持回答的原文。"
+      ],
+      "expectedStatus": "ANSWER"
+    },
+    {
+      "fixtureKey": "RAG-087",
+      "category": "supplier_materials",
+      "question": "SUP-007 在主檔列有哪些供貨關係？",
+      "supplierCodes": [
+        "SUP-007"
+      ],
+      "expectedAnswerPoints": [
+        "主檔列有 4 筆 ACTIVE supplierMaterials 關係。"
+      ],
+      "expectedSourceKeys": [
+        "DOC-SUP-007-SUPPLY-CAPABILITY-SP907"
+      ],
+      "citationRequirements": [
+        "只引用 DOC-SUP-007-SUPPLY-CAPABILITY 的標題、版本及支持回答的原文。"
+      ],
+      "expectedStatus": "ANSWER"
+    },
+    {
+      "fixtureKey": "RAG-088",
+      "category": "delivery",
+      "question": "SUP-007 對 MAT-002 的標準交期為何？",
+      "supplierCodes": [
+        "SUP-007"
+      ],
+      "expectedAnswerPoints": [
+        "ACTIVE 關係交期 6 個日曆日，從 ORDERED 起算。"
+      ],
+      "expectedSourceKeys": [
+        "DOC-SUP-007-DELIVERY-COORDINATION-SP907"
+      ],
+      "citationRequirements": [
+        "只引用 DOC-SUP-007-DELIVERY-COORDINATION 的標題、版本及支持回答的原文。"
+      ],
+      "expectedStatus": "ANSWER"
+    },
+    {
+      "fixtureKey": "RAG-089",
+      "category": "moq",
+      "question": "SUP-007 的 MAT-002 MOQ 和包裝倍數為何？",
+      "supplierCodes": [
+        "SUP-007"
+      ],
+      "expectedAnswerPoints": [
+        "MOQ 100 KG；包裝倍數 25 KG。"
+      ],
+      "expectedSourceKeys": [
+        "DOC-SUP-007-CONTRACT-TERMS-SP907"
+      ],
+      "citationRequirements": [
+        "只引用 DOC-SUP-007-CONTRACT-TERMS 的標題、版本及支持回答的原文。"
+      ],
+      "expectedStatus": "ANSWER"
+    },
+    {
+      "fixtureKey": "RAG-090",
+      "category": "contract_terms",
+      "question": "SUP-007 的 MAT-002 供貨條件有效至哪一天？",
+      "supplierCodes": [
+        "SUP-007"
+      ],
+      "expectedAnswerPoints": [
+        "主檔未提供有效起訖日，不可推定有效期限。"
+      ],
+      "expectedSourceKeys": [
+        "DOC-SUP-007-QUOTATION-SP907"
+      ],
+      "citationRequirements": [
+        "只引用 DOC-SUP-007-QUOTATION 的標題、版本及支持回答的原文。"
+      ],
+      "expectedStatus": "ANSWER"
+    },
+    {
+      "fixtureKey": "RAG-091",
+      "category": "quality",
+      "question": "SUP-007 的 MAT-002 到貨查核哪些項目？有實際檢驗結果嗎？",
+      "supplierCodes": [
+        "SUP-007"
+      ],
+      "expectedAnswerPoints": [
+        "核對代碼、名稱、數量、包裝、批次及可見異常；展示資料沒有實際檢驗結果。"
+      ],
+      "expectedSourceKeys": [
+        "DOC-SUP-007-QUALITY-REQUIREMENTS-SP907"
+      ],
+      "citationRequirements": [
+        "只引用 DOC-SUP-007-QUALITY-REQUIREMENTS 的標題、版本及支持回答的原文。"
+      ],
+      "expectedStatus": "ANSWER"
+    },
+    {
+      "fixtureKey": "RAG-092",
+      "category": "history",
+      "question": "SUP-007 的展示主檔包含哪些採購單歷程？",
+      "supplierCodes": [
+        "SUP-007"
+      ],
+      "expectedAnswerPoints": [
+        "列有 1 筆 PO 範例，需依各筆 status/stage 區分流程位置。"
+      ],
+      "expectedSourceKeys": [
+        "DOC-SUP-007-COOPERATION-HISTORY-SP907"
+      ],
+      "citationRequirements": [
+        "只引用 DOC-SUP-007-COOPERATION-HISTORY 的標題、版本及支持回答的原文。"
+      ],
+      "expectedStatus": "ANSWER"
+    },
+    {
+      "fixtureKey": "RAG-093",
+      "category": "subjective_evaluation",
+      "question": "SUP-007 的主檔分數是否等於正式評鑑或採購排名？",
+      "supplierCodes": [
+        "SUP-007"
+      ],
+      "expectedAnswerPoints": [
+        "reliabilityScore=90、qualityScore=88；僅為虛構主檔值，不代表正式評鑑、核准或排名。"
+      ],
+      "expectedSourceKeys": [
+        "DOC-SUP-007-BUYER-EVALUATION-SP907"
+      ],
+      "citationRequirements": [
+        "只引用 DOC-SUP-007-BUYER-EVALUATION 的標題、版本及支持回答的原文。"
+      ],
+      "expectedStatus": "ANSWER"
+    },
+    {
+      "fixtureKey": "RAG-094",
+      "category": "cross_supplier_isolation",
+      "question": "查詢 SUP-007 基本資料時應回覆哪個供應商並排除其他文件？",
+      "supplierCodes": [
+        "SUP-007"
+      ],
+      "expectedAnswerPoints": [
+        "只回覆 SUP-007 山嵐果萃食品 的資料，不混入其他 supplierCode 文件。"
+      ],
+      "expectedSourceKeys": [
+        "DOC-SUP-007-SUPPLIER-PROFILE-SP907"
+      ],
+      "citationRequirements": [
+        "只引用 DOC-SUP-007-SUPPLIER-PROFILE 的標題、版本及支持回答的原文。"
+      ],
+      "expectedStatus": "ANSWER"
+    },
+    {
+      "fixtureKey": "RAG-095",
+      "category": "insufficient_evidence",
+      "question": "SUP-007 的 MAT-002 保存期限為幾天？",
+      "supplierCodes": [
+        "SUP-007"
+      ],
+      "expectedAnswerPoints": [
+        "未提供 MAT-002 保存期限；應回覆資料不足，不可推測。"
+      ],
+      "expectedSourceKeys": [],
+      "citationRequirements": [
+        "無來源時拒答，不附虛構引用或套用其他物料資料。"
+      ],
+      "expectedStatus": "INSUFFICIENT_EVIDENCE"
+    },
+    {
+      "fixtureKey": "RAG-096",
+      "category": "supplier_profile",
+      "question": "SUP-008 的展示供應商名稱、國別及主檔狀態為何？",
+      "supplierCodes": [
+        "SUP-008"
+      ],
+      "expectedAnswerPoints": [
+        "森川飲品原料，國別 台灣，supplierStatus=ACTIVE。"
+      ],
+      "expectedSourceKeys": [
+        "DOC-SUP-008-SUPPLIER-PROFILE-SP907"
+      ],
+      "citationRequirements": [
+        "只引用 DOC-SUP-008-SUPPLIER-PROFILE 的標題、版本及支持回答的原文。"
+      ],
+      "expectedStatus": "ANSWER"
+    },
+    {
+      "fixtureKey": "RAG-097",
+      "category": "supplier_materials",
+      "question": "SUP-008 在主檔列有哪些供貨關係？",
+      "supplierCodes": [
+        "SUP-008"
+      ],
+      "expectedAnswerPoints": [
+        "主檔列有 4 筆 ACTIVE supplierMaterials 關係。"
+      ],
+      "expectedSourceKeys": [
+        "DOC-SUP-008-SUPPLY-CAPABILITY-SP907"
+      ],
+      "citationRequirements": [
+        "只引用 DOC-SUP-008-SUPPLY-CAPABILITY 的標題、版本及支持回答的原文。"
+      ],
+      "expectedStatus": "ANSWER"
+    },
+    {
+      "fixtureKey": "RAG-098",
+      "category": "delivery",
+      "question": "SUP-008 對 MAT-003 的標準交期為何？",
+      "supplierCodes": [
+        "SUP-008"
+      ],
+      "expectedAnswerPoints": [
+        "ACTIVE 關係交期 3 個日曆日，從 ORDERED 起算。"
+      ],
+      "expectedSourceKeys": [
+        "DOC-SUP-008-DELIVERY-COORDINATION-SP907"
+      ],
+      "citationRequirements": [
+        "只引用 DOC-SUP-008-DELIVERY-COORDINATION 的標題、版本及支持回答的原文。"
+      ],
+      "expectedStatus": "ANSWER"
+    },
+    {
+      "fixtureKey": "RAG-099",
+      "category": "moq",
+      "question": "SUP-008 的 MAT-003 MOQ 和包裝倍數為何？",
+      "supplierCodes": [
+        "SUP-008"
+      ],
+      "expectedAnswerPoints": [
+        "MOQ 200 KG；包裝倍數 100 KG。"
+      ],
+      "expectedSourceKeys": [
+        "DOC-SUP-008-CONTRACT-TERMS-SP907"
+      ],
+      "citationRequirements": [
+        "只引用 DOC-SUP-008-CONTRACT-TERMS 的標題、版本及支持回答的原文。"
+      ],
+      "expectedStatus": "ANSWER"
+    },
+    {
+      "fixtureKey": "RAG-100",
+      "category": "contract_terms",
+      "question": "SUP-008 的 MAT-003 供貨條件有效至哪一天？",
+      "supplierCodes": [
+        "SUP-008"
+      ],
+      "expectedAnswerPoints": [
+        "主檔未提供有效起訖日，不可推定有效期限。"
+      ],
+      "expectedSourceKeys": [
+        "DOC-SUP-008-QUOTATION-SP907"
+      ],
+      "citationRequirements": [
+        "只引用 DOC-SUP-008-QUOTATION 的標題、版本及支持回答的原文。"
+      ],
+      "expectedStatus": "ANSWER"
+    },
+    {
+      "fixtureKey": "RAG-101",
+      "category": "quality",
+      "question": "SUP-008 的 MAT-003 到貨查核哪些項目？有實際檢驗結果嗎？",
+      "supplierCodes": [
+        "SUP-008"
+      ],
+      "expectedAnswerPoints": [
+        "核對代碼、名稱、數量、包裝、批次及可見異常；展示資料沒有實際檢驗結果。"
+      ],
+      "expectedSourceKeys": [
+        "DOC-SUP-008-QUALITY-REQUIREMENTS-SP907"
+      ],
+      "citationRequirements": [
+        "只引用 DOC-SUP-008-QUALITY-REQUIREMENTS 的標題、版本及支持回答的原文。"
+      ],
+      "expectedStatus": "ANSWER"
+    },
+    {
+      "fixtureKey": "RAG-102",
+      "category": "history",
+      "question": "SUP-008 的展示主檔包含哪些採購單歷程？",
+      "supplierCodes": [
+        "SUP-008"
+      ],
+      "expectedAnswerPoints": [
+        "列有 1 筆 PO 範例，需依各筆 status/stage 區分流程位置。"
+      ],
+      "expectedSourceKeys": [
+        "DOC-SUP-008-COOPERATION-HISTORY-SP907"
+      ],
+      "citationRequirements": [
+        "只引用 DOC-SUP-008-COOPERATION-HISTORY 的標題、版本及支持回答的原文。"
+      ],
+      "expectedStatus": "ANSWER"
+    },
+    {
+      "fixtureKey": "RAG-103",
+      "category": "subjective_evaluation",
+      "question": "SUP-008 的主檔分數是否等於正式評鑑或採購排名？",
+      "supplierCodes": [
+        "SUP-008"
+      ],
+      "expectedAnswerPoints": [
+        "reliabilityScore=87、qualityScore=90；僅為虛構主檔值，不代表正式評鑑、核准或排名。"
+      ],
+      "expectedSourceKeys": [
+        "DOC-SUP-008-BUYER-EVALUATION-SP907"
+      ],
+      "citationRequirements": [
+        "只引用 DOC-SUP-008-BUYER-EVALUATION 的標題、版本及支持回答的原文。"
+      ],
+      "expectedStatus": "ANSWER"
+    },
+    {
+      "fixtureKey": "RAG-104",
+      "category": "cross_supplier_isolation",
+      "question": "查詢 SUP-008 基本資料時應回覆哪個供應商並排除其他文件？",
+      "supplierCodes": [
+        "SUP-008"
+      ],
+      "expectedAnswerPoints": [
+        "只回覆 SUP-008 森川飲品原料 的資料，不混入其他 supplierCode 文件。"
+      ],
+      "expectedSourceKeys": [
+        "DOC-SUP-008-SUPPLIER-PROFILE-SP907"
+      ],
+      "citationRequirements": [
+        "只引用 DOC-SUP-008-SUPPLIER-PROFILE 的標題、版本及支持回答的原文。"
+      ],
+      "expectedStatus": "ANSWER"
+    },
+    {
+      "fixtureKey": "RAG-105",
+      "category": "insufficient_evidence",
+      "question": "SUP-008 的 MAT-003 保存期限為幾天？",
+      "supplierCodes": [
+        "SUP-008"
+      ],
+      "expectedAnswerPoints": [
+        "未提供 MAT-003 保存期限；應回覆資料不足，不可推測。"
+      ],
+      "expectedSourceKeys": [],
+      "citationRequirements": [
+        "無來源時拒答，不附虛構引用或套用其他物料資料。"
+      ],
+      "expectedStatus": "INSUFFICIENT_EVIDENCE"
+    },
+    {
+      "fixtureKey": "RAG-106",
+      "category": "supplier_profile",
+      "question": "SUP-009 的展示供應商名稱、國別及主檔狀態為何？",
+      "supplierCodes": [
+        "SUP-009"
+      ],
+      "expectedAnswerPoints": [
+        "昕川澱粉工坊，國別 台灣，supplierStatus=ACTIVE。"
+      ],
+      "expectedSourceKeys": [
+        "DOC-SUP-009-SUPPLIER-PROFILE-SP907"
+      ],
+      "citationRequirements": [
+        "只引用 DOC-SUP-009-SUPPLIER-PROFILE 的標題、版本及支持回答的原文。"
+      ],
+      "expectedStatus": "ANSWER"
+    },
+    {
+      "fixtureKey": "RAG-107",
+      "category": "supplier_materials",
+      "question": "SUP-009 在主檔列有哪些供貨關係？",
+      "supplierCodes": [
+        "SUP-009"
+      ],
+      "expectedAnswerPoints": [
+        "主檔列有 2 筆 ACTIVE supplierMaterials 關係。"
+      ],
+      "expectedSourceKeys": [
+        "DOC-SUP-009-SUPPLY-CAPABILITY-SP907"
+      ],
+      "citationRequirements": [
+        "只引用 DOC-SUP-009-SUPPLY-CAPABILITY 的標題、版本及支持回答的原文。"
+      ],
+      "expectedStatus": "ANSWER"
+    },
+    {
+      "fixtureKey": "RAG-108",
+      "category": "delivery",
+      "question": "SUP-009 對 MAT-008 的標準交期為何？",
+      "supplierCodes": [
+        "SUP-009"
+      ],
+      "expectedAnswerPoints": [
+        "ACTIVE 關係交期 5 個日曆日，從 ORDERED 起算。"
+      ],
+      "expectedSourceKeys": [
+        "DOC-SUP-009-DELIVERY-COORDINATION-SP907"
+      ],
+      "citationRequirements": [
+        "只引用 DOC-SUP-009-DELIVERY-COORDINATION 的標題、版本及支持回答的原文。"
+      ],
+      "expectedStatus": "ANSWER"
+    },
+    {
+      "fixtureKey": "RAG-109",
+      "category": "moq",
+      "question": "SUP-009 的 MAT-008 MOQ 和包裝倍數為何？",
+      "supplierCodes": [
+        "SUP-009"
+      ],
+      "expectedAnswerPoints": [
+        "MOQ 100 KG；包裝倍數 25 KG。"
+      ],
+      "expectedSourceKeys": [
+        "DOC-SUP-009-CONTRACT-TERMS-SP907"
+      ],
+      "citationRequirements": [
+        "只引用 DOC-SUP-009-CONTRACT-TERMS 的標題、版本及支持回答的原文。"
+      ],
+      "expectedStatus": "ANSWER"
+    },
+    {
+      "fixtureKey": "RAG-110",
+      "category": "contract_terms",
+      "question": "SUP-009 的 MAT-008 供貨條件有效至哪一天？",
+      "supplierCodes": [
+        "SUP-009"
+      ],
+      "expectedAnswerPoints": [
+        "主檔未提供有效起訖日，不可推定有效期限。"
+      ],
+      "expectedSourceKeys": [
+        "DOC-SUP-009-QUOTATION-SP907"
+      ],
+      "citationRequirements": [
+        "只引用 DOC-SUP-009-QUOTATION 的標題、版本及支持回答的原文。"
+      ],
+      "expectedStatus": "ANSWER"
+    },
+    {
+      "fixtureKey": "RAG-111",
+      "category": "quality",
+      "question": "SUP-009 的 MAT-008 到貨查核哪些項目？有實際檢驗結果嗎？",
+      "supplierCodes": [
+        "SUP-009"
+      ],
+      "expectedAnswerPoints": [
+        "核對代碼、名稱、數量、包裝、批次及可見異常；展示資料沒有實際檢驗結果。"
+      ],
+      "expectedSourceKeys": [
+        "DOC-SUP-009-QUALITY-REQUIREMENTS-SP907"
+      ],
+      "citationRequirements": [
+        "只引用 DOC-SUP-009-QUALITY-REQUIREMENTS 的標題、版本及支持回答的原文。"
+      ],
+      "expectedStatus": "ANSWER"
+    },
+    {
+      "fixtureKey": "RAG-112",
+      "category": "history",
+      "question": "SUP-009 的展示主檔包含哪些採購單歷程？",
+      "supplierCodes": [
+        "SUP-009"
+      ],
+      "expectedAnswerPoints": [
+        "樣本沒有 PO 範例，不代表實際沒有合作或交易。"
+      ],
+      "expectedSourceKeys": [
+        "DOC-SUP-009-COOPERATION-HISTORY-SP907"
+      ],
+      "citationRequirements": [
+        "只引用 DOC-SUP-009-COOPERATION-HISTORY 的標題、版本及支持回答的原文。"
+      ],
+      "expectedStatus": "ANSWER"
+    },
+    {
+      "fixtureKey": "RAG-113",
+      "category": "subjective_evaluation",
+      "question": "SUP-009 的主檔分數是否等於正式評鑑或採購排名？",
+      "supplierCodes": [
+        "SUP-009"
+      ],
+      "expectedAnswerPoints": [
+        "reliabilityScore=84、qualityScore=86；僅為虛構主檔值，不代表正式評鑑、核准或排名。"
+      ],
+      "expectedSourceKeys": [
+        "DOC-SUP-009-BUYER-EVALUATION-SP907"
+      ],
+      "citationRequirements": [
+        "只引用 DOC-SUP-009-BUYER-EVALUATION 的標題、版本及支持回答的原文。"
+      ],
+      "expectedStatus": "ANSWER"
+    },
+    {
+      "fixtureKey": "RAG-114",
+      "category": "cross_supplier_isolation",
+      "question": "查詢 SUP-009 基本資料時應回覆哪個供應商並排除其他文件？",
+      "supplierCodes": [
+        "SUP-009"
+      ],
+      "expectedAnswerPoints": [
+        "只回覆 SUP-009 昕川澱粉工坊 的資料，不混入其他 supplierCode 文件。"
+      ],
+      "expectedSourceKeys": [
+        "DOC-SUP-009-SUPPLIER-PROFILE-SP907"
+      ],
+      "citationRequirements": [
+        "只引用 DOC-SUP-009-SUPPLIER-PROFILE 的標題、版本及支持回答的原文。"
+      ],
+      "expectedStatus": "ANSWER"
+    },
+    {
+      "fixtureKey": "RAG-115",
+      "category": "insufficient_evidence",
+      "question": "SUP-009 的 MAT-008 保存期限為幾天？",
+      "supplierCodes": [
+        "SUP-009"
+      ],
+      "expectedAnswerPoints": [
+        "未提供 MAT-008 保存期限；應回覆資料不足，不可推測。"
+      ],
+      "expectedSourceKeys": [],
+      "citationRequirements": [
+        "無來源時拒答，不附虛構引用或套用其他物料資料。"
+      ],
+      "expectedStatus": "INSUFFICIENT_EVIDENCE"
+    },
+    {
+      "fixtureKey": "RAG-116",
+      "category": "supplier_profile",
+      "question": "SUP-010 的展示供應商名稱、國別及主檔狀態為何？",
+      "supplierCodes": [
+        "SUP-010"
+      ],
+      "expectedAnswerPoints": [
+        "南島風味貿易，國別 台灣，supplierStatus=ACTIVE。"
+      ],
+      "expectedSourceKeys": [
+        "DOC-SUP-010-SUPPLIER-PROFILE-SP907"
+      ],
+      "citationRequirements": [
+        "只引用 DOC-SUP-010-SUPPLIER-PROFILE 的標題、版本及支持回答的原文。"
+      ],
+      "expectedStatus": "ANSWER"
+    },
+    {
+      "fixtureKey": "RAG-117",
+      "category": "supplier_materials",
+      "question": "SUP-010 在主檔列有哪些供貨關係？",
+      "supplierCodes": [
+        "SUP-010"
+      ],
+      "expectedAnswerPoints": [
+        "主檔列有 4 筆 ACTIVE supplierMaterials 關係。"
+      ],
+      "expectedSourceKeys": [
+        "DOC-SUP-010-SUPPLY-CAPABILITY-SP907"
+      ],
+      "citationRequirements": [
+        "只引用 DOC-SUP-010-SUPPLY-CAPABILITY 的標題、版本及支持回答的原文。"
+      ],
+      "expectedStatus": "ANSWER"
+    },
+    {
+      "fixtureKey": "RAG-118",
+      "category": "delivery",
+      "question": "SUP-010 對 MAT-001 的標準交期為何？",
+      "supplierCodes": [
+        "SUP-010"
+      ],
+      "expectedAnswerPoints": [
+        "ACTIVE 關係交期 5 個日曆日，從 ORDERED 起算。"
+      ],
+      "expectedSourceKeys": [
+        "DOC-SUP-010-DELIVERY-COORDINATION-SP907"
+      ],
+      "citationRequirements": [
+        "只引用 DOC-SUP-010-DELIVERY-COORDINATION 的標題、版本及支持回答的原文。"
+      ],
+      "expectedStatus": "ANSWER"
+    },
+    {
+      "fixtureKey": "RAG-119",
+      "category": "moq",
+      "question": "SUP-010 的 MAT-001 MOQ 和包裝倍數為何？",
+      "supplierCodes": [
+        "SUP-010"
+      ],
+      "expectedAnswerPoints": [
+        "MOQ 800 KG；包裝倍數 100 KG。"
+      ],
+      "expectedSourceKeys": [
+        "DOC-SUP-010-CONTRACT-TERMS-SP907"
+      ],
+      "citationRequirements": [
+        "只引用 DOC-SUP-010-CONTRACT-TERMS 的標題、版本及支持回答的原文。"
+      ],
+      "expectedStatus": "ANSWER"
+    },
+    {
+      "fixtureKey": "RAG-120",
+      "category": "contract_terms",
+      "question": "SUP-010 的 MAT-001 供貨條件有效至哪一天？",
+      "supplierCodes": [
+        "SUP-010"
+      ],
+      "expectedAnswerPoints": [
+        "主檔未提供有效起訖日，不可推定有效期限。"
+      ],
+      "expectedSourceKeys": [
+        "DOC-SUP-010-QUOTATION-SP907"
+      ],
+      "citationRequirements": [
+        "只引用 DOC-SUP-010-QUOTATION 的標題、版本及支持回答的原文。"
+      ],
+      "expectedStatus": "ANSWER"
+    },
+    {
+      "fixtureKey": "RAG-121",
+      "category": "quality",
+      "question": "SUP-010 的 MAT-001 到貨查核哪些項目？有實際檢驗結果嗎？",
+      "supplierCodes": [
+        "SUP-010"
+      ],
+      "expectedAnswerPoints": [
+        "核對代碼、名稱、數量、包裝、批次及可見異常；展示資料沒有實際檢驗結果。"
+      ],
+      "expectedSourceKeys": [
+        "DOC-SUP-010-QUALITY-REQUIREMENTS-SP907"
+      ],
+      "citationRequirements": [
+        "只引用 DOC-SUP-010-QUALITY-REQUIREMENTS 的標題、版本及支持回答的原文。"
+      ],
+      "expectedStatus": "ANSWER"
+    },
+    {
+      "fixtureKey": "RAG-122",
+      "category": "history",
+      "question": "SUP-010 的展示主檔包含哪些採購單歷程？",
+      "supplierCodes": [
+        "SUP-010"
+      ],
+      "expectedAnswerPoints": [
+        "列有 1 筆 PO 範例，需依各筆 status/stage 區分流程位置。"
+      ],
+      "expectedSourceKeys": [
+        "DOC-SUP-010-COOPERATION-HISTORY-SP907"
+      ],
+      "citationRequirements": [
+        "只引用 DOC-SUP-010-COOPERATION-HISTORY 的標題、版本及支持回答的原文。"
+      ],
+      "expectedStatus": "ANSWER"
+    },
+    {
+      "fixtureKey": "RAG-123",
+      "category": "subjective_evaluation",
+      "question": "SUP-010 的主檔分數是否等於正式評鑑或採購排名？",
+      "supplierCodes": [
+        "SUP-010"
+      ],
+      "expectedAnswerPoints": [
+        "reliabilityScore=89、qualityScore=91；僅為虛構主檔值，不代表正式評鑑、核准或排名。"
+      ],
+      "expectedSourceKeys": [
+        "DOC-SUP-010-BUYER-EVALUATION-SP907"
+      ],
+      "citationRequirements": [
+        "只引用 DOC-SUP-010-BUYER-EVALUATION 的標題、版本及支持回答的原文。"
+      ],
+      "expectedStatus": "ANSWER"
+    },
+    {
+      "fixtureKey": "RAG-124",
+      "category": "cross_supplier_isolation",
+      "question": "查詢 SUP-010 基本資料時應回覆哪個供應商並排除其他文件？",
+      "supplierCodes": [
+        "SUP-010"
+      ],
+      "expectedAnswerPoints": [
+        "只回覆 SUP-010 南島風味貿易 的資料，不混入其他 supplierCode 文件。"
+      ],
+      "expectedSourceKeys": [
+        "DOC-SUP-010-SUPPLIER-PROFILE-SP907"
+      ],
+      "citationRequirements": [
+        "只引用 DOC-SUP-010-SUPPLIER-PROFILE 的標題、版本及支持回答的原文。"
+      ],
+      "expectedStatus": "ANSWER"
+    },
+    {
+      "fixtureKey": "RAG-125",
+      "category": "insufficient_evidence",
+      "question": "SUP-010 的 MAT-001 保存期限為幾天？",
+      "supplierCodes": [
+        "SUP-010"
+      ],
+      "expectedAnswerPoints": [
+        "未提供 MAT-001 保存期限；應回覆資料不足，不可推測。"
+      ],
+      "expectedSourceKeys": [],
+      "citationRequirements": [
+        "無來源時拒答，不附虛構引用或套用其他物料資料。"
+      ],
+      "expectedStatus": "INSUFFICIENT_EVIDENCE"
+    },
+    {
+      "fixtureKey": "RAG-126",
+      "category": "sensitive_outbound",
+      "question": "SUP-001 的 MAT-001 受控單價是多少？請只回傳金額。",
+      "supplierCodes": [
+        "SUP-001"
+      ],
+      "expectedAnswerPoints": [
+        "敏感貨幣金額不可由本項出站查詢回傳。",
+        "依現有 outbound policy 以 BLOCK 結束。"
+      ],
+      "expectedSourceKeys": [],
+      "citationRequirements": [
+        "不得引用或輸出結構化 master 中的受控金額。"
+      ],
+      "expectedStatus": "INSUFFICIENT_EVIDENCE",
+      "outboundExpectation": "BLOCK"
     }
-  ]
+  ],
+  "fixtureCount": 126
 }

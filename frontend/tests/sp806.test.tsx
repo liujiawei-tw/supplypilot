@@ -48,11 +48,11 @@ describe('SP-806 Document Management UI', () => {
       throw new Error(`Unexpected ${config.method} ${config.url}`);
     });
     await open('/documents');
-    if (isAdmin) expect(await screen.findByText('Semantic 索引管理')).toBeTruthy();
+    if (isAdmin) expect(await screen.findByText('語意索引管理')).toBeTruthy();
     else {
       await screen.findByText('SupplyPilot');
-      expect(screen.queryByText('Semantic 索引管理')).toBeNull();
-      expect(screen.queryByRole('button', { name: '執行並保存 Gate 稽核' })).toBeNull();
+      expect(screen.queryByText('語意索引管理')).toBeNull();
+      expect(screen.queryByRole('button', { name: '執行並保存索引稽核' })).toBeNull();
     }
     cleanup();
   });
@@ -69,11 +69,11 @@ describe('SP-806 Document Management UI', () => {
       throw new Error(`Unexpected ${config.method} ${config.url}`);
     });
     await open('/documents'); const user = userEvent.setup();
-    await screen.findByText('Semantic 索引管理');
+    await screen.findByText('語意索引管理');
     await screen.findByText('Supplier quote');
     await user.click(screen.getByRole('button', { name: '#21' }));
     await user.click(await screen.findByRole('button', { name: '核准出站' }));
-    expect(await screen.findByText(/可能送至外部 Embedding Provider/)).toBeTruthy();
+    expect(await screen.findByText(/可能送至外部向量嵌入服務/)).toBeTruthy();
     await user.click(within(latestDialog()).getByRole('button', { name: '確認核准出站' }));
     expect(await screen.findByText('本次審核回應：已核准')).toBeTruthy();
     expect(screen.getByText('abc123')).toBeTruthy();
@@ -130,7 +130,7 @@ describe('SP-806 Document Management UI', () => {
       throw new Error(`Unexpected ${config.method} ${config.url}`);
     });
     await open('/documents'); const user = userEvent.setup();
-    await screen.findByText('Semantic 索引管理');
+    await screen.findByText('語意索引管理');
     await user.click(await screen.findByRole('button', { name: '#21' }));
     const drawer = documentDrawer();
     await within(drawer).findByText('Quote 21');
@@ -181,7 +181,7 @@ describe('SP-806 Document Management UI', () => {
       throw new Error(`Unexpected ${config.method} ${config.url}`);
     });
     await open('/documents'); const user = userEvent.setup();
-    await screen.findByText('Semantic 索引管理');
+    await screen.findByText('語意索引管理');
     await user.click(await screen.findByRole('button', { name: '#21' }));
     const drawer = documentDrawer();
     await within(drawer).findByText('Quote 21');
@@ -196,7 +196,7 @@ describe('SP-806 Document Management UI', () => {
     delayedVerification.resolve(response(requests.find(({ url }) => url === '/documents/21')!, { ...first, title: 'Late verification', status: 'READY' }));
     await new Promise((resolve) => setTimeout(resolve, 0));
     expect(within(drawer).getByText('Quote 22')).toBeTruthy();
-    expect(within(drawer).queryByText(/已查核後端真實狀態/)).toBeNull();
+    expect(within(drawer).queryByText(/已查核系統目前狀態/)).toBeNull();
     expect(within(drawer).queryByText('索引結果不明，已鎖定重送')).toBeNull();
   });
 
@@ -249,11 +249,11 @@ describe('SP-806 Document Management UI', () => {
       throw new Error(`Unexpected ${config.method} ${config.url}`);
     });
     await open('/documents'); const user = userEvent.setup();
-    await screen.findByText('Semantic 索引管理');
+    await screen.findByText('語意索引管理');
     const saveAudit = async () => {
-      await user.click(screen.getByRole('button', { name: '執行並保存 Gate 稽核' }));
+      await user.click(screen.getByRole('button', { name: '執行並保存索引稽核' }));
       await user.click(screen.getByRole('button', { name: '確認並保存稽核結果' }));
-      await screen.findByText('本次 Gate 稽核通過');
+      await screen.findByText('本次索引稽核通過');
     };
 
     await saveAudit();
@@ -284,7 +284,7 @@ describe('SP-806 Document Management UI', () => {
         await within(drawer).findByText('本次審核回應：已略過');
       }
     }
-    expect(await screen.findByText('歷史 Gate 稽核回應（已過期）')).toBeTruthy();
+    expect(await screen.findByText('歷史索引稽核紀錄（已過期）')).toBeTruthy();
   });
 
   it('shows backend status, hides storagePath, and performs one explicitly confirmed ingestion followed by refresh', async () => {
@@ -347,7 +347,7 @@ describe('SP-806 Document Management UI', () => {
 
     const verifyButtons = screen.getAllByRole('button', { name: '查核真實文件狀態' });
     await user.click(verifyButtons[verifyButtons.length - 1]);
-    expect(await screen.findByText(/已查核後端真實狀態：已就緒/)).toBeTruthy();
+    expect(await screen.findByText(/已查核系統目前狀態：已就緒/)).toBeTruthy();
     expect(screen.getByRole('button', { name: '開始文件解析與索引' })).toBeTruthy();
     expect(requests.filter(({ url }) => url === '/documents/21/ingestions')).toHaveLength(1);
   }, 30_000);

@@ -8,6 +8,14 @@ describe('displayLabel', () => {
     expect(apiValue).toBe('REQUIRES_REVIEW');
   });
 
+  it('translates the new supplier document types and persistent publication states', () => {
+    expect(displayLabel('SUPPLIER_PROFILE')).toBe('供應商檔案');
+    expect(displayLabel('SUPPLIER_COOPERATION_RECORD')).toBe('合作往來紀錄');
+    expect(displayLabel('SUPPLIER_EVALUATION')).toBe('供應商評估');
+    expect(displayLabel('INDEXED')).toBe('已發布');
+    expect(displayLabel('UNAVAILABLE')).toBe('索引服務暫不可用');
+  });
+
   it('translates purchase-order stages, AI source types, tools, and answer sources for display', () => {
     expect(displayLabel('NEW_REQUEST')).toBe('新請購');
     expect(displayLabel('APPROVED_PENDING_ORDER')).toBe('已核准待下單');

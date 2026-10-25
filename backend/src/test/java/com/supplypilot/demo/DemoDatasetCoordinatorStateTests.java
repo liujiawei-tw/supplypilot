@@ -6,7 +6,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import org.junit.jupiter.api.Test;
 
 class DemoDatasetCoordinatorStateTests {
-    private static final String CURRENT = "sp-906-zh-tw-v2";
+    private static final String CURRENT = "sp-907-zh-tw-v3";
+    private static final String PREVIOUS = "sp-906-zh-tw-v2";
     private static final String LEGACY = "sp-905-zh-tw-v1";
 
     @Test
@@ -22,14 +23,32 @@ class DemoDatasetCoordinatorStateTests {
     }
 
     @Test
+    void completePreviousVersionRequestsUpgrade() {
+        assertThat(DemoDatasetCoordinator.classifyExistingDataset("COMPLETE", PREVIOUS, CURRENT))
+                .isEqualTo(DemoDatasetCoordinator.ExistingDatasetAction.LEGACY_UPDATE_REQUIRED);
+    }
+
+    @Test
     void updateRequiredCurrentVersionKeepsManualStepsPending() {
         assertThat(DemoDatasetCoordinator.classifyExistingDataset("UPDATE_REQUIRED", CURRENT, CURRENT))
                 .isEqualTo(DemoDatasetCoordinator.ExistingDatasetAction.MANUAL_STEPS_INCOMPLETE);
     }
 
     @Test
-    void incompleteFailedAndUnknownStatusesAreRejected() {
-        for (String status : new String[]{"INITIALIZING", "RELATIONAL_READY", "FAILED", "UNKNOWN"}) {
+    void currentRelationalReadyVersionCanResumeBaselineReconciliation() {
+        assertThat(DemoDatasetCoordinator.classifyExistingDataset("RELATIONAL_READY", CURRENT, CURRENT))
+                .isEqualTo(DemoDatasetCoordinator.ExistingDatasetAction.MANUAL_STEPS_INCOMPLETE);
+    }
+
+    @Test
+    void previousRelationalReadyVersionCanEnterSafeUpgrade() {
+        assertThat(DemoDatasetCoordinator.classifyExistingDataset("RELATIONAL_READY", PREVIOUS, CURRENT))
+                .isEqualTo(DemoDatasetCoordinator.ExistingDatasetAction.LEGACY_UPDATE_REQUIRED);
+    }
+
+    @Test
+    void initializingFailedAndUnknownStatusesAreRejected() {
+        for (String status : new String[]{"INITIALIZING", "FAILED", "UNKNOWN"}) {
             assertThatThrownBy(() -> DemoDatasetCoordinator.classifyExistingDataset(status, CURRENT, CURRENT))
                     .isInstanceOf(IllegalStateException.class);
         }
@@ -48,7 +67,7 @@ class DemoDatasetCoordinatorStateTests {
         assertThatThrownBy(() -> DemoDatasetCoordinator.classifyExistingDataset("UPDATE_REQUIRED", LEGACY, CURRENT))
                 .isInstanceOf(IllegalStateException.class);
         assertThatThrownBy(() -> DemoDatasetCoordinator.classifyExistingDataset(
-                "COMPLETE", "sp-907-zh-tw-v3", CURRENT)).isInstanceOf(IllegalStateException.class);
+                "COMPLETE", "sp-908-zh-tw-v4", CURRENT)).isInstanceOf(IllegalStateException.class);
         assertThatThrownBy(() -> DemoDatasetCoordinator.classifyExistingDataset("COMPLETE", CURRENT, "unknown"))
                 .isInstanceOf(IllegalStateException.class);
         assertThatThrownBy(() -> DemoDatasetCoordinator.classifyExistingDataset("COMPLETE", CURRENT, null))

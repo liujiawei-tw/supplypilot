@@ -8,6 +8,8 @@ public record DocumentSourceResponse(
         String title,
         String version,
         Long supplierId,
+        String supplierCode,
+        String supplierName,
         int chunkIndex,
         int startOffset,
         int endOffset,
