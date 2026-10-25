@@ -316,6 +316,29 @@ class DemoCorpusRagVersionIsolationIntegrationTests {
             assertThat(result.chunk().getContent()).contains("2026-11-30").doesNotContain("2026-12-31");
         });
 
+        String currentYearQuoteQuestion = "SUP-002 的 MAT-002 目前 2026 年報價有效到哪一天？";
+        var currentYearQuoteResponse = documentQueryService.query(currentYearQuoteQuestion);
+        assertThat(currentYearQuoteResponse.status()).isEqualTo(DocumentQueryStatus.ANSWERED);
+        assertThat(currentYearQuoteResponse.answer()).contains("2026-11-30").doesNotContain("2026-12-31");
+        assertThat(currentYearQuoteResponse.sources()).extracting(source -> source.documentKey())
+                .contains("DOC-SUP-002-QUOTATION-SP907").doesNotContain("DOC-SUP-002-QUOTATION");
+
+        String currentAtDateQuestion = "SUP-002 的 MAT-002 目前在 2026-10-15 的報價是否有效？";
+        assertThat(lexicalRetrieval.retrieve(currentAtDateQuestion).stream()
+                .filter(result -> result.chunk().getDocument().getDocumentType() == DocumentType.QUOTATION)
+                .toList()).isNotEmpty().allSatisfy(result -> {
+            assertThat(result.chunk().getDocument().getDemoDocumentKey()).isEqualTo("DOC-SUP-002-QUOTATION-SP907");
+            assertThat(result.chunk().getContent()).contains("【期間 2026-10-15】", "2026-11-30")
+                    .doesNotContain("2026-12-31");
+        });
+        assertThat(semanticRetrieval.retrieve(currentAtDateQuestion).stream()
+                .filter(result -> result.chunk().getDocument().getDocumentType() == DocumentType.QUOTATION)
+                .toList()).isNotEmpty().allSatisfy(result -> {
+            assertThat(result.chunk().getDocument().getDemoDocumentKey()).isEqualTo("DOC-SUP-002-QUOTATION-SP907");
+            assertThat(result.chunk().getContent()).contains("【期間 2026-10-15】", "2026-11-30")
+                    .doesNotContain("2026-12-31");
+        });
+
         String historicalQuoteQuestion = "SUP-002 在 2025 年的歷史供貨條件有效到何時？";
         List<RetrievedChunk> lexicalHistoricalCandidates = lexicalRetrieval.retrieve(historicalQuoteQuestion);
         List<RetrievedChunk> lexicalHistoricalQuote = lexicalHistoricalCandidates.stream()

@@ -578,6 +578,8 @@ public class DemoCorpusRagEligibility {
     private boolean currentSourceAllowed(FactSource source, TemporalQuery temporal) {
         return switch (temporal.intent()) {
             case CURRENT_ONLY, HISTORICAL_VS_CURRENT -> source.effectiveOn(LocalDate.now(clock));
+            case CURRENT_AS_OF -> source.effectiveOn(LocalDate.now(clock))
+                    && temporal.periods().stream().allMatch(period -> period.matches(source));
             case HISTORICAL_AS_OF -> temporal.periods().stream().anyMatch(period -> period.matches(source));
             case AMBIGUOUS_TEMPORAL, UNSUPPORTED_OR_CONFLICTING -> false;
         };
@@ -595,6 +597,8 @@ public class DemoCorpusRagEligibility {
                 "過往", "舊條件", "historical", "previous", "past");
         boolean current = containsAny(normalized, "現行", "目前", "當前", "現在", "最新",
                 "current", "currently", "present", "latest");
+        boolean comparison = containsAny(normalized, "分別", "比較", "相比", "對比", "差異",
+                "compare", "versus", " vs ", " vs.");
         List<TimePeriod> periods = new ArrayList<>();
         Set<String> datesUsedByRange = new HashSet<>();
         Matcher rangeMatcher = DATE_RANGE.matcher(normalized);
@@ -635,8 +639,10 @@ public class DemoCorpusRagEligibility {
             return new TemporalQuery(historicalLanguage ? TemporalIntent.AMBIGUOUS_TEMPORAL
                     : TemporalIntent.CURRENT_ONLY, List.of());
         }
-        return new TemporalQuery(current ? TemporalIntent.HISTORICAL_VS_CURRENT
-                : TemporalIntent.HISTORICAL_AS_OF, List.copyOf(periods));
+        TemporalIntent intent = current && comparison
+                ? TemporalIntent.HISTORICAL_VS_CURRENT
+                : current ? TemporalIntent.CURRENT_AS_OF : TemporalIntent.HISTORICAL_AS_OF;
+        return new TemporalQuery(intent, List.copyOf(periods));
     }
 
     private boolean requestsVersionTwo(String question) {
@@ -724,7 +730,8 @@ public class DemoCorpusRagEligibility {
     }
 
     private enum TemporalIntent {
-        CURRENT_ONLY, HISTORICAL_AS_OF, HISTORICAL_VS_CURRENT, AMBIGUOUS_TEMPORAL, UNSUPPORTED_OR_CONFLICTING
+        CURRENT_ONLY, CURRENT_AS_OF, HISTORICAL_AS_OF, HISTORICAL_VS_CURRENT,
+        AMBIGUOUS_TEMPORAL, UNSUPPORTED_OR_CONFLICTING
     }
 
     private enum PeriodPrecision { DAY, RANGE, YEAR }
