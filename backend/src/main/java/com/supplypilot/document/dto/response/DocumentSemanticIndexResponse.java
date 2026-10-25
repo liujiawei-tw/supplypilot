@@ -10,4 +10,3 @@ public record DocumentSemanticIndexResponse(
         String generationKey,
         Long publicationGeneration
 ) { }
-

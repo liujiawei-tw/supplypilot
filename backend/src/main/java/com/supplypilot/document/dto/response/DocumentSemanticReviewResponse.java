@@ -18,4 +18,3 @@ public record DocumentSemanticReviewResponse(
         Instant invalidatedAt,
         String invalidationReason
 ) { }
-

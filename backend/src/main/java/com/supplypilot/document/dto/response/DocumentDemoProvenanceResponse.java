@@ -8,4 +8,3 @@ public record DocumentDemoProvenanceResponse(
         String sourceSha256,
         String origin
 ) { }
-

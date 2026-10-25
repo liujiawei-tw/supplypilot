@@ -361,4 +361,3 @@ public class DemoCorpusTrustedApprovalService {
     public record ApprovalResult(long documentId, String version, String sourceHash, long generation,
                                  SemanticReviewStatus status, String reason, boolean jobQueued) { }
 }
-

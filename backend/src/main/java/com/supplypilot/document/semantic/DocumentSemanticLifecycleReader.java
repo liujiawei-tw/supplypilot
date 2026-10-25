@@ -92,4 +92,3 @@ public class DocumentSemanticLifecycleReader {
                 properties.generationKey(), publicationGeneration);
     }
 }
-

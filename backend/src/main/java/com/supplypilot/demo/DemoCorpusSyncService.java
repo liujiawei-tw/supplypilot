@@ -581,4 +581,3 @@ public class DemoCorpusSyncService {
         private int failures;
     }
 }
-
