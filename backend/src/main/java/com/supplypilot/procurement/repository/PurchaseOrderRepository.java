@@ -24,6 +24,16 @@ public interface PurchaseOrderRepository extends JpaRepository<PurchaseOrder, Lo
     @Query("select purchaseOrder.id as id, purchaseOrder.poNumber as poNumber from PurchaseOrder purchaseOrder where purchaseOrder.id in :ids")
     List<NumberProjection> findNumberByIdIn(@Param("ids") Collection<Long> ids);
 
+    @Query("""
+            select distinct purchaseOrder
+            from PurchaseOrder purchaseOrder
+            join fetch purchaseOrder.supplier
+            left join fetch purchaseOrder.items item
+            left join fetch item.material
+            where purchaseOrder.poNumber = :poNumber
+            """)
+    java.util.Optional<PurchaseOrder> findDetailedByPoNumber(@Param("poNumber") String poNumber);
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select po from PurchaseOrder po where po.id = :id")
     java.util.Optional<PurchaseOrder> findByIdForUpdate(@Param("id") Long id);

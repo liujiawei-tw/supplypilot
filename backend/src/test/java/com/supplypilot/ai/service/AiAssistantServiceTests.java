@@ -16,6 +16,7 @@ import com.supplypilot.ai.client.AiProviderException;
 import com.supplypilot.ai.client.AiProviderRequest;
 import com.supplypilot.ai.client.AiProviderResponse;
 import com.supplypilot.ai.dto.AiQueryStatus;
+import com.supplypilot.ai.dto.AiAnswerData;
 import com.supplypilot.ai.dto.AiSourceResponse;
 import com.supplypilot.ai.dto.AiToolType;
 import com.supplypilot.ai.tool.AiQueryPlanner;
@@ -52,16 +53,162 @@ class AiAssistantServiceTests {
     void preservesCurrentIdentityAndReturnsOnlyVerifiedToolFacts() {
         when(provider.isConfigured()).thenReturn(true);
         when(provider.query(any())).thenReturn(new AiProviderResponse(
-                List.of(result), "查詢結果整理如下。\n" + result.trustedFacts(), "MODEL_EXPLANATION", 21));
+                List.of(result), result.trustedFacts(), "MODEL_EXPLANATION", 21,
+                "已依據查得的資料整理以下結果。"));
         var response = service.query("庫存");
         assertThat(response.status()).isEqualTo(AiQueryStatus.ANSWERED);
         assertThat(response.answer()).contains(result.trustedFacts());
         assertThat(response.answerSource()).isEqualTo("MODEL_EXPLANATION");
+        assertThat(response.summary()).isEqualTo("已依據查得的資料整理以下結果。");
         assertThat(response.tools()).containsExactly(AiToolType.QUERY_INVENTORY);
         assertThat(response.sources()).containsExactlyElementsOf(result.sources());
         verify(currentUserProvider).getCurrentUserId();
         verify(planner).validate("庫存");
         verify(provider).query(new AiProviderRequest("庫存"));
+    }
+
+    @Test
+    void rejectsMultiMaterialInventoryAnswerWhenOneRequestedCodeIsMissing() {
+        AiToolResult partial = inventoryFacts(List.of(
+                new AiAnswerData.InventoryItem(1L, "MAT-001", "Assam", java.math.BigDecimal.ONE,
+                        "KG", java.time.Instant.parse("2026-10-15T00:00:00Z"))), List.of());
+
+        var response = queryWith("MAT-001 / MAT-002 目前庫存?", List.of(partial));
+
+        assertThat(response.status()).isEqualTo(AiQueryStatus.INSUFFICIENT_EVIDENCE);
+        assertThat(response.answer()).contains("庫存查詢已完成");
+        assertThat(response.details().inventory()).extracting(item -> item.materialCode()).containsExactly("MAT-001");
+        assertThat(response.details().notes()).anySatisfy(note -> assertThat(note).contains("MAT-002"));
+        assertThat(response.sources()).hasSize(1);
+    }
+
+    @Test
+    void acceptsMultiMaterialInventoryAnswerOnlyWhenEveryRequestedCodeIsCovered() {
+        AiToolResult complete = inventoryFacts(List.of(
+                new AiAnswerData.InventoryItem(1L, "MAT-001", "Assam", java.math.BigDecimal.ONE,
+                        "KG", java.time.Instant.parse("2026-10-15T00:00:00Z")),
+                new AiAnswerData.InventoryItem(2L, "MAT-002", "Tea", java.math.BigDecimal.TEN,
+                        "KG", java.time.Instant.parse("2026-10-15T00:00:00Z"))), List.of());
+
+        var response = queryWith("MAT-001 / MAT-002 目前庫存?", List.of(complete));
+
+        assertThat(response.status()).isEqualTo(AiQueryStatus.ANSWERED);
+        assertThat(response.details().inventory()).extracting(item -> item.materialCode())
+                .containsExactly("MAT-001", "MAT-002");
+    }
+
+    @Test
+    void allowsExplicitlyUnmatchedMaterialAlongsideValidInventoryInBatchAnswer() {
+        AiToolResult mixed = inventoryFacts(List.of(
+                new AiAnswerData.InventoryItem(1L, "MAT-001", "Assam", java.math.BigDecimal.ONE,
+                        "KG", java.time.Instant.parse("2026-10-15T00:00:00Z"))), List.of("MAT-999"));
+
+        var response = queryWith("MAT-001 / MAT-999 目前庫存?", List.of(mixed));
+
+        assertThat(response.status()).isEqualTo(AiQueryStatus.ANSWERED);
+        assertThat(response.details().inventory()).extracting(item -> item.materialCode()).containsExactly("MAT-001");
+        assertThat(response.details().unmatchedIdentifiers()).containsExactly("MAT-999");
+    }
+
+    @Test
+    void rejectsPartialMaterialCoverageForQuoteAverageAndOpenPoToolsButKeepsPartialFacts() {
+        record Query(AiToolType tool, String question) { }
+        for (Query query : List.of(
+                new Query(AiToolType.QUERY_SUPPLIER_QUOTES, "MAT-001 / MAT-002 報價?"),
+                new Query(AiToolType.QUERY_AVERAGE_PRICE, "MAT-001 / MAT-002 平均報價?"),
+                new Query(AiToolType.QUERY_OPEN_PO, "MAT-001 / MAT-002 未收貨採購單?"))) {
+            AiAnswerData details = new AiAnswerData(List.of(), List.of(), List.of(), List.of(), List.of(), List.of(),
+                    List.of(), List.of(), query.tool() == AiToolType.QUERY_OPEN_PO ? 0L : null,
+                    List.of("MAT-001"));
+            AiToolResult partial = new AiToolResult(query.tool(), AiQueryStatus.ANSWERED,
+                    "MAT-001 已查詢，未取得 MAT-002。", List.of(), details);
+
+            var response = queryWith(query.question(), List.of(partial));
+
+            assertThat(response.status()).isEqualTo(AiQueryStatus.INSUFFICIENT_EVIDENCE);
+            assertThat(response.answer()).contains("MAT-001");
+            assertThat(response.details().queriedMaterialCodes()).containsExactly("MAT-001");
+            assertThat(response.details().notes()).anySatisfy(note -> assertThat(note).contains("MAT-002"));
+        }
+    }
+
+    @Test
+    void acceptsBatchWhenEachMaterialHasEitherAResultOrAnExplicitUnmatchedRecord() {
+        AiAnswerData details = new AiAnswerData(List.of(), List.of(), List.of(), List.of(), List.of(), List.of(),
+                List.of("MAT-002"), List.of("MAT-002 沒有有效報價。"), null, List.of("MAT-001"));
+        AiToolResult complete = new AiToolResult(AiToolType.QUERY_SUPPLIER_QUOTES, AiQueryStatus.ANSWERED,
+                "MAT-001 報價已查得。MAT-002 明確查無報價。", List.of(), details);
+
+        var response = queryWith("MAT-001 / MAT-002 報價?", List.of(complete));
+
+        assertThat(response.status()).isEqualTo(AiQueryStatus.ANSWERED);
+        assertThat(response.details().queriedMaterialCodes()).containsExactly("MAT-001");
+        assertThat(response.details().unmatchedIdentifiers()).containsExactly("MAT-002");
+        assertThat(response.answer()).contains("MAT-002");
+    }
+
+    @Test
+    void acceptsSupplierBatchOnlyWhenEveryQuestionCodeHasFoundOrUnmatchedCoverage() {
+        AiAnswerData details = new AiAnswerData(List.of(), List.of(), List.of(), List.of(
+                new AiAnswerData.SupplierFact(1L, "SUP-001", "Supplier One", "ACTIVE",
+                        new java.math.BigDecimal("90.00"), new java.math.BigDecimal("85.00"))),
+                List.of(), List.of(), List.of("SUP-002"), List.of());
+        AiToolResult complete = new AiToolResult(AiToolType.QUERY_SUPPLIER, AiQueryStatus.ANSWERED,
+                "Supplier One 評分已查得。查無 SUP-002。", List.of(AiSourceResponse.resource("SUPPLIER", 1, "Supplier One")), details);
+
+        var response = queryWith("SUP-001 / SUP-002 評價?", List.of(complete));
+
+        assertThat(response.status()).isEqualTo(AiQueryStatus.ANSWERED);
+        assertThat(response.details().suppliers()).extracting(fact -> fact.supplierCode()).containsExactly("SUP-001");
+        assertThat(response.details().unmatchedIdentifiers()).containsExactly("SUP-002");
+        assertThat(response.answer()).contains("SUP-002");
+    }
+
+    @Test
+    void rejectsSupplierBatchWhenAnExplicitCodeHasNoResultCoverage() {
+        AiAnswerData details = new AiAnswerData(List.of(), List.of(), List.of(), List.of(
+                new AiAnswerData.SupplierFact(1L, "SUP-001", "Supplier One", "ACTIVE",
+                        new java.math.BigDecimal("90.00"), new java.math.BigDecimal("85.00"))),
+                List.of(), List.of(), List.of(), List.of());
+        AiToolResult incomplete = new AiToolResult(AiToolType.QUERY_SUPPLIER, AiQueryStatus.ANSWERED,
+                "Supplier One 評分已查得。", List.of(AiSourceResponse.resource("SUPPLIER", 1, "Supplier One")), details);
+
+        var response = queryWith("SUP-001 / SUP-002 評價?", List.of(incomplete));
+
+        assertThat(response.status()).isEqualTo(AiQueryStatus.INSUFFICIENT_EVIDENCE);
+        assertThat(response.details().suppliers()).extracting(fact -> fact.supplierCode()).containsExactly("SUP-001");
+        assertThat(response.details().notes()).anySatisfy(note -> assertThat(note).contains("SUP-002"));
+        assertThat(response.sources()).hasSize(1);
+    }
+
+    @Test
+    void acceptsNotFoundOnlyWhenEveryExplicitSupplierCodeIsReportedMissing() {
+        AiAnswerData details = new AiAnswerData(List.of(), List.of(), List.of(), List.of(), List.of(), List.of(),
+                List.of("SUP-991", "SUP-992"), List.of());
+        AiToolResult notFound = AiToolResult.notFound(AiToolType.QUERY_SUPPLIER,
+                "查無 SUP-991 與 SUP-992 的供應商主檔。", details);
+
+        var response = queryWith("SUP-991 / SUP-992 評價?", List.of(notFound));
+
+        assertThat(response.status()).isEqualTo(AiQueryStatus.NOT_FOUND);
+        assertThat(response.details().unmatchedIdentifiers()).containsExactly("SUP-991", "SUP-992");
+        assertThat(response.answer()).contains("SUP-991", "SUP-992");
+    }
+
+    @Test
+    void reportsAllMissingSupplierIdentifiersInPartialStructuredEvidence() {
+        AiAnswerData details = new AiAnswerData(List.of(), List.of(), List.of(), List.of(), List.of(), List.of(),
+                List.of("SUP-991", "SUP-992"), List.of());
+        AiToolResult missing = AiToolResult.notFound(AiToolType.QUERY_SUPPLIER,
+                "查無 SUP-991 與 SUP-992 的供應商主檔。", details);
+        AiToolResult unavailableInventory = AiToolResult.insufficientEvidence(AiToolType.QUERY_INVENTORY);
+
+        var response = queryWith("SUP-991 / SUP-992 評價與庫存?", List.of(missing, unavailableInventory));
+
+        assertThat(response.status()).isEqualTo(AiQueryStatus.INSUFFICIENT_EVIDENCE);
+        assertThat(response.details().unmatchedIdentifiers()).containsExactly("SUP-991", "SUP-992");
+        assertThat(response.answer()).contains("SUP-991", "SUP-992");
+        assertThat(response.details().notes()).anySatisfy(note -> assertThat(note).contains("庫存查詢"));
     }
 
     @Test
@@ -85,6 +232,20 @@ class AiAssistantServiceTests {
         assertThat(response.status()).isEqualTo(AiQueryStatus.INSUFFICIENT_EVIDENCE);
         assertThat(response.answer()).isNull();
         assertThat(response.sources()).isEmpty();
+    }
+
+    @Test
+    void distinguishesDocumentRetrievalGapsFromBusinessQueryGaps() {
+        AiToolResult insufficientDocument = AiToolResult.insufficientEvidence(AiToolType.SEARCH_DOCUMENTS);
+        var documentResponse = queryWith("SUP-001 的 MAT-001 標準交期是多久？", List.of(insufficientDocument));
+        assertThat(documentResponse.status()).isEqualTo(AiQueryStatus.INSUFFICIENT_EVIDENCE);
+        assertThat(documentResponse.details().notes()).contains("文件檢索證據不足，無法提供文件結論。");
+
+        AiToolResult insufficientInventory = AiToolResult.insufficientEvidence(AiToolType.QUERY_INVENTORY);
+        var inventoryResponse = queryWith("MAT-001 庫存?", List.of(insufficientInventory));
+        assertThat(inventoryResponse.status()).isEqualTo(AiQueryStatus.INSUFFICIENT_EVIDENCE);
+        assertThat(inventoryResponse.details().notes()).anySatisfy(note -> assertThat(note).contains("庫存查詢"));
+        assertThat(inventoryResponse.details().notes()).anySatisfy(note -> assertThat(note).contains("MAT-001"));
     }
 
     @Test
@@ -153,7 +314,7 @@ class AiAssistantServiceTests {
         assertThat(response.status()).isEqualTo(AiQueryStatus.ANSWERED);
         assertThat(response.answer()).contains("ORDERED 後 6 個曆日").doesNotContain("建議採購");
         assertThat(response.sources()).containsExactlyElementsOf(document.sources());
-        assertThat(response.tools()).containsExactly(AiToolType.SEARCH_DOCUMENTS, AiToolType.QUERY_RECOMMENDATION);
+        assertThat(response.tools()).containsExactly(AiToolType.SEARCH_DOCUMENTS);
     }
 
     @Test
@@ -171,8 +332,9 @@ class AiAssistantServiceTests {
         var compound = queryWith("SUP-001 的 MAT-001 合約交期與採購建議為何？",
                 List.of(missingRecommendation, document));
         assertThat(compound.status()).isEqualTo(AiQueryStatus.INSUFFICIENT_EVIDENCE);
-        assertThat(compound.answer()).isNull();
-        assertThat(compound.sources()).isEmpty();
+        assertThat(compound.answer()).contains("8 個曆日");
+        assertThat(compound.sources()).containsExactlyElementsOf(document.sources());
+        assertThat(compound.details().notes()).anySatisfy(note -> assertThat(note).contains("採購建議"));
     }
 
     @Test
@@ -237,8 +399,22 @@ class AiAssistantServiceTests {
     }
 
     private AiToolResult tool(AiToolType type, String fact, String resourceType) {
+        AiAnswerData details = type == AiToolType.QUERY_INVENTORY
+                ? new AiAnswerData(List.of(new AiAnswerData.InventoryItem(1L, "MAT-001", "Material",
+                        java.math.BigDecimal.ONE, "KG", java.time.Instant.parse("2026-10-15T00:00:00Z"))),
+                        List.of(), List.of(), List.of(), List.of(), List.of(), List.of(), List.of())
+                : AiAnswerData.empty();
         return new AiToolResult(type, AiQueryStatus.ANSWERED, fact,
-                List.of(AiSourceResponse.resource(resourceType, 1, "MAT-001")));
+                List.of(AiSourceResponse.resource(resourceType, 1, "MAT-001")), details);
+    }
+
+    private AiToolResult inventoryFacts(List<AiAnswerData.InventoryItem> items, List<String> unmatched) {
+        AiAnswerData details = new AiAnswerData(items, List.of(), List.of(), List.of(), List.of(), List.of(), unmatched,
+                List.of());
+        List<AiSourceResponse> sources = items.stream()
+                .map(item -> AiSourceResponse.resource("INVENTORY", item.materialId(), item.materialCode())).toList();
+        return new AiToolResult(AiToolType.QUERY_INVENTORY, AiQueryStatus.ANSWERED,
+                "批次庫存查詢已完成。", sources, details);
     }
 
     private AiToolResult document(String clause, String id) {

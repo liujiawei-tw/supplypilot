@@ -1,6 +1,8 @@
 import { Divider, Space, Tag, Typography } from 'antd';
 import type { ReactNode } from 'react';
 import { displayLabel } from '../../utils/displayLabels';
+import AiStructuredAnswer from './AiStructuredAnswer';
+import type { AiAnswerData } from '../../api/ai';
 import './AiAssistant.css';
 
 const { Paragraph, Text, Title } = Typography;
@@ -192,12 +194,24 @@ function PurchaseOrderSummary({ order }: { order: PurchaseOrderFact }) {
   </section>;
 }
 
-export default function AiAnswerDisplay({ answer }: { answer: string }) {
+export default function AiAnswerDisplay({ answer, details, summary }: { answer: string | null; details?: AiAnswerData; summary?: string | null }) {
+  const hasStructuredDetails = details != null && (details.inventory.length + details.quotes.length + details.averagePrices.length
+    + details.suppliers.length + details.purchaseOrders.length + details.candidates.length
+    + details.notes.length + details.unmatchedIdentifiers.length > 0 || details.purchaseOrderTotalCount != null);
+  if (hasStructuredDetails) {
+    return <AiStructuredAnswer details={details} summary={summary} />;
+  }
+  if (!answer) return summary
+    ? <Paragraph style={{ marginBottom: 0 }}>{summary}</Paragraph>
+    : <Text type="secondary">後端未提供可顯示回答。</Text>;
   const parsed = parsePurchaseOrderAnswer(answer);
   if (!parsed) {
-    return <Paragraph className="ai-answer__text">
-      {formatLabeledMoney(answer)}
-    </Paragraph>;
+    return <Space className="ai-answer__plain" direction="vertical" size="small">
+      {summary && <Text>{summary}</Text>}
+      <Paragraph className="ai-answer__text">
+        {formatLabeledMoney(answer)}
+      </Paragraph>
+    </Space>;
   }
 
   const orderCount = parsed.content.filter((block) => block.type === 'purchase-order').length;

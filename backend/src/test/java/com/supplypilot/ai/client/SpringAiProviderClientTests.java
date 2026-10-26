@@ -77,8 +77,10 @@ class SpringAiProviderClientTests {
         assertThat(List.of(ToolCallbacks.from(new SpringAiReadTools(
                 registry, planner(), "MAT-001 的庫存", 4))).stream()
                 .map(callback -> callback.getToolDefinition().name()).sorted().toList())
-                .containsExactly("EXPLAIN_RECOMMENDATION", "QUERY_INVENTORY", "QUERY_OPEN_PO",
-                        "QUERY_RECOMMENDATION", "QUERY_SUPPLIER_RANKING", "SEARCH_DOCUMENTS");
+                .containsExactly("EXPLAIN_RECOMMENDATION", "QUERY_AVERAGE_PRICE", "QUERY_INVENTORY",
+                        "QUERY_INVENTORY_BATCH", "QUERY_INVENTORY_BY_NAME", "QUERY_OPEN_PO",
+                        "QUERY_PURCHASE_ORDER", "QUERY_RECOMMENDATION", "QUERY_SUPPLIER",
+                        "QUERY_SUPPLIER_QUOTES", "QUERY_SUPPLIER_RANKING", "SEARCH_DOCUMENTS");
         ChatModel model = fakeModel(prompt -> hasToolResponse(prompt)
                 ? finalAnswer(1)
                 : toolCall("QUERY_INVENTORY", "{\"materialCode\":\"MAT-001\"}"));
@@ -88,7 +90,9 @@ class SpringAiProviderClientTests {
 
         assertThat(response.results()).containsExactly(toolResult);
         assertThat(response.answerSource()).isEqualTo("MODEL_EXPLANATION");
+        assertThat(response.summary()).isEqualTo("已依據查得的資料整理以下結果。");
         assertThat(response.answer()).contains(toolResult.trustedFacts());
+        assertThat(response.answer()).doesNotContain("已依據查得的資料整理以下結果。");
         assertThat(response.totalTokens()).isEqualTo(7);
         verify(usageMonitor).record(7);
         verify(registry).execute(new AiQueryPlan(AiToolType.QUERY_INVENTORY, null, "MAT-001", null));
@@ -679,6 +683,31 @@ class SpringAiProviderClientTests {
                 "QUERY_INVENTORY", "{\"materialCode\":\"MAT-001\"}"));
         assertProviderReason(provider(callsInventory, failingRegistry, Duration.ofSeconds(2)),
                 "MAT-001 庫存", AiFailureReason.TOOL_EXECUTION_FAILURE);
+        assertProviderCode(provider(callsInventory, failingRegistry, Duration.ofSeconds(2)),
+                ErrorCode.AI_QUERY_FAILED, "MAT-001 庫存");
+    }
+
+    @Test
+    void mapsUnexpectedBusinessToolFailureToSafeAiQueryFailedAndPreservesAuthorization() {
+        AiToolRegistry failingRegistry = mock(AiToolRegistry.class);
+        when(failingRegistry.execute(any())).thenThrow(
+                new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR, "SQL password=secret"));
+        ChatModel callsInventory = fakeModel(prompt -> toolCall(
+                "QUERY_INVENTORY", "{\"materialCode\":\"MAT-001\"}"));
+        SpringAiProviderClient failingProvider = provider(callsInventory, failingRegistry, Duration.ofSeconds(2));
+
+        assertThatThrownBy(() -> failingProvider.query(new AiProviderRequest("MAT-001 庫存?")))
+                .isInstanceOfSatisfying(BusinessException.class, failure -> {
+                    assertThat(failure.getErrorCode()).isEqualTo(ErrorCode.AI_QUERY_FAILED);
+                    assertThat(failure.getMessage()).doesNotContain("SQL", "password", "secret");
+                });
+
+        AiToolRegistry deniedRegistry = mock(AiToolRegistry.class);
+        when(deniedRegistry.execute(any())).thenThrow(new BusinessException(ErrorCode.ACCESS_DENIED));
+        SpringAiProviderClient deniedProvider = provider(callsInventory, deniedRegistry, Duration.ofSeconds(2));
+        assertThatThrownBy(() -> deniedProvider.query(new AiProviderRequest("MAT-001 庫存?")))
+                .isInstanceOfSatisfying(BusinessException.class,
+                        failure -> assertThat(failure.getErrorCode()).isEqualTo(ErrorCode.ACCESS_DENIED));
     }
 
     @Test
@@ -778,7 +807,7 @@ class SpringAiProviderClientTests {
         String indexes = java.util.stream.IntStream.range(0, count).mapToObj(String::valueOf)
                 .collect(java.util.stream.Collectors.joining(","));
         return new ChatResponse(List.of(new Generation(new AssistantMessage(
-                "{\"intro\":\"查詢結果整理如下。\",\"factIndexes\":[" + indexes + "]}"))));
+                "{\"summary\":\"已依據查得的資料整理以下結果。\",\"factIndexes\":[" + indexes + "]}"))));
     }
 
     private ChatResponse toolCall(String name, String arguments) {

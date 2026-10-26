@@ -366,3 +366,6 @@
     border-color: CanvasText;
   }
 }
+.ai-answer__plain {
+  width: 100%;
+}

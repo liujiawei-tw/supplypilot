@@ -8,28 +8,34 @@ const { Text } = Typography;
 
 function safePositiveId(value: string): number | null {
   if (!/^\d+$/.test(value)) return null;
-  const id = Number(value);
-  return Number.isSafeInteger(id) && id > 0 ? id : null;
+  const parsed = Number(value);
+  return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : null;
 }
 
 function sourceLink(source: AiSourceResponse) {
   const id = safePositiveId(source.resourceId);
-  if (!id) return null;
-  if (source.resourceType === 'DOCUMENT') return `/documents?documentId=${id}`;
-  if (source.resourceType === 'RECOMMENDATION' || source.resourceType === 'PURCHASE_RECOMMENDATION') return `/recommendations/${id}`;
-  if (source.resourceType === 'PURCHASE_ORDER') return `/purchase-orders/${id}`;
+  if (id === null) return null;
+  if (source.resourceType === 'RECOMMENDATION' || source.resourceType === 'PURCHASE_RECOMMENDATION') return '/recommendations/' + id;
+  if (source.resourceType === 'PURCHASE_ORDER') return '/purchase-orders/' + id;
+  if (source.resourceType === 'DOCUMENT') return '/documents?documentId=' + id;
   return null;
 }
 
 export default function AiSources({ sources }: { sources: AiSourceResponse[] }) {
-  if (sources.length === 0) return <Text type="secondary">後端未提供可核對來源。</Text>;
+  const uniqueSources = [...new Map(sources.map((source) => [
+    [source.resourceType, source.resourceId, source.version ?? '', source.chunkIndex ?? ''].join(':'),
+    source,
+  ])).values()];
+  if (uniqueSources.length === 0) return <Text type="secondary">後端未提供可核對來源。</Text>;
   return <div className="ai-sources" aria-label="AI 回答來源">
-    {sources.map((source, index) => {
+    {uniqueSources.map((source, index) => {
       const link = sourceLink(source);
-      return <article className="ai-source" key={`${source.resourceType}-${source.resourceId}-${index}`}>
+      return <article className="ai-source" key={source.resourceType + '-' + source.resourceId + '-' + index}>
         <div className="ai-source__heading">
           <Tag>{displayLabel(source.resourceType)}</Tag>
-          <Text className="ai-source__title">{source.title}</Text>
+          {link
+            ? <Link className="ai-source__link ai-source__title" to={link}>{source.title}</Link>
+            : <Text className="ai-source__title">{source.title}</Text>}
         </div>
         <dl className="ai-source__meta">
           <div className="ai-source__meta-item">

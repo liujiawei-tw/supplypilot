@@ -1,8 +1,10 @@
 package com.supplypilot.ai.tool;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.mock;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -11,7 +13,9 @@ import java.util.List;
 
 import com.supplypilot.ai.dto.AiQueryStatus;
 import com.supplypilot.ai.dto.AiToolType;
+import com.supplypilot.ai.client.AiProviderException;
 import com.supplypilot.common.pagination.PageResponse;
+import com.supplypilot.common.exception.ErrorCode;
 import com.supplypilot.document.domain.DocumentType;
 import com.supplypilot.document.dto.response.DocumentQueryResponse;
 import com.supplypilot.document.dto.response.DocumentQueryStatus;
@@ -101,6 +105,85 @@ class AiReadToolBoundaryTests {
         assertThat(new DocumentSearchTool(documents).execute(
                 new AiQueryPlan(AiToolType.SEARCH_DOCUMENTS, null, null, "未知")).status())
                 .isEqualTo(AiQueryStatus.INSUFFICIENT_EVIDENCE);
+    }
+
+    @Test
+    void batchToolAcceptsEveryExplicitMaterialCodeAndRejectsAnyInjectedCode() {
+        AiToolRegistry registry = mock(AiToolRegistry.class);
+        when(registry.execute(ArgumentMatchers.any())).thenReturn(new com.supplypilot.ai.tool.AiToolResult(
+                AiToolType.QUERY_INVENTORY, AiQueryStatus.ANSWERED, "inventory facts", List.of()));
+        SpringAiReadTools tools = new SpringAiReadTools(registry, new AiQueryPlanner(),
+                "MAT-001 / MAT-002 目前庫存?", 3);
+
+        tools.queryInventoryBatch(List.of("MAT-001", "MAT-002"));
+        verify(registry).execute(new AiQueryPlan(AiToolType.QUERY_INVENTORY, null, "MAT-001", null,
+                List.of("MAT-001", "MAT-002"), null, null, null, null));
+
+        assertThatThrownBy(() -> tools.queryInventoryBatch(List.of("MAT-001", "MAT-999")))
+                .isInstanceOf(AiProviderException.class)
+                .extracting("errorCode").isEqualTo(ErrorCode.AI_INVALID_RESPONSE);
+
+        assertThatThrownBy(() -> tools.queryInventoryByName("未出現在問題中的物料"))
+                .isInstanceOf(AiProviderException.class)
+                .extracting("errorCode").isEqualTo(ErrorCode.AI_INVALID_RESPONSE);
+    }
+
+    @Test
+    void supplierBatchToolAcceptsOnlySupplierCodesWrittenInTheOriginalQuestion() {
+        AiToolRegistry registry = mock(AiToolRegistry.class);
+        when(registry.execute(ArgumentMatchers.any())).thenReturn(new com.supplypilot.ai.tool.AiToolResult(
+                AiToolType.QUERY_SUPPLIER, AiQueryStatus.ANSWERED, "supplier facts", List.of()));
+        SpringAiReadTools tools = new SpringAiReadTools(registry, new AiQueryPlanner(),
+                "SUP-001 / SUP-002 評價?", 3);
+
+        tools.querySupplier(null, List.of("SUP-001", "SUP-002"), null, null, null);
+        verify(registry).execute(new AiQueryPlan(AiToolType.QUERY_SUPPLIER, null, null, null,
+                List.of(), null, "SUP-001", null, null, List.of("SUP-001", "SUP-002")));
+
+        assertThatThrownBy(() -> tools.querySupplier(null, List.of("SUP-001", "SUP-999"), null, null, null))
+                .isInstanceOf(AiProviderException.class)
+                .extracting("errorCode").isEqualTo(ErrorCode.AI_INVALID_RESPONSE);
+    }
+
+    @Test
+    void englishQuestionPhrasingKeepsResolvedNamesAuthorizedAtTheToolBoundary() {
+        AiToolRegistry supplierRegistry = mock(AiToolRegistry.class);
+        when(supplierRegistry.execute(ArgumentMatchers.any())).thenReturn(new com.supplypilot.ai.tool.AiToolResult(
+                AiToolType.QUERY_SUPPLIER, AiQueryStatus.ANSWERED, "supplier facts", List.of()));
+        AiQueryPlanner planner = new AiQueryPlanner();
+        SpringAiReadTools supplierTools = new SpringAiReadTools(supplierRegistry, planner,
+                "What is Supplier Two's reliability rating?", 3);
+
+        supplierTools.querySupplier(null, null, "Supplier Two", null, null);
+        verify(supplierRegistry).execute(new AiQueryPlan(AiToolType.QUERY_SUPPLIER, null, null, null,
+                List.of(), null, null, "Supplier Two", null, List.of()));
+
+        AiToolRegistry inventoryRegistry = mock(AiToolRegistry.class);
+        when(inventoryRegistry.execute(ArgumentMatchers.any())).thenReturn(new com.supplypilot.ai.tool.AiToolResult(
+                AiToolType.QUERY_INVENTORY, AiQueryStatus.ANSWERED, "inventory facts", List.of()));
+        SpringAiReadTools inventoryTools = new SpringAiReadTools(inventoryRegistry, planner,
+                "How much inventory does Assam have?", 3);
+
+        inventoryTools.queryInventoryByName("Assam");
+        verify(inventoryRegistry).execute(new AiQueryPlan(AiToolType.QUERY_INVENTORY, null, null, null,
+                List.of(), "Assam", null, null, null));
+    }
+
+    @Test
+    void openPoBatchToolPassesAllExplicitMaterialCodesWithinTheOriginalQuestion() {
+        AiToolRegistry registry = mock(AiToolRegistry.class);
+        when(registry.execute(ArgumentMatchers.any())).thenReturn(new com.supplypilot.ai.tool.AiToolResult(
+                AiToolType.QUERY_OPEN_PO, AiQueryStatus.ANSWERED, "open PO facts", List.of()));
+        SpringAiReadTools tools = new SpringAiReadTools(registry, new AiQueryPlanner(),
+                "MAT-001 / MAT-002 未收貨採購單?", 3);
+
+        tools.queryOpenPurchaseOrders(null, List.of("MAT-001", "MAT-002"));
+        verify(registry).execute(new AiQueryPlan(AiToolType.QUERY_OPEN_PO, null, "MAT-001", null,
+                List.of("MAT-001", "MAT-002"), null, null, null, null, List.of()));
+
+        assertThatThrownBy(() -> tools.queryOpenPurchaseOrders(null, List.of("MAT-001", "MAT-999")))
+                .isInstanceOf(AiProviderException.class)
+                .extracting("errorCode").isEqualTo(ErrorCode.AI_INVALID_RESPONSE);
     }
 
     private RecommendationResponse snapshot() {

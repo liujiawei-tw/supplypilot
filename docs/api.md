@@ -1884,12 +1884,24 @@ Document Version Replacement 可留後續版本。
 ### Possible Tools
 
 ```text
-getPurchaseRecommendation
-getSupplierRanking
-getOpenPurchaseOrders
-RAG Document Retrieval
-僅限六種已核准唯讀工具；寫入請使用第 21 節確認 API
+QUERY_INVENTORY / QUERY_INVENTORY_BATCH / QUERY_INVENTORY_BY_NAME
+QUERY_SUPPLIER_QUOTES / QUERY_AVERAGE_PRICE / QUERY_SUPPLIER
+QUERY_PURCHASE_ORDER / QUERY_OPEN_PO / SEARCH_DOCUMENTS
+QUERY_RECOMMENDATION / EXPLAIN_RECOMMENDATION / QUERY_SUPPLIER_RANKING（僅在使用者明確詢問已保存的舊版建議時）
 ```
+
+### Response 與資料來源
+
+`status` 為 `ANSWERED`、`NOT_FOUND`、`INSUFFICIENT_EVIDENCE` 或 `NEEDS_CLARIFICATION`。`answer` 只包含後端唯讀工具回傳的可信事實；複合查詢不完整時，仍可回傳個別已驗證的部分事實，並由 `details.notes` 說明缺少的資料；沒有可用部分事實時 `answer=null`。經驗證的簡短 AI 摘要另以 `summary` 回傳，且只有摘要實際顯示時 `answerSource` 才會是 `MODEL_EXPLANATION`。模型輸出無效或摘要不符安全句型時，`summary=null`、`answerSource=BACKEND_FACTS`。查詢回應另回傳後端建立的 `details` 物件，包含 `inventory`、`quotes`、`averagePrices`、`suppliers`、`purchaseOrders`、`candidates`、`unmatchedIdentifiers` 與 `notes` 陣列。`purchaseOrderTotalCount` 保留符合條件的真實 PO 總數；`purchaseOrders` 僅包含本次最多取得的 100 筆，前端須分別顯示總數、取得數與尚未列出的數量。數量、單價、平均值、評分與金額均由 API 以 Decimal 欄位回傳；前端保留精度後再格式化。
+
+- 物料名稱先查實際物料主檔；唯一命中才讀庫存，多筆命中回 `NEEDS_CLARIFICATION` 並列出候選，零筆回 `NOT_FOUND`。
+- 多物料庫存以批次唯讀工具查詢。只有原問題中明確出現的物料代碼可查；重複代碼去重，未知代碼列入 `unmatchedIdentifiers`，不會阻擋其他有效代碼的結果。
+- 物料與供應商名稱都先查詢實際主檔；唯一匹配才查詢業務資料，多筆匹配回 `NEEDS_CLARIFICATION`，查無資料回 `NOT_FOUND`。英文、中英混合及含連字號或數字的名稱保留原始文字比對。
+- 目前報價只取啟用中的 `SupplierMaterial`、供應商與物料主檔，不使用推薦快照、歷史採購單或文件舊價格。計價單位取物料基本單位。平均價格以物料、幣別及計價單位分組，計算同組有效報價的算術平均；不同幣別或單位不得混算。
+- 供應商評價直接回傳主檔中的啟用狀態、可靠度與品質評分；不合成未核定的總評分。若原問題明確列出多個供應商代碼，所有代碼逐項查詢；查無的代碼逐項列入 `unmatchedIdentifiers`。模型額外提供的代碼會在工具邊界拒絕。
+- 單筆 PO 以完整 PO Number 精確查詢。正式 `status` 與 Kanban `stage` 分欄回傳，總額由後端依 PO 明細快照按幣別加總。`REJECTED` 與 `CANCELLED` 的下一步依正式狀態標示為已終止；其他狀態才依 Stage 提示，不推測合法空 Stage 的流程位置。
+- `NOT_FOUND` 代表查詢成功且沒有符合條件的業務資料。工具或資料服務失敗回 `AI_QUERY_FAILED`，不得轉成 `NOT_FOUND`；Provider 不可用、逾時及模型回覆驗證失敗仍分別使用既有 AI 錯誤碼。
+- `sources` 去重後只提供可讀來源名稱、文件版本／引用（文件來源適用）及現有資源連結，不把工具執行細節交給使用者。
 
 ### Rules
 
@@ -1899,6 +1911,9 @@ RAG Document Retrieval
 - AI 不可直接 Receive。
 - AI 建立 PO 時只能建立 DRAFT。
 - AI Tool 呼叫與 REST API 共用相同 Application Service。
+- 查詢 Tools 僅為唯讀；識別碼須逐項由原始問題驗證，不能藉由模型生成代碼擴大查詢範圍。
+- `summary` 僅允許依工具結果狀態選用經核准的安全句型，不得包含數值、識別碼、狀態或其他業務事實。這是受限制的自然語言摘要，不代表任意 LLM 改寫已完成語意證明。
+- V2 一般採購問答不得以推薦或供應商排名替代現行報價、供應商主檔、庫存或 PO 資料。
 
 ---
 

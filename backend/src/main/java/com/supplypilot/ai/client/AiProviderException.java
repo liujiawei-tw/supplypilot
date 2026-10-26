@@ -33,7 +33,8 @@ public class AiProviderException extends RuntimeException {
         super(errorCode.name(), cause);
         if (errorCode != ErrorCode.AI_PROVIDER_UNAVAILABLE
                 && errorCode != ErrorCode.AI_TIMEOUT
-                && errorCode != ErrorCode.AI_INVALID_RESPONSE) {
+                && errorCode != ErrorCode.AI_INVALID_RESPONSE
+                && errorCode != ErrorCode.AI_QUERY_FAILED) {
             throw new IllegalArgumentException("Only AI provider error codes are allowed.");
         }
         this.errorCode = errorCode;

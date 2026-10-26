@@ -51,6 +51,22 @@ export function formatCurrency(value: DecimalDisplayValue, currency: string | nu
   return currency ? `${currency} ${formatted}` : formatted;
 }
 
+/** AI answers follow the V2 compact money rule: round for display to two places and trim trailing zeroes. */
+export function formatAiCurrency(value: DecimalDisplayValue, currency: string | null | undefined): string {
+  if (value === null || value === undefined) return '—';
+  const source = expandExponent(String(value).trim());
+  const match = DECIMAL_PATTERN.exec(source);
+  if (!match) return currency ? `${currency} ${source}` : source;
+  const [, sign, integer, fraction = ''] = match;
+  let whole = BigInt(integer);
+  let cents = BigInt(fraction.slice(0, 2).padEnd(2, '0') || '0');
+  if ((fraction[2] ?? '0') >= '5') cents += 1n;
+  if (cents >= 100n) { whole += 1n; cents = 0n; }
+  const fractionText = cents.toString().padStart(2, '0').replace(/0+$/u, '');
+  const rounded = `${sign && (whole !== 0n || cents !== 0n) ? sign : ''}${whole.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',')}${fractionText ? `.${fractionText}` : ''}`;
+  return currency === 'TWD' ? `NT$${rounded}` : currency ? `${currency} ${rounded}` : rounded;
+}
+
 export function formatDate(value: string | null | undefined, emptyValue = '—'): string {
   if (!value) return emptyValue;
 

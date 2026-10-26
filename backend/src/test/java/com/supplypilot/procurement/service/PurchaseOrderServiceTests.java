@@ -3,6 +3,7 @@ package com.supplypilot.procurement.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -52,6 +53,30 @@ class PurchaseOrderServiceTests {
 
     private PurchaseOrderService service;
     private User staff;
+
+    @Test
+    void exactPoNumberLookupUsesDetailedReadRepositoryWithoutChangingStatusScope() {
+        PurchaseOrder aggregate = mock(PurchaseOrder.class);
+        com.supplypilot.procurement.dto.response.PurchaseOrderResponse response =
+                mock(com.supplypilot.procurement.dto.response.PurchaseOrderResponse.class);
+        when(purchaseOrderRepository.findDetailedByPoNumber("PO-20261102-000004"))
+                .thenReturn(Optional.of(aggregate));
+        when(purchaseOrderMapper.toResponse(aggregate)).thenReturn(response);
+
+        assertThat(service.getByPoNumber("PO-20261102-000004")).isSameAs(response);
+        verify(purchaseOrderRepository).findDetailedByPoNumber("PO-20261102-000004");
+        verify(purchaseOrderMapper).toResponse(aggregate);
+    }
+
+    @Test
+    void exactPoNumberLookupReturnsNotFoundWithoutSearchingSimilarNumbers() {
+        when(purchaseOrderRepository.findDetailedByPoNumber("PO-20261102-000004"))
+                .thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.getByPoNumber("PO-20261102-000004"))
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCode").isEqualTo(ErrorCode.PURCHASE_ORDER_NOT_FOUND);
+    }
 
     @BeforeEach
     void setUp() {

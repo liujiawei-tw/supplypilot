@@ -11,6 +11,7 @@ vi.mock('../src/api/ai', async (importOriginal) => {
 
 import AiQueryPanel from '../src/components/AiAssistant/AiQueryPanel';
 import { queryAi } from '../src/api/ai';
+import { formatAiCurrency } from '../src/utils/displayFormatters';
 
 describe('AI answer display', () => {
   beforeEach(() => vi.mocked(queryAi).mockReset());
@@ -25,6 +26,81 @@ describe('AI answer display', () => {
     expect(container.textContent).toContain('單價：NT$19,125');
     expect(container.textContent).toContain('金額：USD 900');
     expect(container.textContent).toContain('quantity=150.0000 KG');
+  });
+
+  it('renders typed inventory, current quote, supplier and PO facts without parsing backend strings', () => {
+    const details = {
+      inventory: [{ materialId: 1, materialCode: 'MAT-001', materialName: '阿薩姆紅茶萃取物', quantity: '150.0000', unit: 'KG', updatedAt: '2026-10-15T12:12:39Z' }],
+      quotes: [{ supplierMaterialId: 4, supplierId: 2, supplierCode: 'SUP-002', supplierName: '台灣供應商', supplierStatus: 'ACTIVE', relationStatus: 'ACTIVE', materialId: 1, materialCode: 'MAT-001', materialName: '阿薩姆紅茶萃取物', unitPrice: '100.5678', currency: 'TWD', pricingUnit: 'KG', leadTimeDays: 5 }],
+      averagePrices: [{ materialCode: 'MAT-001', materialName: '阿薩姆紅茶萃取物', currency: 'TWD', pricingUnit: 'KG', quoteCount: 2, averageUnitPrice: '100.5678', minimumUnitPrice: '90.0000', maximumUnitPrice: '111.1356' }],
+      suppliers: [{ supplierId: 2, supplierCode: 'SUP-002', supplierName: '台灣供應商', status: 'ACTIVE', reliabilityScore: '91.00', qualityScore: '88.50' }],
+      purchaseOrders: [{ purchaseOrderId: 8, poNumber: 'PO-20261102-000004', status: 'ORDERED', stage: 'ORDER_FOLLOW_UP', supplierCode: 'SUP-002', supplierName: '台灣供應商', expectedDeliveryDate: '2026-11-20', supplierPromisedDeliveryDate: null, items: [{ materialCode: 'MAT-001', materialName: '阿薩姆紅茶萃取物', quantity: '2.0000', unit: 'KG', unitPrice: '100.5678', currency: 'TWD', lineTotal: '201.1356' }], totals: [{ currency: 'TWD', amount: '201.1356' }], nextStep: '追蹤供應商交貨。' }],
+      candidates: [], unmatchedIdentifiers: [], notes: [],
+    };
+    const summary = '已依據查得的資料整理以下結果。';
+    const { container } = render(<AiAnswerDisplay answer={'internal raw fact string'} details={details} summary={summary} />);
+
+    expect(container.textContent).toContain(summary);
+    expect(container.textContent).toContain('目前庫存');
+    expect(container.textContent).toContain('150.0000 KG');
+    expect(container.textContent).toContain('目前有效供應商報價');
+    expect(container.textContent).toContain('NT$100.57');
+    expect(container.textContent).toContain('91.00');
+    expect(container.textContent).toContain('PO-20261102-000004');
+    expect(container.textContent).toContain('下單與交期跟催');
+    expect(container.textContent).not.toContain('internal raw fact string');
+  });
+
+  it('shows fetched open PO count separately from the matching total and undisplayed remainder', () => {
+    const details = {
+      inventory: [], quotes: [], averagePrices: [], suppliers: [],
+      purchaseOrders: [
+        { purchaseOrderId: 8, poNumber: 'PO-1', status: 'ORDERED', stage: null, supplierCode: 'SUP-001', supplierName: 'One', expectedDeliveryDate: null, supplierPromisedDeliveryDate: null, items: [], totals: [], nextStep: null },
+        { purchaseOrderId: 9, poNumber: 'PO-2', status: 'ORDERED', stage: null, supplierCode: 'SUP-002', supplierName: 'Two', expectedDeliveryDate: null, supplierPromisedDeliveryDate: null, items: [], totals: [], nextStep: null },
+      ],
+      candidates: [], unmatchedIdentifiers: [], notes: [], purchaseOrderTotalCount: 150,
+    };
+
+    const { container } = render(<AiAnswerDisplay answer={null} details={details} summary="已查得未收貨採購單。" />);
+
+    expect(container.textContent).toContain('符合條件總數 150 筆');
+    expect(container.textContent).toContain('本次取得 2 筆');
+    expect(container.textContent).toContain('尚有 148 筆未列出');
+    expect(container.textContent).toContain('已查得未收貨採購單。');
+  });
+
+  it('does not present fetched rows as the total when merged PO totals are unknown', () => {
+    const details = {
+      inventory: [], quotes: [], averagePrices: [], suppliers: [],
+      purchaseOrders: [
+        { purchaseOrderId: 8, poNumber: 'PO-1', status: 'ORDERED', stage: null, supplierCode: 'SUP-001', supplierName: 'One', expectedDeliveryDate: null, supplierPromisedDeliveryDate: null, items: [], totals: [], nextStep: null },
+        { purchaseOrderId: 9, poNumber: 'PO-2', status: 'ORDERED', stage: null, supplierCode: 'SUP-002', supplierName: 'Two', expectedDeliveryDate: null, supplierPromisedDeliveryDate: null, items: [], totals: [], nextStep: null },
+      ],
+      candidates: [], unmatchedIdentifiers: [], notes: [], purchaseOrderTotalCount: null,
+    };
+
+    const { container } = render(<AiAnswerDisplay answer={null} details={details} />);
+
+    expect(container.textContent).toContain('符合條件總數尚未確認；本次取得 2 筆，目前顯示 2 筆。');
+    expect(container.textContent).not.toContain('符合條件總數 2 筆');
+    expect(container.textContent).not.toContain('尚有');
+  });
+
+  it('renders a structured zero open PO count', () => {
+    const details = {
+      inventory: [], quotes: [], averagePrices: [], suppliers: [], purchaseOrders: [],
+      candidates: [], unmatchedIdentifiers: [], notes: [], purchaseOrderTotalCount: 0,
+    };
+
+    const { container } = render(<AiAnswerDisplay answer={null} details={details} />);
+
+    expect(container.textContent).toContain('符合條件總數 0 筆');
+    expect(container.textContent).toContain('本次取得 0 筆');
+  });
+
+  it('applies the V2 two-decimal display rule without changing the source decimal', () => {
+    expect(formatAiCurrency('100.5678', 'TWD')).toBe('NT$100.57');
+    expect(formatAiCurrency('15000.0000', 'USD')).toBe('USD 15,000');
   });
 
   it('renders answer text as text instead of interpreting it as markup', () => {
@@ -184,12 +260,13 @@ describe('AI query panel response contract', () => {
     expect(await screen.findByText('已下單採購單：共 1 筆，以下列出 1 筆。')).toBeTruthy();
     expect(screen.getByText('答案依據：後端查核資料')).toBeTruthy();
     expect(screen.getByRole('link', { name: '101' }).getAttribute('href')).toBe('/purchase-orders/101');
+    expect(screen.getByRole('link', { name: 'PO-101' }).getAttribute('href')).toBe('/purchase-orders/101');
     expect(screen.getAllByText('供應商 ID')).toHaveLength(2);
     expect(screen.getAllByText('供應商 ID')[0].parentElement?.textContent).toContain('4');
     expect(screen.getByText('查詢待收貨採購單')).toBeTruthy();
     expect(screen.getByText('採購單')).toBeTruthy();
     expect(screen.queryByText('PURCHASE_ORDER')).toBeNull();
-    expect(screen.getByRole('link', { name: '42' }).getAttribute('href')).toBe('/documents?documentId=42');
+    expect(screen.getByRole('link', { name: '採購流程手冊' }).getAttribute('href')).toBe('/documents?documentId=42');
     expect(screen.getByText('文件')).toBeTruthy();
     expect(screen.getByText('來源識別')).toBeTruthy();
     expect(screen.getByText('DOC-SUP-001-PROCUREMENT-SOP')).toBeTruthy();
@@ -218,4 +295,64 @@ describe('AI query panel response contract', () => {
     expect(screen.getByText('後端未提供可核對來源。')).toBeTruthy();
     expect(screen.queryByRole('heading', { name: '回答' })).toBeNull();
   });
+
+  it('shows verified partial facts and names the missing identifier on an insufficient answer', async () => {
+    vi.mocked(queryAi).mockResolvedValue({
+      status: 'INSUFFICIENT_EVIDENCE',
+      answer: 'MAT-001 庫存為 1 KG。',
+      tools: ['QUERY_INVENTORY'],
+      sources: [],
+      answerSource: 'BACKEND_FACTS',
+      details: {
+        inventory: [{ materialId: 1, materialCode: 'MAT-001', materialName: 'Assam', quantity: '1', unit: 'KG', updatedAt: '2026-10-15T12:00:00Z' }],
+        quotes: [], averagePrices: [], suppliers: [], purchaseOrders: [], candidates: [],
+        unmatchedIdentifiers: [], notes: ['尚未取得以下物料代碼的結果：MAT-002。'],
+      },
+    });
+    const user = userEvent.setup();
+
+    render(<MemoryRouter><AiQueryPanel /></MemoryRouter>);
+    await user.type(screen.getByRole('textbox', { name: 'AI 問題' }), 'MAT-001 / MAT-002 庫存?');
+    await user.click(screen.getByRole('button', { name: '查詢' }));
+
+    expect(await screen.findByText('部分查詢結果')).toBeTruthy();
+    expect(screen.getByText('目前庫存')).toBeTruthy();
+    expect(document.body.textContent).toContain('MAT-001');
+    expect(screen.getByText('尚未取得以下物料代碼的結果：MAT-002。')).toBeTruthy();
+  });
+
+  it('distinguishes a successful query with no matching business data', async () => {
+    vi.mocked(queryAi).mockResolvedValue({
+      status: 'NOT_FOUND', answer: '查無此物料的庫存資料。', tools: ['QUERY_INVENTORY'], sources: [], answerSource: null,
+    });
+    const user = userEvent.setup();
+
+    render(<MemoryRouter><AiQueryPanel /></MemoryRouter>);
+    await user.type(screen.getByRole('textbox', { name: 'AI 問題' }), 'MAT-999 庫存?');
+    await user.click(screen.getByRole('button', { name: '查詢' }));
+
+    expect(await screen.findByText('查無資料')).toBeTruthy();
+    expect(screen.getByText('查無此物料的庫存資料。')).toBeTruthy();
+    expect(screen.queryByText('AI 問答失敗')).toBeNull();
+  });
+
+  it('shows live master candidates when a name needs clarification', async () => {
+    vi.mocked(queryAi).mockResolvedValue({
+      status: 'NEEDS_CLARIFICATION', answer: '請確認物料。', tools: ['QUERY_INVENTORY'], sources: [], answerSource: null,
+      details: {
+        inventory: [], quotes: [], averagePrices: [], suppliers: [], purchaseOrders: [],
+        candidates: [{ resourceType: 'MATERIAL', id: 1, code: 'MAT-001', name: '阿薩姆紅茶萃取物', unit: 'KG' }],
+        unmatchedIdentifiers: [], notes: [],
+      },
+    });
+    const user = userEvent.setup();
+
+    render(<MemoryRouter><AiQueryPanel /></MemoryRouter>);
+    await user.type(screen.getByRole('textbox', { name: 'AI 問題' }), '阿薩姆紅茶庫存?');
+    await user.click(screen.getByRole('button', { name: '查詢' }));
+
+    expect(await screen.findByText('需要補充資料')).toBeTruthy();
+    expect(screen.getByText('阿薩姆紅茶萃取物（MAT-001，KG）')).toBeTruthy();
+  });
+
 });
