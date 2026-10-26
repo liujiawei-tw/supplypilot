@@ -179,10 +179,10 @@ describe('AI query panel response contract', () => {
 
     render(<MemoryRouter><AiQueryPanel /></MemoryRouter>);
     await user.type(screen.getByRole('textbox', { name: 'AI 問題' }), '查詢採購單');
-    await user.click(screen.getByRole('button', { name: '送出問題' }));
+    await user.click(screen.getByRole('button', { name: '查詢' }));
 
     expect(await screen.findByText('已下單採購單：共 1 筆，以下列出 1 筆。')).toBeTruthy();
-    expect(screen.getByText('答案來源：後端查核資料')).toBeTruthy();
+    expect(screen.getByText('答案依據：後端查核資料')).toBeTruthy();
     expect(screen.getByRole('link', { name: '101' }).getAttribute('href')).toBe('/purchase-orders/101');
     expect(screen.getAllByText('供應商 ID')).toHaveLength(2);
     expect(screen.getAllByText('供應商 ID')[0].parentElement?.textContent).toContain('4');
@@ -191,10 +191,11 @@ describe('AI query panel response contract', () => {
     expect(screen.queryByText('PURCHASE_ORDER')).toBeNull();
     expect(screen.getByRole('link', { name: '42' }).getAttribute('href')).toBe('/documents?documentId=42');
     expect(screen.getByText('文件')).toBeTruthy();
-    expect(screen.getByText('Document Key')).toBeTruthy();
+    expect(screen.getByText('來源識別')).toBeTruthy();
     expect(screen.getByText('DOC-SUP-001-PROCUREMENT-SOP')).toBeTruthy();
-    expect(screen.getByText('來源片段序號').parentElement?.textContent).toContain('3');
-    expect(screen.getByText('原文位置').parentElement?.textContent).toContain('10–20');
+    expect(screen.getAllByText('原文摘錄')).toHaveLength(2);
+    expect(screen.getByText('驗收流程摘要')).toBeTruthy();
+    expect(screen.queryByText('原文位置')).toBeNull();
     expect(screen.queryByText('DOCUMENT')).toBeNull();
   });
 
@@ -210,11 +211,11 @@ describe('AI query panel response contract', () => {
 
     render(<MemoryRouter><AiQueryPanel /></MemoryRouter>);
     await user.type(screen.getByRole('textbox', { name: 'AI 問題' }), '查詢採購單');
-    await user.click(screen.getByRole('button', { name: '送出問題' }));
+    await user.click(screen.getByRole('button', { name: '查詢' }));
 
     expect(await screen.findByText('證據不足')).toBeTruthy();
-    expect(screen.getByText('後端 沒有足夠證據支持肯定答案，因此不會顯示推測內容。')).toBeTruthy();
-    expect(screen.getByText('後端 未提供可核對來源。')).toBeTruthy();
+    expect(screen.getByText('目前沒有足夠來源支持肯定答案，因此不會顯示推測內容。可補充明確的識別資料後再查詢。')).toBeTruthy();
+    expect(screen.getByText('後端未提供可核對來源。')).toBeTruthy();
     expect(screen.queryByRole('heading', { name: '回答' })).toBeNull();
   });
 });

@@ -1,27 +1,112 @@
+:root {
+  color-scheme: light;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft JhengHei', 'Noto Sans TC', sans-serif;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  font-variant-numeric: tabular-nums;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+
+  --sp-workspace: #f5f3ec;
+  --sp-paper: #fffefa;
+  --sp-ink: #252a26;
+  --sp-muted: #59635d;
+  --sp-line: #d8d8cd;
+  --sp-forest: #285241;
+  --sp-rust: #bd553b;
+  --sp-focus: #1b66d1;
+  --sp-focus-soft: rgb(27 102 209 / 14%);
+
+  background: var(--sp-workspace);
+  color: var(--sp-ink);
+  caret-color: var(--sp-forest);
+}
+
 html,
 body,
 #root {
+  width: 100%;
+  min-width: 320px;
+  min-height: 100%;
   margin: 0;
   padding: 0;
-  width: 100%;
-  height: 100%;
   box-sizing: border-box;
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial,
-    'Noto Sans', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol',
-    'Noto Color Emoji';
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  background-color: #f5f5f5;
-  color: #1f1f1f;
+  min-height: 100vh;
+  background: var(--sp-workspace);
+  color: var(--sp-ink);
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 1.5;
 }
 
 *,
 *::before,
 *::after {
   box-sizing: inherit;
+}
+
+button,
+input,
+textarea,
+select,
+[contenteditable='true'] {
+  caret-color: var(--sp-forest);
+}
+
+::selection {
+  background: #d8e6dc;
+  color: #1f3228;
+}
+
+:focus-visible {
+  outline: 2px solid var(--sp-focus);
+  outline-offset: 2px;
+}
+
+a {
+  color: var(--sp-forest);
+  text-underline-offset: 0.18em;
+}
+
+a:hover {
+  color: #1e4032;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+body,
+* {
+  scrollbar-color: #aeb9b0 transparent;
+  scrollbar-width: thin;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  border: 2px solid transparent;
+  border-radius: 8px;
+  background: #aeb9b0;
+  background-clip: padding-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #7b8b80;
+  background-clip: padding-box;
 }
 
 .login-page {
@@ -33,4 +118,36 @@ body {
 
 .login-card {
   width: min(100%, 420px);
+  border-radius: 8px;
+}
+
+.ant-tabs .ant-tabs-tab.ant-tabs-tab-active .ant-tabs-tab-btn,
+.ant-tabs .ant-tabs-tab:hover {
+  color: var(--sp-forest);
+}
+
+.ant-tabs .ant-tabs-ink-bar {
+  background: var(--sp-forest);
+}
+
+.ant-segmented .ant-segmented-item-selected {
+  color: var(--sp-forest);
+}
+
+.ant-checkbox-checked .ant-checkbox-inner,
+.ant-radio-checked .ant-radio-inner {
+  border-color: var(--sp-forest);
+  background: var(--sp-forest);
+}
+
+.ant-switch.ant-switch-checked {
+  background: var(--sp-forest);
+}
+
+.ant-pagination .ant-pagination-item-active {
+  border-color: var(--sp-forest);
+}
+
+.ant-pagination .ant-pagination-item-active a {
+  color: var(--sp-forest);
 }

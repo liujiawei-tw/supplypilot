@@ -43,9 +43,7 @@ describe('SP-803 role isolation', () => {
     await open(role);
     expect(await screen.findByText('403')).toBeTruthy();
     expect(screen.queryByLabelText('庫存 CSV 檔案')).toBeNull();
-    const sidebar = document.querySelector('.ant-layout-sider')!;
-    fireEvent.click([...sidebar.querySelectorAll('.ant-menu-submenu-title')].find((item) => item.textContent === '需求與庫存')!);
-    await waitFor(() => expect(sidebar.textContent).not.toContain('庫存匯入'));
+    expect(screen.queryByRole('link', { name: '庫存匯入' })).toBeNull();
     expect(requests).toEqual(['/auth/me']);
   });
 
@@ -56,9 +54,7 @@ describe('SP-803 role isolation', () => {
     });
     await open(role);
     expect(await screen.findByRole('heading', { name: '庫存匯入' })).toBeTruthy();
-    const sidebar = document.querySelector('.ant-layout-sider')!;
-    fireEvent.click([...sidebar.querySelectorAll('.ant-menu-submenu-title')].find((item) => item.textContent === '需求與庫存')!);
-    await waitFor(() => expect(sidebar.textContent).toContain('庫存匯入'));
+    expect(screen.getByRole('link', { name: '庫存匯入' })).toBeTruthy();
   });
 });
 

@@ -23,7 +23,7 @@ interface AdjustmentValues {
   reason?: string;
 }
 
-function StockLevels() {
+function StockLevels({ finder = '' }: { finder?: string }) {
   const { user } = useAuth();
   const canAdjust = user?.role === 'WAREHOUSE_STAFF' || user?.role === 'ADMIN';
   const [form] = Form.useForm<AdjustmentValues>();
@@ -38,7 +38,13 @@ function StockLevels() {
   const [loading, setLoading] = useState(true);
   const [detailLoading, setDetailLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [query, setQuery] = useState({ page: 0, size: 20, materialId: undefined as number | undefined, materialCode: '' });
+  const normalizedFinder = finder.trim();
+  const [query, setQuery] = useState(() => ({ page: 0, size: 20, materialId: undefined as number | undefined, materialCode: normalizedFinder }));
+  useEffect(() => {
+    setQuery((current) => current.page === 0 && current.materialId === undefined && current.materialCode === normalizedFinder
+      ? current
+      : { ...current, page: 0, materialId: undefined, materialCode: normalizedFinder });
+  }, [normalizedFinder]);
   const requestId = useRef(0);
   const detailRequestId = useRef(0);
 
@@ -119,14 +125,14 @@ function StockLevels() {
   };
 
   const columns: TableProps<InventoryResponse>['columns'] = [
-    { title: '物料編號', dataIndex: 'materialId' },
-    { title: '物料代碼', dataIndex: 'materialCode' },
+    { title: '物料編號', dataIndex: 'materialId', render: (id: number) => <Typography.Text code>{id}</Typography.Text> },
+    { title: '物料代碼', dataIndex: 'materialCode', render: (code: string) => <Typography.Text code>{code}</Typography.Text> },
     { title: '物料名稱', dataIndex: 'materialName' },
     { title: '庫存數量', dataIndex: 'quantity', render: (value, row) => formatQuantity(value, row.unit) },
     { title: '更新時間', dataIndex: 'updatedAt', render: formatTimestamp },
     { title: '操作', key: 'actions', render: (_value, inventory) => <Space>
-      <Button size="small" onClick={() => void openDetail(inventory.materialId)}>檢視</Button>
-      {canAdjust && <Button size="small" type="primary" onClick={() => openAdjustment(inventory)}>調整庫存</Button>}
+      <Button onClick={() => void openDetail(inventory.materialId)} style={{ minHeight: 44 }}>檢視</Button>
+      {canAdjust && <Button type="primary" onClick={() => openAdjustment(inventory)} style={{ minHeight: 44 }}>調整庫存</Button>}
     </Space> },
   ];
   const filtered = query.materialId !== undefined || !!query.materialCode;
@@ -134,16 +140,19 @@ function StockLevels() {
   return <Space orientation="vertical" size="large" style={{ width: '100%' }}>
     {contextHolder}
     <Space wrap style={{ maxWidth: '100%' }}>
-      <InputNumber aria-label="物料編號篩選" placeholder="物料編號" min={1} precision={0} value={query.materialId} onChange={(materialId) => setQuery((current) => ({ ...current, materialId: materialId ?? undefined, page: 0 }))} />
-      <Input aria-label="物料代碼篩選" placeholder="物料代碼" allowClear value={query.materialCode} onChange={(event) => setQuery((current) => ({ ...current, materialCode: event.target.value, page: 0 }))} />
+      <InputNumber aria-label="物料編號篩選" placeholder="物料編號" min={1} precision={0} value={query.materialId} onChange={(materialId) => setQuery((current) => ({ ...current, materialId: materialId ?? undefined, page: 0 }))} style={{ width: 'min(100%, 220px)', minHeight: 44 }} />
+      <Input aria-label="物料代碼篩選" placeholder="物料代碼" allowClear value={query.materialCode} onChange={(event) => setQuery((current) => ({ ...current, materialCode: event.target.value, page: 0 }))} style={{ width: 'min(100%, 240px)', minHeight: 44 }} />
     </Space>
     {listError && <ErrorState title="庫存查詢失敗" error={listError} onRetry={() => void load()} />}
-    {loading && !data ? <LoadingState tip="正在載入庫存…" /> : <Table<InventoryResponse>
-      rowKey="materialId" columns={columns} dataSource={data?.content ?? []} loading={loading} scroll={{ x: 'max-content' }}
-      locale={{ emptyText: <EmptyState simple description={filtered ? '沒有符合查詢條件的庫存' : '目前沒有庫存資料'} /> }}
-      pagination={{ current: (data?.page ?? 0) + 1, pageSize: data?.size ?? query.size, total: data?.totalElements ?? 0, showSizeChanger: true }}
-      onChange={(pagination) => setQuery((current) => ({ ...current, page: (pagination.current ?? 1) - 1, size: pagination.pageSize ?? 20 }))}
-    />}
+    {loading && !data ? <LoadingState tip="正在載入庫存…" /> : <>
+      <Typography.Text type="secondary" aria-live="polite">共 {data?.totalElements ?? 0} 筆庫存紀錄</Typography.Text>
+      <Table<InventoryResponse>
+        rowKey="materialId" columns={columns} dataSource={data?.content ?? []} loading={loading} scroll={{ x: 'max-content' }}
+        locale={{ emptyText: <EmptyState simple description={filtered ? '沒有符合查詢條件的庫存' : '目前沒有庫存資料'} /> }}
+        pagination={{ current: (data?.page ?? 0) + 1, pageSize: data?.size ?? query.size, total: data?.totalElements ?? 0, showSizeChanger: true }}
+        onChange={(pagination) => setQuery((current) => ({ ...current, page: (pagination.current ?? 1) - 1, size: pagination.pageSize ?? 20 }))}
+      />
+    </>}
     <Drawer title={detail ? `${detail.materialCode} 庫存明細` : '庫存明細'} open={detailLoading || !!detail || !!detailError} onClose={() => { detailRequestId.current += 1; setDetail(null); setDetailError(null); setDetailLoading(false); }} size="large" className="inventory-detail-drawer">
       {detailLoading && <LoadingState tip="正在載入庫存明細…" />}
       {detailError && <ErrorState title="庫存詳細資料載入失敗" error={detailError} />}
@@ -209,17 +218,22 @@ export default function InventoryPage() {
     label: key === 'stock-levels' ? '庫存水位' : '庫存異動',
     children: key === activeKey
       ? key === 'stock-levels'
-        ? <StockLevels />
+        ? <StockLevels finder={params.get('finder') ?? ''} />
         : <StockTransactions />
       : null,
   }));
 
-  return <Space orientation="vertical" size="large" style={{ width: '100%' }}>
-    <div><Typography.Title level={2} style={{ marginBottom: 0 }}>庫存管理</Typography.Title><Typography.Text type="secondary">查詢庫存水位與庫存異動</Typography.Text></div>
+  return <section aria-labelledby="inventory-page-title" style={{ width: '100%' }}>
+    <div style={{ borderBottom: '1px solid var(--sp-line)', paddingBottom: 16, marginBottom: 8 }}>
+      <Typography.Title id="inventory-page-title" level={2} style={{ margin: 0 }}>庫存</Typography.Title>
+      <Typography.Text type="secondary">以物料代碼或編號查詢庫存水位與異動紀錄。</Typography.Text>
+    </div>
+    <Space orientation="vertical" size="large" style={{ width: '100%' }}>
     <Tabs items={items} activeKey={activeKey} onChange={(key) => {
       const next = new URLSearchParams(params);
       next.set('tab', key);
       setParams(next);
     }} />
-  </Space>;
+    </Space>
+  </section>;
 }

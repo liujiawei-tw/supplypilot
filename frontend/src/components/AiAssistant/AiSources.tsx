@@ -1,9 +1,10 @@
-import { Card, Descriptions, Space, Tag, Typography } from 'antd';
+import { Tag, Typography } from 'antd';
 import { Link } from 'react-router-dom';
 import type { AiSourceResponse } from '../../api/ai';
 import { displayLabel } from '../../utils/displayLabels';
+import './AiAssistant.css';
 
-const { Paragraph, Text } = Typography;
+const { Text } = Typography;
 
 function safePositiveId(value: string): number | null {
   if (!/^\d+$/.test(value)) return null;
@@ -21,23 +22,29 @@ function sourceLink(source: AiSourceResponse) {
 }
 
 export default function AiSources({ sources }: { sources: AiSourceResponse[] }) {
-  if (sources.length === 0) return <Text type="secondary">後端 未提供可核對來源。</Text>;
-  return <Space orientation="vertical" style={{ width: '100%' }}>
+  if (sources.length === 0) return <Text type="secondary">後端未提供可核對來源。</Text>;
+  return <div className="ai-sources" aria-label="AI 回答來源">
     {sources.map((source, index) => {
       const link = sourceLink(source);
-      return <Card key={`${source.resourceType}-${source.resourceId}-${index}`} size="small"
-        title={<Space wrap><Tag>{displayLabel(source.resourceType)}</Tag><Text>{source.title}</Text></Space>}>
-        <Descriptions size="small" column={1} items={[
-          { key: 'id', label: '來源 ID', children: link ? <Link to={link}>{source.resourceId}</Link> : source.resourceId },
-          ...(source.documentKey ? [{ key: 'documentKey', label: 'Document Key', children: source.documentKey }] : []),
-          ...(source.version ? [{ key: 'version', label: '文件版本', children: source.version }] : []),
-          ...(source.supplierId !== null ? [{ key: 'supplier', label: '供應商 ID', children: source.supplierId }] : []),
-          ...(source.chunkIndex !== null ? [{ key: 'chunk', label: '來源片段序號', children: source.chunkIndex }] : []),
-          ...(source.startOffset !== null || source.endOffset !== null ? [{ key: 'offset', label: '原文位置', children: `${source.startOffset ?? '—'}–${source.endOffset ?? '—'}` }] : []),
-          ...(source.relevanceScore !== null ? [{ key: 'score', label: '相關度分數', children: String(source.relevanceScore) }] : []),
-        ]} />
-        {source.excerpt && <Paragraph style={{ marginTop: 12, whiteSpace: 'pre-wrap' }}><Text strong>引用內容</Text><br />{source.excerpt}</Paragraph>}
-      </Card>;
+      return <article className="ai-source" key={`${source.resourceType}-${source.resourceId}-${index}`}>
+        <div className="ai-source__heading">
+          <Tag>{displayLabel(source.resourceType)}</Tag>
+          <Text className="ai-source__title">{source.title}</Text>
+        </div>
+        <dl className="ai-source__meta">
+          <div className="ai-source__meta-item">
+            <dt>來源 ID</dt>
+            <dd>{link ? <Link className="ai-source__link" to={link}>{source.resourceId}</Link> : source.resourceId}</dd>
+          </div>
+          {source.version && <div className="ai-source__meta-item"><dt>文件版本</dt><dd>{source.version}</dd></div>}
+          {source.documentKey && <div className="ai-source__meta-item"><dt>來源識別</dt><dd>{source.documentKey}</dd></div>}
+          {source.supplierId !== null && <div className="ai-source__meta-item"><dt>供應商 ID</dt><dd>{source.supplierId}</dd></div>}
+        </dl>
+        <blockquote className="ai-source__excerpt">
+          <span className="ai-source__excerpt-label">原文摘錄</span>
+          {source.excerpt || '後端未提供原文摘錄，請開啟來源資料核對。'}
+        </blockquote>
+      </article>;
     })}
-  </Space>;
+  </div>;
 }

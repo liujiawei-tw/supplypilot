@@ -298,7 +298,7 @@ describe('SP-907 role-adaptive dashboard API access', () => {
 
     await openDashboard('WAREHOUSE_STAFF');
     await userEvent.setup().click(screen.getByRole('link', { name: '查看已收貨紀錄' }));
-    await screen.findByText('收貨作業');
+    await screen.findByRole('heading', { name: '收貨作業' });
     await waitFor(() => expect(requests.some((request) => request.url === '/receiving/purchase-orders' && params(request).status === 'RECEIVED')).toBe(true));
     expect(requests.some((request) => request.url === '/receiving/purchase-orders' && params(request).status === 'RECEIVED')).toBe(true);
   });

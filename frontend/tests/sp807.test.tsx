@@ -172,9 +172,32 @@ describe('SP-807 purchase order verification boundary', () => {
 });
 
 describe('SP-807 receiving and import verification boundaries', () => {
+  it('presents the receiving route as a read-only status and inspection work queue', async () => {
+    const requests: InternalAxiosRequestConfig[] = [];
+    axiosClient.defaults.adapter = vi.fn(async (config) => {
+      requests.push(config);
+      if (config.url === '/auth/me') return response(config, warehouse);
+      if (config.url === '/receiving/purchase-orders') return response(config, {
+        content: [receivingPo], page: 0, size: 20, totalElements: 1, totalPages: 1,
+      });
+      throw new Error(`Unexpected ${config.method} ${config.url}`);
+    });
+
+    await open('/receiving/purchase-orders');
+    expect(await screen.findByRole('heading', { name: '收貨作業' })).toBeTruthy();
+    const container = document.querySelector<HTMLElement>('.receiving-queue__table');
+    expect(container).toBeTruthy();
+    const table = await within(container!).findByRole('table');
+    const row = await within(table).findByRole('row', { name: /PO-000042/ });
+    expect(within(row).getByText('已下單')).toBeTruthy();
+    expect(within(row).getByText('到貨驗收中')).toBeTruthy();
+    expect(within(row).getByRole('link', { name: '繼續驗收' })).toBeTruthy();
+    expect(requests.every(({ method }) => method === 'get')).toBe(true);
+    expect(requests.filter(({ url }) => url === '/receiving/purchase-orders')).toHaveLength(1);
+  });
   it.each([
-    ['RECEIVED', '此採購單已完成收貨'],
-    ['ORDERED', '目前仍為待收貨（已下單）'],
+    ['RECEIVED', '此採購單已完成收貨。收貨專用查詢已確認狀態，本頁不會再送出收貨。'],
+    ['ORDERED', '目前仍為待收貨（已下單），先前操作結果需由使用者重新確認。系統沒有自動重送；如要再操作，必須重新開啟確認流程。'],
   ] as const)('verifies DUPLICATE_RECEIVING through restricted GET and reports %s without a resend', async (verifiedStatus, expectedMessage) => {
     const requests: InternalAxiosRequestConfig[] = [];
     let reads = 0;
@@ -197,7 +220,7 @@ describe('SP-807 receiving and import verification boundaries', () => {
     await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: '確認整筆收貨' }));
     expect(await screen.findByText('收貨結果需要查核，已鎖定再次提交')).toBeTruthy();
     await user.click(screen.getByRole('button', { name: '重新查詢收貨狀態' }));
-    expect(await screen.findByText(new RegExp(expectedMessage))).toBeTruthy();
+    expect(await screen.findByText(expectedMessage)).toBeTruthy();
     expect(requests.filter(({ url }) => url === '/purchase-orders/42/receive')).toHaveLength(1);
     expect(requests.filter(({ url }) => url === '/receiving/purchase-orders/42')).toHaveLength(2);
     expect(requests.some(({ url, method }) => url === '/purchase-orders/42' && method === 'get')).toBe(false);

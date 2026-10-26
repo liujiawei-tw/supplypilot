@@ -9,9 +9,12 @@ export default function AiAssistantDrawer({ open, onClose }: { open: boolean; on
   if (!user || !can(user.role, 'aiQuery')) return null;
   const items = [{ key: 'query', label: '查詢與來源', children: <AiQueryPanel /> }];
   if (can(user.role, 'aiProposal')) items.push({ key: 'draft', label: '採購草稿提案', children: <AiDraftProposalPanel /> });
-  return <Drawer title="SupplyPilot AI 助理" open={open} onClose={onClose}
-    width="min(100vw, 520px)" destroyOnHidden={false}>
-    <Typography.Paragraph type="secondary">AI 功能與核心頁面隔離；關閉 Drawer 不會改變目前路由。</Typography.Paragraph>
+  return <Drawer className="ai-assistant-drawer" title={<div className="ai-assistant-drawer__heading">
+    <Typography.Text strong>採購資料助理</Typography.Text>
+    <Typography.Text type="secondary">查詢後端資料，並回到來源核對證據。</Typography.Text>
+  </div>} open={open} onClose={onClose}
+    width="min(100vw, 680px)" destroyOnHidden={false}>
+    <Typography.Paragraph className="ai-assistant-drawer__description" type="secondary">AI 回答只作為查詢協助；正式採購與庫存操作仍由受控工作流程完成。</Typography.Paragraph>
     <Tabs items={items} />
   </Drawer>;
 }

@@ -48,10 +48,25 @@ async function open(path: string) {
 }
 function latestDialog() { const dialogs = screen.getAllByRole('dialog'); return dialogs[dialogs.length - 1]; }
 function documentDrawer() { return screen.getByText('文件明細').closest('.ant-drawer')!; }
-function aiAssistantDrawer() { return screen.getByText('SupplyPilot AI 助理').closest('.ant-drawer')!; }
+function aiAssistantDrawer() { return screen.getByText('採購資料助理').closest('.ant-drawer')!; }
+function documentRecordName(id: number) { return new RegExp(`^#${id} ·`); }
+async function findDocumentRecordButton(id: number) {
+  const tableContainer = document.querySelector<HTMLElement>('.document-workspace__table');
+  const table = tableContainer?.querySelector('table');
+  if (!tableContainer || !table) throw new Error('Desktop document table container was not found');
+  return within(table).findByRole('button', { name: documentRecordName(id) });
+}
+async function openAiAssistant(user: ReturnType<typeof userEvent.setup>) {
+  await user.click(await screen.findByRole('button', { name: 'AI 查詢' }));
+}
+async function expandAdminOperations(user: ReturnType<typeof userEvent.setup>) {
+  const panel = await screen.findByRole('button', { name: '管理員索引診斷與工作' });
+  if (panel.getAttribute('aria-expanded') !== 'true') await user.click(panel);
+  await screen.findByRole('heading', { name: '語意索引管理' });
+}
 async function openDraftProposal(user: ReturnType<typeof userEvent.setup>) {
   await open('/dashboard');
-  await user.click(await screen.findByRole('button', { name: /AI 助理/ }));
+  await openAiAssistant(user);
   await user.click(screen.getByRole('tab', { name: '採購草稿提案' }));
   fireEvent.change(screen.getByLabelText('AI 草稿供應商編號'), { target: { value: '12' } });
   fireEvent.change(screen.getByLabelText('AI 草稿品項 1 物料編號'), { target: { value: '7' } });
@@ -73,7 +88,7 @@ describe('SP-806 Document Management UI', () => {
       throw new Error('Unexpected API request');
     });
     await open('/documents');
-    expect(await screen.findByText('語意索引管理')).toBeTruthy();
+    expect(await screen.findByText('管理員索引診斷與工作')).toBeTruthy();
     cleanup();
   });
 
@@ -89,9 +104,8 @@ describe('SP-806 Document Management UI', () => {
       throw new Error(`Unexpected ${config.method} ${config.url}`);
     });
     await open('/documents'); const user = userEvent.setup();
-    await screen.findByText('語意索引管理');
-    await screen.findByText('Supplier quote');
-    await user.click(screen.getByRole('button', { name: '#21' }));
+    await screen.findByText('管理員索引診斷與工作');
+    await user.click(await findDocumentRecordButton(21));
     await user.click(await screen.findByRole('button', { name: '核准出站' }));
     expect(await screen.findByText(/可能送至外部向量嵌入服務/)).toBeTruthy();
     await user.click(within(latestDialog()).getByRole('button', { name: '確認核准出站' }));
@@ -118,7 +132,7 @@ describe('SP-806 Document Management UI', () => {
     await open('/documents?documentId=21');
     await waitFor(() => expect(requests.some(({ url }) => url === '/documents/21')).toBe(true));
     const user = userEvent.setup();
-    await user.click(screen.getByRole('button', { name: '#22' }));
+    await user.click(await findDocumentRecordButton(22));
     await waitFor(() => expect(requests.some(({ url }) => url === '/documents/22')).toBe(true));
     delayed22.resolve(response(requests.find(({ url }) => url === '/documents/22')!, second));
     const drawer = documentDrawer();
@@ -150,8 +164,8 @@ describe('SP-806 Document Management UI', () => {
       throw new Error(`Unexpected ${config.method} ${config.url}`);
     });
     await open('/documents'); const user = userEvent.setup();
-    await screen.findByText('語意索引管理');
-    await user.click(await screen.findByRole('button', { name: '#21' }));
+    await screen.findByText('管理員索引診斷與工作');
+    await user.click(await findDocumentRecordButton(21));
     const drawer = documentDrawer();
     await within(drawer).findByText('Quote 21');
 
@@ -164,7 +178,7 @@ describe('SP-806 Document Management UI', () => {
       await user.click(within(drawer).getByRole('button', { name: '封存文件' }));
       await waitFor(() => expect(requests.some(({ url, method }) => url === '/documents/21' && method === 'patch')).toBe(true));
     } else {
-      await user.click(within(drawer).getByRole('button', { name: '開始文件解析與索引' }));
+      await user.click(within(drawer).getByRole('button', { name: '開始檔案處理' }));
       await user.click(within(latestDialog()).getByRole('button', { name: '確認開始' }));
       await waitFor(() => expect(requests.some(({ url }) => url === '/documents/21/ingestions')).toBe(true));
     }
@@ -201,11 +215,11 @@ describe('SP-806 Document Management UI', () => {
       throw new Error(`Unexpected ${config.method} ${config.url}`);
     });
     await open('/documents'); const user = userEvent.setup();
-    await screen.findByText('語意索引管理');
-    await user.click(await screen.findByRole('button', { name: '#21' }));
+    await screen.findByText('管理員索引診斷與工作');
+    await user.click(await findDocumentRecordButton(21));
     const drawer = documentDrawer();
     await within(drawer).findByText('Quote 21');
-    await user.click(await within(drawer).findByRole('button', { name: '開始文件解析與索引' }));
+    await user.click(await within(drawer).findByRole('button', { name: '開始檔案處理' }));
     await user.click(within(latestDialog()).getByRole('button', { name: '確認開始' }));
     await within(drawer).findByText('索引結果不明，已鎖定重送');
     const verificationButtons = within(drawer).getAllByRole('button', { name: '查核真實文件狀態' });
@@ -234,7 +248,7 @@ describe('SP-806 Document Management UI', () => {
     await open('/documents?documentId=21');
     await waitFor(() => expect(calls.filter(({ url }) => url === '/documents/21')).toHaveLength(1));
     const drawer = documentDrawer();
-    await userEvent.setup().click(await within(drawer).findByRole('button', { name: '重新取得文件資訊' }));
+    await userEvent.setup().click(await within(drawer).findByRole('button', { name: '重新讀取狀態' }));
     await within(drawer).findByText('v2');
     expect(within(drawer).getByText('v2')).toBeTruthy();
     const getCountBeforeClose = calls.filter(({ url }) => url === '/documents/21').length;
@@ -269,7 +283,8 @@ describe('SP-806 Document Management UI', () => {
       throw new Error(`Unexpected ${config.method} ${config.url}`);
     });
     await open('/documents'); const user = userEvent.setup();
-    await screen.findByText('語意索引管理');
+    await screen.findByText('管理員索引診斷與工作');
+    await expandAdminOperations(user);
     const saveAudit = async () => {
       await user.click(screen.getByRole('button', { name: '執行並保存索引稽核' }));
       await user.click(screen.getByRole('button', { name: '確認並保存稽核結果' }));
@@ -288,10 +303,10 @@ describe('SP-806 Document Management UI', () => {
       await user.click(within(uploadDialog).getByRole('button', { name: /上\s*傳/ }));
       expect(requests.filter(({ url, method }) => url === '/documents' && method === 'post')).toHaveLength(1);
     } else {
-      await user.click(await screen.findByRole('button', { name: '#21' }));
+      await user.click(await findDocumentRecordButton(21));
       const drawer = documentDrawer();
       if (operation === 'ingestion') {
-        await user.click(await within(drawer).findByRole('button', { name: '開始文件解析與索引' }));
+        await user.click(await within(drawer).findByRole('button', { name: '開始檔案處理' }));
         await user.click(within(latestDialog()).getByRole('button', { name: '確認開始' }));
         expect(await within(drawer).findByText('已就緒')).toBeTruthy();
       } else if (operation === 'approve') {
@@ -319,13 +334,15 @@ describe('SP-806 Document Management UI', () => {
     });
     await open('/documents'); const user = userEvent.setup();
     await waitFor(() => expect(requests.map(({ method, url }) => `${method} ${url}`)).toContain('get /documents'));
-    expect(await screen.findByText('Supplier quote')).toBeTruthy();
-    expect(screen.getByText('處理中')).toBeTruthy();
+    expect(await findDocumentRecordButton(21)).toBeTruthy();
+    const processingButton = await findDocumentRecordButton(21);
+    const processingRow = processingButton.closest('tr');
+    expect(processingRow && within(processingRow).getByText('處理中')).toBeTruthy();
     expect(screen.getByRole('button', { name: /上傳文件/ })).toBeTruthy();
-    await user.click(screen.getByRole('button', { name: '#21' }));
+    await user.click(await findDocumentRecordButton(21));
     expect(await screen.findByText('文件明細')).toBeTruthy();
     expect(screen.queryByText('/private/do-not-show')).toBeNull();
-    await user.click(screen.getByRole('button', { name: '開始文件解析與索引' }));
+    await user.click(screen.getByRole('button', { name: '開始檔案處理' }));
     const dialog = latestDialog();
     await user.click(within(dialog).getByRole('button', { name: '確認開始' }));
     expect((await screen.findAllByText('已就緒')).length).toBeGreaterThan(0);
@@ -352,23 +369,23 @@ describe('SP-806 Document Management UI', () => {
     });
     await open('/documents'); const user = userEvent.setup();
     await waitFor(() => expect(requests.map(({ method, url }) => `${method} ${url}`)).toContain('get /documents'));
-    expect(await screen.findByText('Supplier quote')).toBeTruthy();
-    await user.click(await screen.findByRole('button', { name: '#21' }));
-    await user.click(screen.getByRole('button', { name: '開始文件解析與索引' }));
+    expect(await findDocumentRecordButton(21)).toBeTruthy();
+    await user.click(await findDocumentRecordButton(21));
+    await user.click(screen.getByRole('button', { name: '開始檔案處理' }));
     await user.click(within(latestDialog()).getByRole('button', { name: '確認開始' }));
     expect(await screen.findByText(/系統不會重送/)).toBeTruthy();
     expect(requests.filter(({ url }) => url === '/documents/21/ingestions')).toHaveLength(1);
-    expect(screen.queryByRole('button', { name: '開始文件解析與索引' })).toBeNull();
+    expect(screen.queryByRole('button', { name: '開始檔案處理' })).toBeNull();
 
     await user.click(screen.getAllByRole('button', { name: '查核真實文件狀態' })[0]);
     expect(await screen.findByText(/索引操作維持鎖定/)).toBeTruthy();
-    expect(screen.queryByRole('button', { name: '開始文件解析與索引' })).toBeNull();
+    expect(screen.queryByRole('button', { name: '開始檔案處理' })).toBeNull();
     expect(requests.filter(({ url }) => url === '/documents/21/ingestions')).toHaveLength(1);
 
     const verifyButtons = screen.getAllByRole('button', { name: '查核真實文件狀態' });
     await user.click(verifyButtons[verifyButtons.length - 1]);
     expect(await screen.findByText(/已查核系統目前狀態：已就緒/)).toBeTruthy();
-    expect(screen.getByRole('button', { name: '開始文件解析與索引' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: '開始檔案處理' })).toBeTruthy();
     expect(requests.filter(({ url }) => url === '/documents/21/ingestions')).toHaveLength(1);
   }, 60_000);
 
@@ -415,13 +432,13 @@ describe('SP-806 Document Management UI', () => {
       throw new Error('Unexpected API request');
     });
     await open('/documents'); const user = userEvent.setup();
-    await screen.findByRole('heading', { name: '文件管理' });
-    expect(await screen.findByText('Supplier quote')).toBeTruthy();
+    await screen.findByRole('heading', { name: '文件資料' });
+    expect(await findDocumentRecordButton(21)).toBeTruthy();
     expect(screen.getByRole('button', { name: /上傳文件/ })).toBeTruthy();
-    await user.click(screen.getByRole('button', { name: '#21' }));
+    await user.click(await findDocumentRecordButton(21));
     await screen.findByText('文件明細');
     expect(screen.getByRole('button', { name: '儲存標題' })).toBeTruthy();
-    expect(screen.getByRole('button', { name: '開始文件解析與索引' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: '開始檔案處理' })).toBeTruthy();
     await waitFor(() => expect(supplierRequests.some(({ method }) => method?.toUpperCase() === 'GET')).toBe(true));
     expect(supplierRequests.every(({ url, method }) => url === '/suppliers' && method?.toUpperCase() === 'GET')).toBe(true);
     expect(requests.some(({ url, method }) => url === '/documents' && method?.toUpperCase() === 'POST')).toBe(false);
@@ -454,11 +471,11 @@ describe('SP-806 Global AI 助理', () => {
       throw new Error(`Unexpected ${config.url}`);
     });
     await open('/dashboard'); const user = userEvent.setup();
-    await screen.findByText('Buyer（buyer）');
-    await user.click(await screen.findByRole('button', { name: /AI 助理/ }));
+    await screen.findByText('Buyer', { selector: '.app-account__name' });
+    await openAiAssistant(user);
     expect(await screen.findByRole('tab', { name: '採購草稿提案' })).toBeTruthy();
     await user.type(screen.getByLabelText('AI 問題'), 'Explain Recommendation #91');
-    await user.click(screen.getByRole('button', { name: '送出問題' }));
+    await user.click(screen.getByRole('button', { name: '查詢' }));
     expect(await screen.findByText('Recommendation #91 uses the verified ranking.')).toBeTruthy();
     expect(screen.getByRole('link', { name: '91' }).getAttribute('href')).toBe('/recommendations/91');
     expect(router.state.location.pathname).toBe('/dashboard');
@@ -473,11 +490,11 @@ describe('SP-806 Global AI 助理', () => {
       throw new Error(`Unexpected ${config.url}`);
     });
     await open('/dashboard'); const user = userEvent.setup();
-    await user.click(await screen.findByRole('button', { name: /AI 助理/ }));
+    await openAiAssistant(user);
     await user.type(screen.getByLabelText('AI 問題'), 'Question');
-    await user.click(screen.getByRole('button', { name: '送出問題' }));
+    await user.click(screen.getByRole('button', { name: '查詢' }));
     expect(await screen.findByText(/核心採購功能與導覽仍可正常操作/)).toBeTruthy();
-    expect(screen.getByText('SupplyPilot — AI 採購與供應鏈決策平台')).toBeTruthy();
+    expect(screen.getByRole('link', { name: 'SupplyPilot 採購工作區' })).toBeTruthy();
     await user.click(screen.getByRole('button', { name: '關閉' }));
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
     expect(router.state.location.pathname).toBe('/dashboard');
@@ -500,7 +517,7 @@ describe('SP-806 Global AI 助理', () => {
       return Promise.reject(new Error(`Unexpected ${config.url}`));
     });
     await open('/dashboard'); const user = userEvent.setup();
-    await user.click(await screen.findByRole('button', { name: /AI 助理/ }));
+    await openAiAssistant(user);
     const drawer = aiAssistantDrawer();
     await user.click(within(drawer).getByRole('tab', { name: '採購草稿提案' }));
     fireEvent.change(within(drawer).getByLabelText('AI 草稿供應商編號'), { target: { value: '12' } });
@@ -543,7 +560,7 @@ describe('SP-806 Global AI 助理', () => {
       throw new Error(`Unexpected ${config.url}`);
     });
     await open('/dashboard'); const user = userEvent.setup();
-    await user.click(await screen.findByRole('button', { name: /AI 助理/ }));
+    await openAiAssistant(user);
     const drawer = aiAssistantDrawer();
     await user.click(within(drawer).getByRole('tab', { name: '採購草稿提案' }));
     fireEvent.change(within(drawer).getByLabelText('AI 草稿供應商編號'), { target: { value: '12' } });

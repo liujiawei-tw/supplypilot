@@ -5,7 +5,7 @@ import { StrictMode } from 'react';
 import { AxiosError, AxiosHeaders, type AxiosResponse, type InternalAxiosRequestConfig } from 'axios';
 import App from '../src/App';
 import { axiosClient, TOKEN_STORAGE_KEY } from '../src/api/axiosClient';
-import { router } from '../src/router/routes';
+import { defaultWorkPath, router } from '../src/router/routes';
 import type { AuthenticatedUser } from '../src/types/api';
 import { AuthProvider } from '../src/auth/AuthContext';
 import { useAuth } from '../src/auth/useAuth';
@@ -40,6 +40,8 @@ function mockServer(identity: 'business' | 'manager', loginStatus = 200) {
     }
     if (config.url === '/auth/me') return response(config, identities[identity]);
     if (config.url === '/purchase-orders') return response(config, { content: [], page: 0, size: 5, totalElements: 0, totalPages: 0 });
+    if (config.url === '/documents') return response(config, { content: [], page: 0, size: 20, totalElements: 0, totalPages: 0 });
+    if (config.url === '/suppliers') return response(config, { content: [], page: 0, size: 20, totalElements: 0, totalPages: 0 });
     if (config.url === '/receiving/purchase-orders') return response(config, { content: [], page: 0, size: 5, totalElements: 0, totalPages: 0 });
     if (config.url === '/demands') return response(config, { content: [], page: 0, size: 5, totalElements: 0, totalPages: 0 });
     if (config.url === '/inventory') return response(config, { content: [], page: 0, size: 20, totalElements: 0, totalPages: 0 });
@@ -62,7 +64,35 @@ beforeEach(() => {
   axiosClient.defaults.headers.common = new AxiosHeaders();
 });
 
+describe('role-aware default work entry', () => {
+  const userFor = (role: AuthenticatedUser['role']): AuthenticatedUser => ({
+    id: 1,
+    username: role,
+    displayName: role,
+    role,
+    canManageUsers: false,
+  });
+
+  it.each([
+    ['PROCUREMENT_STAFF', '/purchase-orders'],
+    ['PROCUREMENT_MANAGER', '/purchase-orders'],
+    ['ADMIN', '/purchase-orders'],
+    ['WAREHOUSE_STAFF', '/receiving/purchase-orders'],
+    ['PRODUCTION_PLANNER', '/inventory'],
+  ] as const)('routes %s to its first work area', (role, expectedPath) => {
+    expect(defaultWorkPath(userFor(role))).toBe(expectedPath);
+  });
+});
+
 describe('authentication and routing', () => {
+  it('keeps one main landmark and an accessible finder label in the authenticated shell', async () => {
+    mockServer('business');
+    localStorage.setItem(TOKEN_STORAGE_KEY, 'valid-token');
+    await open('/documents');
+    expect(await screen.findByRole('heading', { name: '文件資料' })).toBeTruthy();
+    expect(screen.getAllByRole('main')).toHaveLength(1);
+    expect(screen.getByRole('button', { name: '搜尋採購資料' })).toBeTruthy();
+  });
   it('redirects an unauthenticated deep link, logs in, checks /auth/me and returns to it', async () => {
     const requests = mockServer('business');
     await open('/purchase-orders/42');
@@ -279,8 +309,8 @@ describe('authentication and routing', () => {
     await user.click(screen.getByRole('button', { name: '登 入' }));
     expect(await screen.findByText('工作總覽')).toBeTruthy();
     expect(router.state.location.pathname).toBe('/dashboard');
-    expect(document.querySelector('.ant-layout-header')?.textContent).toContain('Business User');
-    const sidebar = document.querySelector('.ant-layout-sider')!;
+    expect(document.querySelector('.app-header')?.textContent).toContain('Business User');
+    const sidebar = document.querySelector('.app-nav')!;
     expect(sidebar.textContent).not.toContain('人員管理');
     await router.navigate('/users');
     expect(await screen.findByText('403')).toBeTruthy();
@@ -292,6 +322,7 @@ describe('authentication and routing', () => {
     localStorage.setItem(TOKEN_STORAGE_KEY, 'valid-token');
     await open('/users');
     expect(await screen.findByRole('heading', { name: '人員管理' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: '新增人員' })).toBeTruthy();
     expect(router.state.location.pathname).toBe('/users');
     expect(requests).toContain('/users');
   });

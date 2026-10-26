@@ -81,22 +81,45 @@ describe('SP-907 Documents UI', () => {
     await openDocuments();
     const table = await screen.findByRole('table');
     const row = await within(table).findByRole('row', { name: /SUP-001 供應商檔案/ });
-    expect(within(row).getByText('供應商檔案')).toBeTruthy();
+    const tableContainer = table.closest('.document-workspace__table')!;
+    const sourceCell = within(row).getAllByRole('cell')[0];
+    expect(sourceCell.textContent).toContain('供應商檔案');
     expect(within(row).getByText('展示基線')).toBeTruthy();
     expect(within(row).getByText('已就緒')).toBeTruthy();
     expect(within(row).getByText('已發布')).toBeTruthy();
-    expect(within(row).getByText('SUP-001 — 福爾摩沙原料工坊')).toBeTruthy();
+    expect(sourceCell.textContent).toContain('SUP-001 — 福爾摩沙原料工坊');
 
-    await user.click(screen.getByTitle('下一頁'));
+    await user.click(within(tableContainer).getByTitle('下一頁'));
     await vi.waitFor(() => expect(requests.some((request) => request.url === '/documents'
       && Number(request.params?.page) === 1)).toBe(true));
-    expect(await screen.findByText('SUP-001 第二份基線文件')).toBeTruthy();
-    expect(screen.getByText('待處理')).toBeTruthy();
+    const pageTwoTable = await within(document.querySelector<HTMLElement>('.document-workspace__table')!).findByRole('table');
+    expect(await within(pageTwoTable).findByRole('button', { name: '#32 · SUP-001 第二份基線文件' })).toBeTruthy();
+    expect(within(pageTwoTable).getByText('待處理')).toBeTruthy();
 
     fireEvent.mouseDown(screen.getByRole('combobox', { name: '供應商篩選' }));
     await user.click(await screen.findByText('SUP-001 — 福爾摩沙原料工坊', { selector: '.ant-select-item-option-content' }));
     await waitForDocumentFilter(requests, 1, 0);
-    expect(await screen.findByText('SUP-001 供應商檔案')).toBeTruthy();
+    const filteredTable = await within(document.querySelector<HTMLElement>('.document-workspace__table')!).findByRole('table');
+    expect(await within(filteredTable).findByRole('button', { name: '#31 · SUP-001 供應商檔案' })).toBeTruthy();
+  });
+
+  it('shows file processing, outbound review, and semantic publication as separate admin states', async () => {
+    const admin: AuthenticatedUser = { id: 1, username: 'admin', displayName: 'Admin', role: 'ADMIN' };
+    axiosClient.defaults.adapter = vi.fn(async (config) => {
+      if (config.url === '/auth/me') return response(config, admin);
+      if (config.url === '/suppliers') return response(config, page([], 0, 0));
+      if (config.url === '/documents') return response(config, page([baseline], 0, 1));
+      throw new Error('Unexpected ' + config.method + ' ' + config.url);
+    });
+
+    await openDocuments();
+    const table = await screen.findByRole('table');
+    const row = await within(table).findByRole('row', { name: /SUP-001 供應商檔案/ });
+
+    expect(within(row).getByText('已就緒')).toBeTruthy();
+    expect(within(row).getByText('已核准')).toBeTruthy();
+    expect(within(row).getByText('已發布')).toBeTruthy();
+    expect(within(row).getAllByRole('cell')).toHaveLength(7);
   });
 });
 

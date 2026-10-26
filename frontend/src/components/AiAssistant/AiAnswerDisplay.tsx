@@ -1,6 +1,7 @@
 import { Divider, Space, Tag, Typography } from 'antd';
 import type { ReactNode } from 'react';
 import { displayLabel } from '../../utils/displayLabels';
+import './AiAssistant.css';
 
 const { Paragraph, Text, Title } = Typography;
 
@@ -166,8 +167,8 @@ function parsePurchaseOrderAnswer(answer: string): ParsedPurchaseOrderAnswer | n
 
 function PurchaseOrderSummary({ order }: { order: PurchaseOrderFact }) {
   const items = parsePurchaseOrderItems(order.items);
-  return <section aria-label={'採購單 ' + order.poNumber} style={{ paddingBlock: 12, overflowWrap: 'anywhere' }}>
-    <Title level={5} style={{ margin: '0 0 8px', overflowWrap: 'anywhere' }}>{order.poNumber}</Title>
+  return <section className="ai-answer__order" aria-label={'採購單 ' + order.poNumber}>
+    <Title className="ai-answer__order-title" level={5} style={{ margin: '0 0 8px', overflowWrap: 'anywhere' }}>{order.poNumber}</Title>
     <Space wrap size={[8, 4]} style={{ marginBottom: 8, maxWidth: '100%' }}>
       <Text><Text type="secondary">供應商：</Text>{order.supplier}</Text>
       <Tag>{displayLabel(order.status)}</Tag>
@@ -194,7 +195,7 @@ function PurchaseOrderSummary({ order }: { order: PurchaseOrderFact }) {
 export default function AiAnswerDisplay({ answer }: { answer: string }) {
   const parsed = parsePurchaseOrderAnswer(answer);
   if (!parsed) {
-    return <Paragraph style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere', marginBottom: 0 }}>
+    return <Paragraph className="ai-answer__text" style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere', marginBottom: 0 }}>
       {formatLabeledMoney(answer)}
     </Paragraph>;
   }
@@ -231,7 +232,7 @@ export default function AiAnswerDisplay({ answer }: { answer: string }) {
       if (!block.text.trim()) return;
       flushExtraOrders();
       renderedContent.push(
-        <Paragraph key={'text-' + index} style={{ whiteSpace: 'pre-wrap', marginBlock: 12 }}>
+        <Paragraph className="ai-answer__text" key={'text-' + index} style={{ whiteSpace: 'pre-wrap', marginBlock: 12 }}>
           {formatLabeledMoney(block.text)}
         </Paragraph>,
       );
@@ -255,7 +256,7 @@ export default function AiAnswerDisplay({ answer }: { answer: string }) {
   });
   flushExtraOrders();
 
-  return <div style={{ overflowWrap: 'anywhere' }}>
+  return <div className="ai-answer" style={{ overflowWrap: 'anywhere' }}>
     <Text strong>
       已下單採購單：共 {parsed.totalCount} 筆，以下列出 {orderCount} 筆。
     </Text>

@@ -1,10 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ConfigProvider } from 'antd';
 import zhTW from 'antd/locale/zh_TW';
 import { AxiosError, type InternalAxiosRequestConfig } from 'axios';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, useLocation } from 'react-router-dom';
 import axiosClient from '../src/api/axiosClient';
 import type { PurchaseOrderResponse, PurchaseOrderQuery } from '../src/api/purchaseOrder';
 import PurchaseOrdersPage from '../src/pages/PurchaseOrders/PurchaseOrdersPage';
@@ -102,9 +102,14 @@ let requestedQueries: PurchaseOrderQuery[];
 let backendPurchaseOrders: PurchaseOrderResponse[];
 let purchaseOrderCreateFailure: 'forbidden' | 'network' | null;
 
-function renderPage(contextValue = authValue) {
+function CurrentRoute() {
+  const location = useLocation();
+  return <output data-testid="current-route">{location.pathname}{location.search}</output>;
+}
+
+function renderPage(contextValue = authValue, initialEntries: string[] = ['/purchase-orders']) {
   return render(<ConfigProvider locale={zhTW}><AuthContext.Provider value={contextValue}>
-    <MemoryRouter><PurchaseOrdersPage /></MemoryRouter>
+    <MemoryRouter initialEntries={initialEntries}><CurrentRoute /><PurchaseOrdersPage /></MemoryRouter>
   </AuthContext.Provider></ConfigProvider>);
 }
 
@@ -118,7 +123,7 @@ async function submitManualDraft() {
   await user.type(screen.getByRole('textbox', { name: '採購單品項 1 數量' }), '2');
   await user.type(screen.getByRole('textbox', { name: '採購單品項 1 單價' }), '100');
   await user.click(screen.getByRole('button', { name: '檢視新草稿' }));
-  await user.click(screen.getByRole('button', { name: '確認建立草稿' }));
+  await user.click(await screen.findByRole('button', { name: '確認建立草稿' }));
 }
 
 beforeEach(() => {
@@ -168,6 +173,13 @@ beforeEach(() => {
         headers: {},
         config,
       };
+    }
+    if (config.method === 'get' && (config.url ?? '').startsWith('/purchase-orders/')) {
+      const segments = (config.url ?? '').split('/');
+      const purchaseOrderId = Number(segments[segments.length - 1]);
+      const found = backendPurchaseOrders.find((item) => item.id === purchaseOrderId);
+      if (!found) throw new Error('Purchase order not found');
+      return { data: found, status: 200, statusText: 'OK', headers: {}, config };
     }
     if (config.url === '/purchase-orders') {
       if (config.method === 'post') {
@@ -267,6 +279,32 @@ describe('Issue #143 purchase-order page views', () => {
       && query.materialCode === 'MAT-010' && query.size === 100)).toBe(true);
   });
 
+  it('opens a query-addressable read-only inspector from Kanban and links to full detail', async () => {
+    const user = userEvent.setup();
+    renderPage(purchaserAuthValue);
+
+    expect(await screen.findByRole('region', { name: '採購單八階段看板' })).toBeTruthy();
+    await user.click(await screen.findByRole('button', { name: '快速查看採購單 PO-20261022-000042' }));
+
+    const inspector = await screen.findByRole('dialog');
+    expect(within(inspector).getByText('SUPPLYPILOT / 採購交接單')).toBeTruthy();
+    expect(within(inspector).getByText('公司期望到貨日')).toBeTruthy();
+    expect(within(inspector).getByText('2026/10/30')).toBeTruthy();
+    expect(within(inspector).getByText('供應商承諾交期')).toBeTruthy();
+    expect(within(inspector).getByText('尚未提供')).toBeTruthy();
+    expect(within(inspector).getByRole('link', { name: '開啟完整採購單明細' }).getAttribute('href')).toBe('/purchase-orders/42');
+    expect(screen.getByTestId('current-route').textContent).toBe('/purchase-orders?inspect=42');
+  });
+
+  it('opens a bookmarked inspector selection after loading the Backend PO', async () => {
+    renderPage(purchaserAuthValue, ['/purchase-orders?inspect=42']);
+
+    const inspector = await screen.findByRole('dialog');
+    expect(await within(inspector).findByText('PO-20261022-000042')).toBeTruthy();
+    expect(within(inspector).getByRole('link', { name: '開啟完整採購單明細' }).getAttribute('href')).toBe('/purchase-orders/42');
+    expect(screen.getByTestId('current-route').textContent).toBe('/purchase-orders?inspect=42');
+  });
+
   it('opens the mobile page in List mode while retaining backend purchase-order data', async () => {
     vi.spyOn(window, 'matchMedia').mockImplementation((query: string) => ({
       matches: query === '(max-width: 767px)',
@@ -285,6 +323,7 @@ describe('Issue #143 purchase-order page views', () => {
     expect(await screen.findByText('PO-20261022-000042')).toBeTruthy();
     expect(await screen.findByText('PO-20261022-000043')).toBeTruthy();
     expect(screen.queryByRole('region', { name: '採購單八階段看板' })).toBeNull();
+    expect(screen.queryByRole('button', { name: '快速查看採購單 PO-20261022-000042' })).toBeNull();
     expect(requestedQueries.some((query) => query.page === 0 && query.size === 20)).toBe(true);
   });
 
@@ -302,7 +341,7 @@ describe('Issue #143 purchase-order page views', () => {
 
     expect(await screen.findByText('採購單草稿 PO-20261022-000044 已建立')).toBeTruthy();
     expect(backendPurchaseOrders.some((item) => item.poNumber === 'PO-20261022-000044')).toBe(true);
-    expect(screen.getByRole('region', { name: '採購單八階段看板' })).toBeTruthy();
+    expect(await screen.findByRole('region', { name: '採購單八階段看板' })).toBeTruthy();
     expect(await screen.findByText('PO-20261022-000044')).toBeTruthy();
     expect(supplierFilter.value).toBe('7');
     await waitFor(() => expect(requestedQueries.filter((query) => query.supplierId === 7 && query.size === 100)).toHaveLength(2));

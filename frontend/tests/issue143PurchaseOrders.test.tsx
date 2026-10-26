@@ -8,6 +8,7 @@ import userEvent from '@testing-library/user-event';
 import zhTW from 'antd/locale/zh_TW';
 import { MemoryRouter } from 'react-router-dom';
 import PurchaseOrderKanban from '../src/pages/PurchaseOrders/PurchaseOrderKanban';
+import { PurchaseOrderInspectorSummary } from '../src/pages/PurchaseOrders/PurchaseOrderWaybill';
 import { defaultPurchaseOrderViewMode } from '../src/pages/PurchaseOrders/purchaseOrderUi';
 import {
   getPurchaseOrderStageTransition,
@@ -42,6 +43,8 @@ const po = (overrides: Record<string, unknown> = {}) => ({
   supplierPromisedDeliveryDate: '2026-10-24',
   isOverdue: true,
   stage: 'ORDER_FOLLOW_UP',
+  assignedToDisplayName: null,
+  items: [{ id: 1, materialId: 10, materialCode: 'MAT-010', materialName: '測試物料', quantity: '2', unit: 'KG', unitPrice: '125.00', total: '250.00', currency: 'TWD' }],
   ...overrides,
 }) as unknown as PurchaseOrderStageBoardSnapshot['purchaseOrders'][number];
 
@@ -83,6 +86,36 @@ describe('Issue #143 purchase-order view contracts', () => {
     expect(within(board).getByText('後端標示已逾期')).toBeTruthy();
     expect(within(board).getByRole('link', { name: '檢視採購單 PO-20261022-000042' }).getAttribute('href'))
       .toBe('/purchase-orders/42');
+  });
+
+  it('renders the waybill identity, separate dates, and only the Backend current Stage', () => {
+    const order = po({
+      status: 'ORDERED',
+      stage: 'ORDER_FOLLOW_UP',
+      expectedDeliveryDate: '2026-10-20',
+      supplierPromisedDeliveryDate: '2026-10-24',
+    });
+    renderKanban(<PurchaseOrderInspectorSummary purchaseOrder={order} />);
+
+    expect(screen.getByText('SUPPLYPILOT / 採購交接單')).toBeTruthy();
+    expect(screen.getByText('PO-20261022-000042')).toBeTruthy();
+    expect(screen.getByText('公司期望到貨日')).toBeTruthy();
+    expect(screen.getByText('2026/10/20')).toBeTruthy();
+    expect(screen.getByText('供應商承諾交期')).toBeTruthy();
+    expect(screen.getByText('2026/10/24')).toBeTruthy();
+
+    const rail = screen.getByRole('region', { name: '採購單八階段流程' });
+    expect(within(rail).getAllByRole('listitem')).toHaveLength(8);
+    expect(within(rail).getByRole('listitem', { current: 'step' }).textContent).toContain('已下單／生產／交期跟催');
+    expect(rail.textContent).toContain('目前 Stage 與正式狀態分開記錄');
+  });
+
+  it('does not guess a rail position for a null Stage', () => {
+    renderKanban(<PurchaseOrderInspectorSummary purchaseOrder={po({ stage: null, orderedProgress: 'LEGACY_UNKNOWN' })} />);
+
+    const rail = screen.getByRole('region', { name: '採購單八階段流程' });
+    expect(within(rail).queryByRole('list')).toBeNull();
+    expect(within(rail).getByRole('status').textContent).toContain('不推測舊資料位置');
   });
 
   it('keeps rejected and cancelled records out of active stages', () => {

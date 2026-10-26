@@ -1,0 +1,25 @@
+
+> frontend@0.0.0 test
+> vitest run --run tests/issue143PurchaseOrdersPage.test.tsx --maxWorkers=1 --reporter=verbose -t refreshes the current Kanban|403 draft-create failure
+
+
+ RUN  v4.1.11 C:/Users/z0976/.codex/worktrees/procurement-tool-ux-redesign/supplypilot/frontend
+
+ ↓ tests/issue143PurchaseOrdersPage.test.tsx > Issue #143 purchase-order page views > defaults to desktop Kanban and preserves the active filter across both views
+ ↓ tests/issue143PurchaseOrdersPage.test.tsx > Issue #143 purchase-order page views > opens a query-addressable read-only inspector from Kanban and links to full detail
+ ↓ tests/issue143PurchaseOrdersPage.test.tsx > Issue #143 purchase-order page views > opens a bookmarked inspector selection after loading the Backend PO
+ ↓ tests/issue143PurchaseOrdersPage.test.tsx > Issue #143 purchase-order page views > opens the mobile page in List mode while retaining backend purchase-order data
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+ ✓ tests/issue143PurchaseOrdersPage.test.tsx > Issue #143 purchase-order page views > refreshes the current Kanban from backend after a successful draft create 27260ms
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+ ✓ tests/issue143PurchaseOrdersPage.test.tsx > Issue #143 purchase-order page views > does not refresh the Kanban or report success after a 403 draft-create failure 28111ms
+ ↓ tests/issue143PurchaseOrdersPage.test.tsx > Issue #143 purchase-order page views > does not refresh the Kanban or report success after a network error draft-create failure
+
+ Test Files  1 passed (1)
+      Tests  2 passed | 5 skipped (7)
+   Start at  13:52:34
+   Duration  61.64s (transform 435ms, setup 230ms, import 5.00s, tests 55.37s, environment 803ms)
+
+PO_DRAFT_CASES_USEREVENT_EXIT_CODE=0

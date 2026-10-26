@@ -20,7 +20,22 @@ import ReceivingDetailPage from '../pages/Receiving/ReceivingDetailPage';
 import DocumentsPage from '../pages/Documents/DocumentsPage';
 import UsersPage from '../pages/Users/UsersPage';
 import ChangePasswordPage from '../pages/ChangePassword/ChangePasswordPage';
+import { canUser } from '../auth/permissions';
+import { useAuth } from '../auth/useAuth';
+import type { AuthenticatedUser } from '../types/api';
 import { routeCatalog } from './routeCatalog';
+
+export function defaultWorkPath(user: AuthenticatedUser): string {
+  if (canUser(user, 'purchaseOrderRead')) return '/purchase-orders';
+  if (canUser(user, 'receiving')) return '/receiving/purchase-orders';
+  if (canUser(user, 'inventory')) return '/inventory';
+  return '/dashboard';
+}
+
+function DefaultWorkRoute() {
+  const { user } = useAuth();
+  return <Navigate to={user ? defaultWorkPath(user) : '/dashboard'} replace />;
+}
 
 export const router = createBrowserRouter([
   { path: '/login', element: <LoginPage /> },
@@ -31,9 +46,9 @@ export const router = createBrowserRouter([
       {
         element: <AppLayout />,
         children: [
-          { index: true, element: <Navigate to="/dashboard" replace /> },
+          { index: true, element: <DefaultWorkRoute /> },
           { path: 'dashboard', element: <DashboardPage /> },
-      { path: 'change-password', element: <ChangePasswordPage /> },
+          { path: 'change-password', element: <ChangePasswordPage /> },
           ...routeCatalog.map(({ path, label, permission }) => ({
             element: <RoleGuard permission={permission} />,
             children: [{
@@ -42,29 +57,29 @@ export const router = createBrowserRouter([
                 ? <InventoryPage />
                 : path === 'inventory/import'
                   ? <InventoryImportPage />
-                : path === 'demands'
-                  ? <DemandsPage />
-                : path === 'materials'
-                  ? <MaterialsPage />
-                  : path === 'recommendations'
-                    ? <RecommendationsPage />
-                    : path === 'recommendations/:id'
-                      ? <RecommendationDetailPage />
-                  : path === 'suppliers'
-                    ? <SuppliersPage />
-                    : path === 'purchase-orders'
-                      ? <PurchaseOrdersPage />
-                      : path === 'purchase-orders/:id'
-                        ? <PurchaseOrderDetailPage />
-                        : path === 'receiving/purchase-orders'
-                          ? <ReceivingPage />
-                          : path === 'receiving/purchase-orders/:id'
-                            ? <ReceivingDetailPage />
-                            : path === 'documents'
-                              ? <DocumentsPage />
-                              : path === 'users'
-                                ? <UsersPage />
-                    : <PlaceholderPage title={label} />,
+                  : path === 'demands'
+                    ? <DemandsPage />
+                    : path === 'materials'
+                      ? <MaterialsPage />
+                      : path === 'recommendations'
+                        ? <RecommendationsPage />
+                        : path === 'recommendations/:id'
+                          ? <RecommendationDetailPage />
+                          : path === 'suppliers'
+                            ? <SuppliersPage />
+                            : path === 'purchase-orders'
+                              ? <PurchaseOrdersPage />
+                              : path === 'purchase-orders/:id'
+                                ? <PurchaseOrderDetailPage />
+                                : path === 'receiving/purchase-orders'
+                                  ? <ReceivingPage />
+                                  : path === 'receiving/purchase-orders/:id'
+                                    ? <ReceivingDetailPage />
+                                    : path === 'documents'
+                                      ? <DocumentsPage />
+                                      : path === 'users'
+                                        ? <UsersPage />
+                                        : <PlaceholderPage title={label} />,
             }],
           })),
           { path: '*', element: <NotFoundPage /> },

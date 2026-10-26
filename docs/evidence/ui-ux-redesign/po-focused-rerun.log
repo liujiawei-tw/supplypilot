@@ -1,0 +1,55 @@
+
+> frontend@0.0.0 test
+> vitest run --run tests/issue143PurchaseOrdersPage.test.tsx --maxWorkers=1 --reporter=verbose -t refreshes the current Kanban|403 draft-create failure
+
+
+ RUN  v4.1.11 C:/Users/z0976/.codex/worktrees/procurement-tool-ux-redesign/supplypilot/frontend
+
+ ↓ tests/issue143PurchaseOrdersPage.test.tsx > Issue #143 purchase-order page views > defaults to desktop Kanban and preserves the active filter across both views
+ ↓ tests/issue143PurchaseOrdersPage.test.tsx > Issue #143 purchase-order page views > opens a query-addressable read-only inspector from Kanban and links to full detail
+ ↓ tests/issue143PurchaseOrdersPage.test.tsx > Issue #143 purchase-order page views > opens a bookmarked inspector selection after loading the Backend PO
+ ↓ tests/issue143PurchaseOrdersPage.test.tsx > Issue #143 purchase-order page views > opens the mobile page in List mode while retaining backend purchase-order data
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+ × tests/issue143PurchaseOrdersPage.test.tsx > Issue #143 purchase-order page views > refreshes the current Kanban from backend after a successful draft create 31329ms
+   → Test timed out in 30000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+ × tests/issue143PurchaseOrdersPage.test.tsx > Issue #143 purchase-order page views > does not refresh the Kanban or report success after a 403 draft-create failure 31031ms
+   → Test timed out in 30000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+ ↓ tests/issue143PurchaseOrdersPage.test.tsx > Issue #143 purchase-order page views > does not refresh the Kanban or report success after a network error draft-create failure
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/issue143PurchaseOrdersPage.test.tsx > Issue #143 purchase-order page views > refreshes the current Kanban from backend after a successful draft create
+Error: Test timed out in 30000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+ ❯ tests/issue143PurchaseOrdersPage.test.tsx:330:3
+    328|   });
+    329|
+    330|   it('refreshes the current Kanban from backend after a successful dra…
+       |   ^
+    331|     backendPurchaseOrders = [otherSupplierPurchaseOrder];
+    332|     renderPage(purchaserAuthValue);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  tests/issue143PurchaseOrdersPage.test.tsx > Issue #143 purchase-order page views > does not refresh the Kanban or report success after a 403 draft-create failure
+Error: Test timed out in 30000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+ ❯ tests/issue143PurchaseOrdersPage.test.tsx:354:14
+    352|     ['403', 'forbidden', '採購單草稿建立失敗'],
+    353|     ['network error', 'network', '建立結果不明，已鎖定再次送出'],
+    354|   ] as const)('does not refresh the Kanban or report success after a %…
+       |              ^
+    355|     purchaseOrderCreateFailure = failure;
+    356|     backendPurchaseOrders = [otherSupplierPurchaseOrder];
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 5 skipped (7)
+   Start at  13:42:18
+   Duration  75.61s (transform 562ms, setup 291ms, import 9.60s, tests 62.36s, environment 1.45s)
+

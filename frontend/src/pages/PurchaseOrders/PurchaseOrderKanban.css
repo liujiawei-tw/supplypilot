@@ -91,10 +91,10 @@
 
 @media (min-width: 1200px) {
   .purchase-order-kanban {
-    --kanban-ink: #24344d;
-    --kanban-muted: #5b687c;
-    --kanban-border: #d8e0eb;
-    --kanban-accent: #24558f;
+    --kanban-ink: var(--sp-ink);
+    --kanban-muted: var(--sp-muted);
+    --kanban-border: var(--sp-line);
+    --kanban-accent: var(--sp-forest);
     gap: 14px;
   }
 
@@ -126,13 +126,13 @@
     padding: 14px;
     border-color: var(--kanban-border);
     border-radius: 12px;
-    background: #f3f6fa;
+    background: var(--sp-workspace);
   }
 
   .purchase-order-kanban__column--drop-target {
-    border-color: #7c9fc9;
-    background: #edf3fb;
-    box-shadow: inset 0 0 0 1px #a9bfdc;
+    border-color: var(--sp-forest);
+    background: #eaf0e9;
+    box-shadow: inset 0 0 0 1px #b5c7bb;
   }
 
   .purchase-order-kanban__column-heading {
@@ -159,10 +159,10 @@
     height: 23px;
     margin-inline-end: 8px;
     place-items: center;
-    border: 1px solid #d6e0ed;
+    border: 1px solid var(--sp-line);
     border-radius: 7px;
     background: #fff;
-    color: #547096;
+    color: var(--sp-forest);
     content: counter(kanban-stage, decimal-leading-zero);
     font-size: 10px;
     font-variant-numeric: tabular-nums;
@@ -179,11 +179,11 @@
     min-width: 24px;
     height: 22px;
     padding: 0 7px;
-    border: 1px solid #d8e1ee;
+    border: 1px solid var(--sp-line);
     border-radius: 7px;
-    background: #e8eef7;
+    background: #e4ece5;
     box-shadow: none;
-    color: #344b6b;
+    color: var(--sp-forest);
     font-size: 11px;
     font-variant-numeric: tabular-nums;
     font-weight: 650;
@@ -196,7 +196,7 @@
 
   .purchase-order-kanban__card.ant-card {
     overflow: hidden;
-    border: 1px solid #d9e1ec;
+    border: 1px solid var(--sp-line);
     border-radius: 12px;
     background: #fff;
     box-shadow: none;
@@ -204,11 +204,11 @@
   }
 
   .purchase-order-kanban__card.ant-card:hover {
-    border-color: #afc0d8;
+    border-color: #9aada0;
   }
 
   .purchase-order-kanban__card.ant-card:focus-within {
-    outline: 3px solid rgb(36 85 143 / 24%);
+    outline: 3px solid rgb(40 82 65 / 24%);
     outline-offset: 2px;
   }
 
@@ -242,7 +242,7 @@
 
   .purchase-order-kanban__supplier {
     display: block;
-    color: #35445c;
+    color: var(--sp-ink);
     font-size: 12px;
     font-weight: 600;
     line-height: 1.5;
@@ -268,7 +268,7 @@
 
   .purchase-order-kanban__date-value {
     flex: 0 0 auto;
-    color: #293951;
+    color: var(--sp-ink);
     font-size: 12px;
     font-variant-numeric: tabular-nums;
     font-weight: 600;
@@ -313,19 +313,19 @@
   .purchase-order-kanban__transition-action.ant-btn {
     width: 100%;
     min-height: 32px;
-    border-color: #c7d5e7;
+    border-color: var(--sp-line);
     border-radius: 7px;
-    background: #f3f7fc;
+    background: #f0f4ef;
     box-shadow: none;
-    color: #274d7c;
+    color: var(--sp-forest);
     font-size: 12px;
     font-weight: 600;
   }
 
   .purchase-order-kanban__transition-action.ant-btn:hover:not(:disabled) {
-    border-color: #91aaca;
-    background: #eaf1f9;
-    color: #1f446f;
+    border-color: #78988a;
+    background: #e5eee6;
+    color: #1e4032;
   }
 
   .purchase-order-kanban__transition-action.ant-btn:focus-visible {
@@ -336,7 +336,7 @@
   .purchase-order-kanban__cards > .ant-empty {
     margin: 12px 0 0;
     padding: 22px 8px;
-    border: 1px dashed #d7e0eb;
+    border: 1px dashed var(--sp-line);
     border-radius: 9px;
     background: rgb(255 255 255 / 72%);
   }
@@ -348,7 +348,7 @@
 
   .purchase-order-kanban__pending {
     min-height: 112px;
-    border-color: #cbd7e6;
+    border-color: var(--sp-line);
     border-radius: 9px;
     color: var(--kanban-muted);
     background: #fff;
@@ -356,10 +356,10 @@
   }
 
   .purchase-order-kanban__announcement {
-    border-color: #c4d4e9;
+    border-color: #c6d5c8;
     border-radius: 9px;
-    background: #f2f6fb;
-    color: #344b68;
+    background: #f0f4ef;
+    color: var(--sp-forest);
     font-size: 13px;
   }
 

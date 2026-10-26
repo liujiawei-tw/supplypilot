@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Button, Form, Input, message, Modal, Popconfirm, Select, Space, Table, Tag, Typography } from 'antd';
 import type { TableProps } from 'antd';
+import { useSearchParams } from 'react-router-dom';
 import { PlusOutlined } from '@ant-design/icons';
 import { createMaterial, listMaterials, updateMaterial, type BaseUnit, type CreateMaterialRequest, type MaterialResponse, type MaterialStatus, type UpdateMaterialRequest } from '../../api/material';
 import { toApiError } from '../../api/apiError';
@@ -19,7 +20,18 @@ type MaterialFormValues = CreateMaterialRequest & { status?: MaterialStatus };
 
 export default function MaterialsPage() {
   const { user } = useAuth();
+  const [params] = useSearchParams();
+  const finder = (params.get('finder') ?? '').trim();
+  const finderField = params.get('finderField') === 'name' ? 'name' : 'code';
   const isAdmin = user?.role === 'ADMIN';
+  const initialQuery = () => ({
+    page: 0,
+    size: 20,
+    sort: 'id,asc',
+    code: finder && finderField === 'code' ? finder : '',
+    name: finder && finderField === 'name' ? finder : '',
+    status: undefined as MaterialStatus | undefined,
+  });
   const [form] = Form.useForm<MaterialFormValues>();
   const [apiMessage, contextHolder] = message.useMessage();
   const [data, setData] = useState<PageResponse<MaterialResponse> | null>(null);
@@ -29,8 +41,16 @@ export default function MaterialsPage() {
   const [submitting, setSubmitting] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<MaterialResponse | null>(null);
-  const [query, setQuery] = useState({ page: 0, size: 20, sort: 'id,asc', code: '', name: '', status: undefined as MaterialStatus | undefined });
+  const [query, setQuery] = useState(initialQuery);
   const requestId = useRef(0);
+
+  useEffect(() => {
+    const code = finder && finderField === 'code' ? finder : '';
+    const name = finder && finderField === 'name' ? finder : '';
+    setQuery((current) => current.page === 0 && current.code === code && current.name === name && current.status === undefined
+      ? current
+      : { ...current, page: 0, code, name, status: undefined });
+  }, [finder, finderField]);
 
   const load = useCallback(async () => {
     const current = ++requestId.current;
@@ -113,37 +133,44 @@ export default function MaterialsPage() {
 
   const filtered = !!(query.code || query.name || query.status);
   const columns: TableProps<MaterialResponse>['columns'] = [
-    { title: '物料代碼', dataIndex: 'code', sorter: true },
+    { title: '物料代碼', dataIndex: 'code', sorter: true, render: (code: string) => <Typography.Text code>{code}</Typography.Text> },
     { title: '名稱', dataIndex: 'name', sorter: true },
     { title: '安全庫存', dataIndex: 'safetyStock', sorter: true, render: (value, row) => formatQuantity(value, row.baseUnit) },
     { title: '狀態', dataIndex: 'status', sorter: true, render: (status: MaterialStatus) => <Tag color={status === 'ACTIVE' ? 'green' : 'default'}>{displayLabel(status)}</Tag> },
     ...(isAdmin ? [{ title: '操作', key: 'actions', render: (_: unknown, material: MaterialResponse) => <Space>
-      <Button size="small" onClick={() => openEdit(material)}>編輯</Button>
+      <Button onClick={() => openEdit(material)} style={{ minHeight: 44 }}>編輯</Button>
       <Popconfirm title={`確定要將此物料設為${material.status === 'ACTIVE' ? '停用' : '啟用'}？`} onConfirm={() => void changeStatus(material)}>
-        <Button size="small">{material.status === 'ACTIVE' ? '停用' : '啟用'}</Button>
+        <Button style={{ minHeight: 44 }}>{material.status === 'ACTIVE' ? '停用' : '啟用'}</Button>
       </Popconfirm>
     </Space> }] : []),
   ];
 
-  return <div>
+  return <section aria-labelledby="materials-page-title" style={{ width: '100%' }}>
     {contextHolder}
-    <Space orientation="vertical" size="large" style={{ width: '100%' }}>
-      <Space style={{ width: '100%', justifyContent: 'space-between' }} wrap>
-        <div><Typography.Title level={2} style={{ marginBottom: 0 }}>物料管理</Typography.Title><Typography.Text type="secondary">維護物料主檔與安全庫存</Typography.Text></div>
-        {isAdmin && <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>新增物料</Button>}
-      </Space>
-      <Space wrap style={{ maxWidth: '100%' }}>
-        <Input aria-label="物料代碼篩選" placeholder="物料代碼" value={query.code} onChange={(event) => setQuery((current) => ({ ...current, code: event.target.value, page: 0 }))} allowClear />
-        <Input aria-label="物料名稱篩選" placeholder="物料名稱" value={query.name} onChange={(event) => setQuery((current) => ({ ...current, name: event.target.value, page: 0 }))} allowClear />
-        <Select aria-label="物料狀態篩選" placeholder="狀態" value={query.status} options={statuses.map((status) => ({ value: status, label: displayLabel(status) }))} onChange={(status) => setQuery((current) => ({ ...current, status, page: 0 }))} allowClear style={{ width: 150 }} />
-      </Space>
+    <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, borderBottom: '1px solid var(--sp-line)', paddingBottom: 16 }}>
+      <div>
+        <Typography.Title id="materials-page-title" level={2} style={{ margin: 0 }}>物料目錄</Typography.Title>
+        <Typography.Text type="secondary">查找物料代碼、名稱與基本單位；安全庫存以主檔欄位呈現。</Typography.Text>
+      </div>
+      {isAdmin && <Button type="primary" icon={<PlusOutlined />} onClick={openCreate} style={{ minHeight: 44 }}>新增物料</Button>}
+    </div>
+    <Space orientation="vertical" size="middle" style={{ width: '100%', marginTop: 16 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', paddingBlock: 8 }}>
+        <Input aria-label="物料代碼篩選" placeholder="物料代碼" value={query.code} onChange={(event) => setQuery((current) => ({ ...current, code: event.target.value, page: 0 }))} allowClear style={{ width: 'min(100%, 240px)', minHeight: 44 }} />
+        <Input aria-label="物料名稱篩選" placeholder="物料名稱" value={query.name} onChange={(event) => setQuery((current) => ({ ...current, name: event.target.value, page: 0 }))} allowClear style={{ width: 'min(100%, 240px)', minHeight: 44 }} />
+        <Select aria-label="物料狀態篩選" placeholder="狀態" value={query.status} options={statuses.map((status) => ({ value: status, label: displayLabel(status) }))} onChange={(status) => setQuery((current) => ({ ...current, status, page: 0 }))} allowClear style={{ width: 150, minHeight: 44 }} />
+        {filtered && <Button onClick={() => setQuery((current) => ({ ...current, code: '', name: '', status: undefined, page: 0 }))} style={{ minHeight: 44 }}>清除篩選</Button>}
+      </div>
       {listError && <ErrorState title="物料查詢失敗" error={listError} onRetry={() => void load()} />}
-      {loading && !data ? <LoadingState tip="正在載入物料…" /> : <Table<MaterialResponse>
-        rowKey="id" columns={columns} dataSource={data?.content ?? []} loading={loading} scroll={{ x: 'max-content' }}
-        locale={{ emptyText: <EmptyState simple description={filtered ? '沒有符合條件的物料' : '目前沒有物料資料'} actionText={isAdmin && !filtered ? '新增物料' : undefined} onAction={isAdmin && !filtered ? openCreate : undefined} /> }}
-        pagination={{ current: (data?.page ?? 0) + 1, pageSize: data?.size ?? query.size, total: data?.totalElements ?? 0, showSizeChanger: true }}
-        onChange={handleTableChange}
-      />}
+      {loading && !data ? <LoadingState tip="正在載入物料…" /> : <>
+        <Typography.Text type="secondary" aria-live="polite">共 {data?.totalElements ?? 0} 筆物料</Typography.Text>
+        <Table<MaterialResponse>
+          rowKey="id" columns={columns} dataSource={data?.content ?? []} loading={loading} scroll={{ x: 'max-content' }}
+          locale={{ emptyText: <EmptyState simple description={filtered ? '沒有符合條件的物料' : '目前沒有物料資料'} actionText={isAdmin && !filtered ? '新增物料' : undefined} onAction={isAdmin && !filtered ? openCreate : undefined} />}}
+          pagination={{ current: (data?.page ?? 0) + 1, pageSize: data?.size ?? query.size, total: data?.totalElements ?? 0, showSizeChanger: true }}
+          onChange={handleTableChange}
+        />
+      </>}
     </Space>
     <Modal title={editing ? '編輯物料' : '新增物料'} open={modalOpen} onCancel={() => !submitting && setModalOpen(false)} onOk={() => void submit()} confirmLoading={submitting} okButtonProps={{ disabled: submitting }} destroyOnHidden>
       {submitError && <ErrorState title="物料送出失敗" error={submitError} />}
@@ -155,5 +182,5 @@ export default function MaterialsPage() {
         {editing && <Form.Item name="status" label="狀態" rules={[{ required: true }]}><Select options={statuses.map((status) => ({ value: status, label: displayLabel(status) }))} /></Form.Item>}
       </Form>
     </Modal>
-  </div>;
+  </section>;
 }

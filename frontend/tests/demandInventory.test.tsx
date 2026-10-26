@@ -176,6 +176,21 @@ describe('SP-802 Inventory UI', () => {
     expect(requests.includes('/inventory')).toBe(expectsInventory);
   });
 
+  it('maps inventory finder text to the existing materialCode filter', async () => {
+    const requests: InternalAxiosRequestConfig[] = [];
+    axiosClient.defaults.adapter = vi.fn(async (config) => {
+      requests.push(config);
+      if (config.url === '/auth/me') return response(config, identities.PRODUCTION_PLANNER);
+      if (config.url === '/inventory') return response(config, { content: [], page: 0, size: 20, totalElements: 0, totalPages: 0 });
+      throw new Error('Unexpected request ' + config.url);
+    });
+    await open('/inventory?tab=stock-levels&finder=MAT-001');
+    expect(await screen.findByText('共 0 筆庫存紀錄')).toBeTruthy();
+    const request = requests.find(({ url }) => url === '/inventory');
+    expect(request?.params?.materialCode).toBe('MAT-001');
+    expect(request?.params?.materialId).toBeUndefined();
+  });
+
   it('shows detail and allows Warehouse to submit a signed adjustment exactly once before refetch', async () => {
     const requests: InternalAxiosRequestConfig[] = [];
     let finishAdjustment!: () => void;

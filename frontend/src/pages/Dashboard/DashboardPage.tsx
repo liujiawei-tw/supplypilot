@@ -313,7 +313,7 @@ export const DashboardPage = () => {
   const partial = hasLoadedPanel && hasUnavailablePanel;
   const actions = quickActionsForRole(user.role);
 
-  return <main className="dashboard-workspace">
+  return <section className="dashboard-workspace">
     <header className="dashboard-header">
       <div>
         <Title level={2}>工作總覽</Title>
@@ -358,7 +358,7 @@ export const DashboardPage = () => {
       />
       {actions.length === 0 && <Paragraph type="secondary">此角色目前沒有額外的工作入口。</Paragraph>}
     </section>
-  </main>;
+  </section>;
 };
 
 export default DashboardPage;

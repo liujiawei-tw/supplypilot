@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import type { AxiosResponse, InternalAxiosRequestConfig } from 'axios';
 import { axiosClient } from '../src/api/axiosClient';
 import { AuthContext, type AuthState } from '../src/auth/authContextValue';
+import { MemoryRouter } from 'react-router-dom';
 import MaterialsPage from '../src/pages/Materials/MaterialsPage';
 import SupplierMaterialList from '../src/pages/Suppliers/SupplierMaterialList';
 import type { AuthenticatedUser, UserRole } from '../src/types/api';
@@ -100,9 +101,11 @@ describe('BigDecimal edit round trips', () => {
     });
 
     render(
-      <AuthContext.Provider value={auth('ADMIN')}>
-        <MaterialsPage />
-      </AuthContext.Provider>,
+      <MemoryRouter>
+        <AuthContext.Provider value={auth('ADMIN')}>
+          <MaterialsPage />
+        </AuthContext.Provider>
+      </MemoryRouter>,
     );
 
     expect(await screen.findByText('999,999,999,999,999.1234 KG')).toBeTruthy();

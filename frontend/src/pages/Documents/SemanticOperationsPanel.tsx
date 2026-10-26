@@ -168,7 +168,11 @@ export default function SemanticOperationsPanel({ documentMutationVersion = 0 }:
     finally { readinessBusyRef.current = false; setLoading((current) => current === 'readiness' ? null : current); }
   };
 
-  return <Card title={<Space direction="vertical" size={0}><Title level={4} style={{ margin: 0 }}>語意索引管理</Title><Text type="secondary">文件核准後會自動排入逐份索引；每份文件分別發布，檢核報表可用於診斷環境。</Text></Space>}>
+  return <section className="semantic-operations">
+    <header className="semantic-operations__heading">
+      <Title className="semantic-operations__title" level={4}>語意索引管理</Title>
+      <Text type="secondary">文件核准後會自動排入逐份索引；每份文件分別發布，檢核報表可用於診斷環境。</Text>
+    </header>
     <Space direction="vertical" size="large" style={{ width: '100%' }}>
       {error && <ErrorState title={unknown.length > 0 ? '操作結果未知，已鎖定重送' : '語意索引操作失敗'} error={error} operation={errorIsRead ? 'read' : 'mutation'} onRetry={errorIsRead ? () => void refreshReadiness() : undefined} />}
       {unknown.map((operation) => <Alert key={operation} type="warning" showIcon title={`${operation === 'audit' ? '索引稽核' : '索引補建'} 結果未知；不會自動重送`}
@@ -240,5 +244,5 @@ export default function SemanticOperationsPanel({ documentMutationVersion = 0 }:
     }} onCancel={() => setConfirmUnknownClear(null)}>
       <Alert type="warning" showIcon title="請先查核正式紀錄" description="請確認系統稽核與索引記錄或由系統管理員查核，就緒狀態不足以證明原操作結果。只有人工查核後才解除本頁的防重鎖定。" />
     </Modal>
-  </Card>;
+  </section>;
 }
