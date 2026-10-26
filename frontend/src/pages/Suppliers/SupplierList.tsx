@@ -109,31 +109,33 @@ export default function SupplierList({ isAdmin, finder = '', finderField = 'code
       <Popconfirm title={`確定要將此供應商設為${supplier.status === 'ACTIVE' ? '停用' : '啟用'}？`} onConfirm={() => void changeStatus(supplier)}><Button style={{ minHeight: 44 }}>{supplier.status === 'ACTIVE' ? '停用' : '啟用'}</Button></Popconfirm>
     </Space> }] : []),
   ];
-  return <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
+  return <Space className="supplier-directory sp-section" orientation="vertical" size="middle" style={{ width: '100%' }}>
     {contextHolder}
-    <section aria-label="供應商目錄">
-      <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, borderBottom: '1px solid var(--sp-line)', paddingBlock: '12px 16px' }}>
+    <section className="supplier-directory__section" aria-label="供應商目錄">
+      <div className="supplier-directory__heading sp-section__heading">
         <div>
-          <Typography.Title level={3} style={{ margin: 0 }}>供應商目錄</Typography.Title>
-          <Typography.Text type="secondary">依代碼、名稱或狀態查找；結果使用伺服器篩選與分頁。</Typography.Text>
+          <Typography.Title className="supplier-directory__title" level={3}>供應商目錄</Typography.Title>
+          <Typography.Text className="supplier-directory__intro sp-page__lead">依代碼、名稱或狀態查找；結果使用伺服器篩選與分頁。</Typography.Text>
         </div>
-        {isAdmin && <Button type="primary" icon={<PlusOutlined />} onClick={openCreate} style={{ minHeight: 44 }}>新增供應商</Button>}
+        {isAdmin && <Button className="supplier-directory__create" type="primary" icon={<PlusOutlined />} onClick={openCreate}>新增供應商</Button>}
       </div>
     </section>
-    <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', paddingBlock: 8 }}>
+    <div className="supplier-directory__filters" role="search" aria-label="供應商篩選">
       <Input aria-label="供應商代碼篩選" placeholder="供應商代碼" value={query.code} onChange={(event) => setQuery((current) => ({ ...current, code: event.target.value, page: 0 }))} allowClear style={{ width: 'min(100%, 240px)', minHeight: 44 }} />
       <Input aria-label="供應商名稱篩選" placeholder="供應商名稱" value={query.name} onChange={(event) => setQuery((current) => ({ ...current, name: event.target.value, page: 0 }))} allowClear style={{ width: 'min(100%, 240px)', minHeight: 44 }} />
       <Select aria-label="供應商狀態篩選" placeholder="狀態" value={query.status} options={statuses.map((status) => ({ value: status, label: displayLabel(status) }))} onChange={(status) => setQuery((current) => ({ ...current, status, page: 0 }))} allowClear style={{ width: 150, minHeight: 44 }} />
-      {filtered && <Button onClick={() => setQuery((current) => ({ ...current, code: '', name: '', status: undefined, page: 0 }))} style={{ minHeight: 44 }}>清除篩選</Button>}
+      {filtered && <Button onClick={() => setQuery((current) => ({ ...current, code: '', name: '', status: undefined, page: 0 }))}>清除篩選</Button>}
     </div>
     {listError && <ErrorState title="供應商查詢失敗" error={listError} onRetry={() => void load()} />}
     {loading && !data ? <LoadingState tip="正在載入供應商…" /> : <>
-      <Typography.Text type="secondary" aria-live="polite">共 {data?.totalElements ?? 0} 筆供應商</Typography.Text>
+      <Typography.Text className="supplier-directory__count" type="secondary" aria-live="polite">共 {data?.totalElements ?? 0} 筆供應商</Typography.Text>
+      <div className="supplier-directory__table">
       <Table<SupplierResponse> rowKey="id" columns={columns} dataSource={data?.content ?? []} loading={loading} scroll={{ x: 'max-content' }}
         locale={{ emptyText: <EmptyState simple description={filtered ? '沒有符合條件的供應商' : '目前沒有供應商資料'} actionText={isAdmin && !filtered ? '新增供應商' : undefined} onAction={isAdmin && !filtered ? openCreate : undefined} /> }}
         pagination={{ current: (data?.page ?? 0) + 1, pageSize: data?.size ?? query.size, total: data?.totalElements ?? 0, showSizeChanger: true }} onChange={handleTableChange} />
+      </div>
     </>}
-    <Modal title={editing ? '編輯供應商' : '新增供應商'} open={modalOpen} onCancel={() => !submitting && setModalOpen(false)} onOk={() => void submit()} confirmLoading={submitting} okButtonProps={{ disabled: submitting }} destroyOnHidden>
+    <Modal className="supplier-directory__modal" title={editing ? '編輯供應商' : '新增供應商'} open={modalOpen} onCancel={() => !submitting && setModalOpen(false)} onOk={() => void submit()} confirmLoading={submitting} okButtonProps={{ disabled: submitting }} destroyOnHidden>
       {submitError && <ErrorState title="供應商送出失敗" error={submitError} />}
       <Form form={form} layout="vertical">
         <Form.Item name="code" label="供應商代碼" rules={[{ required: true, whitespace: true, message: '請輸入供應商代碼' }, { max: 50 }]}><Input disabled={!!editing} /></Form.Item>

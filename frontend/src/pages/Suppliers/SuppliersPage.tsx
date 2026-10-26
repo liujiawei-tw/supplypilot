@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../auth/useAuth';
 import SupplierList from './SupplierList';
 import SupplierMaterialList from './SupplierMaterialList';
+import './SuppliersPage.css';
 
 type SupplierTab = 'suppliers' | 'supplier-materials';
 
@@ -17,12 +18,15 @@ export default function SuppliersPage() {
   const finder = activeTab === 'suppliers' ? params.get('finder') ?? '' : '';
   const finderField = params.get('finderField') === 'name' ? 'name' : 'code';
 
-  return <section aria-labelledby="suppliers-page-title" style={{ width: '100%' }}>
-    <div style={{ borderBottom: '1px solid var(--sp-line)', paddingBottom: 16, marginBottom: 8 }}>
-      <Typography.Title id="suppliers-page-title" level={2} style={{ margin: 0 }}>供應商</Typography.Title>
-      <Typography.Text type="secondary">查找供應商資料，並檢視其供應物料條件。</Typography.Text>
-    </div>
+  return <section className="sp-page supplier-workspace" aria-labelledby="suppliers-page-title">
+    <header className="supplier-workspace__heading sp-page__heading">
+      <div>
+        <Typography.Title id="suppliers-page-title" level={2}>供應商</Typography.Title>
+        <Typography.Text className="supplier-workspace__intro sp-page__lead">查找供應商資料，並檢視其供應物料條件。</Typography.Text>
+      </div>
+    </header>
     <Tabs
+      className="supplier-workspace__tabs"
       destroyOnHidden
       activeKey={activeTab}
       onChange={(key) => {

@@ -1,0 +1,21 @@
+
+> frontend@0.0.0 test
+> vitest run tests/sp806.test.tsx -t reviews a multi-item backend snapshot|shows clarification without Confirm --maxWorkers=1
+
+
+ RUN  v4.1.11 C:/Users/z0976/.codex/worktrees/procurement-tool-ux-redesign/supplypilot/frontend
+
+Could not parse CSS stylesheet
+Could not parse CSS stylesheet
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Could not parse CSS stylesheet
+Could not parse CSS stylesheet
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+
+ Test Files  1 passed (1)
+      Tests  2 passed | 24 skipped (26)
+   Start at  00:47:02
+   Duration  41.81s (transform 2.19s, setup 377ms, import 8.84s, tests 31.00s, environment 1.29s)
+

@@ -12,6 +12,7 @@ import LoadingState from '../../components/LoadingState';
 import type { ApiErrorResponse, PageResponse } from '../../types/api';
 import { displayLabel } from '../../utils/displayLabels';
 import { formatQuantity } from '../../utils/displayFormatters';
+import './MaterialsPage.css';
 import { nonNegativeDecimalRule } from '../../utils/decimalValidation';
 
 const units: BaseUnit[] = ['G', 'KG', 'ML', 'L', 'PCS'];
@@ -145,34 +146,36 @@ export default function MaterialsPage() {
     </Space> }] : []),
   ];
 
-  return <section aria-labelledby="materials-page-title" style={{ width: '100%' }}>
+  return <section className="sp-page materials-workspace" aria-labelledby="materials-page-title">
     {contextHolder}
-    <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, borderBottom: '1px solid var(--sp-line)', paddingBottom: 16 }}>
+    <header className="materials-workspace__heading sp-page__heading">
       <div>
-        <Typography.Title id="materials-page-title" level={2} style={{ margin: 0 }}>物料目錄</Typography.Title>
-        <Typography.Text type="secondary">查找物料代碼、名稱與基本單位；安全庫存以主檔欄位呈現。</Typography.Text>
+        <Typography.Title id="materials-page-title" level={2}>物料目錄</Typography.Title>
+        <Typography.Text className="materials-workspace__intro sp-page__lead">查找物料代碼、名稱與基本單位；安全庫存以主檔欄位呈現。</Typography.Text>
       </div>
-      {isAdmin && <Button type="primary" icon={<PlusOutlined />} onClick={openCreate} style={{ minHeight: 44 }}>新增物料</Button>}
-    </div>
-    <Space orientation="vertical" size="middle" style={{ width: '100%', marginTop: 16 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', paddingBlock: 8 }}>
+      {isAdmin && <Button className="materials-workspace__create" type="primary" icon={<PlusOutlined />} onClick={openCreate}>新增物料</Button>}
+    </header>
+    <Space className="materials-workspace__body" orientation="vertical" size="middle" style={{ width: '100%' }}>
+      <div className="materials-workspace__filters" role="search" aria-label="物料篩選">
         <Input aria-label="物料代碼篩選" placeholder="物料代碼" value={query.code} onChange={(event) => setQuery((current) => ({ ...current, code: event.target.value, page: 0 }))} allowClear style={{ width: 'min(100%, 240px)', minHeight: 44 }} />
         <Input aria-label="物料名稱篩選" placeholder="物料名稱" value={query.name} onChange={(event) => setQuery((current) => ({ ...current, name: event.target.value, page: 0 }))} allowClear style={{ width: 'min(100%, 240px)', minHeight: 44 }} />
         <Select aria-label="物料狀態篩選" placeholder="狀態" value={query.status} options={statuses.map((status) => ({ value: status, label: displayLabel(status) }))} onChange={(status) => setQuery((current) => ({ ...current, status, page: 0 }))} allowClear style={{ width: 150, minHeight: 44 }} />
-        {filtered && <Button onClick={() => setQuery((current) => ({ ...current, code: '', name: '', status: undefined, page: 0 }))} style={{ minHeight: 44 }}>清除篩選</Button>}
+        {filtered && <Button onClick={() => setQuery((current) => ({ ...current, code: '', name: '', status: undefined, page: 0 }))}>清除篩選</Button>}
       </div>
       {listError && <ErrorState title="物料查詢失敗" error={listError} onRetry={() => void load()} />}
       {loading && !data ? <LoadingState tip="正在載入物料…" /> : <>
-        <Typography.Text type="secondary" aria-live="polite">共 {data?.totalElements ?? 0} 筆物料</Typography.Text>
+        <Typography.Text className="materials-workspace__count" type="secondary" aria-live="polite">共 {data?.totalElements ?? 0} 筆物料</Typography.Text>
+        <div className="materials-workspace__table">
         <Table<MaterialResponse>
           rowKey="id" columns={columns} dataSource={data?.content ?? []} loading={loading} scroll={{ x: 'max-content' }}
           locale={{ emptyText: <EmptyState simple description={filtered ? '沒有符合條件的物料' : '目前沒有物料資料'} actionText={isAdmin && !filtered ? '新增物料' : undefined} onAction={isAdmin && !filtered ? openCreate : undefined} />}}
           pagination={{ current: (data?.page ?? 0) + 1, pageSize: data?.size ?? query.size, total: data?.totalElements ?? 0, showSizeChanger: true }}
           onChange={handleTableChange}
         />
+        </div>
       </>}
     </Space>
-    <Modal title={editing ? '編輯物料' : '新增物料'} open={modalOpen} onCancel={() => !submitting && setModalOpen(false)} onOk={() => void submit()} confirmLoading={submitting} okButtonProps={{ disabled: submitting }} destroyOnHidden>
+    <Modal className="materials-workspace__modal" title={editing ? '編輯物料' : '新增物料'} open={modalOpen} onCancel={() => !submitting && setModalOpen(false)} onOk={() => void submit()} confirmLoading={submitting} okButtonProps={{ disabled: submitting }} destroyOnHidden>
       {submitError && <ErrorState title="物料送出失敗" error={submitError} />}
       <Form form={form} layout="vertical">
         <Form.Item name="code" label="物料代碼" rules={[{ required: true, whitespace: true, message: '請輸入物料代碼' }, { max: 50 }]}><Input disabled={!!editing} /></Form.Item>

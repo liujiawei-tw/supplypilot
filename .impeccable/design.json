@@ -1,0 +1,74 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-26T16:43:20Z",
+  "title": "Design System: SupplyPilot Procurement Workbench",
+  "extensions": {
+    "colorMeta": {
+      "shell-navy": { "role": "neutral", "displayName": "Harbor Navy", "tonalRamp": ["oklch(15% 0.049 252)", "oklch(25% 0.049 252)", "oklch(35% 0.049 252)", "oklch(45% 0.049 252)", "oklch(55% 0.049 252)", "oklch(65% 0.049 252)", "oklch(80% 0.049 252)", "oklch(95% 0.049 252)"] },
+      "shell-blue": { "role": "neutral", "displayName": "Deep Slate Blue", "tonalRamp": ["oklch(15% 0.058 251)", "oklch(25% 0.058 251)", "oklch(35% 0.058 251)", "oklch(45% 0.058 251)", "oklch(55% 0.058 251)", "oklch(65% 0.058 251)", "oklch(80% 0.058 251)", "oklch(95% 0.058 251)"] },
+      "primary-teal": { "role": "primary", "displayName": "Route Teal", "tonalRamp": ["oklch(15% 0.079 190)", "oklch(25% 0.079 190)", "oklch(35% 0.079 190)", "oklch(45% 0.079 190)", "oklch(55% 0.079 190)", "oklch(65% 0.079 190)", "oklch(80% 0.079 190)", "oklch(95% 0.079 190)"] },
+      "primary-teal-hover": { "role": "primary", "displayName": "Deep Route Teal", "tonalRamp": ["oklch(15% 0.069 189)", "oklch(25% 0.069 189)", "oklch(35% 0.069 189)", "oklch(45% 0.069 189)", "oklch(55% 0.069 189)", "oklch(65% 0.069 189)", "oklch(80% 0.069 189)", "oklch(95% 0.069 189)"] },
+      "signal-amber": { "role": "tertiary", "displayName": "Waypoint Amber", "tonalRamp": ["oklch(15% 0.143 65)", "oklch(25% 0.143 65)", "oklch(35% 0.143 65)", "oklch(45% 0.143 65)", "oklch(55% 0.143 65)", "oklch(65% 0.143 65)", "oklch(80% 0.143 65)", "oklch(95% 0.143 65)"] },
+      "workspace-slate": { "role": "neutral", "displayName": "Workspace Slate", "tonalRamp": ["oklch(15% 0.005 248)", "oklch(25% 0.005 248)", "oklch(35% 0.005 248)", "oklch(45% 0.005 248)", "oklch(55% 0.005 248)", "oklch(65% 0.005 248)", "oklch(80% 0.005 248)", "oklch(95% 0.005 248)"] },
+      "surface-white": { "role": "neutral", "displayName": "Clear Surface", "tonalRamp": ["oklch(15% 0.000 90)", "oklch(25% 0.000 90)", "oklch(35% 0.000 90)", "oklch(45% 0.000 90)", "oklch(55% 0.000 90)", "oklch(65% 0.000 90)", "oklch(80% 0.000 90)", "oklch(95% 0.000 90)"] },
+      "surface-muted": { "role": "neutral", "displayName": "Muted Surface", "tonalRamp": ["oklch(15% 0.003 248)", "oklch(25% 0.003 248)", "oklch(35% 0.003 248)", "oklch(45% 0.003 248)", "oklch(55% 0.003 248)", "oklch(65% 0.003 248)", "oklch(80% 0.003 248)", "oklch(95% 0.003 248)"] },
+      "ink": { "role": "neutral", "displayName": "Deep Ink", "tonalRamp": ["oklch(15% 0.043 251)", "oklch(25% 0.043 251)", "oklch(35% 0.043 251)", "oklch(45% 0.043 251)", "oklch(55% 0.043 251)", "oklch(65% 0.043 251)", "oklch(80% 0.043 251)", "oklch(95% 0.043 251)"] },
+      "muted-ink": { "role": "neutral", "displayName": "Muted Slate Ink", "tonalRamp": ["oklch(15% 0.043 247)", "oklch(25% 0.043 247)", "oklch(35% 0.043 247)", "oklch(45% 0.043 247)", "oklch(55% 0.043 247)", "oklch(65% 0.043 247)", "oklch(80% 0.043 247)", "oklch(95% 0.043 247)"] },
+      "border": { "role": "neutral", "displayName": "Fine Divider", "tonalRamp": ["oklch(15% 0.015 245)", "oklch(25% 0.015 245)", "oklch(35% 0.015 245)", "oklch(45% 0.015 245)", "oklch(55% 0.015 245)", "oklch(65% 0.015 245)", "oklch(80% 0.015 245)", "oklch(95% 0.015 245)"] },
+      "success": { "role": "tertiary", "displayName": "Confirmed Green", "tonalRamp": ["oklch(15% 0.108 158)", "oklch(25% 0.108 158)", "oklch(35% 0.108 158)", "oklch(45% 0.108 158)", "oklch(55% 0.108 158)", "oklch(65% 0.108 158)", "oklch(80% 0.108 158)", "oklch(95% 0.108 158)"] },
+      "warning": { "role": "tertiary", "displayName": "Attention Ochre", "tonalRamp": ["oklch(15% 0.110 59)", "oklch(25% 0.110 59)", "oklch(35% 0.110 59)", "oklch(45% 0.110 59)", "oklch(55% 0.110 59)", "oklch(65% 0.110 59)", "oklch(80% 0.110 59)", "oklch(95% 0.110 59)"] },
+      "danger": { "role": "tertiary", "displayName": "Error Red", "tonalRamp": ["oklch(15% 0.182 30)", "oklch(25% 0.182 30)", "oklch(35% 0.182 30)", "oklch(45% 0.182 30)", "oklch(55% 0.182 30)", "oklch(65% 0.182 30)", "oklch(80% 0.182 30)", "oklch(95% 0.182 30)"] },
+      "info": { "role": "tertiary", "displayName": "Information Blue", "tonalRamp": ["oklch(15% 0.149 259)", "oklch(25% 0.149 259)", "oklch(35% 0.149 259)", "oklch(45% 0.149 259)", "oklch(55% 0.149 259)", "oklch(65% 0.149 259)", "oklch(80% 0.149 259)", "oklch(95% 0.149 259)"] },
+      "focus-ring": { "role": "tertiary", "displayName": "Focus Blue", "tonalRamp": ["oklch(15% 0.215 263)", "oklch(25% 0.215 263)", "oklch(35% 0.215 263)", "oklch(45% 0.215 263)", "oklch(55% 0.215 263)", "oklch(65% 0.215 263)", "oklch(80% 0.215 263)", "oklch(95% 0.215 263)"] }
+    },
+    "typographyMeta": {
+      "body": { "displayName": "Body", "purpose": "Default reading and operational data text; uses the system sans stack with Traditional Chinese fallbacks and tabular figures." },
+      "label": { "displayName": "Label", "purpose": "Compact, semibold labels for fields, status context, and table headings." }
+    },
+    "shadows": [
+      { "name": "sign-in-focus", "value": "0 18px 48px rgb(16 36 58 / 8%)", "purpose": "Separates the focused sign-in card from the workspace surface." }
+    ],
+    "motion": [
+      { "name": "control-transition", "value": "150ms ease", "purpose": "Transitions control border, background, text color, and focus shadow." },
+      { "name": "reduced-motion", "value": "0.01ms", "purpose": "Reduces animation and transition duration when the user requests reduced motion." }
+    ],
+    "breakpoints": [
+      { "name": "narrow", "value": "380px" },
+      { "name": "mobile", "value": "680px" },
+      { "name": "waybill-mobile", "value": "767px" },
+      { "name": "tablet", "value": "1080px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Teal primary action with a clear hover and keyboard-focus state.",
+      "html": "<button class=\"ds-btn-primary\">建立手動草稿</button>",
+      "css": ".ds-btn-primary { display: inline-flex; min-height: 40px; align-items: center; justify-content: center; padding: 4px 15px; border: 1px solid var(--sp-primary); border-radius: var(--sp-radius-sm); background: var(--sp-primary); color: var(--sp-surface); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft JhengHei', 'Noto Sans TC', sans-serif; font-size: 14px; font-weight: 400; line-height: 1.5; transition: border-color 150ms ease, background-color 150ms ease, color 150ms ease, box-shadow 150ms ease; } .ds-btn-primary:hover { border-color: var(--sp-primary-hover); background: var(--sp-primary-hover); color: #ffffff; } .ds-btn-primary:focus-visible { outline: 3px solid var(--sp-focus); outline-offset: 2px; } .ds-btn-primary:active { border-color: var(--sp-primary-hover); background: var(--sp-primary-hover); }"
+    },
+    {
+      "name": "Work Surface Card",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "White, thin-bordered work surface with a quiet 12px corner and no default shadow.",
+      "html": "<article class=\"ds-card\"><h3>採購單</h3><p>PO-2026-001</p></article>",
+      "css": ".ds-card { border: 1px solid var(--sp-line); border-radius: var(--sp-radius-md); background: var(--sp-surface); color: var(--sp-ink); padding: 24px; box-shadow: none; } .ds-card h3 { margin: 0 0 12px; color: var(--sp-ink); font-size: 18px; font-weight: 700; } .ds-card p { margin: 0; color: var(--sp-muted); font-size: 15px; line-height: 1.55; font-variant-numeric: tabular-nums; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "Modern transport wayfinding",
+    "overview": "SupplyPilot is an operational procurement workspace. Its visual language uses modern transport wayfinding: calm dark structure, crisp readable data, and a single visible route through a purchase order's controlled stages. The visual system supports the work; it does not turn the product into an airport board or a chat-first AI interface.",
+    "dos": [
+      "Keep real API capabilities, permissions, business states, transaction safeguards, and failure recovery.",
+      "Keep Demand and Recommendations out of V2 primary navigation and styling only as existing legacy routes.",
+      "Show document processing, review, and semantic-index states separately; AI citations must point to real document versions and excerpts.",
+      "Use Traditional Chinese (Taiwan), Asia/Taipei dates, locale-aware number grouping, and existing currency."
+    ],
+    "donts": [
+      "Avoid purple AI gradients, glowing robot imagery, glassmorphism, fake metrics, decorative charts, invented states, and controls with no working behavior.",
+      "Do not add notifications, PO export, document attachments, supplier ranking, stock alerts, partial receiving, or automatic payment."
+    ]
+  }
+}

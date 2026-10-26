@@ -1,0 +1,49 @@
+/* Supplier directory and supplier-material relationship workbench. */
+.supplier-workspace, .supplier-directory, .supplier-material-workspace { min-width: 0; color: var(--sp-ink, #16283b); }
+.supplier-workspace__heading { display: grid; justify-content: start; gap: 8px; }
+.supplier-workspace__heading h2.ant-typography { color: var(--sp-ink, #16283b); }
+.supplier-workspace__tabs .ant-tabs-nav { margin: 0; }
+.supplier-workspace__tabs .ant-tabs-tab { min-height: 46px; padding-inline: 16px; color: var(--sp-muted, #53697e); font-weight: 650; }
+.supplier-workspace__tabs .ant-tabs-tab-active .ant-tabs-tab-btn { color: var(--sp-primary, #0d6b67); }
+.supplier-workspace__tabs .ant-tabs-ink-bar { height: 3px; border-radius: 3px 3px 0 0; background: var(--sp-primary, #0d6b67); }
+.supplier-workspace__tabs .ant-tabs-content-holder, .supplier-directory, .supplier-material-workspace { min-width: 0; }
+.supplier-directory__heading, .supplier-material-workspace__heading {
+  display: flex; min-width: 0; align-items: center; justify-content: space-between; flex-wrap: wrap;
+  gap: 16px; padding-block: 4px 16px; border-bottom: 1px solid var(--sp-line, #dbe4ec);
+}
+.supplier-directory__heading > div, .supplier-material-workspace__heading > div { min-width: 0; }
+.supplier-directory__heading .ant-typography, .supplier-material-workspace__heading .ant-typography { margin: 0; }
+.supplier-directory__title.ant-typography, .supplier-material-workspace__title.ant-typography { color: var(--sp-ink, #16283b); font-size: 20px; font-weight: 700; }
+.supplier-directory__intro, .supplier-material-workspace__intro { display: block; margin-top: 6px; color: var(--sp-muted, #53697e); line-height: 1.55; }
+.supplier-directory__create, .supplier-material-workspace__heading > .ant-btn { min-height: 44px; }
+.supplier-directory__filters, .supplier-material-workspace__filters {
+  display: flex; min-width: 0; align-items: center; flex-wrap: wrap; gap: 10px; padding: 14px;
+  border: 1px solid var(--sp-line, #dbe4ec); border-radius: var(--sp-radius-md, 12px); background: var(--sp-surface-muted, #f7f9fb);
+}
+.supplier-directory__filters .ant-input, .supplier-directory__filters .ant-select, .supplier-directory__filters .ant-btn,
+.supplier-material-workspace__filters .ant-select, .supplier-material-workspace__filters .ant-select-selector, .supplier-material-workspace__filters .ant-btn { min-height: 44px; }
+.supplier-directory__count, .supplier-material-workspace__count { display: block; color: var(--sp-muted, #53697e); font-size: 12px; font-variant-numeric: tabular-nums; }
+.supplier-directory__table, .supplier-material-workspace__table {
+  min-width: 0; overflow-x: auto; border: 1px solid var(--sp-line, #dbe4ec); border-radius: var(--sp-radius-md, 12px); background: var(--sp-surface, #fff);
+}
+.supplier-directory__table .ant-table, .supplier-material-workspace__table .ant-table { background: transparent; }
+.supplier-directory__table .ant-table-thead > tr > th, .supplier-material-workspace__table .ant-table-thead > tr > th {
+  border-bottom: 1px solid var(--sp-line, #dbe4ec); background: var(--sp-surface-muted, #f7f9fb); color: var(--sp-muted, #53697e); font-size: 12px; font-weight: 700; white-space: nowrap;
+}
+.supplier-directory__table .ant-table-tbody > tr > td, .supplier-material-workspace__table .ant-table-tbody > tr > td {
+  border-bottom-color: var(--sp-line, #dbe4ec); background: var(--sp-surface, #fff); color: var(--sp-ink, #16283b); vertical-align: middle;
+}
+.supplier-directory__table .ant-table-tbody > tr:hover > td, .supplier-material-workspace__table .ant-table-tbody > tr:hover > td { background: var(--sp-surface-muted, #f7f9fb); }
+.supplier-directory__table .ant-btn, .supplier-material-workspace__table .ant-btn { min-height: 44px; }
+.supplier-directory__modal .ant-modal-content, .supplier-material-workspace__modal .ant-modal-content {
+  border: 1px solid var(--sp-line, #dbe4ec); border-radius: var(--sp-radius-lg, 16px); background: var(--sp-surface, #fff);
+}
+.supplier-directory__modal .ant-modal-header, .supplier-material-workspace__modal .ant-modal-header { border-bottom: 1px solid var(--sp-line, #dbe4ec); background: transparent; }
+@media (max-width: 680px) {
+  .supplier-workspace { gap: 18px; }
+  .supplier-directory__heading, .supplier-material-workspace__heading { align-items: flex-start; }
+  .supplier-directory__create, .supplier-material-workspace__heading > .ant-btn { width: 100%; }
+  .supplier-directory__filters, .supplier-material-workspace__filters { align-items: stretch; flex-direction: column; }
+  .supplier-directory__filters > *, .supplier-material-workspace__filters > * { width: 100% !important; }
+  .supplier-workspace__tabs .ant-tabs-tab { padding-inline: 12px; }
+}

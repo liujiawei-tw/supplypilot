@@ -128,13 +128,13 @@ export default function ReceivingDetailPage() {
   const allChecksPassed = receivingInspection.allItemsReceived && receivingInspection.allQuantitiesConfirmed && receivingInspection.allQualityAccepted;
   const progressText = po.orderedProgress ? displayLabel(po.orderedProgress) : '尚未開始驗收';
 
-  return <section className="receiving-detail">
+  return <section className="receiving-detail sp-page">
     {contextHolder}
-    <header className="receiving-detail__heading">
+    <header className="receiving-detail__heading sp-page__heading">
       <div>
         <Link className="receiving-detail__back" to="/receiving/purchase-orders">← 返回收貨作業</Link>
         <Typography.Title level={2} className="receiving-detail__title">{po.poNumber}</Typography.Title>
-        <p className="receiving-detail__supplier">{po.supplierCode} · {po.supplierName}</p>
+        <p className="receiving-detail__supplier sp-page__lead">{po.supplierCode} · {po.supplierName}</p>
       </div>
       <div className="receiving-detail__header-actions">
         {canViewTransactions && <Link className="receiving-detail__transaction-link" to={`/inventory?tab=stock-transactions&purchaseOrderId=${po.id}`}>查看庫存異動</Link>}
@@ -155,14 +155,14 @@ export default function ReceivingDetailPage() {
     {verificationError && <ErrorState title="收貨狀態查核失敗" error={verificationError} onRetry={() => void verifyReceivingStatus()} retryText="重新查核" />}
     {receiveError && <ErrorState title={verificationRequired ? '收貨結果待查核' : '收貨操作失敗'} error={receiveError} operation="mutation" />}
 
-    <section className="receiving-detail__facts" aria-label="採購單交接資訊">
+    <section className="receiving-detail__facts sp-section" aria-label="採購單交接資訊">
       <div><span>預計交期</span><strong>{po.expectedDeliveryDate ?? '未設定'}</strong>{po.status === 'ORDERED' && po.isOverdue && <Tag color="error">已逾期</Tag>}</div>
       <div><span>下單時間</span><strong>{formatTimestamp(po.orderedAt)}</strong></div>
       {po.status === 'RECEIVED' && <div><span>收貨完成時間</span><strong>{formatTimestamp(po.receivedAt)}</strong></div>}
       {po.status === 'RECEIVED' && <div><span>收貨經手人</span><strong>{po.receivedByDisplayName || '未提供'}</strong></div>}
     </section>
 
-    {po.status === 'ORDERED' && po.orderedProgress !== 'RECEIVING_INSPECTION' && <section className="receiving-detail__start">
+    {po.status === 'ORDERED' && po.orderedProgress !== 'RECEIVING_INSPECTION' && <section className="receiving-detail__start sp-section">
       <div>
         <Typography.Title level={3} className="receiving-detail__section-title">尚未進入到貨驗收</Typography.Title>
         <p>開始驗收只會記錄作業階段；確認全部品項到貨、數量及品質後，才可一次完成整筆收貨。</p>
@@ -175,8 +175,8 @@ export default function ReceivingDetailPage() {
         : <span className="receiving-detail__role-note">由管理員開始到貨驗收</span>}
     </section>}
 
-    {po.status === 'ORDERED' && po.orderedProgress === 'RECEIVING_INSPECTION' && <section className="receiving-detail__section" aria-labelledby="receiving-checks-title">
-      <div className="receiving-detail__section-heading">
+    {po.status === 'ORDERED' && po.orderedProgress === 'RECEIVING_INSPECTION' && <section className="receiving-detail__section sp-section" aria-labelledby="receiving-checks-title">
+      <div className="receiving-detail__section-heading sp-section__heading">
         <div>
           <Typography.Title level={3} id="receiving-checks-title" className="receiving-detail__section-title">驗收交接</Typography.Title>
           <p>三項檢查全部通過後，才會開放整筆收貨。</p>
@@ -218,13 +218,13 @@ export default function ReceivingDetailPage() {
       </div>
     </section>}
 
-    {po.status === 'RECEIVED' && <section className="receiving-detail__completed" aria-live="polite">
+    {po.status === 'RECEIVED' && <section className="receiving-detail__completed sp-section" aria-live="polite">
       <Typography.Title level={3} className="receiving-detail__section-title">整筆收貨已完成</Typography.Title>
       <p>此採購單已完成收貨，品項與數量如下。庫存異動可由上方授權連結查閱。</p>
     </section>}
 
-    <section className="receiving-detail__section" aria-labelledby="receiving-items-title">
-      <div className="receiving-detail__section-heading">
+    <section className="receiving-detail__section sp-section" aria-labelledby="receiving-items-title">
+      <div className="receiving-detail__section-heading sp-section__heading">
         <div>
           <Typography.Title level={3} id="receiving-items-title" className="receiving-detail__section-title">收貨品項</Typography.Title>
           <p>核對每項品名、物料編號與應收數量。</p>

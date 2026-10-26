@@ -1,0 +1,15 @@
+
+> frontend@0.0.0 test
+> vitest run tests/sp805.test.tsx -t shows both delivery dates --maxWorkers=1
+
+
+ RUN  v4.1.11 C:/Users/z0976/.codex/worktrees/procurement-tool-ux-redesign/supplypilot/frontend
+
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+
+ Test Files  1 passed (1)
+      Tests  1 passed | 17 skipped (18)
+   Start at  00:21:47
+   Duration  12.52s (transform 1.77s, setup 325ms, import 7.66s, tests 3.10s, environment 1.16s)
+

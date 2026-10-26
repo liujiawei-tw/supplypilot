@@ -19,3 +19,14 @@
 - 本機 Vite 預覽可渲染 `/login`。目前 `127.0.0.1:8080` 沒有可用後端，且沒有登入憑證，因此沒有進入需授權的採購／收貨頁，也沒有以假資料冒充瀏覽器 E2E。
 - 已登入主要流程、手機尺寸、鍵盤操作及 200% 縮放：`NOT RUN`。真實 Gemini／RAG／部署 E2E：`NOT RUN`。
 - 專案使用者指示 Actions 暫停期間不作 Gate；未查詢或依賴 GitHub Actions。
+
+## 2026-10-27：滿版登入與 Compose 預覽補驗
+
+- `npm run lint`：Exit Code 0；保留 6 個 Oxlint 警告（1 個 route fast-refresh、5 個 set-state-in-effect），原始輸出見 [lint-final2.log](../../../.impeccable/validation/lint-final2.log)。
+- `VITE_API_BASE_URL=/api/v1 npm run build`：Exit Code 0，轉譯 3,278 個模組；JS bundle 1,609.72 kB（gzip 501.78 kB），有超過 500 kB 的 Vite 建議警告。相同環境變數下結果與 Docker frontend image build 一致。原始輸出：[build-with-docker-env.log](../../../.impeccable/validation/build-with-docker-env.log)。
+- 主題與路由精準測試：登入／授權 `tests/auth.test.tsx` 27/27、歷史採購建議 `tests/recommendation.test.tsx` 25/25，合併 2 檔 52/52 通過；輸出：[auth-recommendation-final.log](../../../.impeccable/validation/auth-recommendation-final.log)。
+- 八個受影響 Vitest 檔案合併執行時 109/113 通過，4 項因測試逾時而 Exit Code 1；沒有將該批結果標成 PASS。4 個逾時案例各自單獨重跑皆通過：SP-805 交期 1/1、SP-806 AI 503 1/1、多品項提案與未知結果 2/2、供應商失敗表單 1/1。原始批次與精準重跑分別保留於 `.impeccable/validation/affected-ui-suites.log`、`focused-sp805-date.log`、`focused-sp806-503.log`、`focused-sp806-proposal.log`、`focused-masterdata-supplier.log`。
+- 先前完整前端套件結果仍為 FAIL（34 檔中 10 檔失敗；301 項中 50 項失敗），見 [vitest-final.log](../../../.impeccable/validation/vitest-final.log)。本次沒有再次宣稱完整 Vitest 全綠；其後修復的文案契約及最後主題 token 已用上述精準測試驗證。
+- Docker Compose 專案 `supplypilot-ux-preview` 已以最新 frontend image 重建並啟動。Frontend、Backend、MySQL、pgvector 健康檢查皆為 `healthy`；前端網址 `http://127.0.0.1:8081/login`。
+- 瀏覽器滿版檢查：桌機 1280×720 的 document 高度 720；手機 390×844、390×667、320×568 各自 document 寬高都等於 viewport。登入區塊完整位於畫面內，320×568 的表單底部為 y=565，沒有水平或垂直捲動。短暫 viewport override 已重設為桌機尺寸。
+- 登入畫面為真實 Compose Browser 畫面；沒有提交登入表單。真實 Gemini／RAG／AWS E2E、已登入採購工作流程與 200% 縮放：`NOT RUN`。GitHub Actions 仍 `PAUSED BY USER / NOT USED AS GATE`。

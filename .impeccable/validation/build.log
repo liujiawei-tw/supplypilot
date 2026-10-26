@@ -1,0 +1,9 @@
+
+> frontend@0.0.0 build
+> tsc -b && vite build
+
+src/pages/Demands/DemandsPage.tsx(230,58): error TS2657: JSX expressions must have one parent element.
+src/pages/Demands/DemandsPage.tsx(234,7): error TS1381: Unexpected token. Did you mean `{'}'}` or `&rbrace;`?
+src/pages/Demands/DemandsPage.tsx(259,3): error TS1005: '}' expected.
+src/pages/InventoryImport/InventoryImportPage.tsx(281,1): error TS1005: '}' expected.
+src/pages/PurchaseOrders/PurchaseOrderDetailPage.tsx(278,1): error TS1005: '}' expected.

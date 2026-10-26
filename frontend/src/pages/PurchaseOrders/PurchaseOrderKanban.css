@@ -20,7 +20,7 @@
 }
 
 .purchase-order-kanban__columns:focus-visible {
-  outline: 2px solid #1677ff;
+  outline: 2px solid var(--sp-focus);
   outline-offset: 2px;
 }
 
@@ -35,9 +35,9 @@
 }
 
 .purchase-order-kanban__column--drop-target {
-  border-color: #1677ff;
-  background: #e6f4ff;
-  box-shadow: inset 0 0 0 1px #1677ff;
+  border-color: var(--sp-primary);
+  background: #e8f4f2;
+  box-shadow: inset 0 0 0 1px var(--sp-primary);
 }
 
 .purchase-order-kanban__column-heading {
@@ -116,7 +116,7 @@
   }
 
   .purchase-order-kanban__columns:focus-visible {
-    outline-color: #5279ad;
+    outline-color: var(--sp-focus);
     outline-offset: 3px;
   }
 
@@ -131,8 +131,8 @@
 
   .purchase-order-kanban__column--drop-target {
     border-color: var(--sp-forest);
-    background: #eaf0e9;
-    box-shadow: inset 0 0 0 1px #b5c7bb;
+    background: #e8f4f2;
+    box-shadow: inset 0 0 0 1px var(--sp-primary);
   }
 
   .purchase-order-kanban__column-heading {
@@ -323,13 +323,13 @@
   }
 
   .purchase-order-kanban__transition-action.ant-btn:hover:not(:disabled) {
-    border-color: #78988a;
-    background: #e5eee6;
-    color: #1e4032;
+    border-color: var(--sp-primary-hover);
+    background: #e8f4f2;
+    color: var(--sp-primary-hover);
   }
 
   .purchase-order-kanban__transition-action.ant-btn:focus-visible {
-    outline: 3px solid rgb(36 85 143 / 26%);
+    outline: 3px solid var(--sp-focus);
     outline-offset: 2px;
   }
 

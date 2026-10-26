@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Button, Typography } from 'antd';
-import { LogoutOutlined, RobotOutlined, SearchOutlined } from '@ant-design/icons';
+import { FileSearchOutlined, LogoutOutlined, SearchOutlined } from '@ant-design/icons';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import './AppLayout.css';
 import { useAuth } from '../auth/useAuth';
@@ -68,7 +68,7 @@ export const AppLayout: React.FC = () => {
       <header className="app-header">
         <div className="app-header__topline">
           <Link className="app-brand" to="/" aria-label="SupplyPilot 採購工作區">
-            <span className="app-brand__mark" aria-hidden="true"><i /><i /><i /></span>
+            <img className="app-brand__mark" src="/favicon.svg" alt="" aria-hidden="true" width={40} height={40} />
             <span className="app-brand__wordmark">
               <strong>SupplyPilot</strong>
               <span>採購工作台</span>
@@ -99,7 +99,7 @@ export const AppLayout: React.FC = () => {
               <Text className="app-account__role">{roleLabels[user.role]}</Text>
             </div>
             {canQueryAi && !mustChangePassword && (
-              <Button className="app-ai-button" icon={<RobotOutlined aria-hidden="true" />} onClick={() => setAiOpen(true)}>
+              <Button className="app-ai-button" icon={<FileSearchOutlined aria-hidden="true" />} onClick={() => setAiOpen(true)}>
                 AI 查詢
               </Button>
             )}

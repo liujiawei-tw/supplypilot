@@ -27,7 +27,7 @@
 .app-header {
   position: relative;
   z-index: 20;
-  background: var(--sp-paper);
+  background: var(--sp-shell);
   border-bottom: 1px solid var(--sp-line);
 }
 
@@ -51,42 +51,24 @@
   align-items: center;
   gap: 12px;
   width: max-content;
-  color: var(--sp-ink);
+  color: #f8fafc;
   text-decoration: none;
 }
 
 .app-brand:hover {
-  color: var(--sp-forest);
+  color: #b7e5dd;
 }
 
 .app-brand__mark {
-  display: grid;
-  align-content: center;
-  gap: 3px;
-  width: 34px;
-  height: 34px;
-  padding: 7px 6px;
-  border: 1px solid var(--sp-forest);
-  border-radius: 4px;
-  background: var(--sp-forest);
-}
-
-.app-brand__mark i {
   display: block;
-  height: 2px;
-  background: var(--sp-paper);
-}
-
-.app-brand__mark i:first-child {
-  width: 100%;
-}
-
-.app-brand__mark i:nth-child(2) {
-  width: 72%;
-}
-
-.app-brand__mark i:last-child {
-  width: 46%;
+  flex: 0 0 auto;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 0;
+  border-radius: 11px;
+  background: none;
+  object-fit: cover;
 }
 
 .app-brand__wordmark {
@@ -96,12 +78,13 @@
 }
 
 .app-brand__wordmark strong {
+  color: #f8fafc;
   font-size: 17px;
   letter-spacing: -0.02em;
 }
 
 .app-brand__wordmark span {
-  color: var(--sp-muted);
+  color: #bfd0df;
   font-size: 12px;
   font-weight: 600;
   letter-spacing: 0.04em;
@@ -151,7 +134,7 @@
 }
 
 .app-finder-hint {
-  color: var(--sp-muted);
+  color: #bfd0df;
   font-size: 12px;
   line-height: 1.5;
 }
@@ -175,7 +158,7 @@
 
 .app-account__name.ant-typography {
   overflow: hidden;
-  color: var(--sp-ink);
+  color: #f8fafc;
   font-size: 13px;
   font-weight: 700;
   text-overflow: ellipsis;
@@ -184,7 +167,7 @@
 
 .app-account__role.ant-typography {
   overflow: hidden;
-  color: var(--sp-muted);
+  color: #bfd0df;
   font-size: 12px;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -194,36 +177,37 @@
 .app-header .app-logout-button.ant-btn {
   min-height: 42px;
   padding-inline: 12px;
-  border-radius: 4px;
+  border-radius: var(--sp-radius-sm);
   box-shadow: none;
 }
 
 .app-header .app-ai-button.ant-btn {
-  border-color: var(--sp-line);
-  background: var(--sp-paper);
-  color: var(--sp-forest);
+  border-color: #52718c;
+  background: #203e59;
+  color: #eff8ff;
 }
 
 .app-header .app-ai-button.ant-btn:hover {
-  border-color: var(--sp-forest);
-  background: var(--sp-paper);
-  color: var(--sp-forest);
+  border-color: #83b7b1;
+  background: #294b68;
+  color: #ffffff;
 }
 
 .app-header .app-logout-button.ant-btn {
   border-color: transparent;
   background: transparent;
-  color: var(--sp-muted);
+  color: #d1dce7;
 }
 
 .app-header .app-logout-button.ant-btn:hover {
-  border-color: var(--sp-line);
-  background: var(--sp-workspace);
-  color: var(--sp-ink);
+  border-color: #52718c;
+  background: #203e59;
+  color: #ffffff;
 }
 
 .app-nav {
-  border-top: 1px solid color-mix(in srgb, var(--sp-line) 72%, transparent);
+  border-top: 1px solid #294057;
+  background: var(--sp-surface);
 }
 
 .app-nav__inner {
@@ -266,7 +250,7 @@
   bottom: -1px;
   left: 12px;
   height: 3px;
-  background: var(--sp-forest);
+  background: var(--sp-primary);
   content: '';
 }
 
@@ -274,8 +258,8 @@
   width: min(100%, var(--app-header-width));
   margin: 0 auto;
   padding: 11px clamp(16px, 3vw, 42px);
-  border-top: 1px solid var(--sp-line);
-  color: var(--sp-ink);
+  border-top: 1px solid #294057;
+  color: #edf4fa;
   font-size: 13px;
   font-weight: 600;
 }
@@ -313,15 +297,15 @@
 }
 
 .app-layout .ant-btn-primary {
-  border-color: var(--sp-forest);
-  background: var(--sp-forest);
-  color: var(--sp-paper);
+  border-color: var(--sp-primary);
+  background: var(--sp-primary);
+  color: #ffffff;
 }
 
 .app-layout .ant-btn-primary:hover {
-  border-color: #1e4032;
-  background: #1e4032;
-  color: var(--sp-paper);
+  border-color: var(--sp-primary-hover);
+  background: var(--sp-primary-hover);
+  color: #ffffff;
 }
 
 .app-layout .ant-tag {
@@ -330,17 +314,17 @@
 }
 
 .app-layout .ant-table-thead > tr > th {
-  background: var(--sp-workspace);
+  background: var(--sp-surface-muted);
   color: var(--sp-ink);
   font-weight: 700;
 }
 
 .app-layout .ant-table-tbody > tr > td {
-  background: var(--sp-paper);
+  background: var(--sp-surface);
 }
 
 .app-layout .ant-table-tbody > tr:hover > td {
-  background: #f0eee5 !important;
+  background: #f2f7f8 !important;
 }
 
 @media (max-width: 1080px) {

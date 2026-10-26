@@ -66,8 +66,8 @@ function DocumentLifecycle({ record, showReview = true }: { record: DocumentResp
   const indexState = semanticIndexState(record);
   const reviewState = semanticReviewState(record);
   const review = record.semanticReview;
-  return <div className="document-lifecycle" aria-label={`文件 ${record.id} 的處理、審核及索引狀態`}>
-    <section className="document-lifecycle__state">
+  return <div className="document-lifecycle sp-section" aria-label={`文件 ${record.id} 的處理、審核及索引狀態`}>
+    <section className="document-lifecycle__state" aria-label="檔案處理狀態">
       <Text className="document-lifecycle__label">檔案處理</Text>
       <Tag color={statusColor[record.status]}>{displayLabel(record.status)}</Tag>
       <Text className="document-lifecycle__note">
@@ -77,7 +77,7 @@ function DocumentLifecycle({ record, showReview = true }: { record: DocumentResp
               : '文件已封存，不會作為有效查詢來源。'}
       </Text>
     </section>
-    <section className="document-lifecycle__state">
+    <section className="document-lifecycle__state" aria-label="AI 外送審核狀態">
       <Text className="document-lifecycle__label">AI 外送審核</Text>
       {showReview
         ? <>
@@ -95,7 +95,7 @@ function DocumentLifecycle({ record, showReview = true }: { record: DocumentResp
           <Text className="document-lifecycle__note">外送審核由管理員依現有授權與出站政策處理。</Text>
         </>}
     </section>
-    <section className="document-lifecycle__state">
+    <section className="document-lifecycle__state" aria-label="語意索引發布狀態">
       <Text className="document-lifecycle__label">語意索引發布</Text>
       <Tag color={semanticIndexColor(indexState)}>{displayLabel(indexState)}</Tag>
       <Text className="document-lifecycle__note">
@@ -391,10 +391,10 @@ export default function DocumentsPage() {
   ];
 
   return <>
-    <section className="document-workspace">
+    <section className="document-workspace sp-page">
       <Space orientation="vertical" size="large" style={{ width: '100%' }}>
-      <Space className="document-workspace__heading" style={{ width: '100%', justifyContent: 'space-between' }} wrap>
-        <div><Title className="document-workspace__title" level={2}>文件資料</Title><Text className="document-workspace__intro">查看來源文件，分別確認檔案處理、管理員外送審核與語意索引發布。三者由後端獨立回報，不能互相推定。</Text></div>
+      <Space className="document-workspace__heading sp-page__heading" style={{ width: '100%', justifyContent: 'space-between' }} wrap>
+        <div><Title className="document-workspace__title" level={2}>文件資料</Title><Text className="document-workspace__intro sp-page__lead">查看來源文件，分別確認檔案處理、管理員外送審核與語意索引發布。三者由後端獨立回報，不能互相推定。</Text></div>
         {canUpload && <Button className="document-workspace__upload" type="primary" icon={<UploadOutlined />} disabled={uploadUnknown} onClick={() => { setUploadError(null); setUploadOpen(true); }}>上傳文件</Button>}
       </Space>
       {uploaded && <Alert type="success" showIcon closable onClose={() => setUploaded(null)}
@@ -472,11 +472,11 @@ export default function DocumentsPage() {
       </Form>
     </Modal>
 
-    <Drawer title="文件明細" open={requestedDocumentId !== null} onClose={closeDetail} size="min(720px, 100vw)">
+    <Drawer className="document-detail-drawer" title="文件明細" open={requestedDocumentId !== null} onClose={closeDetail} size="min(720px, 100vw)">
       {detailError && requestedDocumentId !== null && <ErrorState title="文件明細載入失敗" error={detailError} onRetry={loadDetailForRetry} />}
       {(detailLoading || (requestedDocumentId !== null && !selectedMatchesUrl && !detailError)) && <Text>正在載入文件…</Text>}
-      {selected && selectedMatchesUrl && <Space orientation="vertical" size="large" style={{ width: '100%' }}>
-        <div className="document-detail__section">
+      {selected && selectedMatchesUrl && <Space className="document-detail__body" orientation="vertical" size="large" style={{ width: '100%' }}>
+        <div className="document-detail__section sp-section">
           <div className="document-detail__actions">
             <Button type="primary" icon={<EyeOutlined aria-hidden="true" />} onClick={() => setPreviewDocument(selected)}>開啟原文</Button>
             <Button loading={detailLoading} disabled={detailLoading} onClick={() => void refreshDetail()}>重新讀取狀態</Button>
@@ -500,7 +500,7 @@ export default function DocumentsPage() {
           retryText={selectedIngestionUnknown ? '查核真實文件狀態' : '重新取得文件資訊'} />}
         <DocumentLifecycle record={selected} showReview={canManageSemantic} />
         {canManageSemantic && <>
-          <div className="document-detail__section">
+          <div className="document-detail__section sp-section">
             <Title className="document-detail__section-title" level={5}>外送審核紀錄</Title>
             <Text type="secondary">核准只適用於目前的來源版本；來源、標題或版本變更後，舊審核不能沿用。</Text>
             {selected.semanticReview && <Descriptions size="small" column={{ xs: 1, sm: 2 }} items={[

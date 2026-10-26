@@ -1,0 +1,16 @@
+
+> frontend@0.0.0 test
+> vitest run tests/sp806.test.tsx -t isolates AI 503 so navigation stays usable and the drawer can close --maxWorkers=1
+
+
+ RUN  v4.1.11 C:/Users/z0976/.codex/worktrees/procurement-tool-ux-redesign/supplypilot/frontend
+
+Could not parse CSS stylesheet
+Could not parse CSS stylesheet
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+
+ Test Files  1 passed (1)
+      Tests  1 passed | 25 skipped (26)
+   Start at  00:46:38
+   Duration  16.71s (transform 2.19s, setup 380ms, import 9.05s, tests 5.54s, environment 1.33s)
+

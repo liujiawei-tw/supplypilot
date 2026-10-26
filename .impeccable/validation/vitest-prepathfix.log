@@ -1,0 +1,896 @@
+
+> frontend@0.0.0 test
+> vitest run
+
+
+ RUN  v4.1.11 C:/Users/z0976/.codex/worktrees/procurement-tool-ux-redesign/supplypilot/frontend
+
+ ❯ tests/dashboard.test.tsx (0 test)
+ ❯ tests/auth.test.tsx (0 test)
+ ❯ tests/demandInventory.test.tsx (0 test)
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+ ❯ tests/inventoryImport.test.tsx (0 test)
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Could not parse CSS stylesheet
+Could not parse CSS stylesheet
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Could not parse CSS stylesheet
+Could not parse CSS stylesheet
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+ ❯ tests/recommendation.test.tsx (0 test)
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+ ❯ tests/precisionEditRoundTrip.test.tsx (2 tests | 2 failed) 39558ms
+     × keeps SupplierMaterial decimal strings through edit, unrelated field change, and PATCH 36225ms
+     × keeps Material safetyStock exact through read, edit, unrelated field change, and PATCH 3324ms
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+ ❯ tests/sp805.test.tsx (0 test)
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+ ❯ tests/sp806.test.tsx (0 test)
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+ ❯ tests/sp807.test.tsx (0 test)
+ ❯ tests/sp907Documents.test.tsx (0 test)
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+ ❯ tests/issue143PurchaseOrdersPage.test.tsx (7 tests | 3 failed) 129598ms
+     × refreshes the current Kanban from backend after a successful draft create 30566ms
+     × does not refresh the Kanban or report success after a 403 draft-create failure 31114ms
+     × does not refresh the Kanban or report success after a network error draft-create failure 30895ms
+Could not parse CSS stylesheet
+Could not parse CSS stylesheet
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Could not parse CSS stylesheet
+Could not parse CSS stylesheet
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Could not parse CSS stylesheet
+Could not parse CSS stylesheet
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+stderr | tests/semanticOperationsPanel.test.tsx > Semantic admin operations UI > locks unknown timeout or 503 mutations and does not retry until explicit human verification
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+
+stderr | tests/semanticOperationsPanel.test.tsx > Semantic admin operations UI > locks unknown timeout or 503 mutations and does not retry until explicit human verification
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+
+stderr | tests/semanticOperationsPanel.test.tsx > Semantic admin operations UI > locks unknown timeout or 503 mutations and does not retry until explicit human verification
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+
+stderr | tests/semanticOperationsPanel.test.tsx > Semantic admin operations UI > locks unknown timeout or 503 mutations and does not retry until explicit human verification
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+
+stderr | tests/semanticOperationsPanel.test.tsx > Semantic admin operations UI > locks unknown timeout or 503 mutations and does not retry until explicit human verification
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+
+stderr | tests/semanticOperationsPanel.test.tsx > Semantic admin operations UI > locks unknown timeout or 503 mutations and does not retry until explicit human verification
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+
+stderr | tests/semanticOperationsPanel.test.tsx > Semantic admin operations UI > locks unknown timeout or 503 mutations and does not retry until explicit human verification
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+
+stderr | tests/semanticOperationsPanel.test.tsx > Semantic admin operations UI > locks unknown timeout or 503 mutations and does not retry until explicit human verification
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+
+ ❯ tests/semanticOperationsPanel.test.tsx (10 tests | 1 failed) 156735ms
+     × locks unknown timeout or 503 mutations and does not retry until explicit human verification 32062ms
+Could not parse CSS stylesheet
+Could not parse CSS stylesheet
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+ ❯ tests/masterData.test.tsx (14 tests | 7 failed) 283708ms
+
+⎯⎯⎯⎯⎯⎯ Failed Suites 9 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/auth.test.tsx [ tests/auth.test.tsx ]
+ FAIL  tests/dashboard.test.tsx [ tests/dashboard.test.tsx ]
+Error: Failed to resolve import "./AuthScreens.css" from "src/pages/Login/LoginPage.tsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: C:/Users/z0976/.codex/worktrees/procurement-tool-ux-redesign/supplypilot/frontend/src/pages/Login/LoginPage.tsx:10:7
+  8  |  import { isAxiosError } from "axios";
+  9  |  import { PostLoginVerificationError } from "../../auth/authErrors";
+  10 |  import "./AuthScreens.css";
+     |          ^
+  11 |  var _jsxFileName = "C:/Users/z0976/.codex/worktrees/procurement-tool-ux-redesign/supplypilot/frontend/src/pages/Login...
+  12 |  import { jsxDEV as _jsxDEV } from "react/jsx-dev-runtime";
+ ❯ TransformPluginContext._formatLog node_modules/vite/dist/node/chunks/node.js:8766:39
+ ❯ TransformPluginContext.error node_modules/vite/dist/node/chunks/node.js:8763:14
+ ❯ normalizeUrl node_modules/vite/dist/node/chunks/node.js:26632:18
+ ❯ node_modules/vite/dist/node/chunks/node.js:26702:30
+ ❯ TransformPluginContext.transform node_modules/vite/dist/node/chunks/node.js:26668:4
+ ❯ EnvironmentPluginContainer.transform node_modules/vite/dist/node/chunks/node.js:8545:14
+ ❯ loadAndTransform node_modules/vite/dist/node/chunks/node.js:20184:26
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/22]⎯
+
+ FAIL  tests/demandInventory.test.tsx [ tests/demandInventory.test.tsx ]
+ FAIL  tests/inventoryImport.test.tsx [ tests/inventoryImport.test.tsx ]
+ FAIL  tests/recommendation.test.tsx [ tests/recommendation.test.tsx ]
+ FAIL  tests/sp805.test.tsx [ tests/sp805.test.tsx ]
+ FAIL  tests/sp806.test.tsx [ tests/sp806.test.tsx ]
+ FAIL  tests/sp807.test.tsx [ tests/sp807.test.tsx ]
+ FAIL  tests/sp907Documents.test.tsx [ tests/sp907Documents.test.tsx ]
+Error: Failed to resolve import "./AuthScreens.css" from "src/pages/Login/LoginPage.tsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: C:/Users/z0976/.codex/worktrees/procurement-tool-ux-redesign/supplypilot/frontend/src/pages/Login/LoginPage.tsx:10:7
+  8  |  import { isAxiosError } from "axios";
+  9  |  import { PostLoginVerificationError } from "../../auth/authErrors";
+  10 |  import "./AuthScreens.css";
+     |          ^
+  11 |  var _jsxFileName = "C:/Users/z0976/.codex/worktrees/procurement-tool-ux-redesign/supplypilot/frontend/src/pages/Login...
+  12 |  import { jsxDEV as _jsxDEV } from "react/jsx-dev-runtime";
+ ❯ TransformPluginContext._formatLog node_modules/vite/dist/node/chunks/node.js:8766:39
+ ❯ TransformPluginContext.error node_modules/vite/dist/node/chunks/node.js:8763:14
+ ❯ normalizeUrl node_modules/vite/dist/node/chunks/node.js:26632:18
+ ❯ node_modules/vite/dist/node/chunks/node.js:26702:30
+ ❯ TransformPluginContext.transform node_modules/vite/dist/node/chunks/node.js:26668:4
+ ❯ EnvironmentPluginContainer.transform node_modules/vite/dist/node/chunks/node.js:8545:14
+ ❯ loadAndTransform node_modules/vite/dist/node/chunks/node.js:20184:26
+ ❯ fetchModule node_modules/vite/dist/node/chunks/node.js:36165:15
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/22]⎯
+
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 13 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/issue143PurchaseOrdersPage.test.tsx > Issue #143 purchase-order page views > refreshes the current Kanban from backend after a successful draft create
+Error: Test timed out in 30000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+ ❯ tests/issue143PurchaseOrdersPage.test.tsx:330:3
+     × validates Material fields, creates once, then refetches 36794ms
+     × shows backend validation details and does not report a failed status update as success 18775ms
+     × keeps the Material create modal and values after a 409, then refetches only after retry succeeds 40713ms
+     × shows Material edit validation errors inside the modal and keeps edited values 15935ms
+     × edits a Supplier without sending its immutable code and refetches 32228ms
+     × keeps Supplier create and edit values when backend submissions fail 46637ms
+     × creates and edits SupplierMaterial through the UI without PATCHing immutable relationships or currency 62250ms
+    328|   });
+    329|
+    330|   it('refreshes the current Kanban from backend after a successful dra…
+       |   ^
+    331|     backendPurchaseOrders = [otherSupplierPurchaseOrder];
+    332|     renderPage(purchaserAuthValue);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/22]⎯
+
+ FAIL  tests/issue143PurchaseOrdersPage.test.tsx > Issue #143 purchase-order page views > does not refresh the Kanban or report success after a 403 draft-create failure
+ FAIL  tests/issue143PurchaseOrdersPage.test.tsx > Issue #143 purchase-order page views > does not refresh the Kanban or report success after a network error draft-create failure
+Error: Test timed out in 30000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+ ❯ tests/issue143PurchaseOrdersPage.test.tsx:354:14
+    352|     ['403', 'forbidden', '採購單草稿建立失敗'],
+    353|     ['network error', 'network', '建立結果不明，已鎖定再次送出'],
+    354|   ] as const)('does not refresh the Kanban or report success after a %…
+       |              ^
+    355|     purchaseOrderCreateFailure = failure;
+    356|     backendPurchaseOrders = [otherSupplierPurchaseOrder];
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/22]⎯
+
+ FAIL  tests/masterData.test.tsx > master data pages > validates Material fields, creates once, then refetches
+Error: Test timed out in 30000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+ ❯ tests/masterData.test.tsx:77:3
+     75|   });
+     76|
+     77|   it('validates Material fields, creates once, then refetches', async …
+       |   ^
+     78|     const requests: InternalAxiosRequestConfig[] = [];
+     79|     let finishCreate!: () => void;
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/22]⎯
+
+ FAIL  tests/masterData.test.tsx > master data pages > shows backend validation details and does not report a failed status update as success
+Error: Test timed out in 15000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+ ❯ tests/masterData.test.tsx:124:3
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/22]⎯
+
+ FAIL  tests/masterData.test.tsx > master data pages > keeps the Material create modal and values after a 409, then refetches only after retry succeeds
+Error: Test timed out in 40000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+ ❯ tests/masterData.test.tsx:141:3
+    139|   }, 15_000);
+    140|
+    141|   it('keeps the Material create modal and values after a 409, then ref…
+       |   ^
+    142|     const requests: InternalAxiosRequestConfig[] = [];
+    143|     let createAttempts = 0;
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/22]⎯
+
+ FAIL  tests/masterData.test.tsx > master data pages > shows Material edit validation errors inside the modal and keeps edited values
+Error: Test timed out in 15000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+ ❯ tests/masterData.test.tsx:182:3
+    180|   }, 40_000);
+    181|
+    182|   it('shows Material edit validation errors inside the modal and keeps…
+       |   ^
+    183|     axiosClient.defaults.adapter = vi.fn(async (config) => {
+    184|       if (config.method === 'patch') throw new AxiosError('Validation'…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/22]⎯
+
+ FAIL  tests/masterData.test.tsx > master data pages > edits a Supplier without sending its immutable code and refetches
+Error: Test timed out in 20000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+ ❯ tests/masterData.test.tsx:223:3
+    221|   });
+    222|
+    223|   it('edits a Supplier without sending its immutable code and refetche…
+       |   ^
+    224|     const requests: InternalAxiosRequestConfig[] = [];
+    225|     axiosClient.defaults.adapter = vi.fn(async (config) => {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/22]⎯
+
+ FAIL  tests/masterData.test.tsx > master data pages > keeps Supplier create and edit values when backend submissions fail
+Error: Test timed out in 40000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+ ❯ tests/masterData.test.tsx:244:3
+    242|   }, 20_000);
+    243|
+    244|   it('keeps Supplier create and edit values when backend submissions f…
+       |   ^
+    245|     const requests: InternalAxiosRequestConfig[] = [];
+    246|     axiosClient.defaults.adapter = vi.fn(async (config) => {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/22]⎯
+
+ FAIL  tests/masterData.test.tsx > master data pages > creates and edits SupplierMaterial through the UI without PATCHing immutable relationships or currency
+Error: Test timed out in 60000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+ ❯ tests/masterData.test.tsx:283:3
+    281|   }, 40_000);
+    282|
+    283|   it('creates and edits SupplierMaterial through the UI without PATCHi…
+       |   ^
+    284|     const requests: InternalAxiosRequestConfig[] = [];
+    285|     const decimalPayload = { unitPrice: '999999999999999.1234', moq: '…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/22]⎯
+
+ FAIL  tests/precisionEditRoundTrip.test.tsx > BigDecimal edit round trips > keeps SupplierMaterial decimal strings through edit, unrelated field change, and PATCH
+Error: Test timed out in 30000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+ ❯ tests/precisionEditRoundTrip.test.tsx:28:3
+     26|
+     27| describe('BigDecimal edit round trips', () => {
+     28|   it('keeps SupplierMaterial decimal strings through edit, unrelated f…
+       |   ^
+     29|     let patchBody = '';
+     30|     const observedRequests: string[] = [];
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[12/22]⎯
+
+ FAIL  tests/precisionEditRoundTrip.test.tsx > BigDecimal edit round trips > keeps Material safetyStock exact through read, edit, unrelated field change, and PATCH
+TestingLibraryElementError: Unable to find an element with the text: 999,999,999,999,999.1234 KG. This could be because the text is broken up by multiple elements. In this case, you can provide a function for your text matcher to make your matcher more flexible.
+
+Ignored nodes: comments, script, style
+<body>
+  <div>
+    <section
+      aria-labelledby="materials-page-title"
+      class="sp-page materials-workspace"
+    >
+      <header
+        class="materials-workspace__heading sp-page__heading"
+      >
+        <div>
+          <h2
+            class="ant-typography css-dev-only-do-not-override-oc1rc0 css-var-root"
+            id="materials-page-title"
+          >
+            物料目錄
+          </h2>
+          <span
+            class="ant-typography materials-workspace__intro sp-page__lead css-dev-only-do-not-override-oc1rc0 css-var-root"
+          >
+            查找物料代碼、名稱與基本單位；安全庫存以主檔欄位呈現。
+          </span>
+        </div>
+        <button
+          class="ant-btn css-dev-only-do-not-override-oc1rc0 css-var-root ant-btn-primary ant-btn-color-primary ant-btn-variant-solid materials-workspace__create"
+          type="button"
+        >
+          <span
+            class="ant-btn-icon"
+          >
+            <span
+              aria-label="plus"
+              class="anticon anticon-plus"
+              role="img"
+            >
+              <svg
+                aria-hidden="true"
+                data-icon="plus"
+                fill="currentColor"
+                focusable="false"
+                height="1em"
+                viewBox="64 64 896 896"
+                width="1em"
+              >
+                <path
+                  d="M482 152h60q8 0 8 8v704q0 8-8 8h-60q-8 0-8-8V160q0-8 8-8z"
+                />
+                <path
+                  d="M192 474h672q8 0 8 8v60q0 8-8 8H160q-8 0-8-8v-60q0-8 8-8z"
+                />
+              </svg>
+            </span>
+          </span>
+          <span>
+            新增物料
+          </span>
+        </button>
+      </header>
+      <div
+        class="ant-space css-dev-only-do-not-override-oc1rc0 ant-space-vertical ant-space-gap-row-middle ant-space-gap-col-middle materials-workspace__body css-var-root"
+        style="width: 100%;"
+      >
+        <div
+          class="ant-space-item"
+        >
+          <div
+            aria-label="物料篩選"
+            class="materials-workspace__filters"
+            role="search"
+          >
+            <span
+              class="ant-input-affix-wrapper css-dev-only-do-not-override-oc1rc0 ant-input-outlined css-var-root ant-input-css-var"
+              style="min-height: 44px;"
+            >
+              <input
+                aria-label="物料代碼篩選"
+                class="ant-input css-dev-only-do-not-override-oc1rc0"
+                placeholder="物料代碼"
+                type="text"
+                value=""
+              />
+              <span
+                class="ant-input-suffix"
+              >
+                <button
+                  class="ant-input-clear-icon ant-input-clear-icon-hidden"
+                  type="button"
+                >
+                  <span
+                    aria-label="close-circle"
+                    class="anticon anticon-close-circle"
+                    role="img"
+                  >
+                    <svg
+                      aria-hidden="true"
+                      data-icon="close-circle"
+                      fill="currentColor"
+                      fill-rule="evenodd"
+                      focusable="false"
+                      height="1em"
+                      viewBox="64 64 896 896"
+                      width="1em"
+                    >
+                      <path
+                        d="M512 64c247.4 0 448 200.6 448 448S759.4 960 512 960 64 759.4 64 512 264.6 64 512 64zm127.98 274.82h-.04l-.08.06L512 466.75 384.14 338.88c-.04-.05-.06-.06-.08-.06a.12.12 0 00-.07 0c-.03 0-.05.01-.09.05l-45.02 45.02a.2.2 0 00-.05.09.12.12 0 000 .07v.02a.27.27 0 00.06.06L466.75 512 338.88 639.86c-.05.04-.06.06-.06.08a.12.12 0 000 .07c0 .03.01.05.05.09l45.02 45.02a.2.2 0 00.09.05.12.12 0 00.07 0c.02 0 .04-.01.08-.05L512 557.25l127.86 127.87c.04.04.06.05.08.05a.12.12 0 00.07 0c.03 0 .05-.01.09-.05l45.02-45.02a.2.2 0 00.05-.09.12.12 0 000-.07v-.02a.27.27 0 00-.05-.06L557.25 512l127.87-127.86c.04-.04.05-.06.05-.08a.12.12 0 000-.07c0-.03-.01-.05-.05-.09l-45.02-45.02a.2.2 0 00-.09-.05.12.12 0 00-.07 0z"
+                      />
+                    </svg>
+                  </span>
+                </button>
+              </span>
+            </span>
+            <span
+              class="ant-input-affix-wrapper css-dev-only-do-not-override-oc1rc0 ant-input-outlined css-var-root ant-input-css-var"
+              style="min-height: 44px;"
+            >
+              <input
+                aria-label="物料名稱篩選"
+                class="ant-input css-dev-only-do-not-override-oc1rc0"
+                placeholder="物料名稱"
+                type="text"
+                value=""
+              />
+              <span
+                class="ant-input-suffix"
+              >
+                <button
+                  class="ant-input-clear-icon ant-input-clear-icon-hidden"
+                  type="button"
+                >
+                  <span
+                    aria-label="close-circle"
+                    class="anticon anticon-close-circle"
+                    role="img"
+                  >
+                    <svg
+                      aria-hidden="true"
+                      data-icon="close-circle"
+                      fill="currentColor"
+                      fill-rule="evenodd"
+                      focusable="false"
+                      height="1em"
+                      viewBox="64 64 896 896"
+                      width="1em"
+                    >
+                      <path
+                        d="M512 64c247.4 0 448 200.6 448 448S759.4 960 512 960 64 759.4 64 512 264.6 64 512 64zm127.98 274.82h-.04l-.08.06L512 466.75 384.14 338.88c-.04-.05-.06-.06-.08-.06a.12.12 0 00-.07 0c-.03 0-.05.01-.09.05l-45.02 45.02a.2.2 0 00-.05.09.12.12 0 000 .07v.02a.27.27 0 00.06.06L466.75 512 338.88 639.86c-.05.04-.06.06-.06.08a.12.12 0 000 .07c0 .03.01.05.05.09l45.02 45.02a.2.2 0 00.09.05.12.12 0 00.07 0c.02 0 .04-.01.08-.05L512 557.25l127.86 127.87c.04.04.06.05.08.05a.12.12 0 00.07 0c.03 0 .05-.01.09-.05l45.02-45.02a.2.2 0 00.05-.09.12.12 0 000-.07v-.02a.27.27 0 00-.05-.06L557.25 512l127.87-127.86c.04-.04.05-.06.05-.08a.12.12 0 000-.07c0-.03-.01-.05-.05-.09l-45.02-45.02a.2.2 0 00-.09-.05.12.12 0 00-.07 0z"
+                      />
+                    </svg>
+                  </span>
+                </button>
+              </span>
+            </span>
+            <div
+              class="ant-select ant-select-outlined css-var-root ant-select-css-var css-dev-only-do-not-override-oc1rc0 ant-select-single ant-select-show-arrow"
+              style="width: 150px; min-height: 44px;"
+            >
+              <div
+                class="ant-select-content"
+              >
+                <div
+                  class="ant-select-placeholder"
+                >
+                  狀態
+                </div>
+                <input
+                  aria-autocomplete="list"
+                  aria-expanded="false"
+                  aria-haspopup="listbox"
+                  aria-label="物料狀態篩選"
+                  autocomplete="new-password"
+                  class="ant-select-input"
+                  id="test-id"
+                  readonly=""
+                  role="combobox"
+                  type="text"
+                  value=""
+                />
+              </div>
+              <div
+                class="ant-select-suffix"
+              >
+                <span
+                  aria-label="down"
+                  class="anticon anticon-down"
+                  role="img"
+                >
+                  <svg
+                    aria-hidden="true"
+                    data-icon="down"
+                    fill="currentColor"
+                    focusable="false"
+                    height="1em"
+                    viewBox="64 64 896 896"
+                    width="1em"
+                  >
+                    <path
+                      d="M884 256h-75c-5.1 0-9.9 2.5-12.9 6.6L512 654.2 227.9 262.6c-3-4.1-7.8-6.6-12.9-6.6h-75c-6.5 0-10.3 7.4-6.5 12.7l352.6 486.1c12.8 17.6 39 17.6 51.7 0l352.6-486.1c3.9-5.3.1-12.7-6.4-12.7z"
+                    />
+                  </svg>
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div
+          class="ant-space-item"
+        >
+          <div
+            aria-live="polite"
+            class="sp-loading-state"
+            data-testid="loading-spin"
+            role="status"
+          >
+            <div
+              aria-busy="true"
+              aria-live="polite"
+              class="ant-spin ant-spin-lg ant-spin-spinning css-dev-only-do-not-override-oc1rc0 css-var-root"
+            >
+              <div
+                class="ant-spin-section"
+              >
+                <span
+                  class="ant-spin-dot-holder"
+                >
+                  <span
+                    class="ant-spin-dot ant-spin-dot-spin"
+                  >
+                    <i
+                      class="ant-spin-dot-item"
+                    />
+                    <i
+                      class="ant-spin-dot-item"
+                    />
+                    <i
+                      class="ant-spin-dot-item"
+                    />
+                    <i
+                      class="ant-spin-dot-item"
+                    />
+                  </span>
+                </span>
+                <div
+                  class="ant-spin-description"
+                >
+                  正在載入物料…
+                </div>
+              </div>
+              <div
+                class="ant-spin-container"
+              >
+                <div
+                  style="padding: 24px;"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+</body>
+
+Ignored nodes: comments, script, style
+<body>
+  <div>
+    <section
+      aria-labelledby="materials-page-title"
+      class="sp-page materials-workspace"
+    >
+      <header
+        class="materials-workspace__heading sp-page__heading"
+      >
+        <div>
+          <h2
+            class="ant-typography css-dev-only-do-not-override-oc1rc0 css-var-root"
+            id="materials-page-title"
+          >
+            物料目錄
+          </h2>
+          <span
+            class="ant-typography materials-workspace__intro sp-page__lead css-dev-only-do-not-override-oc1rc0 css-var-root"
+          >
+            查找物料代碼、名稱與基本單位；安全庫存以主檔欄位呈現。
+          </span>
+        </div>
+        <button
+          class="ant-btn css-dev-only-do-not-override-oc1rc0 css-var-root ant-btn-primary ant-btn-color-primary ant-btn-variant-solid materials-workspace__create"
+          type="button"
+        >
+          <span
+            class="ant-btn-icon"
+          >
+            <span
+              aria-label="plus"
+              class="anticon anticon-plus"
+              role="img"
+            >
+              <svg
+                aria-hidden="true"
+                data-icon="plus"
+                fill="currentColor"
+                focusable="false"
+                height="1em"
+                viewBox="64 64 896 896"
+                width="1em"
+              >
+                <path
+                  d="M482 152h60q8 0 8 8v704q0 8-8 8h-60q-8 0-8-8V160q0-8 8-8z"
+                />
+                <path
+                  d="M192 474h672q8 0 8 8v60q0 8-8 8H160q-8 0-8-8v-60q0-8 8-8z"
+                />
+              </svg>
+            </span>
+          </span>
+          <span>
+            新增物料
+          </span>
+        </button>
+      </header>
+      <div
+        class="ant-space css-dev-only-do-not-override-oc1rc0 ant-space-vertical ant-space-gap-row-middle ant-space-gap-col-middle materials-workspace__body css-var-root"
+        style="width: 100%;"
+      >
+        <div
+          class="ant-space-item"
+        >
+          <div
+            aria-label="物料篩選"
+            class="materials-workspace__filters"
+            role="search"
+          >
+            <span
+              class="ant-input-affix-wrapper css-dev-only-do-not-override-oc1rc0 ant-input-outlined css-var-root ant-input-css-var"
+              style="min-height: 44px;"
+            >
+              <input
+                aria-label="物料代碼篩選"
+                class="ant-input css-dev-only-do-not-override-oc1rc0"
+                placeholder="物料代碼"
+                type="text"
+                value=""
+              />
+              <span
+                class="ant-input-suffix"
+              >
+                <button
+                  class="ant-input-clear-icon ant-input-clear-icon-hidden"
+                  type="button"
+                >
+                  <span
+                    aria-label="close-circle"
+                    class="anticon anticon-close-circle"
+                    role="img"
+                  >
+                    <svg
+                      aria-hidden="true"
+                      data-icon="close-circle"
+                      fill="currentColor"
+                      fill-rule="evenodd"
+                      focusable="false"
+                      height="1em"
+                      viewBox="64 64 896 896"
+                      width="1em"
+                    >
+                      <path
+                        d="M512 64c247.4 0 448 200.6 448 448S759.4 960 512 960 64 759.4 64 512 264.6 64 512 64zm127.98 274.82h-.04l-.08.06L512 466.75 384.14 338.88c-.04-.05-.06-.06-.08-.06a.12.12 0 00-.07 0c-.03 0-.05.01-.09.05l-45.02 45.02a.2.2 0 00-.05.09.12.12 0 000 .07v.02a.27.27 0 00.06.06L466.75 512 338.88 639.86c-.05.04-.06.06-.06.08a.12.12 0 000 .07c0 .03.01.05.05.09l45.02 45.02a.2.2 0 00.09.05.12.12 0 00.07 0c.02 0 .04-.01.08-.05L512 557.25l127.86 127.87c.04.04.06.05.08.05a.12.12 0 00.07 0c.03 0 .05-.01.09-.05l45.02-45.02a.2.2 0 00.05-.09.12.12 0 000-.07v-.02a.27.27 0 00-.05-.06L557.25 512l127.87-127.86c.04-.04.05-.06.05-.08a.12.12 0 000-.07c0-.03-.01-.05-.05-.09l-45.02-45.02a.2.2 0 00-.09-.05.12.12 0 00-.07 0z"
+                      />
+                    </svg>
+                  </span>
+                </button>
+              </span>
+            </span>
+            <span
+              class="ant-input-affix-wrapper css-dev-only-do-not-override-oc1rc0 ant-input-outlined css-var-root ant-input-css-var"
+              style="min-height: 44px;"
+            >
+              <input
+                aria-label="物料名稱篩選"
+                class="ant-input css-dev-only-do-not-override-oc1rc0"
+                placeholder="物料名稱"
+                type="text"
+                value=""
+              />
+              <span
+                class="ant-input-suffix"
+              >
+                <button
+                  class="ant-input-clear-icon ant-input-clear-icon-hidden"
+                  type="button"
+                >
+                  <span
+                    aria-label="close-circle"
+                    class="anticon anticon-close-circle"
+                    role="img"
+                  >
+                    <svg
+                      aria-hidden="true"
+                      data-icon="close-circle"
+                      fill="currentColor"
+                      fill-rule="evenodd"
+                      focusable="false"
+                      height="1em"
+                      viewBox="64 64 896 896"
+                      width="1em"
+                    >
+                      <path
+                        d="M512 64c247.4 0 448 200.6 448 448S759.4 960 512 960 64 759.4 64 512 264.6 64 512 64zm127.98 274.82h-.04l-.08.06L512 466.75 384.14 338.88c-.04-.05-.06-.06-.08-.06a.12.12 0 00-.07 0c-.03 0-.05.01-.09.05l-45.02 45.02a.2.2 0 00-.05.09.12.12 0 000 .07v.02a.27.27 0 00.06.06L466.75 512 338.88 639.86c-.05.04-.06.06-.06.08a.12.12 0 000 .07c0 .03.01.05.05.09l45.02 45.02a.2.2 0 00.09.05.12.12 0 00.07 0c.02 0 .04-.01.08-.05L512 557.25l127.86 127.87c.04.04.06.05.08.05a.12.12 0 00.07 0c.03 0 .05-.01.09-.05l45.02-45.02a.2.2 0 00.05-.09.12.12 0 000-.07v-.02a.27.27 0 00-.05-.06L557.25 512l127.87-127.86c.04-.04.05-.06.05-.08a.12.12 0 000-.07c0-.03-.01-.05-.05-.09l-45.02-45.02a.2.2 0 00-.09-.05.12.12 0 00-.07 0z"
+                      />
+                    </svg>
+                  </span>
+                </button>
+              </span>
+            </span>
+            <div
+              class="ant-select ant-select-outlined css-var-root ant-select-css-var css-dev-only-do-not-override-oc1rc0 ant-select-single ant-select-show-arrow"
+              style="width: 150px; min-height: 44px;"
+            >
+              <div
+                class="ant-select-content"
+              >
+                <div
+                  class="ant-select-placeholder"
+                >
+                  狀態
+                </div>
+                <input
+                  aria-autocomplete="list"
+                  aria-expanded="false"
+                  aria-haspopup="listbox"
+                  aria-label="物料狀態篩選"
+                  autocomplete="new-password"
+                  class="ant-select-input"
+                  id="test-id"
+                  readonly=""
+                  role="combobox"
+                  type="text"
+                  value=""
+                />
+              </div>
+              <div
+                class="ant-select-suffix"
+              >
+                <span
+                  aria-label="down"
+                  class="anticon anticon-down"
+                  role="img"
+                >
+                  <svg
+                    aria-hidden="true"
+                    data-icon="down"
+                    fill="currentColor"
+                    focusable="false"
+                    height="1em"
+                    viewBox="64 64 896 896"
+                    width="1em"
+                  >
+                    <path
+                      d="M884 256h-75c-5.1 0-9.9 2.5-12.9 6.6L512 654.2 227.9 262.6c-3-4.1-7.8-6.6-12.9-6.6h-75c-6.5 0-10.3 7.4-6.5 12.7l352.6 486.1c12.8 17.6 39 17.6 51.7 0l352.6-486.1c3.9-5.3.1-12.7-6.4-12.7z"
+                    />
+                  </svg>
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div
+          class="ant-space-item"
+        >
+          <div
+            aria-live="polite"
+            class="sp-loading-state"
+            data-testid="loading-spin"
+            role="status"
+          >
+            <div
+              aria-busy="true"
+              aria-live="polite"
+              class="ant-spin ant-spin-lg ant-spin-spinning css-dev-only-do-not-override-oc1rc0 css-var-root"
+            >
+              <div
+                class="ant-spin-section"
+              >
+                <span
+                  class="ant-spin-dot-holder"
+                >
+                  <span
+                    class="ant-spin-dot ant-spin-dot-spin"
+                  >
+                    <i
+                      class="ant-spin-dot-item"
+                    />
+                    <i
+                      class="ant-spin-dot-item"
+                    />
+                    <i
+                      class="ant-spin-dot-item"
+                    />
+                    <i
+                      class="ant-spin-dot-item"
+                    />
+                  </span>
+                </span>
+                <div
+                  class="ant-spin-description"
+                >
+                  正在載入物料…
+                </div>
+              </div>
+              <div
+                class="ant-spin-container"
+              >
+                <div
+                  style="padding: 24px;"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+</body>
+ ❯ waitForWrapper node_modules/@testing-library/dom/dist/wait-for.js:163:27
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:86:33
+ ❯ tests/precisionEditRoundTrip.test.tsx:111:25
+    109|     );
+    110|
+    111|     expect(await screen.findByText('999,999,999,999,999.1234 KG')).toB…
+       |                         ^
+    112|     const user = userEvent.setup();
+    113|     await user.click(screen.getByRole('button', { name: /編\s*輯/ }));
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[13/22]⎯
+
+ FAIL  tests/semanticOperationsPanel.test.tsx > Semantic admin operations UI > locks unknown timeout or 503 mutations and does not retry until explicit human verification
+Error: Test timed out in 30000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+ ❯ tests/semanticOperationsPanel.test.tsx:155:3
+    153|   });
+    154|
+    155|   it('locks unknown timeout or 503 mutations and does not retry until …
+       |   ^
+    156|     vi.mocked(semantic.runSemanticGateAudit).mockRejectedValue(new Axi…
+    157|     const user = userEvent.setup(); const view = mount();
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[14/22]⎯
+
+
+ Test Files  13 failed | 21 passed (34)
+      Tests  13 failed | 142 passed (155)
+   Start at  23:45:21
+   Duration  350.45s (transform 10.23s, setup 38.84s, import 216.62s, tests 687.96s, environment 145.45s)
+

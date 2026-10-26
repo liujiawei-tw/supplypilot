@@ -1,0 +1,29 @@
+/* Inventory lookup and transaction workbench. */
+.sp-page.inventory-workspace { display: grid; min-width: 0; gap: 22px; color: var(--sp-ink, #16283b); }
+.inventory-workspace__heading > div { display: grid; min-width: 0; gap: 6px; }
+.inventory-workspace__heading h2.ant-typography { color: var(--sp-ink, #16283b); }
+.inventory-workspace__body { min-width: 0; }
+.inventory-workspace__tabs .ant-tabs-nav { margin-bottom: 18px; }
+.inventory-workspace__tabs .ant-tabs-tab { min-height: 46px; padding-inline: 16px; font-weight: 650; }
+.inventory-workspace__tabs .ant-tabs-tab-active .ant-tabs-tab-btn { color: var(--sp-primary, #0d6b67); }
+.inventory-workspace__tabs .ant-tabs-ink-bar { height: 3px; background: var(--sp-primary, #0d6b67); }
+.inventory-stock-levels { min-width: 0; }
+.inventory-stock-levels__filters {
+  display: flex; min-width: 0; align-items: center; flex-wrap: wrap; gap: 10px; padding: 14px;
+  border: 1px solid var(--sp-line, #dbe4ec); border-radius: var(--sp-radius-md, 12px); background: var(--sp-surface-muted, #f7f9fb);
+}
+.inventory-stock-levels__filters .ant-input, .inventory-stock-levels__filters .ant-input-number, .inventory-stock-levels__filters .ant-select, .inventory-stock-levels__filters .ant-btn { min-height: 44px; }
+.inventory-stock-levels__table { width: 100%; min-width: 0; overflow-x: auto; border: 1px solid var(--sp-line, #dbe4ec); border-radius: var(--sp-radius-md, 12px); background: var(--sp-surface, #fff); }
+.inventory-stock-levels__table .ant-table-thead > tr > th { border-bottom: 1px solid var(--sp-line, #dbe4ec); background: var(--sp-surface-muted, #f7f9fb); color: var(--sp-muted, #53697e); font-size: 12px; font-weight: 700; white-space: nowrap; }
+.inventory-stock-levels__table .ant-table-tbody > tr > td { border-bottom-color: var(--sp-line, #dbe4ec); background: var(--sp-surface, #fff); color: var(--sp-ink, #16283b); vertical-align: middle; }
+.inventory-stock-levels__table .ant-table-tbody > tr:hover > td { background: var(--sp-surface-muted, #f7f9fb); }
+.inventory-stock-levels__table .ant-btn { min-height: 44px; }
+.inventory-stock-levels__drawer .ant-drawer-body { background: var(--sp-surface-muted, #f7f9fb); }
+.inventory-stock-levels__adjustment .ant-modal-content { border: 1px solid var(--sp-line, #dbe4ec); border-radius: var(--sp-radius-lg, 16px); background: var(--sp-surface, #fff); }
+.inventory-stock-levels__adjustment .ant-modal-header { border-bottom: 1px solid var(--sp-line, #dbe4ec); background: transparent; }
+@media (max-width: 680px) {
+  .sp-page.inventory-workspace { gap: 18px; }
+  .inventory-workspace__tabs .ant-tabs-tab { padding-inline: 12px; }
+  .inventory-stock-levels__filters { align-items: stretch; flex-direction: column; }
+  .inventory-stock-levels__filters > * { width: 100% !important; }
+}

@@ -36,7 +36,7 @@ export default function AiQueryPanel() {
     finally { loadingRef.current = false; setLoading(false); }
   };
 
-  return <section className="ai-query">
+  return <section className="ai-query sp-section">
     <header className="ai-query__heading">
       <Title className="ai-query__title" level={4}>查詢採購資料與文件</Title>
       <Text className="ai-query__description">每次問題獨立查詢。核對回答所附的文件、版本與原文；沒有足夠證據時，系統會明確告知。</Text>

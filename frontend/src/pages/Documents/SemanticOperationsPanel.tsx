@@ -36,8 +36,8 @@ function SemanticReport({ report, title, saved, stale = false, navigate }: { rep
     { title: '原因', dataIndex: 'reason', key: 'reason', render: (reason: string | null) => reason || '—' },
   ];
 
-  return <Card size="small" title={title}>
-    <Space direction="vertical" style={{ width: '100%' }} size="middle">
+  return <Card className="semantic-operations__report" size="small" title={title}>
+    <Space className="semantic-operations__report-body" direction="vertical" style={{ width: '100%' }} size="middle">
       {saved && stale && <Alert type="warning" showIcon title="歷史索引稽核紀錄（已過期）" description={`這筆正式稽核當時${report.passed ? '通過' : '未通過'}，但之後發生文件或語意索引變更；不能代表目前檢核狀態。重新執行索引稽核才會取得新的正式稽核回應。`} />}
       {saved && !stale && <Alert type={report.passed ? 'success' : 'error'} showIcon title={report.passed ? '本次索引稽核通過' : '本次索引稽核未通過'} description={report.passed ? '檢核通過不會自動啟用語意查詢。' : '請依檢查結果處理原因後，再重新檢查並執行稽核。'} />}
       {!saved && <Alert type={report.passed ? 'success' : 'warning'} showIcon title={report.passed ? '就緒條件目前符合' : '就緒條件尚未符合'} description="這是目前計算狀態，不代表已保存索引稽核，也不能證明先前送出操作的結果。依檢查結果中的狀態與原因修正資料、授權或服務問題；不可將所有狀態一律當作重新補建索引即可修復。" />}
@@ -168,18 +168,18 @@ export default function SemanticOperationsPanel({ documentMutationVersion = 0 }:
     finally { readinessBusyRef.current = false; setLoading((current) => current === 'readiness' ? null : current); }
   };
 
-  return <section className="semantic-operations">
-    <header className="semantic-operations__heading">
-      <Title className="semantic-operations__title" level={4}>語意索引管理</Title>
+  return <section className="semantic-operations sp-section" aria-labelledby="semantic-operations-title">
+    <header className="semantic-operations__heading sp-section__heading">
+      <Title id="semantic-operations-title" className="semantic-operations__title" level={4}>語意索引管理</Title>
       <Text type="secondary">文件核准後會自動排入逐份索引；每份文件分別發布，檢核報表可用於診斷環境。</Text>
     </header>
-    <Space direction="vertical" size="large" style={{ width: '100%' }}>
+    <Space className="semantic-operations__body" direction="vertical" size="large" style={{ width: '100%' }}>
       {error && <ErrorState title={unknown.length > 0 ? '操作結果未知，已鎖定重送' : '語意索引操作失敗'} error={error} operation={errorIsRead ? 'read' : 'mutation'} onRetry={errorIsRead ? () => void refreshReadiness() : undefined} />}
       {unknown.map((operation) => <Alert key={operation} type="warning" showIcon title={`${operation === 'audit' ? '索引稽核' : '索引補建'} 結果未知；不會自動重送`}
         description={operation === 'audit' ? '目前狀態無法證明稽核是否已保存；系統尚無查詢稽核紀錄的功能。請依系統稽核紀錄人工確認。' : '目前狀態可顯示索引計算結果，但不能證明先前批次是否已完成。請先查核索引與系統紀錄。'}
         action={<Button size="small" onClick={() => setConfirmUnknownClear(operation)}>我已完成人工查核</Button>} />)}
 
-      <Card size="small" title="語意索引補建">
+      <Card className="semantic-operations__card" size="small" title="語意索引補建">
         <Space wrap align="end">
           <label>起始文件編號（afterId）<InputNumber aria-label="補建起始文件編號" min={0} precision={0} value={afterId} onChange={(value) => setAfterId(value ?? 0)} /></label>
           <label>每批上限<InputNumber aria-label="每批補建上限" min={1} max={100} precision={0} value={limit} onChange={(value) => setLimit(value ?? 25)} /></label>
@@ -196,13 +196,13 @@ export default function SemanticOperationsPanel({ documentMutationVersion = 0 }:
         </div>}
       </Card>
 
-      <Card size="small" title="就緒狀態檢查" extra={<Button loading={loading === 'readiness'} disabled={loading !== null && loading !== 'readiness'} onClick={() => void refreshReadiness()}>讀取目前就緒狀態</Button>}>
+      <Card className="semantic-operations__card" size="small" title="就緒狀態檢查" extra={<Button loading={loading === 'readiness'} disabled={loading !== null && loading !== 'readiness'} onClick={() => void refreshReadiness()}>讀取目前就緒狀態</Button>}>
         <Text type="secondary">讀取操作只計算目前索引完整性，不會保存稽核，也不會確認先前核准或稽核送出的結果。</Text>
         {readiness && <div style={{ marginTop: 16 }}><SemanticReport report={readiness} title="目前就緒狀態（即時計算）" saved={false} navigate={navigate} /></div>}
         {!readiness && errorIsRead && <Alert style={{ marginTop: 16 }} type="warning" showIcon title="無法確認目前就緒狀態" description="最新就緒狀態查詢失敗；先前回應已清除，不可視為目前檢核狀態。" />}
       </Card>
 
-      <Card size="small" title="逐份文件索引工作" extra={<Button loading={jobsLoading} onClick={() => void refreshJobs()}>重新整理</Button>}>
+      <Card className="semantic-operations__card" size="small" title="逐份文件索引工作" extra={<Button loading={jobsLoading} onClick={() => void refreshJobs()}>重新整理</Button>}>
         <Text type="secondary">核准後的索引由背景工作執行。失敗工作可由管理員手動重試；錯誤欄位只顯示安全代碼。</Text>
         {jobError && <ErrorState title="索引工作查詢或重試失敗" error={jobError} operation="read" onRetry={() => void refreshJobs()} />}
         <Table size="small" rowKey="id" loading={jobsLoading} scroll={{ x: 760 }}
@@ -221,7 +221,7 @@ export default function SemanticOperationsPanel({ documentMutationVersion = 0 }:
           ]} />
       </Card>
 
-      <Card size="small" title="索引稽核">
+      <Card className="semantic-operations__card" size="small" title="索引稽核">
         <Space direction="vertical" style={{ width: '100%' }}>
           <Alert type="info" showIcon title="索引稽核會保存正式稽核結果" description="索引稽核是整體環境的診斷紀錄，不是逐份文件的發布條件或每次查詢的全域阻擋。請以各文件工作狀態和目前核准版本為準。" />
           <Button danger disabled={(loading !== null && loading !== 'readiness') || unknown.includes('audit')} loading={loading === 'audit'} onClick={() => setConfirmAudit(true)}>執行並保存索引稽核</Button>

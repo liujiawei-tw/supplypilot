@@ -121,11 +121,11 @@ export default function ReceivingPage() {
   const total = data?.totalElements ?? 0;
   const records = data?.content ?? [];
 
-  return <section className="receiving-queue">
-    <header className="receiving-queue__heading">
+  return <section className="receiving-queue sp-page">
+    <header className="receiving-queue__heading sp-page__heading">
       <div>
         <Typography.Title level={2} className="receiving-queue__title">收貨作業</Typography.Title>
-        <p className="receiving-queue__intro">依交期與驗收進度處理整筆採購單。短收或品質異常請留在驗收階段，不支援部分收貨。</p>
+        <p className="receiving-queue__intro sp-page__lead">依交期與驗收進度處理整筆採購單。短收或品質異常請留在驗收階段，不支援部分收貨。</p>
       </div>
       <span className="receiving-queue__count" aria-live="polite">{loading ? '更新中…' : `共 ${total} 筆`}</span>
     </header>
@@ -161,7 +161,7 @@ export default function ReceivingPage() {
     </section>
 
     {error && <ErrorState title="收貨清單載入失敗" error={error} onRetry={() => void load()} />}
-    <section className="receiving-queue__table" aria-label="收貨採購單清單">
+    <section className="receiving-queue__table sp-section" aria-label="收貨採購單清單">
       <Table
         rowKey="id"
         columns={columns}

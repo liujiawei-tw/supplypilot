@@ -1,0 +1,12 @@
+
+> frontend@0.0.0 test
+> vitest run --maxWorkers=1 -t redirects an unauthenticated deep link
+
+
+ RUN  v4.1.11 C:/Users/z0976/.codex/worktrees/procurement-tool-ux-redesign/supplypilot/frontend
+
+stderr | tests/auth.test.tsx > authentication and routing > redirects an unauthenticated deep link, logs in, checks /auth/me and returns to it
+Warning: [antd: Card] `bordered` is deprecated. Please use `variant` instead.
+
+ ❯ tests/auth.test.tsx (27 tests | 1 failed | 26 skipped) 1589ms
+     × redirects an unauthenticated deep link, logs in, checks /auth/me and returns to it 1586ms

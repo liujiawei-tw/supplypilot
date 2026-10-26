@@ -1,0 +1,23 @@
+/* Legacy recommendation data route, kept outside the primary PO workflow. */
+.sp-page.legacy-recommendations { display: grid; min-width: 0; gap: 22px; color: var(--sp-ink, #16283b); }
+.legacy-recommendations__heading > div { display: grid; min-width: 0; gap: 6px; }
+.legacy-recommendations__heading h2.ant-typography { color: var(--sp-ink, #16283b); }
+.legacy-recommendations__notice { border: 1px solid var(--sp-line, #dbe4ec); border-radius: var(--sp-radius-md, 12px); background: var(--sp-surface, #fff); }
+.legacy-recommendations__workspace { display: grid; min-width: 0; grid-template-columns: minmax(0, 1.45fr) minmax(260px, .8fr); align-items: start; border-block: 1px solid var(--sp-line, #dbe4ec); }
+.legacy-recommendations__create, .legacy-recommendations__lookup { min-width: 0; padding: 22px 24px 24px 0; }
+.legacy-recommendations__lookup { padding-inline: 24px 0; border-left: 1px solid var(--sp-line, #dbe4ec); }
+.legacy-recommendations__section-heading { display: grid; gap: 5px; margin-bottom: 18px; }
+.legacy-recommendations__section-heading .ant-typography { margin: 0; color: var(--sp-ink, #16283b); }
+.legacy-recommendations__section-heading .ant-typography-secondary { color: var(--sp-muted, #53697e); }
+.legacy-recommendations__create .ant-form, .legacy-recommendations__lookup .ant-form { max-width: 680px; }
+.legacy-recommendations__create .ant-form-item, .legacy-recommendations__lookup .ant-form-item { margin-bottom: 18px; }
+.legacy-recommendations__create .ant-btn, .legacy-recommendations__lookup .ant-btn { min-height: 44px; }
+.legacy-recommendations__result { min-width: 0; }
+@media (max-width: 760px) {
+  .sp-page.legacy-recommendations { gap: 18px; }
+  .legacy-recommendations__workspace { grid-template-columns: minmax(0, 1fr); }
+  .legacy-recommendations__create, .legacy-recommendations__lookup { padding: 18px 0; }
+  .legacy-recommendations__lookup { border-top: 1px solid var(--sp-line, #dbe4ec); border-left: 0; }
+  .legacy-recommendations__create .ant-form, .legacy-recommendations__lookup .ant-form { max-width: none; }
+  .legacy-recommendations__create .ant-btn, .legacy-recommendations__lookup .ant-btn { width: 100%; }
+}

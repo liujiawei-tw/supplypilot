@@ -1,0 +1,171 @@
+
+> frontend@0.0.0 test
+> vitest run
+
+
+ RUN  v4.1.11 C:/Users/z0976/.codex/worktrees/procurement-tool-ux-redesign/supplypilot/frontend
+
+ ❯ tests/issue143PurchaseOrdersPage.test.tsx (0 test)
+ ❯ tests/auth.test.tsx (0 test)
+ ❯ tests/sp806.test.tsx (0 test)
+ ❯ tests/recommendation.test.tsx (0 test)
+ ❯ tests/sp805.test.tsx (0 test)
+ ❯ tests/masterData.test.tsx (0 test)
+ ❯ tests/dashboard.test.tsx (0 test)
+ ❯ tests/sp807.test.tsx (0 test)
+ ❯ tests/demandInventory.test.tsx (0 test)
+ ❯ tests/issue143PurchaseOrders.test.tsx (0 test)
+ ❯ tests/relatedEntitySelect.test.tsx (0 test)
+ ❯ tests/sp805Api.test.ts (0 test)
+ ❯ tests/aiAnswerDisplay.test.tsx (0 test)
+ ❯ tests/semanticOperationsPanel.test.tsx (0 test)
+ ❯ tests/inventoryImport.test.tsx (0 test)
+ ❯ tests/documentPreviewDrawer.test.tsx (0 test)
+ ❯ tests/sp907Documents.test.tsx (0 test)
+ ❯ tests/precisionEditRoundTrip.test.tsx (0 test)
+ ❯ tests/purchaseOrderStageApi.test.ts (0 test)
+ ❯ tests/sp806Api.test.ts (0 test)
+ ❯ tests/semanticIndexApi.test.ts (0 test)
+ ❯ tests/quickFinder.test.tsx (0 test)
+ ❯ tests/masterDataApi.test.ts (0 test)
+ ❯ tests/demandInventoryApi.test.ts (0 test)
+ ❯ tests/axios.test.ts (0 test)
+ ❯ tests/supplierMaterialPrecision.test.tsx (0 test)
+ ❯ tests/recommendationApi.test.ts (0 test)
+ ❯ tests/displayLabels.test.ts (0 test)
+ ❯ tests/purchaseOrderApi.test.ts (0 test)
+ ❯ tests/inventoryImportApi.test.ts (0 test)
+ ❯ tests/v2Authorization.test.ts (0 test)
+ ❯ tests/issue148DisplayFormatters.test.ts (0 test)
+ ❯ tests/csvPreview.test.ts (0 test)
+ ❯ tests/antdLocale.test.tsx (0 test)
+
+⎯⎯⎯⎯⎯⎯ Failed Suites 34 ⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/aiAnswerDisplay.test.tsx [ tests/aiAnswerDisplay.test.tsx ]
+Error: EPERM: operation not permitted, rename 'C:\Users\z0976\AppData\Local\Packages\sandbox.{85d6e0d1-90bb-42ac-9b60-e5fab6c7a3d4}\AC\Temp\ulj5788-FJ0oZJSBDDLHr\client\.tmp-1793029430169-ywrzaes2ucf' -> 'C:\Users\z0976\AppData\Local\Packages\sandbox.{85d6e0d1-90bb-42ac-9b60-e5fab6c7a3d4}\AC\Temp\ulj5788-FJ0oZJSBDDLHr\client\6e8b9f4fd3606c996ab2b6e1e17cde646ba79541'
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/34]⎯
+
+ FAIL  tests/antdLocale.test.tsx [ tests/antdLocale.test.tsx ]
+Error: EPERM: operation not permitted, rename 'C:\Users\z0976\AppData\Local\Packages\sandbox.{85d6e0d1-90bb-42ac-9b60-e5fab6c7a3d4}\AC\Temp\ulj5788-FJ0oZJSBDDLHr\client\.tmp-1793029442052-k3kreb0o4p' -> 'C:\Users\z0976\AppData\Local\Packages\sandbox.{85d6e0d1-90bb-42ac-9b60-e5fab6c7a3d4}\AC\Temp\ulj5788-FJ0oZJSBDDLHr\client\6e8b9f4fd3606c996ab2b6e1e17cde646ba79541'
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/34]⎯
+
+ FAIL  tests/auth.test.tsx [ tests/auth.test.tsx ]
+ FAIL  tests/recommendation.test.tsx [ tests/recommendation.test.tsx ]
+ FAIL  tests/sp805.test.tsx [ tests/sp805.test.tsx ]
+ FAIL  tests/sp806.test.tsx [ tests/sp806.test.tsx ]
+Error: EPERM: operation not permitted, rename 'C:\Users\z0976\AppData\Local\Packages\sandbox.{85d6e0d1-90bb-42ac-9b60-e5fab6c7a3d4}\AC\Temp\ulj5788-FJ0oZJSBDDLHr\client\.tmp-1793029422144-rqv7yt37lu' -> 'C:\Users\z0976\AppData\Local\Packages\sandbox.{85d6e0d1-90bb-42ac-9b60-e5fab6c7a3d4}\AC\Temp\ulj5788-FJ0oZJSBDDLHr\client\6e8b9f4fd3606c996ab2b6e1e17cde646ba79541'
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/34]⎯
+
+ FAIL  tests/axios.test.ts [ tests/axios.test.ts ]
+Error: EPERM: operation not permitted, rename 'C:\Users\z0976\AppData\Local\Packages\sandbox.{85d6e0d1-90bb-42ac-9b60-e5fab6c7a3d4}\AC\Temp\ulj5788-FJ0oZJSBDDLHr\client\.tmp-1793029438426-1jmcfqr54za' -> 'C:\Users\z0976\AppData\Local\Packages\sandbox.{85d6e0d1-90bb-42ac-9b60-e5fab6c7a3d4}\AC\Temp\ulj5788-FJ0oZJSBDDLHr\client\6e8b9f4fd3606c996ab2b6e1e17cde646ba79541'
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/34]⎯
+
+ FAIL  tests/csvPreview.test.ts [ tests/csvPreview.test.ts ]
+Error: EPERM: operation not permitted, rename 'C:\Users\z0976\AppData\Local\Packages\sandbox.{85d6e0d1-90bb-42ac-9b60-e5fab6c7a3d4}\AC\Temp\ulj5788-FJ0oZJSBDDLHr\client\.tmp-1793029442015-qmlqs7qcdr' -> 'C:\Users\z0976\AppData\Local\Packages\sandbox.{85d6e0d1-90bb-42ac-9b60-e5fab6c7a3d4}\AC\Temp\ulj5788-FJ0oZJSBDDLHr\client\6e8b9f4fd3606c996ab2b6e1e17cde646ba79541'
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/34]⎯
+
+ FAIL  tests/dashboard.test.tsx [ tests/dashboard.test.tsx ]
+Error: EPERM: operation not permitted, rename 'C:\Users\z0976\AppData\Local\Packages\sandbox.{85d6e0d1-90bb-42ac-9b60-e5fab6c7a3d4}\AC\Temp\ulj5788-FJ0oZJSBDDLHr\client\.tmp-1793029426588-tckyfs9o59r' -> 'C:\Users\z0976\AppData\Local\Packages\sandbox.{85d6e0d1-90bb-42ac-9b60-e5fab6c7a3d4}\AC\Temp\ulj5788-FJ0oZJSBDDLHr\client\6e8b9f4fd3606c996ab2b6e1e17cde646ba79541'
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/34]⎯
+
+ FAIL  tests/demandInventory.test.tsx [ tests/demandInventory.test.tsx ]
+Error: EPERM: operation not permitted, rename 'C:\Users\z0976\AppData\Local\Packages\sandbox.{85d6e0d1-90bb-42ac-9b60-e5fab6c7a3d4}\AC\Temp\ulj5788-FJ0oZJSBDDLHr\client\.tmp-1793029426770-o3ve2k47pre' -> 'C:\Users\z0976\AppData\Local\Packages\sandbox.{85d6e0d1-90bb-42ac-9b60-e5fab6c7a3d4}\AC\Temp\ulj5788-FJ0oZJSBDDLHr\client\6e8b9f4fd3606c996ab2b6e1e17cde646ba79541'
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/34]⎯
+
+ FAIL  tests/demandInventoryApi.test.ts [ tests/demandInventoryApi.test.ts ]
+Error: EPERM: operation not permitted, rename 'C:\Users\z0976\AppData\Local\Packages\sandbox.{85d6e0d1-90bb-42ac-9b60-e5fab6c7a3d4}\AC\Temp\ulj5788-FJ0oZJSBDDLHr\client\.tmp-1793029434368-q9vx0dzpiz' -> 'C:\Users\z0976\AppData\Local\Packages\sandbox.{85d6e0d1-90bb-42ac-9b60-e5fab6c7a3d4}\AC\Temp\ulj5788-FJ0oZJSBDDLHr\client\6e8b9f4fd3606c996ab2b6e1e17cde646ba79541'
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/34]⎯
+
+ FAIL  tests/displayLabels.test.ts [ tests/displayLabels.test.ts ]
+Error: EPERM: operation not permitted, rename 'C:\Users\z0976\AppData\Local\Packages\sandbox.{85d6e0d1-90bb-42ac-9b60-e5fab6c7a3d4}\AC\Temp\ulj5788-FJ0oZJSBDDLHr\client\.tmp-1793029438850-pwxrytntsx' -> 'C:\Users\z0976\AppData\Local\Packages\sandbox.{85d6e0d1-90bb-42ac-9b60-e5fab6c7a3d4}\AC\Temp\ulj5788-FJ0oZJSBDDLHr\client\6e8b9f4fd3606c996ab2b6e1e17cde646ba79541'
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/34]⎯
+
+ FAIL  tests/documentPreviewDrawer.test.tsx [ tests/documentPreviewDrawer.test.tsx ]
+Error: EPERM: operation not permitted, rename 'C:\Users\z0976\AppData\Local\Packages\sandbox.{85d6e0d1-90bb-42ac-9b60-e5fab6c7a3d4}\AC\Temp\ulj5788-FJ0oZJSBDDLHr\client\.tmp-1793029430380-la3fp3nljkq' -> 'C:\Users\z0976\AppData\Local\Packages\sandbox.{85d6e0d1-90bb-42ac-9b60-e5fab6c7a3d4}\AC\Temp\ulj5788-FJ0oZJSBDDLHr\client\6e8b9f4fd3606c996ab2b6e1e17cde646ba79541'
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/34]⎯
+
+ FAIL  tests/inventoryImport.test.tsx [ tests/inventoryImport.test.tsx ]
+Error: EPERM: operation not permitted, rename 'C:\Users\z0976\AppData\Local\Packages\sandbox.{85d6e0d1-90bb-42ac-9b60-e5fab6c7a3d4}\AC\Temp\ulj5788-FJ0oZJSBDDLHr\client\.tmp-1793029430318-wn2rojq0wd9' -> 'C:\Users\z0976\AppData\Local\Packages\sandbox.{85d6e0d1-90bb-42ac-9b60-e5fab6c7a3d4}\AC\Temp\ulj5788-FJ0oZJSBDDLHr\client\6e8b9f4fd3606c996ab2b6e1e17cde646ba79541'
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/34]⎯
+
+ FAIL  tests/inventoryImportApi.test.ts [ tests/inventoryImportApi.test.ts ]
+ FAIL  tests/purchaseOrderApi.test.ts [ tests/purchaseOrderApi.test.ts ]
+Error: EPERM: operation not permitted, rename 'C:\Users\z0976\AppData\Local\Packages\sandbox.{85d6e0d1-90bb-42ac-9b60-e5fab6c7a3d4}\AC\Temp\ulj5788-FJ0oZJSBDDLHr\client\.tmp-1793029438901-pb4xzbeiozj' -> 'C:\Users\z0976\AppData\Local\Packages\sandbox.{85d6e0d1-90bb-42ac-9b60-e5fab6c7a3d4}\AC\Temp\ulj5788-FJ0oZJSBDDLHr\client\6e8b9f4fd3606c996ab2b6e1e17cde646ba79541'
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[12/34]⎯
+
+ FAIL  tests/issue143PurchaseOrders.test.tsx [ tests/issue143PurchaseOrders.test.tsx ]
+Error: EPERM: operation not permitted, rename 'C:\Users\z0976\AppData\Local\Packages\sandbox.{85d6e0d1-90bb-42ac-9b60-e5fab6c7a3d4}\AC\Temp\ulj5788-FJ0oZJSBDDLHr\client\.tmp-1793029426824-z52suwkw7tq' -> 'C:\Users\z0976\AppData\Local\Packages\sandbox.{85d6e0d1-90bb-42ac-9b60-e5fab6c7a3d4}\AC\Temp\ulj5788-FJ0oZJSBDDLHr\client\6e8b9f4fd3606c996ab2b6e1e17cde646ba79541'
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[13/34]⎯
+
+ FAIL  tests/issue143PurchaseOrdersPage.test.tsx [ tests/issue143PurchaseOrdersPage.test.tsx ]
+Error: EPERM: operation not permitted, rename 'C:\Users\z0976\AppData\Local\Packages\sandbox.{85d6e0d1-90bb-42ac-9b60-e5fab6c7a3d4}\AC\Temp\ulj5788-FJ0oZJSBDDLHr\client\.tmp-1793029422131-tka8crt2zqn' -> 'C:\Users\z0976\AppData\Local\Packages\sandbox.{85d6e0d1-90bb-42ac-9b60-e5fab6c7a3d4}\AC\Temp\ulj5788-FJ0oZJSBDDLHr\client\6e8b9f4fd3606c996ab2b6e1e17cde646ba79541'
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[14/34]⎯
+
+ FAIL  tests/issue148DisplayFormatters.test.ts [ tests/issue148DisplayFormatters.test.ts ]
+Error: EPERM: operation not permitted, rename 'C:\Users\z0976\AppData\Local\Packages\sandbox.{85d6e0d1-90bb-42ac-9b60-e5fab6c7a3d4}\AC\Temp\ulj5788-FJ0oZJSBDDLHr\client\.tmp-1793029441973-o70sdcjniid' -> 'C:\Users\z0976\AppData\Local\Packages\sandbox.{85d6e0d1-90bb-42ac-9b60-e5fab6c7a3d4}\AC\Temp\ulj5788-FJ0oZJSBDDLHr\client\6e8b9f4fd3606c996ab2b6e1e17cde646ba79541'
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[15/34]⎯
+
+ FAIL  tests/masterData.test.tsx [ tests/masterData.test.tsx ]
+Error: EPERM: operation not permitted, rename 'C:\Users\z0976\AppData\Local\Packages\sandbox.{85d6e0d1-90bb-42ac-9b60-e5fab6c7a3d4}\AC\Temp\ulj5788-FJ0oZJSBDDLHr\client\.tmp-1793029422177-384hxzuqwjv' -> 'C:\Users\z0976\AppData\Local\Packages\sandbox.{85d6e0d1-90bb-42ac-9b60-e5fab6c7a3d4}\AC\Temp\ulj5788-FJ0oZJSBDDLHr\client\6e8b9f4fd3606c996ab2b6e1e17cde646ba79541'
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[16/34]⎯
+
+ FAIL  tests/masterDataApi.test.ts [ tests/masterDataApi.test.ts ]
+Error: EPERM: operation not permitted, rename 'C:\Users\z0976\AppData\Local\Packages\sandbox.{85d6e0d1-90bb-42ac-9b60-e5fab6c7a3d4}\AC\Temp\ulj5788-FJ0oZJSBDDLHr\client\.tmp-1793029434299-40n8wee09zo' -> 'C:\Users\z0976\AppData\Local\Packages\sandbox.{85d6e0d1-90bb-42ac-9b60-e5fab6c7a3d4}\AC\Temp\ulj5788-FJ0oZJSBDDLHr\client\6e8b9f4fd3606c996ab2b6e1e17cde646ba79541'
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[17/34]⎯
+
+ FAIL  tests/precisionEditRoundTrip.test.tsx [ tests/precisionEditRoundTrip.test.tsx ]
+Error: EPERM: operation not permitted, rename 'C:\Users\z0976\AppData\Local\Packages\sandbox.{85d6e0d1-90bb-42ac-9b60-e5fab6c7a3d4}\AC\Temp\ulj5788-FJ0oZJSBDDLHr\client\.tmp-1793029430567-i55pfhart3' -> 'C:\Users\z0976\AppData\Local\Packages\sandbox.{85d6e0d1-90bb-42ac-9b60-e5fab6c7a3d4}\AC\Temp\ulj5788-FJ0oZJSBDDLHr\client\6e8b9f4fd3606c996ab2b6e1e17cde646ba79541'
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[18/34]⎯
+
+ FAIL  tests/purchaseOrderStageApi.test.ts [ tests/purchaseOrderStageApi.test.ts ]
+Error: EPERM: operation not permitted, rename 'C:\Users\z0976\AppData\Local\Packages\sandbox.{85d6e0d1-90bb-42ac-9b60-e5fab6c7a3d4}\AC\Temp\ulj5788-FJ0oZJSBDDLHr\client\.tmp-1793029433975-uvnnsf44pyo' -> 'C:\Users\z0976\AppData\Local\Packages\sandbox.{85d6e0d1-90bb-42ac-9b60-e5fab6c7a3d4}\AC\Temp\ulj5788-FJ0oZJSBDDLHr\client\6e8b9f4fd3606c996ab2b6e1e17cde646ba79541'
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[19/34]⎯
+
+ FAIL  tests/quickFinder.test.tsx [ tests/quickFinder.test.tsx ]
+Error: EPERM: operation not permitted, rename 'C:\Users\z0976\AppData\Local\Packages\sandbox.{85d6e0d1-90bb-42ac-9b60-e5fab6c7a3d4}\AC\Temp\ulj5788-FJ0oZJSBDDLHr\client\.tmp-1793029434242-azgn9pm3thw' -> 'C:\Users\z0976\AppData\Local\Packages\sandbox.{85d6e0d1-90bb-42ac-9b60-e5fab6c7a3d4}\AC\Temp\ulj5788-FJ0oZJSBDDLHr\client\6e8b9f4fd3606c996ab2b6e1e17cde646ba79541'
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[20/34]⎯
+
+ FAIL  tests/recommendationApi.test.ts [ tests/recommendationApi.test.ts ]
+Error: EPERM: operation not permitted, rename 'C:\Users\z0976\AppData\Local\Packages\sandbox.{85d6e0d1-90bb-42ac-9b60-e5fab6c7a3d4}\AC\Temp\ulj5788-FJ0oZJSBDDLHr\client\.tmp-1793029438767-ox1rf1tnq6' -> 'C:\Users\z0976\AppData\Local\Packages\sandbox.{85d6e0d1-90bb-42ac-9b60-e5fab6c7a3d4}\AC\Temp\ulj5788-FJ0oZJSBDDLHr\client\6e8b9f4fd3606c996ab2b6e1e17cde646ba79541'
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[21/34]⎯
+
+ FAIL  tests/relatedEntitySelect.test.tsx [ tests/relatedEntitySelect.test.tsx ]
+ FAIL  tests/sp805Api.test.ts [ tests/sp805Api.test.ts ]
+Error: EPERM: operation not permitted, rename 'C:\Users\z0976\AppData\Local\Packages\sandbox.{85d6e0d1-90bb-42ac-9b60-e5fab6c7a3d4}\AC\Temp\ulj5788-FJ0oZJSBDDLHr\client\.tmp-1793029426829-470deby0jtf' -> 'C:\Users\z0976\AppData\Local\Packages\sandbox.{85d6e0d1-90bb-42ac-9b60-e5fab6c7a3d4}\AC\Temp\ulj5788-FJ0oZJSBDDLHr\client\6e8b9f4fd3606c996ab2b6e1e17cde646ba79541'
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[22/34]⎯
+
+ FAIL  tests/semanticIndexApi.test.ts [ tests/semanticIndexApi.test.ts ]
+Error: EPERM: operation not permitted, rename 'C:\Users\z0976\AppData\Local\Packages\sandbox.{85d6e0d1-90bb-42ac-9b60-e5fab6c7a3d4}\AC\Temp\ulj5788-FJ0oZJSBDDLHr\client\.tmp-1793029434188-11omt0fg6f8b' -> 'C:\Users\z0976\AppData\Local\Packages\sandbox.{85d6e0d1-90bb-42ac-9b60-e5fab6c7a3d4}\AC\Temp\ulj5788-FJ0oZJSBDDLHr\client\6e8b9f4fd3606c996ab2b6e1e17cde646ba79541'
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[23/34]⎯
+
+ FAIL  tests/semanticOperationsPanel.test.tsx [ tests/semanticOperationsPanel.test.tsx ]
+Error: EPERM: operation not permitted, rename 'C:\Users\z0976\AppData\Local\Packages\sandbox.{85d6e0d1-90bb-42ac-9b60-e5fab6c7a3d4}\AC\Temp\ulj5788-FJ0oZJSBDDLHr\client\.tmp-1793029430299-4o67dj8xnrg' -> 'C:\Users\z0976\AppData\Local\Packages\sandbox.{85d6e0d1-90bb-42ac-9b60-e5fab6c7a3d4}\AC\Temp\ulj5788-FJ0oZJSBDDLHr\client\6e8b9f4fd3606c996ab2b6e1e17cde646ba79541'
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[24/34]⎯
+
+ FAIL  tests/sp806Api.test.ts [ tests/sp806Api.test.ts ]
+Error: EPERM: operation not permitted, rename 'C:\Users\z0976\AppData\Local\Packages\sandbox.{85d6e0d1-90bb-42ac-9b60-e5fab6c7a3d4}\AC\Temp\ulj5788-FJ0oZJSBDDLHr\client\.tmp-1793029434144-a08adr1yyas' -> 'C:\Users\z0976\AppData\Local\Packages\sandbox.{85d6e0d1-90bb-42ac-9b60-e5fab6c7a3d4}\AC\Temp\ulj5788-FJ0oZJSBDDLHr\client\6e8b9f4fd3606c996ab2b6e1e17cde646ba79541'
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[25/34]⎯
+
+ FAIL  tests/sp807.test.tsx [ tests/sp807.test.tsx ]
+Error: EPERM: operation not permitted, rename 'C:\Users\z0976\AppData\Local\Packages\sandbox.{85d6e0d1-90bb-42ac-9b60-e5fab6c7a3d4}\AC\Temp\ulj5788-FJ0oZJSBDDLHr\client\.tmp-1793029426714-3dwt6aushit' -> 'C:\Users\z0976\AppData\Local\Packages\sandbox.{85d6e0d1-90bb-42ac-9b60-e5fab6c7a3d4}\AC\Temp\ulj5788-FJ0oZJSBDDLHr\client\6e8b9f4fd3606c996ab2b6e1e17cde646ba79541'
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[26/34]⎯
+
+ FAIL  tests/sp907Documents.test.tsx [ tests/sp907Documents.test.tsx ]
+Error: EPERM: operation not permitted, rename 'C:\Users\z0976\AppData\Local\Packages\sandbox.{85d6e0d1-90bb-42ac-9b60-e5fab6c7a3d4}\AC\Temp\ulj5788-FJ0oZJSBDDLHr\client\.tmp-1793029430458-e5egmms8lda' -> 'C:\Users\z0976\AppData\Local\Packages\sandbox.{85d6e0d1-90bb-42ac-9b60-e5fab6c7a3d4}\AC\Temp\ulj5788-FJ0oZJSBDDLHr\client\6e8b9f4fd3606c996ab2b6e1e17cde646ba79541'
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[27/34]⎯
+
+ FAIL  tests/supplierMaterialPrecision.test.tsx [ tests/supplierMaterialPrecision.test.tsx ]
+Error: EPERM: operation not permitted, rename 'C:\Users\z0976\AppData\Local\Packages\sandbox.{85d6e0d1-90bb-42ac-9b60-e5fab6c7a3d4}\AC\Temp\ulj5788-FJ0oZJSBDDLHr\client\.tmp-1793029438707-cp4os790hgn' -> 'C:\Users\z0976\AppData\Local\Packages\sandbox.{85d6e0d1-90bb-42ac-9b60-e5fab6c7a3d4}\AC\Temp\ulj5788-FJ0oZJSBDDLHr\client\6e8b9f4fd3606c996ab2b6e1e17cde646ba79541'
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[28/34]⎯
+
+ FAIL  tests/v2Authorization.test.ts [ tests/v2Authorization.test.ts ]
+Error: EPERM: operation not permitted, rename 'C:\Users\z0976\AppData\Local\Packages\sandbox.{85d6e0d1-90bb-42ac-9b60-e5fab6c7a3d4}\AC\Temp\ulj5788-FJ0oZJSBDDLHr\client\.tmp-1793029441846-ragnnfvyk1' -> 'C:\Users\z0976\AppData\Local\Packages\sandbox.{85d6e0d1-90bb-42ac-9b60-e5fab6c7a3d4}\AC\Temp\ulj5788-FJ0oZJSBDDLHr\client\6e8b9f4fd3606c996ab2b6e1e17cde646ba79541'
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[29/34]⎯
+
+
+ Test Files  34 failed (34)
+      Tests  no tests
+   Start at  23:43:38
+   Duration  23.88s (transform 0ms, setup 0ms, import 0ms, tests 0ms, environment 102.63s)
+

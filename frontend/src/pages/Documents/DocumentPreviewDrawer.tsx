@@ -189,10 +189,10 @@ export default function DocumentPreviewDrawer({ document: record, open, onClose 
     destroyOnHidden
   >
     {record && <>
-      <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
+      <Space className="document-preview__body" orientation="vertical" size="middle" style={{ width: '100%' }}>
         <div>
-          <Title level={4} style={{ marginTop: 0, marginBottom: 12, overflowWrap: 'anywhere' }}>{record.title}</Title>
-          <Descriptions bordered size="small" column={{ xs: 1, sm: 2 }} items={[
+          <Title level={4} className="document-preview__title">{record.title}</Title>
+          <Descriptions className="document-preview__meta" bordered size="small" column={{ xs: 1, sm: 2 }} items={[
             { key: 'type', label: '文件類型', children: displayLabel(record.documentType) },
             { key: 'version', label: '版本', children: record.version },
             { key: 'supplier', label: '供應商', children: record.supplierCode
@@ -218,7 +218,7 @@ export default function DocumentPreviewDrawer({ document: record, open, onClose 
         </Space>
         {downloadError && <Alert type="error" showIcon title="無法下載原始文件" description={downloadError} />}
 
-        {preview.kind === 'loading' && <div style={{ minHeight: 220, display: 'grid', placeItems: 'center' }}>
+        {preview.kind === 'loading' && <div className="document-preview__loading">
           <Spin size="large" description="正在載入文件" />
         </div>}
         {preview.kind === 'error' && <Alert type="error" showIcon title="無法讀取文件" description={preview.message} />}

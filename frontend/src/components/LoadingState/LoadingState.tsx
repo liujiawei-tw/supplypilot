@@ -16,30 +16,14 @@ export const LoadingState: React.FC<LoadingStateProps> = ({
 }) => {
   if (skeleton) {
     return (
-      <div style={{ padding: '24px 0' }} data-testid="loading-skeleton">
+        <div className="sp-loading-skeleton" data-testid="loading-skeleton">
         <Skeleton active paragraph={{ rows }} />
       </div>
     );
   }
 
-  const containerStyle: React.CSSProperties = fullPage
-    ? {
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        minHeight: '60vh',
-        width: '100%',
-      }
-    : {
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        padding: '32px 0',
-        width: '100%',
-      };
-
   return (
-    <div style={containerStyle} data-testid="loading-spin">
+    <div className={`sp-loading-state${fullPage ? ' sp-loading-state--full-page' : ''}`} data-testid="loading-spin" role="status" aria-live="polite">
       <Spin size="large" description={tip}>
         <div style={{ padding: '24px' }} />
       </Spin>

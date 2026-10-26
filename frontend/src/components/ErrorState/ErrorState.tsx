@@ -75,6 +75,7 @@ export const ErrorState: React.FC<ErrorStateProps> = ({
   if (asResult) {
     return (
       <Result
+        className="sp-error-state"
         status="error"
         title={title ?? presentation?.title ?? '無法完成請求'}
         subTitle={

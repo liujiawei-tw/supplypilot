@@ -1,48 +1,44 @@
 .receiving-queue {
-  color: var(--sp-ink, #252a26);
+  color: var(--sp-ink, #16283b);
 }
 
 .receiving-queue__heading {
-  display: flex;
   align-items: end;
-  justify-content: space-between;
-  gap: 16px;
-  padding-bottom: 20px;
-  border-bottom: 1px solid var(--sp-line, #d8d8cd);
+  padding-bottom: 18px;
+  border-bottom-color: var(--sp-line, #dbe4ec);
 }
 
 .receiving-queue__title.ant-typography {
-  margin: 0;
-  color: var(--sp-ink, #252a26);
+  color: var(--sp-ink, #16283b);
   letter-spacing: -0.025em;
 }
 
 .receiving-queue__intro {
   max-width: 72ch;
   margin: 8px 0 0;
-  color: var(--sp-muted, #66706a);
-  line-height: 1.65;
+  color: var(--sp-muted, #53697e);
+  line-height: 1.6;
 }
 
 .receiving-queue__count {
   flex: 0 0 auto;
-  color: var(--sp-muted, #66706a);
+  color: var(--sp-muted, #53697e);
   font-variant-numeric: tabular-nums;
 }
 
 .receiving-queue__filters {
   display: grid;
-  grid-template-columns: repeat(6, minmax(145px, 1fr));
+  grid-template-columns: repeat(6, minmax(132px, 1fr));
   gap: 12px;
-  padding-block: 18px;
-  border-bottom: 1px solid var(--sp-line, #d8d8cd);
+  padding-block: 14px;
+  border-bottom: 1px solid var(--sp-line, #dbe4ec);
 }
 
 .receiving-queue__filter {
   display: grid;
   min-width: 0;
   gap: 6px;
-  color: var(--sp-muted, #66706a);
+  color: var(--sp-muted, #53697e);
   font-size: 12px;
   font-weight: 600;
 }
@@ -51,23 +47,31 @@
 .receiving-queue__filter .ant-input {
   width: 100%;
   min-height: 40px;
-  color: var(--sp-ink, #252a26);
+  color: var(--sp-ink, #16283b);
 }
 
 .receiving-queue__table {
   display: block;
+  overflow: hidden;
+  border: 1px solid var(--sp-line, #dbe4ec);
+  border-radius: var(--sp-radius-md, 12px);
+  background: var(--sp-surface, #fff);
+}
+
+.receiving-queue__table .ant-table {
+  background: transparent;
 }
 
 .receiving-queue__table .ant-table-thead > tr > th {
-  color: var(--sp-muted, #66706a);
-  background: var(--sp-paper, #f5f3ec);
-  border-bottom-color: var(--sp-line, #d8d8cd);
+  color: var(--sp-muted, #53697e);
+  background: var(--sp-surface-muted, #f7f9fb);
+  border-bottom-color: var(--sp-line, #dbe4ec);
   font-size: 12px;
   font-weight: 650;
 }
 
 .receiving-queue__table .ant-table-tbody > tr > td {
-  border-bottom-color: var(--sp-line, #d8d8cd);
+  border-bottom-color: var(--sp-line, #dbe4ec);
   vertical-align: top;
 }
 
@@ -86,12 +90,12 @@
 
 .receiving-queue__identity > span,
 .receiving-queue__date > span {
-  color: var(--sp-muted, #66706a);
+  color: var(--sp-muted, #53697e);
   font-size: 12px;
 }
 
 .receiving-queue__date > strong {
-  color: var(--sp-ink, #252a26);
+  color: var(--sp-ink, #16283b);
   font-size: 12px;
   font-weight: 600;
 }
@@ -103,7 +107,7 @@
 
 .receiving-queue__po-link {
   min-width: 0;
-  color: var(--sp-evergreen, #285241);
+  color: var(--sp-primary, #0d6b67);
   font-weight: 700;
   text-decoration-thickness: 1px;
   text-underline-offset: 3px;
@@ -122,22 +126,22 @@
 }
 
 .receiving-queue__progress {
-  color: var(--sp-muted, #66706a);
+  color: var(--sp-muted, #53697e);
   font-size: 12px;
   line-height: 1.45;
 }
 
 .receiving-queue__progress.is-current {
-  color: var(--sp-evergreen, #285241);
+  color: var(--sp-primary, #0d6b67);
   font-weight: 700;
 }
 
 .receiving-queue__items {
   display: block;
   max-width: 36ch;
-  color: var(--sp-ink, #252a26);
+  color: var(--sp-ink, #16283b);
   font-size: 13px;
-  line-height: 1.6;
+  line-height: 1.55;
   overflow-wrap: anywhere;
 }
 
@@ -145,7 +149,7 @@
   display: inline-flex;
   min-height: 40px;
   align-items: center;
-  color: var(--sp-evergreen, #285241);
+  color: var(--sp-primary, #0d6b67);
   font-weight: 700;
   text-underline-offset: 3px;
   white-space: nowrap;
@@ -161,8 +165,8 @@
   justify-content: space-between;
   gap: 12px;
   padding-top: 12px;
-  border-top: 1px solid var(--sp-line, #d8d8cd);
-  color: var(--sp-muted, #66706a);
+  border-top: 1px solid var(--sp-line, #dbe4ec);
+  color: var(--sp-muted, #53697e);
   font-size: 12px;
 }
 
@@ -170,7 +174,7 @@
 .receiving-queue button:focus-visible,
 .receiving-queue input:focus-visible,
 .receiving-queue .ant-select-focused .ant-select-selector {
-  outline: 3px solid var(--sp-focus, #1b66d1);
+  outline: 3px solid var(--sp-focus, #2563eb);
   outline-offset: 2px;
 }
 
@@ -222,7 +226,7 @@
     display: grid;
     gap: 10px;
     padding-block: 16px;
-    border-bottom: 1px solid var(--sp-line, #d8d8cd);
+    border-bottom: 1px solid var(--sp-line, #dbe4ec);
   }
 
   .receiving-queue__mobile-top {
@@ -246,7 +250,7 @@
 
   .receiving-queue__supplier {
     margin: 0;
-    color: var(--sp-muted, #66706a);
+    color: var(--sp-muted, #53697e);
     font-size: 13px;
     overflow-wrap: anywhere;
   }
@@ -257,7 +261,7 @@
     align-items: center;
     gap: 10px 18px;
     padding-block: 8px;
-    border-block: 1px solid var(--sp-line, #d8d8cd);
+    border-block: 1px solid var(--sp-line, #dbe4ec);
   }
 
   .receiving-queue__mobile-facts > div {
@@ -267,12 +271,12 @@
   }
 
   .receiving-queue__mobile-facts span {
-    color: var(--sp-muted, #66706a);
+    color: var(--sp-muted, #53697e);
     font-size: 11px;
   }
 
   .receiving-queue__mobile-facts strong {
-    color: var(--sp-ink, #252a26);
+    color: var(--sp-ink, #16283b);
     font-size: 13px;
     font-weight: 600;
     overflow-wrap: anywhere;
@@ -290,8 +294,9 @@
     width: 100%;
     min-height: 44px;
     justify-content: center;
-    border: 1px solid var(--sp-evergreen, #285241);
-    color: var(--sp-evergreen, #285241);
+    border: 1px solid var(--sp-primary, #0d6b67);
+    border-radius: var(--sp-radius-sm, 8px);
+    color: var(--sp-primary, #0d6b67);
     text-decoration: none;
   }
 
@@ -323,7 +328,6 @@
 
   .receiving-queue__mobile-top {
     flex-direction: column;
-    align-items: start;
   }
 
   .receiving-queue__mobile-top .receiving-queue__statuses {
@@ -338,6 +342,7 @@
 @media (forced-colors: active) {
   .receiving-queue__mobile-record,
   .receiving-queue__filters,
+  .receiving-queue__table,
   .receiving-queue__table .ant-table-thead > tr > th,
   .receiving-queue__table .ant-table-tbody > tr > td {
     border-color: CanvasText;
