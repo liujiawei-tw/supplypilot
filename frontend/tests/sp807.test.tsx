@@ -55,6 +55,7 @@ describe('SP-807 reusable business error alert', () => {
     [404, 'PURCHASE_ORDER_NOT_FOUND', '找不到資料'],
     [409, 'CONCURRENT_MODIFICATION', '資料已被其他操作更新'],
     [503, 'AI_PROVIDER_UNAVAILABLE', 'AI 服務暫時無法使用'],
+    [503, 'AI_QUERY_FAILED', 'AI 資料查詢失敗'],
   ] as const)('classifies HTTP %s %s for a reusable user-facing alert', (status, code, expectedTitle) => {
     render(<ErrorState error={toApiError(failure(status, code, 'Backend message', 'trace-safe'))} />);
     expect(screen.getByText(expectedTitle)).toBeTruthy();

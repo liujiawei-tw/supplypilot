@@ -62,6 +62,7 @@ public enum ErrorCode {
     AI_PROVIDER_UNAVAILABLE("AI provider is unavailable."),
     AI_TIMEOUT("AI provider timed out."),
     AI_INVALID_RESPONSE("AI provider returned an invalid response."),
+    AI_QUERY_FAILED("AI business data query failed."),
     AI_PROPOSAL_NOT_FOUND("AI draft proposal was not found."),
     AI_PROPOSAL_EXPIRED("AI draft proposal has expired."),
     AI_PROPOSAL_ALREADY_CONFIRMED("AI draft proposal was already confirmed."),

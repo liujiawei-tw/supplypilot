@@ -142,6 +142,16 @@ public class PurchaseOrderService {
 
     @Transactional(readOnly = true)
     @PreAuthorize("hasAnyRole('PROCUREMENT_STAFF', 'PROCUREMENT_MANAGER', 'ADMIN')")
+    public PurchaseOrderResponse getByPoNumber(String poNumber) {
+        if (poNumber == null || poNumber.isBlank()) {
+            throw new BusinessException(ErrorCode.VALIDATION_FAILED);
+        }
+        return purchaseOrderMapper.toResponse(purchaseOrderRepository.findDetailedByPoNumber(poNumber.trim())
+                .orElseThrow(() -> new BusinessException(ErrorCode.PURCHASE_ORDER_NOT_FOUND)));
+    }
+
+    @Transactional(readOnly = true)
+    @PreAuthorize("hasAnyRole('PROCUREMENT_STAFF', 'PROCUREMENT_MANAGER', 'ADMIN')")
     public PageResponse<PurchaseOrderResponse> list(
             PurchaseOrderStatus status, Long supplierId, Long materialId,
             String poNumber, String supplierCode, String supplierName, String materialCode,
@@ -214,6 +224,34 @@ public class PurchaseOrderService {
         }
         return list(PurchaseOrderStatus.ORDERED, null, materialId, null, null, null, null,
                 null, null, null, null, null, pageable);
+    }
+
+    /** Lists each ORDERED PO once when it contains any of the selected materials. */
+    @Transactional(readOnly = true)
+    @PreAuthorize("hasAnyRole('PROCUREMENT_STAFF', 'PROCUREMENT_MANAGER', 'ADMIN')")
+    public PageResponse<PurchaseOrderResponse> listOpenByMaterialIds(List<Long> materialIds, Pageable pageable) {
+        List<Long> ids = materialIds == null ? List.of() : materialIds.stream().filter(Objects::nonNull).distinct().toList();
+        if (ids.isEmpty()) {
+            return new PageResponse<>(List.of(), pageable.getPageNumber(), pageable.getPageSize(), 0, 0);
+        }
+        Specification<PurchaseOrder> specification = (root, query, builder) -> {
+            Subquery<Long> itemExists = query.subquery(Long.class);
+            var item = itemExists.from(PurchaseOrderItem.class);
+            itemExists.select(builder.literal(1L)).where(builder.and(
+                    builder.equal(item.get("purchaseOrder"), root),
+                    item.get("material").get("id").in(ids)));
+            return builder.and(builder.equal(root.get("status"), PurchaseOrderStatus.ORDERED),
+                    builder.exists(itemExists));
+        };
+        Page<PurchaseOrder> result = purchaseOrderRepository.findAll(specification, pageable);
+        List<Long> orderIds = result.getContent().stream().map(PurchaseOrder::getId).toList();
+        Map<Long, PurchaseOrder> detailed = orderIds.isEmpty() ? Map.of() : purchaseOrderRepository
+                .findDetailedByIdIn(orderIds).stream().collect(Collectors.toMap(PurchaseOrder::getId,
+                        Function.identity()));
+        List<PurchaseOrderResponse> content = orderIds.stream().map(detailed::get)
+                .map(purchaseOrderMapper::toResponse).toList();
+        return new PageResponse<>(content, result.getNumber(), result.getSize(),
+                result.getTotalElements(), result.getTotalPages());
     }
 
     @Transactional

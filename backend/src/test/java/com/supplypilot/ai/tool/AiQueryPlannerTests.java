@@ -98,4 +98,69 @@ class AiQueryPlannerTests {
         assertThat(planner.missingIdentifier("列出所有未完成採購單")).isNull();
         assertThat(planner.missingIdentifier("原料驗收 SOP 的條款")).isNull();
     }
+
+    @Test
+    void recognizesNamedMaterialInventoryQuestionsWithoutAskingForItsCode() {
+        String question = "阿薩姆紅茶萃取物 目前庫存?";
+
+        assertThat(planner.plan(question).tool()).isEqualTo(AiToolType.QUERY_INVENTORY);
+        assertThat(planner.missingIdentifier(question)).isNull();
+        assertThat(planner.materialName(question)).isEqualTo("阿薩姆紅茶萃取物");
+        assertThat(planner.materialCodes("阿薩姆紅茶萃取物 目前庫存?")).isEmpty();
+    }
+
+    @Test
+    void extractsMaterialNameFromNaturalInventoryRequestWithRequestedUnit() {
+        String question = "我想確認一下，阿薩姆紅茶萃取物現在還剩多少庫存？請用公斤告訴我。";
+
+        assertThat(planner.missingIdentifier(question)).isNull();
+        assertThat(planner.materialName(question)).isEqualTo("阿薩姆紅茶萃取物");
+    }
+
+    @Test
+    void recognizesConversationalOpenPurchaseOrderRequest() {
+        assertThat(planner.plan("有哪些採購單已經下單、但還沒收貨？幫我列出單號、供應商和預計交貨日。")
+                .tool()).isEqualTo(AiToolType.QUERY_OPEN_PO);
+    }
+
+    @Test
+    void extractsAllMaterialCodesAndKeepsPurchaseOrderNumbersSeparate() {
+        assertThat(planner.materialCodes("MAT-001 / MAT-002 目前庫存?"))
+                .containsExactly("MAT-001", "MAT-002");
+        assertThat(planner.materialCodes("PO-20261102-000004 目前狀態?"))
+                .isEmpty();
+        assertThat(planner.purchaseOrderNumber("PO-20261102-000004 目前狀態?"))
+                .isEqualTo("PO-20261102-000004");
+    }
+
+    @Test
+    void extractsDistinctExplicitSupplierCodesAndKeepsSingleCodeCompatibility() {
+        assertThat(planner.supplierCodes("SUP-001 評價?")).containsExactly("SUP-001");
+        assertThat(planner.supplierCode("SUP-001 評價?")).isEqualTo("SUP-001");
+        assertThat(planner.supplierCodes("SUP-001 / SUP-002 評價?"))
+                .containsExactly("SUP-001", "SUP-002");
+        assertThat(planner.plan("SUP-001 / SUP-002 評價?").supplierCodes())
+                .containsExactly("SUP-001", "SUP-002");
+        assertThat(planner.supplierCodes("SUP-001 / SUP-001 評價?"))
+                .containsExactly("SUP-001");
+    }
+
+    @Test
+    void parsesEnglishChineseAndMixedNamesWithoutTreatingQueryWordsAsNames() {
+        assertThat(planner.materialName("Assam inventory?")).isEqualTo("Assam");
+        assertThat(planner.supplierName("Supplier Two reliability rating?")).isEqualTo("Supplier Two");
+        assertThat(planner.plan("Supplier Two reliability rating?").tool()).isEqualTo(AiToolType.QUERY_SUPPLIER);
+        assertThat(planner.supplierName("What is Supplier Two's reliability rating?"))
+                .isEqualTo("Supplier Two");
+        assertThat(planner.plan("What is Supplier Two's reliability rating?").tool()).isEqualTo(AiToolType.QUERY_SUPPLIER);
+        assertThat(planner.materialName("How much inventory does Assam have?")).isEqualTo("Assam");
+        assertThat(planner.plan("How much inventory does Assam have?").tool()).isEqualTo(AiToolType.QUERY_INVENTORY);
+        assertThat(planner.materialName("阿薩姆紅茶萃取物目前庫存?")).isEqualTo("阿薩姆紅茶萃取物");
+        assertThat(planner.materialName("阿薩姆 Assam 紅茶 inventory?")).isEqualTo("阿薩姆 Assam 紅茶");
+        assertThat(planner.materialName("Assam-2 inventory?")).isEqualTo("Assam-2");
+        assertThat(planner.materialCodes("Assam-2 inventory?")).isEmpty();
+        assertThat(planner.materialName("inventory stock level?")).isNull();
+        assertThat(planner.supplierName("supplier reliability rating?")).isNull();
+        assertThat(planner.missingIdentifier("Supplier Two reliability rating?")).isNull();
+    }
 }

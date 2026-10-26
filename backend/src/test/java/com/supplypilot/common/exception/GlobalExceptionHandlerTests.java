@@ -107,6 +107,7 @@ class GlobalExceptionHandlerTests {
         assertBusinessError("ai-unavailable", 503, ErrorCode.AI_PROVIDER_UNAVAILABLE);
         assertBusinessError("ai-timeout", 503, ErrorCode.AI_TIMEOUT);
         assertBusinessError("ai-invalid", 503, ErrorCode.AI_INVALID_RESPONSE);
+        assertBusinessError("ai-query-failed", 503, ErrorCode.AI_QUERY_FAILED);
     }
 
     @Test
@@ -236,6 +237,11 @@ class GlobalExceptionHandlerTests {
         @GetMapping("/ai-invalid")
         void aiInvalid() {
             throw new BusinessException(ErrorCode.AI_INVALID_RESPONSE);
+        }
+
+        @GetMapping("/ai-query-failed")
+        void aiQueryFailed() {
+            throw new BusinessException(ErrorCode.AI_QUERY_FAILED);
         }
 
         @GetMapping("/constraint")
