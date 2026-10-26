@@ -30,3 +30,13 @@
 - Docker Compose 專案 `supplypilot-ux-preview` 已以最新 frontend image 重建並啟動。Frontend、Backend、MySQL、pgvector 健康檢查皆為 `healthy`；前端網址 `http://127.0.0.1:8081/login`。
 - 瀏覽器滿版檢查：桌機 1280×720 的 document 高度 720；手機 390×844、390×667、320×568 各自 document 寬高都等於 viewport。登入區塊完整位於畫面內，320×568 的表單底部為 y=565，沒有水平或垂直捲動。短暫 viewport override 已重設為桌機尺寸。
 - 登入畫面為真實 Compose Browser 畫面；沒有提交登入表單。真實 Gemini／RAG／AWS E2E、已登入採購工作流程與 200% 縮放：`NOT RUN`。GitHub Actions 仍 `PAUSED BY USER / NOT USED AS GATE`。
+
+## 2026-10-27：手機導覽提示與 PO 八階段路徑
+
+- 手機導覽右側加入不攔截觸控的漸層與箭頭提示；在 390×844 Compose 預覽中，導覽容器可視寬 370px、內容寬 704px，提示顯示寬 38px。文件寬 380px，沒有導覽造成的水平頁面溢出。原始可視畫面為已登入的 `/purchase-orders`。
+- PO 階段路徑改為桌面單列連線步驟、平板四欄、手機可鍵盤聚焦的水平滑動列；手機摘要會顯示後端確認的目前階段與下一步，完成階段顯示「流程已完成」。未知階段仍沿用不推測位置的狀態提示。
+- `npm run lint`：Exit Code 0，仍有 6 項既有 Oxlint 警告；原始輸出：[follow-up-lint.log](../../../.impeccable/validation/follow-up-lint.log)。
+- `VITE_API_BASE_URL=/api/v1 npm run build`：Exit Code 0，轉譯 3,278 個模組；JS bundle 1,610.31 kB（gzip 501.97 kB），有 Vite 大型 chunk 建議警告；原始輸出：[follow-up-build.log](../../../.impeccable/validation/follow-up-build.log)。
+- 精準測試 `npm run test -- tests/issue143PurchaseOrders.test.tsx`：第一次在收集測試前因 Windows sandbox 暫存目錄 rename `EPERM` 結束（Exit Code 1，原始輸出：[follow-up-po-stage-test.log](../../../.impeccable/validation/follow-up-po-stage-test.log)）；將 `TEMP`／`TMP` 指到工作區暫存目錄後重跑，17/17 通過、Exit Code 0（[follow-up-po-stage-test-retry.log](../../../.impeccable/validation/follow-up-po-stage-test-retry.log)）。測試涵蓋八階段、目前階段與下一步摘要，以及未知階段不推測。
+- 以最新 frontend image 重建並更新 `supplypilot-ux-preview`；`docker compose ps` 顯示 Frontend、Backend、MySQL、pgvector 均為 `healthy`，前端仍在 `http://127.0.0.1:8081`。
+- 實際採購資料限制：重新載入後清單顯示沒有符合條件的 PO；已存在的 PO-20261109-000001 詳情由後端回報 Stage `—`。因此未用推測資料宣稱已完成瀏覽器中的非空階段列驗收；階段列呈現與摘要由上述既有 PO 契約測試驗證。瀏覽器 console 沒有 error/warning。

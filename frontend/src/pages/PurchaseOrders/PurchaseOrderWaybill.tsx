@@ -40,6 +40,7 @@ export function PurchaseOrderWaybill({ purchaseOrder }: PurchaseOrderWaybillProp
 
 export function PurchaseOrderStageRail({ stage }: { stage: PurchaseOrderStage | null }) {
   const currentIndex = stage === null ? -1 : purchaseOrderStages.findIndex((item) => item.id === stage);
+  const nextStage = currentIndex >= 0 ? purchaseOrderStages[currentIndex + 1] : undefined;
   return (
     <section className="po-stage-rail" aria-label="採購單八階段流程">
       <div className="po-stage-rail__heading">
@@ -49,15 +50,22 @@ export function PurchaseOrderStageRail({ stage }: { stage: PurchaseOrderStage | 
       {currentIndex < 0 ? (
         <p className="po-stage-rail__unknown" role="status">後端尚未確認此採購單所在階段；不推測舊資料位置，也不提供看板操作。</p>
       ) : (
-        <ol className="po-stage-rail__list">
-          {purchaseOrderStages.map((item, index) => (
-            <li key={item.id} className={`po-stage-rail__step${index === currentIndex ? ' is-current' : index < currentIndex ? ' is-before' : ''}`} aria-current={index === currentIndex ? 'step' : undefined}>
-              <span className="po-stage-rail__number" aria-hidden="true">{String(index + 1).padStart(2, '0')}</span>
-              <span className="po-stage-rail__label">{item.label}</span>
-              {index === currentIndex && <span className="po-stage-rail__current">目前</span>}
-            </li>
-          ))}
-        </ol>
+        <>
+          <p className="po-stage-rail__mobile-summary" aria-hidden="true">
+            <span>目前：<strong>{purchaseOrderStages[currentIndex].label}</strong></span>
+            <span>下一步：<strong>{nextStage?.label ?? '流程已完成'}</strong></span>
+            <span className="po-stage-rail__scroll-hint">左右滑動查看完整流程</span>
+          </p>
+          <ol className="po-stage-rail__list" tabIndex={0} aria-label="採購單階段順序">
+            {purchaseOrderStages.map((item, index) => (
+              <li key={item.id} className={`po-stage-rail__step${index === currentIndex ? ' is-current' : index < currentIndex ? ' is-before' : ''}`} aria-current={index === currentIndex ? 'step' : undefined}>
+                <span className="po-stage-rail__number" aria-hidden="true">{String(index + 1).padStart(2, '0')}</span>
+                <span className="po-stage-rail__label">{item.label}</span>
+                {index === currentIndex && <span className="po-stage-rail__current">目前</span>}
+              </li>
+            ))}
+          </ol>
+        </>
       )}
     </section>
   );

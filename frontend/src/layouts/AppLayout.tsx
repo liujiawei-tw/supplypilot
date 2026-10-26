@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Button, Typography } from 'antd';
-import { FileSearchOutlined, LogoutOutlined, SearchOutlined } from '@ant-design/icons';
+import { FileSearchOutlined, LogoutOutlined, RightOutlined, SearchOutlined } from '@ant-design/icons';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import './AppLayout.css';
 import { useAuth } from '../auth/useAuth';
@@ -130,6 +130,7 @@ export const AppLayout: React.FC = () => {
                 );
               })}
             </div>
+            <span className="app-nav__scroll-cue" aria-hidden="true"><RightOutlined /></span>
           </nav>
         ) : (
           <div className="app-password-notice" role="status">請完成密碼設定後再進入採購工作區。</div>

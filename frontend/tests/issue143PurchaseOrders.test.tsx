@@ -107,6 +107,10 @@ describe('Issue #143 purchase-order view contracts', () => {
     const rail = screen.getByRole('region', { name: '採購單八階段流程' });
     expect(within(rail).getAllByRole('listitem')).toHaveLength(8);
     expect(within(rail).getByRole('listitem', { current: 'step' }).textContent).toContain('已下單／生產／交期跟催');
+    const mobileSummary = rail.querySelector('.po-stage-rail__mobile-summary');
+    expect(mobileSummary?.getAttribute('aria-hidden')).toBe('true');
+    expect(mobileSummary?.textContent).toContain('目前：已下單／生產／交期跟催');
+    expect(mobileSummary?.textContent).toContain('下一步：到貨驗收');
     expect(rail.textContent).toContain('目前 Stage 與正式狀態分開記錄');
   });
 
