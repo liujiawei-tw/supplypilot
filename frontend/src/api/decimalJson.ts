@@ -3,7 +3,8 @@ import { isInteger, isLosslessNumber, LosslessNumber, parse, stringify } from 'l
 export type DecimalValue = string | number;
 
 /** BigDecimal fields in Material, Inventory, SupplierMaterial, PO, Receiving, and StockTransaction response DTOs. */
-const BIG_DECIMAL_FIELDS = new Set(['quantity', 'unitPrice', 'total', 'moq', 'packageMultiple', 'safetyStock']);
+const BIG_DECIMAL_FIELDS = new Set(['quantity', 'unitPrice', 'lineTotal', 'total', 'amount', 'averageUnitPrice',
+  'minimumUnitPrice', 'maximumUnitPrice', 'reliabilityScore', 'qualityScore', 'moq', 'packageMultiple', 'safetyStock']);
 
 /**
  * Parse API numbers according to the formal response DTO field type.

@@ -3,6 +3,7 @@ package com.supplypilot.ai.tool;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 
 import com.supplypilot.ai.client.AiProviderException;
 import com.supplypilot.ai.client.AiFailureDetail;
@@ -19,7 +20,10 @@ public final class SpringAiReadTools {
     private final AiToolRegistry registry;
     private final int maxToolCalls;
     private final String originalQuestion;
-    private final String permittedMaterial;
+    private final Set<String> permittedMaterials;
+    private final String permittedSupplier;
+    private final String permittedSupplierName;
+    private final String permittedPurchaseOrder;
     private final Long permittedRecommendation;
     private final List<AiToolResult> executions = new ArrayList<>();
     private int ignoredOptionalRecommendationMisses;
@@ -29,7 +33,10 @@ public final class SpringAiReadTools {
         this.registry = registry;
         this.maxToolCalls = maxToolCalls;
         this.originalQuestion = originalQuestion;
-        this.permittedMaterial = planner.materialCode(originalQuestion);
+        this.permittedMaterials = Set.copyOf(planner.materialCodes(originalQuestion));
+        this.permittedSupplier = planner.supplierCode(originalQuestion);
+        this.permittedSupplierName = planner.supplierName(originalQuestion);
+        this.permittedPurchaseOrder = planner.purchaseOrderNumber(originalQuestion);
         this.permittedRecommendation = planner.recommendationId(originalQuestion);
     }
 
@@ -64,6 +71,63 @@ public final class SpringAiReadTools {
         return execute(new AiQueryPlan(AiToolType.QUERY_INVENTORY, null, materialCode, null));
     }
 
+    @Tool(name = "QUERY_INVENTORY_BATCH", description = "Read current inventory for every exact material code listed in the user question in one batch.")
+    public String queryInventoryBatch(
+            @ToolParam(description = "All exact material codes explicitly present in the question") List<String> materialCodes
+    ) {
+        List<String> codes = materialCodes == null ? List.of() : List.copyOf(materialCodes);
+        return execute(new AiQueryPlan(AiToolType.QUERY_INVENTORY, null,
+                codes.isEmpty() ? null : codes.getFirst(), null, codes, null, null, null, null));
+    }
+
+    @Tool(name = "QUERY_INVENTORY_BY_NAME", description = "Resolve a material name against the live material master, then read inventory when the match is unique.")
+    public String queryInventoryByName(
+            @ToolParam(description = "Material name written literally in the user question") String materialName
+    ) {
+        return execute(new AiQueryPlan(AiToolType.QUERY_INVENTORY, null, null, null,
+                List.of(), materialName, null, null, null));
+    }
+
+    @Tool(name = "QUERY_SUPPLIER_QUOTES", description = "Read active supplier-material quotes from current master data; includes supplier, material, price, currency, base unit and lead time.")
+    public String querySupplierQuotes(
+            @ToolParam(description = "Exact material codes explicitly present in the question", required = false) @Nullable List<String> materialCodes,
+            @ToolParam(description = "Material name written literally in the question", required = false) @Nullable String materialName
+    ) {
+        return execute(new AiQueryPlan(AiToolType.QUERY_SUPPLIER_QUOTES, null,
+                materialCodes == null || materialCodes.isEmpty() ? null : materialCodes.getFirst(), null,
+                materialCodes == null ? List.of() : materialCodes, materialName, null, null, null));
+    }
+
+    @Tool(name = "QUERY_AVERAGE_PRICE", description = "Calculate deterministic arithmetic averages from active current supplier-material quotes, grouped by currency and pricing unit.")
+    public String queryAveragePrice(
+            @ToolParam(description = "Exact material codes explicitly present in the question", required = false) @Nullable List<String> materialCodes,
+            @ToolParam(description = "Material name written literally in the question", required = false) @Nullable String materialName
+    ) {
+        return execute(new AiQueryPlan(AiToolType.QUERY_AVERAGE_PRICE, null,
+                materialCodes == null || materialCodes.isEmpty() ? null : materialCodes.getFirst(), null,
+                materialCodes == null ? List.of() : materialCodes, materialName, null, null, null));
+    }
+
+    @Tool(name = "QUERY_SUPPLIER", description = "Read a supplier master record by exact supplier code/name, or active suppliers linked to the exact material codes/name in the question.")
+    public String querySupplier(
+            @ToolParam(description = "Exact supplier code such as SUP-002", required = false) @Nullable String supplierCode,
+            @ToolParam(description = "Supplier name written literally in the question", required = false) @Nullable String supplierName,
+            @ToolParam(description = "Exact material codes explicitly present in the question", required = false) @Nullable List<String> materialCodes,
+            @ToolParam(description = "Material name written literally in the question", required = false) @Nullable String materialName
+    ) {
+        return execute(new AiQueryPlan(AiToolType.QUERY_SUPPLIER, null,
+                materialCodes == null || materialCodes.isEmpty() ? null : materialCodes.getFirst(), null,
+                materialCodes == null ? List.of() : materialCodes, materialName, supplierCode, supplierName, null));
+    }
+
+    @Tool(name = "QUERY_PURCHASE_ORDER", description = "Read exactly one purchase order by its complete PO number. Returns lifecycle status, separate Kanban stage, supplier, dates, line items and backend totals.")
+    public String queryPurchaseOrder(
+            @ToolParam(description = "Complete PO number explicitly present in the question, such as PO-20261102-000004") String poNumber
+    ) {
+        return execute(new AiQueryPlan(AiToolType.QUERY_PURCHASE_ORDER, null, null, null,
+                List.of(), null, null, null, poNumber));
+    }
+
     @Tool(name = "QUERY_OPEN_PO", description = "List open purchase orders, optionally filtered by one exact material code.")
     public String queryOpenPurchaseOrders(
             @ToolParam(description = "Exact material code, or omit to list all open purchase orders", required = false)
@@ -92,19 +156,43 @@ public final class SpringAiReadTools {
             throw new AiProviderException(ErrorCode.AI_INVALID_RESPONSE, AiFailureReason.TOOL_CALL_LIMIT);
         }
         if (plan.tool() != AiToolType.SEARCH_DOCUMENTS) {
-            String material = plan.materialCode() == null ? null
-                    : plan.materialCode().toUpperCase(Locale.ROOT);
-            if (material != null && !material.equals(permittedMaterial)) {
+            List<String> materialCodes = new ArrayList<>(plan.materialCodes());
+            if (plan.materialCode() != null) materialCodes.add(plan.materialCode());
+            boolean unauthorizedMaterial = materialCodes.stream().map(value -> value.toUpperCase(Locale.ROOT))
+                    .anyMatch(value -> !permittedMaterials.contains(value));
+            if (unauthorizedMaterial) {
                 throw new AiProviderException(ErrorCode.AI_INVALID_RESPONSE,
                         AiFailureReason.UNAUTHORIZED_OR_MISMATCHED_TOOL_IDENTIFIER,
                         AiFailureDetail.MATERIAL_CODE_NOT_IN_QUESTION);
+            }
+            if (hasText(plan.materialName()) && !containsLiteral(originalQuestion, plan.materialName())) {
+                throw new AiProviderException(ErrorCode.AI_INVALID_RESPONSE,
+                        AiFailureReason.UNAUTHORIZED_OR_MISMATCHED_TOOL_IDENTIFIER,
+                        AiFailureDetail.MATERIAL_NAME_NOT_IN_QUESTION);
+            }
+            if (hasText(plan.supplierName()) && (permittedSupplierName == null
+                    || !plan.supplierName().trim().equalsIgnoreCase(permittedSupplierName))) {
+                throw new AiProviderException(ErrorCode.AI_INVALID_RESPONSE,
+                        AiFailureReason.UNAUTHORIZED_OR_MISMATCHED_TOOL_IDENTIFIER,
+                        AiFailureDetail.SUPPLIER_NAME_NOT_IN_QUESTION);
+            }
+            if (plan.supplierCode() != null && !plan.supplierCode().equalsIgnoreCase(permittedSupplier)) {
+                throw new AiProviderException(ErrorCode.AI_INVALID_RESPONSE,
+                        AiFailureReason.UNAUTHORIZED_OR_MISMATCHED_TOOL_IDENTIFIER,
+                        AiFailureDetail.SUPPLIER_CODE_NOT_IN_QUESTION);
+            }
+            if (plan.purchaseOrderNumber() != null
+                    && !plan.purchaseOrderNumber().equalsIgnoreCase(permittedPurchaseOrder)) {
+                throw new AiProviderException(ErrorCode.AI_INVALID_RESPONSE,
+                        AiFailureReason.UNAUTHORIZED_OR_MISMATCHED_TOOL_IDENTIFIER,
+                        AiFailureDetail.PURCHASE_ORDER_NUMBER_NOT_IN_QUESTION);
             }
             if (plan.recommendationId() != null && !plan.recommendationId().equals(permittedRecommendation)) {
                 throw new AiProviderException(ErrorCode.AI_INVALID_RESPONSE,
                         AiFailureReason.UNAUTHORIZED_OR_MISMATCHED_TOOL_IDENTIFIER,
                         AiFailureDetail.RECOMMENDATION_ID_NOT_IN_QUESTION);
             }
-            if (plan.tool() == AiToolType.QUERY_OPEN_PO && permittedMaterial != null && material == null) {
+            if (plan.tool() == AiToolType.QUERY_OPEN_PO && !permittedMaterials.isEmpty() && materialCodes.isEmpty()) {
                 throw new AiProviderException(ErrorCode.AI_INVALID_RESPONSE,
                         AiFailureReason.UNAUTHORIZED_OR_MISMATCHED_TOOL_IDENTIFIER,
                         AiFailureDetail.OPEN_PO_MATERIAL_FILTER_MISSING);
@@ -133,4 +221,10 @@ public final class SpringAiReadTools {
         return tool == AiToolType.QUERY_RECOMMENDATION || tool == AiToolType.EXPLAIN_RECOMMENDATION
                 || tool == AiToolType.QUERY_SUPPLIER_RANKING;
     }
+
+    private boolean containsLiteral(String question, String value) {
+        return question.toLowerCase(Locale.ROOT).contains(value.trim().toLowerCase(Locale.ROOT));
+    }
+
+    private boolean hasText(String value) { return value != null && !value.isBlank(); }
 }

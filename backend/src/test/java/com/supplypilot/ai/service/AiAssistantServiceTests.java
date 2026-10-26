@@ -16,6 +16,7 @@ import com.supplypilot.ai.client.AiProviderException;
 import com.supplypilot.ai.client.AiProviderRequest;
 import com.supplypilot.ai.client.AiProviderResponse;
 import com.supplypilot.ai.dto.AiQueryStatus;
+import com.supplypilot.ai.dto.AiAnswerData;
 import com.supplypilot.ai.dto.AiSourceResponse;
 import com.supplypilot.ai.dto.AiToolType;
 import com.supplypilot.ai.tool.AiQueryPlanner;
@@ -62,6 +63,47 @@ class AiAssistantServiceTests {
         verify(currentUserProvider).getCurrentUserId();
         verify(planner).validate("庫存");
         verify(provider).query(new AiProviderRequest("庫存"));
+    }
+
+    @Test
+    void rejectsMultiMaterialInventoryAnswerWhenOneRequestedCodeIsMissing() {
+        AiToolResult partial = inventoryFacts(List.of(
+                new AiAnswerData.InventoryItem(1L, "MAT-001", "Assam", java.math.BigDecimal.ONE,
+                        "KG", java.time.Instant.parse("2026-10-15T00:00:00Z"))), List.of());
+
+        var response = queryWith("MAT-001 / MAT-002 目前庫存?", List.of(partial));
+
+        assertThat(response.status()).isEqualTo(AiQueryStatus.INSUFFICIENT_EVIDENCE);
+        assertThat(response.answer()).isNull();
+        assertThat(response.sources()).isEmpty();
+    }
+
+    @Test
+    void acceptsMultiMaterialInventoryAnswerOnlyWhenEveryRequestedCodeIsCovered() {
+        AiToolResult complete = inventoryFacts(List.of(
+                new AiAnswerData.InventoryItem(1L, "MAT-001", "Assam", java.math.BigDecimal.ONE,
+                        "KG", java.time.Instant.parse("2026-10-15T00:00:00Z")),
+                new AiAnswerData.InventoryItem(2L, "MAT-002", "Tea", java.math.BigDecimal.TEN,
+                        "KG", java.time.Instant.parse("2026-10-15T00:00:00Z"))), List.of());
+
+        var response = queryWith("MAT-001 / MAT-002 目前庫存?", List.of(complete));
+
+        assertThat(response.status()).isEqualTo(AiQueryStatus.ANSWERED);
+        assertThat(response.details().inventory()).extracting(item -> item.materialCode())
+                .containsExactly("MAT-001", "MAT-002");
+    }
+
+    @Test
+    void allowsExplicitlyUnmatchedMaterialAlongsideValidInventoryInBatchAnswer() {
+        AiToolResult mixed = inventoryFacts(List.of(
+                new AiAnswerData.InventoryItem(1L, "MAT-001", "Assam", java.math.BigDecimal.ONE,
+                        "KG", java.time.Instant.parse("2026-10-15T00:00:00Z"))), List.of("MAT-999"));
+
+        var response = queryWith("MAT-001 / MAT-999 目前庫存?", List.of(mixed));
+
+        assertThat(response.status()).isEqualTo(AiQueryStatus.ANSWERED);
+        assertThat(response.details().inventory()).extracting(item -> item.materialCode()).containsExactly("MAT-001");
+        assertThat(response.details().unmatchedIdentifiers()).containsExactly("MAT-999");
     }
 
     @Test
@@ -153,7 +195,7 @@ class AiAssistantServiceTests {
         assertThat(response.status()).isEqualTo(AiQueryStatus.ANSWERED);
         assertThat(response.answer()).contains("ORDERED 後 6 個曆日").doesNotContain("建議採購");
         assertThat(response.sources()).containsExactlyElementsOf(document.sources());
-        assertThat(response.tools()).containsExactly(AiToolType.SEARCH_DOCUMENTS, AiToolType.QUERY_RECOMMENDATION);
+        assertThat(response.tools()).containsExactly(AiToolType.SEARCH_DOCUMENTS);
     }
 
     @Test
@@ -237,8 +279,22 @@ class AiAssistantServiceTests {
     }
 
     private AiToolResult tool(AiToolType type, String fact, String resourceType) {
+        AiAnswerData details = type == AiToolType.QUERY_INVENTORY
+                ? new AiAnswerData(List.of(new AiAnswerData.InventoryItem(1L, "MAT-001", "Material",
+                        java.math.BigDecimal.ONE, "KG", java.time.Instant.parse("2026-10-15T00:00:00Z"))),
+                        List.of(), List.of(), List.of(), List.of(), List.of(), List.of(), List.of())
+                : AiAnswerData.empty();
         return new AiToolResult(type, AiQueryStatus.ANSWERED, fact,
-                List.of(AiSourceResponse.resource(resourceType, 1, "MAT-001")));
+                List.of(AiSourceResponse.resource(resourceType, 1, "MAT-001")), details);
+    }
+
+    private AiToolResult inventoryFacts(List<AiAnswerData.InventoryItem> items, List<String> unmatched) {
+        AiAnswerData details = new AiAnswerData(items, List.of(), List.of(), List.of(), List.of(), List.of(), unmatched,
+                List.of());
+        List<AiSourceResponse> sources = items.stream()
+                .map(item -> AiSourceResponse.resource("INVENTORY", item.materialId(), item.materialCode())).toList();
+        return new AiToolResult(AiToolType.QUERY_INVENTORY, AiQueryStatus.ANSWERED,
+                "批次庫存查詢已完成。", sources, details);
     }
 
     private AiToolResult document(String clause, String id) {

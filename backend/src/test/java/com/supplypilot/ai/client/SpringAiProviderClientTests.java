@@ -77,8 +77,10 @@ class SpringAiProviderClientTests {
         assertThat(List.of(ToolCallbacks.from(new SpringAiReadTools(
                 registry, planner(), "MAT-001 的庫存", 4))).stream()
                 .map(callback -> callback.getToolDefinition().name()).sorted().toList())
-                .containsExactly("EXPLAIN_RECOMMENDATION", "QUERY_INVENTORY", "QUERY_OPEN_PO",
-                        "QUERY_RECOMMENDATION", "QUERY_SUPPLIER_RANKING", "SEARCH_DOCUMENTS");
+                .containsExactly("EXPLAIN_RECOMMENDATION", "QUERY_AVERAGE_PRICE", "QUERY_INVENTORY",
+                        "QUERY_INVENTORY_BATCH", "QUERY_INVENTORY_BY_NAME", "QUERY_OPEN_PO",
+                        "QUERY_PURCHASE_ORDER", "QUERY_RECOMMENDATION", "QUERY_SUPPLIER",
+                        "QUERY_SUPPLIER_QUOTES", "QUERY_SUPPLIER_RANKING", "SEARCH_DOCUMENTS");
         ChatModel model = fakeModel(prompt -> hasToolResponse(prompt)
                 ? finalAnswer(1)
                 : toolCall("QUERY_INVENTORY", "{\"materialCode\":\"MAT-001\"}"));
@@ -679,6 +681,8 @@ class SpringAiProviderClientTests {
                 "QUERY_INVENTORY", "{\"materialCode\":\"MAT-001\"}"));
         assertProviderReason(provider(callsInventory, failingRegistry, Duration.ofSeconds(2)),
                 "MAT-001 庫存", AiFailureReason.TOOL_EXECUTION_FAILURE);
+        assertProviderCode(provider(callsInventory, failingRegistry, Duration.ofSeconds(2)),
+                ErrorCode.AI_QUERY_FAILED, "MAT-001 庫存");
     }
 
     @Test

@@ -1,8 +1,10 @@
 package com.supplypilot.ai.tool;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.mock;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -11,7 +13,9 @@ import java.util.List;
 
 import com.supplypilot.ai.dto.AiQueryStatus;
 import com.supplypilot.ai.dto.AiToolType;
+import com.supplypilot.ai.client.AiProviderException;
 import com.supplypilot.common.pagination.PageResponse;
+import com.supplypilot.common.exception.ErrorCode;
 import com.supplypilot.document.domain.DocumentType;
 import com.supplypilot.document.dto.response.DocumentQueryResponse;
 import com.supplypilot.document.dto.response.DocumentQueryStatus;
@@ -101,6 +105,27 @@ class AiReadToolBoundaryTests {
         assertThat(new DocumentSearchTool(documents).execute(
                 new AiQueryPlan(AiToolType.SEARCH_DOCUMENTS, null, null, "未知")).status())
                 .isEqualTo(AiQueryStatus.INSUFFICIENT_EVIDENCE);
+    }
+
+    @Test
+    void batchToolAcceptsEveryExplicitMaterialCodeAndRejectsAnyInjectedCode() {
+        AiToolRegistry registry = mock(AiToolRegistry.class);
+        when(registry.execute(ArgumentMatchers.any())).thenReturn(new com.supplypilot.ai.tool.AiToolResult(
+                AiToolType.QUERY_INVENTORY, AiQueryStatus.ANSWERED, "inventory facts", List.of()));
+        SpringAiReadTools tools = new SpringAiReadTools(registry, new AiQueryPlanner(),
+                "MAT-001 / MAT-002 目前庫存?", 3);
+
+        tools.queryInventoryBatch(List.of("MAT-001", "MAT-002"));
+        verify(registry).execute(new AiQueryPlan(AiToolType.QUERY_INVENTORY, null, "MAT-001", null,
+                List.of("MAT-001", "MAT-002"), null, null, null, null));
+
+        assertThatThrownBy(() -> tools.queryInventoryBatch(List.of("MAT-001", "MAT-999")))
+                .isInstanceOf(AiProviderException.class)
+                .extracting("errorCode").isEqualTo(ErrorCode.AI_INVALID_RESPONSE);
+
+        assertThatThrownBy(() -> tools.queryInventoryByName("未出現在問題中的物料"))
+                .isInstanceOf(AiProviderException.class)
+                .extracting("errorCode").isEqualTo(ErrorCode.AI_INVALID_RESPONSE);
     }
 
     private RecommendationResponse snapshot() {

@@ -418,7 +418,7 @@ System.getenv()
 - Local/Test 若未設定 Provider，核心 Backend 不得因為 AI 功能未啟用而無法啟動；呼叫未啟用的 AI 能力才返回適切既有 AI Error。
 - 自動化測試透過 Fake ChatModel／ToolCallback 運作，不得呼叫真實付費 Provider。Production 需要有效 Provider 設定，且不得使用 Fake Provider 偽裝成真正的模型整合。
 - V1 使用同步單輪 JSON，不配置 Chat Memory。`AI_MAX_OUTPUT_TOKENS` 限制每次模型輸出，`AI_MAX_TOOL_CALLS` 限制一次請求的工具執行次數，`AI_MAX_MODEL_CALLS` 限制模型呼叫輪數，`AI_PROVIDER_TIMEOUT` 限制整次 Provider 等待時間。預設分別為 512、4、5、15 秒。
-- 六個唯讀工具的 `returnDirect` 關閉，Spring AI 可以在同一請求呼叫多個工具後生成受限自然語言引言。最終 `answer` 的事實段落與 `sources` 一律由 Backend 已授權工具結果組成；模型引言只能使用安全句型。模型輸出不合格而已有充分事實時，`answerSource=BACKEND_FACTS`；合格時為 `MODEL_EXPLANATION`。`INSUFFICIENT_EVIDENCE` 仍回 `answer=null`。
+- AI Query 的唯讀 allowlist 關閉 `returnDirect`，Spring AI 可以在同一請求呼叫多個工具後生成受限自然語言引言。最終 `answer` 的事實段落與 `sources` 一律由 Backend 已授權工具結果組成；回答另附後端建立的型別化 `details`，供 UI 格式化顯示。模型引言只能使用安全句型。模型輸出不合格而已有充分事實時，`answerSource=BACKEND_FACTS`；合格時為 `MODEL_EXPLANATION`。`INSUFFICIENT_EVIDENCE` 仍回 `answer=null`；資料查詢失敗使用 `AI_QUERY_FAILED`，與查無業務資料的 `NOT_FOUND` 分開。
 - 缺少 Material Code／Recommendation ID 等必要識別時，`status=NEEDS_CLARIFICATION`、`answer` 說明需補充的欄位、`tools=[]`、`sources=[]`、`answerSource=BACKEND_CLARIFICATION`；V1 不保存上下文，需重新提出完整問題。
 - Tool Result 傳給 Gemini 的內容限定為工具種類、狀態及最多 1500 字的查詢事實，不傳 Source 摘錄或無關資料。月度 Token 用量警示的實際規則與驗證方式見下節；此警示不是平台硬費用上限。
 - Spring AI Tool Call 的參數／結果 observability 預設不匯出；應用只記錄 outcome、latency 與可取得的 total token usage，不記錄 prompt、API Key 或完整採購／合約內容。

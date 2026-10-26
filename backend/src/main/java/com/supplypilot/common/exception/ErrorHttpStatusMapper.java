@@ -39,7 +39,7 @@ final class ErrorHttpStatusMapper {
                     DATA_INTEGRITY_VIOLATION,
                     AI_PROPOSAL_EXPIRED,
                     AI_PROPOSAL_ALREADY_CONFIRMED -> HttpStatus.CONFLICT;
-            case AI_PROVIDER_UNAVAILABLE, AI_TIMEOUT, AI_INVALID_RESPONSE -> HttpStatus.SERVICE_UNAVAILABLE;
+            case AI_PROVIDER_UNAVAILABLE, AI_TIMEOUT, AI_INVALID_RESPONSE, AI_QUERY_FAILED -> HttpStatus.SERVICE_UNAVAILABLE;
             case UNAUTHENTICATED -> HttpStatus.UNAUTHORIZED;
             case ACCESS_DENIED -> HttpStatus.FORBIDDEN;
             case INTERNAL_SERVER_ERROR -> HttpStatus.INTERNAL_SERVER_ERROR;

@@ -19,6 +19,7 @@ export type BusinessErrorKind =
   | 'unknown-mutation-result'
   | 'internal-server-error'
   | 'ai-provider-unavailable'
+  | 'ai-query-failed'
   | 'request-failed';
 
 export interface BusinessErrorPresentation {
@@ -29,7 +30,7 @@ export interface BusinessErrorPresentation {
   retryAllowed: boolean;
 }
 
-const aiProviderCodes = new Set(['AI_PROVIDER_UNAVAILABLE', 'AI_TIMEOUT', 'AI_INVALID_RESPONSE']);
+const aiService503Codes = new Set(['AI_PROVIDER_UNAVAILABLE', 'AI_TIMEOUT', 'AI_INVALID_RESPONSE', 'AI_QUERY_FAILED']);
 
 function text(value: unknown): string {
   return typeof value === 'string' ? value : '';
@@ -65,6 +66,7 @@ function safeHttpMessage(status: number, code: string, backendMessage: string): 
   if (status === 503 && code === 'AI_TIMEOUT') return 'AI 服務回應逾時。未產生或採用替代答案；核心採購功能仍可正常使用。';
   if (status === 503 && code === 'AI_INVALID_RESPONSE') return 'AI 服務回覆未通過驗證，未顯示不可信的內容；核心採購功能仍可正常使用。';
   if (status === 503 && code === 'AI_PROVIDER_UNAVAILABLE') return 'AI 服務暫時無法使用；文件、庫存、建議、採購單與收貨等核心功能仍可正常使用。';
+  if (status === 503 && code === 'AI_QUERY_FAILED') return '資料查詢目前無法完成；系統未將查詢錯誤當成查無資料。';
   if (status === 503) return '服務暫時無法使用，請稍後再試。';
   if (status >= 500) return '伺服器發生暫時性問題，請稍後再試；如持續發生，請提供 Trace ID 給管理人員。';
   return backendMessage || fallbackError.message;
@@ -78,7 +80,7 @@ export function toApiError(error: unknown): ApiErrorResponse {
         ? error.response.data as Partial<ApiErrorResponse>
         : {};
       const unsafeCode = formalCode(data.code, `HTTP_${status}`);
-      const code = status >= 500 && !(status === 503 && aiProviderCodes.has(unsafeCode)) ? 'INTERNAL_SERVER_ERROR' : unsafeCode;
+      const code = status >= 500 && !(status === 503 && aiService503Codes.has(unsafeCode)) ? 'INTERNAL_SERVER_ERROR' : unsafeCode;
       return {
         code,
         message: safeHttpMessage(status, code, text(data.message)),
@@ -121,7 +123,8 @@ export function classifyApiError(error: ApiErrorResponse, operation: 'read' | 'm
   if (status === 404 || error.code.endsWith('_NOT_FOUND')) return { kind: 'not-found', title: '找不到資料', message: error.message, severity: 'warning', retryAllowed: operation === 'read' };
   if (status === 409 && error.code === 'DUPLICATE_RECEIVING') return { kind: 'duplicate-receiving', title: '收貨結果需要查核', message: error.message, severity: 'warning', retryAllowed: false };
   if (status === 409 || error.code === 'CONCURRENT_MODIFICATION') return { kind: 'concurrent-modification', title: '資料已被其他操作更新', message: error.message, severity: 'warning', retryAllowed: false };
-  if (status === 503 && aiProviderCodes.has(error.code)) return { kind: 'ai-provider-unavailable', title: 'AI 服務暫時無法使用', message: error.message, severity: 'warning', retryAllowed: operation === 'read' };
+  if (status === 503 && error.code === 'AI_QUERY_FAILED') return { kind: 'ai-query-failed', title: 'AI 資料查詢失敗', message: error.message, severity: 'error', retryAllowed: operation === 'read' };
+  if (status === 503 && aiService503Codes.has(error.code)) return { kind: 'ai-provider-unavailable', title: 'AI 服務暫時無法使用', message: error.message, severity: 'warning', retryAllowed: operation === 'read' };
   if ((status !== undefined && status >= 500) || error.code === 'INTERNAL_SERVER_ERROR') return { kind: 'internal-server-error', title: '伺服器暫時發生問題', message: error.message, severity: 'error', retryAllowed: operation === 'read' };
   if (operation === 'mutation' && (error.transportError || error.code === 'NETWORK_TIMEOUT' || error.code === 'NETWORK_ERROR')) {
     return { kind: 'unknown-mutation-result', title: '操作結果尚未確認', message: '連線中斷或逾時可能發生在系統完成操作之後。系統不會自動重送；請先使用正式查詢確認目前狀態。', severity: 'warning', retryAllowed: false };

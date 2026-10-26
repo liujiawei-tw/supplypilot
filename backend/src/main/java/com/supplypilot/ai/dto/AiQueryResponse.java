@@ -7,6 +7,17 @@ public record AiQueryResponse(
         String answer,
         List<AiToolType> tools,
         List<AiSourceResponse> sources,
-        String answerSource
+        String answerSource,
+        AiAnswerData details
 ) {
+    public AiQueryResponse(AiQueryStatus status, String answer, List<AiToolType> tools,
+                           List<AiSourceResponse> sources, String answerSource) {
+        this(status, answer, tools, sources, answerSource, AiAnswerData.empty());
+    }
+
+    public AiQueryResponse {
+        tools = tools == null ? List.of() : List.copyOf(tools);
+        sources = sources == null ? List.of() : List.copyOf(sources);
+        details = details == null ? AiAnswerData.empty() : details;
+    }
 }

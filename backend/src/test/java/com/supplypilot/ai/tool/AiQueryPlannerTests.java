@@ -98,4 +98,38 @@ class AiQueryPlannerTests {
         assertThat(planner.missingIdentifier("列出所有未完成採購單")).isNull();
         assertThat(planner.missingIdentifier("原料驗收 SOP 的條款")).isNull();
     }
+
+    @Test
+    void recognizesNamedMaterialInventoryQuestionsWithoutAskingForItsCode() {
+        String question = "阿薩姆紅茶萃取物 目前庫存?";
+
+        assertThat(planner.plan(question).tool()).isEqualTo(AiToolType.QUERY_INVENTORY);
+        assertThat(planner.missingIdentifier(question)).isNull();
+        assertThat(planner.materialName(question)).isEqualTo("阿薩姆紅茶萃取物");
+        assertThat(planner.materialCodes("阿薩姆紅茶萃取物 目前庫存?")).isEmpty();
+    }
+
+    @Test
+    void extractsMaterialNameFromNaturalInventoryRequestWithRequestedUnit() {
+        String question = "我想確認一下，阿薩姆紅茶萃取物現在還剩多少庫存？請用公斤告訴我。";
+
+        assertThat(planner.missingIdentifier(question)).isNull();
+        assertThat(planner.materialName(question)).isEqualTo("阿薩姆紅茶萃取物");
+    }
+
+    @Test
+    void recognizesConversationalOpenPurchaseOrderRequest() {
+        assertThat(planner.plan("有哪些採購單已經下單、但還沒收貨？幫我列出單號、供應商和預計交貨日。")
+                .tool()).isEqualTo(AiToolType.QUERY_OPEN_PO);
+    }
+
+    @Test
+    void extractsAllMaterialCodesAndKeepsPurchaseOrderNumbersSeparate() {
+        assertThat(planner.materialCodes("MAT-001 / MAT-002 目前庫存?"))
+                .containsExactly("MAT-001", "MAT-002");
+        assertThat(planner.materialCodes("PO-20261102-000004 目前狀態?"))
+                .isEmpty();
+        assertThat(planner.purchaseOrderNumber("PO-20261102-000004 目前狀態?"))
+                .isEqualTo("PO-20261102-000004");
+    }
 }

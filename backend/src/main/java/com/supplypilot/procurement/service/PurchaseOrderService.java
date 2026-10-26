@@ -142,6 +142,16 @@ public class PurchaseOrderService {
 
     @Transactional(readOnly = true)
     @PreAuthorize("hasAnyRole('PROCUREMENT_STAFF', 'PROCUREMENT_MANAGER', 'ADMIN')")
+    public PurchaseOrderResponse getByPoNumber(String poNumber) {
+        if (poNumber == null || poNumber.isBlank()) {
+            throw new BusinessException(ErrorCode.VALIDATION_FAILED);
+        }
+        return purchaseOrderMapper.toResponse(purchaseOrderRepository.findDetailedByPoNumber(poNumber.trim())
+                .orElseThrow(() -> new BusinessException(ErrorCode.PURCHASE_ORDER_NOT_FOUND)));
+    }
+
+    @Transactional(readOnly = true)
+    @PreAuthorize("hasAnyRole('PROCUREMENT_STAFF', 'PROCUREMENT_MANAGER', 'ADMIN')")
     public PageResponse<PurchaseOrderResponse> list(
             PurchaseOrderStatus status, Long supplierId, Long materialId,
             String poNumber, String supplierCode, String supplierName, String materialCode,

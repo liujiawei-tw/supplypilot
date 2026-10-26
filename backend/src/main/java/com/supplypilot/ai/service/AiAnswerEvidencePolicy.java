@@ -26,14 +26,33 @@ public class AiAnswerEvidencePolicy {
             return executions.stream().filter(this::answered).toList();
         }
         List<AiToolResult> supporting = executions.stream()
-                .filter(this::answered)
                 .filter(result -> requested.stream().anyMatch(tool -> AiQuestionIntent.satisfies(tool, result.tool())))
+                .filter(result -> result.status() == AiQueryStatus.ANSWERED
+                        || result.status() == AiQueryStatus.NOT_FOUND
+                        || result.status() == AiQueryStatus.NEEDS_CLARIFICATION)
                 .filter(result -> result.tool() != AiToolType.SEARCH_DOCUMENTS || supportedDocument(question, result))
                 .toList();
         // A compound request is not complete when only one of its explicitly requested facts is present.
         if (requested.stream().anyMatch(tool -> supporting.stream()
-                .noneMatch(result -> AiQuestionIntent.satisfies(tool, result.tool())))) {
+                .noneMatch(result -> AiQuestionIntent.satisfies(tool, result.tool())))
+                || executions.stream().anyMatch(result -> result.status() == AiQueryStatus.INSUFFICIENT_EVIDENCE
+                        && requested.stream().anyMatch(tool -> AiQuestionIntent.satisfies(tool, result.tool())))) {
             return List.of();
+        }
+        if (requested.contains(AiToolType.QUERY_INVENTORY)) {
+            Set<String> expectedCodes = Set.copyOf(new com.supplypilot.ai.tool.AiQueryPlanner().materialCodes(question));
+            if (!expectedCodes.isEmpty()) {
+                Set<String> observedCodes = supporting.stream()
+                        .filter(result -> result.tool() == AiToolType.QUERY_INVENTORY)
+                        .flatMap(result -> java.util.stream.Stream.concat(
+                                result.details().inventory().stream().map(item -> item.materialCode()),
+                                result.details().unmatchedIdentifiers().stream()))
+                        .map(value -> value == null ? "" : value.toUpperCase(java.util.Locale.ROOT))
+                        .collect(java.util.stream.Collectors.toSet());
+                boolean allRequestedCodesCovered = expectedCodes.stream().allMatch(expected -> observedCodes.stream()
+                        .anyMatch(observed -> observed.equals(expected) || observed.startsWith(expected + "（")));
+                if (!allRequestedCodesCovered) return List.of();
+            }
         }
         return supporting;
     }

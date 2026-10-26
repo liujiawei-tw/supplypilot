@@ -1,6 +1,8 @@
 package com.supplypilot.ai.tool;
 
 import java.util.Locale;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -11,7 +13,9 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class AiQueryPlanner {
-    private static final Pattern MATERIAL_CODE = Pattern.compile("(?i)\\b[A-Z]{2,}[A-Z0-9_]*-[A-Z0-9]+\\b");
+    private static final Pattern MATERIAL_CODE = Pattern.compile("(?i)(?<![A-Z0-9_])([A-Z]{2,}[A-Z0-9_]*-[A-Z0-9]+)(?![A-Z0-9_-])");
+    private static final Pattern SUPPLIER_CODE = Pattern.compile("(?i)(?<![A-Z0-9_])SUP(?:PLIER)?-[A-Z0-9]+(?![A-Z0-9_-])");
+    private static final Pattern PURCHASE_ORDER_NUMBER = Pattern.compile("(?i)(?<![A-Z0-9_])PO-[A-Z0-9]+-[A-Z0-9]+(?![A-Z0-9_-])");
     private static final Pattern RECOMMENDATION_ID = Pattern.compile(
             "(?i)(?:recommendation\\s*(?:id|#)|建議(?:編號| ID))\\s*[:#]?\\s*(\\d+)");
     private static final Pattern FORBIDDEN = Pattern.compile("(?i)(?:"
@@ -48,23 +52,23 @@ public class AiQueryPlanner {
 
     public AiQueryPlan plan(String message) {
         String normalized = validate(message);
-        String lower = normalized.toLowerCase(Locale.ROOT);
-        AiToolType tool;
-        if (containsAny(lower, "document", "contract", "quotation", "policy", "sop", "文件", "合約", "報價", "規範", "條款")) {
-            tool = AiToolType.SEARCH_DOCUMENTS;
-        } else if (containsAny(lower, "supplier", "ranking", "供應商", "排名")) {
-            tool = AiToolType.QUERY_SUPPLIER_RANKING;
-        } else if (containsAny(lower, "inventory", "stock", "庫存")) {
-            tool = AiToolType.QUERY_INVENTORY;
-        } else if (containsAny(lower, "purchase order", "open po", " po", "採購單", "未收貨", "在途")) {
-            tool = AiToolType.QUERY_OPEN_PO;
-        } else if (containsAny(lower, "recommendation", "recommended", "建議", "推薦")) {
-            tool = containsAny(lower, "why", "explain", "為什麼", "原因")
-                    ? AiToolType.EXPLAIN_RECOMMENDATION : AiToolType.QUERY_RECOMMENDATION;
-        } else {
-            tool = AiToolType.SEARCH_DOCUMENTS;
-        }
-        return new AiQueryPlan(tool, recommendationId(normalized), materialCode(normalized), normalized);
+        var requested = AiQuestionIntent.requestedTools(normalized);
+        AiToolType tool = requested.contains(AiToolType.SEARCH_DOCUMENTS) ? AiToolType.SEARCH_DOCUMENTS
+                : requested.contains(AiToolType.QUERY_PURCHASE_ORDER) ? AiToolType.QUERY_PURCHASE_ORDER
+                : requested.contains(AiToolType.QUERY_SUPPLIER_RANKING) ? AiToolType.QUERY_SUPPLIER_RANKING
+                : requested.contains(AiToolType.QUERY_RECOMMENDATION)
+                    ? containsAny(normalized.toLowerCase(Locale.ROOT), "why", "explain", "為什麼", "原因")
+                        ? AiToolType.EXPLAIN_RECOMMENDATION : AiToolType.QUERY_RECOMMENDATION
+                : requested.contains(AiToolType.QUERY_INVENTORY) ? AiToolType.QUERY_INVENTORY
+                : requested.contains(AiToolType.QUERY_AVERAGE_PRICE) ? AiToolType.QUERY_AVERAGE_PRICE
+                : requested.contains(AiToolType.QUERY_SUPPLIER_QUOTES) ? AiToolType.QUERY_SUPPLIER_QUOTES
+                : requested.contains(AiToolType.QUERY_SUPPLIER) ? AiToolType.QUERY_SUPPLIER
+                : requested.contains(AiToolType.QUERY_OPEN_PO) ? AiToolType.QUERY_OPEN_PO
+                : AiToolType.SEARCH_DOCUMENTS;
+        List<String> codes = materialCodes(normalized);
+        return new AiQueryPlan(tool, recommendationId(normalized), codes.isEmpty() ? null : codes.getFirst(),
+                normalized, codes, materialName(normalized), supplierCode(normalized), supplierName(normalized),
+                purchaseOrderNumber(normalized));
     }
 
     /** Auxiliary fail-closed input validation; the model, not this regex, selects the tool. */
@@ -79,9 +83,15 @@ public class AiQueryPlanner {
     /** Only a missing identifier for an identified record is answered without contacting the model. */
     public String missingIdentifier(String message) {
         String lower = message.toLowerCase(Locale.ROOT);
-        if (materialCode(message) != null || recommendationId(message) != null) return null;
-        if (containsAny(lower, "庫存", "inventory", "stock")) {
+        if (!materialCodes(message).isEmpty() || supplierCode(message) != null || purchaseOrderNumber(message) != null
+                || recommendationId(message) != null) return null;
+        if (containsAny(lower, "庫存", "存量", "還剩多少", "inventory", "stock") && materialName(message) == null) {
             return "請補充 Material Code（例如 MAT-001），並重新提出完整問題。";
+        }
+        if ((containsAny(lower, "單價", "平均價格", "平均報價", "報價", "price", "quote")
+                || containsAny(lower, "供應商", "supplier", "可靠度", "品質評分", "評價"))
+                && materialName(message) == null) {
+            return "請補充物料代碼或物料名稱；查詢供應商評價時也可提供供應商代碼或名稱。";
         }
         if (containsAny(lower, "建議", "recommendation", "供應商排名", "supplier ranking")) {
             return "請補充 Material Code 或 Recommendation ID，並重新提出完整問題。";
@@ -106,11 +116,53 @@ public class AiQueryPlanner {
 
     /** Extracts only explicit code syntax; the selected read tool remains responsible for existence and access checks. */
     public String materialCode(String message) {
+        List<String> codes = materialCodes(message);
+        return codes.isEmpty() ? null : codes.getFirst();
+    }
+
+    public List<String> materialCodes(String message) {
         Matcher matcher = MATERIAL_CODE.matcher(message);
+        List<String> codes = new ArrayList<>();
         while (matcher.find()) {
-            String candidate = matcher.group().toUpperCase(Locale.ROOT);
-            if (!candidate.startsWith("SUP-") && !candidate.startsWith("SUPPLIER-")) return candidate;
+            String candidate = matcher.group(1).toUpperCase(Locale.ROOT);
+            if (!candidate.startsWith("SUP-") && !candidate.startsWith("SUPPLIER-")
+                    && !candidate.startsWith("PO-")) codes.add(candidate);
         }
-        return null;
+        return codes.stream().distinct().toList();
+    }
+
+    public String supplierCode(String message) {
+        Matcher matcher = SUPPLIER_CODE.matcher(message);
+        return matcher.find() ? matcher.group().toUpperCase(Locale.ROOT) : null;
+    }
+
+    public String purchaseOrderNumber(String message) {
+        Matcher matcher = PURCHASE_ORDER_NUMBER.matcher(message);
+        return matcher.find() ? matcher.group().toUpperCase(Locale.ROOT) : null;
+    }
+
+    public String supplierName(String message) {
+        String lower = message.toLowerCase(Locale.ROOT);
+        if (supplierCode(message) != null || !containsAny(lower, "可靠度", "品質評分", "評價", "評分", "狀態", "啟用", "停用", "supplier rating", "supplier score")) {
+            return null;
+        }
+        String candidate = message.replaceAll("(?i)目前|現在|我想確認一下|請問|供應商|可靠度|品質評分|"
+                + "評價|評分|分數|狀態|是否|啟用|停用|的|為何|多少|如何|supplier|rating|score", " ")
+                .replaceAll("[\\p{Punct}\\p{Zs}？?！!，,。；;：:、]+", " ").trim();
+        if (candidate.isBlank() || candidate.matches("[A-Za-z0-9 _-]+")) return null;
+        return candidate.length() >= 2 ? candidate : null;
+    }
+
+    /** Returns only literal question text left after removing common inventory/price query wording. */
+    public String materialName(String message) {
+        if (message == null || !containsAny(message.toLowerCase(Locale.ROOT), "庫存", "存量", "還剩多少", "inventory", "stock",
+                "單價", "平均價格", "平均報價", "價格", "供應商", "supplier", "可靠度", "品質評分",
+                "評價", "評分", "報價", "有哪些")) return null;
+        String candidate = message.replaceAll("(?i)目前|現在|我想確認一下|我想查詢|請問|請用|告訴我|"
+                + "庫存|存量|還剩多少|多少|單價|平均價格|平均報價|平均單價|價格|報價|供應商|"
+                + "有哪些|可靠度|品質評分|評價|評分|狀態|啟用|停用|查詢|清單|這個|這筆|原料|物料|的|有效|目前有哪些|多少錢|各自|一公斤|公斤|千克|公克|公升|毫升|kg|\u00a0|inventory|stock|unit price|average price|quote|supplier|rating|quality|active|inactive", " ")
+                .replaceAll("[\\p{Punct}\\p{Zs}？?！!，,。；;：:、]+", " ").trim();
+        if (candidate.isBlank() || candidate.matches("[A-Za-z0-9 _-]+")) return null;
+        return candidate.length() >= 2 ? candidate : null;
     }
 }
