@@ -31,7 +31,8 @@ public class AiToolRegistry {
             case QUERY_SUPPLIER -> procurementReads.suppliers(plan.supplierCodes(), plan.supplierName(),
                     plan.materialCodes(), plan.materialName());
             case QUERY_PURCHASE_ORDER -> procurementReads.purchaseOrder(plan.purchaseOrderNumber());
-            case QUERY_OPEN_PO -> procurementReads.openPurchaseOrders(plan.materialCode());
+            case QUERY_OPEN_PO -> procurementReads.openPurchaseOrders(plan.materialCodes().isEmpty()
+                    && plan.materialCode() != null ? java.util.List.of(plan.materialCode()) : plan.materialCodes());
             case SEARCH_DOCUMENTS -> documents.execute(plan);
         };
     }

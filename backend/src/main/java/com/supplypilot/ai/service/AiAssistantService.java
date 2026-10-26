@@ -65,7 +65,7 @@ public class AiAssistantService {
                 partialDetails = new AiAnswerData(partialDetails.inventory(), partialDetails.quotes(),
                         partialDetails.averagePrices(), partialDetails.suppliers(), partialDetails.purchaseOrders(),
                         partialDetails.candidates(), partialDetails.unmatchedIdentifiers(), notes,
-                        partialDetails.purchaseOrderTotalCount());
+                        partialDetails.purchaseOrderTotalCount(), partialDetails.queriedMaterialCodes());
                 String partialFacts = partial.stream().map(AiToolResult::trustedFacts)
                         .filter(java.util.Objects::nonNull).filter(value -> !value.isBlank())
                         .collect(java.util.stream.Collectors.joining("\n"));

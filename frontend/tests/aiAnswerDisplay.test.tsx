@@ -69,6 +69,23 @@ describe('AI answer display', () => {
     expect(container.textContent).toContain('已查得未收貨採購單。');
   });
 
+  it('does not present fetched rows as the total when merged PO totals are unknown', () => {
+    const details = {
+      inventory: [], quotes: [], averagePrices: [], suppliers: [],
+      purchaseOrders: [
+        { purchaseOrderId: 8, poNumber: 'PO-1', status: 'ORDERED', stage: null, supplierCode: 'SUP-001', supplierName: 'One', expectedDeliveryDate: null, supplierPromisedDeliveryDate: null, items: [], totals: [], nextStep: null },
+        { purchaseOrderId: 9, poNumber: 'PO-2', status: 'ORDERED', stage: null, supplierCode: 'SUP-002', supplierName: 'Two', expectedDeliveryDate: null, supplierPromisedDeliveryDate: null, items: [], totals: [], nextStep: null },
+      ],
+      candidates: [], unmatchedIdentifiers: [], notes: [], purchaseOrderTotalCount: null,
+    };
+
+    const { container } = render(<AiAnswerDisplay answer={null} details={details} />);
+
+    expect(container.textContent).toContain('符合條件總數尚未確認；本次取得 2 筆，目前顯示 2 筆。');
+    expect(container.textContent).not.toContain('符合條件總數 2 筆');
+    expect(container.textContent).not.toContain('尚有');
+  });
+
   it('renders a structured zero open PO count', () => {
     const details = {
       inventory: [], quotes: [], averagePrices: [], suppliers: [], purchaseOrders: [],

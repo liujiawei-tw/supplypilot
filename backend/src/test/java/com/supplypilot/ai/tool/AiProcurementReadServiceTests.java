@@ -16,6 +16,7 @@ import java.util.Optional;
 import com.supplypilot.ai.dto.AiQueryStatus;
 import com.supplypilot.common.exception.BusinessException;
 import com.supplypilot.common.exception.ErrorCode;
+import com.supplypilot.common.pagination.PageResponse;
 import com.supplypilot.inventory.dto.response.InventoryResponse;
 import com.supplypilot.inventory.service.InventoryQueryService;
 import com.supplypilot.material.domain.BaseUnit;
@@ -186,6 +187,54 @@ class AiProcurementReadServiceTests {
     }
 
     @Test
+    void quoteAndAverageBatchPreservesFoundAndUnmatchedMaterialCodes() {
+        Material found = material("MAT-001", "Assam");
+        Supplier active = supplier("SUP-001", "One", SupplierStatus.ACTIVE);
+        when(materials.findByCode("MAT-001")).thenReturn(Optional.of(found));
+        when(materials.findByCode("MAT-999")).thenReturn(Optional.empty());
+        when(supplierMaterials.findByMaterialIdOrderByIdAsc(1L))
+                .thenReturn(List.of(quote(active, found, "10.0000", SupplierMaterialStatus.ACTIVE)));
+
+        var quotes = reads.supplierQuotes(List.of("MAT-001", "MAT-999"), null, false);
+        var averages = reads.supplierQuotes(List.of("MAT-001", "MAT-999"), null, true);
+
+        assertThat(quotes.status()).isEqualTo(AiQueryStatus.ANSWERED);
+        assertThat(quotes.details().quotes()).extracting(value -> value.materialCode()).containsExactly("MAT-001");
+        assertThat(quotes.details().queriedMaterialCodes()).containsExactly("MAT-001");
+        assertThat(quotes.details().unmatchedIdentifiers()).containsExactly("MAT-999");
+        assertThat(averages.status()).isEqualTo(AiQueryStatus.ANSWERED);
+        assertThat(averages.details().averagePrices()).extracting(value -> value.materialCode()).containsExactly("MAT-001");
+        assertThat(averages.details().queriedMaterialCodes()).containsExactly("MAT-001");
+        assertThat(averages.details().unmatchedIdentifiers()).containsExactly("MAT-999");
+    }
+
+    @Test
+    void preservesEveryUnmatchedMaterialWhenNoRequestedQuoteMaterialExists() {
+        when(materials.findByCode("MAT-991")).thenReturn(Optional.empty());
+        when(materials.findByCode("MAT-992")).thenReturn(Optional.empty());
+
+        var result = reads.supplierQuotes(List.of("MAT-991", "MAT-992"), null, false);
+
+        assertThat(result.status()).isEqualTo(AiQueryStatus.NOT_FOUND);
+        assertThat(result.details().unmatchedIdentifiers()).containsExactly("MAT-991", "MAT-992");
+        assertThat(result.trustedFacts()).contains("MAT-991", "MAT-992");
+        verify(supplierMaterials, never()).findByMaterialIdOrderByIdAsc(org.mockito.ArgumentMatchers.anyLong());
+    }
+
+    @Test
+    void recordsValidMaterialWithNoActiveQuotesAsQueriedRatherThanMissing() {
+        Material material = material("MAT-001", "Assam");
+        when(materials.findByCode("MAT-001")).thenReturn(Optional.of(material));
+        when(supplierMaterials.findByMaterialIdOrderByIdAsc(1L)).thenReturn(List.of());
+
+        var result = reads.supplierQuotes(List.of("MAT-001"), null, false);
+
+        assertThat(result.status()).isEqualTo(AiQueryStatus.NOT_FOUND);
+        assertThat(result.details().queriedMaterialCodes()).containsExactly("MAT-001");
+        assertThat(result.details().notes()).anySatisfy(note -> assertThat(note).contains("MAT-001"));
+    }
+
+    @Test
     void returnsSupplierMasterRatingsAndStatusWithoutSyntheticCombinedScore() {
         Supplier supplier = supplier("SUP-002", "Supplier Two", SupplierStatus.ACTIVE);
         when(suppliers.findByCode("SUP-002")).thenReturn(Optional.of(supplier));
@@ -338,6 +387,46 @@ class AiProcurementReadServiceTests {
             assertThat(result.details().purchaseOrders()).hasSize(returned);
             assertThat(result.trustedFacts()).contains("共 " + total + " 筆", "本次列出 " + returned + " 筆");
         }
+    }
+
+    @Test
+    void openPoMaterialBatchUsesOneUnionQueryAndPreservesMatchedAndUnmatchedCodes() {
+        Material first = material("MAT-001", "Assam");
+        Material second = material("MAT-002", "Tea");
+        when(materials.findByCode("MAT-001")).thenReturn(Optional.of(first));
+        when(materials.findByCode("MAT-002")).thenReturn(Optional.of(second));
+        when(materials.findByCode("MAT-999")).thenReturn(Optional.empty());
+        PurchaseOrderResponse order = poResponse(17L, PurchaseOrderStatus.ORDERED, PurchaseOrderStage.ORDER_FOLLOW_UP);
+        when(purchaseOrders.listOpenByMaterialIds(org.mockito.ArgumentMatchers.eq(List.of(1L, 2L)),
+                org.mockito.ArgumentMatchers.any())).thenReturn(new PageResponse<>(List.of(order), 0, 100, 1, 1));
+
+        var result = reads.openPurchaseOrders(List.of("MAT-001", "MAT-002", "MAT-999", "MAT-001"));
+
+        assertThat(result.details().purchaseOrderTotalCount()).isEqualTo(1L);
+        assertThat(result.details().purchaseOrders()).hasSize(1);
+        assertThat(result.details().queriedMaterialCodes()).containsExactly("MAT-001", "MAT-002");
+        assertThat(result.details().unmatchedIdentifiers()).containsExactly("MAT-999");
+        verify(purchaseOrders).listOpenByMaterialIds(org.mockito.ArgumentMatchers.eq(List.of(1L, 2L)),
+                org.mockito.ArgumentMatchers.any());
+        verify(purchaseOrders, never()).listOpen(org.mockito.ArgumentMatchers.eq("MAT-001"),
+                org.mockito.ArgumentMatchers.any());
+    }
+
+    @Test
+    void openPoMaterialBatchReturnsAuthoritativeZeroWhenNoOrdersMatch() {
+        Material first = material("MAT-001", "Assam");
+        Material second = material("MAT-002", "Tea");
+        when(materials.findByCode("MAT-001")).thenReturn(Optional.of(first));
+        when(materials.findByCode("MAT-002")).thenReturn(Optional.of(second));
+        when(purchaseOrders.listOpenByMaterialIds(org.mockito.ArgumentMatchers.eq(List.of(1L, 2L)),
+                org.mockito.ArgumentMatchers.any())).thenReturn(new PageResponse<>(List.of(), 0, 100, 0, 0));
+
+        var result = reads.openPurchaseOrders(List.of("MAT-001", "MAT-002"));
+
+        assertThat(result.status()).isEqualTo(AiQueryStatus.ANSWERED);
+        assertThat(result.details().purchaseOrderTotalCount()).isZero();
+        assertThat(result.details().queriedMaterialCodes()).containsExactly("MAT-001", "MAT-002");
+        assertThat(result.details().purchaseOrders()).isEmpty();
     }
 
     @Test

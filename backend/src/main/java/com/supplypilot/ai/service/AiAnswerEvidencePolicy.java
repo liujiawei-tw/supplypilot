@@ -39,19 +39,9 @@ public class AiAnswerEvidencePolicy {
                         && requested.stream().anyMatch(tool -> AiQuestionIntent.satisfies(tool, result.tool())))) {
             return List.of();
         }
-        if (requested.contains(AiToolType.QUERY_INVENTORY)) {
-            Set<String> expectedCodes = Set.copyOf(new com.supplypilot.ai.tool.AiQueryPlanner().materialCodes(question));
-            if (!expectedCodes.isEmpty()) {
-                Set<String> observedCodes = supporting.stream()
-                        .filter(result -> result.tool() == AiToolType.QUERY_INVENTORY)
-                        .flatMap(result -> java.util.stream.Stream.concat(
-                                result.details().inventory().stream().map(item -> item.materialCode()),
-                                result.details().unmatchedIdentifiers().stream()))
-                        .map(value -> value == null ? "" : value.toUpperCase(java.util.Locale.ROOT))
-                        .collect(java.util.stream.Collectors.toSet());
-                boolean allRequestedCodesCovered = expectedCodes.stream().allMatch(expected -> observedCodes.stream()
-                        .anyMatch(observed -> observed.equals(expected) || observed.startsWith(expected + "（")));
-                if (!allRequestedCodesCovered) return List.of();
+        for (AiToolType tool : requested) {
+            if (requiresMaterialCoverage(tool) && !allRequestedMaterialsCovered(tool, question, supporting)) {
+                return List.of();
             }
         }
         if (requested.contains(AiToolType.QUERY_SUPPLIER)) {
@@ -105,16 +95,13 @@ public class AiAnswerEvidencePolicy {
             }
         }
         Set<String> expectedMaterials = Set.copyOf(new com.supplypilot.ai.tool.AiQueryPlanner().materialCodes(question));
-        if (requested.contains(AiToolType.QUERY_INVENTORY) && !expectedMaterials.isEmpty()) {
-            Set<String> observed = partialResults.stream().filter(result -> result.tool() == AiToolType.QUERY_INVENTORY)
-                    .flatMap(result -> java.util.stream.Stream.concat(
-                            result.details().inventory().stream().map(item -> item.materialCode()),
-                            result.details().unmatchedIdentifiers().stream()))
-                    .map(value -> value == null ? "" : value.toUpperCase(java.util.Locale.ROOT))
-                    .collect(java.util.stream.Collectors.toSet());
+        for (AiToolType tool : requested) {
+            if (!requiresMaterialCoverage(tool) || expectedMaterials.isEmpty()) continue;
+            Set<String> observed = observedMaterialCodes(tool, partialResults);
             List<String> missing = expectedMaterials.stream().filter(expected -> observed.stream()
-                    .noneMatch(value -> value.equals(expected) || value.startsWith(expected + "（"))).toList();
-            if (!missing.isEmpty()) notes.add("尚未取得以下物料代碼的結果：" + String.join("、", missing) + "。");
+                    .noneMatch(value -> matchesMaterialCode(expected, value))).toList();
+            if (!missing.isEmpty()) notes.add("尚未取得以下" + toolLabel(tool) + "物料結果："
+                    + String.join("、", missing) + "。");
         }
         Set<String> expectedSuppliers = Set.copyOf(new com.supplypilot.ai.tool.AiQueryPlanner().supplierCodes(question));
         if (requested.contains(AiToolType.QUERY_SUPPLIER) && !expectedSuppliers.isEmpty()) {
@@ -129,6 +116,45 @@ public class AiAnswerEvidencePolicy {
             if (!missing.isEmpty()) notes.add("尚未取得以下供應商代碼的結果：" + String.join("、", missing) + "。");
         }
         return notes.stream().distinct().toList();
+    }
+
+    private boolean requiresMaterialCoverage(AiToolType tool) {
+        return tool == AiToolType.QUERY_INVENTORY || tool == AiToolType.QUERY_SUPPLIER_QUOTES
+                || tool == AiToolType.QUERY_AVERAGE_PRICE || tool == AiToolType.QUERY_OPEN_PO;
+    }
+
+    private boolean allRequestedMaterialsCovered(AiToolType tool, String question, List<AiToolResult> results) {
+        Set<String> expected = Set.copyOf(new com.supplypilot.ai.tool.AiQueryPlanner().materialCodes(question));
+        if (expected.isEmpty()) return true;
+        Set<String> observed = observedMaterialCodes(tool, results);
+        return expected.stream().allMatch(code -> observed.stream().anyMatch(value -> matchesMaterialCode(code, value)));
+    }
+
+    private Set<String> observedMaterialCodes(AiToolType tool, List<AiToolResult> results) {
+        return results.stream().filter(result -> result.tool() == tool)
+                .flatMap(result -> {
+                    java.util.stream.Stream<String> codes = result.details().queriedMaterialCodes().stream();
+                    codes = java.util.stream.Stream.concat(codes, result.details().unmatchedIdentifiers().stream());
+                    return switch (tool) {
+                        case QUERY_INVENTORY -> java.util.stream.Stream.concat(codes,
+                                result.details().inventory().stream().map(item -> item.materialCode()));
+                        case QUERY_SUPPLIER_QUOTES -> java.util.stream.Stream.concat(codes,
+                                result.details().quotes().stream().map(item -> item.materialCode()));
+                        case QUERY_AVERAGE_PRICE -> java.util.stream.Stream.concat(codes,
+                                result.details().averagePrices().stream().map(item -> item.materialCode()));
+                        case QUERY_OPEN_PO -> java.util.stream.Stream.concat(codes,
+                                result.details().purchaseOrders().stream().flatMap(order -> order.items().stream())
+                                        .map(item -> item.materialCode()));
+                        default -> codes;
+                    };
+                })
+                .filter(java.util.Objects::nonNull)
+                .map(value -> value.toUpperCase(java.util.Locale.ROOT))
+                .collect(java.util.stream.Collectors.toSet());
+    }
+
+    private boolean matchesMaterialCode(String expected, String observed) {
+        return observed.equals(expected) || observed.startsWith(expected + "（");
     }
 
     private String toolLabel(AiToolType tool) {

@@ -158,8 +158,10 @@ public class AiQueryPlanner {
         if (!supplierCodes(message).isEmpty() || !containsAny(lower, "可靠度", "reliability", "品質評分", "quality score", "評價", "評分", "狀態", "啟用", "停用", "supplier rating", "supplier score", "rating", "score", "active", "inactive")) {
             return null;
         }
-        String candidate = message.replaceAll("(?i)目前|現在|我想確認一下|請問|供應商|可靠度|reliability(?:\\s+score)?|品質評分|quality\\s+score|"
+        String candidate = message.replaceAll("(?i)^\\s*(?:what\\s+is|what's|who\\s+is|tell\\s+me|show\\s+me|could\\s+you\\s+tell\\s+me)\\s+", " ")
+                .replaceAll("(?i)目前|現在|我想確認一下|請問|供應商|可靠度|reliability(?:\\s+score)?|品質評分|quality\\s+score|"
                 + "評價|評分|分數|狀態|是否|啟用|停用|active|inactive|rating|score|的|為何|多少|如何", " ")
+                .replaceAll("(?i)['’]s\\b", " ")
                 .replaceAll("[？?！!，,。；;：:、]+", " ")
                 .replaceAll("^[\\p{Punct}\\p{Zs}]+|[\\p{Punct}\\p{Zs}]+$", "")
                 .replaceAll("\\s+", " ").trim();
@@ -175,7 +177,9 @@ public class AiQueryPlanner {
         String lower = message.toLowerCase(Locale.ROOT);
         if (containsAny(lower, "供應商", "supplier", "可靠度", "reliability", "品質評分", "quality score", "評價", "rating", "score")
                 && !containsAny(lower, "庫存", "存量", "inventory", "stock", "單價", "平均價格", "平均報價", "價格", "報價")) return null;
-        String candidate = message.replaceAll("(?i)目前|現在|我想確認一下|我想查詢|請問|請用|告訴我|"
+        String candidate = message.replaceAll("(?i)^\\s*(?:how\\s+much|how\\s+many|what\\s+is|what's|tell\\s+me|show\\s+me)\\s+", " ")
+                .replaceAll("(?i)\\b(?:does|do|have|has)\\b", " ")
+                .replaceAll("(?i)目前|現在|我想確認一下|我想查詢|請問|請用|告訴我|"
                 + "庫存|存量|還剩多少|多少|單價|平均價格|平均報價|平均單價|價格|報價|供應商|"
                 + "有哪些|可靠度|reliability(?:\\s+score)?|品質評分|評價|評分|狀態|啟用|停用|查詢|清單|這個|這筆|原料|物料|的|有效|目前有哪些|多少錢|各自|一公斤|公斤|千克|公克|公升|毫升|kg|\u00a0|inventory(?:\\s+(?:level|quantity))?|stock(?:\\s+(?:level|quantity))?|unit price|average price|quote|supplier|rating|quality|active|inactive", " ")
                 .replaceAll("[？?！!，,。；;：:、]+", " ")

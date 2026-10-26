@@ -145,6 +145,47 @@ class AiReadToolBoundaryTests {
                 .extracting("errorCode").isEqualTo(ErrorCode.AI_INVALID_RESPONSE);
     }
 
+    @Test
+    void englishQuestionPhrasingKeepsResolvedNamesAuthorizedAtTheToolBoundary() {
+        AiToolRegistry supplierRegistry = mock(AiToolRegistry.class);
+        when(supplierRegistry.execute(ArgumentMatchers.any())).thenReturn(new com.supplypilot.ai.tool.AiToolResult(
+                AiToolType.QUERY_SUPPLIER, AiQueryStatus.ANSWERED, "supplier facts", List.of()));
+        AiQueryPlanner planner = new AiQueryPlanner();
+        SpringAiReadTools supplierTools = new SpringAiReadTools(supplierRegistry, planner,
+                "What is Supplier Two's reliability rating?", 3);
+
+        supplierTools.querySupplier(null, null, "Supplier Two", null, null);
+        verify(supplierRegistry).execute(new AiQueryPlan(AiToolType.QUERY_SUPPLIER, null, null, null,
+                List.of(), null, null, "Supplier Two", null, List.of()));
+
+        AiToolRegistry inventoryRegistry = mock(AiToolRegistry.class);
+        when(inventoryRegistry.execute(ArgumentMatchers.any())).thenReturn(new com.supplypilot.ai.tool.AiToolResult(
+                AiToolType.QUERY_INVENTORY, AiQueryStatus.ANSWERED, "inventory facts", List.of()));
+        SpringAiReadTools inventoryTools = new SpringAiReadTools(inventoryRegistry, planner,
+                "How much inventory does Assam have?", 3);
+
+        inventoryTools.queryInventoryByName("Assam");
+        verify(inventoryRegistry).execute(new AiQueryPlan(AiToolType.QUERY_INVENTORY, null, null, null,
+                List.of(), "Assam", null, null, null));
+    }
+
+    @Test
+    void openPoBatchToolPassesAllExplicitMaterialCodesWithinTheOriginalQuestion() {
+        AiToolRegistry registry = mock(AiToolRegistry.class);
+        when(registry.execute(ArgumentMatchers.any())).thenReturn(new com.supplypilot.ai.tool.AiToolResult(
+                AiToolType.QUERY_OPEN_PO, AiQueryStatus.ANSWERED, "open PO facts", List.of()));
+        SpringAiReadTools tools = new SpringAiReadTools(registry, new AiQueryPlanner(),
+                "MAT-001 / MAT-002 未收貨採購單?", 3);
+
+        tools.queryOpenPurchaseOrders(null, List.of("MAT-001", "MAT-002"));
+        verify(registry).execute(new AiQueryPlan(AiToolType.QUERY_OPEN_PO, null, "MAT-001", null,
+                List.of("MAT-001", "MAT-002"), null, null, null, null, List.of()));
+
+        assertThatThrownBy(() -> tools.queryOpenPurchaseOrders(null, List.of("MAT-001", "MAT-999")))
+                .isInstanceOf(AiProviderException.class)
+                .extracting("errorCode").isEqualTo(ErrorCode.AI_INVALID_RESPONSE);
+    }
+
     private RecommendationResponse snapshot() {
         return new RecommendationResponse(
                 41L,

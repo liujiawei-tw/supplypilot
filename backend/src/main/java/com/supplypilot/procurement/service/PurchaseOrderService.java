@@ -226,6 +226,34 @@ public class PurchaseOrderService {
                 null, null, null, null, null, pageable);
     }
 
+    /** Lists each ORDERED PO once when it contains any of the selected materials. */
+    @Transactional(readOnly = true)
+    @PreAuthorize("hasAnyRole('PROCUREMENT_STAFF', 'PROCUREMENT_MANAGER', 'ADMIN')")
+    public PageResponse<PurchaseOrderResponse> listOpenByMaterialIds(List<Long> materialIds, Pageable pageable) {
+        List<Long> ids = materialIds == null ? List.of() : materialIds.stream().filter(Objects::nonNull).distinct().toList();
+        if (ids.isEmpty()) {
+            return new PageResponse<>(List.of(), pageable.getPageNumber(), pageable.getPageSize(), 0, 0);
+        }
+        Specification<PurchaseOrder> specification = (root, query, builder) -> {
+            Subquery<Long> itemExists = query.subquery(Long.class);
+            var item = itemExists.from(PurchaseOrderItem.class);
+            itemExists.select(builder.literal(1L)).where(builder.and(
+                    builder.equal(item.get("purchaseOrder"), root),
+                    item.get("material").get("id").in(ids)));
+            return builder.and(builder.equal(root.get("status"), PurchaseOrderStatus.ORDERED),
+                    builder.exists(itemExists));
+        };
+        Page<PurchaseOrder> result = purchaseOrderRepository.findAll(specification, pageable);
+        List<Long> orderIds = result.getContent().stream().map(PurchaseOrder::getId).toList();
+        Map<Long, PurchaseOrder> detailed = orderIds.isEmpty() ? Map.of() : purchaseOrderRepository
+                .findDetailedByIdIn(orderIds).stream().collect(Collectors.toMap(PurchaseOrder::getId,
+                        Function.identity()));
+        List<PurchaseOrderResponse> content = orderIds.stream().map(detailed::get)
+                .map(purchaseOrderMapper::toResponse).toList();
+        return new PageResponse<>(content, result.getNumber(), result.getSize(),
+                result.getTotalElements(), result.getTotalPages());
+    }
+
     @Transactional
     @PreAuthorize("hasAnyRole('PROCUREMENT_STAFF', 'ADMIN')")
     public PurchaseOrderResponse updateDraft(Long id, UpdatePurchaseOrderRequest request) {

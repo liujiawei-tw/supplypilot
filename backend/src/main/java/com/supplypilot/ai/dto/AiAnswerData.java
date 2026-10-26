@@ -5,7 +5,9 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /** Typed, backend-owned facts for rendering an AI answer without exposing tool payload strings. */
 public record AiAnswerData(
@@ -17,13 +19,22 @@ public record AiAnswerData(
         List<Candidate> candidates,
         List<String> unmatchedIdentifiers,
         List<String> notes,
-        Long purchaseOrderTotalCount
+        Long purchaseOrderTotalCount,
+        List<String> queriedMaterialCodes
 ) {
     public AiAnswerData(List<InventoryItem> inventory, List<SupplierQuote> quotes, List<AveragePrice> averagePrices,
                         List<SupplierFact> suppliers, List<PurchaseOrderFact> purchaseOrders,
                         List<Candidate> candidates, List<String> unmatchedIdentifiers, List<String> notes) {
         this(inventory, quotes, averagePrices, suppliers, purchaseOrders, candidates,
-                unmatchedIdentifiers, notes, null);
+                unmatchedIdentifiers, notes, null, List.of());
+    }
+
+    public AiAnswerData(List<InventoryItem> inventory, List<SupplierQuote> quotes, List<AveragePrice> averagePrices,
+                        List<SupplierFact> suppliers, List<PurchaseOrderFact> purchaseOrders,
+                        List<Candidate> candidates, List<String> unmatchedIdentifiers, List<String> notes,
+                        Long purchaseOrderTotalCount) {
+        this(inventory, quotes, averagePrices, suppliers, purchaseOrders, candidates,
+                unmatchedIdentifiers, notes, purchaseOrderTotalCount, List.of());
     }
 
     public AiAnswerData {
@@ -35,6 +46,7 @@ public record AiAnswerData(
         candidates = immutable(candidates);
         unmatchedIdentifiers = immutable(unmatchedIdentifiers);
         notes = immutable(notes);
+        queriedMaterialCodes = immutable(queriedMaterialCodes);
     }
 
     public static AiAnswerData empty() {
@@ -47,10 +59,12 @@ public record AiAnswerData(
         List<AveragePrice> averages = new ArrayList<>();
         List<SupplierFact> suppliers = new ArrayList<>();
         List<PurchaseOrderFact> orders = new ArrayList<>();
+        List<AiAnswerData> purchaseOrderSources = new ArrayList<>();
         List<Candidate> candidates = new ArrayList<>();
         List<String> unmatched = new ArrayList<>();
         List<String> notes = new ArrayList<>();
-        Long purchaseOrderTotalCount = null;
+        List<String> queriedMaterialCodes = new ArrayList<>();
+        List<AiAnswerData> countSources = new ArrayList<>();
         if (values != null) {
             for (AiAnswerData value : values) {
                 if (value == null) continue;
@@ -62,16 +76,36 @@ public record AiAnswerData(
                 candidates.addAll(value.candidates());
                 unmatched.addAll(value.unmatchedIdentifiers());
                 notes.addAll(value.notes());
-                if (value.purchaseOrderTotalCount() != null) {
-                    purchaseOrderTotalCount = purchaseOrderTotalCount == null ? value.purchaseOrderTotalCount()
-                            : Math.max(purchaseOrderTotalCount, value.purchaseOrderTotalCount());
+                if (!value.purchaseOrders().isEmpty() || value.purchaseOrderTotalCount() != null) {
+                    purchaseOrderSources.add(value);
+                    if (value.purchaseOrderTotalCount() != null) countSources.add(value);
                 }
+                queriedMaterialCodes.addAll(value.queriedMaterialCodes());
             }
         }
+        List<PurchaseOrderFact> uniqueOrders = new ArrayList<>();
+        Set<Long> seenPurchaseOrderIds = new HashSet<>();
+        boolean allOrdersHaveIds = orders.stream().allMatch(order -> order.purchaseOrderId() != null);
+        for (PurchaseOrderFact order : orders) {
+            if (order.purchaseOrderId() == null || seenPurchaseOrderIds.add(order.purchaseOrderId())) uniqueOrders.add(order);
+        }
+        Long purchaseOrderTotalCount = mergedPurchaseOrderCount(purchaseOrderSources, countSources,
+                uniqueOrders.size(), allOrdersHaveIds);
         return new AiAnswerData(inventory.stream().distinct().toList(), quotes.stream().distinct().toList(),
-                averages.stream().distinct().toList(), suppliers.stream().distinct().toList(), orders.stream().distinct().toList(),
+                averages.stream().distinct().toList(), suppliers.stream().distinct().toList(), uniqueOrders,
                 candidates.stream().distinct().toList(),
-                unmatched.stream().distinct().toList(), notes.stream().distinct().toList(), purchaseOrderTotalCount);
+                unmatched.stream().distinct().toList(), notes.stream().distinct().toList(), purchaseOrderTotalCount,
+                queriedMaterialCodes.stream().distinct().toList());
+    }
+
+    private static Long mergedPurchaseOrderCount(List<AiAnswerData> poSources, List<AiAnswerData> countedSources,
+                                                  int uniqueOrderCount, boolean allOrdersHaveIds) {
+        if (poSources.isEmpty()) return null;
+        if (poSources.size() == 1) return poSources.getFirst().purchaseOrderTotalCount();
+        boolean everySourceComplete = allOrdersHaveIds && poSources.size() == countedSources.size()
+                && poSources.stream().allMatch(source ->
+                source.purchaseOrderTotalCount() == source.purchaseOrders().size());
+        return everySourceComplete ? (long) uniqueOrderCount : null;
     }
 
     private static <T> List<T> immutable(List<T> values) {
@@ -81,7 +115,8 @@ public record AiAnswerData(
     public boolean hasDisplayData() {
         return !inventory.isEmpty() || !quotes.isEmpty() || !averagePrices.isEmpty()
                 || !suppliers.isEmpty() || !purchaseOrders.isEmpty() || !candidates.isEmpty()
-                || !unmatchedIdentifiers.isEmpty() || !notes.isEmpty() || purchaseOrderTotalCount != null;
+                || !unmatchedIdentifiers.isEmpty() || !notes.isEmpty() || purchaseOrderTotalCount != null
+                || !queriedMaterialCodes.isEmpty();
     }
 
     public record InventoryItem(Long materialId, String materialCode, String materialName,

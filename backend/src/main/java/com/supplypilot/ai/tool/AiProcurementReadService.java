@@ -7,6 +7,7 @@ import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import com.supplypilot.ai.dto.AiAnswerData;
@@ -33,6 +34,7 @@ import com.supplypilot.supplier.repository.SupplierMaterialRepository;
 import com.supplypilot.supplier.repository.SupplierRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -121,9 +123,13 @@ public class AiProcurementReadService {
         Resolution<Material> resolution = resolveMaterialQuery(materialCodes, materialName);
         if (resolution.needsClarification()) return clarification(AiToolType.QUERY_SUPPLIER_QUOTES, resolution.candidates());
         if (resolution.values().isEmpty()) {
+            List<String> unmatched = resolution.unmatched();
+            List<String> notes = unmatched.isEmpty() ? List.of()
+                    : List.of("查無有效物料主檔：" + String.join("、", unmatched) + "。");
+            AiAnswerData data = new AiAnswerData(List.of(), List.of(), List.of(), List.of(), List.of(),
+                    List.of(), unmatched, notes, null, List.of());
             return AiToolResult.notFound(average ? AiToolType.QUERY_AVERAGE_PRICE : AiToolType.QUERY_SUPPLIER_QUOTES,
-                    "查無符合條件的有效物料主檔。", emptyWithCandidates(
-                            resolution.candidates().stream().map(this::candidate).toList()));
+                    notes.isEmpty() ? "查無符合條件的有效物料主檔。" : String.join(" ", notes), data);
         }
         List<SupplierMaterial> valid = resolution.values().stream()
                 .filter(material -> material.getStatus() == MaterialStatus.ACTIVE)
@@ -152,13 +158,20 @@ public class AiProcurementReadService {
                 "SUPPLIER_MATERIAL", relation.getId(), relation.getSupplier().getName() + "／" + relation.getMaterial().getName()))
                 .toList();
         List<String> unmatched = resolution.unmatched();
-        List<String> notes = unmatched.isEmpty() ? List.of() : List.of("部分物料代碼沒有找到有效物料：" + String.join("、", unmatched));
+        List<String> queriedCodes = resolution.values().stream().map(Material::getCode).distinct().toList();
+        Set<String> resultCodes = average
+                ? averages.stream().map(AiAnswerData.AveragePrice::materialCode).collect(Collectors.toSet())
+                : quotes.stream().map(AiAnswerData.SupplierQuote::materialCode).collect(Collectors.toSet());
+        List<String> noQuoteCodes = queriedCodes.stream().filter(code -> !resultCodes.contains(code)).toList();
+        List<String> notes = new ArrayList<>();
+        if (!unmatched.isEmpty()) notes.add("部分物料代碼沒有找到有效物料：" + String.join("、", unmatched) + "。");
+        if (!noQuoteCodes.isEmpty()) notes.add("以下物料沒有符合條件的有效供應商報價：" + String.join("、", noQuoteCodes) + "。");
         AiAnswerData data = new AiAnswerData(List.of(), average ? List.of() : quotes,
                 average ? averages : List.of(), List.of(), List.of(),
-                resolution.candidates().stream().map(this::candidate).toList(), unmatched, notes);
+                resolution.candidates().stream().map(this::candidate).toList(), unmatched, notes, null, queriedCodes);
         AiToolType tool = average ? AiToolType.QUERY_AVERAGE_PRICE : AiToolType.QUERY_SUPPLIER_QUOTES;
         if (valid.isEmpty()) return AiToolResult.notFound(tool,
-                "沒有符合條件的有效供應商報價。", data);
+                notes.isEmpty() ? "沒有符合條件的有效供應商報價。" : String.join(" ", notes), data);
         String trusted = average
                 ? averages.stream().map(value -> "%s（%s）有效報價共 %d 筆，平均單價 %s %s／%s，最低 %s，最高 %s。"
                     .formatted(value.materialName(), value.materialCode(), value.quoteCount(), value.averageUnitPrice(),
@@ -168,6 +181,7 @@ public class AiProcurementReadService {
                     .formatted(value.materialName(), value.materialCode(), value.supplierName(), value.supplierCode(),
                             value.unitPrice(), value.currency(), value.pricingUnit(), value.leadTimeDays()))
                     .collect(Collectors.joining("\n"));
+        if (!notes.isEmpty()) trusted += "\n" + String.join("\n", notes);
         return new AiToolResult(tool, AiQueryStatus.ANSWERED, trusted, sources, data);
     }
 
@@ -283,6 +297,11 @@ public class AiProcurementReadService {
     }
 
     public AiToolResult openPurchaseOrders(List<PurchaseOrderResponse> orders, long totalElements) {
+        return openPurchaseOrders(orders, totalElements, List.of(), List.of());
+    }
+
+    private AiToolResult openPurchaseOrders(List<PurchaseOrderResponse> orders, long totalElements,
+                                            List<String> unmatched, List<String> queriedMaterialCodes) {
         List<AiAnswerData.PurchaseOrderFact> facts = orders.stream().map(order -> new AiAnswerData.PurchaseOrderFact(
                 order.id(), order.poNumber(), order.status().name(), order.stage() == null ? null : order.stage().name(),
                 order.supplierCode(), order.supplierName(), order.expectedDeliveryDate(), order.supplierPromisedDeliveryDate(),
@@ -294,20 +313,48 @@ public class AiProcurementReadService {
                 nextStep(order.status().name(), order.stage()))).toList();
         List<AiSourceResponse> sources = orders.stream().map(order -> AiSourceResponse.resource(
                 "PURCHASE_ORDER", order.id(), order.poNumber())).toList();
-        AiAnswerData data = new AiAnswerData(List.of(), List.of(), List.of(), List.of(), facts, List.of(), List.of(), List.of(),
-                totalElements);
+        List<String> notes = unmatched.isEmpty() ? List.of()
+                : List.of("查無有效物料主檔：" + String.join("、", unmatched) + "。");
+        AiAnswerData data = new AiAnswerData(List.of(), List.of(), List.of(), List.of(), facts, List.of(), unmatched, notes,
+                totalElements, queriedMaterialCodes);
         String text = "符合未收貨條件的採購單共 %d 筆，本次列出 %d 筆。".formatted(totalElements, orders.size());
+        if (!notes.isEmpty()) text += " " + String.join(" ", notes);
         return new AiToolResult(AiToolType.QUERY_OPEN_PO, AiQueryStatus.ANSWERED, text, sources, data);
     }
 
     public AiToolResult openPurchaseOrders(String materialCode) {
-        PageResponse<PurchaseOrderResponse> page = purchaseOrders.listOpen(materialCode,
-                PageRequest.of(0, 100, Sort.by(Sort.Direction.ASC, "id")));
-        return openPurchaseOrders(page.content(), page.totalElements());
+        return openPurchaseOrders(hasText(materialCode) ? List.of(materialCode) : List.of());
+    }
+
+    public AiToolResult openPurchaseOrders(List<String> materialCodes) {
+        List<String> codes = distinct(materialCodes);
+        if (codes.size() > MAX_MATERIALS_PER_QUERY) throw new BusinessException(ErrorCode.VALIDATION_FAILED);
+        Pageable pageRequest = PageRequest.of(0, 100, Sort.by(Sort.Direction.ASC, "id"));
+        if (codes.isEmpty()) {
+            PageResponse<PurchaseOrderResponse> page = purchaseOrders.listOpen((String) null, pageRequest);
+            return openPurchaseOrders(page.content(), page.totalElements());
+        }
+
+        Resolution<Material> resolution = resolveMaterialQuery(codes, null);
+        List<String> queriedCodes = resolution.values().stream().map(Material::getCode).distinct().toList();
+        if (queriedCodes.isEmpty()) {
+            AiAnswerData data = new AiAnswerData(List.of(), List.of(), List.of(), List.of(), List.of(), List.of(),
+                    resolution.unmatched(), List.of("查無有效物料主檔：" + String.join("、", resolution.unmatched()) + "。"),
+                    0L, List.of());
+            return AiToolResult.notFound(AiToolType.QUERY_OPEN_PO,
+                    "無法查詢未收貨採購單；以下物料代碼沒有有效主檔：" + String.join("、", resolution.unmatched()) + "。", data);
+        }
+
+        List<Long> materialIds = resolution.values().stream().map(Material::getId).distinct().toList();
+        PageResponse<PurchaseOrderResponse> page = purchaseOrders.listOpenByMaterialIds(materialIds, pageRequest);
+        return openPurchaseOrders(page.content(), page.totalElements(), resolution.unmatched(), queriedCodes);
     }
 
     private Resolution<Material> resolveMaterialQuery(List<String> codes, String name) {
         List<String> normalizedCodes = distinct(codes);
+        if (normalizedCodes.size() > MAX_MATERIALS_PER_QUERY) {
+            throw new BusinessException(ErrorCode.VALIDATION_FAILED);
+        }
         if (!normalizedCodes.isEmpty()) {
             List<Material> values = new ArrayList<>();
             List<String> unmatched = new ArrayList<>();

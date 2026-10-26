@@ -26,6 +26,7 @@ export interface AiAnswerData {
   unmatchedIdentifiers: string[];
   notes: string[];
   purchaseOrderTotalCount?: number | null;
+  queriedMaterialCodes?: string[];
 }
 
 export interface AiInventoryItem {

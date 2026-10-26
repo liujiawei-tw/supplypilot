@@ -111,6 +111,43 @@ class AiAssistantServiceTests {
     }
 
     @Test
+    void rejectsPartialMaterialCoverageForQuoteAverageAndOpenPoToolsButKeepsPartialFacts() {
+        record Query(AiToolType tool, String question) { }
+        for (Query query : List.of(
+                new Query(AiToolType.QUERY_SUPPLIER_QUOTES, "MAT-001 / MAT-002 報價?"),
+                new Query(AiToolType.QUERY_AVERAGE_PRICE, "MAT-001 / MAT-002 平均報價?"),
+                new Query(AiToolType.QUERY_OPEN_PO, "MAT-001 / MAT-002 未收貨採購單?"))) {
+            AiAnswerData details = new AiAnswerData(List.of(), List.of(), List.of(), List.of(), List.of(), List.of(),
+                    List.of(), List.of(), query.tool() == AiToolType.QUERY_OPEN_PO ? 0L : null,
+                    List.of("MAT-001"));
+            AiToolResult partial = new AiToolResult(query.tool(), AiQueryStatus.ANSWERED,
+                    "MAT-001 已查詢，未取得 MAT-002。", List.of(), details);
+
+            var response = queryWith(query.question(), List.of(partial));
+
+            assertThat(response.status()).isEqualTo(AiQueryStatus.INSUFFICIENT_EVIDENCE);
+            assertThat(response.answer()).contains("MAT-001");
+            assertThat(response.details().queriedMaterialCodes()).containsExactly("MAT-001");
+            assertThat(response.details().notes()).anySatisfy(note -> assertThat(note).contains("MAT-002"));
+        }
+    }
+
+    @Test
+    void acceptsBatchWhenEachMaterialHasEitherAResultOrAnExplicitUnmatchedRecord() {
+        AiAnswerData details = new AiAnswerData(List.of(), List.of(), List.of(), List.of(), List.of(), List.of(),
+                List.of("MAT-002"), List.of("MAT-002 沒有有效報價。"), null, List.of("MAT-001"));
+        AiToolResult complete = new AiToolResult(AiToolType.QUERY_SUPPLIER_QUOTES, AiQueryStatus.ANSWERED,
+                "MAT-001 報價已查得。MAT-002 明確查無報價。", List.of(), details);
+
+        var response = queryWith("MAT-001 / MAT-002 報價?", List.of(complete));
+
+        assertThat(response.status()).isEqualTo(AiQueryStatus.ANSWERED);
+        assertThat(response.details().queriedMaterialCodes()).containsExactly("MAT-001");
+        assertThat(response.details().unmatchedIdentifiers()).containsExactly("MAT-002");
+        assertThat(response.answer()).contains("MAT-002");
+    }
+
+    @Test
     void acceptsSupplierBatchOnlyWhenEveryQuestionCodeHasFoundOrUnmatchedCoverage() {
         AiAnswerData details = new AiAnswerData(List.of(), List.of(), List.of(), List.of(
                 new AiAnswerData.SupplierFact(1L, "SUP-001", "Supplier One", "ACTIVE",

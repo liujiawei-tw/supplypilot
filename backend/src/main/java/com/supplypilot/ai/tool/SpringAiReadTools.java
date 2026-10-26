@@ -134,12 +134,19 @@ public final class SpringAiReadTools {
                 List.of(), null, null, null, poNumber));
     }
 
-    @Tool(name = "QUERY_OPEN_PO", description = "List open purchase orders, optionally filtered by one exact material code.")
+    @Tool(name = "QUERY_OPEN_PO", description = "List open purchase orders, optionally filtered by all exact material codes explicitly present in the question.")
     public String queryOpenPurchaseOrders(
-            @ToolParam(description = "Exact material code, or omit to list all open purchase orders", required = false)
-            @Nullable String materialCode
+            @ToolParam(description = "One exact material code, retained for compatibility", required = false)
+            @Nullable String materialCode,
+            @ToolParam(description = "All exact material codes explicitly present in the question", required = false)
+            @Nullable List<String> materialCodes
     ) {
-        return execute(new AiQueryPlan(AiToolType.QUERY_OPEN_PO, null, materialCode, null));
+        List<String> codes = materialCodes == null ? List.of() : List.copyOf(materialCodes);
+        if (materialCode != null) codes = java.util.stream.Stream.concat(codes.stream(), java.util.stream.Stream.of(materialCode))
+                .distinct().toList();
+        String firstCode = codes.isEmpty() ? null : codes.getFirst();
+        return execute(new AiQueryPlan(AiToolType.QUERY_OPEN_PO, null, firstCode, null,
+                codes, null, null, null, null, List.of()));
     }
 
     @Tool(name = "SEARCH_DOCUMENTS", description = "Search indexed SP-710 document evidence for a procurement question.")
