@@ -14,6 +14,7 @@ import com.supplypilot.procurement.domain.PurchaseOrder;
 import com.supplypilot.procurement.domain.PurchaseOrderItem;
 import com.supplypilot.procurement.domain.PurchaseOrderStage;
 import com.supplypilot.procurement.domain.PurchaseOrderStatus;
+import com.supplypilot.procurement.domain.OrderedProgress;
 import com.supplypilot.procurement.repository.PurchaseOrderRepository;
 import com.supplypilot.procurement.service.PurchaseOrderService;
 import com.supplypilot.supplier.domain.Supplier;
@@ -59,8 +60,9 @@ class AiOpenPurchaseOrderUnionIntegrationTests extends AbstractIntegrationTest {
         order.addItem(PurchaseOrderItem.create(first, BigDecimal.ONE, BigDecimal.TEN, clock.instant()));
         order.addItem(PurchaseOrderItem.create(second, BigDecimal.valueOf(2), BigDecimal.TEN, clock.instant()));
         PurchaseOrder saved = purchaseOrderRepository.saveAndFlush(order);
-        jdbcTemplate.update("UPDATE purchase_orders SET status = ?, stage = ? WHERE id = ?",
-                PurchaseOrderStatus.ORDERED.name(), PurchaseOrderStage.ORDER_FOLLOW_UP.name(), saved.getId());
+        jdbcTemplate.update("UPDATE purchase_orders SET status = ?, stage = ?, ordered_progress = ? WHERE id = ?",
+                PurchaseOrderStatus.ORDERED.name(), PurchaseOrderStage.ORDER_FOLLOW_UP.name(),
+                OrderedProgress.FOLLOW_UP.name(), saved.getId());
 
         var sharedOrderResult = purchaseOrders.listOpenByMaterialIds(List.of(first.getId(), second.getId()),
                 PageRequest.of(0, 100, Sort.by(Sort.Direction.ASC, "id")));
