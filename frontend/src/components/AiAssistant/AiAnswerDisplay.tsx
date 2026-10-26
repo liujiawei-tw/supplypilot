@@ -193,18 +193,24 @@ function PurchaseOrderSummary({ order }: { order: PurchaseOrderFact }) {
   </section>;
 }
 
-export default function AiAnswerDisplay({ answer, details }: { answer: string | null; details?: AiAnswerData }) {
-  if (details && details.inventory.length + details.quotes.length + details.averagePrices.length
+export default function AiAnswerDisplay({ answer, details, summary }: { answer: string | null; details?: AiAnswerData; summary?: string | null }) {
+  const hasStructuredDetails = details != null && (details.inventory.length + details.quotes.length + details.averagePrices.length
     + details.suppliers.length + details.purchaseOrders.length + details.candidates.length
-    + details.notes.length + details.unmatchedIdentifiers.length > 0) {
-    return <AiStructuredAnswer details={details} />;
+    + details.notes.length + details.unmatchedIdentifiers.length > 0 || details.purchaseOrderTotalCount != null);
+  if (hasStructuredDetails) {
+    return <AiStructuredAnswer details={details} summary={summary} />;
   }
-  if (!answer) return <Text type="secondary">後端未提供可顯示回答。</Text>;
+  if (!answer) return summary
+    ? <Paragraph style={{ marginBottom: 0 }}>{summary}</Paragraph>
+    : <Text type="secondary">後端未提供可顯示回答。</Text>;
   const parsed = parsePurchaseOrderAnswer(answer);
   if (!parsed) {
-    return <Paragraph style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere', marginBottom: 0 }}>
-      {formatLabeledMoney(answer)}
-    </Paragraph>;
+    return <Space direction="vertical" size="small" style={{ width: '100%' }}>
+      {summary && <Text>{summary}</Text>}
+      <Paragraph style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere', marginBottom: 0 }}>
+        {formatLabeledMoney(answer)}
+      </Paragraph>
+    </Space>;
   }
 
   const orderCount = parsed.content.filter((block) => block.type === 'purchase-order').length;

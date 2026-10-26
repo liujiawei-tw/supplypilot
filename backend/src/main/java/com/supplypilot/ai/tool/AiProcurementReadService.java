@@ -43,6 +43,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 @PreAuthorize("hasAnyRole('PROCUREMENT_STAFF', 'PROCUREMENT_MANAGER', 'ADMIN')")
 public class AiProcurementReadService {
     private static final int MAX_MATERIALS_PER_QUERY = 20;
+    private static final int MAX_SUPPLIERS_PER_QUERY = 20;
 
     private final MaterialRepository materials;
     private final SupplierRepository suppliers;
@@ -171,9 +172,37 @@ public class AiProcurementReadService {
     }
 
     public AiToolResult suppliers(String supplierCode, String supplierName, List<String> materialCodes, String materialName) {
-        if (hasText(supplierCode) || hasText(supplierName)) {
-            List<Supplier> found = hasText(supplierCode) ? suppliers.findByCode(supplierCode).stream().toList()
-                    : suppliers.findByNameIgnoreCase(supplierName.trim());
+        return suppliers(hasText(supplierCode) ? List.of(supplierCode) : List.of(), supplierName, materialCodes, materialName);
+    }
+
+    public AiToolResult suppliers(List<String> supplierCodes, String supplierName,
+                                  List<String> materialCodes, String materialName) {
+        List<String> requestedSupplierCodes = distinct(supplierCodes);
+        if (!requestedSupplierCodes.isEmpty()) {
+            if (requestedSupplierCodes.size() > MAX_SUPPLIERS_PER_QUERY) {
+                throw new BusinessException(ErrorCode.VALIDATION_FAILED);
+            }
+            List<Supplier> found = new ArrayList<>();
+            List<String> unmatched = new ArrayList<>();
+            for (String code : requestedSupplierCodes) {
+                Supplier supplier = suppliers.findByCode(code).orElse(null);
+                if (supplier == null) unmatched.add(code);
+                else found.add(supplier);
+            }
+            List<AiAnswerData.SupplierFact> facts = found.stream().map(this::supplierFact).toList();
+            List<AiSourceResponse> sources = found.stream().map(value -> AiSourceResponse.resource(
+                    "SUPPLIER", value.getId(), value.getName() + "（" + value.getCode() + "）")).toList();
+            AiAnswerData data = new AiAnswerData(List.of(), List.of(), List.of(), facts, List.of(), List.of(),
+                    unmatched, List.of());
+            String trusted = java.util.stream.Stream.concat(
+                    facts.stream().map(this::supplierFactsText),
+                    unmatched.stream().map(code -> "查無供應商代碼 " + code + " 的主檔資料。"))
+                    .collect(Collectors.joining("\n"));
+            if (found.isEmpty()) return AiToolResult.notFound(AiToolType.QUERY_SUPPLIER, trusted, data);
+            return new AiToolResult(AiToolType.QUERY_SUPPLIER, AiQueryStatus.ANSWERED, trusted, sources, data);
+        }
+        if (hasText(supplierName)) {
+            List<Supplier> found = suppliers.findByNameIgnoreCase(supplierName.trim());
             if (found.isEmpty() && hasText(supplierName)) found = suppliers.findByNameContainingIgnoreCase(supplierName.trim());
             if (found.size() > 1) {
                 List<AiAnswerData.Candidate> candidates = found.stream().map(this::candidate).toList();
@@ -239,14 +268,15 @@ public class AiProcurementReadService {
         AiAnswerData.PurchaseOrderFact fact = new AiAnswerData.PurchaseOrderFact(order.id(), order.poNumber(),
                 order.status().name(), order.stage() == null ? null : order.stage().name(), order.supplierCode(),
                 order.supplierName(), order.expectedDeliveryDate(), order.supplierPromisedDeliveryDate(), items, totals,
-                nextStep(order.stage()));
+                nextStep(order.status().name(), order.stage()));
         AiAnswerData data = new AiAnswerData(List.of(), List.of(), List.of(), List.of(), List.of(fact), List.of(), List.of(), List.of());
         String totalsText = totals.stream().map(total -> total.amount() + " " + total.currency()).collect(Collectors.joining("、"));
         String itemText = items.stream().map(item -> "%s %s：%s %s × %s %s = %s %s".formatted(
                 item.materialName(), item.materialCode(), item.quantity(), item.unit(), item.unitPrice(), item.currency(),
                 item.lineTotal(), item.currency())).collect(Collectors.joining("；"));
-        String trusted = "%s 狀態為 %s，Kanban 階段為 %s，供應商為 %s（%s），預計交貨日 %s，訂單總額 %s。品項：%s。下一步依目前階段為：%s。"
-                .formatted(order.poNumber(), order.status(), order.stage(), order.supplierName(), order.supplierCode(),
+        String stageText = order.stage() == null ? "無適用階段" : order.stage().name();
+        String trusted = "%s 狀態為 %s，Kanban 階段為 %s，供應商為 %s（%s），預計交貨日 %s，訂單總額 %s。品項：%s。下一步：%s"
+                .formatted(order.poNumber(), order.status(), stageText, order.supplierName(), order.supplierCode(),
                         order.expectedDeliveryDate(), totalsText, itemText, fact.nextStep());
         return new AiToolResult(AiToolType.QUERY_PURCHASE_ORDER, AiQueryStatus.ANSWERED, trusted,
                 List.of(AiSourceResponse.resource("PURCHASE_ORDER", order.id(), order.poNumber())), data);
@@ -261,10 +291,11 @@ public class AiProcurementReadService {
                         Collectors.mapping(PurchaseOrderItemResponse::total,
                                 Collectors.reducing(BigDecimal.ZERO, BigDecimal::add)))).entrySet().stream()
                         .map(entry -> new AiAnswerData.MoneyTotal(entry.getKey(), entry.getValue())).toList(),
-                nextStep(order.stage()))).toList();
+                nextStep(order.status().name(), order.stage()))).toList();
         List<AiSourceResponse> sources = orders.stream().map(order -> AiSourceResponse.resource(
                 "PURCHASE_ORDER", order.id(), order.poNumber())).toList();
-        AiAnswerData data = new AiAnswerData(List.of(), List.of(), List.of(), List.of(), facts, List.of(), List.of(), List.of());
+        AiAnswerData data = new AiAnswerData(List.of(), List.of(), List.of(), List.of(), facts, List.of(), List.of(), List.of(),
+                totalElements);
         String text = "符合未收貨條件的採購單共 %d 筆，本次列出 %d 筆。".formatted(totalElements, orders.size());
         return new AiToolResult(AiToolType.QUERY_OPEN_PO, AiQueryStatus.ANSWERED, text, sources, data);
     }
@@ -343,8 +374,10 @@ public class AiProcurementReadService {
                 item.unit().name(), item.unitPrice(), item.currency().name(), item.total());
     }
 
-    private String nextStep(PurchaseOrderStage stage) {
-        if (stage == null) return "系統尚未設定 Kanban 階段，請由採購人員確認。";
+    private String nextStep(String status, PurchaseOrderStage stage) {
+        if ("REJECTED".equals(status)) return "採購單已駁回，後續流程已終止。";
+        if ("CANCELLED".equals(status)) return "採購單已取消，後續流程已終止。";
+        if (stage == null) return "目前沒有可確認的 Kanban 階段，請由採購人員核查正式狀態與流程資料。";
         return switch (stage) {
             case NEW_REQUEST -> "補齊採購需求並進入尋源。";
             case SOURCING -> "完成供應商尋源後送交簽核。";

@@ -7,12 +7,15 @@ const { Text } = Typography;
 
 function hasFacts(data: AiAnswerData): boolean {
   return data.inventory.length + data.quotes.length + data.averagePrices.length + data.suppliers.length
-    + data.purchaseOrders.length + data.candidates.length + data.notes.length + data.unmatchedIdentifiers.length > 0;
+    + data.purchaseOrders.length + data.candidates.length + data.notes.length + data.unmatchedIdentifiers.length > 0
+    || data.purchaseOrderTotalCount != null;
 }
 
-export default function AiStructuredAnswer({ details }: { details: AiAnswerData }) {
+export default function AiStructuredAnswer({ details, summary }: { details: AiAnswerData; summary?: string | null }) {
   if (!hasFacts(details)) return null;
   const visibleOrders = details.purchaseOrders.slice(0, 5);
+  const totalOrders = details.purchaseOrderTotalCount ?? details.purchaseOrders.length;
+  const fetchedOrders = details.purchaseOrders.length;
   const renderOrder = (order: AiPurchaseOrderFact) => <List.Item>
     <Space direction="vertical" style={{ width: '100%' }} size="small">
       <Text strong>{order.poNumber}</Text>
@@ -36,7 +39,7 @@ export default function AiStructuredAnswer({ details }: { details: AiAnswerData 
     </Space>
   </List.Item>;
   return <Space direction="vertical" size="middle" style={{ width: '100%' }}>
-    <Text>查詢結果整理如下。</Text>
+    <Text>{summary || '以下欄位為後端核實資料。'}</Text>
     {details.inventory.length > 0 && <Card size="small" title="目前庫存">
       <List dataSource={details.inventory} renderItem={(item) => <List.Item>
         <Descriptions size="small" column={1} style={{ width: '100%' }} items={[
@@ -76,13 +79,14 @@ export default function AiStructuredAnswer({ details }: { details: AiAnswerData 
         ]} />
       </List.Item>} />
     </Card>}
-    {details.purchaseOrders.length > 0 && <Card size="small" title="採購單">
-      <Text type="secondary">共 {details.purchaseOrders.length} 筆，本次顯示 {visibleOrders.length} 筆。</Text>
+    {(details.purchaseOrders.length > 0 || details.purchaseOrderTotalCount != null) && <Card size="small" title="採購單">
+      <Text type="secondary">符合條件總數 {totalOrders} 筆；本次取得 {fetchedOrders} 筆，目前顯示 {visibleOrders.length} 筆。</Text>
       <List dataSource={visibleOrders} renderItem={renderOrder} />
       {details.purchaseOrders.length > visibleOrders.length && <details>
         <summary style={{ cursor: 'pointer', paddingBlock: 8 }}>展開其餘 {details.purchaseOrders.length - visibleOrders.length} 筆採購單</summary>
         <List dataSource={details.purchaseOrders.slice(visibleOrders.length)} renderItem={renderOrder} />
       </details>}
+      {totalOrders > fetchedOrders && <Text type="secondary">尚有 {totalOrders - fetchedOrders} 筆未列出（單次查詢上限為 100 筆）。</Text>}
     </Card>}
     {details.candidates.length > 0 && <Card size="small" title="請確認要查詢的資料">
       <List dataSource={details.candidates} renderItem={(item) => <List.Item>

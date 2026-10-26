@@ -28,7 +28,7 @@ public class AiToolRegistry {
                     plan.materialCodes(), plan.materialName(), false);
             case QUERY_AVERAGE_PRICE -> procurementReads.supplierQuotes(
                     plan.materialCodes(), plan.materialName(), true);
-            case QUERY_SUPPLIER -> procurementReads.suppliers(plan.supplierCode(), plan.supplierName(),
+            case QUERY_SUPPLIER -> procurementReads.suppliers(plan.supplierCodes(), plan.supplierName(),
                     plan.materialCodes(), plan.materialName());
             case QUERY_PURCHASE_ORDER -> procurementReads.purchaseOrder(plan.purchaseOrderNumber());
             case QUERY_OPEN_PO -> procurementReads.openPurchaseOrders(plan.materialCode());

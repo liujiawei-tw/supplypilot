@@ -16,8 +16,16 @@ public record AiAnswerData(
         List<PurchaseOrderFact> purchaseOrders,
         List<Candidate> candidates,
         List<String> unmatchedIdentifiers,
-        List<String> notes
+        List<String> notes,
+        Long purchaseOrderTotalCount
 ) {
+    public AiAnswerData(List<InventoryItem> inventory, List<SupplierQuote> quotes, List<AveragePrice> averagePrices,
+                        List<SupplierFact> suppliers, List<PurchaseOrderFact> purchaseOrders,
+                        List<Candidate> candidates, List<String> unmatchedIdentifiers, List<String> notes) {
+        this(inventory, quotes, averagePrices, suppliers, purchaseOrders, candidates,
+                unmatchedIdentifiers, notes, null);
+    }
+
     public AiAnswerData {
         inventory = immutable(inventory);
         quotes = immutable(quotes);
@@ -42,6 +50,7 @@ public record AiAnswerData(
         List<Candidate> candidates = new ArrayList<>();
         List<String> unmatched = new ArrayList<>();
         List<String> notes = new ArrayList<>();
+        Long purchaseOrderTotalCount = null;
         if (values != null) {
             for (AiAnswerData value : values) {
                 if (value == null) continue;
@@ -53,12 +62,16 @@ public record AiAnswerData(
                 candidates.addAll(value.candidates());
                 unmatched.addAll(value.unmatchedIdentifiers());
                 notes.addAll(value.notes());
+                if (value.purchaseOrderTotalCount() != null) {
+                    purchaseOrderTotalCount = purchaseOrderTotalCount == null ? value.purchaseOrderTotalCount()
+                            : Math.max(purchaseOrderTotalCount, value.purchaseOrderTotalCount());
+                }
             }
         }
         return new AiAnswerData(inventory.stream().distinct().toList(), quotes.stream().distinct().toList(),
                 averages.stream().distinct().toList(), suppliers.stream().distinct().toList(), orders.stream().distinct().toList(),
                 candidates.stream().distinct().toList(),
-                unmatched.stream().distinct().toList(), notes.stream().distinct().toList());
+                unmatched.stream().distinct().toList(), notes.stream().distinct().toList(), purchaseOrderTotalCount);
     }
 
     private static <T> List<T> immutable(List<T> values) {
@@ -68,7 +81,7 @@ public record AiAnswerData(
     public boolean hasDisplayData() {
         return !inventory.isEmpty() || !quotes.isEmpty() || !averagePrices.isEmpty()
                 || !suppliers.isEmpty() || !purchaseOrders.isEmpty() || !candidates.isEmpty()
-                || !unmatchedIdentifiers.isEmpty() || !notes.isEmpty();
+                || !unmatchedIdentifiers.isEmpty() || !notes.isEmpty() || purchaseOrderTotalCount != null;
     }
 
     public record InventoryItem(Long materialId, String materialCode, String materialName,

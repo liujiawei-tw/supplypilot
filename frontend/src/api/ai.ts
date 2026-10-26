@@ -25,6 +25,7 @@ export interface AiAnswerData {
   candidates: AiCandidate[];
   unmatchedIdentifiers: string[];
   notes: string[];
+  purchaseOrderTotalCount?: number | null;
 }
 
 export interface AiInventoryItem {
@@ -129,6 +130,7 @@ export interface AiQueryResponse {
   tools: AiToolType[];
   sources: AiSourceResponse[];
   answerSource: string | null;
+  summary?: string | null;
   details?: AiAnswerData;
 }
 

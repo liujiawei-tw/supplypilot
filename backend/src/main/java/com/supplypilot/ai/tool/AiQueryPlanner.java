@@ -66,9 +66,10 @@ public class AiQueryPlanner {
                 : requested.contains(AiToolType.QUERY_OPEN_PO) ? AiToolType.QUERY_OPEN_PO
                 : AiToolType.SEARCH_DOCUMENTS;
         List<String> codes = materialCodes(normalized);
+        List<String> supplierCodes = supplierCodes(normalized);
         return new AiQueryPlan(tool, recommendationId(normalized), codes.isEmpty() ? null : codes.getFirst(),
                 normalized, codes, materialName(normalized), supplierCode(normalized), supplierName(normalized),
-                purchaseOrderNumber(normalized));
+                purchaseOrderNumber(normalized), supplierCodes);
     }
 
     /** Auxiliary fail-closed input validation; the model, not this regex, selects the tool. */
@@ -83,14 +84,14 @@ public class AiQueryPlanner {
     /** Only a missing identifier for an identified record is answered without contacting the model. */
     public String missingIdentifier(String message) {
         String lower = message.toLowerCase(Locale.ROOT);
-        if (!materialCodes(message).isEmpty() || supplierCode(message) != null || purchaseOrderNumber(message) != null
+        if (!materialCodes(message).isEmpty() || !supplierCodes(message).isEmpty() || purchaseOrderNumber(message) != null
                 || recommendationId(message) != null) return null;
         if (containsAny(lower, "庫存", "存量", "還剩多少", "inventory", "stock") && materialName(message) == null) {
             return "請補充 Material Code（例如 MAT-001），並重新提出完整問題。";
         }
         if ((containsAny(lower, "單價", "平均價格", "平均報價", "報價", "price", "quote")
-                || containsAny(lower, "供應商", "supplier", "可靠度", "品質評分", "評價"))
-                && materialName(message) == null) {
+                || containsAny(lower, "供應商", "supplier", "可靠度", "reliability", "品質評分", "quality score", "評價", "rating", "score"))
+                && materialName(message) == null && supplierName(message) == null) {
             return "請補充物料代碼或物料名稱；查詢供應商評價時也可提供供應商代碼或名稱。";
         }
         if (containsAny(lower, "建議", "recommendation", "供應商排名", "supplier ranking")) {
@@ -124,16 +125,27 @@ public class AiQueryPlanner {
         Matcher matcher = MATERIAL_CODE.matcher(message);
         List<String> codes = new ArrayList<>();
         while (matcher.find()) {
-            String candidate = matcher.group(1).toUpperCase(Locale.ROOT);
+            String literal = matcher.group(1);
+            String candidate = literal.toUpperCase(Locale.ROOT);
+            boolean canonicalCodeSpelling = literal.equals(candidate)
+                    || candidate.startsWith("MAT-") || candidate.startsWith("MATERIAL-");
             if (!candidate.startsWith("SUP-") && !candidate.startsWith("SUPPLIER-")
-                    && !candidate.startsWith("PO-")) codes.add(candidate);
+                    && !candidate.startsWith("PO-") && canonicalCodeSpelling) codes.add(candidate);
         }
         return codes.stream().distinct().toList();
     }
 
     public String supplierCode(String message) {
+        List<String> codes = supplierCodes(message);
+        return codes.isEmpty() ? null : codes.getFirst();
+    }
+
+    /** Returns only distinct supplier identifiers explicitly written in the question. */
+    public List<String> supplierCodes(String message) {
         Matcher matcher = SUPPLIER_CODE.matcher(message);
-        return matcher.find() ? matcher.group().toUpperCase(Locale.ROOT) : null;
+        List<String> codes = new ArrayList<>();
+        while (matcher.find()) codes.add(matcher.group().toUpperCase(Locale.ROOT));
+        return codes.stream().distinct().toList();
     }
 
     public String purchaseOrderNumber(String message) {
@@ -143,13 +155,15 @@ public class AiQueryPlanner {
 
     public String supplierName(String message) {
         String lower = message.toLowerCase(Locale.ROOT);
-        if (supplierCode(message) != null || !containsAny(lower, "可靠度", "品質評分", "評價", "評分", "狀態", "啟用", "停用", "supplier rating", "supplier score")) {
+        if (!supplierCodes(message).isEmpty() || !containsAny(lower, "可靠度", "reliability", "品質評分", "quality score", "評價", "評分", "狀態", "啟用", "停用", "supplier rating", "supplier score", "rating", "score", "active", "inactive")) {
             return null;
         }
-        String candidate = message.replaceAll("(?i)目前|現在|我想確認一下|請問|供應商|可靠度|品質評分|"
-                + "評價|評分|分數|狀態|是否|啟用|停用|的|為何|多少|如何|supplier|rating|score", " ")
-                .replaceAll("[\\p{Punct}\\p{Zs}？?！!，,。；;：:、]+", " ").trim();
-        if (candidate.isBlank() || candidate.matches("[A-Za-z0-9 _-]+")) return null;
+        String candidate = message.replaceAll("(?i)目前|現在|我想確認一下|請問|供應商|可靠度|reliability(?:\\s+score)?|品質評分|quality\\s+score|"
+                + "評價|評分|分數|狀態|是否|啟用|停用|active|inactive|rating|score|的|為何|多少|如何", " ")
+                .replaceAll("[？?！!，,。；;：:、]+", " ")
+                .replaceAll("^[\\p{Punct}\\p{Zs}]+|[\\p{Punct}\\p{Zs}]+$", "")
+                .replaceAll("\\s+", " ").trim();
+        if (candidate.isBlank() || candidate.matches("(?i)(?:supplier|vendor|reliability|quality|rating|score|status|active|inactive)(?:\\s+(?:supplier|vendor|reliability|quality|rating|score|status|active|inactive))*")) return null;
         return candidate.length() >= 2 ? candidate : null;
     }
 
@@ -158,11 +172,16 @@ public class AiQueryPlanner {
         if (message == null || !containsAny(message.toLowerCase(Locale.ROOT), "庫存", "存量", "還剩多少", "inventory", "stock",
                 "單價", "平均價格", "平均報價", "價格", "供應商", "supplier", "可靠度", "品質評分",
                 "評價", "評分", "報價", "有哪些")) return null;
+        String lower = message.toLowerCase(Locale.ROOT);
+        if (containsAny(lower, "供應商", "supplier", "可靠度", "reliability", "品質評分", "quality score", "評價", "rating", "score")
+                && !containsAny(lower, "庫存", "存量", "inventory", "stock", "單價", "平均價格", "平均報價", "價格", "報價")) return null;
         String candidate = message.replaceAll("(?i)目前|現在|我想確認一下|我想查詢|請問|請用|告訴我|"
                 + "庫存|存量|還剩多少|多少|單價|平均價格|平均報價|平均單價|價格|報價|供應商|"
-                + "有哪些|可靠度|品質評分|評價|評分|狀態|啟用|停用|查詢|清單|這個|這筆|原料|物料|的|有效|目前有哪些|多少錢|各自|一公斤|公斤|千克|公克|公升|毫升|kg|\u00a0|inventory|stock|unit price|average price|quote|supplier|rating|quality|active|inactive", " ")
-                .replaceAll("[\\p{Punct}\\p{Zs}？?！!，,。；;：:、]+", " ").trim();
-        if (candidate.isBlank() || candidate.matches("[A-Za-z0-9 _-]+")) return null;
+                + "有哪些|可靠度|reliability(?:\\s+score)?|品質評分|評價|評分|狀態|啟用|停用|查詢|清單|這個|這筆|原料|物料|的|有效|目前有哪些|多少錢|各自|一公斤|公斤|千克|公克|公升|毫升|kg|\u00a0|inventory(?:\\s+(?:level|quantity))?|stock(?:\\s+(?:level|quantity))?|unit price|average price|quote|supplier|rating|quality|active|inactive", " ")
+                .replaceAll("[？?！!，,。；;：:、]+", " ")
+                .replaceAll("^[\\p{Punct}\\p{Zs}]+|[\\p{Punct}\\p{Zs}]+$", "")
+                .replaceAll("\\s+", " ").trim();
+        if (candidate.isBlank() || candidate.matches("(?i)(?:inventory|stock|level|quantity|unit|price|average|quote|supplier|rating|quality|active|inactive)(?:\\s+(?:inventory|stock|level|quantity|unit|price|average|quote|supplier|rating|quality|active|inactive))*")) return null;
         return candidate.length() >= 2 ? candidate : null;
     }
 }

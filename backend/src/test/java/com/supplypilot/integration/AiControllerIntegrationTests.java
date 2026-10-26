@@ -274,7 +274,7 @@ class AiControllerIntegrationTests extends AbstractIntegrationTest {
                 String indexes = java.util.stream.LongStream.range(0, answered)
                         .mapToObj(String::valueOf).collect(java.util.stream.Collectors.joining(","));
                 return new ChatResponse(List.of(new Generation(new AssistantMessage(
-                        "{\"intro\":\"查詢結果整理如下。\",\"factIndexes\":[" + indexes + "]}"))));
+                        "{\"summary\":\"已依據查得的資料整理以下結果。\",\"factIndexes\":[" + indexes + "]}"))));
             }
             String question = prompt.getUserMessage().getText();
             String lower = question.toLowerCase(Locale.ROOT);

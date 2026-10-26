@@ -17,7 +17,7 @@ public final class AiQuestionIntent {
     private static final Pattern INVENTORY_TERM = Pattern.compile("(?i)(?:庫存|存量|還剩多少|inventory|stock\\s*(?:level|quantity)?)");
     private static final Pattern AVERAGE_PRICE_TERM = Pattern.compile("(?i)(?:平均(?:單價|價格|報價)?|average\\s+(?:unit\\s+)?price)");
     private static final Pattern PRICE_TERM = Pattern.compile("(?i)(?:單價|報價|價格|price|quotation|quote)");
-    private static final Pattern SUPPLIER_TERM = Pattern.compile("(?i)(?:供應商|supplier|可靠度|品質評分|評價|評分|rating|score)");
+    private static final Pattern SUPPLIER_TERM = Pattern.compile("(?i)(?:供應商|supplier|可靠度|reliability|品質評分|quality\\s+score|評價|評分|rating|score)");
     private static final Pattern SUPPLIER_STATUS_TERM = Pattern.compile("(?i)(?:狀態|啟用|停用|active|inactive)");
     private static final Pattern SUPPLIER_CODE = Pattern.compile("(?i)(?<![A-Z0-9_])SUP(?:PLIER)?-[A-Z0-9]+(?![A-Z0-9_-])");
     private static final Pattern RECOMMENDATION_TERM = Pattern.compile("(?i)(?:採購建議|推薦|recommendation|recommended|"

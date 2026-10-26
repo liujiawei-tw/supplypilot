@@ -9,6 +9,7 @@ import com.supplypilot.ai.dto.AiQueryResponse;
 import com.supplypilot.ai.dto.AiQueryStatus;
 import com.supplypilot.ai.dto.AiAnswerData;
 import com.supplypilot.ai.tool.AiQueryPlanner;
+import com.supplypilot.ai.tool.AiToolResult;
 import com.supplypilot.common.exception.BusinessException;
 import com.supplypilot.common.exception.ErrorCode;
 import com.supplypilot.security.CurrentUserProvider;
@@ -54,6 +55,34 @@ public class AiAssistantService {
         var executions = result.results();
         var supporting = evidencePolicy.supportingResults(validated, executions);
         if (supporting.isEmpty()) {
+            var partial = evidencePolicy.partialResults(validated, executions);
+            List<String> incompleteNotes = evidencePolicy.incompleteNotes(validated, executions, partial);
+            if (!partial.isEmpty()) {
+                AiAnswerData partialDetails = AiAnswerData.merge(partial.stream().map(item -> item.details()).toList());
+                List<String> notes = java.util.stream.Stream.concat(partialDetails.notes().stream(),
+                                incompleteNotes.stream())
+                        .distinct().toList();
+                partialDetails = new AiAnswerData(partialDetails.inventory(), partialDetails.quotes(),
+                        partialDetails.averagePrices(), partialDetails.suppliers(), partialDetails.purchaseOrders(),
+                        partialDetails.candidates(), partialDetails.unmatchedIdentifiers(), notes,
+                        partialDetails.purchaseOrderTotalCount());
+                String partialFacts = partial.stream().map(AiToolResult::trustedFacts)
+                        .filter(java.util.Objects::nonNull).filter(value -> !value.isBlank())
+                        .collect(java.util.stream.Collectors.joining("\n"));
+                List<com.supplypilot.ai.dto.AiSourceResponse> partialSources = partial.stream()
+                        .flatMap(item -> item.sources().stream()).distinct().toList();
+                List<com.supplypilot.ai.dto.AiToolType> partialTools = partial.stream()
+                        .map(AiToolResult::tool).distinct().toList();
+                return new AiQueryResponse(AiQueryStatus.INSUFFICIENT_EVIDENCE,
+                        partialFacts.isBlank() ? null : partialFacts, partialTools, partialSources,
+                        partialFacts.isBlank() ? null : "BACKEND_FACTS", partialDetails, null);
+            }
+            if (!incompleteNotes.isEmpty()) {
+                AiAnswerData statusDetails = new AiAnswerData(List.of(), List.of(), List.of(), List.of(), List.of(),
+                        List.of(), List.of(), incompleteNotes);
+                return new AiQueryResponse(AiQueryStatus.INSUFFICIENT_EVIDENCE, null,
+                        List.of(), List.of(), null, statusDetails, null);
+            }
             return new AiQueryResponse(AiQueryStatus.INSUFFICIENT_EVIDENCE, null,
                     List.of(), List.of(), null, AiAnswerData.empty());
         }
@@ -76,10 +105,14 @@ public class AiAssistantService {
             String missingFacts = supporting.stream().filter(item -> item.status() == AiQueryStatus.NOT_FOUND)
                     .map(item -> item.trustedFacts()).filter(java.util.Objects::nonNull)
                     .collect(java.util.stream.Collectors.joining("\n"));
-            if (!missingFacts.isBlank()) answer = (answer == null ? "" : answer + "\n") + missingFacts;
+            if (!missingFacts.isBlank() && (answer == null || !answer.contains(missingFacts))) {
+                answer = (answer == null ? "" : answer + "\n") + missingFacts;
+            }
         }
-        return new AiQueryResponse(status, answer, tools, sources,
-                status == AiQueryStatus.ANSWERED ? untouched ? result.answerSource() : "BACKEND_FACTS" : null, details);
+        String summary = status == AiQueryStatus.ANSWERED && untouched ? result.summary() : null;
+        String answerSource = status != AiQueryStatus.ANSWERED ? null
+                : summary == null ? "BACKEND_FACTS" : "MODEL_EXPLANATION";
+        return new AiQueryResponse(status, answer, tools, sources, answerSource, details, summary);
     }
 
     private com.supplypilot.ai.client.AiProviderResponse queryProvider(String message) {

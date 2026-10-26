@@ -47,17 +47,25 @@ export default function AiQueryPanel() {
       description={response.answer || '後端 無法辨識必要的 Recommendation、Material、Supplier 或 PO 識別資料；請在新的完整問題中補充。'} />}
     {response?.status === 'INSUFFICIENT_EVIDENCE' && <Alert type="info" showIcon title="證據不足"
       description="後端 沒有足夠證據支持肯定答案，因此不會顯示推測內容。" />}
+    {response?.status === 'INSUFFICIENT_EVIDENCE' && (response.answer || (response.details && (response.details.inventory.length > 0
+      || response.details.quotes.length > 0 || response.details.averagePrices.length > 0 || response.details.suppliers.length > 0
+      || response.details.purchaseOrders.length > 0 || response.details.candidates.length > 0
+      || response.details.unmatchedIdentifiers.length > 0 || response.details.notes.length > 0
+      || response.details.purchaseOrderTotalCount != null))) && <Card size="small" title="部分查詢結果">
+      <AiAnswerDisplay answer={response.answer} details={response.details} summary={response.summary} />
+      {response.tools.length > 0 && <div style={{ marginTop: 8 }}>{response.tools.map((tool) => <Tag key={tool}>{displayLabel(tool)}</Tag>)}</div>}
+    </Card>}
     {response?.status === 'NOT_FOUND' && <Alert type="info" showIcon title="查無資料"
       description={response.answer || '系統已完成查詢，但目前沒有符合條件的業務資料。'} />}
     {response?.status === 'ANSWERED' && <Card size="small" title="回答">
       {response.answer || response.details
-        ? <AiAnswerDisplay answer={response.answer} details={response.details} />
+        ? <AiAnswerDisplay answer={response.answer} details={response.details} summary={response.summary} />
         : <Text type="secondary">後端未提供可顯示回答。</Text>}
       {response.answerSource && <Text type="secondary">答案來源：{displayLabel(response.answerSource)}</Text>}
       {response.tools.length > 0 && <div style={{ marginTop: 8 }}>{response.tools.map((tool) => <Tag key={tool}>{displayLabel(tool)}</Tag>)}</div>}
     </Card>}
     {response?.status === 'NEEDS_CLARIFICATION' && response.details && response.details.candidates.length > 0 && <Card size="small" title="可選資料">
-      <AiAnswerDisplay answer={response.answer} details={response.details} />
+      <AiAnswerDisplay answer={response.answer} details={response.details} summary={response.summary} />
     </Card>}
     {response && <Card size="small" title="資料來源"><AiSources sources={response.sources} /></Card>}
   </Space>;

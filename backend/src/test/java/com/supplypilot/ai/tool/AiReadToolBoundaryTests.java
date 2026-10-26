@@ -128,6 +128,23 @@ class AiReadToolBoundaryTests {
                 .extracting("errorCode").isEqualTo(ErrorCode.AI_INVALID_RESPONSE);
     }
 
+    @Test
+    void supplierBatchToolAcceptsOnlySupplierCodesWrittenInTheOriginalQuestion() {
+        AiToolRegistry registry = mock(AiToolRegistry.class);
+        when(registry.execute(ArgumentMatchers.any())).thenReturn(new com.supplypilot.ai.tool.AiToolResult(
+                AiToolType.QUERY_SUPPLIER, AiQueryStatus.ANSWERED, "supplier facts", List.of()));
+        SpringAiReadTools tools = new SpringAiReadTools(registry, new AiQueryPlanner(),
+                "SUP-001 / SUP-002 評價?", 3);
+
+        tools.querySupplier(null, List.of("SUP-001", "SUP-002"), null, null, null);
+        verify(registry).execute(new AiQueryPlan(AiToolType.QUERY_SUPPLIER, null, null, null,
+                List.of(), null, "SUP-001", null, null, List.of("SUP-001", "SUP-002")));
+
+        assertThatThrownBy(() -> tools.querySupplier(null, List.of("SUP-001", "SUP-999"), null, null, null))
+                .isInstanceOf(AiProviderException.class)
+                .extracting("errorCode").isEqualTo(ErrorCode.AI_INVALID_RESPONSE);
+    }
+
     private RecommendationResponse snapshot() {
         return new RecommendationResponse(
                 41L,

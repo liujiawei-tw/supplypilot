@@ -8,11 +8,17 @@ public record AiQueryResponse(
         List<AiToolType> tools,
         List<AiSourceResponse> sources,
         String answerSource,
-        AiAnswerData details
+        AiAnswerData details,
+        String summary
 ) {
     public AiQueryResponse(AiQueryStatus status, String answer, List<AiToolType> tools,
                            List<AiSourceResponse> sources, String answerSource) {
-        this(status, answer, tools, sources, answerSource, AiAnswerData.empty());
+        this(status, answer, tools, sources, answerSource, AiAnswerData.empty(), null);
+    }
+
+    public AiQueryResponse(AiQueryStatus status, String answer, List<AiToolType> tools,
+                           List<AiSourceResponse> sources, String answerSource, AiAnswerData details) {
+        this(status, answer, tools, sources, answerSource, details, null);
     }
 
     public AiQueryResponse {

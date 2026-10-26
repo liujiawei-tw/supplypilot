@@ -66,6 +66,35 @@ class AiProcurementReadServiceTests {
     }
 
     @Test
+    void resolvesEnglishHyphenatedMaterialNameAgainstMasterBeforeReadingInventory() {
+        Material material = material("MAT-003", "Assam-2");
+        when(materials.findByNameIgnoreCase("Assam-2")).thenReturn(List.of(material));
+        when(materials.findByCode("MAT-003")).thenReturn(Optional.of(material));
+        when(inventories.getInventoryByMaterialId(3L)).thenReturn(new InventoryResponse(3L, "MAT-003", "Assam-2",
+                new BigDecimal("4.0000"), BaseUnit.KG, Instant.parse("2026-10-15T00:00:00Z")));
+
+        var result = reads.inventory(List.of(), "Assam-2");
+
+        assertThat(result.status()).isEqualTo(AiQueryStatus.ANSWERED);
+        assertThat(result.details().inventory()).singleElement()
+                .extracting(item -> item.materialName()).isEqualTo("Assam-2");
+        verify(materials).findByNameIgnoreCase("Assam-2");
+        verify(inventories).getInventoryByMaterialId(3L);
+    }
+
+    @Test
+    void doesNotInventInventoryWhenAnEnglishMaterialNameHasNoMasterMatch() {
+        when(materials.findByNameIgnoreCase("Unknown Assam")).thenReturn(List.of());
+        when(materials.findByNameContainingIgnoreCase("Unknown Assam")).thenReturn(List.of());
+
+        var result = reads.inventory(List.of(), "Unknown Assam");
+
+        assertThat(result.status()).isEqualTo(AiQueryStatus.NOT_FOUND);
+        assertThat(result.details().inventory()).isEmpty();
+        verify(inventories, never()).getInventoryByMaterialId(org.mockito.ArgumentMatchers.anyLong());
+    }
+
+    @Test
     void batchesOnlyQuestionCodesDeduplicatesAndReturnsUnmatchedCodesSeparately() {
         Material first = material("MAT-001", "Assam");
         Material second = material("MAT-002", "Tea");
@@ -173,6 +202,76 @@ class AiProcurementReadServiceTests {
     }
 
     @Test
+    void returnsEveryExplicitSupplierMasterAndReportsUnmatchedCodes() {
+        Supplier found = supplier("SUP-001", "Supplier One", SupplierStatus.ACTIVE);
+        when(suppliers.findByCode("SUP-001")).thenReturn(Optional.of(found));
+        when(suppliers.findByCode("SUP-999")).thenReturn(Optional.empty());
+
+        var result = reads.suppliers(List.of("SUP-001", "SUP-001", "SUP-999"), null, List.of(), null);
+
+        assertThat(result.status()).isEqualTo(AiQueryStatus.ANSWERED);
+        assertThat(result.details().suppliers()).extracting(fact -> fact.supplierCode()).containsExactly("SUP-001");
+        assertThat(result.details().unmatchedIdentifiers()).containsExactly("SUP-999");
+        assertThat(result.trustedFacts()).contains("SUP-001", "SUP-999");
+        assertThat(result.sources()).hasSize(1);
+        verify(suppliers).findByCode("SUP-001");
+        verify(suppliers).findByCode("SUP-999");
+    }
+
+    @Test
+    void reportsNotFoundForEveryExplicitSupplierCodeWhenAllAreMissing() {
+        when(suppliers.findByCode("SUP-991")).thenReturn(Optional.empty());
+        when(suppliers.findByCode("SUP-992")).thenReturn(Optional.empty());
+
+        var result = reads.suppliers(List.of("SUP-991", "SUP-992"), null, List.of(), null);
+
+        assertThat(result.status()).isEqualTo(AiQueryStatus.NOT_FOUND);
+        assertThat(result.details().suppliers()).isEmpty();
+        assertThat(result.details().unmatchedIdentifiers()).containsExactly("SUP-991", "SUP-992");
+        assertThat(result.trustedFacts()).contains("SUP-991", "SUP-992");
+    }
+
+    @Test
+    void resolvesEnglishNameAgainstSupplierMasterBeforeReturningItsRating() {
+        Supplier supplier = supplier("SUP-002", "Supplier Two", SupplierStatus.ACTIVE);
+        when(suppliers.findByNameIgnoreCase("Supplier Two")).thenReturn(List.of(supplier));
+
+        var result = reads.suppliers(List.of(), "Supplier Two", List.of(), null);
+
+        assertThat(result.status()).isEqualTo(AiQueryStatus.ANSWERED);
+        assertThat(result.details().suppliers()).singleElement()
+                .extracting(fact -> fact.supplierName()).isEqualTo("Supplier Two");
+        verify(suppliers).findByNameIgnoreCase("Supplier Two");
+        verify(suppliers, never()).findByCode("SUP-002");
+    }
+
+    @Test
+    void asksForConfirmationWhenAnEnglishSupplierNameMatchesMultipleMasterRows() {
+        Supplier first = supplier("SUP-002", "Supplier Two East", SupplierStatus.ACTIVE);
+        Supplier second = supplier("SUP-003", "Supplier Two West", SupplierStatus.ACTIVE);
+        when(suppliers.findByNameIgnoreCase("Supplier Two")).thenReturn(List.of());
+        when(suppliers.findByNameContainingIgnoreCase("Supplier Two")).thenReturn(List.of(first, second));
+
+        var result = reads.suppliers(List.of(), "Supplier Two", List.of(), null);
+
+        assertThat(result.status()).isEqualTo(AiQueryStatus.NEEDS_CLARIFICATION);
+        assertThat(result.details().candidates()).extracting(candidate -> candidate.code())
+                .containsExactly("SUP-002", "SUP-003");
+    }
+
+    @Test
+    void doesNotInventSupplierRatingWhenAnEnglishNameHasNoMasterMatch() {
+        when(suppliers.findByNameIgnoreCase("Supplier Ghost")).thenReturn(List.of());
+        when(suppliers.findByNameContainingIgnoreCase("Supplier Ghost")).thenReturn(List.of());
+
+        var result = reads.suppliers(List.of(), "Supplier Ghost", List.of(), null);
+
+        assertThat(result.status()).isEqualTo(AiQueryStatus.NOT_FOUND);
+        assertThat(result.details().suppliers()).isEmpty();
+        assertThat(result.trustedFacts()).contains("查無符合條件");
+    }
+
+    @Test
     void treatsExactPoAbsenceAsBusinessNotFoundAndPropagatesOtherFailures() {
         when(purchaseOrders.getByPoNumber("PO-20261102-000004"))
                 .thenThrow(new BusinessException(ErrorCode.PURCHASE_ORDER_NOT_FOUND));
@@ -223,6 +322,69 @@ class AiProcurementReadServiceTests {
             assertThat(source.resourceType()).isEqualTo("PURCHASE_ORDER");
             assertThat(source.resourceId()).isEqualTo("44");
         });
+    }
+
+    @Test
+    void preservesOpenPoTotalCountsForZeroOneAndPageLimitBoundaries() {
+        for (long total : List.of(0L, 1L, 100L, 101L, 150L)) {
+            int returned = (int) Math.min(total, 100L);
+            List<PurchaseOrderResponse> page = java.util.stream.IntStream.range(0, returned)
+                    .mapToObj(index -> poResponse(index + 1L, PurchaseOrderStatus.ORDERED,
+                            PurchaseOrderStage.ORDER_FOLLOW_UP)).toList();
+
+            var result = reads.openPurchaseOrders(page, total);
+
+            assertThat(result.details().purchaseOrderTotalCount()).isEqualTo(total);
+            assertThat(result.details().purchaseOrders()).hasSize(returned);
+            assertThat(result.trustedFacts()).contains("共 " + total + " 筆", "本次列出 " + returned + " 筆");
+        }
+    }
+
+    @Test
+    void selectsNextStepFromTerminalStatusAndLegalStagesWithoutGuessingNullStage() {
+        record Case(PurchaseOrderStatus status, PurchaseOrderStage stage, String expected) { }
+        List<Case> cases = List.of(
+                new Case(PurchaseOrderStatus.DRAFT, PurchaseOrderStage.NEW_REQUEST, "補齊採購需求並進入尋源。"),
+                new Case(PurchaseOrderStatus.DRAFT, PurchaseOrderStage.SOURCING, "完成供應商尋源後送交簽核。"),
+                new Case(PurchaseOrderStatus.DRAFT, PurchaseOrderStage.APPROVAL, "等待採購簽核結果。"),
+                new Case(PurchaseOrderStatus.APPROVED, PurchaseOrderStage.APPROVED_PENDING_ORDER, "完成正式下單。"),
+                new Case(PurchaseOrderStatus.ORDERED, PurchaseOrderStage.ORDER_FOLLOW_UP, "追蹤供應商交貨。"),
+                new Case(PurchaseOrderStatus.ORDERED, PurchaseOrderStage.RECEIVING_INSPECTION, "完成到貨檢查與驗收。"),
+                new Case(PurchaseOrderStatus.RECEIVED, PurchaseOrderStage.PAYMENT_RECONCILIATION, "完成付款核對。"),
+                new Case(PurchaseOrderStatus.RECEIVED, PurchaseOrderStage.COMPLETED, "目前流程已完成。"),
+                new Case(PurchaseOrderStatus.REJECTED, null, "採購單已駁回，後續流程已終止。"),
+                new Case(PurchaseOrderStatus.CANCELLED, null, "採購單已取消，後續流程已終止。"),
+                new Case(PurchaseOrderStatus.DRAFT, null, "目前沒有可確認的 Kanban 階段"));
+
+        for (int index = 0; index < cases.size(); index++) {
+            Case scenario = cases.get(index);
+            String poNumber = "PO-20261102-%06d".formatted(index + 1);
+            PurchaseOrderResponse response = poResponse(index + 1L, scenario.status(), scenario.stage(), poNumber);
+            when(purchaseOrders.getByPoNumber(poNumber)).thenReturn(response);
+
+            var result = reads.purchaseOrder(poNumber);
+
+            assertThat(result.details().purchaseOrders().getFirst().nextStep()).contains(scenario.expected());
+            if (scenario.status() == PurchaseOrderStatus.REJECTED || scenario.status() == PurchaseOrderStatus.CANCELLED) {
+                assertThat(result.trustedFacts()).doesNotContain("系統尚未設定");
+            }
+        }
+    }
+
+    private PurchaseOrderResponse poResponse(long id, PurchaseOrderStatus status, PurchaseOrderStage stage) {
+        return poResponse(id, status, stage, "PO-20261102-%06d".formatted(id));
+    }
+
+    private PurchaseOrderResponse poResponse(long id, PurchaseOrderStatus status, PurchaseOrderStage stage, String poNumber) {
+        PurchaseOrderResponse order = mock(PurchaseOrderResponse.class);
+        when(order.id()).thenReturn(id);
+        when(order.poNumber()).thenReturn(poNumber);
+        when(order.status()).thenReturn(status);
+        when(order.stage()).thenReturn(stage);
+        when(order.supplierCode()).thenReturn("SUP-001");
+        when(order.supplierName()).thenReturn("Supplier One");
+        when(order.items()).thenReturn(List.of());
+        return order;
     }
 
     private Material material(String code, String name) {

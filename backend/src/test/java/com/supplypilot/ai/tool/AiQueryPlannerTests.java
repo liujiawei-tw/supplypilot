@@ -132,4 +132,30 @@ class AiQueryPlannerTests {
         assertThat(planner.purchaseOrderNumber("PO-20261102-000004 目前狀態?"))
                 .isEqualTo("PO-20261102-000004");
     }
+
+    @Test
+    void extractsDistinctExplicitSupplierCodesAndKeepsSingleCodeCompatibility() {
+        assertThat(planner.supplierCodes("SUP-001 評價?")).containsExactly("SUP-001");
+        assertThat(planner.supplierCode("SUP-001 評價?")).isEqualTo("SUP-001");
+        assertThat(planner.supplierCodes("SUP-001 / SUP-002 評價?"))
+                .containsExactly("SUP-001", "SUP-002");
+        assertThat(planner.plan("SUP-001 / SUP-002 評價?").supplierCodes())
+                .containsExactly("SUP-001", "SUP-002");
+        assertThat(planner.supplierCodes("SUP-001 / SUP-001 評價?"))
+                .containsExactly("SUP-001");
+    }
+
+    @Test
+    void parsesEnglishChineseAndMixedNamesWithoutTreatingQueryWordsAsNames() {
+        assertThat(planner.materialName("Assam inventory?")).isEqualTo("Assam");
+        assertThat(planner.supplierName("Supplier Two reliability rating?")).isEqualTo("Supplier Two");
+        assertThat(planner.plan("Supplier Two reliability rating?").tool()).isEqualTo(AiToolType.QUERY_SUPPLIER);
+        assertThat(planner.materialName("阿薩姆紅茶萃取物目前庫存?")).isEqualTo("阿薩姆紅茶萃取物");
+        assertThat(planner.materialName("阿薩姆 Assam 紅茶 inventory?")).isEqualTo("阿薩姆 Assam 紅茶");
+        assertThat(planner.materialName("Assam-2 inventory?")).isEqualTo("Assam-2");
+        assertThat(planner.materialCodes("Assam-2 inventory?")).isEmpty();
+        assertThat(planner.materialName("inventory stock level?")).isNull();
+        assertThat(planner.supplierName("supplier reliability rating?")).isNull();
+        assertThat(planner.missingIdentifier("Supplier Two reliability rating?")).isNull();
+    }
 }

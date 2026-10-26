@@ -21,7 +21,7 @@ public final class SpringAiReadTools {
     private final int maxToolCalls;
     private final String originalQuestion;
     private final Set<String> permittedMaterials;
-    private final String permittedSupplier;
+    private final Set<String> permittedSuppliers;
     private final String permittedSupplierName;
     private final String permittedPurchaseOrder;
     private final Long permittedRecommendation;
@@ -34,7 +34,7 @@ public final class SpringAiReadTools {
         this.maxToolCalls = maxToolCalls;
         this.originalQuestion = originalQuestion;
         this.permittedMaterials = Set.copyOf(planner.materialCodes(originalQuestion));
-        this.permittedSupplier = planner.supplierCode(originalQuestion);
+        this.permittedSuppliers = Set.copyOf(planner.supplierCodes(originalQuestion));
         this.permittedSupplierName = planner.supplierName(originalQuestion);
         this.permittedPurchaseOrder = planner.purchaseOrderNumber(originalQuestion);
         this.permittedRecommendation = planner.recommendationId(originalQuestion);
@@ -111,13 +111,19 @@ public final class SpringAiReadTools {
     @Tool(name = "QUERY_SUPPLIER", description = "Read a supplier master record by exact supplier code/name, or active suppliers linked to the exact material codes/name in the question.")
     public String querySupplier(
             @ToolParam(description = "Exact supplier code such as SUP-002", required = false) @Nullable String supplierCode,
+            @ToolParam(description = "All exact supplier codes explicitly present in the question", required = false) @Nullable List<String> supplierCodes,
             @ToolParam(description = "Supplier name written literally in the question", required = false) @Nullable String supplierName,
             @ToolParam(description = "Exact material codes explicitly present in the question", required = false) @Nullable List<String> materialCodes,
             @ToolParam(description = "Material name written literally in the question", required = false) @Nullable String materialName
     ) {
+        List<String> codes = supplierCodes == null ? List.of() : List.copyOf(supplierCodes);
+        if (supplierCode != null) codes = java.util.stream.Stream.concat(codes.stream(), java.util.stream.Stream.of(supplierCode))
+                .distinct().toList();
+        String firstSupplierCode = codes.isEmpty() ? supplierCode : codes.getFirst();
         return execute(new AiQueryPlan(AiToolType.QUERY_SUPPLIER, null,
                 materialCodes == null || materialCodes.isEmpty() ? null : materialCodes.getFirst(), null,
-                materialCodes == null ? List.of() : materialCodes, materialName, supplierCode, supplierName, null));
+                materialCodes == null ? List.of() : materialCodes, materialName, firstSupplierCode, supplierName,
+                null, codes));
     }
 
     @Tool(name = "QUERY_PURCHASE_ORDER", description = "Read exactly one purchase order by its complete PO number. Returns lifecycle status, separate Kanban stage, supplier, dates, line items and backend totals.")
@@ -176,7 +182,12 @@ public final class SpringAiReadTools {
                         AiFailureReason.UNAUTHORIZED_OR_MISMATCHED_TOOL_IDENTIFIER,
                         AiFailureDetail.SUPPLIER_NAME_NOT_IN_QUESTION);
             }
-            if (plan.supplierCode() != null && !plan.supplierCode().equalsIgnoreCase(permittedSupplier)) {
+            List<String> requestedSupplierCodes = new ArrayList<>(plan.supplierCodes());
+            if (plan.supplierCode() != null) requestedSupplierCodes.add(plan.supplierCode());
+            boolean unauthorizedSupplier = requestedSupplierCodes.stream()
+                    .map(value -> value.toUpperCase(Locale.ROOT))
+                    .anyMatch(value -> !permittedSuppliers.contains(value));
+            if (unauthorizedSupplier) {
                 throw new AiProviderException(ErrorCode.AI_INVALID_RESPONSE,
                         AiFailureReason.UNAUTHORIZED_OR_MISMATCHED_TOOL_IDENTIFIER,
                         AiFailureDetail.SUPPLIER_CODE_NOT_IN_QUESTION);

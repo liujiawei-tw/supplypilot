@@ -37,8 +37,10 @@ describe('AI answer display', () => {
       purchaseOrders: [{ purchaseOrderId: 8, poNumber: 'PO-20261102-000004', status: 'ORDERED', stage: 'ORDER_FOLLOW_UP', supplierCode: 'SUP-002', supplierName: '台灣供應商', expectedDeliveryDate: '2026-11-20', supplierPromisedDeliveryDate: null, items: [{ materialCode: 'MAT-001', materialName: '阿薩姆紅茶萃取物', quantity: '2.0000', unit: 'KG', unitPrice: '100.5678', currency: 'TWD', lineTotal: '201.1356' }], totals: [{ currency: 'TWD', amount: '201.1356' }], nextStep: '追蹤供應商交貨。' }],
       candidates: [], unmatchedIdentifiers: [], notes: [],
     };
-    const { container } = render(<AiAnswerDisplay answer={'internal raw fact string'} details={details} />);
+    const summary = '已依據查得的資料整理以下結果。';
+    const { container } = render(<AiAnswerDisplay answer={'internal raw fact string'} details={details} summary={summary} />);
 
+    expect(container.textContent).toContain(summary);
     expect(container.textContent).toContain('目前庫存');
     expect(container.textContent).toContain('150.0000 KG');
     expect(container.textContent).toContain('目前有效供應商報價');
@@ -47,6 +49,36 @@ describe('AI answer display', () => {
     expect(container.textContent).toContain('PO-20261102-000004');
     expect(container.textContent).toContain('下單與交期跟催');
     expect(container.textContent).not.toContain('internal raw fact string');
+  });
+
+  it('shows fetched open PO count separately from the matching total and undisplayed remainder', () => {
+    const details = {
+      inventory: [], quotes: [], averagePrices: [], suppliers: [],
+      purchaseOrders: [
+        { purchaseOrderId: 8, poNumber: 'PO-1', status: 'ORDERED', stage: null, supplierCode: 'SUP-001', supplierName: 'One', expectedDeliveryDate: null, supplierPromisedDeliveryDate: null, items: [], totals: [], nextStep: null },
+        { purchaseOrderId: 9, poNumber: 'PO-2', status: 'ORDERED', stage: null, supplierCode: 'SUP-002', supplierName: 'Two', expectedDeliveryDate: null, supplierPromisedDeliveryDate: null, items: [], totals: [], nextStep: null },
+      ],
+      candidates: [], unmatchedIdentifiers: [], notes: [], purchaseOrderTotalCount: 150,
+    };
+
+    const { container } = render(<AiAnswerDisplay answer={null} details={details} summary="已查得未收貨採購單。" />);
+
+    expect(container.textContent).toContain('符合條件總數 150 筆');
+    expect(container.textContent).toContain('本次取得 2 筆');
+    expect(container.textContent).toContain('尚有 148 筆未列出');
+    expect(container.textContent).toContain('已查得未收貨採購單。');
+  });
+
+  it('renders a structured zero open PO count', () => {
+    const details = {
+      inventory: [], quotes: [], averagePrices: [], suppliers: [], purchaseOrders: [],
+      candidates: [], unmatchedIdentifiers: [], notes: [], purchaseOrderTotalCount: 0,
+    };
+
+    const { container } = render(<AiAnswerDisplay answer={null} details={details} />);
+
+    expect(container.textContent).toContain('符合條件總數 0 筆');
+    expect(container.textContent).toContain('本次取得 0 筆');
   });
 
   it('applies the V2 two-decimal display rule without changing the source decimal', () => {
@@ -241,6 +273,31 @@ describe('AI query panel response contract', () => {
     expect(screen.getByText('後端 沒有足夠證據支持肯定答案，因此不會顯示推測內容。')).toBeTruthy();
     expect(screen.getByText('未提供可核對來源。')).toBeTruthy();
     expect(screen.queryByRole('heading', { name: '回答' })).toBeNull();
+  });
+
+  it('shows verified partial facts and names the missing identifier on an insufficient answer', async () => {
+    vi.mocked(queryAi).mockResolvedValue({
+      status: 'INSUFFICIENT_EVIDENCE',
+      answer: 'MAT-001 庫存為 1 KG。',
+      tools: ['QUERY_INVENTORY'],
+      sources: [],
+      answerSource: 'BACKEND_FACTS',
+      details: {
+        inventory: [{ materialId: 1, materialCode: 'MAT-001', materialName: 'Assam', quantity: '1', unit: 'KG', updatedAt: '2026-10-15T12:00:00Z' }],
+        quotes: [], averagePrices: [], suppliers: [], purchaseOrders: [], candidates: [],
+        unmatchedIdentifiers: [], notes: ['尚未取得以下物料代碼的結果：MAT-002。'],
+      },
+    });
+    const user = userEvent.setup();
+
+    render(<MemoryRouter><AiQueryPanel /></MemoryRouter>);
+    await user.type(screen.getByRole('textbox', { name: 'AI 問題' }), 'MAT-001 / MAT-002 庫存?');
+    await user.click(screen.getByRole('button', { name: '送出問題' }));
+
+    expect(await screen.findByText('部分查詢結果')).toBeTruthy();
+    expect(screen.getByText('目前庫存')).toBeTruthy();
+    expect(document.body.textContent).toContain('MAT-001');
+    expect(screen.getByText('尚未取得以下物料代碼的結果：MAT-002。')).toBeTruthy();
   });
 
   it('distinguishes a successful query with no matching business data', async () => {
