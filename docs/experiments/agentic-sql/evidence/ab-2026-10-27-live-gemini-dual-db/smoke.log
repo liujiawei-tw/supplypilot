@@ -1,0 +1,14 @@
+Smoke Gate result for e5e841e7b18a2cea625f79b6c8479fc67ad57897
+
+Preflight:
+- Demo login with buyer: HTTP 401 UNAUTHENTICATED; no Gemini request; command exit 1.
+- Demo database contains admin and test accounts; admin login succeeded.
+- MySQL 8.4.11 / 127.0.0.1:3307, PostgreSQL 17.11 / internal pgvector:5432.
+- Gemini model: gemini-3.6-flash; API key not emitted.
+
+Calls:
+POST /api/v1/auth/login (username=admin; password sourced from the already running Demo container; token kept in memory only): success
+POST /api/v1/ai/query {"message":"SUP-001 供應 MAT-001 的目前單價與幣別為何？"}: HTTP 200, ANSWERED, 6274.54 ms, exit code 0.
+POST /api/v1/ai/agent-query {"question":"SUP-001 供應 MAT-001 的目前單價與幣別為何？"}: HTTP 200, PARTIAL, 19951.70 ms, 5 tool calls, MYSQL only, warnings=UNSUPPORTED_MODEL_CLAIMS;INVALID_MODEL_CLAIMS, usage prompt=15644 completion=348 total=18421, exit code 0.
+
+Acceptance: BLOCKED. Agent executed schema discovery and one read-only MySQL SQL query but its claims did not pass answer support verification. No 20-case benchmark was started.
