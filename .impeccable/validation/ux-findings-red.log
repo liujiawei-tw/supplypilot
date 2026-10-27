@@ -1,0 +1,98 @@
+
+> frontend@0.0.0 test
+> vitest run tests/quickFinder.test.tsx tests/sp807.test.tsx -t clears a successful search|does not let a late response|formats the expected delivery date|does not show the previous mobile rows
+
+
+ RUN  v4.1.11 C:/Users/z0976/.codex/worktrees/procurement-tool-ux-redesign/supplypilot/frontend
+
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+stderr | tests/quickFinder.test.tsx > QuickFinder > clears a successful search when closed and requires a fresh search after reopening
+Warning: [antd: Spin] `tip` is deprecated. Please use `description` instead.
+
+stderr | tests/quickFinder.test.tsx > QuickFinder > clears a successful search when closed and requires a fresh search after reopening
+Warning: [antd: List] The `List` component is deprecated and will be removed in the next major version. If you're using version 6.6.0 or later, please use `Listy` instead.
+
+stderr | tests/quickFinder.test.tsx > QuickFinder > clears a successful search when closed and requires a fresh search after reopening
+Warning: [antd: List] The `List` component is deprecated and will be removed in the next major version. If you're using version 6.6.0 or later, please use `Listy` instead.
+
+ ❯ tests/sp807.test.tsx (21 tests | 5 failed | 16 skipped) 483ms
+     × formats the expected delivery date in desktop and mobile queues (2026-10-30) 364ms
+     × formats the expected delivery date in desktop and mobile queues (null) 40ms
+     × formats the expected delivery date in the receiving detail (2026-10-30) 29ms
+     × formats the expected delivery date in the receiving detail (null) 23ms
+     × does not show the previous mobile rows while a new receiving filter request is pending 22ms
+ ❯ tests/quickFinder.test.tsx (6 tests | 1 failed | 4 skipped) 3736ms
+     × clears a successful search when closed and requires a fresh search after reopening 2169ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 6 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/quickFinder.test.tsx > QuickFinder > clears a successful search when closed and requires a fresh search after reopening
+AssertionError: expected 'PO-REFRESH' to be '' // Object.is equality
+
+- Expected
++ Received
+
++ PO-REFRESH
+
+ ❯ tests/quickFinder.test.tsx:134:25
+    132|
+    133|     const input = screen.getByRole('textbox', { name: '採購單查詢文字' }) as …
+    134|     expect(input.value).toBe('');
+       |                         ^
+    135|     expect(screen.queryByText('PO-OLD-RESULT')).toBeNull();
+    136|     expect(screen.queryByText('PO-UPDATED-RESULT')).toBeNull();
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/6]⎯
+
+ FAIL  tests/sp807.test.tsx > SP-807 receiving and import verification boundaries > formats the expected delivery date in desktop and mobile queues (2026-10-30)
+ FAIL  tests/sp807.test.tsx > SP-807 receiving and import verification boundaries > formats the expected delivery date in desktop and mobile queues (null)
+ReferenceError: waitFor is not defined
+ ❯ tests/sp807.test.tsx:214:5
+    212|
+    213|     await open('/receiving/purchase-orders');
+    214|     await waitFor(() => expect(document.querySelector('.receiving-queu…
+       |     ^
+    215|     const desktopDate = document.querySelector('.receiving-queue__tabl…
+    216|     const mobileFacts = document.querySelector('.receiving-queue__mobi…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/6]⎯
+
+ FAIL  tests/sp807.test.tsx > SP-807 receiving and import verification boundaries > formats the expected delivery date in the receiving detail (2026-10-30)
+ FAIL  tests/sp807.test.tsx > SP-807 receiving and import verification boundaries > formats the expected delivery date in the receiving detail (null)
+TypeError: Expected container to be an Element, a Document or a DocumentFragment but got null.
+ ❯ checkContainerType node_modules/@testing-library/dom/dist/helpers.js:61:11
+ ❯ node_modules/@testing-library/dom/dist/wait-for.js:86:41
+ ❯ waitFor node_modules/@testing-library/dom/dist/wait-for.js:36:10
+ ❯ node_modules/@testing-library/dom/dist/wait-for.js:164:54
+ ❯ Object.asyncWrapper node_modules/@testing-library/react/dist/pure.js:88:28
+ ❯ waitForWrapper node_modules/@testing-library/dom/dist/wait-for.js:164:35
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:86:33
+ ❯ tests/sp807.test.tsx:233:33
+    231|     await open('/receiving/purchase-orders/42');
+    232|     const facts = document.querySelector('.receiving-detail__facts');
+    233|     expect(await within(facts!).findByText(displayValue)).toBeTruthy();
+       |                                 ^
+    234|   });
+    235|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/6]⎯
+
+ FAIL  tests/sp807.test.tsx > SP-807 receiving and import verification boundaries > does not show the previous mobile rows while a new receiving filter request is pending
+ReferenceError: waitFor is not defined
+ ❯ tests/sp807.test.tsx:255:5
+    253|
+    254|     await open('/receiving/purchase-orders');
+    255|     await waitFor(() => expect(document.querySelector('.receiving-queu…
+       |     ^
+    256|     const user = userEvent.setup();
+    257|     await user.click(screen.getByRole('combobox', { name: '收貨狀態' }));
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/6]⎯
+
+
+ Test Files  2 failed (2)
+      Tests  6 failed | 1 passed | 20 skipped (27)
+   Start at  14:15:28
+   Duration  92.59s (transform 2.72s, setup 8.69s, import 137.86s, tests 4.22s, environment 31.31s)

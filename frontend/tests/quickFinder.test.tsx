@@ -1,5 +1,7 @@
+import { useState } from 'react';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import userEvent from '@testing-library/user-event';
 import { MemoryRouter, useLocation } from 'react-router-dom';
 import QuickFinder from '../src/components/QuickFinder/QuickFinder';
 
@@ -35,6 +37,30 @@ function renderFinder() {
       <QuickFinder open onClose={vi.fn()} />
     </MemoryRouter>,
   );
+}
+
+function ControlledFinder() {
+  const [open, setOpen] = useState(true);
+  return <>
+    <button onClick={() => setOpen(true)}>重新開啟查找</button>
+    <QuickFinder open={open} onClose={() => setOpen(false)} />
+  </>;
+}
+
+function renderControlledFinder() {
+  return render(
+    <MemoryRouter initialEntries={['/']}>
+      <LocationText />
+      <ControlledFinder />
+    </MemoryRouter>,
+  );
+}
+
+function poResult(id: number, poNumber: string) {
+  return {
+    id, poNumber, supplierCode: 'SUP-001', supplierName: '供應商', status: 'ORDERED', stage: 'ORDER_FOLLOW_UP',
+    items: [], isOverdue: false, expectedDeliveryDate: '2026-10-30', supplierPromisedDeliveryDate: null,
+  };
 }
 
 describe('QuickFinder', () => {
@@ -85,6 +111,60 @@ describe('QuickFinder', () => {
 
     fireEvent.click(screen.getByRole('button', { name: '開啟' }));
     await waitFor(() => expect(screen.getByTestId('current-location').textContent).toBe('/purchase-orders/44'));
+  });
+
+  it('clears a successful search when closed and requires a fresh search after reopening', async () => {
+    const user = userEvent.setup();
+    let currentResult = poResult(51, 'PO-OLD-RESULT');
+    mocks.listPurchaseOrders.mockImplementation(async (query: Record<string, unknown>) =>
+      page(query.poNumber ? [currentResult] : []),
+    );
+
+    renderControlledFinder();
+    await user.type(screen.getByRole('textbox', { name: '採購單查詢文字' }), 'PO-REFRESH');
+    await user.click(screen.getByRole('button', { name: '查找' }));
+    expect(await screen.findByText('PO-OLD-RESULT')).toBeTruthy();
+
+    await user.keyboard('{Escape}');
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    currentResult = poResult(52, 'PO-UPDATED-RESULT');
+    await user.click(screen.getByRole('button', { name: '重新開啟查找' }));
+
+    const input = screen.getByRole('textbox', { name: '採購單查詢文字' }) as HTMLInputElement;
+    expect(input.value).toBe('');
+    expect(screen.queryByText('PO-OLD-RESULT')).toBeNull();
+    expect(screen.queryByText('PO-UPDATED-RESULT')).toBeNull();
+
+    await user.type(input, 'PO-REFRESH');
+    await user.click(screen.getByRole('button', { name: '查找' }));
+    expect(await screen.findByText('PO-UPDATED-RESULT')).toBeTruthy();
+    expect(screen.queryByText('PO-OLD-RESULT')).toBeNull();
+  });
+
+  it('does not let a late response from an older query replace newer results', async () => {
+    const user = userEvent.setup();
+    let resolveOldQuery: ((result: ReturnType<typeof page>) => void) | undefined;
+    const oldQuery = new Promise<ReturnType<typeof page>>((resolve) => { resolveOldQuery = resolve; });
+    const oldResult = poResult(61, 'PO-OLD-QUERY');
+    const newResult = poResult(62, 'PO-NEW-QUERY');
+    mocks.listPurchaseOrders.mockImplementation(async (query: Record<string, unknown>) => {
+      if (query.poNumber === 'OLD-QUERY') return oldQuery;
+      if (query.poNumber === 'NEW-QUERY') return page([newResult]);
+      return page();
+    });
+
+    renderFinder();
+    const input = screen.getByRole('textbox', { name: '採購單查詢文字' });
+    await user.type(input, 'OLD-QUERY');
+    await user.click(screen.getByRole('button', { name: '查找' }));
+    await user.clear(input);
+    await user.type(input, 'NEW-QUERY');
+    await user.click(screen.getByRole('button', { name: '查找' }));
+    expect(await screen.findByText('PO-NEW-QUERY')).toBeTruthy();
+
+    resolveOldQuery?.(page([oldResult]));
+    await waitFor(() => expect(screen.getByText('PO-NEW-QUERY')).toBeTruthy());
+    expect(screen.queryByText('PO-OLD-QUERY')).toBeNull();
   });
 
   it('limits warehouse search to inventory and materials instead of calling the PO API', async () => {

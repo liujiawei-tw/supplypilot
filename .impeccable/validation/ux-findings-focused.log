@@ -1,0 +1,18 @@
+
+> frontend@0.0.0 test
+> vitest run tests/quickFinder.test.tsx tests/sp807.test.tsx -t clears a successful search|does not let a late response|formats the expected delivery date|does not show the previous mobile rows
+
+
+ RUN  v4.1.11 C:/Users/z0976/.codex/worktrees/procurement-tool-ux-redesign/supplypilot/frontend
+
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+
+ Test Files  2 passed (2)
+      Tests  7 passed | 20 skipped (27)
+   Start at  14:18:16
+   Duration  16.48s (transform 2.46s, setup 869ms, import 15.84s, tests 9.14s, environment 2.79s)

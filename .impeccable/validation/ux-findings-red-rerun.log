@@ -1,0 +1,158 @@
+
+> frontend@0.0.0 test
+> vitest run tests/quickFinder.test.tsx tests/sp807.test.tsx -t clears a successful search|does not let a late response|formats the expected delivery date|does not show the previous mobile rows
+
+
+ RUN  v4.1.11 C:/Users/z0976/.codex/worktrees/procurement-tool-ux-redesign/supplypilot/frontend
+
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+stderr | tests/quickFinder.test.tsx > QuickFinder > clears a successful search when closed and requires a fresh search after reopening
+Warning: [antd: Spin] `tip` is deprecated. Please use `description` instead.
+
+stderr | tests/quickFinder.test.tsx > QuickFinder > clears a successful search when closed and requires a fresh search after reopening
+Warning: [antd: List] The `List` component is deprecated and will be removed in the next major version. If you're using version 6.6.0 or later, please use `Listy` instead.
+
+stderr | tests/quickFinder.test.tsx > QuickFinder > clears a successful search when closed and requires a fresh search after reopening
+Warning: [antd: List] The `List` component is deprecated and will be removed in the next major version. If you're using version 6.6.0 or later, please use `Listy` instead.
+
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+ ❯ tests/quickFinder.test.tsx (6 tests | 1 failed | 4 skipped) 3438ms
+     × clears a successful search when closed and requires a fresh search after reopening 2036ms
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+stderr | tests/sp807.test.tsx > SP-807 receiving and import verification boundaries > formats the expected delivery date in desktop and mobile queues (2026-10-30)
+Warning: [antd: Spin] `tip` is deprecated. Please use `description` instead.
+
+stderr | tests/sp807.test.tsx > SP-807 receiving and import verification boundaries > formats the expected delivery date in the receiving detail (2026-10-30)
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+stderr | tests/sp807.test.tsx > SP-807 receiving and import verification boundaries > does not show the previous mobile rows while a new receiving filter request is pending
+Warning: [antd: Spin] `tip` is deprecated. Please use `description` instead.
+
+ ❯ tests/sp807.test.tsx (21 tests | 3 failed | 16 skipped) 6139ms
+     × formats the expected delivery date in desktop and mobile queues (2026-10-30) 1200ms
+     × formats the expected delivery date in the receiving detail (2026-10-30) 1541ms
+     × does not show the previous mobile rows while a new receiving filter request is pending 2357ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/quickFinder.test.tsx > QuickFinder > clears a successful search when closed and requires a fresh search after reopening
+AssertionError: expected 'PO-REFRESH' to be '' // Object.is equality
+
+- Expected
++ Received
+
++ PO-REFRESH
+
+ ❯ tests/quickFinder.test.tsx:134:25
+    132|
+    133|     const input = screen.getByRole('textbox', { name: '採購單查詢文字' }) as …
+    134|     expect(input.value).toBe('');
+       |                         ^
+    135|     expect(screen.queryByText('PO-OLD-RESULT')).toBeNull();
+    136|     expect(screen.queryByText('PO-UPDATED-RESULT')).toBeNull();
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/4]⎯
+
+ FAIL  tests/sp807.test.tsx > SP-807 receiving and import verification boundaries > formats the expected delivery date in desktop and mobile queues (2026-10-30)
+AssertionError: expected '預計交期2026-10-30' to contain '2026/10/30'
+
+Expected: "2026/10/30"
+Received: "預計交期2026-10-30"
+
+ ❯ tests/sp807.test.tsx:217:38
+    215|     const desktopDate = document.querySelector('.receiving-queue__tabl…
+    216|     const mobileFacts = document.querySelector('.receiving-queue__mobi…
+    217|     expect(desktopDate?.textContent).toContain(displayValue);
+       |                                      ^
+    218|     expect(mobileFacts?.textContent).toContain(displayValue);
+    219|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/4]⎯
+
+ FAIL  tests/sp807.test.tsx > SP-807 receiving and import verification boundaries > formats the expected delivery date in the receiving detail (2026-10-30)
+TestingLibraryElementError: Unable to find an element with the text: 2026/10/30. This could be because the text is broken up by multiple elements. In this case, you can provide a function for your text matcher to make your matcher more flexible.
+
+Ignored nodes: comments, script, style
+<section
+  aria-label="採購單交接資訊"
+  class="receiving-detail__facts sp-section"
+>
+  <div>
+    <span>
+      預計交期
+    </span>
+    <strong>
+      2026-10-30
+    </strong>
+  </div>
+  <div>
+    <span>
+      下單時間
+    </span>
+    <strong>
+      2026/10/02 08:00
+    </strong>
+  </div>
+</section>
+
+Ignored nodes: comments, script, style
+<section
+  aria-label="採購單交接資訊"
+  class="receiving-detail__facts sp-section"
+>
+  <div>
+    <span>
+      預計交期
+    </span>
+    <strong>
+      2026-10-30
+    </strong>
+  </div>
+  <div>
+    <span>
+      下單時間
+    </span>
+    <strong>
+      2026/10/02 08:00
+    </strong>
+  </div>
+</section>
+ ❯ waitForWrapper node_modules/@testing-library/dom/dist/wait-for.js:163:27
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:86:33
+ ❯ tests/sp807.test.tsx:234:33
+    232|     expect(await screen.findByRole('heading', { name: 'PO-000042' })).…
+    233|     const facts = document.querySelector('.receiving-detail__facts');
+    234|     expect(await within(facts!).findByText(displayValue)).toBeTruthy();
+       |                                 ^
+    235|   });
+    236|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/4]⎯
+
+ FAIL  tests/sp807.test.tsx > SP-807 receiving and import verification boundaries > does not show the previous mobile rows while a new receiving filter request is pending
+AssertionError: expected [ <a …(3)></a>, <a …(3)></a> ] to have a length of +0 but got 2
+
+- Expected
++ Received
+
+- 0
++ 2
+
+ ❯ tests/sp807.test.tsx:262:50
+    260|     try {
+    261|       await waitFor(() => expect(listReads).toBe(2));
+    262|       expect(screen.queryAllByText('PO-000042')).toHaveLength(0);
+       |                                                  ^
+    263|       expect(document.querySelector('.receiving-queue__loading')?.text…
+    264|     } finally {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/4]⎯
+
+
+ Test Files  2 failed (2)
+      Tests  4 failed | 3 passed | 20 skipped (27)
+   Start at  14:17:18
+   Duration  17.56s (transform 2.41s, setup 887ms, import 16.14s, tests 9.58s, environment 2.79s)

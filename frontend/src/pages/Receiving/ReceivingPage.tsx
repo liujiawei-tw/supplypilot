@@ -9,6 +9,7 @@ import ErrorState from '../../components/ErrorState';
 import type { ApiErrorResponse, PageResponse } from '../../types/api';
 import { formatTimestamp } from '../PurchaseOrders/purchaseOrderUi';
 import { displayLabel } from '../../utils/displayLabels';
+import { formatDate } from '../../utils/displayFormatters';
 import './ReceivingPage.css';
 
 const sortable = new Set(['id', 'poNumber', 'expectedDeliveryDate', 'orderedAt', 'receivedAt']);
@@ -52,7 +53,10 @@ export default function ReceivingPage() {
       const result = await listReceivingPurchaseOrders(query);
       if (current === requestId.current) setData(result);
     } catch (requestError) {
-      if (current === requestId.current) setError(toApiError(requestError));
+      if (current === requestId.current) {
+        setData(null);
+        setError(toApiError(requestError));
+      }
     } finally {
       if (current === requestId.current) setLoading(false);
     }
@@ -62,13 +66,20 @@ export default function ReceivingPage() {
     return () => window.clearTimeout(timer);
   }, [load]);
 
+  const updateQuery = (update: (current: ReceivingQuery) => ReceivingQuery) => {
+    requestId.current += 1;
+    setLoading(true);
+    setError(null);
+    setQuery(update);
+  };
+
   const setFilter = (key: keyof ReceivingQuery, value: unknown) =>
-    setQuery((current) => ({ ...current, [key]: value || undefined, page: 0 }));
+    updateQuery((current) => ({ ...current, [key]: value || undefined, page: 0 }));
 
   const handleTableChange: TableProps<ReceivingPurchaseOrderResponse>['onChange'] = (pagination, _filters, sorter) => {
     const selected = Array.isArray(sorter) ? sorter[0] : sorter;
     const field = typeof selected?.field === 'string' && sortable.has(selected.field) ? selected.field : undefined;
-    setQuery((current) => ({
+    updateQuery((current) => ({
       ...current,
       page: (pagination.current ?? 1) - 1,
       size: pagination.pageSize ?? current.size ?? 20,
@@ -93,7 +104,7 @@ export default function ReceivingPage() {
       sorter: true,
       render: (value, row) => <div className="receiving-queue__date">
         <strong>預計交期</strong>
-        <span>{value ?? '未設定'}</span>
+        <span>{formatDate(value, '未設定')}</span>
         {row.status === 'ORDERED' && row.isOverdue && <Tag color="error">已逾期</Tag>}
       </div>,
     },
@@ -103,11 +114,11 @@ export default function ReceivingPage() {
       sorter: true,
       render: (value) => <div className="receiving-queue__date">
         <strong>收貨完成</strong>
-        <span>{value ? formatTimestamp(value) : '—'}</span>
+        <span>{value ? formatTimestamp(value) : '未設定'}</span>
       </div>,
     },
     { title: '品項摘要', render: (_, row) => <span className="receiving-queue__items">{itemSummary(row)}</span> },
-    { title: '下單時間', dataIndex: 'orderedAt', sorter: true, render: formatTimestamp },
+    { title: '下單時間', dataIndex: 'orderedAt', sorter: true, render: (value) => value ? formatTimestamp(value) : '未設定' },
     {
       title: '作業',
       render: (_, row) => <Link className="receiving-queue__open" to={`/receiving/purchase-orders/${row.id}`}>
@@ -165,7 +176,7 @@ export default function ReceivingPage() {
       <Table
         rowKey="id"
         columns={columns}
-        dataSource={records}
+        dataSource={loading ? [] : records}
         loading={loading}
         locale={{ emptyText: <EmptyState simple description={query.status === 'ORDERED' ? '目前沒有待收貨 PO' : '尚無已收貨紀錄'} /> }}
         pagination={{ current: pageNumber, pageSize, total, showSizeChanger: true, showTotal: (count) => `共 ${count} 筆` }}
@@ -174,7 +185,7 @@ export default function ReceivingPage() {
     </section>
 
     <section className="receiving-queue__mobile" aria-label="收貨採購單清單">
-      {loading && records.length === 0
+      {loading
         ? <div className="receiving-queue__loading"><Spin tip="正在載入收貨清單" /></div>
         : records.length === 0
           ? <EmptyState simple description={query.status === 'ORDERED' ? '目前沒有待收貨 PO' : '尚無已收貨紀錄'} />
@@ -188,12 +199,14 @@ export default function ReceivingPage() {
               <div className="receiving-queue__mobile-facts">
                 <div>
                   <span>{row.status === 'RECEIVED' ? '收貨完成' : '預計交期'}</span>
-                  <strong>{row.status === 'RECEIVED' ? formatTimestamp(row.receivedAt) : row.expectedDeliveryDate ?? '未設定'}</strong>
+                  <strong>{row.status === 'RECEIVED'
+                    ? row.receivedAt ? formatTimestamp(row.receivedAt) : '未設定'
+                    : formatDate(row.expectedDeliveryDate, '未設定')}</strong>
                 </div>
                 {row.status === 'ORDERED' && row.isOverdue && <Tag color="error">已逾期</Tag>}
                 <div>
                   <span>下單時間</span>
-                  <strong>{formatTimestamp(row.orderedAt)}</strong>
+                  <strong>{row.orderedAt ? formatTimestamp(row.orderedAt) : '未設定'}</strong>
                 </div>
               </div>
               <p className="receiving-queue__items">{itemSummary(row)}</p>
@@ -209,7 +222,7 @@ export default function ReceivingPage() {
         total={total}
         showSizeChanger
         showTotal={(count) => `共 ${count} 筆`}
-        onChange={(current, size) => setQuery((previous) => ({ ...previous, page: current - 1, size }))}
+        onChange={(current, size) => updateQuery((previous) => ({ ...previous, page: current - 1, size }))}
       />
     </section>
 

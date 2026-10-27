@@ -70,7 +70,15 @@ export default function QuickFinder({ open, onClose }: QuickFinderProps) {
   const effectiveScope = availableScopes.some((option) => option.key === scope) ? scope : availableScopes[0]?.key ?? 'documents';
   const selectedScope = availableScopes.find((option) => option.key === effectiveScope);
 
-  const close = () => { sequence.current += 1; setLoading(false); onClose(); };
+  const close = () => {
+    sequence.current += 1;
+    setLoading(false);
+    setQuery('');
+    setResults([]);
+    setError('');
+    setHasSearched(false);
+    onClose();
+  };
   const changeScope = (next: ScopeKey) => {
     sequence.current += 1; setLoading(false); setScope(next); setResults([]); setError(''); setHasSearched(false);
   };

@@ -12,6 +12,7 @@ import VerificationRequiredAlert from '../../components/VerificationRequiredAler
 import type { ApiErrorResponse } from '../../types/api';
 import { formatTimestamp } from '../PurchaseOrders/purchaseOrderUi';
 import { displayLabel } from '../../utils/displayLabels';
+import { formatDate } from '../../utils/displayFormatters';
 import './ReceivingDetailPage.css';
 
 const emptyReceivingInspection = { allItemsReceived: false, allQuantitiesConfirmed: false, allQualityAccepted: false, note: null };
@@ -156,9 +157,9 @@ export default function ReceivingDetailPage() {
     {receiveError && <ErrorState title={verificationRequired ? '收貨結果待查核' : '收貨操作失敗'} error={receiveError} operation="mutation" />}
 
     <section className="receiving-detail__facts sp-section" aria-label="採購單交接資訊">
-      <div><span>預計交期</span><strong>{po.expectedDeliveryDate ?? '未設定'}</strong>{po.status === 'ORDERED' && po.isOverdue && <Tag color="error">已逾期</Tag>}</div>
-      <div><span>下單時間</span><strong>{formatTimestamp(po.orderedAt)}</strong></div>
-      {po.status === 'RECEIVED' && <div><span>收貨完成時間</span><strong>{formatTimestamp(po.receivedAt)}</strong></div>}
+      <div><span>預計交期</span><strong>{formatDate(po.expectedDeliveryDate, '未設定')}</strong>{po.status === 'ORDERED' && po.isOverdue && <Tag color="error">已逾期</Tag>}</div>
+      <div><span>下單時間</span><strong>{po.orderedAt ? formatTimestamp(po.orderedAt) : '未設定'}</strong></div>
+      {po.status === 'RECEIVED' && <div><span>收貨完成時間</span><strong>{po.receivedAt ? formatTimestamp(po.receivedAt) : '未設定'}</strong></div>}
       {po.status === 'RECEIVED' && <div><span>收貨經手人</span><strong>{po.receivedByDisplayName || '未提供'}</strong></div>}
     </section>
 
