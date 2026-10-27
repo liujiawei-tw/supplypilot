@@ -1,0 +1,101 @@
+BASE_COMMIT_SHA=39a620e055c45fcdefa3830086492590920f8db0
+COMMAND=.\backend\mvnw.cmd -Dtest=AgenticSqlExecutorIntegrationTests -f backend\pom.xml test
+[INFO] Scanning for projects...
+[INFO] 
+[INFO] ------------------< com.supplypilot:supply-pilot-api >------------------
+[INFO] Building supply-pilot-api 0.0.1-SNAPSHOT
+[INFO]   from pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.5.0:resources (default-resources) @ supply-pilot-api ---
+[INFO] Copying 5 resources from src\main\resources to target\classes
+[INFO] Copying 37 resources from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.15.0:compile (default-compile) @ supply-pilot-api ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- resources:3.5.0:testResources (default-testResources) @ supply-pilot-api ---
+[INFO] Copying 3 resources from src\test\resources to target\test-classes
+[INFO] 
+[INFO] --- compiler:3.15.0:testCompile (default-testCompile) @ supply-pilot-api ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- surefire:3.5.6:test (default-test) @ supply-pilot-api ---
+[INFO] Using auto detected provider org.apache.maven.surefire.junitplatform.JUnitPlatformProvider
+[INFO] 
+[INFO] -------------------------------------------------------
+[INFO]  T E S T S
+[INFO] -------------------------------------------------------
+22:35:23.667 [main] INFO org.testcontainers.DockerClientFactory -- Testcontainers version: 2.0.5
+22:35:24.113 [main] INFO org.testcontainers.dockerclient.DockerClientProviderStrategy -- Loaded org.testcontainers.dockerclient.NpipeSocketClientProviderStrategy from ~/.testcontainers.properties, will try it first
+22:35:24.672 [main] INFO org.testcontainers.dockerclient.DockerClientProviderStrategy -- Found Docker environment with local Npipe socket (npipe:////./pipe/docker_engine)
+22:35:24.675 [main] INFO org.testcontainers.DockerClientFactory -- Docker host IP address is localhost
+22:35:24.700 [main] INFO org.testcontainers.DockerClientFactory -- Connected to docker: 
+  Server Version: 29.6.1
+  API Version: 1.55
+  Operating System: Docker Desktop
+  Total Memory: 19902 MB
+  Labels: 
+    com.docker.desktop.address=npipe://\\.\pipe\docker_cli
+22:35:24.716 [main] INFO org.testcontainers.images.PullPolicy -- Image pull policy will be performed by: DefaultPullPolicy()
+22:35:24.719 [main] INFO org.testcontainers.utility.ImageNameSubstitutor -- Image name substitution will be performed by: DefaultImageNameSubstitutor (composite of 'ConfigurationFileImageNameSubstitutor' and 'PrefixingImageNameSubstitutor')
+22:35:25.205 [main] INFO tc.testcontainers/ryuk:0.14.0 -- Creating container for image: testcontainers/ryuk:0.14.0
+22:35:25.539 [main] INFO tc.testcontainers/ryuk:0.14.0 -- Container testcontainers/ryuk:0.14.0 is starting: a75d15d15f913605b7fff1d597f7e0499fdccc838af3a20b1d6430f43eea3091
+22:35:26.004 [main] INFO tc.testcontainers/ryuk:0.14.0 -- Container testcontainers/ryuk:0.14.0 started in PT0.7993789S
+22:35:26.018 [main] INFO org.testcontainers.utility.RyukResourceReaper -- Ryuk started - will monitor and terminate Testcontainers containers on JVM exit
+22:35:26.019 [main] INFO org.testcontainers.DockerClientFactory -- Checking the system...
+22:35:26.021 [main] INFO org.testcontainers.DockerClientFactory -- ?? Docker server version should be at least 1.6.0
+[INFO] Running com.supplypilot.agentic.sql.AgenticSqlExecutorIntegrationTests
+22:35:26.264 [main] INFO tc.mysql:8.4.11 -- Creating container for image: mysql:8.4.11
+22:35:26.388 [main] INFO tc.mysql:8.4.11 -- Container mysql:8.4.11 is starting: 725f8997e4e69f81b6db5dcce81f6ab22446c60c0cb537e2f0d592439e9b3212
+22:35:26.726 [main] INFO tc.mysql:8.4.11 -- Waiting for database connection to become available at jdbc:mysql://localhost:5721/supplypilot_agentic_test using query 'SELECT 1'
+22:35:39.989 [main] INFO tc.mysql:8.4.11 -- Container mysql:8.4.11 started in PT13.7255471S
+22:35:39.990 [main] INFO tc.mysql:8.4.11 -- Container is started (JDBC URL: jdbc:mysql://localhost:5721/supplypilot_agentic_test)
+22:35:39.990 [main] INFO tc.postgres:16-alpine -- Creating container for image: postgres:16-alpine
+22:35:40.104 [main] INFO tc.postgres:16-alpine -- Container postgres:16-alpine is starting: 37186399edb57cc5163d86cc3fb816dd2a3b252db57125c4430258f41760aa47
+22:35:42.130 [main] INFO tc.postgres:16-alpine -- Container postgres:16-alpine started in PT2.1399544S
+22:35:42.132 [main] INFO tc.postgres:16-alpine -- Container is started (JDBC URL: jdbc:postgresql://localhost:5838/supplypilot_agentic_test?loggerLevel=OFF)
+[ERROR] Tests run: 22, Failures: 1, Errors: 0, Skipped: 0, Time elapsed: 28.22 s <<< FAILURE! -- in com.supplypilot.agentic.sql.AgenticSqlExecutorIntegrationTests
+[ERROR] com.supplypilot.agentic.sql.AgenticSqlExecutorIntegrationTests.arithmeticInsideSumAndAverageCannotBeClaimedAsTheirDirectAggregates -- Time elapsed: 0.112 s <<< FAILURE!
+java.lang.AssertionError: 
+
+Expecting map:
+  {"adjusted_total"="2035.50"}
+to contain entries:
+  ["adjusted_total"="2036.50"]
+but the following map entries had different values:
+  ["adjusted_total"="2035.50" (expected: "2036.50")]
+	at com.supplypilot.agentic.sql.AgenticSqlExecutorIntegrationTests.arithmeticInsideSumAndAverageCannotBeClaimedAsTheirDirectAggregates(AgenticSqlExecutorIntegrationTests.java:226)
+
+[INFO] 
+[INFO] Results:
+[INFO] 
+[ERROR] Failures: 
+[ERROR]   AgenticSqlExecutorIntegrationTests.arithmeticInsideSumAndAverageCannotBeClaimedAsTheirDirectAggregates:226 
+Expecting map:
+  {"adjusted_total"="2035.50"}
+to contain entries:
+  ["adjusted_total"="2036.50"]
+but the following map entries had different values:
+  ["adjusted_total"="2035.50" (expected: "2036.50")]
+[INFO] 
+[ERROR] Tests run: 22, Failures: 1, Errors: 0, Skipped: 0
+[INFO] 
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD FAILURE
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  36.882 s
+[INFO] Finished at: 2026-10-27T22:35:54+08:00
+[INFO] ------------------------------------------------------------------------
+[ERROR] Failed to execute goal org.apache.maven.plugins:maven-surefire-plugin:3.5.6:test (default-test) on project supply-pilot-api: There are test failures.
+[ERROR] 
+[ERROR] See C:\Users\z0976\OneDrive\�ୱ\dev-side\supplypilot\backend\target\surefire-reports for the individual test results.
+[ERROR] See dump files (if any exist) [date].dump, [date]-jvmRun[N].dump and [date].dumpstream.
+[ERROR] -> [Help 1]
+[ERROR] 
+[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.
+[ERROR] Re-run Maven using the -X switch to enable full debug logging.
+[ERROR] 
+[ERROR] For more information about the errors and possible solutions, please read the following articles:
+[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoFailureException
+RECORDED_EXIT_CODE=1
