@@ -3,6 +3,7 @@ package com.supplypilot.agentic.sql;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
@@ -204,6 +205,36 @@ class AgenticSqlExecutorIntegrationTests {
         assertThat(result.rows().getFirst()).containsEntry("supplier_count", "1001");
         assertThat(support.answer()).isEmpty();
         assertThat(support.fullySupported()).isFalse();
+    }
+
+    @Test
+    void arithmeticInsideSumAndAverageCannotBeClaimedAsTheirDirectAggregates() {
+        AgenticSqlExecutor executor = executor(10, 10, 2000);
+        var sum = executor.execute("adjusted-sum", AgenticSqlDatabase.MYSQL,
+                "SELECT SUM(amount + 999) AS adjusted_total FROM agentic_items");
+        var average = executor.execute("adjusted-average", AgenticSqlDatabase.MYSQL,
+                "SELECT AVG(amount + 999) AS adjusted_average FROM agentic_items");
+        var sumCell = evidenceCell(sum, "adjusted_total", 0);
+        var averageCell = evidenceCell(average, "adjusted_average", 0);
+
+        var falseSum = new AgenticSqlAnswerSupportVerifier(new ObjectMapper()).verify(aggregateClaim(
+                "金額總和為 2035.50。", "AGGREGATE", "SUM(amount)", "adjusted-sum", "adjusted_total"),
+                List.of(sumCell));
+        var falseAverage = new AgenticSqlAnswerSupportVerifier(new ObjectMapper()).verify(aggregateClaim(
+                "平均金額為 1017.75。", "AGGREGATE", "AVG(amount)", "adjusted-average", "adjusted_average"),
+                List.of(averageCell));
+
+        assertThat(sum.rows().getFirst()).containsEntry("adjusted_total", "2035.50");
+        assertThat(new BigDecimal(average.rows().getFirst().get("adjusted_average").toString()))
+                .isEqualByComparingTo("1017.75");
+        assertThat(sum.projectionSources().get("adjusted_total"))
+                .anyMatch(source -> source.startsWith("@derived-aggregate:"))
+                .noneMatch(source -> source.startsWith("@aggregate:"));
+        assertThat(average.projectionSources().get("adjusted_average"))
+                .anyMatch(source -> source.startsWith("@derived-aggregate:"))
+                .noneMatch(source -> source.startsWith("@aggregate:"));
+        assertThat(falseSum.answer()).isEmpty();
+        assertThat(falseAverage.answer()).isEmpty();
     }
 
     @Test
@@ -621,6 +652,14 @@ class AgenticSqlExecutorIntegrationTests {
         String value = result.rows().get(rowIndex).get(column).toString();
         return new AgenticSqlEvidenceCell(result.toolCallId(), result.database().name(), Set.copyOf(result.tables()),
                 rowIndex, column, value, sources, !sources.isEmpty());
+    }
+
+    private String aggregateClaim(String text, String kind, String attribute, String toolCallId, String column) {
+        return """
+                {"claims":[{"text":"%s","fact":{"kind":"%s","attribute":"%s",
+                "value":{"toolCallId":"%s","rowIndex":0,"column":"%s"}},
+                "evidence":[{"toolCallId":"%s","rowIndex":0,"column":"%s"}]}]}
+                """.formatted(text, kind, attribute, toolCallId, column, toolCallId, column);
     }
 
     @Test

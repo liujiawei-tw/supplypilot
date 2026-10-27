@@ -144,7 +144,12 @@ public final class AgenticSqlAnswerSupportVerifier {
         if ("DERIVED".equals(kind) && !explicitlyQualifiedCalculation(claimText)) return false;
 
         JsonNode subjectReference = fact.get("subject");
-        if (!"AGGREGATE".equals(kind) && (subjectReference == null || subjectReference.isNull())) return false;
+        boolean derivedAggregate = kind != null && "DERIVED".equals(kind)
+                && value.sourceColumns().stream().anyMatch(source -> source.startsWith("@derived-aggregate:"));
+        boolean groupedDerivedAggregate = derivedAggregate
+                && value.sourceColumns().contains("@grouped-aggregate");
+        if (!"AGGREGATE".equals(kind) && (!derivedAggregate || groupedDerivedAggregate)
+                && (subjectReference == null || subjectReference.isNull())) return false;
         if (subjectReference != null && !subjectReference.isNull()) {
             AgenticSqlEvidenceCell subject = resolveReference(subjectReference, cells);
             if (subject == null || !cited.contains(subject) || !sameResultRow(subject, value)
@@ -165,11 +170,15 @@ public final class AgenticSqlAnswerSupportVerifier {
         String expected = columnLeaf(attribute);
         if (expected.isBlank()) return false;
         String derivedNumeric = markerExpression(sources, "@derived-numeric:");
-        if (sources.stream().anyMatch(source -> source.startsWith("@transformed:")
-                || source.startsWith("@derived-aggregate:"))) return false;
+        String derivedAggregate = markerExpression(sources, "@derived-aggregate:");
+        if (sources.stream().anyMatch(source -> source.startsWith("@transformed:"))) return false;
         if (derivedNumeric != null) {
             return "DERIVED".equals(kind)
                     && normalizeExpression(attribute).equals(normalizeExpression(derivedNumeric));
+        }
+        if (derivedAggregate != null) {
+            return "DERIVED".equals(kind)
+                    && normalizeExpression(attribute).equals(normalizeExpression(derivedAggregate));
         }
         if ("DERIVED".equals(kind)) return false;
         boolean aggregate = sources.stream().anyMatch(source -> source.startsWith("@aggregate:"));
@@ -263,8 +272,7 @@ public final class AgenticSqlAnswerSupportVerifier {
         AgenticSqlEvidenceCell cell = cells.get(new CellKey(toolCallId, rowIndex.asInt(), normalizeColumn(column)));
         if (cell == null || cell.value() == null || !cell.sourceBacked() || cell.sourceColumns().isEmpty()
                 || MASKED_VALUES.contains(cell.value())
-                || cell.sourceColumns().stream().anyMatch(source -> source.startsWith("@transformed:")
-                        || source.startsWith("@derived-aggregate:"))) return null;
+                || cell.sourceColumns().stream().anyMatch(source -> source.startsWith("@transformed:"))) return null;
         return cell;
     }
 

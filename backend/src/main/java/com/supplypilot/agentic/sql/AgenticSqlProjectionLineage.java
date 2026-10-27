@@ -10,6 +10,7 @@ import java.util.Set;
 
 import net.sf.jsqlparser.expression.BinaryExpression;
 import net.sf.jsqlparser.expression.DoubleValue;
+import net.sf.jsqlparser.expression.Expression;
 import net.sf.jsqlparser.expression.Function;
 import net.sf.jsqlparser.expression.ExpressionVisitorAdapter;
 import net.sf.jsqlparser.expression.LongValue;
@@ -101,6 +102,12 @@ final class AgenticSqlProjectionLineage {
                     projections.add(new Projection("*" + (index + 1), Set.of()));
                 } else {
                     Set<String> sources = expressionSources(item.getExpression(), scope, rowSources);
+                    if (plain.getGroupBy() != null && sources.stream()
+                            .anyMatch(source -> source.startsWith("@derived-aggregate:"))) {
+                        LinkedHashSet<String> groupedSources = new LinkedHashSet<>(sources);
+                        groupedSources.add("@grouped-aggregate");
+                        sources = Set.copyOf(groupedSources);
+                    }
                     if (hasDocumentContent(sources) && hasTransformation(sources)) unsafeDocumentContentUse = true;
                     projections.add(new Projection(label(item), sources));
                 }
@@ -232,6 +239,10 @@ final class AgenticSqlProjectionLineage {
                     sources.addAll(rowSources);
                 }
                 if (sources.isEmpty()) return Set.of();
+                if (!hasDirectAggregateInput(function)) {
+                    sources.add("@derived-aggregate:" + expression);
+                    return Set.copyOf(sources);
+                }
                 sources.add("@aggregate:" + function.getName().toUpperCase(Locale.ROOT) + ":"
                         + String.join(",", sources));
                 return Set.copyOf(sources);
@@ -256,6 +267,18 @@ final class AgenticSqlProjectionLineage {
 
         private static boolean isAggregate(Function function) {
             return function.getName() != null && AGGREGATES.contains(function.getName().toUpperCase(Locale.ROOT));
+        }
+
+        private boolean hasDirectAggregateInput(Function function) {
+            if ("COUNT".equalsIgnoreCase(function.getName())
+                    && (function.isAllColumns() || function.toString().replaceAll("\\s+", "")
+                    .equalsIgnoreCase("COUNT(*)"))) return true;
+            if (function.getParameters() == null || function.getParameters().getExpressions().size() != 1) {
+                return false;
+            }
+            Expression input = function.getParameters().getExpressions().getFirst();
+            while (input instanceof Parenthesis parenthesis) input = parenthesis.getExpression();
+            return input instanceof Column;
         }
 
         private boolean isNumericArithmetic(net.sf.jsqlparser.expression.Expression expression) {

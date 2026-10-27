@@ -71,6 +71,66 @@ class AgenticSqlAnswerSupportVerifierTests {
     }
 
     @Test
+    void acceptsDirectCountSumAndAverageAggregates() {
+        var count = verifier.verify(aggregateClaim("共找到 2 筆採購資料。", "AGGREGATE", "COUNT(*)",
+                        "direct-count", "total_count", "2"),
+                List.of(aggregateCell("direct-count", "total_count", "2",
+                        "@aggregate:COUNT:@rows:supplier_materials")));
+        var sum = verifier.verify(aggregateClaim("報價總和為 250.50。", "AGGREGATE", "SUM(unit_price)",
+                        "direct-sum", "total_price", "250.50"),
+                List.of(aggregateCell("direct-sum", "total_price", "250.50",
+                        "supplier_materials.unit_price", "@aggregate:SUM:supplier_materials.unit_price")));
+        var average = verifier.verify(aggregateClaim("平均報價為 125.25。", "AGGREGATE", "AVG(unit_price)",
+                        "direct-average", "average_price", "125.25"),
+                List.of(aggregateCell("direct-average", "average_price", "125.25",
+                        "supplier_materials.unit_price", "@aggregate:AVG:supplier_materials.unit_price")));
+
+        assertThat(count.fullySupported()).isTrue();
+        assertThat(sum.fullySupported()).isTrue();
+        assertThat(average.fullySupported()).isTrue();
+    }
+
+    @Test
+    void derivedAggregateMustBeLabeledAsCalculationAndCannotMasqueradeAsDirectSum() {
+        var cell = aggregateCell("derived-sum", "adjusted_total", "2036.50",
+                "supplier_materials.unit_price", "@derived-aggregate:SUM(unit_price + 999)");
+        var unsupportedDirectAggregate = verifier.verify(aggregateClaim(
+                "報價總和為 2036.50。", "AGGREGATE", "SUM(unit_price)",
+                "derived-sum", "adjusted_total", "2036.50"), List.of(cell));
+        var explicitCalculation = verifier.verify(aggregateClaim(
+                "計算後的報價總和為 2036.50。", "DERIVED", "SUM(unit_price + 999)",
+                "derived-sum", "adjusted_total", "2036.50"), List.of(cell));
+
+        assertThat(unsupportedDirectAggregate.answer()).isEmpty();
+        assertThat(unsupportedDirectAggregate.fullySupported()).isFalse();
+        assertThat(explicitCalculation.answer()).contains("計算後");
+        assertThat(explicitCalculation.fullySupported()).isTrue();
+    }
+
+    @Test
+    void groupedDerivedAggregateRequiresItsSameRowSubject() {
+        var subject = cell("grouped-sum", "supplier_materials", 0, "supplier_id", "7");
+        var total = new AgenticSqlEvidenceCell("grouped-sum", "MYSQL", Set.of("supplier_materials"), 0,
+                "adjusted_total", "2035.50", Set.of("supplier_materials.unit_price",
+                "@derived-aggregate:SUM(unit_price + 999)", "@grouped-aggregate"), true);
+        var missingSubject = verifier.verify(aggregateClaim("供應商代碼 7 計算後總額為 2035.50。",
+                "DERIVED", "SUM(unit_price + 999)", "grouped-sum", "adjusted_total", "2035.50"),
+                List.of(subject, total));
+        var supported = verifier.verify("""
+                {"claims":[{"text":"供應商代碼 7 計算後總額為 2035.50。",
+                "fact":{"kind":"DERIVED","attribute":"SUM(unit_price + 999)",
+                "subject":{"toolCallId":"grouped-sum","rowIndex":0,"column":"supplier_id"},
+                "value":{"toolCallId":"grouped-sum","rowIndex":0,"column":"adjusted_total"}},
+                "evidence":[{"toolCallId":"grouped-sum","rowIndex":0,"column":"supplier_id"},
+                            {"toolCallId":"grouped-sum","rowIndex":0,"column":"adjusted_total"}]}]}
+                """, List.of(subject, total));
+
+        assertThat(missingSubject.answer()).isEmpty();
+        assertThat(supported.answer()).contains("計算後");
+        assertThat(supported.fullySupported()).isTrue();
+    }
+
+    @Test
     void acceptsAnExplicitlyLabeledNumericCalculationWithoutTreatingItAsARawField() {
         var result = verifier.verify("""
                 {"claims":[{"text":"Supplier A 的 line total 經計算為 251.00。",
@@ -227,6 +287,21 @@ class AgenticSqlAnswerSupportVerifierTests {
                 + ",\"column\":\"" + valueColumn + "\"}}";
         return "{\"claims\":[{\"text\":\"" + claim + "\"," + fact
                 + ",\"evidence\":[" + references + "]}]}";
+    }
+
+    private static String aggregateClaim(String claim, String kind, String attribute,
+                                         String toolCallId, String column, String value) {
+        return """
+                {"claims":[{"text":"%s","fact":{"kind":"%s","attribute":"%s",
+                "value":{"toolCallId":"%s","rowIndex":0,"column":"%s"}},
+                "evidence":[{"toolCallId":"%s","rowIndex":0,"column":"%s"}]}]}
+                """.formatted(claim, kind, attribute, toolCallId, column, toolCallId, column);
+    }
+
+    private static AgenticSqlEvidenceCell aggregateCell(String call, String column, String value,
+                                                        String... sources) {
+        return new AgenticSqlEvidenceCell(call, "MYSQL", Set.of("supplier_materials"), 0, column, value,
+                Set.of(sources), true);
     }
 
     private static AgenticSqlEvidenceCell cell(String call, String table, int row, String column, String value) {

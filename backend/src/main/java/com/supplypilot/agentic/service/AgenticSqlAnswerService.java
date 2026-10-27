@@ -58,9 +58,9 @@ public class AgenticSqlAnswerService {
             只對查詢結果支持的事實作結論；不把模型常識冒充資料庫事實。不確定、歧義、查無資料或來源矛盾時，說明限制並提出必要澄清。
             商業價格、報價、折扣、PO 金額及與問題有關的業務文件內容可用於回答；工具已遮罩個資/銀行識別資訊並排除系統憑證，不得猜測或重建遮罩內容。
             最後只能輸出 JSON：{"claims":[{"text":"一項事實或分析","fact":{"kind":"FIELD_VALUE|AGGREGATE|COMPARISON|INFERENCE|DERIVED","attribute":"來源欄位、聚合或精確 SQL 數值運算式","value":{"toolCallId":"...","rowIndex":0,"column":"..."},"subject":{"toolCallId":"...","rowIndex":0,"column":"..."}},"evidence":[{"toolCallId":"...","rowIndex":0,"column":"..."}]}]}。
-            每項 claim 都必須附 fact；attribute 必須對應工具結果 columnSources 的真實來源欄位，value 必須指向支持該欄位值的結果格。FIELD_VALUE、COMPARISON 與 INFERENCE 必須提供 subject，且 subject 與 value 必須來自同一結果列；只有 AGGREGATE 可省略 subject。
-            FIELD_VALUE 用於資料欄位事實；AGGREGATE 用於 COUNT(*)、SUM(column)、AVG(column) 等聚合，attribute 寫出實際聚合及來源欄；COMPARISON 必須提供 MIN/MAX comparison 並讓 fact.value 指向比較 target。
-            SQL 常數或 columnSources 為空的結果不可作為業務證據。columnSources 的 @aggregate 標記只代表直接聚合；@derived-aggregate 與 @transformed 結果不可引用為事實。純數值欄位運算標記為 @derived-numeric:<expression>，可用 fact.kind=DERIVED、attribute 填完全相同的 expression，並在 claim 明確寫出「計算」或 calculated；不得把加工後的數值說成原始欄位或直接聚合。DERIVED 也必須提供同一結果列的 subject。
+            每項 claim 都必須附 fact；attribute 必須對應工具結果 columnSources 的真實來源欄位，value 必須指向支持該欄位值的結果格。FIELD_VALUE、COMPARISON、INFERENCE、列級 DERIVED 及分組 DERIVED 聚合必須提供同一結果列的 subject；直接 AGGREGATE 與未分組 DERIVED 聚合可在沒有實體主體時省略 subject。
+            FIELD_VALUE 用於資料欄位事實；AGGREGATE 用於 COUNT(*)、SUM(column)、AVG(column) 等直接聚合，attribute 寫出實際聚合及來源欄；COMPARISON 必須提供 MIN/MAX comparison 並讓 fact.value 指向比較 target。
+            SQL 常數或 columnSources 為空的結果不可作為業務證據。columnSources 的 @aggregate 標記只代表直接聚合；@derived-aggregate 與 @derived-numeric 結果只能用 fact.kind=DERIVED，attribute 填完全相同的 expression，並在 claim 明確寫出「計算」或 calculated；不得把加工後的數值說成原始欄位或直接聚合。數值衍生結果需引用同列 subject；未分組的衍生聚合在沒有可識別主體時可省略 subject，分組衍生聚合仍必須引用同列 subject。@transformed 文字加工結果不可引用為事實。
             數字、PO/文件/供應商識別值不可超出引用值；subject 與 value 必須屬於同一來源列，避免把另一供應商的數值歸給指定供應商。
             風險、品質、經營狀況、因果或建議等主張，必須引用語意相關的來源欄位並由來源直接記載；間接線索只可明確標成推測或可能性，否則省略該主張。
             SUM/COUNT/AVG 等聚合直接引用實際聚合結果列。比較價格或數量時要加入 comparison：

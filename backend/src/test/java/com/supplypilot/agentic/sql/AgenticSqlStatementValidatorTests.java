@@ -104,6 +104,28 @@ class AgenticSqlStatementValidatorTests {
     }
 
     @Test
+    void classifiesArithmeticInsideSumAndAverageAsDerivedAggregates() {
+        var adjustedSum = validator.validate(AgenticSqlDatabase.MYSQL,
+                "SELECT SUM(unit_price + 999) AS adjusted_sum FROM supplier_materials", 10);
+        var adjustedAverage = validator.validate(AgenticSqlDatabase.POSTGRESQL,
+                "SELECT AVG(unit_price + 999) AS adjusted_average FROM supplier_materials", 10);
+        var groupedAdjustedSum = validator.validate(AgenticSqlDatabase.MYSQL,
+                "SELECT supplier_id, SUM(unit_price + 999) AS adjusted_sum "
+                        + "FROM supplier_materials GROUP BY supplier_id", 10);
+
+        assertThat(adjustedSum.projectionSources().get(1)).contains("supplier_materials.unit_price")
+                .anyMatch(source -> source.startsWith("@derived-aggregate:"))
+                .noneMatch(source -> source.startsWith("@aggregate:"));
+        assertThat(adjustedAverage.projectionSources().get(1)).contains("supplier_materials.unit_price")
+                .anyMatch(source -> source.startsWith("@derived-aggregate:"))
+                .noneMatch(source -> source.startsWith("@aggregate:"));
+        assertThat(groupedAdjustedSum.projectionSources().get(2))
+                .contains("supplier_materials.unit_price", "@grouped-aggregate")
+                .anyMatch(source -> source.startsWith("@derived-aggregate:"))
+                .noneMatch(source -> source.startsWith("@aggregate:"));
+    }
+
+    @Test
     void preservesSmallerCallerLimitAndOffset() {
         var parsed = validator.validate(AgenticSqlDatabase.POSTGRESQL,
                 "SELECT id FROM suppliers LIMIT 2 OFFSET 5", 10);
