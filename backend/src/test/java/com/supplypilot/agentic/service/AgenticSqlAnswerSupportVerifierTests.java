@@ -5,11 +5,84 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.util.List;
 import java.util.Set;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 
 class AgenticSqlAnswerSupportVerifierTests {
     private final AgenticSqlAnswerSupportVerifier verifier = new AgenticSqlAnswerSupportVerifier(new ObjectMapper());
+
+    @Test
+    void classifiesInvalidJsonWithoutReturningTheModelOutput() {
+        String output = "```json\n{\"claims\":[]}\n```";
+
+        var result = verifier.verify(output, List.of());
+
+        assertThat(result.failureCategories()).containsExactly(
+                "INVALID_MODEL_OUTPUT_JSON", "MODEL_OUTPUT_MARKDOWN_FENCE");
+        assertThat(result.answer()).isEmpty();
+        assertThat(result.toString()).doesNotContain(output);
+    }
+
+    @Test
+    void distinguishesInvalidClaimsShapeFromJsonParseFailure() {
+        var result = verifier.verify("{\"claims\":{\"text\":\"供應商甲的報價為 125.50。\"}}", List.of());
+
+        assertThat(result.failureCategories()).containsExactly("INVALID_MODEL_CLAIMS_STRUCTURE");
+        assertThat(result.malformed()).isTrue();
+    }
+
+    @Test
+    void classifiesTruncatedJsonWithoutRetainingTheOutput() {
+        String output = "{\"claims\":[";
+
+        var result = verifier.verify(output, List.of());
+
+        assertThat(result.failureCategories()).containsExactly(
+                "INVALID_MODEL_OUTPUT_JSON", "MODEL_OUTPUT_JSON_TRUNCATED");
+        assertThat(result.toString()).doesNotContain(output);
+    }
+
+    @Test
+    void classifiesNonJsonPrefixWithoutRetainingTheOutput() {
+        String output = "The query result is 100 TWD";
+
+        var result = verifier.verify(output, List.of());
+
+        assertThat(result.failureCategories()).containsExactly(
+                "INVALID_MODEL_OUTPUT_JSON", "MODEL_OUTPUT_NON_OBJECT_PREFIX");
+        assertThat(result.toString()).doesNotContain(output);
+    }
+
+    @Test
+    void classifiesEvidenceReferencesThatDoNotExistInThisRequest() {
+        String output = envelope("Supplier A 的報價為 USD 125.50。", "invented-call", 0,
+                "supplier_name", "unit_price");
+
+        var result = verifier.verify(output, List.of(
+                cell("actual-call", "suppliers", 0, "supplier_name", "Supplier A"),
+                cell("actual-call", "suppliers", 0, "unit_price", "125.50")));
+
+        assertThat(result.failureCategories()).containsExactly("INVALID_MODEL_EVIDENCE_REFERENCE");
+        assertThat(result.unsupportedClaims()).isEqualTo(1);
+    }
+
+    @Test
+    void classifiesUnexpectedVerifierExceptionsWithoutExposingTheirMessages() {
+        ObjectMapper failingMapper = new ObjectMapper() {
+            @Override
+            public JsonNode readTree(String content) throws JsonProcessingException {
+                throw new IllegalStateException("sensitive diagnostic detail");
+            }
+        };
+
+        var result = new AgenticSqlAnswerSupportVerifier(failingMapper)
+                .verify("model output", List.of());
+
+        assertThat(result.failureCategories()).containsExactly("MODEL_CLAIMS_VERIFICATION_EXCEPTION");
+        assertThat(result.toString()).doesNotContain("model output", "sensitive diagnostic detail");
+    }
 
     @Test
     void rejectsANumericClaimThatDiffersFromTheExecutedResult() {

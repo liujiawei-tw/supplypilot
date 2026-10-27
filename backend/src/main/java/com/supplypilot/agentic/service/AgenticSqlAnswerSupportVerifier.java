@@ -13,6 +13,9 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.io.JsonEOFException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.stereotype.Component;
@@ -55,13 +58,18 @@ public final class AgenticSqlAnswerSupportVerifier {
     }
 
     public AgenticSqlSupportResult verify(String output, List<AgenticSqlEvidenceCell> availableCells) {
-        boolean conflictingSources = hasConflictingSources(availableCells);
+        List<String> failureCategories = new ArrayList<>();
+        boolean conflictingSources = false;
         try {
+            conflictingSources = hasConflictingSources(availableCells);
+            if (output == null || output.isBlank()) {
+                return malformedResult(conflictingSources, "EMPTY_MODEL_OUTPUT");
+            }
             JsonNode root = objectMapper.readTree(output);
             JsonNode claims = root == null ? null : root.get("claims");
             if (root == null || !root.isObject() || claims == null || !claims.isArray()
                     || claims.isEmpty() || claims.size() > MAX_CLAIMS) {
-                return new AgenticSqlSupportResult("", 1, true, conflictingSources);
+                return malformedResult(conflictingSources, "INVALID_MODEL_CLAIMS_STRUCTURE");
             }
             Map<CellKey, AgenticSqlEvidenceCell> cells = new HashMap<>();
             for (AgenticSqlEvidenceCell cell : availableCells) {
@@ -77,26 +85,65 @@ public final class AgenticSqlAnswerSupportVerifier {
                         || !evidence.isArray() || evidence.isEmpty()
                         || evidence.size() > MAX_REFERENCES_PER_CLAIM) {
                     unsupported++;
+                    failureCategories.add("INVALID_MODEL_CLAIM_STRUCTURE");
                     continue;
                 }
                 List<AgenticSqlEvidenceCell> cited = resolveReferences(evidence, cells);
+                if (cited == null) {
+                    unsupported++;
+                    failureCategories.add("INVALID_MODEL_EVIDENCE_REFERENCE");
+                    continue;
+                }
                 boolean comparisonValid = cited != null
                         && validComparison(text, claim.get("comparison"), cited, cells);
                 boolean factsPresent = cited != null && containsClaimFacts(text, cited);
                 boolean factSupported = cited != null && supportedFact(text, claim.get("fact"), claim.get("comparison"), cited, cells,
                         comparisonValid);
                 boolean assertionsSupported = cited != null && assertionsSupported(text, claim.get("fact"), cited, comparisonValid);
-                if (cited == null || !factsPresent || !comparisonValid || !factSupported || !assertionsSupported) {
+                if (!factsPresent || !comparisonValid || !factSupported || !assertionsSupported) {
                     unsupported++;
+                    if (!factsPresent) failureCategories.add("MODEL_CLAIM_FACTS_MISMATCH");
+                    if (!comparisonValid) failureCategories.add("INVALID_MODEL_COMPARISON");
+                    if (!factSupported) failureCategories.add("UNSUPPORTED_MODEL_FACT");
+                    if (!assertionsSupported) failureCategories.add("UNSUPPORTED_MODEL_ASSERTION");
                     continue;
                 }
                 supportedClaims.add(text.strip());
             }
             return new AgenticSqlSupportResult(String.join("\n", supportedClaims), unsupported, false,
-                    conflictingSources);
-        } catch (Exception malformed) {
-            return new AgenticSqlSupportResult("", 1, true, conflictingSources);
+                    conflictingSources, distinctCategories(failureCategories));
+        } catch (JsonProcessingException invalidJson) {
+            return new AgenticSqlSupportResult("", 1, true, conflictingSources,
+                    jsonFailureCategories(output, invalidJson));
+        } catch (Exception verificationFailure) {
+            return malformedResult(conflictingSources, "MODEL_CLAIMS_VERIFICATION_EXCEPTION");
         }
+    }
+
+    private AgenticSqlSupportResult malformedResult(boolean conflictingSources, String category) {
+        return new AgenticSqlSupportResult("", 1, true, conflictingSources, List.of(category));
+    }
+
+    private List<String> jsonFailureCategories(String output, JsonProcessingException failure) {
+        LinkedHashSet<String> categories = new LinkedHashSet<>();
+        categories.add("INVALID_MODEL_OUTPUT_JSON");
+        String candidate = output == null ? "" : output.stripLeading();
+        if (candidate.startsWith("```")) {
+            categories.add("MODEL_OUTPUT_MARKDOWN_FENCE");
+        } else if (!candidate.startsWith("{")) {
+            categories.add("MODEL_OUTPUT_NON_OBJECT_PREFIX");
+        } else if (failure instanceof JsonEOFException) {
+            categories.add("MODEL_OUTPUT_JSON_TRUNCATED");
+        } else if (failure instanceof JsonParseException) {
+            categories.add("MODEL_OUTPUT_JSON_SYNTAX_ERROR");
+        } else {
+            categories.add("MODEL_OUTPUT_JSON_PARSER_FAILURE");
+        }
+        return List.copyOf(categories);
+    }
+
+    private List<String> distinctCategories(List<String> categories) {
+        return List.copyOf(new LinkedHashSet<>(categories));
     }
 
     private boolean validComparison(String claimText, JsonNode comparison,

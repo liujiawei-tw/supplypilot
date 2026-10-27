@@ -1,0 +1,6 @@
+Command: docker exec supplypilot-sp903-local-demo-mysql-1 sh -lc 'mysql --batch --raw --skip-column-names --user=root --password="$MYSQL_ROOT_PASSWORD" supplypilot_demo --execute="SELECT s.code, m.code, sm.unit_price, sm.currency, sm.status, sm.lead_time_days FROM supplier_materials sm JOIN suppliers s ON s.id = sm.supplier_id JOIN materials m ON m.id = sm.material_id WHERE s.code = \"SUP-001\" AND m.code = \"MAT-001\";"'
+Database: local Demo MySQL 8.4.11; SELECT only
+Result columns: supplier_code, material_code, unit_price, currency, status, lead_time_days
+Result: SUP-001 | MAT-001 | 100.0000 | TWD | ACTIVE | 5
+Exit Code: 0
+The password is read from the MySQL container environment and is not present in this evidence.

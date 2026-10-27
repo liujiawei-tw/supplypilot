@@ -2,6 +2,8 @@ package com.supplypilot.agentic.service;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
@@ -30,6 +32,7 @@ import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.prompt.ChatOptions;
 import org.springframework.ai.chat.prompt.Prompt;
+import org.springframework.ai.google.genai.GoogleGenAiChatOptions;
 import org.springframework.ai.model.tool.ToolCallLimitBehavior;
 import org.springframework.ai.model.tool.ToolCallingChatOptions;
 import org.springframework.ai.model.tool.ToolCallingManager;
@@ -45,6 +48,90 @@ import org.springframework.stereotype.Service;
 @ConditionalOnProperty(prefix = "supplypilot.agentic.sql", name = "enabled", havingValue = "true")
 public class AgenticSqlAnswerService {
     private static final Logger log = LoggerFactory.getLogger(AgenticSqlAnswerService.class);
+    private static final String ANSWER_JSON_SCHEMA = """
+            {
+              "type": "OBJECT",
+              "properties": {
+                "claims": {
+                  "type": "ARRAY",
+                  "items": {
+                    "type": "OBJECT",
+                    "properties": {
+                      "text": { "type": "STRING" },
+                      "fact": {
+                        "type": "OBJECT",
+                        "properties": {
+                          "kind": { "type": "STRING" },
+                          "attribute": { "type": "STRING" },
+                          "value": {
+                            "type": "OBJECT",
+                            "properties": {
+                              "toolCallId": { "type": "STRING" },
+                              "rowIndex": { "type": "INTEGER" },
+                              "column": { "type": "STRING" }
+                            },
+                            "required": ["toolCallId", "rowIndex", "column"]
+                          },
+                          "subject": {
+                            "type": "OBJECT",
+                            "properties": {
+                              "toolCallId": { "type": "STRING" },
+                              "rowIndex": { "type": "INTEGER" },
+                              "column": { "type": "STRING" }
+                            },
+                            "required": ["toolCallId", "rowIndex", "column"]
+                          }
+                        },
+                        "required": ["kind", "attribute", "value"]
+                      },
+                      "comparison": {
+                        "type": "OBJECT",
+                        "properties": {
+                          "operator": { "type": "STRING" },
+                          "target": {
+                            "type": "OBJECT",
+                            "properties": {
+                              "toolCallId": { "type": "STRING" },
+                              "rowIndex": { "type": "INTEGER" },
+                              "column": { "type": "STRING" }
+                            },
+                            "required": ["toolCallId", "rowIndex", "column"]
+                          },
+                          "candidates": {
+                            "type": "ARRAY",
+                            "items": {
+                              "type": "OBJECT",
+                              "properties": {
+                                "toolCallId": { "type": "STRING" },
+                                "rowIndex": { "type": "INTEGER" },
+                                "column": { "type": "STRING" }
+                              },
+                              "required": ["toolCallId", "rowIndex", "column"]
+                            }
+                          }
+                        },
+                        "required": ["operator", "target", "candidates"]
+                      },
+                      "evidence": {
+                        "type": "ARRAY",
+                        "items": {
+                          "type": "OBJECT",
+                          "properties": {
+                            "toolCallId": { "type": "STRING" },
+                            "rowIndex": { "type": "INTEGER" },
+                            "column": { "type": "STRING" }
+                          },
+                          "required": ["toolCallId", "rowIndex", "column"]
+                        }
+                      }
+                    },
+                    "required": ["text", "fact", "evidence"]
+                  }
+                }
+              },
+              "required": ["claims"]
+            }
+            """;
     private static final String SYSTEM_PROMPT = """
             你是 SupplyPilot 的 Agentic SQL 實驗助理。以繁體中文回答。
             你只能使用 inspect_schema 與 execute_readonly_sql 兩個工具，先按需探索 MySQL 或 PostgreSQL schema，
@@ -178,6 +265,10 @@ public class AgenticSqlAnswerService {
         if (support.unsupportedClaims() > 0) warnings.add("UNSUPPORTED_MODEL_CLAIMS");
         if (support.malformed()) warnings.add("INVALID_MODEL_CLAIMS");
         if (support.conflictingSources()) warnings.add("CONFLICTING_SOURCE_VALUES");
+        warnings.addAll(support.failureCategories());
+        if (support.failureCategories().contains("MODEL_OUTPUT_JSON_TRUNCATED") && tokens.finishReason() != null) {
+            warnings.add("MODEL_FINISH_REASON_" + tokens.finishReason());
+        }
         String answer = support.answer();
         if (answer == null || answer.isBlank()) {
             answer = "查詢結果未能支持可核對的結論，因此沒有採用模型生成的事實內容。";
@@ -214,6 +305,10 @@ public class AgenticSqlAnswerService {
                         tokens.addCompletion(usage.getCompletionTokens());
                         tokens.addTotal(usage.getTotalTokens());
                     }
+                    if (response != null && response.getResult() != null
+                            && response.getResult().getMetadata() != null) {
+                        tokens.setFinishReason(response.getResult().getMetadata().getFinishReason());
+                    }
                     return response;
                 } catch (TimeoutException timeout) {
                     providerCall.cancel(true);
@@ -244,7 +339,7 @@ public class AgenticSqlAnswerService {
         ChatResponse response = client.prompt()
                 .system(SYSTEM_PROMPT)
                 .user(question)
-                .options(ToolCallingChatOptions.builder().maxTokens(properties.maxOutputTokens()))
+                .options(agentChatOptions(baseModel))
                 .tools(tools)
                 .call()
                 .chatResponse();
@@ -257,6 +352,17 @@ public class AgenticSqlAnswerService {
         String answer = response.getResult().getOutput().getText();
         if (answer == null || answer.isBlank()) throw new IllegalStateException("FINAL_MODEL_RESPONSE_EMPTY");
         return answer;
+    }
+
+    private ChatOptions.Builder<?> agentChatOptions(ChatModel baseModel) {
+        ChatOptions defaults = baseModel.getDefaultOptions();
+        if (defaults instanceof GoogleGenAiChatOptions googleOptions) {
+            return googleOptions.mutate()
+                    .maxOutputTokens(properties.maxOutputTokens())
+                    .responseMimeType("application/json")
+                    .responseSchema(ANSWER_JSON_SCHEMA);
+        }
+        return ToolCallingChatOptions.builder().maxTokens(properties.maxOutputTokens());
     }
 
     private ChatModel getChatModel() {
@@ -291,14 +397,25 @@ public class AgenticSqlAnswerService {
         return Math.max(0, (System.nanoTime() - started) / 1_000_000);
     }
 
+    private static String safeFinishReason(String reason) {
+        if (reason == null) return null;
+        String normalized = reason.strip().toUpperCase(Locale.ROOT);
+        return Set.of("STOP", "MAX_TOKENS", "SAFETY", "RECITATION", "BLOCKLIST", "OTHER",
+                        "FINISH_REASON_UNSPECIFIED", "MALFORMED_FUNCTION_CALL", "PROHIBITED_CONTENT",
+                        "SPII", "IMAGE_SAFETY", "UNEXPECTED_TOOL_CALL")
+                .contains(normalized) ? normalized : "OTHER";
+    }
+
     private static final class TokenUsageAccumulator {
         private final AtomicReference<Integer> prompt = new AtomicReference<>();
         private final AtomicReference<Integer> completion = new AtomicReference<>();
         private final AtomicReference<Integer> total = new AtomicReference<>();
+        private final AtomicReference<String> finishReason = new AtomicReference<>();
 
         private void addPrompt(Integer value) { add(prompt, value); }
         private void addCompletion(Integer value) { add(completion, value); }
         private void addTotal(Integer value) { add(total, value); }
+        private void setFinishReason(String value) { finishReason.set(safeFinishReason(value)); }
 
         private static void add(AtomicReference<Integer> target, Integer value) {
             if (value != null && value >= 0) target.updateAndGet(current -> current == null ? value : current + value);
@@ -308,5 +425,6 @@ public class AgenticSqlAnswerService {
         private Integer prompt() { return prompt.get(); }
         private Integer completion() { return completion.get(); }
         private Integer total() { return total.get(); }
+        private String finishReason() { return finishReason.get(); }
     }
 }

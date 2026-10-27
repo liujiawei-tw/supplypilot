@@ -1,0 +1,6 @@
+Command: PowerShell Invoke-RestMethod against local Demo API; read DEMO_ACCOUNT_PASSWORD from .env.demo into process memory; POST /api/v1/auth/login; reuse accessToken in memory for POST /api/v1/ai/agent-query.
+Question: SUP-001 供應 MAT-001 的目前單價與幣別為何？
+HTTP Status: 200
+PowerShell Exit Code: 0
+No password, JWT, API key, raw model output, or unmasked diagnostic message was persisted.
+Sanitized response summary: gemini-smoke-final.json

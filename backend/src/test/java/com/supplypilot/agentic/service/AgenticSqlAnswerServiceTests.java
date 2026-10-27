@@ -16,6 +16,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.supplypilot.agentic.config.AgenticSqlProperties;
@@ -37,6 +38,7 @@ import org.springframework.ai.chat.metadata.DefaultUsage;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.model.Generation;
+import org.springframework.ai.google.genai.GoogleGenAiChatOptions;
 import org.springframework.ai.chat.prompt.ChatOptions;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.model.tool.ToolCallingChatOptions;
@@ -46,6 +48,42 @@ class AgenticSqlAnswerServiceTests {
     private static final String SQL = "SELECT supplier_name, unit_price FROM suppliers ORDER BY unit_price";
     private static final String MYSQL_STATUS_SQL = "SELECT id FROM suppliers";
     private static final String POSTGRES_STATUS_SQL = "SELECT id FROM analytics";
+
+    @Test
+    void enablesJsonResponseModeForGoogleGenAiWithoutRelaxingAnswerVerification() {
+        AtomicReference<ChatOptions> observedOptions = new AtomicReference<>();
+        ChatModel googleConfiguredModel = new ChatModel() {
+            private final ChatOptions defaults = GoogleGenAiChatOptions.builder()
+                    .model("gemini-3.6-flash")
+                    .temperature(0.2)
+                    .build();
+
+            @Override public ChatResponse call(Prompt prompt) {
+                observedOptions.set(prompt.getOptions());
+                return response(new AssistantMessage("{\"claims\":[]}"));
+            }
+            @Override public ChatOptions getDefaultOptions() { return defaults; }
+            @Override public ChatOptions getOptions() { return defaults; }
+        };
+        ObjectMapper mapper = new ObjectMapper().findAndRegisterModules();
+        var modelExecutor = Executors.newVirtualThreadPerTaskExecutor();
+        try {
+            AgenticSqlAnswerService service = createService(googleConfiguredModel,
+                    mock(AgenticSqlExecutor.class), mock(AgenticSqlSchemaInspector.class), mapper, modelExecutor);
+
+            var result = service.query("SUP-001 供應 MAT-001 的目前單價與幣別為何？");
+
+            assertThat(result.status()).isEqualTo(AgenticSqlQueryStatus.NEEDS_CLARIFICATION);
+            assertThat(observedOptions.get()).isInstanceOf(GoogleGenAiChatOptions.class);
+            GoogleGenAiChatOptions options = (GoogleGenAiChatOptions) observedOptions.get();
+            assertThat(options.getResponseMimeType()).isEqualTo("application/json");
+            assertThat(options.getResponseSchema()).contains("\"claims\"");
+            assertThat(options.getModel()).isEqualTo("gemini-3.6-flash");
+            assertThat(options.getTemperature()).isEqualTo(0.2);
+        } finally {
+            modelExecutor.close();
+        }
+    }
 
     @Test
     void exploresSchemaThenQueriesAndReturnsEvidenceAndProviderUsage() {
@@ -199,6 +237,7 @@ class AgenticSqlAnswerServiceTests {
             assertThat(result.status()).isEqualTo(AgenticSqlQueryStatus.PARTIAL);
             assertThat(result.answer()).doesNotContain("152.50").contains("缺乏 SQL 結果支持");
             assertThat(result.warnings()).contains("UNSUPPORTED_MODEL_CLAIMS");
+            assertThat(result.warnings()).contains("MODEL_CLAIM_FACTS_MISMATCH", "UNSUPPORTED_MODEL_FACT");
         } finally {
             modelExecutor.close();
         }

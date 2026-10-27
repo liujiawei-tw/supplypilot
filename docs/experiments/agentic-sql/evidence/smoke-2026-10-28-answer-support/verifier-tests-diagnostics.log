@@ -1,0 +1,70 @@
+Command: .\mvnw.cmd '-Dtest=AgenticSqlAnswerSupportVerifierTests' test
+Environment: OpenJDK 21.0.10 (Zulu), Maven Wrapper, Windows PowerShell 7.6.6
+Exit Code: 0
+
+[INFO] Scanning for projects...
+[INFO] 
+[INFO] ------------------< com.supplypilot:supply-pilot-api >------------------
+[INFO] Building supply-pilot-api 0.0.1-SNAPSHOT
+[INFO]   from pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.5.0:resources (default-resources) @ supply-pilot-api ---
+[INFO] Copying 5 resources from src\main\resources to target\classes
+[INFO] Copying 37 resources from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.15.0:compile (default-compile) @ supply-pilot-api ---
+[INFO] Recompiling the module because of changed source code.
+[INFO] Compiling 315 source files with javac [debug parameters release 21] to target\classes
+[WARNING] /C:/Users/z0976/OneDrive/�ୱ/dev-side/supplypilot/backend/src/main/java/com/supplypilot/agentic/service/AgenticSqlAnswerService.java:[318,42] getDefaultOptions() in org.springframework.ai.chat.model.ChatModel has been deprecated and marked for removal
+[WARNING] /C:/Users/z0976/OneDrive/�ୱ/dev-side/supplypilot/backend/src/main/java/com/supplypilot/agentic/service/AgenticSqlAnswerService.java:[318,80] getDefaultOptions() in org.springframework.ai.chat.model.ChatModel has been deprecated and marked for removal
+[WARNING] /C:/Users/z0976/OneDrive/�ୱ/dev-side/supplypilot/backend/src/main/java/com/supplypilot/agentic/service/AgenticSqlAnswerService.java:[349,41] getDefaultOptions() in org.springframework.ai.chat.model.ChatModel has been deprecated and marked for removal
+[WARNING] /C:/Users/z0976/OneDrive/�ୱ/dev-side/supplypilot/backend/src/main/java/com/supplypilot/agentic/sql/AgenticSqlProjectionLineage.java:[280,37] net.sf.jsqlparser.expression.Parenthesis in net.sf.jsqlparser.expression has been deprecated and marked for removal
+[WARNING] /C:/Users/z0976/OneDrive/�ୱ/dev-side/supplypilot/backend/src/main/java/com/supplypilot/agentic/sql/AgenticSqlProjectionLineage.java:[288,39] net.sf.jsqlparser.expression.Parenthesis in net.sf.jsqlparser.expression has been deprecated and marked for removal
+[WARNING] /C:/Users/z0976/OneDrive/�ୱ/dev-side/supplypilot/backend/src/main/java/com/supplypilot/ai/client/SpringAiDraftProposalGenerator.java:[165,42] getDefaultOptions() in org.springframework.ai.chat.model.ChatModel has been deprecated and marked for removal
+[WARNING] /C:/Users/z0976/OneDrive/�ୱ/dev-side/supplypilot/backend/src/main/java/com/supplypilot/ai/client/SpringAiDraftProposalGenerator.java:[165,76] getDefaultOptions() in org.springframework.ai.chat.model.ChatModel has been deprecated and marked for removal
+[WARNING] /C:/Users/z0976/OneDrive/�ୱ/dev-side/supplypilot/backend/src/main/java/com/supplypilot/ai/client/SpringAiProviderClient.java:[241,32] getDefaultOptions() in org.springframework.ai.chat.model.ChatModel has been deprecated and marked for removal
+[WARNING] /C:/Users/z0976/OneDrive/�ୱ/dev-side/supplypilot/backend/src/main/java/com/supplypilot/ai/client/SpringAiProviderClient.java:[242,33] getDefaultOptions() in org.springframework.ai.chat.model.ChatModel has been deprecated and marked for removal
+[INFO] /C:/Users/z0976/OneDrive/�ୱ/dev-side/supplypilot/backend/src/main/java/com/supplypilot/agentic/sql/AgenticSqlStatementValidator.java: Some input files use or override a deprecated API.
+[INFO] /C:/Users/z0976/OneDrive/�ୱ/dev-side/supplypilot/backend/src/main/java/com/supplypilot/agentic/sql/AgenticSqlStatementValidator.java: Recompile with -Xlint:deprecation for details.
+[INFO] 
+[INFO] --- resources:3.5.0:testResources (default-testResources) @ supply-pilot-api ---
+[INFO] Copying 3 resources from src\test\resources to target\test-classes
+[INFO] 
+[INFO] --- compiler:3.15.0:testCompile (default-testCompile) @ supply-pilot-api ---
+[INFO] Recompiling the module because of changed dependency.
+[INFO] Compiling 150 source files with javac [debug parameters release 21] to target\test-classes
+[WARNING] /C:/Users/z0976/OneDrive/�ୱ/dev-side/supplypilot/backend/src/test/java/com/supplypilot/agentic/service/AgenticSqlAnswerServiceTests.java:[65,42] getDefaultOptions() in org.springframework.ai.chat.model.ChatModel has been deprecated and marked for removal
+[WARNING] /C:/Users/z0976/OneDrive/�ୱ/dev-side/supplypilot/backend/src/test/java/com/supplypilot/agentic/service/AgenticSqlAnswerServiceTests.java:[129,42] getDefaultOptions() in org.springframework.ai.chat.model.ChatModel has been deprecated and marked for removal
+[WARNING] /C:/Users/z0976/OneDrive/�ୱ/dev-side/supplypilot/backend/src/test/java/com/supplypilot/agentic/service/AgenticSqlAnswerServiceTests.java:[168,42] getDefaultOptions() in org.springframework.ai.chat.model.ChatModel has been deprecated and marked for removal
+[WARNING] /C:/Users/z0976/OneDrive/�ୱ/dev-side/supplypilot/backend/src/test/java/com/supplypilot/agentic/service/AgenticSqlAnswerServiceTests.java:[228,42] getDefaultOptions() in org.springframework.ai.chat.model.ChatModel has been deprecated and marked for removal
+[WARNING] /C:/Users/z0976/OneDrive/�ୱ/dev-side/supplypilot/backend/src/test/java/com/supplypilot/agentic/service/AgenticSqlAnswerServiceTests.java:[294,42] getDefaultOptions() in org.springframework.ai.chat.model.ChatModel has been deprecated and marked for removal
+[WARNING] /C:/Users/z0976/OneDrive/�ୱ/dev-side/supplypilot/backend/src/test/java/com/supplypilot/ai/client/SpringAiDraftProposalGeneratorTests.java:[43,42] getDefaultOptions() in org.springframework.ai.chat.model.ChatModel has been deprecated and marked for removal
+[WARNING] /C:/Users/z0976/OneDrive/�ୱ/dev-side/supplypilot/backend/src/test/java/com/supplypilot/ai/client/SpringAiProviderClientTests.java:[828,67] getDefaultOptions() in org.springframework.ai.chat.model.ChatModel has been deprecated and marked for removal
+[WARNING] /C:/Users/z0976/OneDrive/�ୱ/dev-side/supplypilot/backend/src/test/java/com/supplypilot/integration/AiControllerIntegrationTests.java:[316,28] getDefaultOptions() in org.springframework.ai.chat.model.ChatModel has been deprecated and marked for removal
+[WARNING] /C:/Users/z0976/OneDrive/�ୱ/dev-side/supplypilot/backend/src/test/java/com/supplypilot/integration/AiDraftProposalIntegrationTests.java:[286,46] getDefaultOptions() in org.springframework.ai.chat.model.ChatModel has been deprecated and marked for removal
+[INFO] /C:/Users/z0976/OneDrive/�ୱ/dev-side/supplypilot/backend/src/test/java/com/supplypilot/agentic/sql/AgenticSqlExecutorIntegrationTests.java: Some input files use or override a deprecated API.
+[INFO] /C:/Users/z0976/OneDrive/�ୱ/dev-side/supplypilot/backend/src/test/java/com/supplypilot/agentic/sql/AgenticSqlExecutorIntegrationTests.java: Recompile with -Xlint:deprecation for details.
+[INFO] /C:/Users/z0976/OneDrive/�ୱ/dev-side/supplypilot/backend/src/test/java/com/supplypilot/demand/service/DemandServiceTests.java: Some input files use unchecked or unsafe operations.
+[INFO] /C:/Users/z0976/OneDrive/�ୱ/dev-side/supplypilot/backend/src/test/java/com/supplypilot/demand/service/DemandServiceTests.java: Recompile with -Xlint:unchecked for details.
+[INFO] 
+[INFO] --- surefire:3.5.6:test (default-test) @ supply-pilot-api ---
+[INFO] Using auto detected provider org.apache.maven.surefire.junitplatform.JUnitPlatformProvider
+[INFO] 
+[INFO] -------------------------------------------------------
+[INFO]  T E S T S
+[INFO] -------------------------------------------------------
+[INFO] Running com.supplypilot.agentic.service.AgenticSqlAnswerSupportVerifierTests
+[INFO] Tests run: 23, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.810 s -- in com.supplypilot.agentic.service.AgenticSqlAnswerSupportVerifierTests
+[INFO] 
+[INFO] Results:
+[INFO] 
+[INFO] Tests run: 23, Failures: 0, Errors: 0, Skipped: 0
+[INFO] 
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  38.911 s
+[INFO] Finished at: 2026-10-28T00:43:09+08:00
+[INFO] ------------------------------------------------------------------------
+
