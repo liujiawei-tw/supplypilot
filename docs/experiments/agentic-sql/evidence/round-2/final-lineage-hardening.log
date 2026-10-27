@@ -1,0 +1,126 @@
+[INFO] Scanning for projects...
+[INFO] 
+[INFO] ------------------< com.supplypilot:supply-pilot-api >------------------
+[INFO] Building supply-pilot-api 0.0.1-SNAPSHOT
+[INFO]   from pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.5.0:resources (default-resources) @ supply-pilot-api ---
+[INFO] Copying 5 resources from src\main\resources to target\classes
+[INFO] Copying 37 resources from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.15.0:compile (default-compile) @ supply-pilot-api ---
+[INFO] Recompiling the module because of changed source code.
+[INFO] Compiling 315 source files with javac [debug parameters release 21] to target\classes
+[WARNING] /C:/Users/z0976/OneDrive/�ୱ/dev-side/supplypilot/backend/src/main/java/com/supplypilot/agentic/service/AgenticSqlAnswerService.java:[232,42] getDefaultOptions() in org.springframework.ai.chat.model.ChatModel has been deprecated and marked for removal
+[WARNING] /C:/Users/z0976/OneDrive/�ୱ/dev-side/supplypilot/backend/src/main/java/com/supplypilot/agentic/service/AgenticSqlAnswerService.java:[232,80] getDefaultOptions() in org.springframework.ai.chat.model.ChatModel has been deprecated and marked for removal
+[WARNING] /C:/Users/z0976/OneDrive/�ୱ/dev-side/supplypilot/backend/src/main/java/com/supplypilot/ai/client/SpringAiDraftProposalGenerator.java:[165,42] getDefaultOptions() in org.springframework.ai.chat.model.ChatModel has been deprecated and marked for removal
+[WARNING] /C:/Users/z0976/OneDrive/�ୱ/dev-side/supplypilot/backend/src/main/java/com/supplypilot/ai/client/SpringAiDraftProposalGenerator.java:[165,76] getDefaultOptions() in org.springframework.ai.chat.model.ChatModel has been deprecated and marked for removal
+[WARNING] /C:/Users/z0976/OneDrive/�ୱ/dev-side/supplypilot/backend/src/main/java/com/supplypilot/ai/client/SpringAiProviderClient.java:[241,32] getDefaultOptions() in org.springframework.ai.chat.model.ChatModel has been deprecated and marked for removal
+[WARNING] /C:/Users/z0976/OneDrive/�ୱ/dev-side/supplypilot/backend/src/main/java/com/supplypilot/ai/client/SpringAiProviderClient.java:[242,33] getDefaultOptions() in org.springframework.ai.chat.model.ChatModel has been deprecated and marked for removal
+[INFO] /C:/Users/z0976/OneDrive/�ୱ/dev-side/supplypilot/backend/src/main/java/com/supplypilot/agentic/sql/AgenticSqlStatementValidator.java: Some input files use or override a deprecated API.
+[INFO] /C:/Users/z0976/OneDrive/�ୱ/dev-side/supplypilot/backend/src/main/java/com/supplypilot/agentic/sql/AgenticSqlStatementValidator.java: Recompile with -Xlint:deprecation for details.
+[INFO] 
+[INFO] --- resources:3.5.0:testResources (default-testResources) @ supply-pilot-api ---
+[INFO] Copying 3 resources from src\test\resources to target\test-classes
+[INFO] 
+[INFO] --- compiler:3.15.0:testCompile (default-testCompile) @ supply-pilot-api ---
+[INFO] Recompiling the module because of changed dependency.
+[INFO] Compiling 150 source files with javac [debug parameters release 21] to target\test-classes
+[WARNING] /C:/Users/z0976/OneDrive/�ୱ/dev-side/supplypilot/backend/src/test/java/com/supplypilot/agentic/service/AgenticSqlAnswerServiceTests.java:[91,42] getDefaultOptions() in org.springframework.ai.chat.model.ChatModel has been deprecated and marked for removal
+[WARNING] /C:/Users/z0976/OneDrive/�ୱ/dev-side/supplypilot/backend/src/test/java/com/supplypilot/agentic/service/AgenticSqlAnswerServiceTests.java:[130,42] getDefaultOptions() in org.springframework.ai.chat.model.ChatModel has been deprecated and marked for removal
+[WARNING] /C:/Users/z0976/OneDrive/�ୱ/dev-side/supplypilot/backend/src/test/java/com/supplypilot/agentic/service/AgenticSqlAnswerServiceTests.java:[190,42] getDefaultOptions() in org.springframework.ai.chat.model.ChatModel has been deprecated and marked for removal
+[WARNING] /C:/Users/z0976/OneDrive/�ୱ/dev-side/supplypilot/backend/src/test/java/com/supplypilot/agentic/service/AgenticSqlAnswerServiceTests.java:[255,42] getDefaultOptions() in org.springframework.ai.chat.model.ChatModel has been deprecated and marked for removal
+[WARNING] /C:/Users/z0976/OneDrive/�ୱ/dev-side/supplypilot/backend/src/test/java/com/supplypilot/ai/client/SpringAiDraftProposalGeneratorTests.java:[43,42] getDefaultOptions() in org.springframework.ai.chat.model.ChatModel has been deprecated and marked for removal
+[WARNING] /C:/Users/z0976/OneDrive/�ୱ/dev-side/supplypilot/backend/src/test/java/com/supplypilot/ai/client/SpringAiProviderClientTests.java:[828,67] getDefaultOptions() in org.springframework.ai.chat.model.ChatModel has been deprecated and marked for removal
+[WARNING] /C:/Users/z0976/OneDrive/�ୱ/dev-side/supplypilot/backend/src/test/java/com/supplypilot/integration/AiControllerIntegrationTests.java:[316,28] getDefaultOptions() in org.springframework.ai.chat.model.ChatModel has been deprecated and marked for removal
+[WARNING] /C:/Users/z0976/OneDrive/�ୱ/dev-side/supplypilot/backend/src/test/java/com/supplypilot/integration/AiDraftProposalIntegrationTests.java:[286,46] getDefaultOptions() in org.springframework.ai.chat.model.ChatModel has been deprecated and marked for removal
+[INFO] /C:/Users/z0976/OneDrive/�ୱ/dev-side/supplypilot/backend/src/test/java/com/supplypilot/agentic/sql/AgenticSqlExecutorIntegrationTests.java: Some input files use or override a deprecated API.
+[INFO] /C:/Users/z0976/OneDrive/�ୱ/dev-side/supplypilot/backend/src/test/java/com/supplypilot/agentic/sql/AgenticSqlExecutorIntegrationTests.java: Recompile with -Xlint:deprecation for details.
+[INFO] /C:/Users/z0976/OneDrive/�ୱ/dev-side/supplypilot/backend/src/test/java/com/supplypilot/demand/service/DemandServiceTests.java: Some input files use unchecked or unsafe operations.
+[INFO] /C:/Users/z0976/OneDrive/�ୱ/dev-side/supplypilot/backend/src/test/java/com/supplypilot/demand/service/DemandServiceTests.java: Recompile with -Xlint:unchecked for details.
+[INFO] 
+[INFO] --- surefire:3.5.6:test (default-test) @ supply-pilot-api ---
+[INFO] Using auto detected provider org.apache.maven.surefire.junitplatform.JUnitPlatformProvider
+[INFO] 
+[INFO] -------------------------------------------------------
+[INFO]  T E S T S
+[INFO] -------------------------------------------------------
+[INFO] Running com.supplypilot.agentic.security.AgenticSqlOutputPolicyTests
+[INFO] Tests run: 12, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.719 s -- in com.supplypilot.agentic.security.AgenticSqlOutputPolicyTests
+[INFO] Running com.supplypilot.agentic.service.AgenticSqlAnswerServiceTests
+Mockito is currently self-attaching to enable the inline-mock-maker. This will no longer work in future releases of the JDK. Please add Mockito as an agent to your build as described in Mockito's documentation: https://javadoc.io/doc/org.mockito/mockito-core/latest/org.mockito/org/mockito/Mockito.html#0.3
+WARNING: A Java agent has been loaded dynamically (C:\Users\z0976\.m2\repository\net\bytebuddy\byte-buddy-agent\1.18.11\byte-buddy-agent-1.18.11.jar)
+WARNING: If a serviceability tool is in use, please run with -XX:+EnableDynamicAgentLoading to hide this warning
+WARNING: If a serviceability tool is not in use, please run with -Djdk.instrument.traceUsage for more information
+WARNING: Dynamic loading of agents will be disallowed by default in a future release
+OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+21:10:42.343 [virtual-36] INFO com.supplypilot.agentic.service.AgenticSqlTools -- agentic-sql tool=inspect_schema database=MYSQL tableCount=1 elapsedMs=15 truncated=false
+21:10:42.367 [virtual-36] INFO com.supplypilot.agentic.service.AgenticSqlTools -- agentic-sql tool=execute_readonly_sql database=MYSQL tables=[suppliers] rows=1 elapsedMs=4 truncated=false
+21:10:42.452 [main] INFO com.supplypilot.agentic.service.AgenticSqlAnswerService -- agentic-sql query userId=42 status=PARTIAL databases=[MYSQL] toolCalls=2 rows=1 latencyMs=1236 totalTokens=21
+21:10:42.495 [virtual-46] INFO com.supplypilot.agentic.service.AgenticSqlTools -- agentic-sql tool=inspect_schema database=MYSQL tableCount=1 elapsedMs=3 truncated=false
+21:10:42.502 [virtual-46] INFO com.supplypilot.agentic.service.AgenticSqlTools -- agentic-sql tool=execute_readonly_sql database=MYSQL tables=[suppliers] rows=1 elapsedMs=4 truncated=false
+21:10:42.511 [main] INFO com.supplypilot.agentic.service.AgenticSqlAnswerService -- agentic-sql query userId=42 status=ANSWERED databases=[MYSQL] toolCalls=2 rows=1 latencyMs=40 totalTokens=21
+21:10:42.594 [virtual-52] INFO com.supplypilot.agentic.service.AgenticSqlTools -- agentic-sql tool=inspect_schema database=MYSQL tableCount=0 elapsedMs=2 truncated=false
+21:10:42.601 [virtual-52] INFO com.supplypilot.agentic.service.AgenticSqlTools -- agentic-sql tool=execute_readonly_sql database=MYSQL tables=[suppliers] rows=0 elapsedMs=2 truncated=false
+21:10:42.603 [virtual-52] INFO com.supplypilot.agentic.service.AgenticSqlTools -- agentic-sql tool=inspect_schema database=POSTGRESQL tableCount=0 elapsedMs=0 truncated=false
+21:10:42.606 [virtual-52] INFO com.supplypilot.agentic.service.AgenticSqlTools -- agentic-sql tool=execute_readonly_sql database=POSTGRESQL tables=[analytics] rows=0 elapsedMs=2 truncated=false
+21:10:42.637 [virtual-58] INFO com.supplypilot.agentic.service.AgenticSqlTools -- agentic-sql tool=inspect_schema database=MYSQL tableCount=0 elapsedMs=2 truncated=false
+21:10:42.640 [virtual-58] INFO com.supplypilot.agentic.service.AgenticSqlTools -- agentic-sql tool=execute_readonly_sql database=MYSQL elapsedMs=2 errorCode=DATABASE_UNAVAILABLE
+21:10:42.645 [virtual-58] INFO com.supplypilot.agentic.service.AgenticSqlTools -- agentic-sql tool=inspect_schema database=POSTGRESQL tableCount=0 elapsedMs=0 truncated=false
+21:10:42.650 [virtual-58] INFO com.supplypilot.agentic.service.AgenticSqlTools -- agentic-sql tool=execute_readonly_sql database=POSTGRESQL tables=[analytics] rows=0 elapsedMs=2 truncated=false
+21:10:42.675 [virtual-64] INFO com.supplypilot.agentic.service.AgenticSqlTools -- agentic-sql tool=inspect_schema database=MYSQL tableCount=0 elapsedMs=2 truncated=false
+21:10:42.680 [virtual-64] INFO com.supplypilot.agentic.service.AgenticSqlTools -- agentic-sql tool=execute_readonly_sql database=MYSQL tables=[suppliers] rows=0 elapsedMs=2 truncated=false
+21:10:42.682 [virtual-64] INFO com.supplypilot.agentic.service.AgenticSqlTools -- agentic-sql tool=inspect_schema database=POSTGRESQL tableCount=0 elapsedMs=0 truncated=false
+21:10:42.684 [virtual-64] INFO com.supplypilot.agentic.service.AgenticSqlTools -- agentic-sql tool=execute_readonly_sql database=POSTGRESQL elapsedMs=0 errorCode=DATABASE_UNAVAILABLE
+21:10:42.706 [virtual-70] INFO com.supplypilot.agentic.service.AgenticSqlTools -- agentic-sql tool=inspect_schema database=MYSQL tableCount=0 elapsedMs=2 truncated=false
+21:10:42.708 [virtual-70] INFO com.supplypilot.agentic.service.AgenticSqlTools -- agentic-sql tool=execute_readonly_sql database=MYSQL elapsedMs=0 errorCode=DATABASE_UNAVAILABLE
+21:10:42.710 [virtual-70] INFO com.supplypilot.agentic.service.AgenticSqlTools -- agentic-sql tool=inspect_schema database=POSTGRESQL tableCount=0 elapsedMs=0 truncated=false
+21:10:42.712 [virtual-70] INFO com.supplypilot.agentic.service.AgenticSqlTools -- agentic-sql tool=execute_readonly_sql database=POSTGRESQL elapsedMs=0 errorCode=DATABASE_UNAVAILABLE
+[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 3.783 s -- in com.supplypilot.agentic.service.AgenticSqlAnswerServiceTests
+[INFO] Running com.supplypilot.agentic.service.AgenticSqlAnswerSupportVerifierTests
+[INFO] Tests run: 11, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.109 s -- in com.supplypilot.agentic.service.AgenticSqlAnswerSupportVerifierTests
+21:10:42.878 [main] INFO org.testcontainers.DockerClientFactory -- Testcontainers version: 2.0.5
+21:10:43.385 [main] INFO org.testcontainers.dockerclient.DockerClientProviderStrategy -- Loaded org.testcontainers.dockerclient.NpipeSocketClientProviderStrategy from ~/.testcontainers.properties, will try it first
+21:10:44.172 [main] INFO org.testcontainers.dockerclient.DockerClientProviderStrategy -- Found Docker environment with local Npipe socket (npipe:////./pipe/docker_engine)
+21:10:44.178 [main] INFO org.testcontainers.DockerClientFactory -- Docker host IP address is localhost
+21:10:44.207 [main] INFO org.testcontainers.DockerClientFactory -- Connected to docker: 
+  Server Version: 29.6.1
+  API Version: 1.55
+  Operating System: Docker Desktop
+  Total Memory: 19902 MB
+  Labels: 
+    com.docker.desktop.address=npipe://\\.\pipe\docker_cli
+21:10:44.236 [main] INFO org.testcontainers.images.PullPolicy -- Image pull policy will be performed by: DefaultPullPolicy()
+21:10:44.242 [main] INFO org.testcontainers.utility.ImageNameSubstitutor -- Image name substitution will be performed by: DefaultImageNameSubstitutor (composite of 'ConfigurationFileImageNameSubstitutor' and 'PrefixingImageNameSubstitutor')
+21:10:45.008 [main] INFO tc.testcontainers/ryuk:0.14.0 -- Creating container for image: testcontainers/ryuk:0.14.0
+21:10:45.430 [main] INFO tc.testcontainers/ryuk:0.14.0 -- Container testcontainers/ryuk:0.14.0 is starting: 1b37efc9e2d908fd6402d611452a44b74e8879faec99647a542d43573cafa320
+21:10:46.045 [main] INFO tc.testcontainers/ryuk:0.14.0 -- Container testcontainers/ryuk:0.14.0 started in PT1.0366868S
+21:10:46.055 [main] INFO org.testcontainers.utility.RyukResourceReaper -- Ryuk started - will monitor and terminate Testcontainers containers on JVM exit
+21:10:46.055 [main] INFO org.testcontainers.DockerClientFactory -- Checking the system...
+21:10:46.056 [main] INFO org.testcontainers.DockerClientFactory -- ?? Docker server version should be at least 1.6.0
+[INFO] Running com.supplypilot.agentic.sql.AgenticSqlExecutorIntegrationTests
+21:10:46.066 [main] INFO tc.mysql:8.4.11 -- Creating container for image: mysql:8.4.11
+21:10:46.182 [main] INFO tc.mysql:8.4.11 -- Container mysql:8.4.11 is starting: 175ccfae83acf8d7ab78f5afaaa3b4ac27996240a6f0f5e9fc9d3fe79ebefb68
+21:10:46.551 [main] INFO tc.mysql:8.4.11 -- Waiting for database connection to become available at jdbc:mysql://localhost:13351/supplypilot_agentic_test using query 'SELECT 1'
+21:10:59.088 [main] INFO tc.mysql:8.4.11 -- Container mysql:8.4.11 started in PT13.0216031S
+21:10:59.088 [main] INFO tc.mysql:8.4.11 -- Container is started (JDBC URL: jdbc:mysql://localhost:13351/supplypilot_agentic_test)
+21:10:59.089 [main] INFO tc.postgres:16-alpine -- Creating container for image: postgres:16-alpine
+21:10:59.231 [main] INFO tc.postgres:16-alpine -- Container postgres:16-alpine is starting: c34c579f57b0d3db19698bdf57983a0b62d75b113e11aee0a795bed2489c66fb
+21:11:01.646 [main] INFO tc.postgres:16-alpine -- Container postgres:16-alpine started in PT2.5566843S
+21:11:01.647 [main] INFO tc.postgres:16-alpine -- Container is started (JDBC URL: jdbc:postgresql://localhost:13457/supplypilot_agentic_test?loggerLevel=OFF)
+[INFO] Tests run: 16, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 28.25 s -- in com.supplypilot.agentic.sql.AgenticSqlExecutorIntegrationTests
+[INFO] Running com.supplypilot.agentic.sql.AgenticSqlStatementValidatorTests
+[INFO] Tests run: 39, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.360 s -- in com.supplypilot.agentic.sql.AgenticSqlStatementValidatorTests
+[INFO] 
+[INFO] Results:
+[INFO] 
+[INFO] Tests run: 82, Failures: 0, Errors: 0, Skipped: 0
+[INFO] 
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  01:12 min
+[INFO] Finished at: 2026-10-27T21:11:15+08:00
+[INFO] ------------------------------------------------------------------------
+TEST_EXIT_CODE=0

@@ -1,0 +1,32 @@
+package com.supplypilot.agentic.sql;
+
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+/** A single parsed and validated query with an enforced outer row limit. */
+public record AgenticSqlValidatedStatement(
+        AgenticSqlDatabase database,
+        String sql,
+        List<AgenticSqlTableReference> tables,
+        Map<Integer, List<String>> sensitiveProjectionColumns,
+        Set<String> sensitiveColumns,
+        boolean maskAllOutput,
+        boolean documentContentReference,
+        String documentSourceTable,
+        String documentIdColumnLabel,
+        String documentVersionColumnLabel,
+        Map<Integer, java.util.Set<String>> projectionSources,
+        boolean projectionLineageAmbiguous
+) {
+    public AgenticSqlValidatedStatement {
+        tables = List.copyOf(tables);
+        sensitiveProjectionColumns = sensitiveProjectionColumns.entrySet().stream().collect(
+                java.util.stream.Collectors.toUnmodifiableMap(Map.Entry::getKey,
+                        entry -> List.copyOf(entry.getValue())));
+        sensitiveColumns = Set.copyOf(sensitiveColumns);
+        projectionSources = projectionSources.entrySet().stream().collect(
+                java.util.stream.Collectors.toUnmodifiableMap(Map.Entry::getKey,
+                        entry -> java.util.Set.copyOf(entry.getValue())));
+    }
+}

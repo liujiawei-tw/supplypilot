@@ -1,0 +1,72 @@
+Command: .\mvnw.cmd '-Dtest=AgenticSqlAnswerServiceTests' test
+Environment: OpenJDK 21.0.10 (Zulu), Maven Wrapper, Windows PowerShell 7.6.6
+Exit Code: 0
+
+[INFO] Scanning for projects...
+[INFO] 
+[INFO] ------------------< com.supplypilot:supply-pilot-api >------------------
+[INFO] Building supply-pilot-api 0.0.1-SNAPSHOT
+[INFO]   from pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.5.0:resources (default-resources) @ supply-pilot-api ---
+[INFO] Copying 5 resources from src\main\resources to target\classes
+[INFO] Copying 37 resources from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.15.0:compile (default-compile) @ supply-pilot-api ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- resources:3.5.0:testResources (default-testResources) @ supply-pilot-api ---
+[INFO] Copying 3 resources from src\test\resources to target\test-classes
+[INFO] 
+[INFO] --- compiler:3.15.0:testCompile (default-testCompile) @ supply-pilot-api ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- surefire:3.5.6:test (default-test) @ supply-pilot-api ---
+[INFO] Using auto detected provider org.apache.maven.surefire.junitplatform.JUnitPlatformProvider
+[INFO] 
+[INFO] -------------------------------------------------------
+[INFO]  T E S T S
+[INFO] -------------------------------------------------------
+[INFO] Running com.supplypilot.agentic.service.AgenticSqlAnswerServiceTests
+Mockito is currently self-attaching to enable the inline-mock-maker. This will no longer work in future releases of the JDK. Please add Mockito as an agent to your build as described in Mockito's documentation: https://javadoc.io/doc/org.mockito/mockito-core/latest/org.mockito/org/mockito/Mockito.html#0.3
+WARNING: A Java agent has been loaded dynamically (C:\Users\z0976\.m2\repository\net\bytebuddy\byte-buddy-agent\1.18.11\byte-buddy-agent-1.18.11.jar)
+WARNING: If a serviceability tool is in use, please run with -XX:+EnableDynamicAgentLoading to hide this warning
+WARNING: If a serviceability tool is not in use, please run with -Djdk.instrument.traceUsage for more information
+WARNING: Dynamic loading of agents will be disallowed by default in a future release
+OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+00:43:31.583 [virtual-36] INFO com.supplypilot.agentic.service.AgenticSqlTools -- agentic-sql tool=inspect_schema database=MYSQL tableCount=1 elapsedMs=66 truncated=false
+00:43:31.608 [virtual-36] INFO com.supplypilot.agentic.service.AgenticSqlTools -- agentic-sql tool=execute_readonly_sql database=MYSQL tables=[suppliers] rows=1 elapsedMs=4 truncated=false
+00:43:31.692 [main] INFO com.supplypilot.agentic.service.AgenticSqlAnswerService -- agentic-sql query userId=42 status=PARTIAL databases=[MYSQL] toolCalls=2 rows=1 latencyMs=1305 totalTokens=21
+00:43:31.828 [virtual-47] INFO com.supplypilot.agentic.service.AgenticSqlTools -- agentic-sql tool=inspect_schema database=MYSQL tableCount=1 elapsedMs=4 truncated=false
+00:43:31.834 [virtual-47] INFO com.supplypilot.agentic.service.AgenticSqlTools -- agentic-sql tool=execute_readonly_sql database=MYSQL tables=[suppliers] rows=1 elapsedMs=4 truncated=false
+00:43:31.843 [main] INFO com.supplypilot.agentic.service.AgenticSqlAnswerService -- agentic-sql query userId=42 status=ANSWERED databases=[MYSQL] toolCalls=2 rows=1 latencyMs=36 totalTokens=21
+00:43:31.951 [virtual-55] INFO com.supplypilot.agentic.service.AgenticSqlTools -- agentic-sql tool=inspect_schema database=MYSQL tableCount=0 elapsedMs=2 truncated=false
+00:43:31.956 [virtual-55] INFO com.supplypilot.agentic.service.AgenticSqlTools -- agentic-sql tool=execute_readonly_sql database=MYSQL tables=[suppliers] rows=0 elapsedMs=2 truncated=false
+00:43:31.961 [virtual-55] INFO com.supplypilot.agentic.service.AgenticSqlTools -- agentic-sql tool=inspect_schema database=POSTGRESQL tableCount=0 elapsedMs=1 truncated=false
+00:43:31.964 [virtual-55] INFO com.supplypilot.agentic.service.AgenticSqlTools -- agentic-sql tool=execute_readonly_sql database=POSTGRESQL tables=[analytics] rows=0 elapsedMs=2 truncated=false
+00:43:31.989 [virtual-61] INFO com.supplypilot.agentic.service.AgenticSqlTools -- agentic-sql tool=inspect_schema database=MYSQL tableCount=0 elapsedMs=2 truncated=false
+00:43:31.992 [virtual-61] INFO com.supplypilot.agentic.service.AgenticSqlTools -- agentic-sql tool=execute_readonly_sql database=MYSQL elapsedMs=2 errorCode=DATABASE_UNAVAILABLE
+00:43:31.994 [virtual-61] INFO com.supplypilot.agentic.service.AgenticSqlTools -- agentic-sql tool=inspect_schema database=POSTGRESQL tableCount=0 elapsedMs=0 truncated=false
+00:43:31.998 [virtual-61] INFO com.supplypilot.agentic.service.AgenticSqlTools -- agentic-sql tool=execute_readonly_sql database=POSTGRESQL tables=[analytics] rows=0 elapsedMs=2 truncated=false
+00:43:32.017 [virtual-67] INFO com.supplypilot.agentic.service.AgenticSqlTools -- agentic-sql tool=inspect_schema database=MYSQL tableCount=0 elapsedMs=2 truncated=false
+00:43:32.022 [virtual-67] INFO com.supplypilot.agentic.service.AgenticSqlTools -- agentic-sql tool=execute_readonly_sql database=MYSQL tables=[suppliers] rows=0 elapsedMs=2 truncated=false
+00:43:32.024 [virtual-67] INFO com.supplypilot.agentic.service.AgenticSqlTools -- agentic-sql tool=inspect_schema database=POSTGRESQL tableCount=0 elapsedMs=0 truncated=false
+00:43:32.027 [virtual-67] INFO com.supplypilot.agentic.service.AgenticSqlTools -- agentic-sql tool=execute_readonly_sql database=POSTGRESQL elapsedMs=0 errorCode=DATABASE_UNAVAILABLE
+00:43:32.045 [virtual-73] INFO com.supplypilot.agentic.service.AgenticSqlTools -- agentic-sql tool=inspect_schema database=MYSQL tableCount=0 elapsedMs=2 truncated=false
+00:43:32.049 [virtual-73] INFO com.supplypilot.agentic.service.AgenticSqlTools -- agentic-sql tool=execute_readonly_sql database=MYSQL elapsedMs=0 errorCode=DATABASE_UNAVAILABLE
+00:43:32.051 [virtual-73] INFO com.supplypilot.agentic.service.AgenticSqlTools -- agentic-sql tool=inspect_schema database=POSTGRESQL tableCount=0 elapsedMs=0 truncated=false
+00:43:32.053 [virtual-73] INFO com.supplypilot.agentic.service.AgenticSqlTools -- agentic-sql tool=execute_readonly_sql database=POSTGRESQL elapsedMs=0 errorCode=DATABASE_UNAVAILABLE
+[INFO] Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 4.238 s -- in com.supplypilot.agentic.service.AgenticSqlAnswerServiceTests
+[INFO] 
+[INFO] Results:
+[INFO] 
+[INFO] Tests run: 5, Failures: 0, Errors: 0, Skipped: 0
+[INFO] 
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  11.611 s
+[INFO] Finished at: 2026-10-28T00:43:32+08:00
+[INFO] ------------------------------------------------------------------------
+

@@ -1,0 +1,291 @@
+{
+  "commit": "e5e841e7b18a2cea625f79b6c8479fc67ad57897",
+  "demoDataset": "SP-901 / sp-907-zh-tw-v3",
+  "question": "SUP-001 供應 MAT-001 的目前單價與幣別為何？",
+  "model": "gemini-3.6-flash",
+  "baseline": {
+    "response": {
+      "status": "ANSWERED",
+      "answer": "阿薩姆紅茶萃取物（MAT-001）由 福爾摩沙原料工坊（SUP-001）提供有效報價 100.0000 TWD／KG，交期 5 天。\n阿薩姆紅茶萃取物（MAT-001）由 東港貿易社（SUP-002）提供有效報價 104.0000 TWD／KG，交期 3 天。\n阿薩姆紅茶萃取物（MAT-001）由 青葉食材供應（SUP-003）提供有效報價 97.0000 TWD／KG，交期 10 天。\n阿薩姆紅茶萃取物（MAT-001）由 海岳食品素材（SUP-005）提供有效報價 102.0000 TWD／KG，交期 7 天。\n阿薩姆紅茶萃取物（MAT-001）由 南島風味貿易（SUP-010）提供有效報價 99.0000 TWD／KG，交期 5 天。",
+      "tools": [
+        "QUERY_SUPPLIER_QUOTES"
+      ],
+      "sources": [
+        {
+          "resourceType": "SUPPLIER_MATERIAL",
+          "resourceId": "1",
+          "title": "福爾摩沙原料工坊／阿薩姆紅茶萃取物",
+          "documentKey": null,
+          "version": null,
+          "supplierId": null,
+          "chunkIndex": null,
+          "startOffset": null,
+          "endOffset": null,
+          "excerpt": null,
+          "relevanceScore": null
+        },
+        {
+          "resourceType": "SUPPLIER_MATERIAL",
+          "resourceId": "2",
+          "title": "東港貿易社／阿薩姆紅茶萃取物",
+          "documentKey": null,
+          "version": null,
+          "supplierId": null,
+          "chunkIndex": null,
+          "startOffset": null,
+          "endOffset": null,
+          "excerpt": null,
+          "relevanceScore": null
+        },
+        {
+          "resourceType": "SUPPLIER_MATERIAL",
+          "resourceId": "3",
+          "title": "青葉食材供應／阿薩姆紅茶萃取物",
+          "documentKey": null,
+          "version": null,
+          "supplierId": null,
+          "chunkIndex": null,
+          "startOffset": null,
+          "endOffset": null,
+          "excerpt": null,
+          "relevanceScore": null
+        },
+        {
+          "resourceType": "SUPPLIER_MATERIAL",
+          "resourceId": "5",
+          "title": "海岳食品素材／阿薩姆紅茶萃取物",
+          "documentKey": null,
+          "version": null,
+          "supplierId": null,
+          "chunkIndex": null,
+          "startOffset": null,
+          "endOffset": null,
+          "excerpt": null,
+          "relevanceScore": null
+        },
+        {
+          "resourceType": "SUPPLIER_MATERIAL",
+          "resourceId": "42",
+          "title": "南島風味貿易／阿薩姆紅茶萃取物",
+          "documentKey": null,
+          "version": null,
+          "supplierId": null,
+          "chunkIndex": null,
+          "startOffset": null,
+          "endOffset": null,
+          "excerpt": null,
+          "relevanceScore": null
+        }
+      ],
+      "answerSource": "BACKEND_FACTS",
+      "details": {
+        "inventory": [],
+        "quotes": [
+          {
+            "supplierMaterialId": 1,
+            "supplierId": 1,
+            "supplierCode": "SUP-001",
+            "supplierName": "福爾摩沙原料工坊",
+            "supplierStatus": "ACTIVE",
+            "relationStatus": "ACTIVE",
+            "materialId": 1,
+            "materialCode": "MAT-001",
+            "materialName": "阿薩姆紅茶萃取物",
+            "unitPrice": 100.0,
+            "currency": "TWD",
+            "pricingUnit": "KG",
+            "leadTimeDays": 5
+          },
+          {
+            "supplierMaterialId": 2,
+            "supplierId": 2,
+            "supplierCode": "SUP-002",
+            "supplierName": "東港貿易社",
+            "supplierStatus": "ACTIVE",
+            "relationStatus": "ACTIVE",
+            "materialId": 1,
+            "materialCode": "MAT-001",
+            "materialName": "阿薩姆紅茶萃取物",
+            "unitPrice": 104.0,
+            "currency": "TWD",
+            "pricingUnit": "KG",
+            "leadTimeDays": 3
+          },
+          {
+            "supplierMaterialId": 3,
+            "supplierId": 3,
+            "supplierCode": "SUP-003",
+            "supplierName": "青葉食材供應",
+            "supplierStatus": "ACTIVE",
+            "relationStatus": "ACTIVE",
+            "materialId": 1,
+            "materialCode": "MAT-001",
+            "materialName": "阿薩姆紅茶萃取物",
+            "unitPrice": 97.0,
+            "currency": "TWD",
+            "pricingUnit": "KG",
+            "leadTimeDays": 10
+          },
+          {
+            "supplierMaterialId": 5,
+            "supplierId": 5,
+            "supplierCode": "SUP-005",
+            "supplierName": "海岳食品素材",
+            "supplierStatus": "ACTIVE",
+            "relationStatus": "ACTIVE",
+            "materialId": 1,
+            "materialCode": "MAT-001",
+            "materialName": "阿薩姆紅茶萃取物",
+            "unitPrice": 102.0,
+            "currency": "TWD",
+            "pricingUnit": "KG",
+            "leadTimeDays": 7
+          },
+          {
+            "supplierMaterialId": 42,
+            "supplierId": 10,
+            "supplierCode": "SUP-010",
+            "supplierName": "南島風味貿易",
+            "supplierStatus": "ACTIVE",
+            "relationStatus": "ACTIVE",
+            "materialId": 1,
+            "materialCode": "MAT-001",
+            "materialName": "阿薩姆紅茶萃取物",
+            "unitPrice": 99.0,
+            "currency": "TWD",
+            "pricingUnit": "KG",
+            "leadTimeDays": 5
+          }
+        ],
+        "averagePrices": [],
+        "suppliers": [],
+        "purchaseOrders": [],
+        "candidates": [],
+        "unmatchedIdentifiers": [],
+        "notes": [],
+        "purchaseOrderTotalCount": null,
+        "queriedMaterialCodes": [
+          "MAT-001"
+        ]
+      },
+      "summary": null
+    },
+    "latencyMs": 6274.54
+  },
+  "agenticSql": {
+    "response": {
+      "version": 1,
+      "status": "PARTIAL",
+      "answer": "查詢結果未能支持可核對的結論，因此沒有採用模型生成的事實內容。\n部分缺乏 SQL 結果支持的結論已省略。",
+      "sources": [
+        {
+          "database": "MYSQL",
+          "schema": "supplypilot_demo",
+          "table": "supplier_materials",
+          "toolCallId": "8cd35427-336a-421e-935a-4ea87c60e7bb",
+          "resultRowIndex": 0,
+          "primaryKeyValues": {
+            "id": "1"
+          }
+        }
+      ],
+      "usedDatabases": [
+        "MYSQL"
+      ],
+      "toolCalls": [
+        {
+          "toolCallId": "029cc2d8-d474-49a4-9c47-889d8efea8fe",
+          "operation": "INSPECT_SCHEMA",
+          "database": "MYSQL",
+          "tables": [
+            "demands",
+            "document_chunks",
+            "document_metadata",
+            "inventory",
+            "inventory_import_batches",
+            "inventory_import_items",
+            "materials",
+            "purchase_order_items",
+            "purchase_orders",
+            "purchase_recommendation",
+            "stock_transactions",
+            "supplier_materials",
+            "supplier_recommendation_result",
+            "suppliers"
+          ],
+          "rowsReturned": 14,
+          "truncated": false,
+          "elapsedMs": 120,
+          "status": "SUCCEEDED",
+          "errorCode": null
+        },
+        {
+          "toolCallId": "e6fbdbba-39f6-410e-a7af-d7bb471900da",
+          "operation": "INSPECT_SCHEMA",
+          "database": "MYSQL",
+          "tables": [
+            "supplier_materials"
+          ],
+          "rowsReturned": 1,
+          "truncated": false,
+          "elapsedMs": 11,
+          "status": "SUCCEEDED",
+          "errorCode": null
+        },
+        {
+          "toolCallId": "206220a8-7a04-4ac0-8b0b-6d1a729387af",
+          "operation": "INSPECT_SCHEMA",
+          "database": "MYSQL",
+          "tables": [
+            "suppliers"
+          ],
+          "rowsReturned": 1,
+          "truncated": false,
+          "elapsedMs": 13,
+          "status": "SUCCEEDED",
+          "errorCode": null
+        },
+        {
+          "toolCallId": "29ed4658-d0dd-4515-902b-068811a0200d",
+          "operation": "INSPECT_SCHEMA",
+          "database": "MYSQL",
+          "tables": [
+            "materials"
+          ],
+          "rowsReturned": 1,
+          "truncated": false,
+          "elapsedMs": 8,
+          "status": "SUCCEEDED",
+          "errorCode": null
+        },
+        {
+          "toolCallId": "8cd35427-336a-421e-935a-4ea87c60e7bb",
+          "operation": "EXECUTE_READONLY_SQL",
+          "database": "MYSQL",
+          "tables": [
+            "supplier_materials",
+            "suppliers",
+            "materials"
+          ],
+          "rowsReturned": 1,
+          "truncated": false,
+          "elapsedMs": 204,
+          "status": "SUCCEEDED",
+          "errorCode": null
+        }
+      ],
+      "latencyMs": 19922,
+      "usage": {
+        "promptTokens": 15644,
+        "completionTokens": 348,
+        "totalTokens": 18421,
+        "estimatedCost": "N/A"
+      },
+      "warnings": [
+        "UNSUPPORTED_MODEL_CLAIMS",
+        "INVALID_MODEL_CLAIMS"
+      ]
+    },
+    "latencyMs": 19951.7
+  }
+}

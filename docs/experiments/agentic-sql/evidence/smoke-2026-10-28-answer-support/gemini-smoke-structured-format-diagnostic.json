@@ -1,0 +1,103 @@
+{
+  "question": "SUP-001 供應 MAT-001 的目前單價與幣別為何？",
+  "provider": "Gemini (real HTTP request; provider usage returned)",
+  "model": "gemini-3.6-flash",
+  "httpStatus": 200,
+  "status": "PARTIAL",
+  "answerSupportValidation": "FAIL",
+  "answer": "查詢結果未能支持可核對的結論，因此沒有採用模型生成的事實內容。\n部分缺乏 SQL 結果支持的結論已省略。",
+  "warnings": [
+    "UNSUPPORTED_MODEL_CLAIMS",
+    "INVALID_MODEL_CLAIMS",
+    "INVALID_MODEL_OUTPUT_JSON",
+    "MODEL_OUTPUT_JSON_TRUNCATED"
+  ],
+  "usedDatabases": [
+    "MYSQL"
+  ],
+  "apiLatencyMs": 20574,
+  "clientElapsedMs": 20777.86,
+  "usage": {
+    "promptTokens": 15500,
+    "completionTokens": 794,
+    "totalTokens": 18180,
+    "estimatedCost": "N/A"
+  },
+  "toolCalls": [
+    {
+      "operation": "INSPECT_SCHEMA",
+      "database": "MYSQL",
+      "tables": [
+        "demands",
+        "document_chunks",
+        "document_metadata",
+        "inventory",
+        "inventory_import_batches",
+        "inventory_import_items",
+        "materials",
+        "purchase_order_items",
+        "purchase_orders",
+        "purchase_recommendation",
+        "stock_transactions",
+        "supplier_materials",
+        "supplier_recommendation_result",
+        "suppliers"
+      ],
+      "rowsReturned": 14,
+      "truncated": false,
+      "elapsedMs": 132,
+      "status": "SUCCEEDED",
+      "errorCode": null
+    },
+    {
+      "operation": "INSPECT_SCHEMA",
+      "database": "MYSQL",
+      "tables": [
+        "supplier_materials"
+      ],
+      "rowsReturned": 1,
+      "truncated": false,
+      "elapsedMs": 10,
+      "status": "SUCCEEDED",
+      "errorCode": null
+    },
+    {
+      "operation": "INSPECT_SCHEMA",
+      "database": "MYSQL",
+      "tables": [
+        "suppliers"
+      ],
+      "rowsReturned": 1,
+      "truncated": false,
+      "elapsedMs": 8,
+      "status": "SUCCEEDED",
+      "errorCode": null
+    },
+    {
+      "operation": "INSPECT_SCHEMA",
+      "database": "MYSQL",
+      "tables": [
+        "materials"
+      ],
+      "rowsReturned": 1,
+      "truncated": false,
+      "elapsedMs": 10,
+      "status": "SUCCEEDED",
+      "errorCode": null
+    },
+    {
+      "operation": "EXECUTE_READONLY_SQL",
+      "database": "MYSQL",
+      "tables": [
+        "supplier_materials",
+        "suppliers",
+        "materials"
+      ],
+      "rowsReturned": 1,
+      "truncated": false,
+      "elapsedMs": 219,
+      "status": "SUCCEEDED",
+      "errorCode": null
+    }
+  ]
+}

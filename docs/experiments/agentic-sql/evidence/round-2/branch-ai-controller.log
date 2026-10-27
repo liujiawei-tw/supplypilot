@@ -1,0 +1,250 @@
+[INFO] Scanning for projects...
+[INFO] 
+[INFO] ------------------< com.supplypilot:supply-pilot-api >------------------
+[INFO] Building supply-pilot-api 0.0.1-SNAPSHOT
+[INFO]   from pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.5.0:resources (default-resources) @ supply-pilot-api ---
+[INFO] Copying 5 resources from src\main\resources to target\classes
+[INFO] Copying 37 resources from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.15.0:compile (default-compile) @ supply-pilot-api ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- resources:3.5.0:testResources (default-testResources) @ supply-pilot-api ---
+[INFO] Copying 3 resources from src\test\resources to target\test-classes
+[INFO] 
+[INFO] --- compiler:3.15.0:testCompile (default-testCompile) @ supply-pilot-api ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- surefire:3.5.6:test (default-test) @ supply-pilot-api ---
+[INFO] Using auto detected provider org.apache.maven.surefire.junitplatform.JUnitPlatformProvider
+[INFO] 
+[INFO] -------------------------------------------------------
+[INFO]  T E S T S
+[INFO] -------------------------------------------------------
+[INFO] Running com.supplypilot.integration.AiControllerIntegrationTests
+21:11:37.113 [main] INFO org.springframework.boot.test.context.SpringBootTestContextBootstrapper -- Found @SpringBootConfiguration com.supplypilot.SupplyPilotApplication for test class com.supplypilot.integration.AiControllerIntegrationTests
+21:11:37.255 [main] INFO org.springframework.test.context.support.AnnotationConfigContextLoaderUtils -- Could not detect default configuration classes for test class [com.supplypilot.integration.AbstractIntegrationTest]: AbstractIntegrationTest does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
+21:11:37.272 [main] INFO org.springframework.boot.test.context.SpringBootTestContextBootstrapper -- Found @SpringBootConfiguration com.supplypilot.SupplyPilotApplication for test class com.supplypilot.integration.AiControllerIntegrationTests
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+
+ :: Spring Boot ::                (v4.1.1)
+
+2026-10-27T21:11:38.020+08:00  INFO 29268 --- [supply-pilot-api] [           main] c.s.i.AiControllerIntegrationTests       : Starting AiControllerIntegrationTests using Java 21.0.10 with PID 29268 (started by Liu in C:\Users\z0976\OneDrive\�ୱ\dev-side\supplypilot\backend)
+2026-10-27T21:11:38.023+08:00  INFO 29268 --- [supply-pilot-api] [           main] c.s.i.AiControllerIntegrationTests       : The following 1 profile is active: "test"
+2026-10-27T21:11:40.723+08:00  INFO 29268 --- [supply-pilot-api] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2026-10-27T21:11:41.229+08:00  INFO 29268 --- [supply-pilot-api] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 487 ms. Found 15 JPA repository interfaces.
+2026-10-27T21:11:42.212+08:00  INFO 29268 --- [supply-pilot-api] [           main] org.testcontainers.images.PullPolicy     : Image pull policy will be performed by: DefaultPullPolicy()
+2026-10-27T21:11:42.217+08:00  INFO 29268 --- [supply-pilot-api] [           main] o.t.utility.ImageNameSubstitutor         : Image name substitution will be performed by: DefaultImageNameSubstitutor (composite of 'ConfigurationFileImageNameSubstitutor' and 'PrefixingImageNameSubstitutor')
+2026-10-27T21:11:42.307+08:00  INFO 29268 --- [supply-pilot-api] [           main] org.testcontainers.DockerClientFactory   : Testcontainers version: 2.0.5
+2026-10-27T21:11:42.678+08:00  INFO 29268 --- [supply-pilot-api] [           main] o.t.d.DockerClientProviderStrategy       : Loaded org.testcontainers.dockerclient.NpipeSocketClientProviderStrategy from ~/.testcontainers.properties, will try it first
+2026-10-27T21:11:43.252+08:00  INFO 29268 --- [supply-pilot-api] [           main] o.t.d.DockerClientProviderStrategy       : Found Docker environment with local Npipe socket (npipe:////./pipe/docker_engine)
+2026-10-27T21:11:43.254+08:00  INFO 29268 --- [supply-pilot-api] [           main] org.testcontainers.DockerClientFactory   : Docker host IP address is localhost
+2026-10-27T21:11:43.276+08:00  INFO 29268 --- [supply-pilot-api] [           main] org.testcontainers.DockerClientFactory   : Connected to docker: 
+  Server Version: 29.6.1
+  API Version: 1.55
+  Operating System: Docker Desktop
+  Total Memory: 19902 MB
+  Labels: 
+    com.docker.desktop.address=npipe://\\.\pipe\docker_cli
+2026-10-27T21:11:43.761+08:00  INFO 29268 --- [supply-pilot-api] [           main] tc.testcontainers/ryuk:0.14.0            : Creating container for image: testcontainers/ryuk:0.14.0
+2026-10-27T21:11:44.069+08:00  INFO 29268 --- [supply-pilot-api] [           main] tc.testcontainers/ryuk:0.14.0            : Container testcontainers/ryuk:0.14.0 is starting: e9fae6a7579418e506f11117bebb4c75dff1061d6751eb4bd9d18ee1c438dee7
+2026-10-27T21:11:44.537+08:00  INFO 29268 --- [supply-pilot-api] [           main] tc.testcontainers/ryuk:0.14.0            : Container testcontainers/ryuk:0.14.0 started in PT0.7754507S
+2026-10-27T21:11:44.547+08:00  INFO 29268 --- [supply-pilot-api] [           main] o.t.utility.RyukResourceReaper           : Ryuk started - will monitor and terminate Testcontainers containers on JVM exit
+2026-10-27T21:11:44.548+08:00  INFO 29268 --- [supply-pilot-api] [           main] org.testcontainers.DockerClientFactory   : Checking the system...
+2026-10-27T21:11:44.549+08:00  INFO 29268 --- [supply-pilot-api] [           main] org.testcontainers.DockerClientFactory   : ?? Docker server version should be at least 1.6.0
+2026-10-27T21:11:44.550+08:00  INFO 29268 --- [supply-pilot-api] [           main] tc.mysql:8.4.11                          : Creating container for image: mysql:8.4.11
+2026-10-27T21:11:44.660+08:00  INFO 29268 --- [supply-pilot-api] [           main] tc.mysql:8.4.11                          : Container mysql:8.4.11 is starting: b1194e9723135d0600c88710598535a6457b09d825c699494cdf363835f1df43
+2026-10-27T21:11:44.958+08:00  INFO 29268 --- [supply-pilot-api] [           main] tc.mysql:8.4.11                          : Waiting for database connection to become available at jdbc:mysql://localhost:10061/supplypilot_demo_test using query 'SELECT 1'
+2026-10-27T21:11:57.898+08:00  INFO 29268 --- [supply-pilot-api] [           main] tc.mysql:8.4.11                          : Container mysql:8.4.11 started in PT13.3482676S
+2026-10-27T21:11:57.899+08:00  INFO 29268 --- [supply-pilot-api] [           main] tc.mysql:8.4.11                          : Container is started (JDBC URL: jdbc:mysql://localhost:10061/supplypilot_demo_test)
+2026-10-27T21:11:58.796+08:00  INFO 29268 --- [supply-pilot-api] [           main] org.flywaydb.core.FlywayExecutor         : Database: jdbc:mysql://localhost:10061/supplypilot_demo_test (MySQL 8.4)
+2026-10-27T21:11:59.094+08:00  INFO 29268 --- [supply-pilot-api] [           main] o.f.c.i.s.JdbcTableSchemaHistory         : Schema history table `supplypilot_demo_test`.`flyway_schema_history` does not exist yet
+2026-10-27T21:11:59.107+08:00  INFO 29268 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbValidate     : Successfully validated 34 migrations (execution time 00:00.138s)
+2026-10-27T21:11:59.166+08:00  INFO 29268 --- [supply-pilot-api] [           main] o.f.c.i.s.JdbcTableSchemaHistory         : Creating Schema History table `supplypilot_demo_test`.`flyway_schema_history` ...
+2026-10-27T21:11:59.423+08:00  INFO 29268 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Current version of schema `supplypilot_demo_test`: << Empty Schema >>
+2026-10-27T21:11:59.447+08:00  INFO 29268 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "1 - baseline"
+2026-10-27T21:11:59.544+08:00  INFO 29268 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "2 - create users"
+2026-10-27T21:11:59.686+08:00  INFO 29268 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "3 - create materials and inventory"
+2026-10-27T21:11:59.863+08:00  INFO 29268 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "4 - create suppliers"
+2026-10-27T21:12:00.011+08:00  INFO 29268 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "5 - create supplier materials"
+2026-10-27T21:12:00.158+08:00  INFO 29268 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "6 - create demands"
+2026-10-27T21:12:00.307+08:00  INFO 29268 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "7 - create stock transactions"
+2026-10-27T21:12:00.448+08:00  INFO 29268 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "8 - create inventory imports"
+2026-10-27T21:12:00.636+08:00  INFO 29268 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "9 - create purchase orders"
+2026-10-27T21:12:00.929+08:00  INFO 29268 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "10 - create purchase recommendations"
+2026-10-27T21:12:01.130+08:00  INFO 29268 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "11 - link purchase order items to recommendations"
+2026-10-27T21:12:01.322+08:00  INFO 29268 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "12 - add purchase order rejection audit"
+2026-10-27T21:12:01.556+08:00  INFO 29268 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "13 - link stock transactions to purchase orders"
+2026-10-27T21:12:01.724+08:00  INFO 29268 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "14 - create document metadata"
+2026-10-27T21:12:01.851+08:00  INFO 29268 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "15 - create document chunks"
+2026-10-27T21:12:01.948+08:00  INFO 29268 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "16 - create ai monthly token usage"
+2026-10-27T21:12:02.022+08:00  INFO 29268 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "17 - create ai purchase draft proposals"
+2026-10-27T21:12:02.120+08:00  INFO 29268 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "18 - document semantic outbound approval"
+2026-10-27T21:12:02.288+08:00  INFO 29268 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "19 - document semantic review state"
+2026-10-27T21:12:02.447+08:00  INFO 29268 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "20 - create demo dataset state"
+2026-10-27T21:12:02.526+08:00  INFO 29268 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "21 - require production admin password change"
+2026-10-27T21:12:02.667+08:00  INFO 29268 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "22 - create system initialization"
+2026-10-27T21:12:02.744+08:00  INFO 29268 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "23 - unify user roles and management capability"
+2026-10-27T21:12:02.901+08:00  INFO 29268 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "24 - user deletion and purchase order snapshots"
+2026-10-27T21:12:05.719+08:00  INFO 29268 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "25 - add purchase order cancellation and ordered progress"
+2026-10-27T21:12:06.197+08:00  INFO 29268 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "26 - add supplier promised delivery date"
+2026-10-27T21:12:06.415+08:00  INFO 29268 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "27 - add receiving inspection and payment confirmation"
+2026-10-27T21:12:06.691+08:00  INFO 29268 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "28 - add purchase order stage"
+2026-10-27T21:12:07.225+08:00  INFO 29268 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "29 - constrain purchase order payment stage consistency"
+2026-10-27T21:12:07.557+08:00  INFO 29268 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "30 - persistent semantic index jobs"
+2026-10-27T21:12:07.781+08:00  INFO 29268 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "31 - add purchase order item currency snapshot"
+2026-10-27T21:12:08.129+08:00  INFO 29268 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "32 - allow demo dataset update required state"
+2026-10-27T21:12:08.285+08:00  INFO 29268 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "33 - trusted demo corpus provenance"
+2026-10-27T21:12:08.800+08:00  INFO 29268 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "34 - document chunk version provenance"
+2026-10-27T21:12:08.923+08:00  INFO 29268 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Successfully applied 34 migrations to schema `supplypilot_demo_test`, now at version v34 (execution time 00:08.126s)
+2026-10-27T21:12:09.191+08:00  INFO 29268 --- [supply-pilot-api] [           main] org.hibernate.orm.jpa                    : HHH008540: Processing PersistenceUnitInfo [name: default]
+2026-10-27T21:12:09.305+08:00  INFO 29268 --- [supply-pilot-api] [           main] org.hibernate.orm.core                   : HHH000001: Hibernate ORM core version 7.4.5.Final
+2026-10-27T21:12:10.052+08:00  INFO 29268 --- [supply-pilot-api] [           main] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
+2026-10-27T21:12:10.112+08:00  INFO 29268 --- [supply-pilot-api] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
+2026-10-27T21:12:10.161+08:00  INFO 29268 --- [supply-pilot-api] [           main] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added connection com.mysql.cj.jdbc.ConnectionImpl@5cb3c9e6
+2026-10-27T21:12:10.164+08:00  INFO 29268 --- [supply-pilot-api] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
+2026-10-27T21:12:10.261+08:00  INFO 29268 --- [supply-pilot-api] [           main] org.hibernate.orm.connections.pooling    : HHH10001005: Database info:
+	Database JDBC URL [jdbc:mysql://localhost:10061/supplypilot_demo_test]
+	Database driver: MySQL Connector/J
+	Database dialect: MySQLDialect
+	Database version: 8.4.11
+	Default catalog/schema: supplypilot_demo_test/undefined
+	Autocommit mode: undefined/unknown
+	Isolation level: REPEATABLE_READ [default REPEATABLE_READ]
+	JDBC fetch size: none
+	Pool: DataSourceConnectionProvider
+	Minimum pool size: undefined/unknown
+	Maximum pool size: undefined/unknown
+2026-10-27T21:12:12.403+08:00  INFO 29268 --- [supply-pilot-api] [           main] org.hibernate.orm.core                   : HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2026-10-27T21:12:12.472+08:00  INFO 29268 --- [supply-pilot-api] [           main] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
+2026-10-27T21:12:12.648+08:00  INFO 29268 --- [supply-pilot-api] [           main] o.s.d.j.r.query.QueryEnhancerFactories   : JSqlParser is in classpath; If applicable, JSqlParser will be used
+2026-10-27T21:12:12.648+08:00  INFO 29268 --- [supply-pilot-api] [           main] o.s.d.j.r.query.QueryEnhancerFactories   : Hibernate is in classpath; If applicable, HQL parser will be used.
+2026-10-27T21:12:16.250+08:00  INFO 29268 --- [supply-pilot-api] [           main] eAuthenticationProviderManagerConfigurer : Global AuthenticationManager configured with AuthenticationProvider bean with name authenticationProvider
+2026-10-27T21:12:16.251+08:00  WARN 29268 --- [supply-pilot-api] [           main] r$InitializeUserDetailsManagerConfigurer : Global AuthenticationManager configured with an AuthenticationProvider bean. UserDetailsService beans will not be used by Spring Security for automatically configuring username/password login. Consider removing the AuthenticationProvider bean. Alternatively, consider using the UserDetailsService in a manually instantiated DaoAuthenticationProvider. If the current configuration is intentional, to turn off this warning, increase the logging level of 'org.springframework.security.config.annotation.authentication.configuration.InitializeUserDetailsBeanManagerConfigurer' to ERROR
+2026-10-27T21:12:17.951+08:00  INFO 29268 --- [supply-pilot-api] [           main] o.s.b.a.e.web.EndpointLinksResolver      : Exposing 2 endpoints beneath base path '/actuator'
+2026-10-27T21:12:18.065+08:00  INFO 29268 --- [supply-pilot-api] [           main] c.s.i.AiControllerIntegrationTests       : Started AiControllerIntegrationTests in 40.68 seconds (process running for 42.749)
+Mockito is currently self-attaching to enable the inline-mock-maker. This will no longer work in future releases of the JDK. Please add Mockito as an agent to your build as described in Mockito's documentation: https://javadoc.io/doc/org.mockito/mockito-core/latest/org.mockito/org/mockito/Mockito.html#0.3
+OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+WARNING: A Java agent has been loaded dynamically (C:\Users\z0976\.m2\repository\net\bytebuddy\byte-buddy-agent\1.18.11\byte-buddy-agent-1.18.11.jar)
+WARNING: If a serviceability tool is in use, please run with -XX:+EnableDynamicAgentLoading to hide this warning
+WARNING: If a serviceability tool is not in use, please run with -Djdk.instrument.traceUsage for more information
+WARNING: Dynamic loading of agents will be disallowed by default in a future release
+2026-10-27T21:12:18.721+08:00  INFO 29268 --- [supply-pilot-api] [           main] o.s.b.t.m.w.SpringBootMockServletContext : Initializing Spring TestDispatcherServlet ''
+2026-10-27T21:12:18.721+08:00  INFO 29268 --- [supply-pilot-api] [           main] o.s.t.web.servlet.TestDispatcherServlet  : Initializing Servlet ''
+2026-10-27T21:12:18.723+08:00  INFO 29268 --- [supply-pilot-api] [           main] o.s.t.web.servlet.TestDispatcherServlet  : Completed initialization in 2 ms
+2026-10-27T21:12:19.886+08:00  INFO 29268 --- [supply-pilot-api] [           main] c.s.ai.client.SpringAiProviderClient     : AI provider request outcome=success latencyMs=548 totalTokens=12
+2026-10-27T21:12:20.108+08:00  INFO 29268 --- [supply-pilot-api] [           main] c.s.ai.client.SpringAiProviderClient     : AI provider request outcome=success latencyMs=46 totalTokens=12
+2026-10-27T21:12:20.195+08:00  INFO 29268 --- [supply-pilot-api] [           main] c.s.ai.client.SpringAiProviderClient     : AI provider request outcome=success latencyMs=61 totalTokens=12
+2026-10-27T21:12:20.242+08:00  INFO 29268 --- [supply-pilot-api] [           main] o.s.b.t.m.w.SpringBootMockServletContext : Initializing Spring TestDispatcherServlet ''
+2026-10-27T21:12:20.242+08:00  INFO 29268 --- [supply-pilot-api] [           main] o.s.t.web.servlet.TestDispatcherServlet  : Initializing Servlet ''
+2026-10-27T21:12:20.243+08:00  INFO 29268 --- [supply-pilot-api] [           main] o.s.t.web.servlet.TestDispatcherServlet  : Completed initialization in 1 ms
+2026-10-27T21:12:20.517+08:00  INFO 29268 --- [supply-pilot-api] [           main] c.s.ai.client.SpringAiProviderClient     : AI provider request outcome=success latencyMs=178 totalTokens=0
+2026-10-27T21:12:20.557+08:00  INFO 29268 --- [supply-pilot-api] [           main] o.s.b.t.m.w.SpringBootMockServletContext : Initializing Spring TestDispatcherServlet ''
+2026-10-27T21:12:20.557+08:00  INFO 29268 --- [supply-pilot-api] [           main] o.s.t.web.servlet.TestDispatcherServlet  : Initializing Servlet ''
+2026-10-27T21:12:20.559+08:00  INFO 29268 --- [supply-pilot-api] [           main] o.s.t.web.servlet.TestDispatcherServlet  : Completed initialization in 1 ms
+2026-10-27T21:12:20.692+08:00  INFO 29268 --- [supply-pilot-api] [           main] c.s.ai.client.SpringAiProviderClient     : AI provider request outcome=success latencyMs=46 totalTokens=12
+2026-10-27T21:12:20.711+08:00  INFO 29268 --- [supply-pilot-api] [           main] o.s.b.t.m.w.SpringBootMockServletContext : Initializing Spring TestDispatcherServlet ''
+2026-10-27T21:12:20.711+08:00  INFO 29268 --- [supply-pilot-api] [           main] o.s.t.web.servlet.TestDispatcherServlet  : Initializing Servlet ''
+2026-10-27T21:12:20.713+08:00  INFO 29268 --- [supply-pilot-api] [           main] o.s.t.web.servlet.TestDispatcherServlet  : Completed initialization in 2 ms
+2026-10-27T21:12:20.766+08:00  INFO 29268 --- [supply-pilot-api] [           main] c.s.ai.client.SpringAiProviderClient     : AI provider request outcome=success latencyMs=27 totalTokens=12
+2026-10-27T21:12:20.786+08:00  INFO 29268 --- [supply-pilot-api] [           main] o.s.b.t.m.w.SpringBootMockServletContext : Initializing Spring TestDispatcherServlet ''
+2026-10-27T21:12:20.786+08:00  INFO 29268 --- [supply-pilot-api] [           main] o.s.t.web.servlet.TestDispatcherServlet  : Initializing Servlet ''
+2026-10-27T21:12:20.787+08:00  INFO 29268 --- [supply-pilot-api] [           main] o.s.t.web.servlet.TestDispatcherServlet  : Completed initialization in 1 ms
+2026-10-27T21:12:20.832+08:00  WARN 29268 --- [supply-pilot-api] [           main] c.s.s.CustomAuthenticationEntryPoint     : Unauthenticated request: path=/api/v1/ai/query, traceId=d92580d1-10a4-4d3c-b713-72e2b73cc6bf, reason=Full authentication is required to access this resource
+2026-10-27T21:12:20.892+08:00  WARN 29268 --- [supply-pilot-api] [           main] c.s.c.exception.GlobalExceptionHandler   : Access denied: path=/api/v1/ai/query, traceId=4778194b-8add-4109-a29e-64802bb83417
+2026-10-27T21:12:20.925+08:00  WARN 29268 --- [supply-pilot-api] [           main] c.s.c.exception.GlobalExceptionHandler   : Access denied: path=/api/v1/ai/query, traceId=7f19c9a5-cb48-43f0-98c2-d24c2d9551a4
+2026-10-27T21:12:20.992+08:00  WARN 29268 --- [supply-pilot-api] [           main] c.s.ai.usage.AiMonthlyUsageMonitor       : AI_MONTHLY_TOKEN_ESTIMATE_UNAVAILABLE period=2026-10 reason=missing_usage_metadata
+2026-10-27T21:12:20.993+08:00  INFO 29268 --- [supply-pilot-api] [           main] c.s.ai.client.SpringAiProviderClient     : AI provider diagnostic reason=TOOL_EXECUTION_FAILURE detail=TOOL_CALL_NOT_EXECUTED modelCallCount=1 attemptedToolCallCount=1 executedToolCount=0 toolCount=0 answeredCount=0 documentAnsweredCount=0 toolSelectionRetryAttempted=false safeFallbackExecuted=false
+2026-10-27T21:12:20.994+08:00  WARN 29268 --- [supply-pilot-api] [           main] c.s.c.exception.GlobalExceptionHandler   : Access denied: path=/api/v1/ai/query, traceId=5b8f37bb-83ec-4989-91d5-625268e3076a
+2026-10-27T21:12:21.044+08:00  INFO 29268 --- [supply-pilot-api] [           main] c.s.ai.client.SpringAiProviderClient     : AI provider request outcome=success latencyMs=35 totalTokens=12
+2026-10-27T21:12:21.065+08:00  INFO 29268 --- [supply-pilot-api] [           main] o.s.b.t.m.w.SpringBootMockServletContext : Initializing Spring TestDispatcherServlet ''
+2026-10-27T21:12:21.065+08:00  INFO 29268 --- [supply-pilot-api] [           main] o.s.t.web.servlet.TestDispatcherServlet  : Initializing Servlet ''
+2026-10-27T21:12:21.067+08:00  INFO 29268 --- [supply-pilot-api] [           main] o.s.t.web.servlet.TestDispatcherServlet  : Completed initialization in 2 ms
+2026-10-27T21:12:21.111+08:00  INFO 29268 --- [supply-pilot-api] [           main] o.s.b.t.m.w.SpringBootMockServletContext : Initializing Spring TestDispatcherServlet ''
+2026-10-27T21:12:21.111+08:00  INFO 29268 --- [supply-pilot-api] [           main] o.s.t.web.servlet.TestDispatcherServlet  : Initializing Servlet ''
+2026-10-27T21:12:21.112+08:00  INFO 29268 --- [supply-pilot-api] [           main] o.s.t.web.servlet.TestDispatcherServlet  : Completed initialization in 1 ms
+2026-10-27T21:12:21.206+08:00  INFO 29268 --- [supply-pilot-api] [           main] c.s.ai.client.SpringAiProviderClient     : AI provider request outcome=success latencyMs=62 totalTokens=12
+[ERROR] Tests run: 7, Failures: 4, Errors: 0, Skipped: 0, Time elapsed: 44.76 s <<< FAILURE! -- in com.supplypilot.integration.AiControllerIntegrationTests
+[ERROR] com.supplypilot.integration.AiControllerIntegrationTests.oneQuestionExecutesInventoryAndOpenPoWithBothSources -- Time elapsed: 0.311 s <<< FAILURE!
+java.lang.AssertionError: 
+JSON path "$.answer"
+Expected: a string containing "PO-AI-829ada56ab8d"
+     but: was "Material�]MAT-1465372208�^�ثe�w�s�� 100.0000 KG�A��s�ɶ� 2026-10-08T00:00:00Z�C
+�ŦX�����f���󪺱��ʳ�@ 1 ���A�����C�X 1 ���C"
+	at org.hamcrest.MatcherAssert.assertThat(MatcherAssert.java:20)
+	at org.springframework.test.util.JsonPathExpectationsHelper.assertValue(JsonPathExpectationsHelper.java:107)
+	at org.springframework.test.web.servlet.result.JsonPathResultMatchers.lambda$value$0(JsonPathResultMatchers.java:87)
+	at org.springframework.test.web.servlet.MockMvc$1.andExpect(MockMvc.java:212)
+	at com.supplypilot.integration.AiControllerIntegrationTests.oneQuestionExecutesInventoryAndOpenPoWithBothSources(AiControllerIntegrationTests.java:191)
+
+[ERROR] com.supplypilot.integration.AiControllerIntegrationTests.queriesOnlyOrderedPurchaseOrdersAndBlocksPromptInjection -- Time elapsed: 0.153 s <<< FAILURE!
+java.lang.AssertionError: 
+JSON path "$.answer"
+Expected: a string containing "ORDERED"
+     but: was "�ŦX�����f���󪺱��ʳ�@ 1 ���A�����C�X 1 ���C"
+	at org.hamcrest.MatcherAssert.assertThat(MatcherAssert.java:20)
+	at org.springframework.test.util.JsonPathExpectationsHelper.assertValue(JsonPathExpectationsHelper.java:107)
+	at org.springframework.test.web.servlet.result.JsonPathResultMatchers.lambda$value$0(JsonPathResultMatchers.java:87)
+	at org.springframework.test.web.servlet.MockMvc$1.andExpect(MockMvc.java:212)
+	at com.supplypilot.integration.AiControllerIntegrationTests.queriesOnlyOrderedPurchaseOrdersAndBlocksPromptInjection(AiControllerIntegrationTests.java:162)
+
+[ERROR] com.supplypilot.integration.AiControllerIntegrationTests.explicitUnknownMaterialCodeIsQueriedAndCannotBeInventedByTheModel -- Time elapsed: 0.073 s <<< FAILURE!
+java.lang.AssertionError: Status expected:<404> but was:<200>
+	at org.springframework.test.util.AssertionErrors.fail(AssertionErrors.java:62)
+	at org.springframework.test.util.AssertionErrors.assertEquals(AssertionErrors.java:129)
+	at org.springframework.test.web.servlet.result.StatusResultMatchers.lambda$matcher$0(StatusResultMatchers.java:600)
+	at org.springframework.test.web.servlet.MockMvc$1.andExpect(MockMvc.java:212)
+	at com.supplypilot.integration.AiControllerIntegrationTests.explicitUnknownMaterialCodeIsQueriedAndCannotBeInventedByTheModel(AiControllerIntegrationTests.java:107)
+
+[ERROR] com.supplypilot.integration.AiControllerIntegrationTests.preservesInsufficientDocumentEvidenceContractAndValidatesRequest -- Time elapsed: 0.112 s <<< FAILURE!
+java.lang.AssertionError: No value at JSON path "$.tools[0]"
+	at org.springframework.test.util.JsonPathExpectationsHelper.evaluateJsonPath(JsonPathExpectationsHelper.java:350)
+	at org.springframework.test.util.JsonPathExpectationsHelper.assertValue(JsonPathExpectationsHelper.java:148)
+	at org.springframework.test.web.servlet.result.JsonPathResultMatchers.lambda$value$2(JsonPathResultMatchers.java:111)
+	at org.springframework.test.web.servlet.MockMvc$1.andExpect(MockMvc.java:212)
+	at com.supplypilot.integration.AiControllerIntegrationTests.preservesInsufficientDocumentEvidenceContractAndValidatesRequest(AiControllerIntegrationTests.java:212)
+Caused by: com.jayway.jsonpath.PathNotFoundException: No results for path: $['tools'][0]
+
+[INFO] 
+[INFO] Results:
+[INFO] 
+[ERROR] Failures: 
+[ERROR]   AiControllerIntegrationTests.explicitUnknownMaterialCodeIsQueriedAndCannotBeInventedByTheModel:107 Status expected:<404> but was:<200>
+[ERROR]   AiControllerIntegrationTests.oneQuestionExecutesInventoryAndOpenPoWithBothSources:191 JSON path "$.answer"
+Expected: a string containing "PO-AI-829ada56ab8d"
+     but: was "Material�]MAT-1465372208�^�ثe�w�s�� 100.0000 KG�A��s�ɶ� 2026-10-08T00:00:00Z�C
+�ŦX�����f���󪺱��ʳ�@ 1 ���A�����C�X 1 ���C"
+[ERROR]   AiControllerIntegrationTests.preservesInsufficientDocumentEvidenceContractAndValidatesRequest:212 No value at JSON path "$.tools[0]"
+[ERROR]   AiControllerIntegrationTests.queriesOnlyOrderedPurchaseOrdersAndBlocksPromptInjection:162 JSON path "$.answer"
+Expected: a string containing "ORDERED"
+     but: was "�ŦX�����f���󪺱��ʳ�@ 1 ���A�����C�X 1 ���C"
+[INFO] 
+[ERROR] Tests run: 7, Failures: 4, Errors: 0, Skipped: 0
+[INFO] 
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD FAILURE
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  51.509 s
+[INFO] Finished at: 2026-10-27T21:12:22+08:00
+[INFO] ------------------------------------------------------------------------
+[ERROR] Failed to execute goal org.apache.maven.plugins:maven-surefire-plugin:3.5.6:test (default-test) on project supply-pilot-api: There are test failures.
+[ERROR] 
+[ERROR] See C:\Users\z0976\OneDrive\�ୱ\dev-side\supplypilot\backend\target\surefire-reports for the individual test results.
+[ERROR] See dump files (if any exist) [date].dump, [date]-jvmRun[N].dump and [date].dumpstream.
+[ERROR] -> [Help 1]
+[ERROR] 
+[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.
+[ERROR] Re-run Maven using the -X switch to enable full debug logging.
+[ERROR] 
+[ERROR] For more information about the errors and possible solutions, please read the following articles:
+[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoFailureException
+TEST_EXIT_CODE=1

@@ -1,0 +1,21 @@
+test_loopback_urls_are_accepted_without_remote_permission (test_run_benchmark.BaseUrlSecurityTests.test_loopback_urls_are_accepted_without_remote_permission) ... ok
+test_remote_http_is_rejected_and_remote_https_needs_explicit_opt_in (test_run_benchmark.BaseUrlSecurityTests.test_remote_http_is_rejected_and_remote_https_needs_explicit_opt_in) ... ok
+test_case_loader_rejects_duplicate_ids_and_missing_snapshot_hash (test_run_benchmark.CaseFileTests.test_case_loader_rejects_duplicate_ids_and_missing_snapshot_hash) ... ok
+test_cli_writes_both_results_after_calls_and_records_external_snapshot_hash (test_run_benchmark.CaseFileTests.test_cli_writes_both_results_after_calls_and_records_external_snapshot_hash) ... ok
+test_repository_case_file_has_twenty_cases_in_four_required_groups (test_run_benchmark.CaseFileTests.test_repository_case_file_has_twenty_cases_in_four_required_groups) ... ok
+test_baseline_http_error_is_recorded_and_does_not_prevent_agent_call (test_run_benchmark.RunCaseTests.test_baseline_http_error_is_recorded_and_does_not_prevent_agent_call) ... ok
+test_baseline_response_is_never_included_in_agent_request (test_run_benchmark.RunCaseTests.test_baseline_response_is_never_included_in_agent_request) ... ok
+test_document_baseline_uses_question_and_agent_still_runs (test_run_benchmark.RunCaseTests.test_document_baseline_uses_question_and_agent_still_runs) ... ok
+test_unsupported_baseline_is_recorded_without_call_and_agent_runs (test_run_benchmark.RunCaseTests.test_unsupported_baseline_is_recorded_without_call_and_agent_runs) ... ok
+
+----------------------------------------------------------------------
+Ran 9 tests in 0.051s
+
+OK
+
+[TEST-001] SUP-001 ���W�٬O����H
+  baseline (ai_query): response-1
+  agent:                  response-2
+
+Wrote 1 comparisons to C:\Users\z0976\OneDrive\�ୱ\dev-side\supplypilot\scripts\agentic-sql-benchmark\tmp5p8b_vyh\results.jsonl
+Exit Code: 0
