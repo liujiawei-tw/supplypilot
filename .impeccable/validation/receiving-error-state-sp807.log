@@ -1,0 +1,62 @@
+
+> frontend@0.0.0 test
+> vitest run tests/sp807.test.tsx --maxWorkers=1 --testTimeout=60000 --reporter=dot
+
+
+ RUN  v4.1.11 C:/Users/z0976/.codex/worktrees/procurement-tool-ux-redesign/supplypilot/frontend
+
+stderr | tests/sp807.test.tsx > SP-807 purchase order verification boundary > locks Approve and Edit DRAFT after 409, stays locked after failed GET, then requires a fresh review of latest state
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+stderr | tests/sp807.test.tsx > SP-807 purchase order verification boundary > does not resend Mark Ordered after 409 and makes the user reopen confirmation after a successful GET
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+stderr | tests/sp807.test.tsx > SP-807 receiving and import verification boundaries > presents the receiving route as a read-only status and inspection work queue
+Warning: [antd: Spin] `tip` is deprecated. Please use `description` instead.
+
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+stderr | tests/sp807.test.tsx > SP-807 receiving and import verification boundaries > formats the expected delivery date in desktop and mobile queues (2026-10-30)
+Warning: [antd: Spin] `tip` is deprecated. Please use `description` instead.
+
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+stderr | tests/sp807.test.tsx > SP-807 receiving and import verification boundaries > formats the expected delivery date in desktop and mobile queues (null)
+Warning: [antd: Spin] `tip` is deprecated. Please use `description` instead.
+
+stderr | tests/sp807.test.tsx > SP-807 receiving and import verification boundaries > formats the expected delivery date in the receiving detail (2026-10-30)
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+stderr | tests/sp807.test.tsx > SP-807 receiving and import verification boundaries > formats the expected delivery date in the receiving detail (null)
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+stderr | tests/sp807.test.tsx > SP-807 receiving and import verification boundaries > does not show the previous mobile rows while a new receiving filter request is pending
+Warning: [antd: Spin] `tip` is deprecated. Please use `description` instead.
+
+stderr | tests/sp807.test.tsx > SP-807 receiving and import verification boundaries > does not show the previous mobile rows while a new receiving filter request is pending
+Warning: [antd: Spin] `tip` is deprecated. Please use `description` instead.
+
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+stderr | tests/sp807.test.tsx > SP-807 receiving and import verification boundaries > shows a retryable receiving list error without empty copy, then shows the successful empty state
+Warning: [antd: Spin] `tip` is deprecated. Please use `description` instead.
+
+stderr | tests/sp807.test.tsx > SP-807 receiving and import verification boundaries > shows a retryable receiving list error without empty copy, then shows the successful empty state
+Warning: [antd: Spin] `tip` is deprecated. Please use `description` instead.
+
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+······················
+
+ Test Files  1 passed (1)
+      Tests  22 passed (22)
+   Start at  15:14:00
+   Duration  39.04s (transform 2.25s, setup 441ms, import 9.21s, tests 27.72s, environment 1.38s)
+
+EXIT_CODE=0

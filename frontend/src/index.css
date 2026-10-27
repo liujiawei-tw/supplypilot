@@ -1,27 +1,128 @@
+:root {
+  color-scheme: light;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft JhengHei', 'Noto Sans TC', sans-serif;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  font-variant-numeric: tabular-nums;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+
+  --sp-shell: #10243a;
+  --sp-shell-soft: #1b3550;
+  --sp-workspace: #f2f5f8;
+  --sp-surface: #ffffff;
+  --sp-surface-muted: #f7f9fb;
+  --sp-ink: #16283b;
+  --sp-muted: #53697e;
+  --sp-line: #dbe4ec;
+  --sp-primary: #0d6b67;
+  --sp-primary-hover: #095753;
+  --sp-accent: #cb7b0f;
+  --sp-success: #137248;
+  --sp-warning: #8a4b08;
+  --sp-danger: #b42318;
+  --sp-info: #245db3;
+  --sp-focus: #2563eb;
+  --sp-focus-soft: rgb(37 99 235 / 16%);
+  --sp-radius-sm: 8px;
+  --sp-radius-md: 12px;
+  --sp-radius-lg: 16px;
+  --sp-paper: var(--sp-surface);
+  --sp-forest: var(--sp-primary);
+  --sp-evergreen: var(--sp-primary);
+  --sp-rust: var(--sp-danger);
+
+  background: var(--sp-workspace);
+  color: var(--sp-ink);
+  caret-color: var(--sp-forest);
+}
+
 html,
 body,
 #root {
+  width: 100%;
+  min-width: 320px;
+  min-height: 100%;
   margin: 0;
   padding: 0;
-  width: 100%;
-  height: 100%;
   box-sizing: border-box;
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial,
-    'Noto Sans', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol',
-    'Noto Color Emoji';
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  background-color: #f5f5f5;
-  color: #1f1f1f;
+  min-height: 100vh;
+  background: var(--sp-workspace);
+  color: var(--sp-ink);
+  font-family: inherit;
+  font-size: 15px;
+  line-height: 1.55;
 }
 
 *,
 *::before,
 *::after {
   box-sizing: inherit;
+}
+
+button,
+input,
+textarea,
+select,
+[contenteditable='true'] {
+  caret-color: var(--sp-forest);
+}
+
+::selection {
+  background: #cce8e5;
+  color: #10243a;
+}
+
+:focus-visible {
+  outline: 2px solid var(--sp-focus);
+  outline-offset: 2px;
+}
+
+a {
+  color: var(--sp-forest);
+  text-underline-offset: 0.18em;
+}
+
+a:hover {
+  color: var(--sp-primary-hover);
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+  touch-action: manipulation;
+}
+
+body,
+* {
+  scrollbar-color: #a9b7c5 transparent;
+  scrollbar-width: thin;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  border: 2px solid transparent;
+  border-radius: 8px;
+  background: #a9b7c5;
+  background-clip: padding-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #71859a;
+  background-clip: padding-box;
 }
 
 .login-page {
@@ -33,4 +134,285 @@ body {
 
 .login-card {
   width: min(100%, 420px);
+  border-radius: 8px;
+}
+
+.ant-tabs .ant-tabs-tab.ant-tabs-tab-active .ant-tabs-tab-btn,
+.ant-tabs .ant-tabs-tab:hover {
+  color: var(--sp-forest);
+}
+
+.ant-tabs .ant-tabs-ink-bar {
+  background: var(--sp-forest);
+}
+
+.ant-segmented .ant-segmented-item-selected {
+  color: var(--sp-forest);
+}
+
+.ant-checkbox-checked .ant-checkbox-inner,
+.ant-radio-checked .ant-radio-inner {
+  border-color: var(--sp-forest);
+  background: var(--sp-forest);
+}
+
+.ant-switch.ant-switch-checked {
+  background: var(--sp-forest);
+}
+
+.ant-pagination .ant-pagination-item-active {
+  border-color: var(--sp-forest);
+}
+
+.ant-pagination .ant-pagination-item-active a {
+  color: var(--sp-forest);
+}
+
+.app-layout .ant-card {
+  border-color: var(--sp-line);
+  border-radius: var(--sp-radius-md);
+  background: var(--sp-surface);
+  box-shadow: none;
+}
+
+.app-layout .ant-card-head {
+  min-height: 52px;
+  border-bottom-color: var(--sp-line);
+}
+
+.app-layout .ant-card-head-title {
+  color: var(--sp-ink);
+  font-weight: 650;
+}
+
+.app-layout .ant-form-item-label > label {
+  color: var(--sp-ink);
+  font-weight: 600;
+}
+
+.app-layout .ant-input,
+.app-layout .ant-input-affix-wrapper,
+.app-layout .ant-select-selector,
+.app-layout .ant-picker,
+.app-layout .ant-input-number,
+.app-layout .ant-segmented {
+  border-color: var(--sp-line);
+  border-radius: var(--sp-radius-sm);
+}
+
+.app-layout .ant-input::placeholder,
+.app-layout .ant-select-selection-placeholder {
+  color: #61758a;
+  opacity: 1;
+}
+
+.app-layout .ant-alert {
+  border-radius: var(--sp-radius-sm);
+}
+
+.app-layout .ant-alert-message {
+  font-weight: 650;
+}
+
+.app-layout .ant-tag {
+  min-height: 24px;
+  padding-inline: 8px;
+  border-radius: 6px;
+  line-height: 22px;
+}
+
+.app-layout .ant-table-wrapper .ant-table {
+  border-radius: var(--sp-radius-sm);
+}
+
+.app-layout .ant-table-thead > tr > th {
+  border-bottom-color: var(--sp-line);
+  font-size: 13px;
+  letter-spacing: 0.01em;
+}
+
+.app-layout .ant-table-tbody > tr > td {
+  border-bottom-color: #e8edf2;
+}
+
+.app-layout .ant-modal .ant-modal-content,
+.app-layout .ant-drawer .ant-drawer-content {
+  border-radius: var(--sp-radius-md);
+}
+
+.app-layout .ant-modal .ant-modal-title,
+.app-layout .ant-drawer .ant-drawer-title {
+  color: var(--sp-ink);
+  font-weight: 700;
+}
+
+.app-layout .ant-divider {
+  border-color: var(--sp-line);
+}
+
+.app-layout .ant-empty-description {
+  color: var(--sp-muted);
+}
+
+.app-layout .ant-result-title {
+  color: var(--sp-ink);
+}
+
+.app-layout .ant-result-subtitle {
+  color: var(--sp-muted);
+}
+
+.app-layout :where(a, button, [role='button']) {
+  cursor: pointer;
+}
+
+.app-layout :where(.ant-btn, .ant-input, .ant-input-affix-wrapper, .ant-select-selector, .ant-picker, .ant-input-number, .ant-segmented) {
+  transition: border-color 150ms ease, background-color 150ms ease, color 150ms ease, box-shadow 150ms ease;
+}
+
+.sp-page {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.sp-page__heading {
+  display: flex;
+  min-width: 0;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--sp-line);
+}
+
+.sp-page__heading .ant-typography {
+  margin: 0;
+}
+
+.sp-page__heading h1.ant-typography,
+.sp-page__heading h2.ant-typography {
+  color: var(--sp-ink);
+  font-size: clamp(24px, 2.2vw, 30px);
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  line-height: 1.2;
+}
+
+.sp-page__lead {
+  max-width: 72ch;
+  margin-top: 8px;
+  color: var(--sp-muted);
+  font-size: 15px;
+  line-height: 1.55;
+}
+
+.sp-section {
+  min-width: 0;
+}
+
+.sp-section__heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.sp-section__heading h2,
+.sp-section__heading h3 {
+  margin: 0;
+  color: var(--sp-ink);
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.sp-empty-state {
+  padding-block: 28px;
+}
+
+.sp-empty-state--simple {
+  padding-block: 8px;
+}
+
+.sp-loading-state {
+  display: flex;
+  width: 100%;
+  min-height: 128px;
+  align-items: center;
+  justify-content: center;
+  padding: 28px 16px;
+  color: var(--sp-muted);
+}
+
+.sp-loading-skeleton {
+  padding-block: 24px;
+}
+
+.sp-loading-state--full-page {
+  min-height: min(60vh, 560px);
+}
+
+.sp-error-state {
+  margin-block: 16px;
+  border: 1px solid var(--sp-line);
+  border-radius: var(--sp-radius-md);
+  background: var(--sp-surface);
+}
+
+.login-page {
+  background: var(--sp-workspace);
+}
+
+.login-card.ant-card {
+  border-color: var(--sp-line);
+  border-radius: var(--sp-radius-lg);
+  background: var(--sp-surface);
+  box-shadow: 0 18px 48px rgb(16 36 58 / 8%);
+}
+
+:focus-visible {
+  outline: 3px solid var(--sp-focus);
+  outline-offset: 2px;
+}
+
+@media (max-width: 680px) {
+  body {
+    font-size: 15px;
+  }
+
+  .sp-page {
+    gap: 18px;
+  }
+
+  .sp-page__heading {
+    flex-direction: column;
+    padding-bottom: 14px;
+  }
+
+  .sp-page__heading h1.ant-typography,
+  .sp-page__heading h2.ant-typography {
+    font-size: 25px;
+  }
+
+  .sp-section__heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .sp-loading-state {
+    min-height: 108px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

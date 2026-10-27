@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Button, Space, Typography } from 'antd';
+import { Button, Space, Tag, Typography } from 'antd';
 import { Link, useParams } from 'react-router-dom';
 import { getRecommendation, getSupplierRanking, type RecommendationResponse, type SupplierRecommendationResultResponse } from '../../api/recommendation';
 import { toApiError } from '../../api/apiError';
@@ -8,6 +8,7 @@ import LoadingState from '../../components/LoadingState';
 import { useAuth } from '../../auth/useAuth';
 import type { ApiErrorResponse } from '../../types/api';
 import RecommendationResult from './RecommendationResult';
+import './RecommendationDetailPage.css';
 
 export default function RecommendationDetailPage() {
   const { user } = useAuth();
@@ -71,15 +72,21 @@ export default function RecommendationDetailPage() {
 
   if (id === null) return <ErrorState asResult title="採購建議編號無效" message="請輸入正整數格式的採購建議編號。" />;
 
-  return <Space orientation="vertical" size="large" style={{ width: '100%' }}>
-    <Space style={{ width: '100%', justifyContent: 'space-between' }} wrap>
-      <div><Typography.Title level={2} style={{ marginBottom: 0 }}>採購建議明細</Typography.Title><Typography.Text type="secondary">已儲存的決策快照 #{id}</Typography.Text></div>
+  return <section className="sp-page legacy-recommendation-detail" aria-labelledby="legacy-recommendation-detail-title">
+    <header className="legacy-recommendation-detail__heading sp-page__heading">
+      <div>
+        <Space wrap>
+          <Typography.Title id="legacy-recommendation-detail-title" level={2}>採購建議明細</Typography.Title>
+          <Tag className="legacy-recommendation-detail__tag">舊版資料</Tag>
+        </Space>
+        <Typography.Text className="legacy-recommendation-detail__intro sp-page__lead">已儲存的決策快照 #{id}</Typography.Text>
+      </div>
       <Link to={historyOnly ? '/purchase-orders' : '/recommendations'}>
         <Button>{historyOnly ? '返回採購單管理' : '返回採購建議'}</Button>
       </Link>
-    </Space>
+    </header>
     {detailLoading && !recommendation && <LoadingState tip="正在載入採購建議明細…" />}
     {detailError && <ErrorState asResult title={detailError.code === 'RECOMMENDATION_NOT_FOUND' ? '找不到採購建議' : '採購建議明細查詢失敗'} error={detailError} onRetry={() => void loadDetail()} retryText="重新查詢明細" />}
-    {recommendation && <RecommendationResult recommendation={recommendation} ranking={ranking} rankingLoading={rankingLoading} rankingError={rankingError} retryRanking={() => void loadRanking()} historyOnly={historyOnly} />}
-  </Space>;
+    {recommendation && <div className="legacy-recommendation-detail__result"><RecommendationResult recommendation={recommendation} ranking={ranking} rankingLoading={rankingLoading} rankingError={rankingError} retryRanking={() => void loadRanking()} historyOnly={historyOnly} /></div>}
+  </section>;
 }

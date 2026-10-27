@@ -1,0 +1,21 @@
+
+> frontend@0.0.0 test
+> vitest run tests/issue143PurchaseOrders.test.tsx
+
+
+ RUN  v4.1.11 C:/Users/z0976/.codex/worktrees/procurement-tool-ux-redesign/supplypilot/frontend
+
+ ❯ tests/issue143PurchaseOrders.test.tsx (0 test)
+
+⎯⎯⎯⎯⎯⎯ Failed Suites 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/issue143PurchaseOrders.test.tsx [ tests/issue143PurchaseOrders.test.tsx ]
+Error: EPERM: operation not permitted, rename 'C:\Users\z0976\AppData\Local\Packages\sandbox.{139ae121-fcf4-49a8-9d8d-e0e795e182db}\AC\Temp\t2oAvfWFCwmxzkoxmSZgG\client\.tmp-1793034315073-ozoz0fpcvjp' -> 'C:\Users\z0976\AppData\Local\Packages\sandbox.{139ae121-fcf4-49a8-9d8d-e0e795e182db}\AC\Temp\t2oAvfWFCwmxzkoxmSZgG\client\6e8b9f4fd3606c996ab2b6e1e17cde646ba79541'
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  no tests
+   Start at  01:05:13
+   Duration  1.96s (transform 0ms, setup 0ms, import 0ms, tests 0ms, environment 1.49s)
+

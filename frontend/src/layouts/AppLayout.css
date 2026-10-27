@@ -1,86 +1,485 @@
 .app-layout {
+  --app-header-width: 1680px;
+  min-width: 0;
+  min-height: 100vh;
+  background: var(--sp-workspace);
+  color: var(--sp-ink);
+}
+
+.app-skip-link {
+  position: fixed;
+  z-index: 1000;
+  top: 8px;
+  left: 8px;
+  transform: translateY(-150%);
+  padding: 10px 14px;
+  border-radius: 4px;
+  background: var(--sp-ink);
+  color: var(--sp-paper);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.app-skip-link:focus {
+  transform: translateY(0);
+}
+
+.app-header {
+  position: relative;
+  z-index: 20;
+  background: var(--sp-shell);
+  border-bottom: 1px solid var(--sp-line);
+}
+
+.app-header__topline,
+.app-nav__inner {
+  width: min(100%, var(--app-header-width));
+  margin: 0 auto;
+  padding-inline: clamp(16px, 3vw, 42px);
+}
+
+.app-header__topline {
+  min-height: 82px;
+  display: grid;
+  grid-template-columns: minmax(170px, 220px) minmax(240px, 1fr) auto;
+  align-items: center;
+  gap: clamp(18px, 2.2vw, 36px);
+}
+
+.app-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  width: max-content;
+  color: #f8fafc;
+  text-decoration: none;
+}
+
+.app-brand:hover {
+  color: #b7e5dd;
+}
+
+.app-brand__mark {
+  display: block;
+  flex: 0 0 auto;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 0;
+  border-radius: 11px;
+  background: none;
+  object-fit: cover;
+}
+
+.app-brand__wordmark {
+  display: grid;
+  gap: 1px;
+  line-height: 1.2;
+}
+
+.app-brand__wordmark strong {
+  color: #f8fafc;
+  font-size: 17px;
+  letter-spacing: -0.02em;
+}
+
+.app-brand__wordmark span {
+  color: #bfd0df;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+.app-header__finder {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 14px;
   min-width: 0;
 }
 
-.app-content.ant-layout-content {
-  min-width: 0;
-  margin: 24px 16px 0;
+.app-finder-trigger.ant-btn {
+  min-height: 44px;
+  min-width: min(100%, 280px);
+  justify-content: flex-start;
+  padding-inline: 13px;
+  border: 1px solid var(--sp-line);
+  border-radius: 8px;
+  background: var(--sp-workspace);
+  color: var(--sp-ink);
+  box-shadow: none;
 }
 
-.app-content__surface {
-  min-width: 0;
-  min-height: 360px;
-  padding: 24px;
+.app-finder-trigger.ant-btn:hover,
+.app-finder-trigger.ant-btn:focus-visible {
+  border-color: var(--sp-forest);
+  background: var(--sp-paper);
+  color: var(--sp-forest);
 }
 
-.app-content__surface .ant-space.ant-space-wrap {
+.app-finder-trigger .ant-btn-icon {
+  color: var(--sp-forest);
+}
+
+.app-finder-trigger kbd {
+  margin-inline-start: auto;
+  padding: 2px 6px;
+  border: 1px solid var(--sp-line);
+  border-radius: 4px;
+  background: var(--sp-paper);
+  color: var(--sp-muted);
+  font: inherit;
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.app-finder-hint {
+  color: #bfd0df;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.app-account {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  min-width: 0;
+}
+
+.app-account__identity {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  max-width: 190px;
+  padding-inline-end: 8px;
+  text-align: right;
+}
+
+.app-account__name.ant-typography {
+  overflow: hidden;
+  color: #f8fafc;
+  font-size: 13px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.app-account__role.ant-typography {
+  overflow: hidden;
+  color: #bfd0df;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.app-header .app-ai-button.ant-btn,
+.app-header .app-logout-button.ant-btn {
+  min-height: 42px;
+  padding-inline: 12px;
+  border-radius: var(--sp-radius-sm);
+  box-shadow: none;
+}
+
+.app-header .app-ai-button.ant-btn {
+  border-color: #52718c;
+  background: #203e59;
+  color: #eff8ff;
+}
+
+.app-header .app-ai-button.ant-btn:hover {
+  border-color: #83b7b1;
+  background: #294b68;
+  color: #ffffff;
+}
+
+.app-header .app-logout-button.ant-btn {
+  border-color: transparent;
+  background: transparent;
+  color: #d1dce7;
+}
+
+.app-header .app-logout-button.ant-btn:hover {
+  border-color: #52718c;
+  background: #203e59;
+  color: #ffffff;
+}
+
+.app-nav {
+  position: relative;
+  border-top: 1px solid #294057;
+  background: var(--sp-surface);
+}
+
+.app-nav__scroll-cue {
+  display: none;
+}
+
+.app-nav__inner {
+  display: flex;
+  align-items: stretch;
+  gap: 4px;
+  min-height: 50px;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: thin;
+  scrollbar-color: var(--sp-line) transparent;
+}
+
+.app-nav__link {
+  position: relative;
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  min-height: 50px;
+  padding: 0 14px;
+  border-radius: 0;
+  color: var(--sp-muted);
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.app-nav__link:hover {
+  color: var(--sp-forest);
+}
+
+.app-nav__link.is-active {
+  color: var(--sp-forest);
+}
+
+.app-nav__link.is-active::after {
+  position: absolute;
+  right: 12px;
+  bottom: -1px;
+  left: 12px;
+  height: 3px;
+  background: var(--sp-primary);
+  content: '';
+}
+
+.app-password-notice {
+  width: min(100%, var(--app-header-width));
+  margin: 0 auto;
+  padding: 11px clamp(16px, 3vw, 42px);
+  border-top: 1px solid #294057;
+  color: #edf4fa;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.app-content {
+  width: min(100%, 1680px);
+  min-width: 0;
+  margin: 0 auto;
+  padding: 30px clamp(16px, 3vw, 42px) 56px;
+}
+
+.app-content:focus {
+  outline: none;
+}
+
+.app-layout .ant-space.ant-space-wrap,
+.app-layout .ant-space-item,
+.app-layout .ant-table-wrapper {
   max-width: 100%;
-}
-
-.app-content__surface .ant-space-item {
   min-width: 0;
-  max-width: 100%;
 }
 
-.app-content__surface .ant-table-wrapper {
-  min-width: 0;
-  max-width: 100%;
-}
-
-.app-content__surface .ant-table-cell,
-.app-content__surface .ant-descriptions-item-content {
+.app-layout .ant-table-cell,
+.app-layout .ant-descriptions-item-content,
+.app-layout .ant-typography {
   overflow-wrap: anywhere;
 }
 
-@media (max-width: 800px) {
-  .app-header.ant-layout-header {
-    height: auto;
-    min-height: 64px;
+.app-layout .ant-btn,
+.app-layout .ant-input,
+.app-layout .ant-select-selector,
+.app-layout .ant-picker,
+.app-layout .ant-segmented {
+  min-height: 40px;
+}
+
+.app-layout .ant-btn-primary {
+  border-color: var(--sp-primary);
+  background: var(--sp-primary);
+  color: #ffffff;
+}
+
+.app-layout .ant-btn-primary:hover {
+  border-color: var(--sp-primary-hover);
+  background: var(--sp-primary-hover);
+  color: #ffffff;
+}
+
+.app-layout .ant-tag {
+  border-radius: 4px;
+  font-weight: 600;
+}
+
+.app-layout .ant-table-thead > tr > th {
+  background: var(--sp-surface-muted);
+  color: var(--sp-ink);
+  font-weight: 700;
+}
+
+.app-layout .ant-table-tbody > tr > td {
+  background: var(--sp-surface);
+}
+
+.app-layout .ant-table-tbody > tr:hover > td {
+  background: #f2f7f8 !important;
+}
+
+@media (max-width: 1080px) {
+  .app-header__topline {
+    grid-template-columns: auto minmax(180px, 1fr);
+    gap: 16px 24px;
+    padding-block: 14px;
+  }
+
+  .app-header__finder {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  .app-account {
+    grid-column: 1 / -1;
+    justify-content: flex-end;
+    padding-top: 11px;
+    border-top: 1px solid var(--sp-line);
+  }
+
+  .app-account__identity {
+    margin-inline-end: auto;
+    text-align: left;
+  }
+}
+
+@media (max-width: 680px) {
+  .app-header__topline {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 12px;
     padding: 12px 16px;
-    line-height: normal;
-    flex-wrap: wrap;
+  }
+
+  .app-brand__mark {
+    width: 32px;
+    height: 32px;
+  }
+
+  .app-brand__wordmark strong {
+    font-size: 16px;
+  }
+
+  .app-brand__wordmark span {
+    font-size: 11px;
+  }
+
+  .app-header__finder {
+    grid-column: 2;
+    grid-row: 1;
+    justify-content: flex-end;
+  }
+
+  .app-finder-trigger.ant-btn {
+    width: 44px;
+    min-width: 44px;
+    justify-content: center;
+    padding-inline: 0;
+  }
+
+  .app-finder-trigger .ant-btn-icon {
+    margin-inline-end: 0;
+  }
+
+  .app-finder-trigger > span:not(.ant-btn-icon) {
+    display: none;
+  }
+
+  .app-finder-trigger kbd,
+  .app-finder-hint {
+    display: none;
+  }
+
+  .app-account {
+    grid-column: 1 / -1;
     gap: 8px;
+    padding-top: 10px;
   }
 
-  .app-header > div:first-child,
-  .app-header > .ant-space {
-    flex: 1 1 100%;
-    min-width: 0;
-    max-width: 100%;
+  .app-account__identity {
+    max-width: none;
+    padding-inline-end: 4px;
   }
 
-  .app-header .ant-typography {
-    overflow-wrap: anywhere;
+  .app-header .app-ai-button.ant-btn,
+  .app-header .app-logout-button.ant-btn {
+    min-height: 44px;
+    padding-inline: 10px;
   }
 
-  .app-header .app-header__ai-button {
-    margin-inline-start: 28px;
+  .app-nav__inner {
+    gap: 0;
+    min-height: 48px;
+    padding-inline: 8px;
+  }
+
+  .app-nav__link {
+    min-height: 48px;
+    padding-inline: 13px;
+    font-size: 13px;
+  }
+
+  .app-nav__link.is-active::after {
+    right: 10px;
+    left: 10px;
+  }
+
+  .app-content {
+    padding: 20px 12px 40px;
+  }
+
+  .app-layout .ant-table-wrapper {
+    overflow-x: auto;
   }
 }
 
 @media (max-width: 767px) {
-  .inventory-detail-drawer .ant-drawer-content-wrapper,
-  .stock-transaction-detail-drawer .ant-drawer-content-wrapper {
-    max-width: 100vw;
+  .app-nav__inner {
+    padding-right: 46px;
   }
 
-  .app-content.ant-layout-content {
-    margin: 12px 8px 0;
+  .app-nav__scroll-cue {
+    position: absolute;
+    z-index: 1;
+    top: 0;
+    right: 0;
+    display: grid;
+    width: 38px;
+    height: 100%;
+    place-items: center;
+    border-left: 1px solid var(--sp-line);
+    background: linear-gradient(90deg, rgb(255 255 255 / 0%), var(--sp-surface) 45%);
+    color: var(--sp-primary);
+    pointer-events: none;
+  }
+}
+
+@media (max-width: 380px) {
+  .app-account__role.ant-typography {
+    max-width: 108px;
   }
 
-  .app-content__surface {
-    min-height: 0;
-    padding: 16px 12px;
-    border-radius: 8px !important;
-  }
-
-  .app-layout .ant-tabs-nav {
-    max-width: 100%;
+  .app-header .app-ai-button.ant-btn,
+  .app-header .app-logout-button.ant-btn {
+    padding-inline: 8px;
   }
 }
 
 @media (pointer: coarse) {
-  .app-layout .ant-btn {
-    min-height: 44px;
+  .app-nav__link {
+    min-height: 48px;
   }
 }

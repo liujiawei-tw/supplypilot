@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import { displayLabel } from '../../utils/displayLabels';
 import AiStructuredAnswer from './AiStructuredAnswer';
 import type { AiAnswerData } from '../../api/ai';
+import './AiAssistant.css';
 
 const { Paragraph, Text, Title } = Typography;
 
@@ -168,22 +169,22 @@ function parsePurchaseOrderAnswer(answer: string): ParsedPurchaseOrderAnswer | n
 
 function PurchaseOrderSummary({ order }: { order: PurchaseOrderFact }) {
   const items = parsePurchaseOrderItems(order.items);
-  return <section aria-label={'採購單 ' + order.poNumber} style={{ paddingBlock: 12, overflowWrap: 'anywhere' }}>
-    <Title level={5} style={{ margin: '0 0 8px', overflowWrap: 'anywhere' }}>{order.poNumber}</Title>
-    <Space wrap size={[8, 4]} style={{ marginBottom: 8, maxWidth: '100%' }}>
+  return <section className="ai-answer__order" aria-label={'採購單 ' + order.poNumber}>
+    <Title className="ai-answer__order-title" level={5}>{order.poNumber}</Title>
+    <Space className="ai-answer__order-meta" wrap size={[8, 4]}>
       <Text><Text type="secondary">供應商：</Text>{order.supplier}</Text>
       <Tag>{displayLabel(order.status)}</Tag>
       <Text><Text type="secondary">預計交期：</Text>{order.expectedDeliveryDate === 'null' ? '—' : order.expectedDeliveryDate}</Text>
     </Space>
-    <ul style={{ margin: 0, paddingInlineStart: 20 }}>
-      {items.map((item, index) => <li key={item.materialCode + '-' + index} style={{ paddingBlock: 3, overflowWrap: 'anywhere' }}>
+    <ul className="ai-answer__order-items">
+      {items.map((item, index) => <li key={item.materialCode + '-' + index} className="ai-answer__order-item">
         {item.materialCode
           ? <>
             <Text strong>{item.materialCode}</Text>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 12px', marginTop: 4 }}>
-              <Text style={{ whiteSpace: 'nowrap' }}>數量 {item.quantity} {item.unit}</Text>
-              <Text style={{ whiteSpace: 'nowrap' }}>單價 {formatMoney(item.unitPrice, item.unitPriceCurrency)}</Text>
-              <Text style={{ whiteSpace: 'nowrap' }}>小計 {formatMoney(item.total, item.totalCurrency)}</Text>
+            <div className="ai-answer__order-values">
+              <Text className="ai-answer__nowrap">數量 {item.quantity} {item.unit}</Text>
+              <Text className="ai-answer__nowrap">單價 {formatMoney(item.unitPrice, item.unitPriceCurrency)}</Text>
+              <Text className="ai-answer__nowrap">小計 {formatMoney(item.total, item.totalCurrency)}</Text>
             </div>
           </>
           : <Text>{formatLabeledMoney(item.originalText)}</Text>}
@@ -205,9 +206,9 @@ export default function AiAnswerDisplay({ answer, details, summary }: { answer: 
     : <Text type="secondary">後端未提供可顯示回答。</Text>;
   const parsed = parsePurchaseOrderAnswer(answer);
   if (!parsed) {
-    return <Space direction="vertical" size="small" style={{ width: '100%' }}>
+    return <Space className="ai-answer__plain" direction="vertical" size="small">
       {summary && <Text>{summary}</Text>}
-      <Paragraph style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere', marginBottom: 0 }}>
+      <Paragraph className="ai-answer__text">
         {formatLabeledMoney(answer)}
       </Paragraph>
     </Space>;
@@ -245,7 +246,7 @@ export default function AiAnswerDisplay({ answer, details, summary }: { answer: 
       if (!block.text.trim()) return;
       flushExtraOrders();
       renderedContent.push(
-        <Paragraph key={'text-' + index} style={{ whiteSpace: 'pre-wrap', marginBlock: 12 }}>
+        <Paragraph className="ai-answer__text" key={'text-' + index}>
           {formatLabeledMoney(block.text)}
         </Paragraph>,
       );
@@ -269,7 +270,7 @@ export default function AiAnswerDisplay({ answer, details, summary }: { answer: 
   });
   flushExtraOrders();
 
-  return <div style={{ overflowWrap: 'anywhere' }}>
+  return <div className="ai-answer">
     <Text strong>
       已下單採購單：共 {parsed.totalCount} 筆，以下列出 {orderCount} 筆。
     </Text>

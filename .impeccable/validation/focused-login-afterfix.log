@@ -1,0 +1,14 @@
+
+> frontend@0.0.0 test
+> vitest run tests/auth.test.tsx -t redirects an unauthenticated deep link --maxWorkers=1
+
+
+ RUN  v4.1.11 C:/Users/z0976/.codex/worktrees/procurement-tool-ux-redesign/supplypilot/frontend
+
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+
+ Test Files  1 passed (1)
+      Tests  1 passed | 26 skipped (27)
+   Start at  00:17:45
+   Duration  17.80s (transform 2.60s, setup 447ms, import 11.03s, tests 4.20s, environment 1.69s)
+

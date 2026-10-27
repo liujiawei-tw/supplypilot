@@ -1,0 +1,46 @@
+
+> frontend@0.0.0 test
+> vitest run tests/sp807.test.tsx -t shows a retryable receiving list error without empty copy
+
+
+ RUN  v4.1.11 C:/Users/z0976/.codex/worktrees/procurement-tool-ux-redesign/supplypilot/frontend
+
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+stderr | tests/sp807.test.tsx > SP-807 receiving and import verification boundaries > shows a retryable receiving list error without empty copy, then shows the successful empty state
+Warning: [antd: Spin] `tip` is deprecated. Please use `description` instead.
+
+ ❯ tests/sp807.test.tsx (22 tests | 1 failed | 21 skipped) 1145ms
+     × shows a retryable receiving list error without empty copy, then shows the successful empty state 1142ms
+
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 21 skipped (22)
+   Start at  15:12:58
+   Duration  12.98s (transform 2.29s, setup 433ms, import 9.68s, tests 1.15s, environment 1.36s)
+
+ FAIL  tests/sp807.test.tsx > SP-807 receiving and import verification boundaries > shows a retryable receiving list error without empty copy, then shows the successful empty state
+AssertionError: expected <div class="ant-empty-description"></div> to be null
+
+- Expected:
+null
+
++ Received:
+<div
+  class="ant-empty-description"
+>
+  尚無已收貨紀錄
+</div>
+
+ ❯ tests/sp807.test.tsx:294:53
+    292|     expect(mobile).toBeTruthy();
+    293|     expect(within(desktop!).queryByText('目前沒有待收貨 PO')).toBeNull();
+    294|     expect(within(desktop!).queryByText('尚無已收貨紀錄')).toBeNull();
+       |                                                     ^
+    295|     expect(within(mobile!).queryByText('目前沒有待收貨 PO')).toBeNull();
+    296|     expect(within(mobile!).queryByText('尚無已收貨紀錄')).toBeNull();
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+EXIT_CODE=1

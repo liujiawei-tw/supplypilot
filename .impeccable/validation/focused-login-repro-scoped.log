@@ -1,0 +1,491 @@
+
+> frontend@0.0.0 test
+> vitest run tests/auth.test.tsx -t redirects an unauthenticated deep link --maxWorkers=1
+
+
+ RUN  v4.1.11 C:/Users/z0976/.codex/worktrees/procurement-tool-ux-redesign/supplypilot/frontend
+
+stderr | tests/auth.test.tsx > authentication and routing > redirects an unauthenticated deep link, logs in, checks /auth/me and returns to it
+Warning: [antd: Card] `bordered` is deprecated. Please use `variant` instead.
+
+ ❯ tests/auth.test.tsx (27 tests | 1 failed | 26 skipped) 2115ms
+     × redirects an unauthenticated deep link, logs in, checks /auth/me and returns to it 2111ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/auth.test.tsx > authentication and routing > redirects an unauthenticated deep link, logs in, checks /auth/me and returns to it
+TestingLibraryElementError: Unable to find an element with the text: 登入採購與供應鏈決策平台. This could be because the text is broken up by multiple elements. In this case, you can provide a function for your text matcher to make your matcher more flexible.
+
+Ignored nodes: comments, script, style
+<body>
+  <div>
+    <main
+      class="auth-screen auth-screen--login"
+    >
+      <section
+        aria-label="SupplyPilot 採購工作區"
+        class="auth-screen__brand"
+      >
+        <div
+          class="auth-brand"
+        >
+          <span
+            aria-hidden="true"
+            class="auth-brand__mark"
+          >
+            SP
+          </span>
+          <span
+            class="auth-brand__wordmark"
+          >
+            <strong>
+              SupplyPilot
+            </strong>
+            <span>
+              採購與供應鏈工作台
+            </span>
+          </span>
+        </div>
+        <h1
+          class="ant-typography auth-screen__headline css-dev-only-do-not-override-oc1rc0 css-var-_r_0_"
+        >
+          從採購單到收貨，
+          <br />
+          掌握每個工作進度。
+        </h1>
+        <div
+          class="ant-typography auth-screen__intro css-dev-only-do-not-override-oc1rc0 css-var-_r_0_"
+        >
+          在同一個工作區查找供應資料、追蹤採購流程，並核對文件與 AI 回答來源。
+        </div>
+        <ul
+          class="auth-screen__capabilities"
+        >
+          <li>
+            <strong>
+              採購流程
+            </strong>
+            <small>
+              查看草稿、核准、下單與交期。
+            </small>
+          </li>
+          <li>
+            <strong>
+              收貨作業
+            </strong>
+            <small>
+              依權限檢視待收貨項目並確認整筆驗收。
+            </small>
+          </li>
+          <li>
+            <strong>
+              文件來源
+            </strong>
+            <small>
+              核對文件狀態與 AI 回答所附證據。
+            </small>
+          </li>
+        </ul>
+      </section>
+      <div
+        class="ant-card auth-screen__form-card css-dev-only-do-not-override-oc1rc0 css-var-_r_0_"
+      >
+        <div
+          class="ant-card-body"
+        >
+          <h2
+            class="ant-typography auth-screen__form-title css-dev-only-do-not-override-oc1rc0 css-var-_r_0_"
+            id="login-heading"
+          >
+            登入工作區
+          </h2>
+          <div
+            class="ant-typography auth-screen__form-description css-dev-only-do-not-override-oc1rc0 css-var-_r_0_"
+          >
+            使用你的 SupplyPilot 工作帳號繼續。
+          </div>
+          <form
+            autocomplete="off"
+            class="ant-form ant-form-vertical css-var-_r_0_ ant-form-css-var css-dev-only-do-not-override-oc1rc0 auth-screen__form"
+          >
+            <div
+              class="ant-form-item css-var-_r_0_ ant-form-css-var css-dev-only-do-not-override-oc1rc0 ant-form-item-vertical"
+            >
+              <div
+                class="ant-row ant-form-item-row css-dev-only-do-not-override-oc1rc0 css-var-_r_0_"
+              >
+                <div
+                  class="ant-col ant-form-item-label css-dev-only-do-not-override-oc1rc0 css-var-_r_0_"
+                >
+                  <label
+                    class="ant-form-item-required"
+                    for="username"
+                    title="帳號"
+                  >
+                    帳號
+                  </label>
+                </div>
+                <div
+                  class="ant-col ant-form-item-control css-dev-only-do-not-override-oc1rc0 css-var-_r_0_"
+                >
+                  <div
+                    class="ant-form-item-control-input"
+                  >
+                    <div
+                      class="ant-form-item-control-input-content"
+                    >
+                      <input
+                        aria-required="true"
+                        autocomplete="username"
+                        class="ant-input css-dev-only-do-not-override-oc1rc0 ant-input-outlined css-var-_r_0_ ant-input-css-var"
+                        id="username"
+                        type="text"
+                        value=""
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div
+              class="ant-form-item css-var-_r_0_ ant-form-css-var css-dev-only-do-not-override-oc1rc0 ant-form-item-vertical"
+            >
+              <div
+                class="ant-row ant-form-item-row css-dev-only-do-not-override-oc1rc0 css-var-_r_0_"
+              >
+                <div
+                  class="ant-col ant-form-item-label css-dev-only-do-not-override-oc1rc0 css-var-_r_0_"
+                >
+                  <label
+                    class="ant-form-item-required"
+                    for="password"
+                    title="密碼"
+                  >
+                    密碼
+                  </label>
+                </div>
+                <div
+                  class="ant-col ant-form-item-control css-dev-only-do-not-override-oc1rc0 css-var-_r_0_"
+                >
+                  <div
+                    class="ant-form-item-control-input"
+                  >
+                    <div
+                      class="ant-form-item-control-input-content"
+                    >
+                      <span
+                        class="ant-input-affix-wrapper css-dev-only-do-not-override-oc1rc0 ant-input-outlined ant-input-password css-var-_r_0_ ant-input-css-var"
+                      >
+                        <input
+                          aria-required="true"
+                          autocomplete="current-password"
+                          class="ant-input css-dev-only-do-not-override-oc1rc0"
+                          id="password"
+                          type="password"
+                        />
+                        <span
+                          class="ant-input-suffix"
+                        >
+                          <span
+                            aria-disabled="false"
+                            aria-label="顯示"
+                            aria-pressed="false"
+                            class="ant-input-password-icon"
+                            role="button"
+                            tabindex="0"
+                          >
+                            <span
+                              aria-label="eye-invisible"
+                              class="anticon anticon-eye-invisible"
+                              role="img"
+                            >
+                              <svg
+                                aria-hidden="true"
+                                data-icon="eye-invisible"
+                                fill="currentColor"
+                                focusable="false"
+                                height="1em"
+                                viewBox="64 64 896 896"
+                                width="1em"
+                              >
+                                <path
+                                  d="M942.2 486.2Q889.47 375.11 816.7 305l-50.88 50.88C807.31 395.53 843.45 447.4 874.7 512 791.5 684.2 673.4 766 512 766q-72.67 0-133.87-22.38L323 798.75Q408 838 512 838q288.3 0 430.2-300.3a60.29 60.29 0 000-51.5zm-63.57-320.64L836 122.88a8 8 0 00-11.32 0L715.31 232.2Q624.86 186 512 186q-288.3 0-430.2 300.3a60.3 60.3 0 000 51.5q56.69 119.4 136.5 191.41L112.48 835a8 8 0 000 11.31L155.17 889a8 8 0 0011.31 0l712.15-712.12a8 8 0 000-11.32zM149.3 512C232.6 339.8 350.7 258 512 258c54.54 0 104.13 9.36 149.12 28.39l-70.3 70.3a176 176 0 00-238.13 238.13l-83.42 83.42C223.1 637.49 183.3 582.28 149.3 512zm246.7 0a112.11 112.11 0 01146.2-106.69L401.31 546.2A112 112 0 01396 512z"
+                                />
+                                <path
+                                  d="M508 624c-3.46 0-6.87-.16-10.25-.47l-52.82 52.82a176.09 176.09 0 00227.42-227.42l-52.82 52.82c.31 3.38.47 6.79.47 10.25a111.94 111.94 0 01-112 112z"
+                                />
+                              </svg>
+                            </span>
+                          </span>
+                        </span>
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <button
+              class="ant-btn css-dev-only-do-not-override-oc1rc0 css-var-_r_0_ ant-btn-primary ant-btn-color-primary ant-btn-variant-solid ant-btn-block"
+              type="submit"
+            >
+              <span>
+                登 入
+              </span>
+            </button>
+          </form>
+          <div
+            class="ant-typography ant-typography-secondary auth-screen__helper css-dev-only-do-not-override-oc1rc0 css-var-_r_0_"
+          >
+            示範帳號資訊請參閱部署環境提供的說明；此頁不公開密碼。
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</body>
+
+Ignored nodes: comments, script, style
+<body>
+  <div>
+    <main
+      class="auth-screen auth-screen--login"
+    >
+      <section
+        aria-label="SupplyPilot 採購工作區"
+        class="auth-screen__brand"
+      >
+        <div
+          class="auth-brand"
+        >
+          <span
+            aria-hidden="true"
+            class="auth-brand__mark"
+          >
+            SP
+          </span>
+          <span
+            class="auth-brand__wordmark"
+          >
+            <strong>
+              SupplyPilot
+            </strong>
+            <span>
+              採購與供應鏈工作台
+            </span>
+          </span>
+        </div>
+        <h1
+          class="ant-typography auth-screen__headline css-dev-only-do-not-override-oc1rc0 css-var-_r_0_"
+        >
+          從採購單到收貨，
+          <br />
+          掌握每個工作進度。
+        </h1>
+        <div
+          class="ant-typography auth-screen__intro css-dev-only-do-not-override-oc1rc0 css-var-_r_0_"
+        >
+          在同一個工作區查找供應資料、追蹤採購流程，並核對文件與 AI 回答來源。
+        </div>
+        <ul
+          class="auth-screen__capabilities"
+        >
+          <li>
+            <strong>
+              採購流程
+            </strong>
+            <small>
+              查看草稿、核准、下單與交期。
+            </small>
+          </li>
+          <li>
+            <strong>
+              收貨作業
+            </strong>
+            <small>
+              依權限檢視待收貨項目並確認整筆驗收。
+            </small>
+          </li>
+          <li>
+            <strong>
+              文件來源
+            </strong>
+            <small>
+              核對文件狀態與 AI 回答所附證據。
+            </small>
+          </li>
+        </ul>
+      </section>
+      <div
+        class="ant-card auth-screen__form-card css-dev-only-do-not-override-oc1rc0 css-var-_r_0_"
+      >
+        <div
+          class="ant-card-body"
+        >
+          <h2
+            class="ant-typography auth-screen__form-title css-dev-only-do-not-override-oc1rc0 css-var-_r_0_"
+            id="login-heading"
+          >
+            登入工作區
+          </h2>
+          <div
+            class="ant-typography auth-screen__form-description css-dev-only-do-not-override-oc1rc0 css-var-_r_0_"
+          >
+            使用你的 SupplyPilot 工作帳號繼續。
+          </div>
+          <form
+            autocomplete="off"
+            class="ant-form ant-form-vertical css-var-_r_0_ ant-form-css-var css-dev-only-do-not-override-oc1rc0 auth-screen__form"
+          >
+            <div
+              class="ant-form-item css-var-_r_0_ ant-form-css-var css-dev-only-do-not-override-oc1rc0 ant-form-item-vertical"
+            >
+              <div
+                class="ant-row ant-form-item-row css-dev-only-do-not-override-oc1rc0 css-var-_r_0_"
+              >
+                <div
+                  class="ant-col ant-form-item-label css-dev-only-do-not-override-oc1rc0 css-var-_r_0_"
+                >
+                  <label
+                    class="ant-form-item-required"
+                    for="username"
+                    title="帳號"
+                  >
+                    帳號
+                  </label>
+                </div>
+                <div
+                  class="ant-col ant-form-item-control css-dev-only-do-not-override-oc1rc0 css-var-_r_0_"
+                >
+                  <div
+                    class="ant-form-item-control-input"
+                  >
+                    <div
+                      class="ant-form-item-control-input-content"
+                    >
+                      <input
+                        aria-required="true"
+                        autocomplete="username"
+                        class="ant-input css-dev-only-do-not-override-oc1rc0 ant-input-outlined css-var-_r_0_ ant-input-css-var"
+                        id="username"
+                        type="text"
+                        value=""
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div
+              class="ant-form-item css-var-_r_0_ ant-form-css-var css-dev-only-do-not-override-oc1rc0 ant-form-item-vertical"
+            >
+              <div
+                class="ant-row ant-form-item-row css-dev-only-do-not-override-oc1rc0 css-var-_r_0_"
+              >
+                <div
+                  class="ant-col ant-form-item-label css-dev-only-do-not-override-oc1rc0 css-var-_r_0_"
+                >
+                  <label
+                    class="ant-form-item-required"
+                    for="password"
+                    title="密碼"
+                  >
+                    密碼
+                  </label>
+                </div>
+                <div
+                  class="ant-col ant-form-item-control css-dev-only-do-not-override-oc1rc0 css-var-_r_0_"
+                >
+                  <div
+                    class="ant-form-item-control-input"
+                  >
+                    <div
+                      class="ant-form-item-control-input-content"
+                    >
+                      <span
+                        class="ant-input-affix-wrapper css-dev-only-do-not-override-oc1rc0 ant-input-outlined ant-input-password css-var-_r_0_ ant-input-css-var"
+                      >
+                        <input
+                          aria-required="true"
+                          autocomplete="current-password"
+                          class="ant-input css-dev-only-do-not-override-oc1rc0"
+                          id="password"
+                          type="password"
+                        />
+                        <span
+                          class="ant-input-suffix"
+                        >
+                          <span
+                            aria-disabled="false"
+                            aria-label="顯示"
+                            aria-pressed="false"
+                            class="ant-input-password-icon"
+                            role="button"
+                            tabindex="0"
+                          >
+                            <span
+                              aria-label="eye-invisible"
+                              class="anticon anticon-eye-invisible"
+                              role="img"
+                            >
+                              <svg
+                                aria-hidden="true"
+                                data-icon="eye-invisible"
+                                fill="currentColor"
+                                focusable="false"
+                                height="1em"
+                                viewBox="64 64 896 896"
+                                width="1em"
+                              >
+                                <path
+                                  d="M942.2 486.2Q889.47 375.11 816.7 305l-50.88 50.88C807.31 395.53 843.45 447.4 874.7 512 791.5 684.2 673.4 766 512 766q-72.67 0-133.87-22.38L323 798.75Q408 838 512 838q288.3 0 430.2-300.3a60.29 60.29 0 000-51.5zm-63.57-320.64L836 122.88a8 8 0 00-11.32 0L715.31 232.2Q624.86 186 512 186q-288.3 0-430.2 300.3a60.3 60.3 0 000 51.5q56.69 119.4 136.5 191.41L112.48 835a8 8 0 000 11.31L155.17 889a8 8 0 0011.31 0l712.15-712.12a8 8 0 000-11.32zM149.3 512C232.6 339.8 350.7 258 512 258c54.54 0 104.13 9.36 149.12 28.39l-70.3 70.3a176 176 0 00-238.13 238.13l-83.42 83.42C223.1 637.49 183.3 582.28 149.3 512zm246.7 0a112.11 112.11 0 01146.2-106.69L401.31 546.2A112 112 0 01396 512z"
+                                />
+                                <path
+                                  d="M508 624c-3.46 0-6.87-.16-10.25-.47l-52.82 52.82a176.09 176.09 0 00227.42-227.42l-52.82 52.82c.31 3.38.47 6.79.47 10.25a111.94 111.94 0 01-112 112z"
+                                />
+                              </svg>
+                            </span>
+                          </span>
+                        </span>
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <button
+              class="ant-btn css-dev-only-do-not-override-oc1rc0 css-var-_r_0_ ant-btn-primary ant-btn-color-primary ant-btn-variant-solid ant-btn-block"
+              type="submit"
+            >
+              <span>
+                登 入
+              </span>
+            </button>
+          </form>
+          <div
+            class="ant-typography ant-typography-secondary auth-screen__helper css-dev-only-do-not-override-oc1rc0 css-var-_r_0_"
+          >
+            示範帳號資訊請參閱部署環境提供的說明；此頁不公開密碼。
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</body>
+ ❯ waitForWrapper node_modules/@testing-library/dom/dist/wait-for.js:163:27
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:86:33
+ ❯ tests/auth.test.tsx:99:25
+     97|     const requests = mockServer('business');
+     98|     await open('/purchase-orders/42');
+     99|     expect(await screen.findByText('登入採購與供應鏈決策平台')).toBeTruthy();
+       |                         ^
+    100|     const user = userEvent.setup();
+    101|     await user.type(screen.getByLabelText('帳號'), 'buyer');
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 26 skipped (27)
+   Start at  00:17:14
+   Duration  14.76s (transform 2.54s, setup 366ms, import 10.21s, tests 2.11s, environment 1.67s)
+

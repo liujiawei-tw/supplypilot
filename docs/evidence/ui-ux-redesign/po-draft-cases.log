@@ -1,0 +1,2518 @@
+
+> frontend@0.0.0 test
+> vitest run --run tests/issue143PurchaseOrdersPage.test.tsx --maxWorkers=1 --reporter=verbose -t refreshes the current Kanban|403 draft-create failure
+
+
+ RUN  v4.1.11 C:/Users/z0976/.codex/worktrees/procurement-tool-ux-redesign/supplypilot/frontend
+
+ ↓ tests/issue143PurchaseOrdersPage.test.tsx > Issue #143 purchase-order page views > defaults to desktop Kanban and preserves the active filter across both views
+ ↓ tests/issue143PurchaseOrdersPage.test.tsx > Issue #143 purchase-order page views > opens a query-addressable read-only inspector from Kanban and links to full detail
+ ↓ tests/issue143PurchaseOrdersPage.test.tsx > Issue #143 purchase-order page views > opens a bookmarked inspector selection after loading the Backend PO
+ ↓ tests/issue143PurchaseOrdersPage.test.tsx > Issue #143 purchase-order page views > opens the mobile page in List mode while retaining backend purchase-order data
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+ × tests/issue143PurchaseOrdersPage.test.tsx > Issue #143 purchase-order page views > refreshes the current Kanban from backend after a successful draft create 25566ms
+   → Unable to find an accessible element with the role "button" and name "確認建立草稿"
+
+Here are the accessible roles:
+
+  status:
+
+  Name "":
+  [36m<output[39m
+    [33mdata-testid[39m=[32m"current-route"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  heading:
+
+  Name "採購單管理":
+  [36m<h2[39m
+    [33mclass[39m=[32m"ant-typography css-dev-only-do-not-override-oc1rc0 css-var-root"[39m
+    [33mstyle[39m=[32m"margin-bottom: 0px;"[39m
+  [36m/>[39m
+
+  Name "待處理／新請購":
+  [36m<h5[39m
+    [33mclass[39m=[32m"ant-typography css-dev-only-do-not-override-oc1rc0 css-var-root"[39m
+    [33mid[39m=[32m"stage-NEW_REQUEST"[39m
+  [36m/>[39m
+
+  Name "詢比議價":
+  [36m<h5[39m
+    [33mclass[39m=[32m"ant-typography css-dev-only-do-not-override-oc1rc0 css-var-root"[39m
+    [33mid[39m=[32m"stage-SOURCING"[39m
+  [36m/>[39m
+
+  Name "審核／簽核中":
+  [36m<h5[39m
+    [33mclass[39m=[32m"ant-typography css-dev-only-do-not-override-oc1rc0 css-var-root"[39m
+    [33mid[39m=[32m"stage-APPROVAL"[39m
+  [36m/>[39m
+
+  Name "已核准待下單":
+  [36m<h5[39m
+    [33mclass[39m=[32m"ant-typography css-dev-only-do-not-override-oc1rc0 css-var-root"[39m
+    [33mid[39m=[32m"stage-APPROVED_PENDING_ORDER"[39m
+  [36m/>[39m
+
+  Name "已下單／生產／交期跟催":
+  [36m<h5[39m
+    [33mclass[39m=[32m"ant-typography css-dev-only-do-not-override-oc1rc0 css-var-root"[39m
+    [33mid[39m=[32m"stage-ORDER_FOLLOW_UP"[39m
+  [36m/>[39m
+
+  Name "到貨驗收":
+  [36m<h5[39m
+    [33mclass[39m=[32m"ant-typography css-dev-only-do-not-override-oc1rc0 css-var-root"[39m
+    [33mid[39m=[32m"stage-RECEIVING_INSPECTION"[39m
+  [36m/>[39m
+
+  Name "請款核銷中":
+  [36m<h5[39m
+    [33mclass[39m=[32m"ant-typography css-dev-only-do-not-override-oc1rc0 css-var-root"[39m
+    [33mid[39m=[32m"stage-PAYMENT_RECONCILIATION"[39m
+  [36m/>[39m
+
+  Name "已完成／封存結案":
+  [36m<h5[39m
+    [33mclass[39m=[32m"ant-typography css-dev-only-do-not-override-oc1rc0 css-var-root"[39m
+    [33mid[39m=[32m"stage-COMPLETED"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  button:
+
+  Name "建立手動草稿":
+  [36m<button[39m
+    [33mclass[39m=[32m"ant-btn css-dev-only-do-not-override-oc1rc0 css-var-root ant-btn-primary ant-btn-color-primary ant-btn-variant-solid"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  combobox:
+
+  Name "":
+  [36m<input[39m
+    [33maria-autocomplete[39m=[32m"list"[39m
+    [33maria-expanded[39m=[32m"false"[39m
+    [33maria-haspopup[39m=[32m"listbox"[39m
+    [33mautocomplete[39m=[32m"new-password"[39m
+    [33mclass[39m=[32m"ant-select-input"[39m
+    [33mid[39m=[32m"test-id"[39m
+    [33mreadonly[39m=[32m""[39m
+    [33mrole[39m=[32m"combobox"[39m
+    [33mtype[39m=[32m"text"[39m
+    [33mvalue[39m=[32m""[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<input[39m
+    [33maria-autocomplete[39m=[32m"list"[39m
+    [33maria-expanded[39m=[32m"false"[39m
+    [33maria-haspopup[39m=[32m"listbox"[39m
+    [33mautocomplete[39m=[32m"new-password"[39m
+    [33mclass[39m=[32m"ant-select-input"[39m
+    [33mid[39m=[32m"test-id"[39m
+    [33mreadonly[39m=[32m""[39m
+    [33mrole[39m=[32m"combobox"[39m
+    [33mtype[39m=[32m"text"[39m
+    [33mvalue[39m=[32m""[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  img:
+
+  Name "down":
+  [36m<span[39m
+    [33maria-label[39m=[32m"down"[39m
+    [33mclass[39m=[32m"anticon anticon-down"[39m
+    [33mrole[39m=[32m"img"[39m
+  [36m/>[39m
+
+  Name "down":
+  [36m<span[39m
+    [33maria-label[39m=[32m"down"[39m
+    [33mclass[39m=[32m"anticon anticon-down"[39m
+    [33mrole[39m=[32m"img"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  textbox:
+
+  Name "採購單號搜尋":
+  [36m<input[39m
+    [33maria-label[39m=[32m"採購單號搜尋"[39m
+    [33mclass[39m=[32m"ant-input css-dev-only-do-not-override-oc1rc0"[39m
+    [33mmaxlength[39m=[32m"100"[39m
+    [33mplaceholder[39m=[32m"採購單號"[39m
+    [33mtype[39m=[32m"text"[39m
+    [33mvalue[39m=[32m""[39m
+  [36m/>[39m
+
+  Name "供應商代碼搜尋":
+  [36m<input[39m
+    [33maria-label[39m=[32m"供應商代碼搜尋"[39m
+    [33mclass[39m=[32m"ant-input css-dev-only-do-not-override-oc1rc0"[39m
+    [33mmaxlength[39m=[32m"100"[39m
+    [33mplaceholder[39m=[32m"供應商代碼"[39m
+    [33mtype[39m=[32m"text"[39m
+    [33mvalue[39m=[32m""[39m
+  [36m/>[39m
+
+  Name "供應商名稱搜尋":
+  [36m<input[39m
+    [33maria-label[39m=[32m"供應商名稱搜尋"[39m
+    [33mclass[39m=[32m"ant-input css-dev-only-do-not-override-oc1rc0"[39m
+    [33mmaxlength[39m=[32m"100"[39m
+    [33mplaceholder[39m=[32m"供應商名稱"[39m
+    [33mtype[39m=[32m"text"[39m
+    [33mvalue[39m=[32m""[39m
+  [36m/>[39m
+
+  Name "物料代碼搜尋":
+  [36m<input[39m
+    [33maria-label[39m=[32m"物料代碼搜尋"[39m
+    [33mclass[39m=[32m"ant-input css-dev-only-do-not-override-oc1rc0"[39m
+    [33mmaxlength[39m=[32m"100"[39m
+    [33mplaceholder[39m=[32m"物料代碼"[39m
+    [33mtype[39m=[32m"text"[39m
+    [33mvalue[39m=[32m""[39m
+  [36m/>[39m
+
+  Name "供應商編號篩選":
+  [36m<input[39m
+    [33maria-label[39m=[32m"供應商編號篩選"[39m
+    [33mclass[39m=[32m"ant-input css-dev-only-do-not-override-oc1rc0 ant-input-outlined css-var-root ant-input-css-var"[39m
+    [33mplaceholder[39m=[32m"供應商編號"[39m
+    [33mstyle[39m=[32m"width: 130px;"[39m
+    [33mtype[39m=[32m"text"[39m
+    [33mvalue[39m=[32m"7"[39m
+  [36m/>[39m
+
+  Name "物料編號篩選":
+  [36m<input[39m
+    [33maria-label[39m=[32m"物料編號篩選"[39m
+    [33mclass[39m=[32m"ant-input css-dev-only-do-not-override-oc1rc0 ant-input-outlined css-var-root ant-input-css-var"[39m
+    [33mplaceholder[39m=[32m"物料編號"[39m
+    [33mstyle[39m=[32m"width: 130px;"[39m
+    [33mtype[39m=[32m"text"[39m
+    [33mvalue[39m=[32m""[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  radiogroup:
+
+  Name "採購單檢視模式":
+  [36m<div[39m
+    [33maria-label[39m=[32m"採購單檢視模式"[39m
+    [33maria-orientation[39m=[32m"horizontal"[39m
+    [33mclass[39m=[32m"ant-segmented css-dev-only-do-not-override-oc1rc0 css-var-root"[39m
+    [33mrole[39m=[32m"radiogroup"[39m
+    [33mtabindex[39m=[32m"0"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  radio:
+
+  Name "看板":
+  [36m<input[39m
+    [33mchecked[39m=[32m""[39m
+    [33mclass[39m=[32m"ant-segmented-item-input"[39m
+    [33mname[39m=[32m"test-id"[39m
+    [33mtype[39m=[32m"radio"[39m
+  [36m/>[39m
+
+  Name "列表":
+  [36m<input[39m
+    [33mclass[39m=[32m"ant-segmented-item-input"[39m
+    [33mname[39m=[32m"test-id"[39m
+    [33mtype[39m=[32m"radio"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  region:
+
+  Name "採購單八階段看板":
+  [36m<section[39m
+    [33maria-label[39m=[32m"採購單八階段看板"[39m
+    [33mclass[39m=[32m"purchase-order-kanban"[39m
+  [36m/>[39m
+
+  Name "採購單八階段流程欄位":
+  [36m<div[39m
+    [33maria-label[39m=[32m"採購單八階段流程欄位"[39m
+    [33mclass[39m=[32m"purchase-order-kanban__columns"[39m
+    [33mrole[39m=[32m"region"[39m
+    [33mtabindex[39m=[32m"0"[39m
+  [36m/>[39m
+
+  Name "待處理／新請購":
+  [36m<section[39m
+    [33maria-labelledby[39m=[32m"stage-NEW_REQUEST"[39m
+    [33mclass[39m=[32m"purchase-order-kanban__column"[39m
+  [36m/>[39m
+
+  Name "詢比議價":
+  [36m<section[39m
+    [33maria-labelledby[39m=[32m"stage-SOURCING"[39m
+    [33mclass[39m=[32m"purchase-order-kanban__column"[39m
+  [36m/>[39m
+
+  Name "審核／簽核中":
+  [36m<section[39m
+    [33maria-labelledby[39m=[32m"stage-APPROVAL"[39m
+    [33mclass[39m=[32m"purchase-order-kanban__column"[39m
+  [36m/>[39m
+
+  Name "已核准待下單":
+  [36m<section[39m
+    [33maria-labelledby[39m=[32m"stage-APPROVED_PENDING_ORDER"[39m
+    [33mclass[39m=[32m"purchase-order-kanban__column"[39m
+  [36m/>[39m
+
+  Name "已下單／生產／交期跟催":
+  [36m<section[39m
+    [33maria-labelledby[39m=[32m"stage-ORDER_FOLLOW_UP"[39m
+    [33mclass[39m=[32m"purchase-order-kanban__column"[39m
+  [36m/>[39m
+
+  Name "到貨驗收":
+  [36m<section[39m
+    [33maria-labelledby[39m=[32m"stage-RECEIVING_INSPECTION"[39m
+    [33mclass[39m=[32m"purchase-order-kanban__column"[39m
+  [36m/>[39m
+
+  Name "請款核銷中":
+  [36m<section[39m
+    [33maria-labelledby[39m=[32m"stage-PAYMENT_RECONCILIATION"[39m
+    [33mclass[39m=[32m"purchase-order-kanban__column"[39m
+  [36m/>[39m
+
+  Name "已完成／封存結案":
+  [36m<section[39m
+    [33maria-labelledby[39m=[32m"stage-COMPLETED"[39m
+    [33mclass[39m=[32m"purchase-order-kanban__column"[39m
+  [36m/>[39m
+
+  --------------------------------------------------dialog:
+
+  Name "":
+  [36m<div[39m
+    [33maria-labelledby[39m=[32m"test-id"[39m
+    [33maria-modal[39m=[32m"true"[39m
+    [33mclass[39m=[32m"ant-modal css-dev-only-do-not-override-oc1rc0"[39m
+    [33mrole[39m=[32m"dialog"[39m
+    [33mstyle[39m=[32m"width: 900px;"[39m
+    [33mtabindex[39m=[32m"-1"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  button:
+
+  Name "關閉":
+  [36m<button[39m
+    [33maria-label[39m=[32m"關閉"[39m
+    [33mclass[39m=[32m"ant-modal-close"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "Clear":
+  [36m<button[39m
+    [33maria-label[39m=[32m"Clear"[39m
+    [33mclass[39m=[32m"ant-select-clear"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "Clear":
+  [36m<button[39m
+    [33maria-label[39m=[32m"Clear"[39m
+    [33mclass[39m=[32m"ant-select-clear"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "plus 新增品項":
+  [36m<button[39m
+    [33mclass[39m=[32m"ant-btn css-dev-only-do-not-override-oc1rc0 css-var-root ant-btn-default ant-btn-color-default ant-btn-variant-outlined"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "檢視新草稿":
+  [36m<button[39m
+    [33mclass[39m=[32m"ant-btn css-dev-only-do-not-override-oc1rc0 css-var-root ant-btn-primary ant-btn-color-primary ant-btn-variant-solid"[39m
+    [33mstyle[39m=[32m"margin-top: 16px;"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  img:
+
+  Name "close":
+  [36m<span[39m
+    [33maria-label[39m=[32m"close"[39m
+    [33mclass[39m=[32m"anticon anticon-close ant-modal-close-icon"[39m
+    [33mrole[39m=[32m"img"[39m
+  [36m/>[39m
+
+  Name "down":
+  [36m<span[39m
+    [33maria-label[39m=[32m"down"[39m
+    [33mclass[39m=[32m"anticon anticon-down"[39m
+    [33mrole[39m=[32m"img"[39m
+  [36m/>[39m
+
+  Name "close-circle":
+  [36m<span[39m
+    [33maria-label[39m=[32m"close-circle"[39m
+    [33mclass[39m=[32m"anticon anticon-close-circle"[39m
+    [33mrole[39m=[32m"img"[39m
+  [36m/>[39m
+
+  Name "search":
+  [36m<span[39m
+    [33maria-label[39m=[32m"search"[39m
+    [33mclass[39m=[32m"anticon anticon-search"[39m
+    [33mrole[39m=[32m"img"[39m
+  [36m/>[39m
+
+  Name "close-circle":
+  [36m<span[39m
+    [33maria-label[39m=[32m"close-circle"[39m
+    [33mclass[39m=[32m"anticon anticon-close-circle"[39m
+    [33mrole[39m=[32m"img"[39m
+  [36m/>[39m
+
+  Name "plus":
+  [36m<span[39m
+    [33maria-label[39m=[32m"plus"[39m
+    [33mclass[39m=[32m"anticon anticon-plus"[39m
+    [33mrole[39m=[32m"img"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  combobox:
+
+  Name "選取供應商":
+  [36m<input[39m
+    [33maria-autocomplete[39m=[32m"list"[39m
+    [33maria-expanded[39m=[32m"false"[39m
+    [33maria-haspopup[39m=[32m"listbox"[39m
+    [33maria-label[39m=[32m"選取供應商"[39m
+    [33maria-required[39m=[32m"true"[39m
+    [33mautocomplete[39m=[32m"new-password"[39m
+    [33mclass[39m=[32m"ant-select-input"[39m
+    [33mid[39m=[32m"supplierId"[39m
+    [33mrole[39m=[32m"combobox"[39m
+    [33mtype[39m=[32m"text"[39m
+    [33mvalue[39m=[32m""[39m
+  [36m/>[39m
+
+  Name "選取物料":
+  [36m<input[39m
+    [33maria-activedescendant[39m=[32m"items_0_materialId_list_0"[39m
+    [33maria-autocomplete[39m=[32m"list"[39m
+    [33maria-controls[39m=[32m"items_0_materialId_list"[39m
+    [33maria-expanded[39m=[32m"true"[39m
+    [33maria-haspopup[39m=[32m"listbox"[39m
+    [33maria-label[39m=[32m"選取物料"[39m
+    [33maria-owns[39m=[32m"items_0_materialId_list"[39m
+    [33maria-required[39m=[32m"true"[39m
+    [33mautocomplete[39m=[32m"new-password"[39m
+    [33mclass[39m=[32m"ant-select-input"[39m
+    [33mid[39m=[32m"items_0_materialId"[39m
+    [33mrole[39m=[32m"combobox"[39m
+    [33mtype[39m=[32m"text"[39m
+    [33mvalue[39m=[32m""[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  code:
+
+  Name "":
+  [36m<code />[39m
+
+  Name "":
+  [36m<code />[39m
+
+  --------------------------------------------------
+  textbox:
+
+  Name "採購單品項 1 數量":
+  [36m<input[39m
+    [33maria-label[39m=[32m"採購單品項 1 數量"[39m
+    [33mclass[39m=[32m"ant-input css-dev-only-do-not-override-oc1rc0 ant-input-outlined ant-input-status-validating css-var-root ant-input-css-var"[39m
+    [33mid[39m=[32m"items_0_quantity"[39m
+    [33minputmode[39m=[32m"decimal"[39m
+    [33mtype[39m=[32m"text"[39m
+    [33mvalue[39m=[32m"2"[39m
+  [36m/>[39m
+
+  Name "採購單品項 1 單價":
+  [36m<input[39m
+    [33maria-label[39m=[32m"採購單品項 1 單價"[39m
+    [33mclass[39m=[32m"ant-input css-dev-only-do-not-override-oc1rc0 ant-input-outlined ant-input-status-validating css-var-root ant-input-css-var"[39m
+    [33mid[39m=[32m"items_0_unitPrice"[39m
+    [33minputmode[39m=[32m"decimal"[39m
+    [33mtype[39m=[32m"text"[39m
+    [33mvalue[39m=[32m"100"[39m
+  [36m/>[39m
+
+  --------------------------------------------------listbox:
+
+  Name "":
+  [36m<div[39m
+    [33mid[39m=[32m"items_0_materialId_list"[39m
+    [33mrole[39m=[32m"listbox"[39m
+    [33mstyle[39m=[32m"height: 0px; width: 0px; overflow: hidden;"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  option:
+
+  Name "MAT-010 — 測試物料 (PCS)":
+  [36m<div[39m
+    [33maria-label[39m=[32m"MAT-010 — 測試物料 (PCS)"[39m
+    [33maria-selected[39m=[32m"true"[39m
+    [33mid[39m=[32m"items_0_materialId_list_0"[39m
+    [33mrole[39m=[32m"option"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div>[39m
+    [36m<output[39m
+      [33mdata-testid[39m=[32m"current-route"[39m
+    [36m>[39m
+      [0m/purchase-orders[0m
+    [36m</output>[39m
+    [36m<div[39m
+      [33mclass[39m=[32m"ant-space css-dev-only-do-not-override-oc1rc0 ant-space-vertical ant-space-gap-row-large ant-space-gap-col-large css-var-root"[39m
+      [33mstyle[39m=[32m"width: 100%;"[39m
+    [36m>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"ant-space-item"[39m
+      [36m/>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"ant-space-item"[39m
+      [36m>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"ant-space css-dev-only-do-not-override-oc1rc0 ant-space-horizontal ant-space-align-center ant-space-gap-row-small ant-space-gap-col-small css-var-root"[39m
+          [33mstyle[39m=[32m"flex-wrap: wrap; width: 100%; justify-content: space-between;"[39m
+        [36m>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"ant-space-item"[39m
+          [36m>[39m
+            [36m<div>[39m
+              [36m<h2[39m
+                [33mclass[39m=[32m"ant-typography css-dev-only-do-not-override-oc1rc0 css-var-root"[39m
+                [33mstyle[39m=[32m"margin-bottom: 0px;"[39m
+              [36m>[39m
+                [0m採購單管理[0m
+              [36m</h2>[39m
+              [36m<span[39m
+                [33mclass[39m=[32m"ant-typography ant-typography-secondary css-dev-only-do-not-override-oc1rc0 css-var-root"[39m
+              [36m>[39m
+                [0m查詢採購單流程與稽核紀錄[0m
+              [36m</span>[39m
+            [36m</div>[39m
+          [36m</div>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"ant-space-item"[39m
+          [36m>[39m
+            [36m<button[39m
+              [33mclass[39m=[32m"ant-btn css-dev-only-do-not-override-oc1rc0 css-var-root ant-btn-primary ant-btn-color-primary ant-btn-variant-solid"[39m
+              [33mtype[39m=[32m"button"[39m
+            [36m>[39m
+              [36m<span>[39m
+                [0m建立手動草稿[0m
+              [36m</span>[39m
+            [36m</button>[39m
+          [36m</div>[39m
+        [36m</div>[39m
+      [36m</div>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"ant-space-item"[39m
+      [36m>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"ant-space css-dev-only-do-not-override-oc1rc0 ant-space-horizontal ant-space-align-center ant-space-gap-row-small ant-space-gap-col-small css-var-root"[39m
+          [33mstyle[39m=[32m"flex-wrap: wrap;"[39m
+        [36m>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"ant-space-item"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"ant-select ant-select-outlined css-var-root ant-select-css-var css-dev-only-do-not-override-oc1rc0 ant-select-single ant-select-show-arrow"[39m
+              [33mstyle[39m=[32m"width: 150px;"[39m
+            [36m>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"ant-select-content"[39m
+              [36m>[39m
+                [36m<div[39m
+                  [33mclass[39m=[32m"ant-select-placeholder"[39m
+                [36m>[39m
+                  [0m狀態[0m
+                [36m</div>[39m
+                [36m<input[39m
+                  [33maria-autocomplete[39m=[32m"list"[39m
+                  [33maria-expanded[39m=[32m"false"[39m
+                  [33maria-haspopup[39m=[32m"listbox"[39m
+                  [33mautocomplete[39m=[32m"new-password"[39m
+                  [33mclass[39m=[32m"ant-select-input"[39m
+                  [33mid[39m=[32m"test-id"[39m
+                  [33mreadonly[39m=[32m""[39m
+                  [33mrole[39m=[32m"combobox"[39m
+                  [33mtype[39m=[32m"text"[39m
+                  [33mvalue[39m=[32m""[39m
+                [36m/>[39m
+              [36m</div>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"ant-select-suffix"[39m
+              [36m>[39m
+                [36m<span[39m
+                  [33maria-label[39m=[32m"down"[39m
+                  [33mclass[39m=[32m"anticon anticon-down"[39m
+                  [33mrole[39m=[32m"img"[39m
+                [36m>[39m
+                  [36m<svg[39m
+                    [33maria-hidden[39m=[32m"true"[39m
+                    [33mdata-icon[39m=[32m"down"[39m
+                    [33mfill[39m=[32m"currentColor"[39m
+                    [33mfocusable[39m=[32m"false"[39m
+                    [33mheight[39m=[32m"1em"[39m
+                    [33mviewBox[39m=[32m"64 64 896 896"[39m
+                    [33mwidth[39m=[32m"1em"[39m
+                  [36m>[39m
+                    [36m<path[39m
+                      [33md[39m=[32m"M884 256h-75c-5.1 0-9.9 2.5-12.9 6.6L512 654.2 227.9 262.6c-3-4.1-7.8-6.6-12.9-6.6h-75c-6.5 0-10.3 7.4-6.5 12.7l352.6 486.1c12.8 17.6 39 17.6 51.7 0l352.6-486.1c3.9-5.3.1-12.7-6.4-12.7z"[39m
+                    [36m/>[39m
+                  [36m</svg>[39m
+                [36m</span>[39m
+              [36m</div>[39m
+            [36m</div>[39m
+          [36m</div>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"ant-space-item"[39m
+          [36m>[39m
+            [36m<span[39m
+              [33mclass[39m=[32m"ant-input-affix-wrapper css-dev-only-do-not-override-oc1rc0 ant-input-outlined css-var-root ant-input-css-var"[39m
+              [33mstyle[39m=[32m"width: 190px;"[39m
+            [36m>[39m
+              [36m<input[39m
+                [33maria-label[39m=[32m"採購單號搜尋"[39m
+                [33mclass[39m=[32m"ant-input css-dev-only-do-not-override-oc1rc0"[39m
+                [33mmaxlength[39m=[32m"100"[39m
+                [33mplaceholder[39m=[32m"採購單號"[39m
+                [33mtype[39m=[32m"text"[39m
+                [33mvalue[39m=[32m""[39m
+              [36m/>[39m
+              [36m<span[39m
+                [33mclass[39m=[32m"ant-input-suffix"[39m
+              [36m>[39m
+                [36m<button[39m
+                  [33mclass[39m=[32m"ant-input-clear-icon ant-input-clear-icon-hidden"[39m
+                  [33mtype[39m=[32m"button"[39m
+                [36m>[39m
+                  [36m<span[39m
+                    [33maria-label[39m=[32m"close-circle"[39m
+                    [33mclass[39m=[32m"anticon anticon-close-circle"[39m
+                    [33mrole[39m=[32m"img"[39m
+                  [36m>[39m
+                    [36m<svg[39m
+                      [33maria-hidden[39m=[32m"true"[39m
+                      [33mdata-icon[39m=[32m"close-circle"[39m
+                      [33mfill[39m=[32m"currentColor"[39m
+                      [33mfill-rule[39m=[32m"evenodd"[39m
+                      [33mfocusable[39m=[32m"false"[39m
+                      [33mheight[39m=[32m"1em"[39m
+           ...
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+ × tests/issue143PurchaseOrdersPage.test.tsx > Issue #143 purchase-order page views > does not refresh the Kanban or report success after a 403 draft-create failure 29031ms
+   → Unable to find an accessible element with the role "button" and name "確認建立草稿"
+
+Here are the accessible roles:
+
+  status:
+
+  Name "":
+  [36m<output[39m
+    [33mdata-testid[39m=[32m"current-route"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  heading:
+
+  Name "採購單管理":
+  [36m<h2[39m
+    [33mclass[39m=[32m"ant-typography css-dev-only-do-not-override-oc1rc0 css-var-root"[39m
+    [33mstyle[39m=[32m"margin-bottom: 0px;"[39m
+  [36m/>[39m
+
+  Name "待處理／新請購":
+  [36m<h5[39m
+    [33mclass[39m=[32m"ant-typography css-dev-only-do-not-override-oc1rc0 css-var-root"[39m
+    [33mid[39m=[32m"stage-NEW_REQUEST"[39m
+  [36m/>[39m
+
+  Name "詢比議價":
+  [36m<h5[39m
+    [33mclass[39m=[32m"ant-typography css-dev-only-do-not-override-oc1rc0 css-var-root"[39m
+    [33mid[39m=[32m"stage-SOURCING"[39m
+  [36m/>[39m
+
+  Name "審核／簽核中":
+  [36m<h5[39m
+    [33mclass[39m=[32m"ant-typography css-dev-only-do-not-override-oc1rc0 css-var-root"[39m
+    [33mid[39m=[32m"stage-APPROVAL"[39m
+  [36m/>[39m
+
+  Name "已核准待下單":
+  [36m<h5[39m
+    [33mclass[39m=[32m"ant-typography css-dev-only-do-not-override-oc1rc0 css-var-root"[39m
+    [33mid[39m=[32m"stage-APPROVED_PENDING_ORDER"[39m
+  [36m/>[39m
+
+  Name "已下單／生產／交期跟催":
+  [36m<h5[39m
+    [33mclass[39m=[32m"ant-typography css-dev-only-do-not-override-oc1rc0 css-var-root"[39m
+    [33mid[39m=[32m"stage-ORDER_FOLLOW_UP"[39m
+  [36m/>[39m
+
+  Name "到貨驗收":
+  [36m<h5[39m
+    [33mclass[39m=[32m"ant-typography css-dev-only-do-not-override-oc1rc0 css-var-root"[39m
+    [33mid[39m=[32m"stage-RECEIVING_INSPECTION"[39m
+  [36m/>[39m
+
+  Name "請款核銷中":
+  [36m<h5[39m
+    [33mclass[39m=[32m"ant-typography css-dev-only-do-not-override-oc1rc0 css-var-root"[39m
+    [33mid[39m=[32m"stage-PAYMENT_RECONCILIATION"[39m
+  [36m/>[39m
+
+  Name "已完成／封存結案":
+  [36m<h5[39m
+    [33mclass[39m=[32m"ant-typography css-dev-only-do-not-override-oc1rc0 css-var-root"[39m
+    [33mid[39m=[32m"stage-COMPLETED"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  button:
+
+  Name "建立手動草稿":
+  [36m<button[39m
+    [33mclass[39m=[32m"ant-btn css-dev-only-do-not-override-oc1rc0 css-var-root ant-btn-primary ant-btn-color-primary ant-btn-variant-solid"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  combobox:
+
+  Name "":
+  [36m<input[39m
+    [33maria-autocomplete[39m=[32m"list"[39m
+    [33maria-expanded[39m=[32m"false"[39m
+    [33maria-haspopup[39m=[32m"listbox"[39m
+    [33mautocomplete[39m=[32m"new-password"[39m
+    [33mclass[39m=[32m"ant-select-input"[39m
+    [33mid[39m=[32m"test-id"[39m
+    [33mreadonly[39m=[32m""[39m
+    [33mrole[39m=[32m"combobox"[39m
+    [33mtype[39m=[32m"text"[39m
+    [33mvalue[39m=[32m""[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<input[39m
+    [33maria-autocomplete[39m=[32m"list"[39m
+    [33maria-expanded[39m=[32m"false"[39m
+    [33maria-haspopup[39m=[32m"listbox"[39m
+    [33mautocomplete[39m=[32m"new-password"[39m
+    [33mclass[39m=[32m"ant-select-input"[39m
+    [33mid[39m=[32m"test-id"[39m
+    [33mreadonly[39m=[32m""[39m
+    [33mrole[39m=[32m"combobox"[39m
+    [33mtype[39m=[32m"text"[39m
+    [33mvalue[39m=[32m""[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  img:
+
+  Name "down":
+  [36m<span[39m
+    [33maria-label[39m=[32m"down"[39m
+    [33mclass[39m=[32m"anticon anticon-down"[39m
+    [33mrole[39m=[32m"img"[39m
+  [36m/>[39m
+
+  Name "down":
+  [36m<span[39m
+    [33maria-label[39m=[32m"down"[39m
+    [33mclass[39m=[32m"anticon anticon-down"[39m
+    [33mrole[39m=[32m"img"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  textbox:
+
+  Name "採購單號搜尋":
+  [36m<input[39m
+    [33maria-label[39m=[32m"採購單號搜尋"[39m
+    [33mclass[39m=[32m"ant-input css-dev-only-do-not-override-oc1rc0"[39m
+    [33mmaxlength[39m=[32m"100"[39m
+    [33mplaceholder[39m=[32m"採購單號"[39m
+    [33mtype[39m=[32m"text"[39m
+    [33mvalue[39m=[32m""[39m
+  [36m/>[39m
+
+  Name "供應商代碼搜尋":
+  [36m<input[39m
+    [33maria-label[39m=[32m"供應商代碼搜尋"[39m
+    [33mclass[39m=[32m"ant-input css-dev-only-do-not-override-oc1rc0"[39m
+    [33mmaxlength[39m=[32m"100"[39m
+    [33mplaceholder[39m=[32m"供應商代碼"[39m
+    [33mtype[39m=[32m"text"[39m
+    [33mvalue[39m=[32m""[39m
+  [36m/>[39m
+
+  Name "供應商名稱搜尋":
+  [36m<input[39m
+    [33maria-label[39m=[32m"供應商名稱搜尋"[39m
+    [33mclass[39m=[32m"ant-input css-dev-only-do-not-override-oc1rc0"[39m
+    [33mmaxlength[39m=[32m"100"[39m
+    [33mplaceholder[39m=[32m"供應商名稱"[39m
+    [33mtype[39m=[32m"text"[39m
+    [33mvalue[39m=[32m""[39m
+  [36m/>[39m
+
+  Name "物料代碼搜尋":
+  [36m<input[39m
+    [33maria-label[39m=[32m"物料代碼搜尋"[39m
+    [33mclass[39m=[32m"ant-input css-dev-only-do-not-override-oc1rc0"[39m
+    [33mmaxlength[39m=[32m"100"[39m
+    [33mplaceholder[39m=[32m"物料代碼"[39m
+    [33mtype[39m=[32m"text"[39m
+    [33mvalue[39m=[32m""[39m
+  [36m/>[39m
+
+  Name "供應商編號篩選":
+  [36m<input[39m
+    [33maria-label[39m=[32m"供應商編號篩選"[39m
+    [33mclass[39m=[32m"ant-input css-dev-only-do-not-override-oc1rc0 ant-input-outlined css-var-root ant-input-css-var"[39m
+    [33mplaceholder[39m=[32m"供應商編號"[39m
+    [33mstyle[39m=[32m"width: 130px;"[39m
+    [33mtype[39m=[32m"text"[39m
+    [33mvalue[39m=[32m"7"[39m
+  [36m/>[39m
+
+  Name "物料編號篩選":
+  [36m<input[39m
+    [33maria-label[39m=[32m"物料編號篩選"[39m
+    [33mclass[39m=[32m"ant-input css-dev-only-do-not-override-oc1rc0 ant-input-outlined css-var-root ant-input-css-var"[39m
+    [33mplaceholder[39m=[32m"物料編號"[39m
+    [33mstyle[39m=[32m"width: 130px;"[39m
+    [33mtype[39m=[32m"text"[39m
+    [33mvalue[39m=[32m""[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  radiogroup:
+
+  Name "採購單檢視模式":
+  [36m<div[39m
+    [33maria-label[39m=[32m"採購單檢視模式"[39m
+    [33maria-orientation[39m=[32m"horizontal"[39m
+    [33mclass[39m=[32m"ant-segmented css-dev-only-do-not-override-oc1rc0 css-var-root"[39m
+    [33mrole[39m=[32m"radiogroup"[39m
+    [33mtabindex[39m=[32m"0"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  radio:
+
+  Name "看板":
+  [36m<input[39m
+    [33mchecked[39m=[32m""[39m
+    [33mclass[39m=[32m"ant-segmented-item-input"[39m
+    [33mname[39m=[32m"test-id"[39m
+    [33mtype[39m=[32m"radio"[39m
+  [36m/>[39m
+
+  Name "列表":
+  [36m<input[39m
+    [33mclass[39m=[32m"ant-segmented-item-input"[39m
+    [33mname[39m=[32m"test-id"[39m
+    [33mtype[39m=[32m"radio"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  region:
+
+  Name "採購單八階段看板":
+  [36m<section[39m
+    [33maria-label[39m=[32m"採購單八階段看板"[39m
+    [33mclass[39m=[32m"purchase-order-kanban"[39m
+  [36m/>[39m
+
+  Name "採購單八階段流程欄位":
+  [36m<div[39m
+    [33maria-label[39m=[32m"採購單八階段流程欄位"[39m
+    [33mclass[39m=[32m"purchase-order-kanban__columns"[39m
+    [33mrole[39m=[32m"region"[39m
+    [33mtabindex[39m=[32m"0"[39m
+  [36m/>[39m
+
+  Name "待處理／新請購":
+  [36m<section[39m
+    [33maria-labelledby[39m=[32m"stage-NEW_REQUEST"[39m
+    [33mclass[39m=[32m"purchase-order-kanban__column"[39m
+  [36m/>[39m
+
+  Name "詢比議價":
+  [36m<section[39m
+    [33maria-labelledby[39m=[32m"stage-SOURCING"[39m
+    [33mclass[39m=[32m"purchase-order-kanban__column"[39m
+  [36m/>[39m
+
+  Name "審核／簽核中":
+  [36m<section[39m
+    [33maria-labelledby[39m=[32m"stage-APPROVAL"[39m
+    [33mclass[39m=[32m"purchase-order-kanban__column"[39m
+  [36m/>[39m
+
+  Name "已核准待下單":
+  [36m<section[39m
+    [33maria-labelledby[39m=[32m"stage-APPROVED_PENDING_ORDER"[39m
+    [33mclass[39m=[32m"purchase-order-kanban__column"[39m
+  [36m/>[39m
+
+  Name "已下單／生產／交期跟催":
+  [36m<section[39m
+    [33maria-labelledby[39m=[32m"stage-ORDER_FOLLOW_UP"[39m
+    [33mclass[39m=[32m"purchase-order-kanban__column"[39m
+  [36m/>[39m
+
+  Name "到貨驗收":
+  [36m<section[39m
+    [33maria-labelledby[39m=[32m"stage-RECEIVING_INSPECTION"[39m
+    [33mclass[39m=[32m"purchase-order-kanban__column"[39m
+  [36m/>[39m
+
+  Name "請款核銷中":
+  [36m<section[39m
+    [33maria-labelledby[39m=[32m"stage-PAYMENT_RECONCILIATION"[39m
+    [33mclass[39m=[32m"purchase-order-kanban__column"[39m
+  [36m/>[39m
+
+  Name "已完成／封存結案":
+  [36m<section[39m
+    [33maria-labelledby[39m=[32m"stage-COMPLETED"[39m
+    [33mclass[39m=[32m"purchase-order-kanban__column"[39m
+  [36m/>[39m
+
+  --------------------------------------------------dialog:
+
+  Name "":
+  [36m<div[39m
+    [33maria-labelledby[39m=[32m"test-id"[39m
+    [33maria-modal[39m=[32m"true"[39m
+    [33mclass[39m=[32m"ant-modal css-dev-only-do-not-override-oc1rc0"[39m
+    [33mrole[39m=[32m"dialog"[39m
+    [33mstyle[39m=[32m"width: 900px;"[39m
+    [33mtabindex[39m=[32m"-1"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  button:
+
+  Name "關閉":
+  [36m<button[39m
+    [33maria-label[39m=[32m"關閉"[39m
+    [33mclass[39m=[32m"ant-modal-close"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "Clear":
+  [36m<button[39m
+    [33maria-label[39m=[32m"Clear"[39m
+    [33mclass[39m=[32m"ant-select-clear"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "Clear":
+  [36m<button[39m
+    [33maria-label[39m=[32m"Clear"[39m
+    [33mclass[39m=[32m"ant-select-clear"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "plus 新增品項":
+  [36m<button[39m
+    [33mclass[39m=[32m"ant-btn css-dev-only-do-not-override-oc1rc0 css-var-root ant-btn-default ant-btn-color-default ant-btn-variant-outlined"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "檢視新草稿":
+  [36m<button[39m
+    [33mclass[39m=[32m"ant-btn css-dev-only-do-not-override-oc1rc0 css-var-root ant-btn-primary ant-btn-color-primary ant-btn-variant-solid"[39m
+    [33mstyle[39m=[32m"margin-top: 16px;"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  img:
+
+  Name "close":
+  [36m<span[39m
+    [33maria-label[39m=[32m"close"[39m
+    [33mclass[39m=[32m"anticon anticon-close ant-modal-close-icon"[39m
+    [33mrole[39m=[32m"img"[39m
+  [36m/>[39m
+
+  Name "down":
+  [36m<span[39m
+    [33maria-label[39m=[32m"down"[39m
+    [33mclass[39m=[32m"anticon anticon-down"[39m
+    [33mrole[39m=[32m"img"[39m
+  [36m/>[39m
+
+  Name "close-circle":
+  [36m<span[39m
+    [33maria-label[39m=[32m"close-circle"[39m
+    [33mclass[39m=[32m"anticon anticon-close-circle"[39m
+    [33mrole[39m=[32m"img"[39m
+  [36m/>[39m
+
+  Name "search":
+  [36m<span[39m
+    [33maria-label[39m=[32m"search"[39m
+    [33mclass[39m=[32m"anticon anticon-search"[39m
+    [33mrole[39m=[32m"img"[39m
+  [36m/>[39m
+
+  Name "close-circle":
+  [36m<span[39m
+    [33maria-label[39m=[32m"close-circle"[39m
+    [33mclass[39m=[32m"anticon anticon-close-circle"[39m
+    [33mrole[39m=[32m"img"[39m
+  [36m/>[39m
+
+  Name "plus":
+  [36m<span[39m
+    [33maria-label[39m=[32m"plus"[39m
+    [33mclass[39m=[32m"anticon anticon-plus"[39m
+    [33mrole[39m=[32m"img"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  combobox:
+
+  Name "選取供應商":
+  [36m<input[39m
+    [33maria-autocomplete[39m=[32m"list"[39m
+    [33maria-expanded[39m=[32m"false"[39m
+    [33maria-haspopup[39m=[32m"listbox"[39m
+    [33maria-label[39m=[32m"選取供應商"[39m
+    [33maria-required[39m=[32m"true"[39m
+    [33mautocomplete[39m=[32m"new-password"[39m
+    [33mclass[39m=[32m"ant-select-input"[39m
+    [33mid[39m=[32m"supplierId"[39m
+    [33mrole[39m=[32m"combobox"[39m
+    [33mtype[39m=[32m"text"[39m
+    [33mvalue[39m=[32m""[39m
+  [36m/>[39m
+
+  Name "選取物料":
+  [36m<input[39m
+    [33maria-activedescendant[39m=[32m"items_0_materialId_list_0"[39m
+    [33maria-autocomplete[39m=[32m"list"[39m
+    [33maria-controls[39m=[32m"items_0_materialId_list"[39m
+    [33maria-expanded[39m=[32m"true"[39m
+    [33maria-haspopup[39m=[32m"listbox"[39m
+    [33maria-label[39m=[32m"選取物料"[39m
+    [33maria-owns[39m=[32m"items_0_materialId_list"[39m
+    [33maria-required[39m=[32m"true"[39m
+    [33mautocomplete[39m=[32m"new-password"[39m
+    [33mclass[39m=[32m"ant-select-input"[39m
+    [33mid[39m=[32m"items_0_materialId"[39m
+    [33mrole[39m=[32m"combobox"[39m
+    [33mtype[39m=[32m"text"[39m
+    [33mvalue[39m=[32m""[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  code:
+
+  Name "":
+  [36m<code />[39m
+
+  Name "":
+  [36m<code />[39m
+
+  --------------------------------------------------
+  textbox:
+
+  Name "採購單品項 1 數量":
+  [36m<input[39m
+    [33maria-label[39m=[32m"採購單品項 1 數量"[39m
+    [33mclass[39m=[32m"ant-input css-dev-only-do-not-override-oc1rc0 ant-input-outlined ant-input-status-validating css-var-root ant-input-css-var"[39m
+    [33mid[39m=[32m"items_0_quantity"[39m
+    [33minputmode[39m=[32m"decimal"[39m
+    [33mtype[39m=[32m"text"[39m
+    [33mvalue[39m=[32m"2"[39m
+  [36m/>[39m
+
+  Name "採購單品項 1 單價":
+  [36m<input[39m
+    [33maria-label[39m=[32m"採購單品項 1 單價"[39m
+    [33mclass[39m=[32m"ant-input css-dev-only-do-not-override-oc1rc0 ant-input-outlined ant-input-status-validating css-var-root ant-input-css-var"[39m
+    [33mid[39m=[32m"items_0_unitPrice"[39m
+    [33minputmode[39m=[32m"decimal"[39m
+    [33mtype[39m=[32m"text"[39m
+    [33mvalue[39m=[32m"100"[39m
+  [36m/>[39m
+
+  --------------------------------------------------listbox:
+
+  Name "":
+  [36m<div[39m
+    [33mid[39m=[32m"items_0_materialId_list"[39m
+    [33mrole[39m=[32m"listbox"[39m
+    [33mstyle[39m=[32m"height: 0px; width: 0px; overflow: hidden;"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  option:
+
+  Name "MAT-010 — 測試物料 (PCS)":
+  [36m<div[39m
+    [33maria-label[39m=[32m"MAT-010 — 測試物料 (PCS)"[39m
+    [33maria-selected[39m=[32m"true"[39m
+    [33mid[39m=[32m"items_0_materialId_list_0"[39m
+    [33mrole[39m=[32m"option"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div>[39m
+    [36m<output[39m
+      [33mdata-testid[39m=[32m"current-route"[39m
+    [36m>[39m
+      [0m/purchase-orders[0m
+    [36m</output>[39m
+    [36m<div[39m
+      [33mclass[39m=[32m"ant-space css-dev-only-do-not-override-oc1rc0 ant-space-vertical ant-space-gap-row-large ant-space-gap-col-large css-var-root"[39m
+      [33mstyle[39m=[32m"width: 100%;"[39m
+    [36m>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"ant-space-item"[39m
+      [36m/>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"ant-space-item"[39m
+      [36m>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"ant-space css-dev-only-do-not-override-oc1rc0 ant-space-horizontal ant-space-align-center ant-space-gap-row-small ant-space-gap-col-small css-var-root"[39m
+          [33mstyle[39m=[32m"flex-wrap: wrap; width: 100%; justify-content: space-between;"[39m
+        [36m>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"ant-space-item"[39m
+          [36m>[39m
+            [36m<div>[39m
+              [36m<h2[39m
+                [33mclass[39m=[32m"ant-typography css-dev-only-do-not-override-oc1rc0 css-var-root"[39m
+                [33mstyle[39m=[32m"margin-bottom: 0px;"[39m
+              [36m>[39m
+                [0m採購單管理[0m
+              [36m</h2>[39m
+              [36m<span[39m
+                [33mclass[39m=[32m"ant-typography ant-typography-secondary css-dev-only-do-not-override-oc1rc0 css-var-root"[39m
+              [36m>[39m
+                [0m查詢採購單流程與稽核紀錄[0m
+              [36m</span>[39m
+            [36m</div>[39m
+          [36m</div>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"ant-space-item"[39m
+          [36m>[39m
+            [36m<button[39m
+              [33mclass[39m=[32m"ant-btn css-dev-only-do-not-override-oc1rc0 css-var-root ant-btn-primary ant-btn-color-primary ant-btn-variant-solid"[39m
+              [33mtype[39m=[32m"button"[39m
+            [36m>[39m
+              [36m<span>[39m
+                [0m建立手動草稿[0m
+              [36m</span>[39m
+            [36m</button>[39m
+          [36m</div>[39m
+        [36m</div>[39m
+      [36m</div>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"ant-space-item"[39m
+      [36m>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"ant-space css-dev-only-do-not-override-oc1rc0 ant-space-horizontal ant-space-align-center ant-space-gap-row-small ant-space-gap-col-small css-var-root"[39m
+          [33mstyle[39m=[32m"flex-wrap: wrap;"[39m
+        [36m>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"ant-space-item"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"ant-select ant-select-outlined css-var-root ant-select-css-var css-dev-only-do-not-override-oc1rc0 ant-select-single ant-select-show-arrow"[39m
+              [33mstyle[39m=[32m"width: 150px;"[39m
+            [36m>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"ant-select-content"[39m
+              [36m>[39m
+                [36m<div[39m
+                  [33mclass[39m=[32m"ant-select-placeholder"[39m
+                [36m>[39m
+                  [0m狀態[0m
+                [36m</div>[39m
+                [36m<input[39m
+                  [33maria-autocomplete[39m=[32m"list"[39m
+                  [33maria-expanded[39m=[32m"false"[39m
+                  [33maria-haspopup[39m=[32m"listbox"[39m
+                  [33mautocomplete[39m=[32m"new-password"[39m
+                  [33mclass[39m=[32m"ant-select-input"[39m
+                  [33mid[39m=[32m"test-id"[39m
+                  [33mreadonly[39m=[32m""[39m
+                  [33mrole[39m=[32m"combobox"[39m
+                  [33mtype[39m=[32m"text"[39m
+                  [33mvalue[39m=[32m""[39m
+                [36m/>[39m
+              [36m</div>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"ant-select-suffix"[39m
+              [36m>[39m
+                [36m<span[39m
+                  [33maria-label[39m=[32m"down"[39m
+                  [33mclass[39m=[32m"anticon anticon-down"[39m
+                  [33mrole[39m=[32m"img"[39m
+                [36m>[39m
+                  [36m<svg[39m
+                    [33maria-hidden[39m=[32m"true"[39m
+                    [33mdata-icon[39m=[32m"down"[39m
+                    [33mfill[39m=[32m"currentColor"[39m
+                    [33mfocusable[39m=[32m"false"[39m
+                    [33mheight[39m=[32m"1em"[39m
+                    [33mviewBox[39m=[32m"64 64 896 896"[39m
+                    [33mwidth[39m=[32m"1em"[39m
+                  [36m>[39m
+                    [36m<path[39m
+                      [33md[39m=[32m"M884 256h-75c-5.1 0-9.9 2.5-12.9 6.6L512 654.2 227.9 262.6c-3-4.1-7.8-6.6-12.9-6.6h-75c-6.5 0-10.3 7.4-6.5 12.7l352.6 486.1c12.8 17.6 39 17.6 51.7 0l352.6-486.1c3.9-5.3.1-12.7-6.4-12.7z"[39m
+                    [36m/>[39m
+                  [36m</svg>[39m
+                [36m</span>[39m
+              [36m</div>[39m
+            [36m</div>[39m
+          [36m</div>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"ant-space-item"[39m
+          [36m>[39m
+            [36m<span[39m
+              [33mclass[39m=[32m"ant-input-affix-wrapper css-dev-only-do-not-override-oc1rc0 ant-input-outlined css-var-root ant-input-css-var"[39m
+              [33mstyle[39m=[32m"width: 190px;"[39m
+            [36m>[39m
+              [36m<input[39m
+                [33maria-label[39m=[32m"採購單號搜尋"[39m
+                [33mclass[39m=[32m"ant-input css-dev-only-do-not-override-oc1rc0"[39m
+                [33mmaxlength[39m=[32m"100"[39m
+                [33mplaceholder[39m=[32m"採購單號"[39m
+                [33mtype[39m=[32m"text"[39m
+                [33mvalue[39m=[32m""[39m
+              [36m/>[39m
+              [36m<span[39m
+                [33mclass[39m=[32m"ant-input-suffix"[39m
+              [36m>[39m
+                [36m<button[39m
+                  [33mclass[39m=[32m"ant-input-clear-icon ant-input-clear-icon-hidden"[39m
+                  [33mtype[39m=[32m"button"[39m
+                [36m>[39m
+                  [36m<span[39m
+                    [33maria-label[39m=[32m"close-circle"[39m
+                    [33mclass[39m=[32m"anticon anticon-close-circle"[39m
+                    [33mrole[39m=[32m"img"[39m
+                  [36m>[39m
+                    [36m<svg[39m
+                      [33maria-hidden[39m=[32m"true"[39m
+                      [33mdata-icon[39m=[32m"close-circle"[39m
+                      [33mfill[39m=[32m"currentColor"[39m
+                      [33mfill-rule[39m=[32m"evenodd"[39m
+                      [33mfocusable[39m=[32m"false"[39m
+                      [33mheight[39m=[32m"1em"[39m
+           ...
+ ↓ tests/issue143PurchaseOrdersPage.test.tsx > Issue #143 purchase-order page views > does not refresh the Kanban or report success after a network error draft-create failure
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/issue143PurchaseOrdersPage.test.tsx > Issue #143 purchase-order page views > refreshes the current Kanban from backend after a successful draft create
+TestingLibraryElementError: Unable to find an accessible element with the role "button" and name "確認建立草稿"
+
+Here are the accessible roles:
+
+  status:
+
+  Name "":
+  <output
+    data-testid="current-route"
+  />
+
+  --------------------------------------------------
+  heading:
+
+  Name "採購單管理":
+  <h2
+    class="ant-typography css-dev-only-do-not-override-oc1rc0 css-var-root"
+    style="margin-bottom: 0px;"
+  />
+
+  Name "待處理／新請購":
+  <h5
+    class="ant-typography css-dev-only-do-not-override-oc1rc0 css-var-root"
+    id="stage-NEW_REQUEST"
+  />
+
+  Name "詢比議價":
+  <h5
+    class="ant-typography css-dev-only-do-not-override-oc1rc0 css-var-root"
+    id="stage-SOURCING"
+  />
+
+  Name "審核／簽核中":
+  <h5
+    class="ant-typography css-dev-only-do-not-override-oc1rc0 css-var-root"
+    id="stage-APPROVAL"
+  />
+
+  Name "已核准待下單":
+  <h5
+    class="ant-typography css-dev-only-do-not-override-oc1rc0 css-var-root"
+    id="stage-APPROVED_PENDING_ORDER"
+  />
+
+  Name "已下單／生產／交期跟催":
+  <h5
+    class="ant-typography css-dev-only-do-not-override-oc1rc0 css-var-root"
+    id="stage-ORDER_FOLLOW_UP"
+  />
+
+  Name "到貨驗收":
+  <h5
+    class="ant-typography css-dev-only-do-not-override-oc1rc0 css-var-root"
+    id="stage-RECEIVING_INSPECTION"
+  />
+
+  Name "請款核銷中":
+  <h5
+    class="ant-typography css-dev-only-do-not-override-oc1rc0 css-var-root"
+    id="stage-PAYMENT_RECONCILIATION"
+  />
+
+  Name "已完成／封存結案":
+  <h5
+    class="ant-typography css-dev-only-do-not-override-oc1rc0 css-var-root"
+    id="stage-COMPLETED"
+  />
+
+  --------------------------------------------------
+  button:
+
+  Name "建立手動草稿":
+  <button
+    class="ant-btn css-dev-only-do-not-override-oc1rc0 css-var-root ant-btn-primary ant-btn-color-primary ant-btn-variant-solid"
+    type="button"
+  />
+
+  --------------------------------------------------
+  combobox:
+
+  Name "":
+  <input
+    aria-autocomplete="list"
+    aria-expanded="false"
+    aria-haspopup="listbox"
+    autocomplete="new-password"
+    class="ant-select-input"
+    id="test-id"
+    readonly=""
+    role="combobox"
+    type="text"
+    value=""
+  />
+
+  Name "":
+  <input
+    aria-autocomplete="list"
+    aria-expanded="false"
+    aria-haspopup="listbox"
+    autocomplete="new-password"
+    class="ant-select-input"
+    id="test-id"
+    readonly=""
+    role="combobox"
+    type="text"
+    value=""
+  />
+
+  --------------------------------------------------
+  img:
+
+  Name "down":
+  <span
+    aria-label="down"
+    class="anticon anticon-down"
+    role="img"
+  />
+
+  Name "down":
+  <span
+    aria-label="down"
+    class="anticon anticon-down"
+    role="img"
+  />
+
+  --------------------------------------------------
+  textbox:
+
+  Name "採購單號搜尋":
+  <input
+    aria-label="採購單號搜尋"
+    class="ant-input css-dev-only-do-not-override-oc1rc0"
+    maxlength="100"
+    placeholder="採購單號"
+    type="text"
+    value=""
+  />
+
+  Name "供應商代碼搜尋":
+  <input
+    aria-label="供應商代碼搜尋"
+    class="ant-input css-dev-only-do-not-override-oc1rc0"
+    maxlength="100"
+    placeholder="供應商代碼"
+    type="text"
+    value=""
+  />
+
+  Name "供應商名稱搜尋":
+  <input
+    aria-label="供應商名稱搜尋"
+    class="ant-input css-dev-only-do-not-override-oc1rc0"
+    maxlength="100"
+    placeholder="供應商名稱"
+    type="text"
+    value=""
+  />
+
+  Name "物料代碼搜尋":
+  <input
+    aria-label="物料代碼搜尋"
+    class="ant-input css-dev-only-do-not-override-oc1rc0"
+    maxlength="100"
+    placeholder="物料代碼"
+    type="text"
+    value=""
+  />
+
+  Name "供應商編號篩選":
+  <input
+    aria-label="供應商編號篩選"
+    class="ant-input css-dev-only-do-not-override-oc1rc0 ant-input-outlined css-var-root ant-input-css-var"
+    placeholder="供應商編號"
+    style="width: 130px;"
+    type="text"
+    value="7"
+  />
+
+  Name "物料編號篩選":
+  <input
+    aria-label="物料編號篩選"
+    class="ant-input css-dev-only-do-not-override-oc1rc0 ant-input-outlined css-var-root ant-input-css-var"
+    placeholder="物料編號"
+    style="width: 130px;"
+    type="text"
+    value=""
+  />
+
+  --------------------------------------------------
+  radiogroup:
+
+  Name "採購單檢視模式":
+  <div
+    aria-label="採購單檢視模式"
+    aria-orientation="horizontal"
+    class="ant-segmented css-dev-only-do-not-override-oc1rc0 css-var-root"
+    role="radiogroup"
+    tabindex="0"
+  />
+
+  --------------------------------------------------
+  radio:
+
+  Name "看板":
+  <input
+    checked=""
+    class="ant-segmented-item-input"
+    name="test-id"
+    type="radio"
+  />
+
+  Name "列表":
+  <input
+    class="ant-segmented-item-input"
+    name="test-id"
+    type="radio"
+  />
+
+  --------------------------------------------------
+  region:
+
+  Name "採購單八階段看板":
+  <section
+    aria-label="採購單八階段看板"
+    class="purchase-order-kanban"
+  />
+
+  Name "採購單八階段流程欄位":
+  <div
+    aria-label="採購單八階段流程欄位"
+    class="purchase-order-kanban__columns"
+    role="region"
+    tabindex="0"
+  />
+
+  Name "待處理／新請購":
+  <section
+    aria-labelledby="stage-NEW_REQUEST"
+    class="purchase-order-kanban__column"
+  />
+
+  Name "詢比議價":
+  <section
+    aria-labelledby="stage-SOURCING"
+    class="purchase-order-kanban__column"
+  />
+
+  Name "審核／簽核中":
+  <section
+    aria-labelledby="stage-APPROVAL"
+    class="purchase-order-kanban__column"
+  />
+
+  Name "已核准待下單":
+  <section
+    aria-labelledby="stage-APPROVED_PENDING_ORDER"
+    class="purchase-order-kanban__column"
+  />
+
+  Name "已下單／生產／交期跟催":
+  <section
+    aria-labelledby="stage-ORDER_FOLLOW_UP"
+    class="purchase-order-kanban__column"
+  />
+
+  Name "到貨驗收":
+  <section
+    aria-labelledby="stage-RECEIVING_INSPECTION"
+    class="purchase-order-kanban__column"
+  />
+
+  Name "請款核銷中":
+  <section
+    aria-labelledby="stage-PAYMENT_RECONCILIATION"
+    class="purchase-order-kanban__column"
+  />
+
+  Name "已完成／封存結案":
+  <section
+    aria-labelledby="stage-COMPLETED"
+    class="purchase-order-kanban__column"
+  />
+
+  --------------------------------------------------dialog:
+
+  Name "":
+  <div
+    aria-labelledby="test-id"
+    aria-modal="true"
+    class="ant-modal css-dev-only-do-not-override-oc1rc0"
+    role="dialog"
+    style="width: 900px;"
+    tabindex="-1"
+  />
+
+  --------------------------------------------------
+  button:
+
+  Name "關閉":
+  <button
+    aria-label="關閉"
+    class="ant-modal-close"
+    type="button"
+  />
+
+  Name "Clear":
+  <button
+    aria-label="Clear"
+    class="ant-select-clear"
+    type="button"
+  />
+
+  Name "Clear":
+  <button
+    aria-label="Clear"
+    class="ant-select-clear"
+    type="button"
+  />
+
+  Name "plus 新增品項":
+  <button
+    class="ant-btn css-dev-only-do-not-override-oc1rc0 css-var-root ant-btn-default ant-btn-color-default ant-btn-variant-outlined"
+    type="button"
+  />
+
+  Name "檢視新草稿":
+  <button
+    class="ant-btn css-dev-only-do-not-override-oc1rc0 css-var-root ant-btn-primary ant-btn-color-primary ant-btn-variant-solid"
+    style="margin-top: 16px;"
+    type="button"
+  />
+
+  --------------------------------------------------
+  img:
+
+  Name "close":
+  <span
+    aria-label="close"
+    class="anticon anticon-close ant-modal-close-icon"
+    role="img"
+  />
+
+  Name "down":
+  <span
+    aria-label="down"
+    class="anticon anticon-down"
+    role="img"
+  />
+
+  Name "close-circle":
+  <span
+    aria-label="close-circle"
+    class="anticon anticon-close-circle"
+    role="img"
+  />
+
+  Name "search":
+  <span
+    aria-label="search"
+    class="anticon anticon-search"
+    role="img"
+  />
+
+  Name "close-circle":
+  <span
+    aria-label="close-circle"
+    class="anticon anticon-close-circle"
+    role="img"
+  />
+
+  Name "plus":
+  <span
+    aria-label="plus"
+    class="anticon anticon-plus"
+    role="img"
+  />
+
+  --------------------------------------------------
+  combobox:
+
+  Name "選取供應商":
+  <input
+    aria-autocomplete="list"
+    aria-expanded="false"
+    aria-haspopup="listbox"
+    aria-label="選取供應商"
+    aria-required="true"
+    autocomplete="new-password"
+    class="ant-select-input"
+    id="supplierId"
+    role="combobox"
+    type="text"
+    value=""
+  />
+
+  Name "選取物料":
+  <input
+    aria-activedescendant="items_0_materialId_list_0"
+    aria-autocomplete="list"
+    aria-controls="items_0_materialId_list"
+    aria-expanded="true"
+    aria-haspopup="listbox"
+    aria-label="選取物料"
+    aria-owns="items_0_materialId_list"
+    aria-required="true"
+    autocomplete="new-password"
+    class="ant-select-input"
+    id="items_0_materialId"
+    role="combobox"
+    type="text"
+    value=""
+  />
+
+  --------------------------------------------------
+  code:
+
+  Name "":
+  <code />
+
+  Name "":
+  <code />
+
+  --------------------------------------------------
+  textbox:
+
+  Name "採購單品項 1 數量":
+  <input
+    aria-label="採購單品項 1 數量"
+    class="ant-input css-dev-only-do-not-override-oc1rc0 ant-input-outlined ant-input-status-validating css-var-root ant-input-css-var"
+    id="items_0_quantity"
+    inputmode="decimal"
+    type="text"
+    value="2"
+  />
+
+  Name "採購單品項 1 單價":
+  <input
+    aria-label="採購單品項 1 單價"
+    class="ant-input css-dev-only-do-not-override-oc1rc0 ant-input-outlined ant-input-status-validating css-var-root ant-input-css-var"
+    id="items_0_unitPrice"
+    inputmode="decimal"
+    type="text"
+    value="100"
+  />
+
+  --------------------------------------------------listbox:
+
+  Name "":
+  <div
+    id="items_0_materialId_list"
+    role="listbox"
+    style="height: 0px; width: 0px; overflow: hidden;"
+  />
+
+  --------------------------------------------------
+  option:
+
+  Name "MAT-010 — 測試物料 (PCS)":
+  <div
+    aria-label="MAT-010 — 測試物料 (PCS)"
+    aria-selected="true"
+    id="items_0_materialId_list_0"
+    role="option"
+  />
+
+  --------------------------------------------------
+
+Ignored nodes: comments, script, style
+<body>
+  <div>
+    <output
+      data-testid="current-route"
+    >
+      /purchase-orders
+    </output>
+    <div
+      class="ant-space css-dev-only-do-not-override-oc1rc0 ant-space-vertical ant-space-gap-row-large ant-space-gap-col-large css-var-root"
+      style="width: 100%;"
+    >
+      <div
+        class="ant-space-item"
+      />
+      <div
+        class="ant-space-item"
+      >
+        <div
+          class="ant-space css-dev-only-do-not-override-oc1rc0 ant-space-horizontal ant-space-align-center ant-space-gap-row-small ant-space-gap-col-small css-var-root"
+          style="flex-wrap: wrap; width: 100%; justify-content: space-between;"
+        >
+          <div
+            class="ant-space-item"
+          >
+            <div>
+              <h2
+                class="ant-typography css-dev-only-do-not-override-oc1rc0 css-var-root"
+                style="margin-bottom: 0px;"
+              >
+                採購單管理
+              </h2>
+              <span
+                class="ant-typography ant-typography-secondary css-dev-only-do-not-override-oc1rc0 css-var-root"
+              >
+                查詢採購單流程與稽核紀錄
+              </span>
+            </div>
+          </div>
+          <div
+            class="ant-space-item"
+          >
+            <button
+              class="ant-btn css-dev-only-do-not-override-oc1rc0 css-var-root ant-btn-primary ant-btn-color-primary ant-btn-variant-solid"
+              type="button"
+            >
+              <span>
+                建立手動草稿
+              </span>
+            </button>
+          </div>
+        </div>
+      </div>
+      <div
+        class="ant-space-item"
+      >
+        <div
+          class="ant-space css-dev-only-do-not-override-oc1rc0 ant-space-horizontal ant-space-align-center ant-space-gap-row-small ant-space-gap-col-small css-var-root"
+          style="flex-wrap: wrap;"
+        >
+          <div
+            class="ant-space-item"
+          >
+            <div
+              class="ant-select ant-select-outlined css-var-root ant-select-css-var css-dev-only-do-not-override-oc1rc0 ant-select-single ant-select-show-arrow"
+              style="width: 150px;"
+            >
+              <div
+                class="ant-select-content"
+              >
+                <div
+                  class="ant-select-placeholder"
+                >
+                  狀態
+                </div>
+                <input
+                  aria-autocomplete="list"
+                  aria-expanded="false"
+                  aria-haspopup="listbox"
+                  autocomplete="new-password"
+                  class="ant-select-input"
+                  id="test-id"
+                  readonly=""
+                  role="combobox"
+                  type="text"
+                  value=""
+                />
+              </div>
+              <div
+                class="ant-select-suffix"
+              >
+                <span
+                  aria-label="down"
+                  class="anticon anticon-down"
+                  role="img"
+                >
+                  <svg
+                    aria-hidden="true"
+                    data-icon="down"
+                    fill="currentColor"
+                    focusable="false"
+                    height="1em"
+                    viewBox="64 64 896 896"
+                    width="1em"
+                  >
+                    <path
+                      d="M884 256h-75c-5.1 0-9.9 2.5-12.9 6.6L512 654.2 227.9 262.6c-3-4.1-7.8-6.6-12.9-6.6h-75c-6.5 0-10.3 7.4-6.5 12.7l352.6 486.1c12.8 17.6 39 17.6 51.7 0l352.6-486.1c3.9-5.3.1-12.7-6.4-12.7z"
+                    />
+                  </svg>
+                </span>
+              </div>
+            </div>
+          </div>
+          <div
+            class="ant-space-item"
+          >
+            <span
+              class="ant-input-affix-wrapper css-dev-only-do-not-override-oc1rc0 ant-input-outlined css-var-root ant-input-css-var"
+              style="width: 190px;"
+            >
+              <input
+                aria-label="採購單號搜尋"
+                class="ant-input css-dev-only-do-not-override-oc1rc0"
+                maxlength="100"
+                placeholder="採購單號"
+                type="text"
+                value=""
+              />
+              <span
+                class="ant-input-suffix"
+              >
+                <button
+                  class="ant-input-clear-icon ant-input-clear-icon-hidden"
+                  type="button"
+                >
+                  <span
+                    aria-label="close-circle"
+                    class="anticon anticon-close-circle"
+                    role="img"
+                  >
+                    <svg
+                      aria-hidden="true"
+                      data-icon="close-circle"
+                      fill="currentColor"
+                      fill-rule="evenodd"
+                      focusable="false"
+                      height="1em"
+           ...
+ ❯ Object.getElementError ../../../../../OneDrive/桌面/dev-side/supplypilot/frontend/node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ ../../../../../OneDrive/桌面/dev-side/supplypilot/frontend/node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ ../../../../../OneDrive/桌面/dev-side/supplypilot/frontend/node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ ../../../../../OneDrive/桌面/dev-side/supplypilot/frontend/node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ submitManualDraft tests/issue143PurchaseOrdersPage.test.tsx:125:26
+    123|   fireEvent.change(screen.getByRole('textbox', { name: '採購單品項 1 單價' })…
+    124|   fireEvent.click(screen.getByRole('button', { name: '檢視新草稿' }));
+    125|   fireEvent.click(screen.getByRole('button', { name: '確認建立草稿' }));
+       |                          ^
+    126| }
+    127|
+ ❯ tests/issue143PurchaseOrdersPage.test.tsx:339:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  tests/issue143PurchaseOrdersPage.test.tsx > Issue #143 purchase-order page views > does not refresh the Kanban or report success after a 403 draft-create failure
+TestingLibraryElementError: Unable to find an accessible element with the role "button" and name "確認建立草稿"
+
+Here are the accessible roles:
+
+  status:
+
+  Name "":
+  <output
+    data-testid="current-route"
+  />
+
+  --------------------------------------------------
+  heading:
+
+  Name "採購單管理":
+  <h2
+    class="ant-typography css-dev-only-do-not-override-oc1rc0 css-var-root"
+    style="margin-bottom: 0px;"
+  />
+
+  Name "待處理／新請購":
+  <h5
+    class="ant-typography css-dev-only-do-not-override-oc1rc0 css-var-root"
+    id="stage-NEW_REQUEST"
+  />
+
+  Name "詢比議價":
+  <h5
+    class="ant-typography css-dev-only-do-not-override-oc1rc0 css-var-root"
+    id="stage-SOURCING"
+  />
+
+  Name "審核／簽核中":
+  <h5
+    class="ant-typography css-dev-only-do-not-override-oc1rc0 css-var-root"
+    id="stage-APPROVAL"
+  />
+
+  Name "已核准待下單":
+  <h5
+    class="ant-typography css-dev-only-do-not-override-oc1rc0 css-var-root"
+    id="stage-APPROVED_PENDING_ORDER"
+  />
+
+  Name "已下單／生產／交期跟催":
+  <h5
+    class="ant-typography css-dev-only-do-not-override-oc1rc0 css-var-root"
+    id="stage-ORDER_FOLLOW_UP"
+  />
+
+  Name "到貨驗收":
+  <h5
+    class="ant-typography css-dev-only-do-not-override-oc1rc0 css-var-root"
+    id="stage-RECEIVING_INSPECTION"
+  />
+
+  Name "請款核銷中":
+  <h5
+    class="ant-typography css-dev-only-do-not-override-oc1rc0 css-var-root"
+    id="stage-PAYMENT_RECONCILIATION"
+  />
+
+  Name "已完成／封存結案":
+  <h5
+    class="ant-typography css-dev-only-do-not-override-oc1rc0 css-var-root"
+    id="stage-COMPLETED"
+  />
+
+  --------------------------------------------------
+  button:
+
+  Name "建立手動草稿":
+  <button
+    class="ant-btn css-dev-only-do-not-override-oc1rc0 css-var-root ant-btn-primary ant-btn-color-primary ant-btn-variant-solid"
+    type="button"
+  />
+
+  --------------------------------------------------
+  combobox:
+
+  Name "":
+  <input
+    aria-autocomplete="list"
+    aria-expanded="false"
+    aria-haspopup="listbox"
+    autocomplete="new-password"
+    class="ant-select-input"
+    id="test-id"
+    readonly=""
+    role="combobox"
+    type="text"
+    value=""
+  />
+
+  Name "":
+  <input
+    aria-autocomplete="list"
+    aria-expanded="false"
+    aria-haspopup="listbox"
+    autocomplete="new-password"
+    class="ant-select-input"
+    id="test-id"
+    readonly=""
+    role="combobox"
+    type="text"
+    value=""
+  />
+
+  --------------------------------------------------
+  img:
+
+  Name "down":
+  <span
+    aria-label="down"
+    class="anticon anticon-down"
+    role="img"
+  />
+
+  Name "down":
+  <span
+    aria-label="down"
+    class="anticon anticon-down"
+    role="img"
+  />
+
+  --------------------------------------------------
+  textbox:
+
+  Name "採購單號搜尋":
+  <input
+    aria-label="採購單號搜尋"
+    class="ant-input css-dev-only-do-not-override-oc1rc0"
+    maxlength="100"
+    placeholder="採購單號"
+    type="text"
+    value=""
+  />
+
+  Name "供應商代碼搜尋":
+  <input
+    aria-label="供應商代碼搜尋"
+    class="ant-input css-dev-only-do-not-override-oc1rc0"
+    maxlength="100"
+    placeholder="供應商代碼"
+    type="text"
+    value=""
+  />
+
+  Name "供應商名稱搜尋":
+  <input
+    aria-label="供應商名稱搜尋"
+    class="ant-input css-dev-only-do-not-override-oc1rc0"
+    maxlength="100"
+    placeholder="供應商名稱"
+    type="text"
+    value=""
+  />
+
+  Name "物料代碼搜尋":
+  <input
+    aria-label="物料代碼搜尋"
+    class="ant-input css-dev-only-do-not-override-oc1rc0"
+    maxlength="100"
+    placeholder="物料代碼"
+    type="text"
+    value=""
+  />
+
+  Name "供應商編號篩選":
+  <input
+    aria-label="供應商編號篩選"
+    class="ant-input css-dev-only-do-not-override-oc1rc0 ant-input-outlined css-var-root ant-input-css-var"
+    placeholder="供應商編號"
+    style="width: 130px;"
+    type="text"
+    value="7"
+  />
+
+  Name "物料編號篩選":
+  <input
+    aria-label="物料編號篩選"
+    class="ant-input css-dev-only-do-not-override-oc1rc0 ant-input-outlined css-var-root ant-input-css-var"
+    placeholder="物料編號"
+    style="width: 130px;"
+    type="text"
+    value=""
+  />
+
+  --------------------------------------------------
+  radiogroup:
+
+  Name "採購單檢視模式":
+  <div
+    aria-label="採購單檢視模式"
+    aria-orientation="horizontal"
+    class="ant-segmented css-dev-only-do-not-override-oc1rc0 css-var-root"
+    role="radiogroup"
+    tabindex="0"
+  />
+
+  --------------------------------------------------
+  radio:
+
+  Name "看板":
+  <input
+    checked=""
+    class="ant-segmented-item-input"
+    name="test-id"
+    type="radio"
+  />
+
+  Name "列表":
+  <input
+    class="ant-segmented-item-input"
+    name="test-id"
+    type="radio"
+  />
+
+  --------------------------------------------------
+  region:
+
+  Name "採購單八階段看板":
+  <section
+    aria-label="採購單八階段看板"
+    class="purchase-order-kanban"
+  />
+
+  Name "採購單八階段流程欄位":
+  <div
+    aria-label="採購單八階段流程欄位"
+    class="purchase-order-kanban__columns"
+    role="region"
+    tabindex="0"
+  />
+
+  Name "待處理／新請購":
+  <section
+    aria-labelledby="stage-NEW_REQUEST"
+    class="purchase-order-kanban__column"
+  />
+
+  Name "詢比議價":
+  <section
+    aria-labelledby="stage-SOURCING"
+    class="purchase-order-kanban__column"
+  />
+
+  Name "審核／簽核中":
+  <section
+    aria-labelledby="stage-APPROVAL"
+    class="purchase-order-kanban__column"
+  />
+
+  Name "已核准待下單":
+  <section
+    aria-labelledby="stage-APPROVED_PENDING_ORDER"
+    class="purchase-order-kanban__column"
+  />
+
+  Name "已下單／生產／交期跟催":
+  <section
+    aria-labelledby="stage-ORDER_FOLLOW_UP"
+    class="purchase-order-kanban__column"
+  />
+
+  Name "到貨驗收":
+  <section
+    aria-labelledby="stage-RECEIVING_INSPECTION"
+    class="purchase-order-kanban__column"
+  />
+
+  Name "請款核銷中":
+  <section
+    aria-labelledby="stage-PAYMENT_RECONCILIATION"
+    class="purchase-order-kanban__column"
+  />
+
+  Name "已完成／封存結案":
+  <section
+    aria-labelledby="stage-COMPLETED"
+    class="purchase-order-kanban__column"
+  />
+
+  --------------------------------------------------dialog:
+
+  Name "":
+  <div
+    aria-labelledby="test-id"
+    aria-modal="true"
+    class="ant-modal css-dev-only-do-not-override-oc1rc0"
+    role="dialog"
+    style="width: 900px;"
+    tabindex="-1"
+  />
+
+  --------------------------------------------------
+  button:
+
+  Name "關閉":
+  <button
+    aria-label="關閉"
+    class="ant-modal-close"
+    type="button"
+  />
+
+  Name "Clear":
+  <button
+    aria-label="Clear"
+    class="ant-select-clear"
+    type="button"
+  />
+
+  Name "Clear":
+  <button
+    aria-label="Clear"
+    class="ant-select-clear"
+    type="button"
+  />
+
+  Name "plus 新增品項":
+  <button
+    class="ant-btn css-dev-only-do-not-override-oc1rc0 css-var-root ant-btn-default ant-btn-color-default ant-btn-variant-outlined"
+    type="button"
+  />
+
+  Name "檢視新草稿":
+  <button
+    class="ant-btn css-dev-only-do-not-override-oc1rc0 css-var-root ant-btn-primary ant-btn-color-primary ant-btn-variant-solid"
+    style="margin-top: 16px;"
+    type="button"
+  />
+
+  --------------------------------------------------
+  img:
+
+  Name "close":
+  <span
+    aria-label="close"
+    class="anticon anticon-close ant-modal-close-icon"
+    role="img"
+  />
+
+  Name "down":
+  <span
+    aria-label="down"
+    class="anticon anticon-down"
+    role="img"
+  />
+
+  Name "close-circle":
+  <span
+    aria-label="close-circle"
+    class="anticon anticon-close-circle"
+    role="img"
+  />
+
+  Name "search":
+  <span
+    aria-label="search"
+    class="anticon anticon-search"
+    role="img"
+  />
+
+  Name "close-circle":
+  <span
+    aria-label="close-circle"
+    class="anticon anticon-close-circle"
+    role="img"
+  />
+
+  Name "plus":
+  <span
+    aria-label="plus"
+    class="anticon anticon-plus"
+    role="img"
+  />
+
+  --------------------------------------------------
+  combobox:
+
+  Name "選取供應商":
+  <input
+    aria-autocomplete="list"
+    aria-expanded="false"
+    aria-haspopup="listbox"
+    aria-label="選取供應商"
+    aria-required="true"
+    autocomplete="new-password"
+    class="ant-select-input"
+    id="supplierId"
+    role="combobox"
+    type="text"
+    value=""
+  />
+
+  Name "選取物料":
+  <input
+    aria-activedescendant="items_0_materialId_list_0"
+    aria-autocomplete="list"
+    aria-controls="items_0_materialId_list"
+    aria-expanded="true"
+    aria-haspopup="listbox"
+    aria-label="選取物料"
+    aria-owns="items_0_materialId_list"
+    aria-required="true"
+    autocomplete="new-password"
+    class="ant-select-input"
+    id="items_0_materialId"
+    role="combobox"
+    type="text"
+    value=""
+  />
+
+  --------------------------------------------------
+  code:
+
+  Name "":
+  <code />
+
+  Name "":
+  <code />
+
+  --------------------------------------------------
+  textbox:
+
+  Name "採購單品項 1 數量":
+  <input
+    aria-label="採購單品項 1 數量"
+    class="ant-input css-dev-only-do-not-override-oc1rc0 ant-input-outlined ant-input-status-validating css-var-root ant-input-css-var"
+    id="items_0_quantity"
+    inputmode="decimal"
+    type="text"
+    value="2"
+  />
+
+  Name "採購單品項 1 單價":
+  <input
+    aria-label="採購單品項 1 單價"
+    class="ant-input css-dev-only-do-not-override-oc1rc0 ant-input-outlined ant-input-status-validating css-var-root ant-input-css-var"
+    id="items_0_unitPrice"
+    inputmode="decimal"
+    type="text"
+    value="100"
+  />
+
+  --------------------------------------------------listbox:
+
+  Name "":
+  <div
+    id="items_0_materialId_list"
+    role="listbox"
+    style="height: 0px; width: 0px; overflow: hidden;"
+  />
+
+  --------------------------------------------------
+  option:
+
+  Name "MAT-010 — 測試物料 (PCS)":
+  <div
+    aria-label="MAT-010 — 測試物料 (PCS)"
+    aria-selected="true"
+    id="items_0_materialId_list_0"
+    role="option"
+  />
+
+  --------------------------------------------------
+
+Ignored nodes: comments, script, style
+<body>
+  <div>
+    <output
+      data-testid="current-route"
+    >
+      /purchase-orders
+    </output>
+    <div
+      class="ant-space css-dev-only-do-not-override-oc1rc0 ant-space-vertical ant-space-gap-row-large ant-space-gap-col-large css-var-root"
+      style="width: 100%;"
+    >
+      <div
+        class="ant-space-item"
+      />
+      <div
+        class="ant-space-item"
+      >
+        <div
+          class="ant-space css-dev-only-do-not-override-oc1rc0 ant-space-horizontal ant-space-align-center ant-space-gap-row-small ant-space-gap-col-small css-var-root"
+          style="flex-wrap: wrap; width: 100%; justify-content: space-between;"
+        >
+          <div
+            class="ant-space-item"
+          >
+            <div>
+              <h2
+                class="ant-typography css-dev-only-do-not-override-oc1rc0 css-var-root"
+                style="margin-bottom: 0px;"
+              >
+                採購單管理
+              </h2>
+              <span
+                class="ant-typography ant-typography-secondary css-dev-only-do-not-override-oc1rc0 css-var-root"
+              >
+                查詢採購單流程與稽核紀錄
+              </span>
+            </div>
+          </div>
+          <div
+            class="ant-space-item"
+          >
+            <button
+              class="ant-btn css-dev-only-do-not-override-oc1rc0 css-var-root ant-btn-primary ant-btn-color-primary ant-btn-variant-solid"
+              type="button"
+            >
+              <span>
+                建立手動草稿
+              </span>
+            </button>
+          </div>
+        </div>
+      </div>
+      <div
+        class="ant-space-item"
+      >
+        <div
+          class="ant-space css-dev-only-do-not-override-oc1rc0 ant-space-horizontal ant-space-align-center ant-space-gap-row-small ant-space-gap-col-small css-var-root"
+          style="flex-wrap: wrap;"
+        >
+          <div
+            class="ant-space-item"
+          >
+            <div
+              class="ant-select ant-select-outlined css-var-root ant-select-css-var css-dev-only-do-not-override-oc1rc0 ant-select-single ant-select-show-arrow"
+              style="width: 150px;"
+            >
+              <div
+                class="ant-select-content"
+              >
+                <div
+                  class="ant-select-placeholder"
+                >
+                  狀態
+                </div>
+                <input
+                  aria-autocomplete="list"
+                  aria-expanded="false"
+                  aria-haspopup="listbox"
+                  autocomplete="new-password"
+                  class="ant-select-input"
+                  id="test-id"
+                  readonly=""
+                  role="combobox"
+                  type="text"
+                  value=""
+                />
+              </div>
+              <div
+                class="ant-select-suffix"
+              >
+                <span
+                  aria-label="down"
+                  class="anticon anticon-down"
+                  role="img"
+                >
+                  <svg
+                    aria-hidden="true"
+                    data-icon="down"
+                    fill="currentColor"
+                    focusable="false"
+                    height="1em"
+                    viewBox="64 64 896 896"
+                    width="1em"
+                  >
+                    <path
+                      d="M884 256h-75c-5.1 0-9.9 2.5-12.9 6.6L512 654.2 227.9 262.6c-3-4.1-7.8-6.6-12.9-6.6h-75c-6.5 0-10.3 7.4-6.5 12.7l352.6 486.1c12.8 17.6 39 17.6 51.7 0l352.6-486.1c3.9-5.3.1-12.7-6.4-12.7z"
+                    />
+                  </svg>
+                </span>
+              </div>
+            </div>
+          </div>
+          <div
+            class="ant-space-item"
+          >
+            <span
+              class="ant-input-affix-wrapper css-dev-only-do-not-override-oc1rc0 ant-input-outlined css-var-root ant-input-css-var"
+              style="width: 190px;"
+            >
+              <input
+                aria-label="採購單號搜尋"
+                class="ant-input css-dev-only-do-not-override-oc1rc0"
+                maxlength="100"
+                placeholder="採購單號"
+                type="text"
+                value=""
+              />
+              <span
+                class="ant-input-suffix"
+              >
+                <button
+                  class="ant-input-clear-icon ant-input-clear-icon-hidden"
+                  type="button"
+                >
+                  <span
+                    aria-label="close-circle"
+                    class="anticon anticon-close-circle"
+                    role="img"
+                  >
+                    <svg
+                      aria-hidden="true"
+                      data-icon="close-circle"
+                      fill="currentColor"
+                      fill-rule="evenodd"
+                      focusable="false"
+                      height="1em"
+           ...
+ ❯ Object.getElementError ../../../../../OneDrive/桌面/dev-side/supplypilot/frontend/node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ ../../../../../OneDrive/桌面/dev-side/supplypilot/frontend/node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ ../../../../../OneDrive/桌面/dev-side/supplypilot/frontend/node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ ../../../../../OneDrive/桌面/dev-side/supplypilot/frontend/node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ submitManualDraft tests/issue143PurchaseOrdersPage.test.tsx:125:26
+    123|   fireEvent.change(screen.getByRole('textbox', { name: '採購單品項 1 單價' })…
+    124|   fireEvent.click(screen.getByRole('button', { name: '檢視新草稿' }));
+    125|   fireEvent.click(screen.getByRole('button', { name: '確認建立草稿' }));
+       |                          ^
+    126| }
+    127|
+ ❯ tests/issue143PurchaseOrdersPage.test.tsx:364:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 5 skipped (7)
+   Start at  13:47:53
+   Duration  61.00s (transform 410ms, setup 263ms, import 4.96s, tests 54.60s, environment 862ms)
+
+PO_DRAFT_CASES_EXIT_CODE=1

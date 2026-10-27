@@ -83,7 +83,7 @@ function quickActionsForRole(role: UserRole): QuickAction[] {
       { path: 'purchase-orders', label: '查看採購單', description: '查詢草稿、核准、下單與歷史狀態。' },
     ],
     PROCUREMENT_MANAGER: [
-      { path: 'purchase-orders', label: '審核採購單', description: '檢視 DRAFT 並執行授權的核准或退回。' },
+      { path: 'purchase-orders', label: '審核採購單', description: '檢視草稿並執行授權的核准或退回。' },
     ],
     WAREHOUSE_STAFF: [
       { path: 'receiving/purchase-orders', label: '開啟收貨作業', description: '查看待收貨採購單並執行整筆收貨。' },
@@ -133,14 +133,14 @@ function rowDescription(row: WorkRow): ReactNode {
     return <Space wrap size={[8, 4]}>
       <Text>{row.supplierCode} · {row.supplierName}</Text>
       <Text type="secondary">預計交期：{formatDate(row.expectedDeliveryDate, '未設定')}</Text>
-      {row.isOverdue && <Tag color="red">已逾期</Tag>}
+      {row.isOverdue && <Tag className="dashboard-overdue">已逾期</Tag>}
     </Space>;
   }
   if (isReceivingOrder(row)) {
     return <Space wrap size={[8, 4]}>
       <Text>{row.supplierCode} · {row.supplierName}</Text>
       <Text type="secondary">預計交期：{formatDate(row.expectedDeliveryDate, '未設定')}</Text>
-      {row.isOverdue && <Tag color="red">已逾期</Tag>}
+      {row.isOverdue && <Tag className="dashboard-overdue">已逾期</Tag>}
     </Space>;
   }
   return null;
@@ -150,7 +150,7 @@ function rowTitle(row: WorkRow): ReactNode {
   if (isPurchaseOrder(row) || isReceivingOrder(row)) {
     return <Space wrap>
       <Text strong>{row.poNumber}</Text>
-      <Tag color={row.status === 'DRAFT' ? 'default' : row.status === 'APPROVED' ? 'blue' : 'gold'}>{displayLabel(row.status)}</Tag>
+      <Tag className={`dashboard-status dashboard-status--${row.status.toLowerCase()}`}>{displayLabel(row.status)}</Tag>
     </Space>;
   }
   return null;
@@ -177,14 +177,14 @@ function DashboardWorkPanel({
   role: UserRole;
   onRetry: () => void;
 }) {
-  return <section className="dashboard-panel" aria-labelledby={`${definition.key}-heading`}>
+  return <section className="dashboard-panel" data-panel-state={state.status.toLowerCase()} aria-labelledby={`${definition.key}-heading`}>
     <div className="dashboard-panel-heading">
       <div>
         <Title level={4} id={`${definition.key}-heading`}>{definition.title}</Title>
         <Paragraph type="secondary">{definition.description}</Paragraph>
       </div>
       {(state.status === 'READY' || state.status === 'EMPTY') && (
-        <Tag color={state.status === 'EMPTY' ? 'default' : 'blue'}>
+        <Tag className={`dashboard-count dashboard-count--${state.status.toLowerCase()}`}>
           {state.status === 'EMPTY' ? '目前 0 筆' : `顯示 ${state.rows.length} 筆／符合條件共 ${state.totalElements} 筆`}
         </Tag>
       )}
@@ -227,7 +227,7 @@ function DashboardWorkPanel({
         />
       </List.Item>}
     />}
-    <Link className="dashboard-panel-link" to={definition.destination}>前往{definition.kind === 'receiving' ? '收貨作業' : '採購單清單'}</Link>
+    <Link className="dashboard-panel-link" to={definition.destination}>前往{definition.kind === 'receiving' ? '收貨作業' : '採購單清單'}<span aria-hidden="true">→</span></Link>
   </section>;
 }
 
@@ -313,17 +313,22 @@ export const DashboardPage = () => {
   const partial = hasLoadedPanel && hasUnavailablePanel;
   const actions = quickActionsForRole(user.role);
 
-  return <main className="dashboard-workspace">
-    <header className="dashboard-header">
-      <div>
+  return <section className="dashboard-workspace sp-page">
+    <header className="dashboard-header sp-page__heading">
+      <div className="dashboard-header__copy">
+        <Text className="dashboard-eyebrow">採購與營運</Text>
         <Title level={2}>工作總覽</Title>
-        <Paragraph type="secondary">{user.displayName} · {roleLabels[user.role]}</Paragraph>
+        <Paragraph className="sp-page__lead" type="secondary">依目前角色整理可處理的採購與收貨工作。</Paragraph>
       </div>
-      <Text type="secondary">依目前登入角色顯示已授權的工作資料</Text>
+      <div className="dashboard-header__context">
+        <Text className="dashboard-header__context-label">目前登入</Text>
+        <Text strong className="dashboard-header__name">{user.displayName}</Text>
+        <Tag className="dashboard-role">{roleLabels[user.role]}</Tag>
+      </div>
     </header>
 
-    <section className="dashboard-primary" aria-labelledby="dashboard-work-heading">
-      <Title level={3} id="dashboard-work-heading">優先工作</Title>
+    <section className="dashboard-primary sp-section" aria-labelledby="dashboard-work-heading">
+      <div className="dashboard-section-heading sp-section__heading"><div><Text className="dashboard-eyebrow">工作佇列</Text><Title level={3} id="dashboard-work-heading">優先工作</Title></div><Text type="secondary">依後端目前狀態顯示；各工作區可獨立重新查詢。</Text></div>
       {partial && <Alert
         className="dashboard-partial-alert"
         type="warning"
@@ -342,23 +347,22 @@ export const DashboardPage = () => {
       </div> : <LoadingState tip="正在準備角色工作區…" skeleton rows={3} />}
     </section>
 
-    <section className="dashboard-quick-actions" aria-labelledby="dashboard-actions-heading">
-      <Title level={3} id="dashboard-actions-heading">常用工作入口</Title>
+    <section className="dashboard-quick-actions sp-section" aria-labelledby="dashboard-actions-heading">
+      <div className="dashboard-section-heading sp-section__heading"><div><Text className="dashboard-eyebrow">快速導覽</Text><Title level={3} id="dashboard-actions-heading">常用工作入口</Title></div><Text type="secondary">開啟已授權的工作清單。</Text></div>
       <List
         className="dashboard-action-list"
-        grid={{ gutter: 24, xs: 1, sm: 2, lg: 3 }}
         dataSource={actions}
         rowKey="path"
         renderItem={(action) => <List.Item>
           <div className="dashboard-action">
-            <Link to={action.path}>{action.label}</Link>
+            <Link className="dashboard-action-link" to={action.path}><span>{action.label}</span><span className="dashboard-action-link__arrow" aria-hidden="true">→</span></Link>
             <Text type="secondary">{action.description}</Text>
           </div>
         </List.Item>}
       />
       {actions.length === 0 && <Paragraph type="secondary">此角色目前沒有額外的工作入口。</Paragraph>}
     </section>
-  </main>;
+  </section>;
 };
 
 export default DashboardPage;

@@ -17,7 +17,7 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
   simple = false,
 }) => {
   return (
-    <div style={{ padding: '32px 0' }} data-testid="empty-state">
+    <div className={`sp-empty-state${simple ? ' sp-empty-state--simple' : ''}`} data-testid="empty-state">
       <Empty
         image={simple ? Empty.PRESENTED_IMAGE_SIMPLE : Empty.PRESENTED_IMAGE_DEFAULT}
         description={description}

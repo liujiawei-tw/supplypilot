@@ -1,0 +1,15 @@
+/* Historical recommendation snapshot detail route. */
+.sp-page.legacy-recommendation-detail { display: grid; min-width: 0; gap: 22px; color: var(--sp-ink, #16283b); }
+.legacy-recommendation-detail__heading { align-items: center; }
+.legacy-recommendation-detail__heading > div { display: grid; min-width: 0; gap: 6px; }
+.legacy-recommendation-detail__heading h2.ant-typography { color: var(--sp-ink, #16283b); }
+.legacy-recommendation-detail__heading .ant-space { align-items: center; gap: 10px; }
+.legacy-recommendation-detail__heading .ant-typography { margin: 0; color: var(--sp-ink, #16283b); }
+.legacy-recommendation-detail__intro { margin-top: 2px; }
+.legacy-recommendation-detail__tag { margin: 0; border-color: var(--sp-line, #dbe4ec); background: var(--sp-surface-muted, #f7f9fb); color: var(--sp-muted, #53697e); font-weight: 650; }
+.legacy-recommendation-detail__result { min-width: 0; }
+@media (max-width: 680px) {
+  .sp-page.legacy-recommendation-detail { gap: 18px; }
+  .legacy-recommendation-detail__heading { align-items: flex-start; flex-direction: column; }
+  .legacy-recommendation-detail__heading > a, .legacy-recommendation-detail__heading > a .ant-btn { width: 100%; }
+}

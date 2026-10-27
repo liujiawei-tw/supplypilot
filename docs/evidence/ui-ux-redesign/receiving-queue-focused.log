@@ -1,0 +1,20 @@
+
+> frontend@0.0.0 test
+> vitest run --maxWorkers=1 --reporter=dot tests/sp807.test.tsx --testNamePattern=presents the receiving route
+
+
+ RUN  v4.1.11 C:/Users/z0976/.codex/worktrees/procurement-tool-ux-redesign/supplypilot/frontend
+
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+stderr | tests/sp807.test.tsx > SP-807 receiving and import verification boundaries > presents the receiving route as a read-only status and inspection work queue
+Warning: [antd: Spin] `tip` is deprecated. Please use `description` instead.
+
+-----------·---
+
+ Test Files  1 passed (1)
+      Tests  1 passed | 14 skipped (15)
+   Start at  14:46:44
+   Duration  8.74s (transform 1.23s, setup 196ms, import 5.02s, tests 2.66s, environment 679ms)
+
+
+PROCESS_EXIT_CODE=0

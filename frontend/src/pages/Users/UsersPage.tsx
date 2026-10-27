@@ -4,6 +4,7 @@ import type { ColumnsType } from 'antd/es/table';
 import { createUser, deleteUser, listUsers, updateUser } from '../../api/users';
 import { roleLabels } from '../../auth/permissions';
 import type { UserRecord, UserStatus } from '../../types/api';
+import './UsersPage.css';
 
 export default function UsersPage() {
   const [users, setUsers] = useState<UserRecord[]>([]);
@@ -82,23 +83,39 @@ export default function UsersPage() {
   };
 
   const columns: ColumnsType<UserRecord> = [
-    { title: '帳號', dataIndex: 'username', key: 'username' },
+    { title: '帳號', dataIndex: 'username', key: 'username', render: (username: string) => <Typography.Text strong>{username}</Typography.Text> },
     { title: '顯示名稱', dataIndex: 'displayName', key: 'displayName' },
     { title: '業務角色', key: 'role', render: () => roleLabels.ADMIN },
-    { title: '人員管理', dataIndex: 'canManageUsers', key: 'canManageUsers', render: (allowed: boolean) => allowed ? '已授權' : '未授權' },
+    { title: '人員管理', dataIndex: 'canManageUsers', key: 'canManageUsers', render: (allowed: boolean) => <Tag color={allowed ? 'green' : 'default'}>{allowed ? '已授權' : '未授權'}</Tag> },
     { title: '狀態', dataIndex: 'status', key: 'status', render: (status: UserStatus) => <Tag color={status === 'ACTIVE' ? 'green' : 'default'}>{status === 'ACTIVE' ? '啟用' : '停用'}</Tag> },
-    { title: '操作', key: 'action', render: (_, record) => <Space><Button onClick={() => openEdit(record)}>編輯</Button><Button danger onClick={() => confirmDelete(record)}>永久刪除</Button></Space> },
+    { title: '操作', key: 'action', render: (_, record) => <Space wrap><Button onClick={() => openEdit(record)} style={{ minHeight: 44 }}>編輯</Button><Button danger onClick={() => confirmDelete(record)} style={{ minHeight: 44 }}>永久刪除</Button></Space> },
   ];
 
-  return <section>
-    <Space style={{ width: '100%', justifyContent: 'space-between', marginBottom: 16 }}>
-      <div><Typography.Title level={2}>人員管理</Typography.Title><Typography.Text type="secondary">管理採購業務帳號與獨立的人員管理授權。</Typography.Text></div>
-      <Button type="primary" onClick={() => { setCreateError(''); setCreateOpen(true); }}>新增人員</Button>
+  return <section className="sp-page users-workspace" aria-labelledby="users-page-title">
+    <header className="users-workspace__heading sp-page__heading">
+      <div>
+        <Typography.Title id="users-page-title" level={2}>人員管理</Typography.Title>
+        <Typography.Text className="users-workspace__intro sp-page__lead">管理業務帳號，並獨立核發人員管理權限。</Typography.Text>
+      </div>
+      <Button className="users-workspace__create" type="primary" onClick={() => { setCreateError(''); setCreateOpen(true); }}>新增人員</Button>
+    </header>
+    <Space className="users-workspace__body" orientation="vertical" size="middle" style={{ display: 'flex', width: '100%' }}>
+      <Typography.Text className="users-workspace__count" type="secondary" aria-live="polite">{loading ? <span>正在載入人員清單…</span> : <>目前清單共 {users.length} 位人員</>}</Typography.Text>
+      {error && <Alert type="error" showIcon message={error} closable onClose={() => setError('')} />}
+      <div className="users-workspace__table">
+      <Table
+        rowKey="id"
+        columns={columns}
+        dataSource={users}
+        loading={loading}
+        scroll={{ x: 'max-content' }}
+        locale={{ emptyText: loading ? '正在載入人員清單…' : '目前沒有人員資料' }}
+        pagination={{ pageSize: 20 }}
+      />
+      </div>
     </Space>
-    {error && <Alert type="error" showIcon message={error} closable onClose={() => setError('')} style={{ marginBottom: 16 }} />}
-    <Table rowKey="id" columns={columns} dataSource={users} loading={loading} pagination={{ pageSize: 20 }} />
 
-    <Modal title="新增人員" open={createOpen} onCancel={() => setCreateOpen(false)} onOk={() => createForm.submit()} okText="建立帳號">
+    <Modal className="users-workspace__modal" title="新增人員" open={createOpen} onCancel={() => setCreateOpen(false)} onOk={() => createForm.submit()} okText="建立帳號">
       {createError && <Alert type="error" message={createError} showIcon style={{ marginBottom: 16 }} />}
       <Form form={createForm} layout="vertical" onFinish={saveNew}>
         <Form.Item name="username" label="帳號" rules={[{ required: true, whitespace: true, max: 50, message: '請輸入 1 至 50 個字元的帳號' }]}><Input maxLength={50} /></Form.Item>
@@ -108,7 +125,7 @@ export default function UsersPage() {
       </Form>
     </Modal>
 
-    <Modal title={`編輯人員：${editing?.username ?? ''}`} open={!!editing} onCancel={() => setEditing(null)} onOk={() => editForm.submit()} okText="儲存">
+    <Modal className="users-workspace__modal" title={`編輯人員：${editing?.username ?? ''}`} open={!!editing} onCancel={() => setEditing(null)} onOk={() => editForm.submit()} okText="儲存">
       <Form form={editForm} layout="vertical" onFinish={saveEdit}>
         <Form.Item name="displayName" label="顯示名稱" rules={[{ required: true, whitespace: true, max: 100, message: '請輸入顯示名稱' }]}><Input maxLength={100} /></Form.Item>
         <Form.Item name="canManageUsers" label="人員管理權限" valuePropName="checked"><Switch checkedChildren="授權" unCheckedChildren="無" /></Form.Item>

@@ -34,6 +34,7 @@ interface PurchaseOrderKanbanProps {
   reason?: string;
   onRetry?: () => void;
   onRefresh?: () => void;
+  onSelectPurchaseOrder?: (purchaseOrder: PurchaseOrderResponse) => void;
 }
 
 function stageLabel(stage: PurchaseOrderStage | null): string {
@@ -79,7 +80,7 @@ function confirmationDescription(transition: PurchaseOrderStageTransition): stri
   }
 }
 
-export default function PurchaseOrderKanban({ state, snapshot, gateway, error, reason, onRetry, onRefresh }: PurchaseOrderKanbanProps) {
+export default function PurchaseOrderKanban({ state, snapshot, gateway, error, reason, onRetry, onRefresh, onSelectPurchaseOrder }: PurchaseOrderKanbanProps) {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [items, setItems] = useState<PurchaseOrderResponse[]>(snapshot?.purchaseOrders ?? []);
@@ -303,6 +304,7 @@ export default function PurchaseOrderKanban({ state, snapshot, gateway, error, r
                     <Tag color={statusColors[po.status]}>{displayLabel(po.status)}</Tag>
                     <Tag>{stageLabel(po.stage)}</Tag>
                   </Space>
+                  {onSelectPurchaseOrder && <Button className="po-inspector-open" type="link" aria-label={`快速查看採購單 ${po.poNumber}`} onClick={() => onSelectPurchaseOrder(po)}>快速預覽</Button>}
                   <Link className="purchase-order-kanban__details-link" to={`/purchase-orders/${po.id}`} aria-label={`檢視採購單 ${po.poNumber}`}>檢視採購單</Link>
                   {nextTransition && canUse(po, nextTransition) && !requiresReceivingDetail(nextTransition) && <Button
                     className="purchase-order-kanban__transition-action"

@@ -1,0 +1,2051 @@
+
+> frontend@0.0.0 test
+> vitest run
+
+
+ RUN  v4.1.11 C:/Users/z0976/.codex/worktrees/procurement-tool-ux-redesign/supplypilot/frontend
+
+Could not parse CSS stylesheet
+Could not parse CSS stylesheet
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Could not parse CSS stylesheet
+Could not parse CSS stylesheet
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+stderr | tests/sp805.test.tsx > SP-805 PO lifecycle UI > moves an ordered PO into receiving inspection and removes its cancellation action
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Could not parse CSS stylesheet
+Could not parse CSS stylesheet
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Could not parse CSS stylesheet
+Could not parse CSS stylesheet
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Could not parse CSS stylesheet
+Could not parse CSS stylesheet
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Could not parse CSS stylesheet
+Could not parse CSS stylesheet
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Could not parse CSS stylesheet
+Could not parse CSS stylesheet
+stderr | tests/sp805.test.tsx > SP-805 PO lifecycle UI > creates a Manual DRAFT with exact decimal strings after explicit confirmation
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+stderr | tests/sp805.test.tsx > SP-805 PO lifecycle UI > creates a Manual DRAFT with exact decimal strings after explicit confirmation
+Warning: [antd: Alert] `message` is deprecated. Please use `title` instead.
+
+stderr | tests/sp805.test.tsx > SP-805 PO lifecycle UI > creates a Manual DRAFT with exact decimal strings after explicit confirmation
+Warning: [antd: Alert] `message` is deprecated. Please use `title` instead.
+
+stderr | tests/sp805.test.tsx > SP-805 PO lifecycle UI > creates a Manual DRAFT with exact decimal strings after explicit confirmation
+Warning: [antd: Alert] `message` is deprecated. Please use `title` instead.
+
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Could not parse CSS stylesheet
+Could not parse CSS stylesheet
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Could not parse CSS stylesheet
+Could not parse CSS stylesheet
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Could not parse CSS stylesheet
+Could not parse CSS stylesheet
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+stderr | tests/sp805.test.tsx > SP-805 PO lifecycle UI > creates a DRAFT with the exact IDs of page-6 master records and does not confuse duplicate names
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+stderr | tests/sp805.test.tsx > SP-805 PO lifecycle UI > creates a DRAFT with the exact IDs of page-6 master records and does not confuse duplicate names
+Warning: [antd: Alert] `message` is deprecated. Please use `title` instead.
+
+stderr | tests/sp805.test.tsx > SP-805 PO lifecycle UI > creates a DRAFT with the exact IDs of page-6 master records and does not confuse duplicate names
+Warning: [antd: Alert] `message` is deprecated. Please use `title` instead.
+
+stderr | tests/sp805.test.tsx > SP-805 PO lifecycle UI > restores off-page master labels in edit and preserves recommendation evidence and price snapshot
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Could not parse CSS stylesheet
+Could not parse CSS stylesheet
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Could not parse CSS stylesheet
+Could not parse CSS stylesheet
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+ ❯ tests/issue143PurchaseOrdersPage.test.tsx (7 tests | 3 failed) 112944ms
+     × refreshes the current Kanban from backend after a successful draft create 30948ms
+     × does not refresh the Kanban or report success after a 403 draft-create failure 31199ms
+     × does not refresh the Kanban or report success after a network error draft-create failure 31726ms
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Could not parse CSS stylesheet
+Could not parse CSS stylesheet
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+stderr | tests/demandInventory.test.tsx > SP-802 Inventory UI > keeps adjustment input and marks a 409 result unknown without retrying
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+ ❯ tests/demandInventory.test.tsx (13 tests | 2 failed) 131984ms
+     × shows detail and allows Warehouse to submit a signed adjustment exactly once before refetch 31797ms
+     × keeps adjustment input and marks a 409 result unknown without retrying 31896ms
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Could not parse CSS stylesheet
+Could not parse CSS stylesheet
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Could not parse CSS stylesheet
+Could not parse CSS stylesheet
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+ ❯ tests/sp805.test.tsx (18 tests | 4 failed) 177340ms
+     × moves an ordered PO into receiving inspection and removes its cancellation action 1068ms
+     × creates a Manual DRAFT with exact decimal strings after explicit confirmation 35066ms
+     × creates a DRAFT with the exact IDs of page-6 master records and does not confuse duplicate names 31776ms
+     × restores off-page master labels in edit and preserves recommendation evidence and price snapshot 1161ms
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+ ❯ tests/masterData.test.tsx (14 tests | 3 failed) 185325ms
+     × validates Material fields, creates once, then refetches 32089ms
+     × keeps Supplier create and edit values when backend submissions fail 42804ms
+     × creates and edits SupplierMaterial through the UI without PATCHing immutable relationships or currency 27633ms
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Could not parse CSS stylesheet
+Could not parse CSS stylesheet
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Could not parse CSS stylesheet
+Could not parse CSS stylesheet
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Could not parse CSS stylesheet
+Could not parse CSS stylesheet
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Could not parse CSS stylesheet
+Could not parse CSS stylesheet
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Could not parse CSS stylesheet
+Could not parse CSS stylesheet
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Could not parse CSS stylesheet
+Could not parse CSS stylesheet
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Could not parse CSS stylesheet
+Could not parse CSS stylesheet
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Could not parse CSS stylesheet
+Could not parse CSS stylesheet
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Could not parse CSS stylesheet
+Could not parse CSS stylesheet
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 12 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/demandInventory.test.tsx > SP-802 Inventory UI > shows detail and allows Warehouse to submit a signed adjustment exactly once before refetch
+Error: Test timed out in 30000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+ ❯ tests/demandInventory.test.tsx:194:3
+    192|   });
+    193|
+    194|   it('shows detail and allows Warehouse to submit a signed adjustment …
+       |   ^
+    195|     const requests: InternalAxiosRequestConfig[] = [];
+    196|     let finishAdjustment!: () => void;
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/12]⎯
+
+ FAIL  tests/demandInventory.test.tsx > SP-802 Inventory UI > keeps adjustment input and marks a 409 result unknown without retrying
+Error: Test timed out in 30000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+ ❯ tests/demandInventory.test.tsx:224:3
+    222|   }, 30_000);
+    223|
+    224|   it('keeps adjustment input and marks a 409 result unknown without re…
+       |   ^
+    225|     const requests: InternalAxiosRequestConfig[] = [];
+    226|     axiosClient.defaults.adapter = vi.fn(async (config) => {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/12]⎯
+
+ FAIL  tests/issue143PurchaseOrdersPage.test.tsx > Issue #143 purchase-order page views > refreshes the current Kanban from backend after a successful draft create
+Error: Test timed out in 30000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+ ❯ tests/issue143PurchaseOrdersPage.test.tsx:330:3
+    328|   });
+    329|
+    330|   it('refreshes the current Kanban from backend after a successful dra…
+       |   ^
+    331|     backendPurchaseOrders = [otherSupplierPurchaseOrder];
+    332|     renderPage(purchaserAuthValue);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/12]⎯
+
+ FAIL  tests/issue143PurchaseOrdersPage.test.tsx > Issue #143 purchase-order page views > does not refresh the Kanban or report success after a 403 draft-create failure
+ FAIL  tests/issue143PurchaseOrdersPage.test.tsx > Issue #143 purchase-order page views > does not refresh the Kanban or report success after a network error draft-create failure
+Error: Test timed out in 30000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+ ❯ tests/issue143PurchaseOrdersPage.test.tsx:354:14
+    352|     ['403', 'forbidden', '採購單草稿建立失敗'],
+    353|     ['network error', 'network', '建立結果不明，已鎖定再次送出'],
+    354|   ] as const)('does not refresh the Kanban or report success after a %…
+       |              ^
+    355|     purchaseOrderCreateFailure = failure;
+    356|     backendPurchaseOrders = [otherSupplierPurchaseOrder];
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/12]⎯
+
+ FAIL  tests/masterData.test.tsx > master data pages > validates Material fields, creates once, then refetches
+Error: Test timed out in 30000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+ ❯ tests/masterData.test.tsx:77:3
+     75|   });
+     76|
+     77|   it('validates Material fields, creates once, then refetches', async …
+       |   ^
+     78|     const requests: InternalAxiosRequestConfig[] = [];
+     79|     let finishCreate!: () => void;
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/12]⎯
+
+ FAIL  tests/masterData.test.tsx > master data pages > keeps Supplier create and edit values when backend submissions fail
+Error: Test timed out in 40000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+ ❯ tests/masterData.test.tsx:244:3
+    242|   }, 20_000);
+    243|
+    244|   it('keeps Supplier create and edit values when backend submissions f…
+       |   ^
+    245|     const requests: InternalAxiosRequestConfig[] = [];
+    246|     axiosClient.defaults.adapter = vi.fn(async (config) => {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/12]⎯
+
+ FAIL  tests/masterData.test.tsx > master data pages > creates and edits SupplierMaterial through the UI without PATCHing immutable relationships or currency
+TestingLibraryElementError: Unable to find an element with the text: SUP-001 — Taiwan Foods. This could be because the text is broken up by multiple elements. In this case, you can provide a function for your text matcher to make your matcher more flexible.
+
+Ignored nodes: comments, script, style
+<body>
+  <div>
+    <section
+      aria-labelledby="suppliers-page-title"
+      class="sp-page supplier-workspace"
+    >
+      <header
+        class="supplier-workspace__heading sp-page__heading"
+      >
+        <div>
+          <h2
+            class="ant-typography css-dev-only-do-not-override-oc1rc0 css-var-root"
+            id="suppliers-page-title"
+          >
+            供應商
+          </h2>
+          <span
+            class="ant-typography supplier-workspace__intro sp-page__lead css-dev-only-do-not-override-oc1rc0 css-var-root"
+          >
+            查找供應商資料，並檢視其供應物料條件。
+          </span>
+        </div>
+      </header>
+      <div
+        class="ant-tabs ant-tabs-top supplier-workspace__tabs css-dev-only-do-not-override-oc1rc0 css-var-root ant-tabs-css-var"
+      >
+        <div
+          aria-orientation="horizontal"
+          class="ant-tabs-nav"
+          role="tablist"
+        >
+          <div
+            class="ant-tabs-nav-wrap"
+          >
+            <div
+              class="ant-tabs-nav-list"
+              style="transform: translate(0px, 0px);"
+            >
+              <div
+                class="ant-tabs-tab"
+                data-node-key="suppliers"
+              >
+                <div
+                  aria-controls="rc-tabs-test-panel-suppliers"
+                  aria-selected="false"
+                  class="ant-tabs-tab-btn"
+                  id="rc-tabs-test-tab-suppliers"
+                  role="tab"
+                  tabindex="-1"
+                >
+                  供應商目錄
+                </div>
+              </div>
+              <div
+                class="ant-tabs-tab ant-tabs-tab-active"
+                data-node-key="supplier-materials"
+              >
+                <div
+                  aria-controls="rc-tabs-test-panel-supplier-materials"
+                  aria-selected="true"
+                  class="ant-tabs-tab-btn"
+                  id="rc-tabs-test-tab-supplier-materials"
+                  role="tab"
+                  tabindex="0"
+                >
+                  供應商物料
+                </div>
+              </div>
+              <div
+                class="ant-tabs-ink-bar ant-tabs-ink-bar-animated"
+                style="width: 0px; left: 0px; transform: translateX(-50%);"
+              />
+            </div>
+          </div>
+          <div
+            class="ant-tabs-nav-operations ant-tabs-nav-operations-hidden"
+          >
+            <button
+              aria-controls="rc-tabs-test-more-popup"
+              aria-expanded="false"
+              aria-haspopup="listbox"
+              class="ant-tabs-nav-more"
+              id="rc-tabs-test-more"
+              style="visibility: hidden; order: 1;"
+              type="button"
+            >
+              <span
+                aria-label="ellipsis"
+                class="anticon anticon-ellipsis"
+                role="img"
+              >
+                <svg
+                  aria-hidden="true"
+                  data-icon="ellipsis"
+                  fill="currentColor"
+                  focusable="false"
+                  height="1em"
+                  viewBox="64 64 896 896"
+                  width="1em"
+                >
+                  <path
+                    d="M176 511a56 56 0 10112 0 56 56 0 10-112 0zm280 0a56 56 0 10112 0 56 56 0 10-112 0zm280 0a56 56 0 10112 0 56 56 0 10-112 0z"
+                  />
+                </svg>
+              </span>
+            </button>
+          </div>
+        </div>
+        <div
+          class="ant-tabs-body-holder"
+        >
+          <div
+            class="ant-tabs-body ant-tabs-body-top"
+          >
+            <div
+              aria-hidden="false"
+              aria-labelledby="rc-tabs-test-tab-supplier-materials"
+              class="ant-tabs-content ant-tabs-content-active"
+              id="rc-tabs-test-panel-supplier-materials"
+              role="tabpanel"
+              tabindex="0"
+            >
+              <div
+                class="ant-space css-dev-only-do-not-override-oc1rc0 ant-space-vertical ant-space-gap-row-middle ant-space-gap-col-middle supplier-material-workspace sp-section css-var-root"
+                style="width: 100%;"
+              >
+                <div
+                  class="ant-space-item"
+                />
+                <div
+                  class="ant-space-item"
+                >
+                  <div
+                    class="supplier-material-workspace__heading sp-section__heading"
+                  >
+                    <div>
+                      <h3
+                        class="ant-typography supplier-material-workspace__title css-dev-only-do-not-override-oc1rc0 css-var-root"
+                      >
+                        供應物料關聯
+                      </h3>
+                      <span
+                        class="ant-typography supplier-material-workspace__intro sp-page__lead css-dev-only-do-not-override-oc1rc0 css-var-root"
+                      >[3...
+
+Ignored nodes: comments, script, style
+<body>
+  <div>
+    <section
+      aria-labelledby="suppliers-page-title"
+      class="sp-page supplier-workspace"
+    >
+      <header
+        class="supplier-workspace__heading sp-page__heading"
+      >
+        <div>
+          <h2
+            class="ant-typography css-dev-only-do-not-override-oc1rc0 css-var-root"
+            id="suppliers-page-title"
+          >
+            供應商
+          </h2>
+          <span
+            class="ant-typography supplier-workspace__intro sp-page__lead css-dev-only-do-not-override-oc1rc0 css-var-root"
+          >
+            查找供應商資料，並檢視其供應物料條件。
+          </span>
+        </div>
+      </header>
+      <div
+        class="ant-tabs ant-tabs-top supplier-workspace__tabs css-dev-only-do-not-override-oc1rc0 css-var-root ant-tabs-css-var"
+      >
+        <div
+          aria-orientation="horizontal"
+          class="ant-tabs-nav"
+          role="tablist"
+        >
+          <div
+            class="ant-tabs-nav-wrap"
+          >
+            <div
+              class="ant-tabs-nav-list"
+              style="transform: translate(0px, 0px);"
+            >
+              <div
+                class="ant-tabs-tab"
+                data-node-key="suppliers"
+              >
+                <div
+                  aria-controls="rc-tabs-test-panel-suppliers"
+                  aria-selected="false"
+                  class="ant-tabs-tab-btn"
+                  id="rc-tabs-test-tab-suppliers"
+                  role="tab"
+                  tabindex="-1"
+                >
+                  供應商目錄
+                </div>
+              </div>
+              <div
+                class="ant-tabs-tab ant-tabs-tab-active"
+                data-node-key="supplier-materials"
+              >
+                <div
+                  aria-controls="rc-tabs-test-panel-supplier-materials"
+                  aria-selected="true"
+                  class="ant-tabs-tab-btn"
+                  id="rc-tabs-test-tab-supplier-materials"
+                  role="tab"
+                  tabindex="0"
+                >
+                  供應商物料
+                </div>
+              </div>
+              <div
+                class="ant-tabs-ink-bar ant-tabs-ink-bar-animated"
+                style="width: 0px; left: 0px; transform: translateX(-50%);"
+              />
+            </div>
+          </div>
+          <div
+            class="ant-tabs-nav-operations ant-tabs-nav-operations-hidden"
+          >
+            <button
+              aria-controls="rc-tabs-test-more-popup"
+              aria-expanded="false"
+              aria-haspopup="listbox"
+              class="ant-tabs-nav-more"
+              id="rc-tabs-test-more"
+              style="visibility: hidden; order: 1;"
+              type="button"
+            >
+              <span
+                aria-label="ellipsis"
+                class="anticon anticon-ellipsis"
+                role="img"
+              >
+                <svg
+                  aria-hidden="true"
+                  data-icon="ellipsis"
+                  fill="currentColor"
+                  focusable="false"
+                  height="1em"
+                  viewBox="64 64 896 896"
+                  width="1em"
+                >
+                  <path
+                    d="M176 511a56 56 0 10112 0 56 56 0 10-112 0zm280 0a56 56 0 10112 0 56 56 0 10-112 0zm280 0a56 56 0 10112 0 56 56 0 10-112 0z"
+                  />
+                </svg>
+              </span>
+            </button>
+          </div>
+        </div>
+        <div
+          class="ant-tabs-body-holder"
+        >
+          <div
+            class="ant-tabs-body ant-tabs-body-top"
+          >
+            <div
+              aria-hidden="false"
+              aria-labelledby="rc-tabs-test-tab-supplier-materials"
+              class="ant-tabs-content ant-tabs-content-active"
+              id="rc-tabs-test-panel-supplier-materials"
+              role="tabpanel"
+              tabindex="0"
+            >
+              <div
+                class="ant-space css-dev-only-do-not-override-oc1rc0 ant-space-vertical ant-space-gap-row-middle ant-space-gap-col-middle supplier-material-workspace sp-section css-var-root"
+                style="width: 100%;"
+              >
+                <div
+                  class="ant-space-item"
+                />
+                <div
+                  class="ant-space-item"
+                >
+                  <div
+                    class="supplier-material-workspace__heading sp-section__heading"
+                  >
+                    <div>
+                      <h3
+                        class="ant-typography supplier-material-workspace__title css-dev-only-do-not-override-oc1rc0 css-var-root"
+                      >
+                        供應物料關聯
+                      </h3>
+                      <span
+                        class="ant-typography supplier-material-workspace__intro sp-page__lead css-dev-only-do-not-override-oc1rc0 css-var-root"
+                      >[3...
+ ❯ waitForWrapper node_modules/@testing-library/dom/dist/wait-for.js:163:27
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:86:33
+ ❯ tests/masterData.test.tsx:318:36
+    316|     const supplierSelects = screen.getAllByRole('combobox', { name: '選…
+    317|     await user.click(supplierSelects.at(-1)!);
+    318|     await user.click((await screen.findAllByText('SUP-001 — Taiwan Foo…
+       |                                    ^
+    319|     await waitFor(() => expect(requests.some(({ url, params }) => url …
+    320|     const materialSelects = screen.getAllByRole('combobox', { name: '選…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/12]⎯
+
+ FAIL  tests/sp805.test.tsx > SP-805 PO lifecycle UI > moves an ordered PO into receiving inspection and removes its cancellation action
+TestingLibraryElementError: Unable to find role="button" and name "取消採購單"
+
+Ignored nodes: comments, script, style
+<body>
+  <div>
+    <div
+      class="app-layout"
+    >
+      <a
+        class="app-skip-link"
+        href="#main-content"
+      >
+        跳至主要內容
+      </a>
+      <header
+        class="app-header"
+      >
+        <div
+          class="app-header__topline"
+        >
+          <a
+            aria-label="SupplyPilot 採購工作區"
+            class="app-brand"
+            data-discover="true"
+            href="/"
+          >
+            <img
+              alt=""
+              aria-hidden="true"
+              class="app-brand__mark"
+              height="40"
+              src="/favicon.svg"
+              width="40"
+            />
+            <span
+              class="app-brand__wordmark"
+            >
+              <strong>
+                SupplyPilot
+              </strong>
+              <span>
+                採購工作台
+              </span>
+            </span>
+          </a>
+          <div
+            class="app-header__finder"
+          >
+            <button
+              aria-keyshortcuts="Control+K Meta+K"
+              aria-label="搜尋採購資料"
+              class="ant-btn css-dev-only-do-not-override-oc1rc0 css-var-_r_1a_ ant-btn-default ant-btn-color-default ant-btn-variant-outlined app-finder-trigger"
+              type="button"
+            >
+              <span
+                class="ant-btn-icon"
+              >
+                <span
+                  aria-hidden="true"
+                  aria-label="search"
+                  class="anticon anticon-search"
+                  role="img"
+                >
+                  <svg
+                    aria-hidden="true"
+                    data-icon="search"
+                    fill="currentColor"
+                    focusable="false"
+                    height="1em"
+                    viewBox="64 64 896 896"
+                    width="1em"
+                  >
+                    <path
+                      d="M909.6 854.5L649.9 594.8C690.2 542.7 712 479 712 412c0-80.2-31.3-155.4-87.9-212.1-56.6-56.7-132-87.9-212.1-87.9s-155.5 31.3-212.1 87.9C143.2 256.5 112 331.8 112 412c0 80.1 31.3 155.5 87.9 212.1C256.5 680.8 331.8 712 412 712c67 0 130.6-21.8 182.7-62l259.7 259.6a8.2 8.2 0 0011.6 0l43.6-43.5a8.2 8.2 0 000-11.6zM570.4 570.4C528 612.7 471.8 636 412 636s-116-23.3-158.4-65.6C211.3 528 188 471.8 188 412s23.3-116.1 65.6-158.4C296 211.3 352.2 188 412 188s116.1 23.2 158.4 65.6S636 352.2 636 412s-23.3 116.1-65.6 158.4z"
+                    />
+                  </svg>
+                </span>
+              </span>
+              <span>
+                搜尋採購資料
+              </span>
+              <kbd
+                aria-hidden="true"
+              >
+                Ctrl K
+              </kbd>
+            </button>
+            <span
+              class="ant-typography app-finder-hint css-dev-only-do-not-override-oc1rc0 css-var-_r_1a_"
+            >
+              採購單、供應商、物料與庫存；文件依範圍查詢
+            </span>
+          </div>
+          <div
+            class="app-account"
+          >
+            <div
+              class="app-account__identity"
+            >
+              <span
+                class="ant-typography app-account__name css-dev-only-do-not-override-oc1rc0 css-var-_r_1a_"
+              >
+                Admin
+              </span>
+              <span
+                class="ant-typography app-account__role css-dev-only-do-not-override-oc1rc0 css-var-_r_1a_"
+              >
+                採購業務帳號
+              </span>
+            </div>
+            <button
+              class="ant-btn css-dev-only-do-not-override-oc1rc0 css-var-_r_1a_ ant-btn-default ant-btn-color-default ant-btn-variant-outlined app-ai-button"
+              type="button"
+            >
+              <span
+                class="ant-btn-icon"
+              >
+                <span
+                  aria-hidden="true"
+                  aria-label="file-search"
+                  class="anticon anticon-file-search"
+                  role="img"
+                >
+                  <svg
+                    aria-hidden="true"
+                    data-icon="file-search"
+                    fill="currentColor"
+                    focusable="false"
+                    height="1em"
+                    viewBox="64 64 896 896"
+                    width="1em"
+                  >
+                    <path
+                      d="M688 312v-48c0-4.4-3.6-8-8-8H296c-4.4 0-8 3.6-8 8v48c0 4.4 3.6 8 8 8h384c4.4 0 8-3.6 8-8zm-392 88c-4.4 0-8 3.6-8 8v48c0 4.4 3.6 8 8 8h184c4.4 0 8-3.6 8-8v-48c0-4.4-3.6-8-8-8H296zm144 452H208V148h560v344c0 4.4 3.6 8 8 8h56c4.4 0 8-3.6 8-8V108c0-17.7-14.3-32-32-32H168c-17.7 0-32 14.3-32 32v784c0 17.7 14.3 32 32 32h272c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm445.7 51.5l-93.3-93.3C814.7 780.7 828 743.9 828 704c0-97.2-78.8-176-176-176s-176 78.8-176 176 78.8 176 176 176c35.8 0 69-10.7 96.8-29l94.7 94.7c1.6 1.6 3.6 2.3 5.6 2.3s4.1-.8 5.6-2.3l31-31a7.9 7.9 0 000-11.2zM652 816c-61.9 0-112-50.1-112-112s50.1-112 112-112 112 50.1 112 112-50.1 112-112 112z"
+                    />
+                  </svg>
+                </span>
+              </span>
+              <span>
+                AI 查詢
+              </span>
+            </button>
+            <button
+              class="ant-btn css-dev-only-do-not-override-oc1rc0 css-var-_r_1a_ ant-btn-default ant-btn-color-default ant-btn-variant-outlined app-logout-button"
+              type="button"
+            >
+              <span
+                class="ant-btn-icon"
+              >
+                <span
+                  aria-label="logout"
+                  class="anticon anticon-logout"
+                  role="img"
+                >
+                  <svg
+                    aria-hidden="true"
+                    data-icon="logout"
+                    fill="currentColor"
+                    focusable="false"
+                    height="1em"
+                    viewBox="64 64 896 896"
+                    width="1em"
+                  >
+                    <path
+                      d="M868 732h-70.3c-4.8 0-9.3 2.1-12.3 5.8-7 8.5-14.5 16.7-22.4 24.5a353.84 353.84 0 01-112.7 75.9A352.8 352.8 0 01512.4 866c-47.9 0-94.3-9.4-137.9-27.8a353.84 353.84 0 01-112.7-75.9 353.28 353.28 0 01-76-112.5C167.3 606.2 158 559.9 158 512s9.4-94.2 27.8-137.8c17.8-42.1 43.4-80 76-112.5s70.5-58.1 112.7-75.9c43.6-18.4 90-27.8 137.9-27.8 47.9 0 94.3 9.3 137.9 27.8 42.2 17.8 80.1 43.4 112.7 75.9 7.9 7.9 15.3 16.1 22.4 24.5 3 3.7 7.6 5.8 12.3 5.8H868c6.3 0 10.2-7 6.7-12.3C798 160.5 663.8 81.6 511.3 82 271.7 82.6 79.6 277.1 82 516.4 84.4 751.9 276.2 942 512.4 942c152.1 0 285.7-78.8 362.3-197.7 3.4-5.3-.4-12.3-6.7-12.3zm88.9-226.3L815 393.7c-5.3-4.2-13-.4-13 6.3v76H488c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h314v76c0 6.7 7.8 10.5 13 6.3l141.9-112a8 8 0 000-12.6z"
+                    />
+                  </svg>
+                </span>
+              </span>
+              <span>
+                登出
+              </span>
+            </button>
+          </div>
+        </div>
+        <nav
+          aria-label="主要工作區"
+          class="app-nav"
+        >
+          <div
+            class="app-nav__inner"
+          >
+            <a
+              aria-current="page"
+              class="app-nav__link is-active"
+              data-discover="true"
+              href="/purchase-orders"
+            >
+              採購單管理
+            </a>
+            <a
+              class="app-nav__link"
+              data-discover="true"
+              href="/receiving/purchase-orders"
+            >
+              收貨作業
+            </a>
+            <a
+              class="app-nav__link"
+              data-discover="true"
+              href="/suppliers"
+            >
+              供應商管理
+            </a>
+            <a
+              class="app-nav__link"
+              data-discover="true"
+              href="/materials"
+            >
+              物料管理
+            </a>
+            <a
+              class="app-nav__link"
+              data-discover="true"
+              href="/inventory"
+            >
+              庫存管理
+            </a>
+            <a
+              class="app-nav__link"
+              data-discover="true"
+              href="/inventory/import"
+            >
+              庫存匯入
+            </a>
+            <a
+              class="app-nav__link"
+              data-discover="true"
+              href="/documents"
+            >
+              文件管理
+            </a>
+          </div>
+          <span
+            aria-hidden="true"
+            class="app-nav__scroll-cue"
+          >
+            <span
+              aria-label="right"
+              class="anticon anticon-right"
+              role="img"
+            >
+              <svg
+                aria-hidden="true"
+                data-icon="right"
+                fill="currentColor"
+                focusable="false"
+                height="1em"
+                viewBox="64 64 896 896"
+                width="1em"
+              >
+                <path
+                  d="M765.7 486.8L314.9 134.7A7.97 7.97 0 00302 141v77.3c0 4.9 2.3 9.6 6.1 12.6l360 281.1-360 281.1c-3.9 3-6.1 7.7-6.1 12.6V883c0 6.7 7.7 10.4 12.9 6.3l450.8-352.1a31.96 31.96 0 000-50.4z"
+                />
+              </svg>
+            </span>
+          </span>
+        </nav>
+      </header>
+      <main
+        class="app-content"
+        id="main-content"
+        tabindex="-1"
+      >
+        <div
+          aria-live="polite"
+          class="sp-loading-state"
+          data-testid="loading-spin"
+          role="status"
+        >
+          <div
+            aria-busy="true"
+            aria-live="polite"
+            class="ant-spin ant-spin-lg ant-spin-spinning css-dev-only-do-not-override-oc1rc0 css-var-_r_1a_"
+          >
+            <div
+              class="ant-spin-section"
+            >
+              <span
+                class="ant-spin-dot-holder"
+              >
+                <span
+                  class="ant-spin-dot ant-spin-dot-spin"
+                >
+                  <i
+                    class="ant-spin-dot-item"
+                  />
+                  <i
+                    class="ant-spin-dot-item"
+                  />
+                  <i
+                    class="ant-spin-dot-item"
+                  />
+                  <i
+                    class="ant-spin-dot-item"
+                  />
+                </span>
+              </span>
+              <div
+                class="ant-spin-description"
+              >
+                正在載入採購單…
+              </div>
+            </div>
+            <div
+              class="ant-spin-container"
+            >
+              <div
+                style="padding: 24px;"
+              />
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+</body>
+
+Ignored nodes: comments, script, style
+<body>
+  <div>
+    <div
+      class="app-layout"
+    >
+      <a
+        class="app-skip-link"
+        href="#main-content"
+      >
+        跳至主要內容
+      </a>
+      <header
+        class="app-header"
+      >
+        <div
+          class="app-header__topline"
+        >
+          <a
+            aria-label="SupplyPilot 採購工作區"
+            class="app-brand"
+            data-discover="true"
+            href="/"
+          >
+            <img
+              alt=""
+              aria-hidden="true"
+              class="app-brand__mark"
+              height="40"
+              src="/favicon.svg"
+              width="40"
+            />
+            <span
+              class="app-brand__wordmark"
+            >
+              <strong>
+                SupplyPilot
+              </strong>
+              <span>
+                採購工作台
+              </span>
+            </span>
+          </a>
+          <div
+            class="app-header__finder"
+          >
+            <button
+              aria-keyshortcuts="Control+K Meta+K"
+              aria-label="搜尋採購資料"
+              class="ant-btn css-dev-only-do-not-override-oc1rc0 css-var-_r_1a_ ant-btn-default ant-btn-color-default ant-btn-variant-outlined app-finder-trigger"
+              type="button"
+            >
+              <span
+                class="ant-btn-icon"
+              >
+                <span
+                  aria-hidden="true"
+                  aria-label="search"
+                  class="anticon anticon-search"
+                  role="img"
+                >
+                  <svg
+                    aria-hidden="true"
+                    data-icon="search"
+                    fill="currentColor"
+                    focusable="false"
+                    height="1em"
+                    viewBox="64 64 896 896"
+                    width="1em"
+                  >
+                    <path
+                      d="M909.6 854.5L649.9 594.8C690.2 542.7 712 479 712 412c0-80.2-31.3-155.4-87.9-212.1-56.6-56.7-132-87.9-212.1-87.9s-155.5 31.3-212.1 87.9C143.2 256.5 112 331.8 112 412c0 80.1 31.3 155.5 87.9 212.1C256.5 680.8 331.8 712 412 712c67 0 130.6-21.8 182.7-62l259.7 259.6a8.2 8.2 0 0011.6 0l43.6-43.5a8.2 8.2 0 000-11.6zM570.4 570.4C528 612.7 471.8 636 412 636s-116-23.3-158.4-65.6C211.3 528 188 471.8 188 412s23.3-116.1 65.6-158.4C296 211.3 352.2 188 412 188s116.1 23.2 158.4 65.6S636 352.2 636 412s-23.3 116.1-65.6 158.4z"
+                    />
+                  </svg>
+                </span>
+              </span>
+              <span>
+                搜尋採購資料
+              </span>
+              <kbd
+                aria-hidden="true"
+              >
+                Ctrl K
+              </kbd>
+            </button>
+            <span
+              class="ant-typography app-finder-hint css-dev-only-do-not-override-oc1rc0 css-var-_r_1a_"
+            >
+              採購單、供應商、物料與庫存；文件依範圍查詢
+            </span>
+          </div>
+          <div
+            class="app-account"
+          >
+            <div
+              class="app-account__identity"
+            >
+              <span
+                class="ant-typography app-account__name css-dev-only-do-not-override-oc1rc0 css-var-_r_1a_"
+              >
+                Admin
+              </span>
+              <span
+                class="ant-typography app-account__role css-dev-only-do-not-override-oc1rc0 css-var-_r_1a_"
+              >
+                採購業務帳號
+              </span>
+            </div>
+            <button
+              class="ant-btn css-dev-only-do-not-override-oc1rc0 css-var-_r_1a_ ant-btn-default ant-btn-color-default ant-btn-variant-outlined app-ai-button"
+              type="button"
+            >
+              <span
+                class="ant-btn-icon"
+              >
+                <span
+                  aria-hidden="true"
+                  aria-label="file-search"
+                  class="anticon anticon-file-search"
+                  role="img"
+                >
+                  <svg
+                    aria-hidden="true"
+                    data-icon="file-search"
+                    fill="currentColor"
+                    focusable="false"
+                    height="1em"
+                    viewBox="64 64 896 896"
+                    width="1em"
+                  >
+                    <path
+                      d="M688 312v-48c0-4.4-3.6-8-8-8H296c-4.4 0-8 3.6-8 8v48c0 4.4 3.6 8 8 8h384c4.4 0 8-3.6 8-8zm-392 88c-4.4 0-8 3.6-8 8v48c0 4.4 3.6 8 8 8h184c4.4 0 8-3.6 8-8v-48c0-4.4-3.6-8-8-8H296zm144 452H208V148h560v344c0 4.4 3.6 8 8 8h56c4.4 0 8-3.6 8-8V108c0-17.7-14.3-32-32-32H168c-17.7 0-32 14.3-32 32v784c0 17.7 14.3 32 32 32h272c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm445.7 51.5l-93.3-93.3C814.7 780.7 828 743.9 828 704c0-97.2-78.8-176-176-176s-176 78.8-176 176 78.8 176 176 176c35.8 0 69-10.7 96.8-29l94.7 94.7c1.6 1.6 3.6 2.3 5.6 2.3s4.1-.8 5.6-2.3l31-31a7.9 7.9 0 000-11.2zM652 816c-61.9 0-112-50.1-112-112s50.1-112 112-112 112 50.1 112 112-50.1 112-112 112z"
+                    />
+                  </svg>
+                </span>
+              </span>
+              <span>
+                AI 查詢
+              </span>
+            </button>
+            <button
+              class="ant-btn css-dev-only-do-not-override-oc1rc0 css-var-_r_1a_ ant-btn-default ant-btn-color-default ant-btn-variant-outlined app-logout-button"
+              type="button"
+            >
+              <span
+                class="ant-btn-icon"
+              >
+                <span
+                  aria-label="logout"
+                  class="anticon anticon-logout"
+                  role="img"
+                >
+                  <svg
+                    aria-hidden="true"
+                    data-icon="logout"
+                    fill="currentColor"
+                    focusable="false"
+                    height="1em"
+                    viewBox="64 64 896 896"
+                    width="1em"
+                  >
+                    <path
+                      d="M868 732h-70.3c-4.8 0-9.3 2.1-12.3 5.8-7 8.5-14.5 16.7-22.4 24.5a353.84 353.84 0 01-112.7 75.9A352.8 352.8 0 01512.4 866c-47.9 0-94.3-9.4-137.9-27.8a353.84 353.84 0 01-112.7-75.9 353.28 353.28 0 01-76-112.5C167.3 606.2 158 559.9 158 512s9.4-94.2 27.8-137.8c17.8-42.1 43.4-80 76-112.5s70.5-58.1 112.7-75.9c43.6-18.4 90-27.8 137.9-27.8 47.9 0 94.3 9.3 137.9 27.8 42.2 17.8 80.1 43.4 112.7 75.9 7.9 7.9 15.3 16.1 22.4 24.5 3 3.7 7.6 5.8 12.3 5.8H868c6.3 0 10.2-7 6.7-12.3C798 160.5 663.8 81.6 511.3 82 271.7 82.6 79.6 277.1 82 516.4 84.4 751.9 276.2 942 512.4 942c152.1 0 285.7-78.8 362.3-197.7 3.4-5.3-.4-12.3-6.7-12.3zm88.9-226.3L815 393.7c-5.3-4.2-13-.4-13 6.3v76H488c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h314v76c0 6.7 7.8 10.5 13 6.3l141.9-112a8 8 0 000-12.6z"
+                    />
+                  </svg>
+                </span>
+              </span>
+              <span>
+                登出
+              </span>
+            </button>
+          </div>
+        </div>
+        <nav
+          aria-label="主要工作區"
+          class="app-nav"
+        >
+          <div
+            class="app-nav__inner"
+          >
+            <a
+              aria-current="page"
+              class="app-nav__link is-active"
+              data-discover="true"
+              href="/purchase-orders"
+            >
+              採購單管理
+            </a>
+            <a
+              class="app-nav__link"
+              data-discover="true"
+              href="/receiving/purchase-orders"
+            >
+              收貨作業
+            </a>
+            <a
+              class="app-nav__link"
+              data-discover="true"
+              href="/suppliers"
+            >
+              供應商管理
+            </a>
+            <a
+              class="app-nav__link"
+              data-discover="true"
+              href="/materials"
+            >
+              物料管理
+            </a>
+            <a
+              class="app-nav__link"
+              data-discover="true"
+              href="/inventory"
+            >
+              庫存管理
+            </a>
+            <a
+              class="app-nav__link"
+              data-discover="true"
+              href="/inventory/import"
+            >
+              庫存匯入
+            </a>
+            <a
+              class="app-nav__link"
+              data-discover="true"
+              href="/documents"
+            >
+              文件管理
+            </a>
+          </div>
+          <span
+            aria-hidden="true"
+            class="app-nav__scroll-cue"
+          >
+            <span
+              aria-label="right"
+              class="anticon anticon-right"
+              role="img"
+            >
+              <svg
+                aria-hidden="true"
+                data-icon="right"
+                fill="currentColor"
+                focusable="false"
+                height="1em"
+                viewBox="64 64 896 896"
+                width="1em"
+              >
+                <path
+                  d="M765.7 486.8L314.9 134.7A7.97 7.97 0 00302 141v77.3c0 4.9 2.3 9.6 6.1 12.6l360 281.1-360 281.1c-3.9 3-6.1 7.7-6.1 12.6V883c0 6.7 7.7 10.4 12.9 6.3l450.8-352.1a31.96 31.96 0 000-50.4z"
+                />
+              </svg>
+            </span>
+          </span>
+        </nav>
+      </header>
+      <main
+        class="app-content"
+        id="main-content"
+        tabindex="-1"
+      >
+        <div
+          aria-live="polite"
+          class="sp-loading-state"
+          data-testid="loading-spin"
+          role="status"
+        >
+          <div
+            aria-busy="true"
+            aria-live="polite"
+            class="ant-spin ant-spin-lg ant-spin-spinning css-dev-only-do-not-override-oc1rc0 css-var-_r_1a_"
+          >
+            <div
+              class="ant-spin-section"
+            >
+              <span
+                class="ant-spin-dot-holder"
+              >
+                <span
+                  class="ant-spin-dot ant-spin-dot-spin"
+                >
+                  <i
+                    class="ant-spin-dot-item"
+                  />
+                  <i
+                    class="ant-spin-dot-item"
+                  />
+                  <i
+                    class="ant-spin-dot-item"
+                  />
+                  <i
+                    class="ant-spin-dot-item"
+                  />
+                </span>
+              </span>
+              <div
+                class="ant-spin-description"
+              >
+                正在載入採購單…
+              </div>
+            </div>
+            <div
+              class="ant-spin-container"
+            >
+              <div
+                style="padding: 24px;"
+              />
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+</body>
+ ❯ waitForWrapper node_modules/@testing-library/dom/dist/wait-for.js:163:27
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:86:33
+ ❯ tests/sp805.test.tsx:145:25
+    143|
+    144|     await open('/purchase-orders/42'); const user = userEvent.setup();
+    145|     expect(await screen.findByRole('button', { name: '取消採購單' })).toBeT…
+       |                         ^
+    146|     await user.click(screen.getByRole('button', { name: '開始到貨驗收' }));
+    147|     await user.click(await screen.findByRole('button', { name: /確\s*定/…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/12]⎯
+
+ FAIL  tests/sp805.test.tsx > SP-805 PO lifecycle UI > creates a Manual DRAFT with exact decimal strings after explicit confirmation
+Error: Test timed out in 30000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+ ❯ tests/sp805.test.tsx:167:3
+    165|   });
+    166|
+    167|   it('creates a Manual DRAFT with exact decimal strings after explicit…
+       |   ^
+    168|     const requests: InternalAxiosRequestConfig[] = [];
+    169|     axiosClient.defaults.adapter = vi.fn(async (config) => {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/12]⎯
+
+ FAIL  tests/sp805.test.tsx > SP-805 PO lifecycle UI > creates a DRAFT with the exact IDs of page-6 master records and does not confuse duplicate names
+Error: Test timed out in 30000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+ ❯ tests/sp805.test.tsx:190:3
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/12]⎯
+
+ FAIL  tests/sp805.test.tsx > SP-805 PO lifecycle UI > restores off-page master labels in edit and preserves recommendation evidence and price snapshot
+TestingLibraryElementError: Unable to find an element with the text: PO-000042. This could be because the text is broken up by multiple elements. In this case, you can provide a function for your text matcher to make your matcher more flexible.
+
+Ignored nodes: comments, script, style
+<body>
+  <div>
+    <div
+      class="app-layout"
+    >
+      <a
+        class="app-skip-link"
+        href="#main-content"
+      >
+        跳至主要內容
+      </a>
+      <header
+        class="app-header"
+      >
+        <div
+          class="app-header__topline"
+        >
+          <a
+            aria-label="SupplyPilot 採購工作區"
+            class="app-brand"
+            data-discover="true"
+            href="/"
+          >
+            <img
+              alt=""
+              aria-hidden="true"
+              class="app-brand__mark"
+              height="40"
+              src="/favicon.svg"
+              width="40"
+            />
+            <span
+              class="app-brand__wordmark"
+            >
+              <strong>
+                SupplyPilot
+              </strong>
+              <span>
+                採購工作台
+              </span>
+            </span>
+          </a>
+          <div
+            class="app-header__finder"
+          >
+            <button
+              aria-keyshortcuts="Control+K Meta+K"
+              aria-label="搜尋採購資料"
+              class="ant-btn css-dev-only-do-not-override-oc1rc0 css-var-_r_31_ ant-btn-default ant-btn-color-default ant-btn-variant-outlined app-finder-trigger"
+              type="button"
+            >
+              <span
+                class="ant-btn-icon"
+              >
+                <span
+                  aria-hidden="true"
+                  aria-label="search"
+                  class="anticon anticon-search"
+                  role="img"
+                >
+                  <svg
+                    aria-hidden="true"
+                    data-icon="search"
+                    fill="currentColor"
+                    focusable="false"
+                    height="1em"
+                    viewBox="64 64 896 896"
+                    width="1em"
+                  >
+                    <path
+                      d="M909.6 854.5L649.9 594.8C690.2 542.7 712 479 712 412c0-80.2-31.3-155.4-87.9-212.1-56.6-56.7-132-87.9-212.1-87.9s-155.5 31.3-212.1 87.9C143.2 256.5 112 331.8 112 412c0 80.1 31.3 155.5 87.9 212.1C256.5 680.8 331.8 712 412 712c67 0 130.6-21.8 182.7-62l259.7 259.6a8.2 8.2 0 0011.6 0l43.6-43.5a8.2 8.2 0 000-11.6zM570.4 570.4C528 612.7 471.8 636 412 636s-116-23.3-158.4-65.6C211.3 528 188 471.8 188 412s23.3-116.1 65.6-158.4C296 211.3 352.2 188 412 188s116.1 23.2 158.4 65.6S636 352.2 636 412s-23.3 116.1-65.6 158.4z"
+                    />
+                  </svg>
+                </span>
+              </span>
+              <span>
+                搜尋採購資料
+              </span>
+              <kbd
+                aria-hidden="true"
+              >
+                Ctrl K
+              </kbd>
+            </button>
+            <span
+              class="ant-typography app-finder-hint css-dev-only-do-not-override-oc1rc0 css-var-_r_31_"
+            >
+              採購單、供應商、物料與庫存；文件依範圍查詢
+            </span>
+          </div>
+          <div
+            class="app-account"
+          >
+            <div
+              class="app-account__identity"
+            >
+              <span
+                class="ant-typography app-account__name css-dev-only-do-not-override-oc1rc0 css-var-_r_31_"
+              >
+                Admin
+              </span>
+              <span
+                class="ant-typography app-account__role css-dev-only-do-not-override-oc1rc0 css-var-_r_31_"
+              >
+                採購業務帳號
+              </span>
+            </div>
+            <button
+              class="ant-btn css-dev-only-do-not-override-oc1rc0 css-var-_r_31_ ant-btn-default ant-btn-color-default ant-btn-variant-outlined app-ai-button"
+              type="button"
+            >
+              <span
+                class="ant-btn-icon"
+              >
+                <span
+                  aria-hidden="true"
+                  aria-label="file-search"
+                  class="anticon anticon-file-search"
+                  role="img"
+                >
+                  <svg
+                    aria-hidden="true"
+                    data-icon="file-search"
+                    fill="currentColor"
+                    focusable="false"
+                    height="1em"
+                    viewBox="64 64 896 896"
+                    width="1em"
+                  >
+                    <path
+                      d="M688 312v-48c0-4.4-3.6-8-8-8H296c-4.4 0-8 3.6-8 8v48c0 4.4 3.6 8 8 8h384c4.4 0 8-3.6 8-8zm-392 88c-4.4 0-8 3.6-8 8v48c0 4.4 3.6 8 8 8h184c4.4 0 8-3.6 8-8v-48c0-4.4-3.6-8-8-8H296zm144 452H208V148h560v344c0 4.4 3.6 8 8 8h56c4.4 0 8-3.6 8-8V108c0-17.7-14.3-32-32-32H168c-17.7 0-32 14.3-32 32v784c0 17.7 14.3 32 32 32h272c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm445.7 51.5l-93.3-93.3C814.7 780.7 828 743.9 828 704c0-97.2-78.8-176-176-176s-176 78.8-176 176 78.8 176 176 176c35.8 0 69-10.7 96.8-29l94.7 94.7c1.6 1.6 3.6 2.3 5.6 2.3s4.1-.8 5.6-2.3l31-31a7.9 7.9 0 000-11.2zM652 816c-61.9 0-112-50.1-112-112s50.1-112 112-112 112 50.1 112 112-50.1 112-112 112z"
+                    />
+                  </svg>
+                </span>
+              </span>
+              <span>
+                AI 查詢
+              </span>
+            </button>
+            <button
+              class="ant-btn css-dev-only-do-not-override-oc1rc0 css-var-_r_31_ ant-btn-default ant-btn-color-default ant-btn-variant-outlined app-logout-button"
+              type="button"
+            >
+              <span
+                class="ant-btn-icon"
+              >
+                <span
+                  aria-label="logout"
+                  class="anticon anticon-logout"
+                  role="img"
+                >
+                  <svg
+                    aria-hidden="true"
+                    data-icon="logout"
+                    fill="currentColor"
+                    focusable="false"
+                    height="1em"
+                    viewBox="64 64 896 896"
+                    width="1em"
+                  >
+                    <path
+                      d="M868 732h-70.3c-4.8 0-9.3 2.1-12.3 5.8-7 8.5-14.5 16.7-22.4 24.5a353.84 353.84 0 01-112.7 75.9A352.8 352.8 0 01512.4 866c-47.9 0-94.3-9.4-137.9-27.8a353.84 353.84 0 01-112.7-75.9 353.28 353.28 0 01-76-112.5C167.3 606.2 158 559.9 158 512s9.4-94.2 27.8-137.8c17.8-42.1 43.4-80 76-112.5s70.5-58.1 112.7-75.9c43.6-18.4 90-27.8 137.9-27.8 47.9 0 94.3 9.3 137.9 27.8 42.2 17.8 80.1 43.4 112.7 75.9 7.9 7.9 15.3 16.1 22.4 24.5 3 3.7 7.6 5.8 12.3 5.8H868c6.3 0 10.2-7 6.7-12.3C798 160.5 663.8 81.6 511.3 82 271.7 82.6 79.6 277.1 82 516.4 84.4 751.9 276.2 942 512.4 942c152.1 0 285.7-78.8 362.3-197.7 3.4-5.3-.4-12.3-6.7-12.3zm88.9-226.3L815 393.7c-5.3-4.2-13-.4-13 6.3v76H488c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h314v76c0 6.7 7.8 10.5 13 6.3l141.9-112a8 8 0 000-12.6z"
+                    />
+                  </svg>
+                </span>
+              </span>
+              <span>
+                登出
+              </span>
+            </button>
+          </div>
+        </div>
+        <nav
+          aria-label="主要工作區"
+          class="app-nav"
+        >
+          <div
+            class="app-nav__inner"
+          >
+            <a
+              aria-current="page"
+              class="app-nav__link is-active"
+              data-discover="true"
+              href="/purchase-orders"
+            >
+              採購單管理
+            </a>
+            <a
+              class="app-nav__link"
+              data-discover="true"
+              href="/receiving/purchase-orders"
+            >
+              收貨作業
+            </a>
+            <a
+              class="app-nav__link"
+              data-discover="true"
+              href="/suppliers"
+            >
+              供應商管理
+            </a>
+            <a
+              class="app-nav__link"
+              data-discover="true"
+              href="/materials"
+            >
+              物料管理
+            </a>
+            <a
+              class="app-nav__link"
+              data-discover="true"
+              href="/inventory"
+            >
+              庫存管理
+            </a>
+            <a
+              class="app-nav__link"
+              data-discover="true"
+              href="/inventory/import"
+            >
+              庫存匯入
+            </a>
+            <a
+              class="app-nav__link"
+              data-discover="true"
+              href="/documents"
+            >
+              文件管理
+            </a>
+          </div>
+          <span
+            aria-hidden="true"
+            class="app-nav__scroll-cue"
+          >
+            <span
+              aria-label="right"
+              class="anticon anticon-right"
+              role="img"
+            >
+              <svg
+                aria-hidden="true"
+                data-icon="right"
+                fill="currentColor"
+                focusable="false"
+                height="1em"
+                viewBox="64 64 896 896"
+                width="1em"
+              >
+                <path
+                  d="M765.7 486.8L314.9 134.7A7.97 7.97 0 00302 141v77.3c0 4.9 2.3 9.6 6.1 12.6l360 281.1-360 281.1c-3.9 3-6.1 7.7-6.1 12.6V883c0 6.7 7.7 10.4 12.9 6.3l450.8-352.1a31.96 31.96 0 000-50.4z"
+                />
+              </svg>
+            </span>
+          </span>
+        </nav>
+      </header>
+      <main
+        class="app-content"
+        id="main-content"
+        tabindex="-1"
+      >
+        <div
+          aria-live="polite"
+          class="sp-loading-state"
+          data-testid="loading-spin"
+          role="status"
+        >
+          <div
+            aria-busy="true"
+            aria-live="polite"
+            class="ant-spin ant-spin-lg ant-spin-spinning css-dev-only-do-not-override-oc1rc0 css-var-_r_31_"
+          >
+            <div
+              class="ant-spin-section"
+            >
+              <span
+                class="ant-spin-dot-holder"
+              >
+                <span
+                  class="ant-spin-dot ant-spin-dot-spin"
+                >
+                  <i
+                    class="ant-spin-dot-item"
+                  />
+                  <i
+                    class="ant-spin-dot-item"
+                  />
+                  <i
+                    class="ant-spin-dot-item"
+                  />
+                  <i
+                    class="ant-spin-dot-item"
+                  />
+                </span>
+              </span>
+              <div
+                class="ant-spin-description"
+              >
+                正在載入採購單…
+              </div>
+            </div>
+            <div
+              class="ant-spin-container"
+            >
+              <div
+                style="padding: 24px;"
+              />
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+</body>
+
+Ignored nodes: comments, script, style
+<body>
+  <div>
+    <div
+      class="app-layout"
+    >
+      <a
+        class="app-skip-link"
+        href="#main-content"
+      >
+        跳至主要內容
+      </a>
+      <header
+        class="app-header"
+      >
+        <div
+          class="app-header__topline"
+        >
+          <a
+            aria-label="SupplyPilot 採購工作區"
+            class="app-brand"
+            data-discover="true"
+            href="/"
+          >
+            <img
+              alt=""
+              aria-hidden="true"
+              class="app-brand__mark"
+              height="40"
+              src="/favicon.svg"
+              width="40"
+            />
+            <span
+              class="app-brand__wordmark"
+            >
+              <strong>
+                SupplyPilot
+              </strong>
+              <span>
+                採購工作台
+              </span>
+            </span>
+          </a>
+          <div
+            class="app-header__finder"
+          >
+            <button
+              aria-keyshortcuts="Control+K Meta+K"
+              aria-label="搜尋採購資料"
+              class="ant-btn css-dev-only-do-not-override-oc1rc0 css-var-_r_31_ ant-btn-default ant-btn-color-default ant-btn-variant-outlined app-finder-trigger"
+              type="button"
+            >
+              <span
+                class="ant-btn-icon"
+              >
+                <span
+                  aria-hidden="true"
+                  aria-label="search"
+                  class="anticon anticon-search"
+                  role="img"
+                >
+                  <svg
+                    aria-hidden="true"
+                    data-icon="search"
+                    fill="currentColor"
+                    focusable="false"
+                    height="1em"
+                    viewBox="64 64 896 896"
+                    width="1em"
+                  >
+                    <path
+                      d="M909.6 854.5L649.9 594.8C690.2 542.7 712 479 712 412c0-80.2-31.3-155.4-87.9-212.1-56.6-56.7-132-87.9-212.1-87.9s-155.5 31.3-212.1 87.9C143.2 256.5 112 331.8 112 412c0 80.1 31.3 155.5 87.9 212.1C256.5 680.8 331.8 712 412 712c67 0 130.6-21.8 182.7-62l259.7 259.6a8.2 8.2 0 0011.6 0l43.6-43.5a8.2 8.2 0 000-11.6zM570.4 570.4C528 612.7 471.8 636 412 636s-116-23.3-158.4-65.6C211.3 528 188 471.8 188 412s23.3-116.1 65.6-158.4C296 211.3 352.2 188 412 188s116.1 23.2 158.4 65.6S636 352.2 636 412s-23.3 116.1-65.6 158.4z"
+                    />
+                  </svg>
+                </span>
+              </span>
+              <span>
+                搜尋採購資料
+              </span>
+              <kbd
+                aria-hidden="true"
+              >
+                Ctrl K
+              </kbd>
+            </button>
+            <span
+              class="ant-typography app-finder-hint css-dev-only-do-not-override-oc1rc0 css-var-_r_31_"
+            >
+              採購單、供應商、物料與庫存；文件依範圍查詢
+            </span>
+          </div>
+          <div
+            class="app-account"
+          >
+            <div
+              class="app-account__identity"
+            >
+              <span
+                class="ant-typography app-account__name css-dev-only-do-not-override-oc1rc0 css-var-_r_31_"
+              >
+                Admin
+              </span>
+              <span
+                class="ant-typography app-account__role css-dev-only-do-not-override-oc1rc0 css-var-_r_31_"
+              >
+                採購業務帳號
+              </span>
+            </div>
+            <button
+              class="ant-btn css-dev-only-do-not-override-oc1rc0 css-var-_r_31_ ant-btn-default ant-btn-color-default ant-btn-variant-outlined app-ai-button"
+              type="button"
+            >
+              <span
+                class="ant-btn-icon"
+              >
+                <span
+                  aria-hidden="true"
+                  aria-label="file-search"
+                  class="anticon anticon-file-search"
+                  role="img"
+                >
+                  <svg
+                    aria-hidden="true"
+                    data-icon="file-search"
+                    fill="currentColor"
+                    focusable="false"
+                    height="1em"
+                    viewBox="64 64 896 896"
+                    width="1em"
+                  >
+                    <path
+                      d="M688 312v-48c0-4.4-3.6-8-8-8H296c-4.4 0-8 3.6-8 8v48c0 4.4 3.6 8 8 8h384c4.4 0 8-3.6 8-8zm-392 88c-4.4 0-8 3.6-8 8v48c0 4.4 3.6 8 8 8h184c4.4 0 8-3.6 8-8v-48c0-4.4-3.6-8-8-8H296zm144 452H208V148h560v344c0 4.4 3.6 8 8 8h56c4.4 0 8-3.6 8-8V108c0-17.7-14.3-32-32-32H168c-17.7 0-32 14.3-32 32v784c0 17.7 14.3 32 32 32h272c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm445.7 51.5l-93.3-93.3C814.7 780.7 828 743.9 828 704c0-97.2-78.8-176-176-176s-176 78.8-176 176 78.8 176 176 176c35.8 0 69-10.7 96.8-29l94.7 94.7c1.6 1.6 3.6 2.3 5.6 2.3s4.1-.8 5.6-2.3l31-31a7.9 7.9 0 000-11.2zM652 816c-61.9 0-112-50.1-112-112s50.1-112 112-112 112 50.1 112 112-50.1 112-112 112z"
+                    />
+                  </svg>
+                </span>
+              </span>
+              <span>
+                AI 查詢
+              </span>
+            </button>
+            <button
+              class="ant-btn css-dev-only-do-not-override-oc1rc0 css-var-_r_31_ ant-btn-default ant-btn-color-default ant-btn-variant-outlined app-logout-button"
+              type="button"
+            >
+              <span
+                class="ant-btn-icon"
+              >
+                <span
+                  aria-label="logout"
+                  class="anticon anticon-logout"
+                  role="img"
+                >
+                  <svg
+                    aria-hidden="true"
+                    data-icon="logout"
+                    fill="currentColor"
+                    focusable="false"
+                    height="1em"
+                    viewBox="64 64 896 896"
+                    width="1em"
+                  >
+                    <path
+                      d="M868 732h-70.3c-4.8 0-9.3 2.1-12.3 5.8-7 8.5-14.5 16.7-22.4 24.5a353.84 353.84 0 01-112.7 75.9A352.8 352.8 0 01512.4 866c-47.9 0-94.3-9.4-137.9-27.8a353.84 353.84 0 01-112.7-75.9 353.28 353.28 0 01-76-112.5C167.3 606.2 158 559.9 158 512s9.4-94.2 27.8-137.8c17.8-42.1 43.4-80 76-112.5s70.5-58.1 112.7-75.9c43.6-18.4 90-27.8 137.9-27.8 47.9 0 94.3 9.3 137.9 27.8 42.2 17.8 80.1 43.4 112.7 75.9 7.9 7.9 15.3 16.1 22.4 24.5 3 3.7 7.6 5.8 12.3 5.8H868c6.3 0 10.2-7 6.7-12.3C798 160.5 663.8 81.6 511.3 82 271.7 82.6 79.6 277.1 82 516.4 84.4 751.9 276.2 942 512.4 942c152.1 0 285.7-78.8 362.3-197.7 3.4-5.3-.4-12.3-6.7-12.3zm88.9-226.3L815 393.7c-5.3-4.2-13-.4-13 6.3v76H488c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h314v76c0 6.7 7.8 10.5 13 6.3l141.9-112a8 8 0 000-12.6z"
+                    />
+                  </svg>
+                </span>
+              </span>
+              <span>
+                登出
+              </span>
+            </button>
+          </div>
+        </div>
+        <nav
+          aria-label="主要工作區"
+          class="app-nav"
+        >
+          <div
+            class="app-nav__inner"
+          >
+            <a
+              aria-current="page"
+              class="app-nav__link is-active"
+              data-discover="true"
+              href="/purchase-orders"
+            >
+              採購單管理
+            </a>
+            <a
+              class="app-nav__link"
+              data-discover="true"
+              href="/receiving/purchase-orders"
+            >
+              收貨作業
+            </a>
+            <a
+              class="app-nav__link"
+              data-discover="true"
+              href="/suppliers"
+            >
+              供應商管理
+            </a>
+            <a
+              class="app-nav__link"
+              data-discover="true"
+              href="/materials"
+            >
+              物料管理
+            </a>
+            <a
+              class="app-nav__link"
+              data-discover="true"
+              href="/inventory"
+            >
+              庫存管理
+            </a>
+            <a
+              class="app-nav__link"
+              data-discover="true"
+              href="/inventory/import"
+            >
+              庫存匯入
+            </a>
+            <a
+              class="app-nav__link"
+              data-discover="true"
+              href="/documents"
+            >
+              文件管理
+            </a>
+          </div>
+          <span
+            aria-hidden="true"
+            class="app-nav__scroll-cue"
+          >
+            <span
+              aria-label="right"
+              class="anticon anticon-right"
+              role="img"
+            >
+              <svg
+                aria-hidden="true"
+                data-icon="right"
+                fill="currentColor"
+                focusable="false"
+                height="1em"
+                viewBox="64 64 896 896"
+                width="1em"
+              >
+                <path
+                  d="M765.7 486.8L314.9 134.7A7.97 7.97 0 00302 141v77.3c0 4.9 2.3 9.6 6.1 12.6l360 281.1-360 281.1c-3.9 3-6.1 7.7-6.1 12.6V883c0 6.7 7.7 10.4 12.9 6.3l450.8-352.1a31.96 31.96 0 000-50.4z"
+                />
+              </svg>
+            </span>
+          </span>
+        </nav>
+      </header>
+      <main
+        class="app-content"
+        id="main-content"
+        tabindex="-1"
+      >
+        <div
+          aria-live="polite"
+          class="sp-loading-state"
+          data-testid="loading-spin"
+          role="status"
+        >
+          <div
+            aria-busy="true"
+            aria-live="polite"
+            class="ant-spin ant-spin-lg ant-spin-spinning css-dev-only-do-not-override-oc1rc0 css-var-_r_31_"
+          >
+            <div
+              class="ant-spin-section"
+            >
+              <span
+                class="ant-spin-dot-holder"
+              >
+                <span
+                  class="ant-spin-dot ant-spin-dot-spin"
+                >
+                  <i
+                    class="ant-spin-dot-item"
+                  />
+                  <i
+                    class="ant-spin-dot-item"
+                  />
+                  <i
+                    class="ant-spin-dot-item"
+                  />
+                  <i
+                    class="ant-spin-dot-item"
+                  />
+                </span>
+              </span>
+              <div
+                class="ant-spin-description"
+              >
+                正在載入採購單…
+              </div>
+            </div>
+            <div
+              class="ant-spin-container"
+            >
+              <div
+                style="padding: 24px;"
+              />
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+</body>
+ ❯ waitForWrapper node_modules/@testing-library/dom/dist/wait-for.js:163:27
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:86:33
+ ❯ tests/sp805.test.tsx:244:18
+    242|     });
+    243|     await open('/purchase-orders/42'); const user = userEvent.setup();
+    244|     await screen.findByText('PO-000042');
+       |                  ^
+    245|     await user.click(await screen.findByRole('button', { name: '編輯草稿' …
+    246|     expect(await screen.findByText(`SUP-120 — ${selectedSupplier.name}…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/12]⎯
+
+
+ Test Files  4 failed | 30 passed (34)
+      Tests  12 failed | 305 passed (317)
+   Start at  14:19:36
+   Duration  465.86s (transform 11.05s, setup 19.62s, import 219.78s, tests 1569.52s, environment 80.16s)

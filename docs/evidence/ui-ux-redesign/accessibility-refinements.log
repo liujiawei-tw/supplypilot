@@ -1,0 +1,21 @@
+
+> frontend@0.0.0 test
+> vitest run --maxWorkers=1 --reporter=dot tests/auth.test.tsx --testNamePattern=keeps one main landmark
+
+
+ RUN  v4.1.11 C:/Users/z0976/.codex/worktrees/procurement-tool-ux-redesign/supplypilot/frontend
+
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+stderr | tests/auth.test.tsx > authentication and routing > keeps one main landmark and an accessible finder label in the authenticated shell
+Warning: [antd: List] The `List` component is deprecated and will be removed in the next major version. If you're using version 6.6.0 or later, please use `Listy` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+-----·---------------------
+
+ Test Files  1 passed (1)
+      Tests  1 passed | 26 skipped (27)
+   Start at  14:44:42
+   Duration  12.31s (transform 2.00s, setup 213ms, import 7.46s, tests 3.57s, environment 766ms)
+
+
+PROCESS_EXIT_CODE=0

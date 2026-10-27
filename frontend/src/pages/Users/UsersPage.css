@@ -1,0 +1,21 @@
+/* People and permissions table. */
+.sp-page.users-workspace { display: grid; min-width: 0; gap: 22px; color: var(--sp-ink, #16283b); }
+.users-workspace__heading > div { display: grid; min-width: 0; gap: 6px; }
+.users-workspace__heading h2.ant-typography { color: var(--sp-ink, #16283b); }
+.users-workspace__body { min-width: 0; }
+.users-workspace__create, .users-workspace__table .ant-btn { min-height: 44px; }
+.users-workspace__count { display: block; color: var(--sp-muted, #53697e); font-size: 12px; font-variant-numeric: tabular-nums; }
+.users-workspace__table { min-width: 0; overflow-x: auto; border: 1px solid var(--sp-line, #dbe4ec); border-radius: var(--sp-radius-md, 12px); background: var(--sp-surface, #fff); }
+.users-workspace__table .ant-table { background: transparent; }
+.users-workspace__table .ant-table-thead > tr > th { border-bottom: 1px solid var(--sp-line, #dbe4ec); background: var(--sp-surface-muted, #f7f9fb); color: var(--sp-muted, #53697e); font-size: 12px; font-weight: 700; white-space: nowrap; }
+.users-workspace__table .ant-table-tbody > tr > td { border-bottom-color: var(--sp-line, #dbe4ec); background: var(--sp-surface, #fff); color: var(--sp-ink, #16283b); vertical-align: middle; }
+.users-workspace__table .ant-table-tbody > tr:hover > td { background: var(--sp-surface-muted, #f7f9fb); }
+.users-workspace__table .ant-table-tbody > tr > td:last-child { min-width: 190px; }
+.users-workspace__table .ant-table-tbody > tr > td:last-child .ant-space { flex-wrap: wrap; }
+.users-workspace__table .ant-btn-dangerous { color: var(--sp-danger, #b42318); }
+.users-workspace__modal .ant-modal-content { border: 1px solid var(--sp-line, #dbe4ec); border-radius: var(--sp-radius-lg, 16px); background: var(--sp-surface, #fff); }
+@media (max-width: 680px) {
+  .sp-page.users-workspace { gap: 18px; }
+  .users-workspace__heading { align-items: stretch; }
+  .users-workspace__create { width: 100%; }
+}

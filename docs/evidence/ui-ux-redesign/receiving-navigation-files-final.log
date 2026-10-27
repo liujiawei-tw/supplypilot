@@ -1,0 +1,168 @@
+
+> frontend@0.0.0 test
+> vitest run --maxWorkers=1 --reporter=dot tests/dashboard.test.tsx tests/inventoryImport.test.tsx tests/sp807.test.tsx
+
+
+ RUN  v4.1.11 C:/Users/z0976/.codex/worktrees/procurement-tool-ux-redesign/supplypilot/frontend
+
+stderr | tests/sp807.test.tsx > SP-807 purchase order verification boundary > locks Approve and Edit DRAFT after 409, stays locked after failed GET, then requires a fresh review of latest state
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+stderr | tests/sp807.test.tsx > SP-807 purchase order verification boundary > does not resend Mark Ordered after 409 and makes the user reopen confirmation after a successful GET
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+stderr | tests/sp807.test.tsx > SP-807 receiving and import verification boundaries > presents the receiving route as a read-only status and inspection work queue
+Warning: [antd: Spin] `tip` is deprecated. Please use `description` instead.
+
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+stderr | tests/dashboard.test.tsx > SP-907 role-adaptive dashboard API access > shows procurement staff DRAFT, APPROVED and ORDERED data from three status-filtered requests
+Warning: [antd: List] The `List` component is deprecated and will be removed in the next major version. If you're using version 6.6.0 or later, please use `Listy` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+stderr | tests/dashboard.test.tsx > SP-907 role-adaptive dashboard API access > shows procurement staff DRAFT, APPROVED and ORDERED data from three status-filtered requests
+Warning: [antd: List] The `List` component is deprecated and will be removed in the next major version. If you're using version 6.6.0 or later, please use `Listy` instead.
+Warning: [antd: List] The `List` component is deprecated and will be removed in the next major version. If you're using version 6.6.0 or later, please use `Listy` instead.
+Warning: [antd: List] The `List` component is deprecated and will be removed in the next major version. If you're using version 6.6.0 or later, please use `Listy` instead.
+Warning: [antd: List] The `List` component is deprecated and will be removed in the next major version. If you're using version 6.6.0 or later, please use `Listy` instead.
+
+stderr | tests/dashboard.test.tsx > SP-907 role-adaptive dashboard API access > shows only DRAFT approval work for managers and distinguishes a successful empty result
+Warning: [antd: List] The `List` component is deprecated and will be removed in the next major version. If you're using version 6.6.0 or later, please use `Listy` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+stderr | tests/dashboard.test.tsx > SP-907 role-adaptive dashboard API access > shows only DRAFT approval work for managers and distinguishes a successful empty result
+Warning: [antd: List] The `List` component is deprecated and will be removed in the next major version. If you're using version 6.6.0 or later, please use `Listy` instead.
+
+stderr | tests/dashboard.test.tsx > SP-907 role-adaptive dashboard API access > uses the restricted Receiving API for warehouse data and never renders price fields
+Warning: [antd: List] The `List` component is deprecated and will be removed in the next major version. If you're using version 6.6.0 or later, please use `Listy` instead.
+
+stderr | tests/dashboard.test.tsx > SP-907 role-adaptive dashboard API access > uses the restricted Receiving API for warehouse data and never renders price fields
+Warning: [antd: List] The `List` component is deprecated and will be removed in the next major version. If you're using version 6.6.0 or later, please use `Listy` instead.
+
+stderr | tests/dashboard.test.tsx > SP-907 role-adaptive dashboard API access > uses the restricted Receiving API for warehouse data and never renders price fields
+Warning: [antd: List] The `List` component is deprecated and will be removed in the next major version. If you're using version 6.6.0 or later, please use `Listy` instead.
+Warning: [antd: List] The `List` component is deprecated and will be removed in the next major version. If you're using version 6.6.0 or later, please use `Listy` instead.
+
+stderr | tests/dashboard.test.tsx > SP-907 role-adaptive dashboard API access > shows admin purchasing and receiving work while using only bounded, authorized reads
+Warning: [antd: List] The `List` component is deprecated and will be removed in the next major version. If you're using version 6.6.0 or later, please use `Listy` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+stderr | tests/dashboard.test.tsx > SP-907 role-adaptive dashboard API access > shows admin purchasing and receiving work while using only bounded, authorized reads
+Warning: [antd: List] The `List` component is deprecated and will be removed in the next major version. If you're using version 6.6.0 or later, please use `Listy` instead.
+
+stderr | tests/dashboard.test.tsx > SP-907 role-adaptive dashboard API access > shows admin purchasing and receiving work while using only bounded, authorized reads
+Warning: [antd: List] The `List` component is deprecated and will be removed in the next major version. If you're using version 6.6.0 or later, please use `Listy` instead.
+Warning: [antd: List] The `List` component is deprecated and will be removed in the next major version. If you're using version 6.6.0 or later, please use `Listy` instead.
+Warning: [antd: List] The `List` component is deprecated and will be removed in the next major version. If you're using version 6.6.0 or later, please use `Listy` instead.
+Warning: [antd: List] The `List` component is deprecated and will be removed in the next major version. If you're using version 6.6.0 or later, please use `Listy` instead.
+
+stderr | tests/dashboard.test.tsx > SP-907 role-adaptive dashboard API access > does not load Demand or recommendation work queues in the V2 dashboard
+Warning: [antd: List] The `List` component is deprecated and will be removed in the next major version. If you're using version 6.6.0 or later, please use `Listy` instead.
+
+stderr | tests/dashboard.test.tsx > SP-907 role-adaptive dashboard API access > does not load Demand or recommendation work queues in the V2 dashboard
+Warning: [antd: List] The `List` component is deprecated and will be removed in the next major version. If you're using version 6.6.0 or later, please use `Listy` instead.
+
+stderr | tests/dashboard.test.tsx > SP-907 role-adaptive dashboard API access > keeps successful staff panels visible after another query fails and retries only that query
+Warning: [antd: List] The `List` component is deprecated and will be removed in the next major version. If you're using version 6.6.0 or later, please use `Listy` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+stderr | tests/dashboard.test.tsx > SP-907 role-adaptive dashboard API access > keeps successful staff panels visible after another query fails and retries only that query
+Warning: [antd: List] The `List` component is deprecated and will be removed in the next major version. If you're using version 6.6.0 or later, please use `Listy` instead.
+
+stderr | tests/dashboard.test.tsx > SP-907 role-adaptive dashboard API access > keeps successful staff panels visible after another query fails and retries only that query
+Warning: [antd: List] The `List` component is deprecated and will be removed in the next major version. If you're using version 6.6.0 or later, please use `Listy` instead.
+Warning: [antd: List] The `List` component is deprecated and will be removed in the next major version. If you're using version 6.6.0 or later, please use `Listy` instead.
+Warning: [antd: List] The `List` component is deprecated and will be removed in the next major version. If you're using version 6.6.0 or later, please use `Listy` instead.
+
+stderr | tests/dashboard.test.tsx > SP-907 role-adaptive dashboard API access > keeps successful staff panels visible after another query fails and retries only that query
+Warning: [antd: List] The `List` component is deprecated and will be removed in the next major version. If you're using version 6.6.0 or later, please use `Listy` instead.
+Warning: [antd: List] The `List` component is deprecated and will be removed in the next major version. If you're using version 6.6.0 or later, please use `Listy` instead.
+Warning: [antd: List] The `List` component is deprecated and will be removed in the next major version. If you're using version 6.6.0 or later, please use `Listy` instead.
+
+stderr | tests/dashboard.test.tsx > SP-907 role-adaptive dashboard API access > keeps successful staff panels visible after another query fails and retries only that query
+Warning: [antd: List] The `List` component is deprecated and will be removed in the next major version. If you're using version 6.6.0 or later, please use `Listy` instead.
+Warning: [antd: List] The `List` component is deprecated and will be removed in the next major version. If you're using version 6.6.0 or later, please use `Listy` instead.
+Warning: [antd: List] The `List` component is deprecated and will be removed in the next major version. If you're using version 6.6.0 or later, please use `Listy` instead.
+Warning: [antd: List] The `List` component is deprecated and will be removed in the next major version. If you're using version 6.6.0 or later, please use `Listy` instead.
+
+stderr | tests/dashboard.test.tsx > SP-907 role-adaptive dashboard API access > shows a sanitized forbidden state for HTTP 403 without treating it as empty or retrying
+Warning: [antd: List] The `List` component is deprecated and will be removed in the next major version. If you're using version 6.6.0 or later, please use `Listy` instead.
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+stderr | tests/dashboard.test.tsx > SP-907 role-adaptive dashboard API access > shows a sanitized forbidden state for HTTP 403 without treating it as empty or retrying
+Warning: [antd: List] The `List` component is deprecated and will be removed in the next major version. If you're using version 6.6.0 or later, please use `Listy` instead.
+
+stderr | tests/dashboard.test.tsx > SP-907 role-adaptive dashboard API access > shows a sanitized forbidden state for HTTP 403 without treating it as empty or retrying
+Warning: [antd: List] The `List` component is deprecated and will be removed in the next major version. If you're using version 6.6.0 or later, please use `Listy` instead.
+Warning: [antd: List] The `List` component is deprecated and will be removed in the next major version. If you're using version 6.6.0 or later, please use `Listy` instead.
+Warning: [antd: List] The `List` component is deprecated and will be removed in the next major version. If you're using version 6.6.0 or later, please use `Listy` instead.
+
+stderr | tests/dashboard.test.tsx > SP-907 role-adaptive dashboard API access > ignores an old role response after the authenticated role changes
+Warning: [antd: List] The `List` component is deprecated and will be removed in the next major version. If you're using version 6.6.0 or later, please use `Listy` instead.
+Warning: [antd: List] The `List` component is deprecated and will be removed in the next major version. If you're using version 6.6.0 or later, please use `Listy` instead.
+
+stderr | tests/dashboard.test.tsx > SP-907 role-adaptive dashboard API access > ignores an old role response after the authenticated role changes
+Warning: [antd: List] The `List` component is deprecated and will be removed in the next major version. If you're using version 6.6.0 or later, please use `Listy` instead.
+
+stderr | tests/dashboard.test.tsx > SP-907 role-adaptive dashboard API access > ignores an old role response after the authenticated role changes
+Warning: [antd: List] The `List` component is deprecated and will be removed in the next major version. If you're using version 6.6.0 or later, please use `Listy` instead.
+Warning: [antd: List] The `List` component is deprecated and will be removed in the next major version. If you're using version 6.6.0 or later, please use `Listy` instead.
+
+stderr | tests/dashboard.test.tsx > SP-907 role-adaptive dashboard API access > opens the received history route with an explicit RECEIVED query
+Warning: [antd: List] The `List` component is deprecated and will be removed in the next major version. If you're using version 6.6.0 or later, please use `Listy` instead.
+
+stderr | tests/dashboard.test.tsx > SP-907 role-adaptive dashboard API access > opens the received history route with an explicit RECEIVED query
+Warning: [antd: List] The `List` component is deprecated and will be removed in the next major version. If you're using version 6.6.0 or later, please use `Listy` instead.
+
+stderr | tests/dashboard.test.tsx > SP-907 role-adaptive dashboard API access > opens the received history route with an explicit RECEIVED query
+Warning: [antd: List] The `List` component is deprecated and will be removed in the next major version. If you're using version 6.6.0 or later, please use `Listy` instead.
+
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+stderr | tests/dashboard.test.tsx > SP-907 role-adaptive dashboard API access > opens the received history route with an explicit RECEIVED query
+Warning: [antd: Spin] `tip` is deprecated. Please use `description` instead.
+
+stderr | tests/inventoryImport.test.tsx > SP-803 role isolation > renders 403 without mounting or requesting import APIs for PROCUREMENT_STAFF
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+stderr | tests/inventoryImport.test.tsx > SP-803 role isolation > renders 403 without mounting or requesting import APIs for PROCUREMENT_MANAGER
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+stderr | tests/inventoryImport.test.tsx > SP-803 role isolation > allows ADMIN to open the page and shows its sidebar entry
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+stderr | tests/inventoryImport.test.tsx > SP-803 validate, preview and confirm flow > shows every backend row error and never enables confirm for VALIDATION_FAILED
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+stderr | tests/inventoryImport.test.tsx > SP-803 validate, preview and confirm flow > invalidates an old batch when the file changes and ignores its late validation response
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+stderr | tests/inventoryImport.test.tsx > SP-803 validate, preview and confirm flow > keeps a network error as an unknown locked result without retrying
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+··································
+
+ Test Files  3 passed (3)
+      Tests  34 passed (34)
+   Start at  15:10:07
+   Duration  83.68s (transform 1.46s, setup 552ms, import 15.62s, tests 64.12s, environment 2.58s)
+
+
+PROCESS_EXIT_CODE=0

@@ -1,0 +1,44 @@
+
+> frontend@0.0.0 test
+> vitest run --maxWorkers=1 --reporter=dot tests/quickFinder.test.tsx
+
+
+ RUN  v4.1.11 C:/Users/z0976/.codex/worktrees/procurement-tool-ux-redesign/supplypilot/frontend
+
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+stderr | tests/quickFinder.test.tsx > QuickFinder > waits for a completed search before showing an empty result
+Warning: [antd: Spin] `tip` is deprecated. Please use `description` instead.
+
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+stderr | tests/quickFinder.test.tsx > QuickFinder > searches PO across supported server fields and opens the selected PO
+Warning: [antd: Spin] `tip` is deprecated. Please use `description` instead.
+
+stderr | tests/quickFinder.test.tsx > QuickFinder > searches PO across supported server fields and opens the selected PO
+Warning: [antd: List] The `List` component is deprecated and will be removed in the next major version. If you're using version 6.6.0 or later, please use `Listy` instead.
+
+stderr | tests/quickFinder.test.tsx > QuickFinder > searches PO across supported server fields and opens the selected PO
+Warning: [antd: List] The `List` component is deprecated and will be removed in the next major version. If you're using version 6.6.0 or later, please use `Listy` instead.
+
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+stderr | tests/quickFinder.test.tsx > QuickFinder > limits warehouse search to inventory and materials instead of calling the PO API
+Warning: [antd: Spin] `tip` is deprecated. Please use `description` instead.
+
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+stderr | tests/quickFinder.test.tsx > QuickFinder > preserves the matched supplier field when opening the paginated supplier list
+Warning: [antd: Spin] `tip` is deprecated. Please use `description` instead.
+
+stderr | tests/quickFinder.test.tsx > QuickFinder > preserves the matched supplier field when opening the paginated supplier list
+Warning: [antd: List] The `List` component is deprecated and will be removed in the next major version. If you're using version 6.6.0 or later, please use `Listy` instead.
+
+stderr | tests/quickFinder.test.tsx > QuickFinder > preserves the matched supplier field when opening the paginated supplier list
+Warning: [antd: List] The `List` component is deprecated and will be removed in the next major version. If you're using version 6.6.0 or later, please use `Listy` instead.
+
+····
+
+ Test Files  1 passed (1)
+      Tests  4 passed (4)
+   Start at  15:12:26
+   Duration  14.89s (transform 164ms, setup 239ms, import 5.43s, tests 8.05s, environment 914ms)
+
+
+PROCESS_EXIT_CODE=0

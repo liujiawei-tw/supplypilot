@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Alert, Button, Descriptions, Input, Modal, Segmented, Select, Space, Table, Tag, Typography, message } from 'antd';
 import type { TableProps } from 'antd';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { assignPurchaseOrder, claimPurchaseOrder, createPurchaseOrderDraft, getPurchaseOrder, listPurchaseOrders, type CreatePurchaseOrderRequest, type PurchaseOrderQuery, type PurchaseOrderResponse, type UpdatePurchaseOrderRequest } from '../../api/purchaseOrder';
 import { purchaseOrderStageGateway, type PurchaseOrderStageBoardSnapshot } from '../../api/purchaseOrderStage';
 import { listAssignableUsers, type AssignableUser } from '../../api/users';
@@ -13,6 +13,7 @@ import ErrorState from '../../components/ErrorState';
 import VerificationRequiredAlert from '../../components/VerificationRequiredAlert';
 import PurchaseOrderForm from './PurchaseOrderForm';
 import PurchaseOrderKanban from './PurchaseOrderKanban';
+import { PurchaseOrderInspector } from './PurchaseOrderWaybill';
 import { defaultPurchaseOrderViewMode, formatPurchaseOrderDate, formatTimestamp, isUnknownMutation, statusColors } from './purchaseOrderUi';
 import { displayLabel } from '../../utils/displayLabels';
 import type { ApiErrorResponse, PageResponse } from '../../types/api';
@@ -62,6 +63,18 @@ export default function PurchaseOrdersPage() {
   const [ownerVerificationError, setOwnerVerificationError] = useState<ApiErrorResponse | null>(null);
   const requestId = useRef(0);
   const boardRequestId = useRef(0);
+  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined'
+    && typeof window.matchMedia === 'function'
+    && window.matchMedia('(max-width: 767px)').matches);
+  const [inspectorOrder, setInspectorOrder] = useState<PurchaseOrderResponse | null>(null);
+  const [inspectorLoading, setInspectorLoading] = useState(false);
+  const [inspectorError, setInspectorError] = useState<ApiErrorResponse | null>(null);
+  const [inspectorRetry, setInspectorRetry] = useState(0);
+  const inspectorRequestId = useRef(0);
+  const rawInspectorId = searchParams.get('inspect');
+  const selectedOrderId = rawInspectorId && /^\d+$/.test(rawInspectorId) ? Number(rawInspectorId) : null;
 
   const load = useCallback(async () => {
     const current = ++requestId.current; setLoading(true); setError(null);
@@ -112,6 +125,21 @@ export default function PurchaseOrdersPage() {
     };
   }, [boardRetry, query, viewMode]);
   useEffect(() => { void listAssignableUsers().then(setAssignableUsers).catch(() => setAssignableUsers([])); }, []);
+  useEffect(() => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return;
+    const media = window.matchMedia('(max-width: 767px)');
+    const syncViewport = () => {
+      setIsMobile(media.matches);
+      if (media.matches) setViewMode('list');
+    };
+    syncViewport();
+    if (media.addEventListener) media.addEventListener('change', syncViewport);
+    else media.addListener(syncViewport);
+    return () => {
+      if (media.removeEventListener) media.removeEventListener('change', syncViewport);
+      else media.removeListener(syncViewport);
+    };
+  }, []);
 
   const currentBoardResult = boardResult?.query === query && boardResult.retry === boardRetry ? boardResult : null;
   const currentListData = dataQuery === query ? data : null;
@@ -121,6 +149,64 @@ export default function PurchaseOrdersPage() {
   const boardError = currentBoardResult?.state === 'error' ? currentBoardResult.error : null;
   const boardReason = currentBoardResult?.state === 'incomplete' ? currentBoardResult.reason : undefined;
   const boardViewKey = JSON.stringify([query, boardRetry, boardState]);
+
+  const openInspector = (po: PurchaseOrderResponse) => {
+    if (isMobile) {
+      navigate(`/purchase-orders/${po.id}`);
+      return;
+    }
+    setSearchParams((current) => {
+      const next = new URLSearchParams(current);
+      next.set('inspect', String(po.id));
+      return next;
+    });
+  };
+  const closeInspector = () => {
+    setSearchParams((current) => {
+      const next = new URLSearchParams(current);
+      next.delete('inspect');
+      return next;
+    });
+  };
+
+  useEffect(() => {
+    if (selectedOrderId === null || isMobile) {
+      setInspectorOrder(null);
+      setInspectorError(null);
+      setInspectorLoading(false);
+      return;
+    }
+
+    const loadedOrder = currentListData?.content.find((item) => item.id === selectedOrderId)
+      ?? boardSnapshot?.purchaseOrders.find((item) => item.id === selectedOrderId);
+    if (loadedOrder) {
+      setInspectorOrder(loadedOrder);
+      setInspectorError(null);
+      setInspectorLoading(false);
+      return;
+    }
+
+    const request = ++inspectorRequestId.current;
+    setInspectorLoading(true);
+    setInspectorError(null);
+    void getPurchaseOrder(selectedOrderId)
+      .then((latest) => {
+        if (request === inspectorRequestId.current) setInspectorOrder(latest);
+      })
+      .catch((cause) => {
+        if (request === inspectorRequestId.current) setInspectorError(toApiError(cause));
+      })
+      .finally(() => {
+        if (request === inspectorRequestId.current) setInspectorLoading(false);
+      });
+    return () => {
+      if (request === inspectorRequestId.current) inspectorRequestId.current += 1;
+    };
+  }, [selectedOrderId, currentListData, boardSnapshot, inspectorRetry, isMobile]);
+
+  useEffect(() => {
+    if (isMobile && selectedOrderId !== null) navigate(`/purchase-orders/${selectedOrderId}`, { replace: true });
+  }, [isMobile, selectedOrderId, navigate]);
 
   const changeOwner = async (po: PurchaseOrderResponse, value: number | 'claim') => {
     if (ownerSubmittingRef.current || ownerVerificationId !== null) return;
@@ -180,7 +266,10 @@ export default function PurchaseOrdersPage() {
     { title: '供應商承諾交期', dataIndex: 'supplierPromisedDeliveryDate', responsive: ['md'], render: formatPurchaseOrderDate },
     { title: '建立時間', dataIndex: 'createdAt', sorter: true, responsive: ['md'], sortOrder: query.sort?.startsWith('createdAt,') ? (query.sort.endsWith(',asc') ? 'ascend' : 'descend') : null, render: formatTimestamp },
     { title: '下單時間', dataIndex: 'orderedAt', sorter: true, responsive: ['md'], sortOrder: query.sort?.startsWith('orderedAt,') ? (query.sort.endsWith(',asc') ? 'ascend' : 'descend') : null, render: formatTimestamp },
-    { title: '操作', render: (_, row) => <Link to={`/purchase-orders/${row.id}`}>檢視</Link> },
+    { title: '操作', render: (_, row) => <Space wrap>
+      {!isMobile && <Button className="po-inspector-open" type="link" aria-label={`快速查看採購單 ${row.poNumber}`} onClick={() => openInspector(row)}>快速預覽</Button>}
+      <Link to={`/purchase-orders/${row.id}`}>{isMobile ? '開啟完整明細' : '完整明細'}</Link>
+    </Space> },
   ];
 
   const setFilter = (key: keyof PurchaseOrderQuery, value: unknown) => setQuery((current) => ({ ...current, [key]: value || undefined, page: 0 }));
@@ -233,6 +322,7 @@ export default function PurchaseOrdersPage() {
       reason={boardReason}
       onRetry={() => setBoardRetry((current) => current + 1)}
       onRefresh={() => setBoardRetry((current) => current + 1)}
+      onSelectPurchaseOrder={openInspector}
     /> : <Table rowKey="id" columns={columns} dataSource={currentListData?.content ?? []} loading={listLoading}
       locale={{ emptyText: <EmptyState simple description="沒有符合條件的 Purchase Order" /> }}
       scroll={{ x: true }}
@@ -254,5 +344,13 @@ export default function PurchaseOrdersPage() {
         { key: 'items', label: '品項', children: pending.items.map((item) => `物料 #${item.materialId}：${item.quantity} @ ${item.unitPrice}`).join('；') },
       ]} /></>}
     </Modal>
+    <PurchaseOrderInspector
+      open={selectedOrderId !== null && !isMobile}
+      purchaseOrder={inspectorOrder}
+      loading={inspectorLoading}
+      error={inspectorError}
+      onClose={closeInspector}
+      onRetry={() => setInspectorRetry((current) => current + 1)}
+    />
   </Space>;
 }

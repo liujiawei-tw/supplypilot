@@ -109,27 +109,36 @@ export default function SupplierMaterialList({ isAdmin }: { isAdmin: boolean }) 
     { title: '交期（天）', dataIndex: 'leadTimeDays', sorter: true },
     { title: '狀態', dataIndex: 'status', sorter: true, render: (status: SupplierMaterialStatus) => <Tag color={status === 'ACTIVE' ? 'green' : 'default'}>{displayLabel(status)}</Tag> },
     ...(isAdmin ? [{ title: '操作', key: 'actions', render: (_: unknown, item: SupplierMaterialResponse) => <Space>
-      <Button size="small" onClick={() => openEdit(item)}>編輯</Button>
-      <Popconfirm title={`確定要將此供應商物料關聯設為${item.status === 'ACTIVE' ? '停用' : '啟用'}？`} onConfirm={() => void changeStatus(item)}><Button size="small">{item.status === 'ACTIVE' ? '停用' : '啟用'}</Button></Popconfirm>
+      <Button onClick={() => openEdit(item)} style={{ minHeight: 44 }}>編輯</Button>
+      <Popconfirm title={`確定要將此供應商物料關聯設為${item.status === 'ACTIVE' ? '停用' : '啟用'}？`} onConfirm={() => void changeStatus(item)}><Button style={{ minHeight: 44 }}>{item.status === 'ACTIVE' ? '停用' : '啟用'}</Button></Popconfirm>
     </Space> }] : []),
   ];
 
-  return <Space orientation="vertical" size="large" style={{ width: '100%' }}>
+  return <Space className="supplier-material-workspace sp-section" orientation="vertical" size="middle" style={{ width: '100%' }}>
     {contextHolder}
-    <Space style={{ width: '100%', justifyContent: 'space-between' }} wrap>
-      <Space wrap>
-        <div style={{ width: 240 }}><RelatedEntitySelect entity="supplier" activeOnly={false} value={query.supplierId} onChange={(supplierId) => setQuery((current) => ({ ...current, supplierId, page: 0 }))} onError={handleListRelatedError} /></div>
-        <div style={{ width: 240 }}><RelatedEntitySelect entity="material" activeOnly={false} value={query.materialId} onChange={(materialId) => setQuery((current) => ({ ...current, materialId, page: 0 }))} onError={handleListRelatedError} /></div>
-        <Select aria-label="供應商物料狀態篩選" placeholder="狀態" value={query.status} options={statuses.map((status) => ({ value: status, label: displayLabel(status) }))} onChange={(status) => setQuery((current) => ({ ...current, status, page: 0 }))} allowClear style={{ width: 150 }} />
-        {filtered && <Button onClick={() => setQuery((current) => ({ ...current, supplierId: undefined, materialId: undefined, status: undefined, page: 0 }))}>清除篩選</Button>}
-      </Space>
-        {isAdmin && <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>新增供應商物料關聯</Button>}
-    </Space>
+    <div className="supplier-material-workspace__heading sp-section__heading">
+      <div>
+        <Typography.Title className="supplier-material-workspace__title" level={3}>供應物料關聯</Typography.Title>
+        <Typography.Text className="supplier-material-workspace__intro sp-page__lead">依供應商、物料或狀態核對價格、最低訂購量與交期。</Typography.Text>
+      </div>
+      {isAdmin && <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>新增供應物料關聯</Button>}
+    </div>
+    <div className="supplier-material-workspace__filters" role="search" aria-label="供應物料關聯篩選">
+      <div style={{ width: 'min(100%, 240px)', minHeight: 44 }}><RelatedEntitySelect entity="supplier" activeOnly={false} value={query.supplierId} onChange={(supplierId) => setQuery((current) => ({ ...current, supplierId, page: 0 }))} onError={handleListRelatedError} /></div>
+      <div style={{ width: 'min(100%, 240px)', minHeight: 44 }}><RelatedEntitySelect entity="material" activeOnly={false} value={query.materialId} onChange={(materialId) => setQuery((current) => ({ ...current, materialId, page: 0 }))} onError={handleListRelatedError} /></div>
+      <Select aria-label="供應商物料狀態篩選" placeholder="狀態" value={query.status} options={statuses.map((status) => ({ value: status, label: displayLabel(status) }))} onChange={(status) => setQuery((current) => ({ ...current, status, page: 0 }))} allowClear style={{ width: 150, minHeight: 44 }} />
+      {filtered && <Button onClick={() => setQuery((current) => ({ ...current, supplierId: undefined, materialId: undefined, status: undefined, page: 0 }))}>清除篩選</Button>}
+    </div>
     {listError && <ErrorState title="供應商物料查詢失敗" error={listError} onRetry={() => void load()} />}
-    {loading && !data ? <LoadingState tip="正在載入供應商物料關聯…" /> : <Table<SupplierMaterialResponse> rowKey="id" columns={columns} dataSource={data?.content ?? []} loading={loading} scroll={{ x: 'max-content' }}
-      locale={{ emptyText: <EmptyState simple description={filtered ? '沒有符合條件的供應商物料關聯' : '目前沒有供應商物料關聯'} actionText={isAdmin && !filtered ? '新增供應商物料關聯' : undefined} onAction={isAdmin && !filtered ? openCreate : undefined} /> }}
-      pagination={{ current: (data?.page ?? 0) + 1, pageSize: data?.size ?? query.size, total: data?.totalElements ?? 0, showSizeChanger: true }} onChange={handleTableChange} />}
-    <Modal title={editing ? '編輯供應商物料關聯' : '新增供應商物料關聯'} open={modalOpen} onCancel={() => !submitting && setModalOpen(false)} onOk={() => void submit()} confirmLoading={submitting} okButtonProps={{ disabled: submitting }} destroyOnHidden>
+    {loading && !data ? <LoadingState tip="正在載入供應商物料關聯…" /> : <>
+      <Typography.Text className="supplier-material-workspace__count" type="secondary" aria-live="polite">共 {data?.totalElements ?? 0} 筆關聯</Typography.Text>
+      <div className="supplier-material-workspace__table">
+      <Table<SupplierMaterialResponse> rowKey="id" columns={columns} dataSource={data?.content ?? []} loading={loading} scroll={{ x: 'max-content' }}
+        locale={{ emptyText: <EmptyState simple description={filtered ? '沒有符合條件的供應商物料關聯' : '目前沒有供應商物料關聯'} actionText={isAdmin && !filtered ? '新增供應商物料關聯' : undefined} onAction={isAdmin && !filtered ? openCreate : undefined} /> }}
+        pagination={{ current: (data?.page ?? 0) + 1, pageSize: data?.size ?? query.size, total: data?.totalElements ?? 0, showSizeChanger: true }} onChange={handleTableChange} />
+      </div>
+    </>}
+    <Modal className="supplier-material-workspace__modal" title={editing ? '編輯供應商物料關聯' : '新增供應商物料關聯'} open={modalOpen} onCancel={() => !submitting && setModalOpen(false)} onOk={() => void submit()} confirmLoading={submitting} okButtonProps={{ disabled: submitting }} destroyOnHidden>
       {submitError && <ErrorState title="供應商物料資料送出失敗" error={submitError} />}
       <Form form={form} layout="vertical">
         {editing ? <>

@@ -1,0 +1,69 @@
+
+> frontend@0.0.0 test
+> vitest run --run tests/issue143PurchaseOrdersPage.test.tsx --maxWorkers=1 --reporter=verbose -t refreshes the current Kanban
+
+
+ RUN  v4.1.11 C:/Users/z0976/.codex/worktrees/procurement-tool-ux-redesign/supplypilot/frontend
+
+ ↓ tests/issue143PurchaseOrdersPage.test.tsx > Issue #143 purchase-order page views > defaults to desktop Kanban and preserves the active filter across both views
+ ↓ tests/issue143PurchaseOrdersPage.test.tsx > Issue #143 purchase-order page views > opens a query-addressable read-only inspector from Kanban and links to full detail
+ ↓ tests/issue143PurchaseOrdersPage.test.tsx > Issue #143 purchase-order page views > opens a bookmarked inspector selection after loading the Backend PO
+ ↓ tests/issue143PurchaseOrdersPage.test.tsx > Issue #143 purchase-order page views > opens the mobile page in List mode while retaining backend purchase-order data
+stdout | tests/issue143PurchaseOrdersPage.test.tsx > Issue #143 purchase-order page views > refreshes the current Kanban from backend after a successful draft create
+[submitManualDraft] before open draft form
+
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+stdout | tests/issue143PurchaseOrdersPage.test.tsx > Issue #143 purchase-order page views > refreshes the current Kanban from backend after a successful draft create
+[submitManualDraft] after open draft form
+[submitManualDraft] before open supplier select
+
+stdout | tests/issue143PurchaseOrdersPage.test.tsx > Issue #143 purchase-order page views > refreshes the current Kanban from backend after a successful draft create
+[submitManualDraft] after open supplier select
+[submitManualDraft] before find supplier option
+
+stdout | tests/issue143PurchaseOrdersPage.test.tsx > Issue #143 purchase-order page views > refreshes the current Kanban from backend after a successful draft create
+[submitManualDraft] after find supplier option
+[submitManualDraft] before select supplier option
+
+stdout | tests/issue143PurchaseOrdersPage.test.tsx > Issue #143 purchase-order page views > refreshes the current Kanban from backend after a successful draft create
+[submitManualDraft] after select supplier option
+[submitManualDraft] before open material select
+
+stdout | tests/issue143PurchaseOrdersPage.test.tsx > Issue #143 purchase-order page views > refreshes the current Kanban from backend after a successful draft create
+[submitManualDraft] after open material select
+[submitManualDraft] before find material option
+
+stdout | tests/issue143PurchaseOrdersPage.test.tsx > Issue #143 purchase-order page views > refreshes the current Kanban from backend after a successful draft create
+[submitManualDraft] after find material option
+[submitManualDraft] before select material option
+
+stdout | tests/issue143PurchaseOrdersPage.test.tsx > Issue #143 purchase-order page views > refreshes the current Kanban from backend after a successful draft create
+[submitManualDraft] after select material option
+[submitManualDraft] before type quantity
+
+stdout | tests/issue143PurchaseOrdersPage.test.tsx > Issue #143 purchase-order page views > refreshes the current Kanban from backend after a successful draft create
+[submitManualDraft] after type quantity
+[submitManualDraft] before type unit price
+
+stdout | tests/issue143PurchaseOrdersPage.test.tsx > Issue #143 purchase-order page views > refreshes the current Kanban from backend after a successful draft create
+[submitManualDraft] after type unit price
+[submitManualDraft] before open review confirmation
+
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+stdout | tests/issue143PurchaseOrdersPage.test.tsx > Issue #143 purchase-order page views > refreshes the current Kanban from backend after a successful draft create
+[submitManualDraft] after open review confirmation
+[submitManualDraft] before confirm create
+
+stdout | tests/issue143PurchaseOrdersPage.test.tsx > Issue #143 purchase-order page views > refreshes the current Kanban from backend after a successful draft create
+[submitManualDraft] after confirm create
+
+ ✓ tests/issue143PurchaseOrdersPage.test.tsx > Issue #143 purchase-order page views > refreshes the current Kanban from backend after a successful draft create 26458ms
+ ↓ tests/issue143PurchaseOrdersPage.test.tsx > Issue #143 purchase-order page views > does not refresh the Kanban or report success after a 403 draft-create failure
+ ↓ tests/issue143PurchaseOrdersPage.test.tsx > Issue #143 purchase-order page views > does not refresh the Kanban or report success after a network error draft-create failure
+
+ Test Files  1 passed (1)
+      Tests  1 passed | 6 skipped (7)
+   Start at  13:45:42
+   Duration  34.61s (transform 548ms, setup 283ms, import 6.27s, tests 26.46s, environment 1.20s)
+
+PO_DEBUG_REFRESH_EXIT_CODE=0

@@ -3,6 +3,7 @@ import { Alert, Button, Descriptions, Drawer, Space, Spin, Tag, Typography } fro
 import { DownloadOutlined, ReloadOutlined } from '@ant-design/icons';
 import { getDocumentFile, getDocumentPreview, type DocumentResponse } from '../../api/document';
 import { displayLabel } from '../../utils/displayLabels';
+import './DocumentsPage.css';
 
 const { Text, Title } = Typography;
 
@@ -180,6 +181,7 @@ export default function DocumentPreviewDrawer({ document: record, open, onClose 
   };
 
   return <Drawer
+    className="document-preview"
     title="文件全文預覽"
     open={open && !!record}
     onClose={closePreview}
@@ -187,10 +189,10 @@ export default function DocumentPreviewDrawer({ document: record, open, onClose 
     destroyOnHidden
   >
     {record && <>
-      <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
+      <Space className="document-preview__body" orientation="vertical" size="middle" style={{ width: '100%' }}>
         <div>
-          <Title level={4} style={{ marginTop: 0, marginBottom: 12, overflowWrap: 'anywhere' }}>{record.title}</Title>
-          <Descriptions bordered size="small" column={{ xs: 1, sm: 2 }} items={[
+          <Title level={4} className="document-preview__title">{record.title}</Title>
+          <Descriptions className="document-preview__meta" bordered size="small" column={{ xs: 1, sm: 2 }} items={[
             { key: 'type', label: '文件類型', children: displayLabel(record.documentType) },
             { key: 'version', label: '版本', children: record.version },
             { key: 'supplier', label: '供應商', children: record.supplierCode
@@ -216,24 +218,20 @@ export default function DocumentPreviewDrawer({ document: record, open, onClose 
         </Space>
         {downloadError && <Alert type="error" showIcon title="無法下載原始文件" description={downloadError} />}
 
-        {preview.kind === 'loading' && <div style={{ minHeight: 220, display: 'grid', placeItems: 'center' }}>
+        {preview.kind === 'loading' && <div className="document-preview__loading">
           <Spin size="large" description="正在載入文件" />
         </div>}
         {preview.kind === 'error' && <Alert type="error" showIcon title="無法讀取文件" description={preview.message} />}
         {preview.kind === 'unsupported' && <Alert type="warning" showIcon title="此文件不支援直接預覽" description="你可以下載原始文件查看；系統不會以摘要或索引內容替代原文。" />}
         {preview.kind === 'text' && <>
           <Text type="secondary">全文文字預覽 · 文件內容已完整顯示</Text>
-          <pre aria-label="文件全文內容" style={{
-            whiteSpace: 'pre-wrap', overflowWrap: 'anywhere', fontFamily: 'inherit',
-            fontSize: 14, lineHeight: 1.75, margin: 0, padding: 16,
-            background: '#fafafa', border: '1px solid #f0f0f0', borderRadius: 8,
-          }}>{preview.content}</pre>
+          <pre className="document-preview__text" aria-label="文件全文內容">{preview.content}</pre>
         </>}
         {preview.kind === 'pdf' && <iframe
+          className="document-preview__pdf"
           title={record.title + ' PDF 全文預覽'}
           src={preview.url}
           referrerPolicy="no-referrer"
-          style={{ display: 'block', width: '100%', height: '70vh', minHeight: 360, border: '1px solid #d9d9d9', borderRadius: 4 }}
         />}
       </Space>
     </>}

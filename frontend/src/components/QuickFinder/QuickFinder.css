@@ -1,0 +1,76 @@
+.quick-finder .ant-modal-content {
+  background: var(--sp-paper, #fffefa);
+  color: var(--sp-ink, #252a26);
+  border: 1px solid var(--sp-line, #d8d8cd);
+  border-radius: 16px;
+}
+
+.quick-finder .ant-modal-header {
+  background: transparent;
+  border-bottom: 1px solid var(--sp-line, #d8d8cd);
+  margin-bottom: 0;
+  padding-bottom: 14px;
+}
+
+.quick-finder .ant-modal-title {
+  color: var(--sp-ink, #252a26);
+  font-size: 1.2rem;
+}
+
+.quick-finder__controls {
+  display: flex;
+  width: 100%;
+  margin: 18px 0;
+}
+
+.quick-finder__controls .ant-select { flex: 0 0 140px; }
+.quick-finder__controls .ant-input-affix-wrapper { min-width: 0; flex: 1 1 280px; }
+
+.quick-finder__controls .ant-select-selector,
+.quick-finder__controls .ant-input-affix-wrapper,
+.quick-finder__controls .ant-btn { min-height: 44px; }
+
+.quick-finder__controls .ant-btn { padding-inline: 18px; }
+.quick-finder__note, .quick-finder__state { margin-block: 16px; }
+.quick-finder__results { max-height: min(52vh, 480px); overflow: auto; }
+
+.quick-finder__results .ant-list-item {
+  align-items: center;
+  gap: 16px;
+  padding-block: 14px;
+}
+
+.quick-finder__result-title.ant-btn {
+  height: auto;
+  padding: 0;
+  color: var(--sp-forest, #285241);
+  font-size: 1rem;
+  font-weight: 700;
+  text-align: left;
+}
+
+.quick-finder__tags .ant-tag { margin-inline-end: 0; }
+.quick-finder__footnote {
+  display: block;
+  margin-top: 16px;
+  color: var(--sp-muted, #566159);
+  line-height: 1.5;
+}
+
+.quick-finder .ant-btn:focus-visible,
+.quick-finder .ant-select:focus-within,
+.quick-finder .ant-input-affix-wrapper:focus-within {
+  outline: 3px solid var(--sp-focus, #1b66d1);
+  outline-offset: 2px;
+}
+
+@media (max-width: 640px) {
+  .quick-finder .ant-modal { max-width: calc(100vw - 24px); margin-inline: 12px; }
+  .quick-finder__controls { flex-direction: column; }
+  .quick-finder__controls .ant-select { flex-basis: auto; width: 100%; }
+  .quick-finder__controls .ant-btn { width: 100%; }
+  .quick-finder__results .ant-list-item { align-items: flex-start; }
+}
+
+
+

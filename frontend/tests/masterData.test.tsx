@@ -3,6 +3,7 @@ import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event';
 import { AxiosError, type AxiosResponse, type InternalAxiosRequestConfig } from 'axios';
 import { axiosClient } from '../src/api/axiosClient';
+import { MemoryRouter } from 'react-router-dom';
 import { parseDecimalJson } from '../src/api/decimalJson';
 import { AuthContext, type AuthState } from '../src/auth/authContextValue';
 import MaterialsPage from '../src/pages/Materials/MaterialsPage';
@@ -21,13 +22,36 @@ function auth(role: UserRole): AuthState {
   const user: AuthenticatedUser = { id: 1, username: role.toLowerCase(), displayName: role, role };
   return { user, isAuthenticated: true, isLoading: false, verificationError: false, retryVerification: vi.fn(), login: vi.fn(), logout: vi.fn() };
 }
-function renderWithRole(node: React.ReactNode, role: UserRole) {
-  return render(<AuthContext.Provider value={auth(role)}>{node}</AuthContext.Provider>);
+function renderWithRole(node: React.ReactNode, role: UserRole, initialEntry = '/') {
+  return render(
+    <MemoryRouter initialEntries={[initialEntry]}>
+      <AuthContext.Provider value={auth(role)}>{node}</AuthContext.Provider>
+    </MemoryRouter>,
+  );
 }
 
 beforeEach(() => { localStorage.clear(); });
 
 describe('master data pages', () => {
+  it.each([
+    { resource: 'supplier', field: 'code', value: 'SUP-001', path: '/suppliers?tab=suppliers&finder=SUP-001&finderField=code' },
+    { resource: 'supplier', field: 'name', value: 'Taiwan Foods', path: '/suppliers?tab=suppliers&finder=Taiwan%20Foods&finderField=name' },
+    { resource: 'material', field: 'code', value: 'MAT-001', path: '/materials?finder=MAT-001&finderField=code' },
+    { resource: 'material', field: 'name', value: 'Milk', path: '/materials?finder=Milk&finderField=name' },
+  ] as const)('maps a $resource finder to the server $field filter only', async ({ resource, field, value, path }) => {
+    const requests: InternalAxiosRequestConfig[] = [];
+    axiosClient.defaults.adapter = vi.fn(async (config) => {
+      requests.push(config);
+      return response(config, page([]));
+    });
+    renderWithRole(resource === 'supplier' ? <SuppliersPage /> : <MaterialsPage />, 'ADMIN', path);
+
+    expect(await screen.findByText(resource === 'supplier' ? '共 0 筆供應商' : '共 0 筆物料')).toBeTruthy();
+    const request = requests.find((item) => item.url === (resource === 'supplier' ? '/suppliers' : '/materials'));
+    expect(request?.params?.[field]).toBe(value);
+    expect(request?.params?.[field === 'code' ? 'name' : 'code']).toBeUndefined();
+  });
+
   it('shows loading, data and ADMIN actions on Materials', async () => {
     let finish!: () => void;
     axiosClient.defaults.adapter = vi.fn((config) => new Promise((resolve) => { finish = () => resolve(response(config, page([material]))); }));

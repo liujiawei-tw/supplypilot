@@ -3,6 +3,7 @@ import { Alert, Button, Card, Form, Input, Typography } from 'antd';
 import { useNavigate } from 'react-router-dom';
 import axiosClient from '../../api/axiosClient';
 import { useAuth } from '../../auth/useAuth';
+import '../AuthScreens.css';
 
 export default function ChangePasswordPage() {
   const { logout } = useAuth();
@@ -28,12 +29,18 @@ export default function ChangePasswordPage() {
     }
   };
 
-  return <main className="login-page">
-    <Card className="login-card">
-      <Typography.Title level={3}>設定新密碼</Typography.Title>
-      <Typography.Paragraph>首次管理員登入必須先修改初始密碼，完成後請重新登入。</Typography.Paragraph>
-      {error && <Alert type="error" message={error} showIcon style={{ marginBottom: 16 }} />}
-      <Form layout="vertical" onFinish={submit} autoComplete="off">
+  return <section className="password-screen" aria-labelledby="password-screen-title">
+    <section className="password-screen__context">
+      <Typography.Text className="auth-screen__eyebrow">帳號安全</Typography.Text>
+      <Typography.Title level={2}>完成首次登入設定</Typography.Title>
+      <Typography.Paragraph>更新初始密碼後，系統會要求重新登入，再進入採購工作區。</Typography.Paragraph>
+    </section>
+    <Card className="auth-screen__form-card password-screen__form-card" bordered={false}>
+      <Typography.Text className="auth-screen__eyebrow">安全設定</Typography.Text>
+      <Typography.Title id="password-screen-title" level={2} className="auth-screen__form-title">設定新密碼</Typography.Title>
+      <Typography.Paragraph className="auth-screen__form-description">請設定一組新密碼，完成後需重新登入。</Typography.Paragraph>
+      {error && <Alert className="auth-screen__error" type="error" message={error} showIcon />}
+      <Form className="auth-screen__form" layout="vertical" onFinish={submit} autoComplete="off">
         <Form.Item name="currentPassword" label="目前密碼" rules={[{ required: true, message: '請輸入目前密碼' }]}>
           <Input.Password autoComplete="current-password" />
         </Form.Item>
@@ -51,5 +58,5 @@ export default function ChangePasswordPage() {
         <Button htmlType="submit" type="primary" block loading={submitting}>儲存並重新登入</Button>
       </Form>
     </Card>
-  </main>;
+  </section>;
 }

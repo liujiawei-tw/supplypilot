@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { Button, Card, Form, Input, Space, Typography } from 'antd';
+import { Alert, Button, Form, Input, Space, Typography } from 'antd';
 import { useNavigate } from 'react-router-dom';
 import { createRecommendation, getSupplierRanking, type RecommendationResponse, type SupplierRecommendationResultResponse } from '../../api/recommendation';
 import { toApiError } from '../../api/apiError';
@@ -7,6 +7,7 @@ import RelatedEntitySelect from '../../components/RelatedEntitySelect';
 import ErrorState from '../../components/ErrorState';
 import type { ApiErrorResponse } from '../../types/api';
 import RecommendationResult from './RecommendationResult';
+import './RecommendationsPage.css';
 
 interface CreateValues {
   materialId?: number;
@@ -68,10 +69,20 @@ export default function RecommendationsPage() {
     navigate(`/recommendations/${values.recommendationId}`);
   };
 
-  return <Space orientation="vertical" size="large" style={{ width: '100%' }}>
-    <div><Typography.Title level={2} style={{ marginBottom: 0 }}>採購建議工作區</Typography.Title><Typography.Text type="secondary">建立新的採購建議，或依 Recommendation ID 查詢已儲存的決策快照。</Typography.Text></div>
-    <Space align="start" size="large" wrap style={{ width: '100%' }}>
-      <Card title="建立採購建議" style={{ flex: '1 1 520px' }}>
+  return <section className="sp-page legacy-recommendations" aria-labelledby="legacy-recommendations-title">
+    <header className="legacy-recommendations__heading sp-page__heading">
+      <div>
+        <Typography.Title id="legacy-recommendations-title" level={2}>採購建議工作區</Typography.Title>
+        <Typography.Text className="legacy-recommendations__intro sp-page__lead">建立新的採購建議，或依 Recommendation ID 查詢已儲存的決策快照。</Typography.Text>
+      </div>
+    </header>
+    <Alert className="legacy-recommendations__notice" type="info" showIcon title="舊版資料路徑" description="本頁保留既有 Recommendation API 與歷史決策快照，不屬於 V2 採購單工作台。" />
+    <div className="legacy-recommendations__workspace">
+      <section className="legacy-recommendations__create" aria-labelledby="legacy-recommendations-create-title">
+        <div className="legacy-recommendations__section-heading">
+          <Typography.Title id="legacy-recommendations-create-title" level={3}>建立採購建議</Typography.Title>
+          <Typography.Text type="secondary">依既有資料建立一筆可追溯的決策快照。</Typography.Text>
+        </div>
         {createError && <ErrorState title="建立採購建議失敗" error={createError} />}
         <Form form={createForm} layout="vertical">
           <Form.Item name="materialId" label="啟用中的物料" rules={[{ required: true, message: '請選擇物料' }]}><RelatedEntitySelect entity="material" activeOnly /></Form.Item>
@@ -84,8 +95,12 @@ export default function RecommendationsPage() {
           </Space>
           <Button type="primary" loading={submitting} disabled={submitting} onClick={() => void submit()}>計算採購建議</Button>
         </Form>
-      </Card>
-      <Card title="查詢既有採購建議" style={{ flex: '1 1 320px' }}>
+      </section>
+      <section className="legacy-recommendations__lookup" aria-labelledby="legacy-recommendations-lookup-title">
+        <div className="legacy-recommendations__section-heading">
+          <Typography.Title id="legacy-recommendations-lookup-title" level={3}>查詢既有採購建議</Typography.Title>
+          <Typography.Text type="secondary">輸入已儲存的建議編號，開啟其明細。</Typography.Text>
+        </div>
         <Form form={lookupForm} layout="vertical">
           <Form.Item name="recommendationId" label="採購建議編號" rules={[
             { required: true, message: '請輸入採購建議編號' },
@@ -93,8 +108,8 @@ export default function RecommendationsPage() {
           ]}><Input aria-label="採購建議編號" inputMode="numeric" /></Form.Item>
           <Button onClick={() => void lookup()}>查詢建議</Button>
         </Form>
-      </Card>
-    </Space>
-    {recommendation && <RecommendationResult recommendation={recommendation} ranking={ranking} rankingLoading={rankingLoading} rankingError={rankingError} retryRanking={() => void loadRanking(recommendation.id)} showDeepLink />}
-  </Space>;
+      </section>
+    </div>
+    {recommendation && <div className="legacy-recommendations__result"><RecommendationResult recommendation={recommendation} ranking={ranking} rankingLoading={rankingLoading} rankingError={rankingError} retryRanking={() => void loadRanking(recommendation.id)} showDeepLink /></div>}
+  </section>;
 }

@@ -1,0 +1,40 @@
+
+> frontend@0.0.0 test
+> vitest run --maxWorkers=1 --reporter=dot tests/dashboard.test.tsx tests/inventoryImport.test.tsx tests/sp807.test.tsx --testNamePattern=opens the received history route|renders 403 without mounting|allows .* to open the page|verifies DUPLICATE_RECEIVING
+
+
+ RUN  v4.1.11 C:/Users/z0976/.codex/worktrees/procurement-tool-ux-redesign/supplypilot/frontend
+
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+stderr | tests/dashboard.test.tsx > SP-907 role-adaptive dashboard API access > opens the received history route with an explicit RECEIVED query
+Warning: [antd: List] The `List` component is deprecated and will be removed in the next major version. If you're using version 6.6.0 or later, please use `Listy` instead.
+
+stderr | tests/dashboard.test.tsx > SP-907 role-adaptive dashboard API access > opens the received history route with an explicit RECEIVED query
+Warning: [antd: List] The `List` component is deprecated and will be removed in the next major version. If you're using version 6.6.0 or later, please use `Listy` instead.
+
+stderr | tests/dashboard.test.tsx > SP-907 role-adaptive dashboard API access > opens the received history route with an explicit RECEIVED query
+Warning: [antd: List] The `List` component is deprecated and will be removed in the next major version. If you're using version 6.6.0 or later, please use `Listy` instead.
+
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+stderr | tests/dashboard.test.tsx > SP-907 role-adaptive dashboard API access > opens the received history route with an explicit RECEIVED query
+Warning: [antd: Spin] `tip` is deprecated. Please use `description` instead.
+
+stderr | tests/inventoryImport.test.tsx > SP-803 role isolation > renders 403 without mounting or requesting import APIs for PROCUREMENT_STAFF
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+stderr | tests/inventoryImport.test.tsx > SP-803 role isolation > renders 403 without mounting or requesting import APIs for PROCUREMENT_MANAGER
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+stderr | tests/inventoryImport.test.tsx > SP-803 role isolation > allows ADMIN to open the page and shows its sidebar entry
+Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+
+------------··---------······-----
+
+ Test Files  3 passed (3)
+      Tests  8 passed | 26 skipped (34)
+   Start at  15:09:16
+   Duration  24.74s (transform 1.38s, setup 550ms, import 14.48s, tests 6.68s, environment 2.35s)
+
+
+PROCESS_EXIT_CODE=0

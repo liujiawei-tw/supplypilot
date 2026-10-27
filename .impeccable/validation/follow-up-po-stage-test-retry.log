@@ -1,0 +1,19 @@
+
+> frontend@0.0.0 test
+> vitest run tests/issue143PurchaseOrders.test.tsx
+
+
+ RUN  v4.1.11 C:/Users/z0976/.codex/worktrees/procurement-tool-ux-redesign/supplypilot/frontend
+
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+
+ Test Files  1 passed (1)
+      Tests  17 passed (17)
+   Start at  01:05:34
+   Duration  13.11s (transform 383ms, setup 337ms, import 4.40s, tests 6.81s, environment 1.27s)
+

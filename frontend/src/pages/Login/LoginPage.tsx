@@ -7,6 +7,7 @@ import LoadingState from '../../components/LoadingState/LoadingState';
 import SessionVerificationError from '../../auth/SessionVerificationError';
 import { isAxiosError } from 'axios';
 import { PostLoginVerificationError } from '../../auth/authErrors';
+import '../AuthScreens.css';
 
 function loginErrorMessage(error: unknown): string {
   if (error instanceof PostLoginVerificationError) {
@@ -30,7 +31,7 @@ export default function LoginPage() {
   const location = useLocation();
   const from = (location.state as { from?: { pathname?: string; search?: string } } | null)?.from;
 
-  if (isLoading) return <LoadingState />;
+  if (isLoading) return <main className="auth-screen__loading"><LoadingState fullPage tip="正在確認登入狀態…" /></main>;
   if (verificationError) return <SessionVerificationError />;
   if (user) return <Navigate to={user.mustChangePassword ? '/change-password' : from?.pathname && isAllowedDestination(from.pathname, user) ? `${from.pathname}${from.search ?? ''}` : '/dashboard'} replace />;
 
@@ -57,12 +58,25 @@ export default function LoginPage() {
     }
   };
 
-  return <main className="login-page">
-    <Card className="login-card">
-      <Typography.Title level={2}>SupplyPilot</Typography.Title>
-      <Typography.Paragraph type="secondary">登入採購與供應鏈決策平台</Typography.Paragraph>
-      {error && <Alert type="error" message={error} showIcon style={{ marginBottom: 16 }} />}
-      <Form layout="vertical" onFinish={submit} autoComplete="off">
+  return <main className="auth-screen auth-screen--login">
+    <section className="auth-screen__brand" aria-label="SupplyPilot 採購工作區">
+      <div className="auth-brand">
+        <span className="auth-brand__mark" aria-hidden="true">SP</span>
+        <span className="auth-brand__wordmark"><strong>SupplyPilot</strong><span>採購與供應鏈工作台</span></span>
+      </div>
+      <Typography.Title level={1} className="auth-screen__headline">從採購單到收貨，<br />掌握每個工作進度。</Typography.Title>
+      <Typography.Paragraph className="auth-screen__intro">在同一個工作區查找供應資料、追蹤採購流程，並核對文件與 AI 回答來源。</Typography.Paragraph>
+      <ul className="auth-screen__capabilities">
+        <li><strong>採購流程</strong><small>查看草稿、核准、下單與交期。</small></li>
+        <li><strong>收貨作業</strong><small>依權限檢視待收貨項目並確認整筆驗收。</small></li>
+        <li><strong>文件來源</strong><small>核對文件狀態與 AI 回答所附證據。</small></li>
+      </ul>
+    </section>
+    <Card className="auth-screen__form-card" bordered={false}>
+      <Typography.Title id="login-heading" level={2} className="auth-screen__form-title">登入工作區</Typography.Title>
+      <Typography.Paragraph className="auth-screen__form-description">登入採購與供應鏈決策平台</Typography.Paragraph>
+      {error && <Alert className="auth-screen__error" type="error" message={error} showIcon />}
+      <Form className="auth-screen__form" layout="vertical" onFinish={submit} autoComplete="off">
         <Form.Item name="username" label="帳號" rules={[{ required: true, whitespace: true, message: '請輸入帳號' }]}>
           <Input autoComplete="username" />
         </Form.Item>
@@ -71,7 +85,7 @@ export default function LoginPage() {
         </Form.Item>
         <Button htmlType="submit" type="primary" block loading={submitting} disabled={submitting}>登入</Button>
       </Form>
-      <Typography.Paragraph type="secondary" style={{ marginTop: 20, marginBottom: 0 }}>
+      <Typography.Paragraph className="auth-screen__helper" type="secondary">
         示範帳號資訊請參閱部署環境提供的說明；此頁不公開密碼。
       </Typography.Paragraph>
     </Card>

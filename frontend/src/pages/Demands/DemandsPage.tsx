@@ -13,6 +13,8 @@ import LoadingState from '../../components/LoadingState';
 import RelatedEntitySelect from '../../components/RelatedEntitySelect';
 import type { ApiErrorResponse, PageResponse } from '../../types/api';
 import { displayLabel } from '../../utils/displayLabels';
+import { formatDate, formatDateTime, formatQuantity } from '../../utils/displayFormatters';
+import './DemandsPage.css';
 
 const statuses: DemandStatus[] = ['ACTIVE', 'CANCELLED'];
 const sortableFields = new Set(['id', 'quantity', 'requiredDate', 'status', 'createdAt', 'updatedAt']);
@@ -23,10 +25,6 @@ interface DemandFormValues {
   requiredDate?: string;
   note?: string;
   changeNote?: boolean;
-}
-
-function formatTimestamp(value: string): string {
-  return new Intl.DateTimeFormat('zh-TW', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value));
 }
 
 export default function DemandsPage() {
@@ -158,11 +156,11 @@ export default function DemandsPage() {
       if (editing) {
         const request = { quantity: values.quantity!, requiredDate: values.requiredDate!, ...(values.changeNote ? { note: values.note?.trim() || null } : {}) };
         await updateDemand(editing.id, request);
-        apiMessage.success('Demand 已更新');
+        apiMessage.success('需求資料已更新');
       } else {
         const note = values.note?.trim();
         await createDemand({ materialId: values.materialId!, quantity: values.quantity!, requiredDate: values.requiredDate!, ...(note ? { note } : {}) });
-        apiMessage.success('Demand 已建立');
+        apiMessage.success('需求資料已建立');
       }
       setModalOpen(false);
       form.resetFields();
@@ -177,7 +175,7 @@ export default function DemandsPage() {
   const cancel = async (demand: DemandResponse) => {
     try {
       await cancelDemand(demand.id);
-      apiMessage.success(`Demand #${demand.id} 已取消`);
+      apiMessage.success(`需求 #${demand.id} 已取消`);
       await load();
     } catch (error) {
       setListError(toApiError(error));
@@ -195,11 +193,11 @@ export default function DemandsPage() {
   const columns: TableProps<DemandResponse>['columns'] = [
     { title: '需求編號', dataIndex: 'id', sorter: true },
     { title: '物料', dataIndex: 'materialId', render: (id: number) => materials[id] ? `${materials[id].code} — ${materials[id].name}` : `物料 #${id}` },
-    { title: '數量', dataIndex: 'quantity', sorter: true },
-    { title: '需求日期', dataIndex: 'requiredDate', sorter: true },
+    { title: '數量', dataIndex: 'quantity', sorter: true, render: (quantity: number, row: DemandResponse) => formatQuantity(quantity, materials[row.materialId]?.baseUnit) },
+    { title: '需求日期', dataIndex: 'requiredDate', sorter: true, render: (value: string | null | undefined) => formatDate(value) },
     { title: '狀態', dataIndex: 'status', sorter: true, render: (status: DemandStatus) => <Tag color={status === 'ACTIVE' ? 'green' : 'default'}>{displayLabel(status)}</Tag> },
     { title: '備註', dataIndex: 'note', ellipsis: true, render: (note: string | null) => note || '—' },
-    { title: '建立時間', dataIndex: 'createdAt', sorter: true, render: formatTimestamp },
+    { title: '建立時間', dataIndex: 'createdAt', sorter: true, render: (value: string | null | undefined) => formatDateTime(value) },
     { title: '操作', key: 'actions', render: (_value, demand) => <Space>
       <Button size="small" onClick={() => void openDetail(demand.id)}>檢視</Button>
       {canWrite && demand.status === 'ACTIVE' && <>
@@ -212,13 +210,16 @@ export default function DemandsPage() {
   ];
 
   const detailMaterial = detail ? materials[detail.materialId] : undefined;
-  return <Space orientation="vertical" size="large" style={{ width: '100%' }}>
+  return <section className="sp-page demand-workspace" aria-labelledby="demand-page-title">
     {contextHolder}
-    <Space style={{ width: '100%', justifyContent: 'space-between' }} wrap>
-      <div><Typography.Title level={2} style={{ marginBottom: 0 }}>需求管理</Typography.Title><Typography.Text type="secondary">管理生產需求與處理狀態</Typography.Text></div>
-      {canWrite && <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>新增需求</Button>}
-    </Space>
-    <Space wrap>
+    <header className="demand-workspace__heading sp-page__heading">
+      <div>
+        <Typography.Title id="demand-page-title" level={2}>需求管理</Typography.Title>
+        <Typography.Text className="demand-workspace__intro sp-page__lead">保留既有需求資料維護；V2 採購流程請由採購單工作台建立草稿。</Typography.Text>
+      </div>
+      {canWrite && <Button className="demand-workspace__create" type="primary" icon={<PlusOutlined />} onClick={openCreate}>新增需求</Button>}
+    </header>
+    <Space className="demand-workspace__filters" wrap role="search" aria-label="需求篩選">
       <div style={{ minWidth: 280 }}><RelatedEntitySelect entity="material" activeOnly={false} value={query.materialId} onChange={(materialId) => setQuery((current) => ({ ...current, materialId, page: 0 }))} /></div>
       <Select aria-label="需求狀態篩選" placeholder="狀態" allowClear value={query.status} options={statuses.map((status) => ({ value: status, label: displayLabel(status) }))} onChange={(status) => setQuery((current) => ({ ...current, status, page: 0 }))} style={{ width: 150 }} />
       <Input aria-label="需求日期起日" type="date" value={query.requiredFrom} onChange={(event) => setQuery((current) => ({ ...current, requiredFrom: event.target.value, page: 0 }))} />
@@ -226,34 +227,34 @@ export default function DemandsPage() {
     </Space>
     {listError && <ErrorState title="需求清單載入失敗" error={listError} onRetry={() => void load()} />}
     {currentFailedMaterialIds.length > 0 && <Alert type="warning" showIcon title="部分物料資訊載入失敗" description={<Space orientation="vertical"><span>需求資料仍可使用；可重新載入本頁的物料代碼與名稱。</span><Button size="small" onClick={retryMaterials}>重新載入物料資訊</Button></Space>} />}
-    {loading && !data ? <LoadingState tip="Loading demands..." /> : <Table<DemandResponse>
+    {loading && !data ? <LoadingState tip="正在載入需求…" /> : <div className="demand-workspace__table"><Table<DemandResponse>
       rowKey="id" columns={columns} dataSource={data?.content ?? []} loading={loading}
-      locale={{ emptyText: <EmptyState simple description={filtered ? '沒有符合查詢條件的 Demand' : '尚無 Demand 資料'} actionText={canWrite && !filtered ? 'Create Demand' : undefined} onAction={canWrite && !filtered ? openCreate : undefined} /> }}
+      locale={{ emptyText: <EmptyState simple description={filtered ? '沒有符合查詢條件的需求' : '目前沒有需求資料'} actionText={canWrite && !filtered ? '新增需求' : undefined} onAction={canWrite && !filtered ? openCreate : undefined} /> }}
       pagination={{ current: (data?.page ?? 0) + 1, pageSize: data?.size ?? query.size, total: data?.totalElements ?? 0, showSizeChanger: true }} onChange={handleTableChange}
-    />}
-    <Modal title={editing ? `編輯需求 #${editing.id}` : '新增需求'} open={modalOpen} onCancel={() => setModalOpen(false)} onOk={() => void submit()} okText={editing ? '儲存變更' : '建立需求'} confirmLoading={submitting} destroyOnHidden>
+    /></div>}
+    <Modal className="demand-workspace__modal" title={editing ? `編輯需求 #${editing.id}` : '新增需求'} open={modalOpen} onCancel={() => setModalOpen(false)} onOk={() => void submit()} okText={editing ? '儲存變更' : '建立需求'} confirmLoading={submitting} destroyOnHidden>
       {submitError && <ErrorState title="需求送出失敗" error={submitError} />}
       <Form form={form} layout="vertical">
         {!editing && <Form.Item name="materialId" label="物料" rules={[{ required: true, message: '請選擇物料' }]}><RelatedEntitySelect entity="material" /></Form.Item>}
         <Form.Item name="quantity" label="數量" rules={[{ required: true, message: '請輸入數量' }, { type: 'number', min: 0.0001, message: '數量必須大於 0' }]}><InputNumber aria-label="需求數量" precision={4} style={{ width: '100%' }} /></Form.Item>
         <Form.Item name="requiredDate" label="需求日期" rules={[{ required: true, message: '請選擇需求日期' }]}><Input aria-label="需求日期" type="date" /></Form.Item>
-        {editing && <Form.Item name="changeNote" valuePropName="checked"><Checkbox>Change note（未勾選時不修改；勾選後留空會清除）</Checkbox></Form.Item>}
+        {editing && <Form.Item name="changeNote" valuePropName="checked"><Checkbox>修改備註（未勾選時不修改；勾選後留空會清除）</Checkbox></Form.Item>}
         <Form.Item name="note" label="備註" rules={[{ max: 500, message: '備註不可超過 500 個字元' }]}><Input.TextArea aria-label="需求備註" maxLength={500} showCount rows={3} disabled={!!editing && !changeNote} /></Form.Item>
       </Form>
     </Modal>
-    <Drawer title={detail ? `Demand #${detail.id}` : 'Demand Detail'} open={detailLoading || !!detail || !!detailError} onClose={() => { detailRequestId.current += 1; setDetail(null); setDetailError(null); setDetailLoading(false); }} size="large">
-      {detailLoading && <LoadingState tip="Loading demand detail..." />}
+    <Drawer className="demand-workspace__drawer" title={detail ? `需求 #${detail.id}` : '需求明細'} open={detailLoading || !!detail || !!detailError} onClose={() => { detailRequestId.current += 1; setDetail(null); setDetailError(null); setDetailLoading(false); }} size="large">
+      {detailLoading && <LoadingState tip="正在載入需求明細…" />}
       {detailError && <ErrorState title="需求詳細資料載入失敗" error={detailError} />}
       {detail && <Descriptions column={1} bordered size="small" items={[
         { key: 'material', label: '物料', children: detailMaterial ? `${detailMaterial.code} — ${detailMaterial.name}` : `物料 #${detail.materialId}` },
-        { key: 'quantity', label: 'Quantity', children: detail.quantity },
-        { key: 'requiredDate', label: 'Required Date', children: detail.requiredDate },
-        { key: 'status', label: 'Status', children: <Tag color={detail.status === 'ACTIVE' ? 'green' : 'default'}>{detail.status}</Tag> },
-        { key: 'note', label: 'Note', children: detail.note || '—' },
-        { key: 'createdBy', label: 'Created By', children: `User #${detail.createdBy}` },
-        { key: 'createdAt', label: 'Created At', children: formatTimestamp(detail.createdAt) },
-        { key: 'updatedAt', label: 'Updated At', children: formatTimestamp(detail.updatedAt) },
+        { key: 'quantity', label: '數量', children: formatQuantity(detail.quantity, detailMaterial?.baseUnit) },
+        { key: 'requiredDate', label: '需求日期', children: formatDate(detail.requiredDate) },
+        { key: 'status', label: '狀態', children: <Tag color={detail.status === 'ACTIVE' ? 'green' : 'default'}>{displayLabel(detail.status)}</Tag> },
+        { key: 'note', label: '備註', children: detail.note || '—' },
+        { key: 'createdBy', label: '建立人員', children: `人員 #${detail.createdBy}` },
+        { key: 'createdAt', label: '建立時間', children: formatDateTime(detail.createdAt) },
+        { key: 'updatedAt', label: '更新時間', children: formatDateTime(detail.updatedAt) },
       ]} />}
     </Drawer>
-  </Space>;
+  </section>;
 }

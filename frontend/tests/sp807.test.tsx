@@ -1,12 +1,15 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AxiosError, type AxiosResponse, type InternalAxiosRequestConfig } from 'axios';
-import { render, screen, within } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { MemoryRouter } from 'react-router-dom';
 import App from '../src/App';
 import { toApiError } from '../src/api/apiError';
 import { axiosClient, TOKEN_STORAGE_KEY } from '../src/api/axiosClient';
 import ErrorState from '../src/components/ErrorState';
 import { router } from '../src/router/routes';
+import ReceivingPage from '../src/pages/Receiving/ReceivingPage';
+import type { ReceivingPurchaseOrderResponse } from '../src/api/receiving';
 import type { AuthenticatedUser } from '../src/types/api';
 
 const admin: AuthenticatedUser = { id: 1, username: 'admin', displayName: 'Admin', role: 'ADMIN' };
@@ -173,9 +176,136 @@ describe('SP-807 purchase order verification boundary', () => {
 });
 
 describe('SP-807 receiving and import verification boundaries', () => {
+  it('presents the receiving route as a read-only status and inspection work queue', async () => {
+    const requests: InternalAxiosRequestConfig[] = [];
+    axiosClient.defaults.adapter = vi.fn(async (config) => {
+      requests.push(config);
+      if (config.url === '/auth/me') return response(config, warehouse);
+      if (config.url === '/receiving/purchase-orders') return response(config, {
+        content: [receivingPo], page: 0, size: 20, totalElements: 1, totalPages: 1,
+      });
+      throw new Error(`Unexpected ${config.method} ${config.url}`);
+    });
+
+    await open('/receiving/purchase-orders');
+    expect(await screen.findByRole('heading', { name: '收貨作業' })).toBeTruthy();
+    const container = document.querySelector<HTMLElement>('.receiving-queue__table');
+    expect(container).toBeTruthy();
+    const table = await within(container!).findByRole('table');
+    const row = await within(table).findByRole('row', { name: /PO-000042/ });
+    expect(within(row).getByText('已下單')).toBeTruthy();
+    expect(within(row).getByText('到貨驗收中')).toBeTruthy();
+    expect(within(row).getByRole('link', { name: '繼續驗收' })).toBeTruthy();
+    expect(requests.every(({ method }) => method === 'get')).toBe(true);
+    expect(requests.filter(({ url }) => url === '/receiving/purchase-orders')).toHaveLength(1);
+  });
+
   it.each([
-    ['RECEIVED', '此採購單已完成收貨'],
-    ['ORDERED', '目前仍為待收貨（已下單）'],
+    ['2026-10-30', '2026/10/30'],
+    [null, '未設定'],
+  ] as const)('formats the expected delivery date in desktop and mobile queues (%s)', async (expectedDeliveryDate, displayValue) => {
+    axiosClient.defaults.adapter = vi.fn(async (config) => {
+      if (config.url === '/auth/me') return response(config, warehouse);
+      if (config.url === '/receiving/purchase-orders') return response(config, {
+        content: [{ ...receivingPo, expectedDeliveryDate }], page: 0, size: 20, totalElements: 1, totalPages: 1,
+      });
+      throw new Error(`Unexpected ${config.method} ${config.url}`);
+    });
+
+    await open('/receiving/purchase-orders');
+    await waitFor(() => expect(document.querySelector('.receiving-queue__mobile-record')).toBeTruthy());
+    const desktopDate = document.querySelector('.receiving-queue__table .receiving-queue__date');
+    const mobileFacts = document.querySelector('.receiving-queue__mobile-facts');
+    expect(desktopDate?.textContent).toContain(displayValue);
+    expect(mobileFacts?.textContent).toContain(displayValue);
+  });
+
+  it.each([
+    ['2026-10-30', '2026/10/30'],
+    [null, '未設定'],
+  ] as const)('formats the expected delivery date in the receiving detail (%s)', async (expectedDeliveryDate, displayValue) => {
+    axiosClient.defaults.adapter = vi.fn(async (config) => {
+      if (config.url === '/auth/me') return response(config, admin);
+      if (config.url === '/receiving/purchase-orders/42') return response(config, { ...receivingPo, expectedDeliveryDate });
+      throw new Error(`Unexpected ${config.method} ${config.url}`);
+    });
+
+    await open('/receiving/purchase-orders/42');
+    expect(await screen.findByRole('heading', { name: 'PO-000042' })).toBeTruthy();
+    const facts = document.querySelector('.receiving-detail__facts');
+    expect(await within(facts!).findByText(displayValue)).toBeTruthy();
+  });
+
+  it('does not show the previous mobile rows while a new receiving filter request is pending', async () => {
+    let listReads = 0;
+    let finishFilteredRequest: ((data: { content: ReceivingPurchaseOrderResponse[]; page: number; size: number; totalElements: number; totalPages: number }) => void) | undefined;
+    const filteredPage = new Promise<{ content: ReceivingPurchaseOrderResponse[]; page: number; size: number; totalElements: number; totalPages: number }>((resolve) => {
+      finishFilteredRequest = resolve;
+    });
+    axiosClient.defaults.adapter = vi.fn(async (config) => {
+      if (config.url === '/auth/me') return response(config, warehouse);
+      if (config.url === '/receiving/purchase-orders') {
+        listReads += 1;
+        if (listReads === 1) return response(config, {
+          content: [receivingPo], page: 0, size: 20, totalElements: 1, totalPages: 1,
+        });
+        return response(config, await filteredPage);
+      }
+      throw new Error(`Unexpected ${config.method} ${config.url}`);
+    });
+
+    await open('/receiving/purchase-orders');
+    await waitFor(() => expect(document.querySelector('.receiving-queue__mobile-record')?.textContent).toContain('PO-000042'));
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('combobox', { name: '收貨狀態' }));
+    await user.click(await screen.findByText('已收貨紀錄', { selector: '.ant-select-item-option-content' }));
+    try {
+      await waitFor(() => expect(listReads).toBe(2));
+      expect(screen.queryAllByText('PO-000042')).toHaveLength(0);
+      expect(document.querySelector('.receiving-queue__loading')?.textContent).toContain('正在載入收貨清單');
+    } finally {
+      finishFilteredRequest?.({ content: [], page: 0, size: 20, totalElements: 0, totalPages: 0 });
+    }
+    await waitFor(() => expect(document.querySelector('.receiving-queue__mobile')?.textContent).toContain('尚無已收貨紀錄'));
+  });
+
+  it('shows a retryable receiving list error without empty copy, then shows the successful empty state', async () => {
+    let listReads = 0;
+    axiosClient.defaults.adapter = vi.fn(async (config) => {
+      if (config.url === '/auth/me') return response(config, warehouse);
+      if (config.url === '/receiving/purchase-orders') {
+        listReads += 1;
+        if (listReads === 1) throw failure(500, 'INTERNAL_SERVER_ERROR', 'Receiving list unavailable');
+        return response(config, { content: [], page: 0, size: 20, totalElements: 0, totalPages: 0 });
+      }
+      throw new Error(`Unexpected ${config.method} ${config.url}`);
+    });
+
+    render(<MemoryRouter initialEntries={['/receiving/purchase-orders?status=RECEIVED']}><ReceivingPage /></MemoryRouter>);
+    await waitFor(() => expect(listReads).toBe(1));
+    expect(await screen.findByText('收貨清單載入失敗')).toBeTruthy();
+    expect(listReads).toBe(1);
+
+    const desktop = document.querySelector<HTMLElement>('.receiving-queue__table');
+    const mobile = document.querySelector<HTMLElement>('.receiving-queue__mobile');
+    expect(desktop).toBeTruthy();
+    expect(mobile).toBeTruthy();
+    expect(within(desktop!).queryByText('目前沒有待收貨 PO')).toBeNull();
+    expect(within(desktop!).queryByText('尚無已收貨紀錄')).toBeNull();
+    expect(within(mobile!).queryByText('目前沒有待收貨 PO')).toBeNull();
+    expect(within(mobile!).queryByText('尚無已收貨紀錄')).toBeNull();
+
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('button', { name: '重新載入' }));
+    await waitFor(() => expect(listReads).toBe(2));
+    expect(await within(desktop!).findByText('尚無已收貨紀錄')).toBeTruthy();
+    expect(await within(mobile!).findByText('尚無已收貨紀錄')).toBeTruthy();
+    expect(screen.queryByText('收貨清單載入失敗')).toBeNull();
+  });
+
+  it.each([
+    ['RECEIVED', '此採購單已完成收貨。收貨專用查詢已確認狀態，本頁不會再送出收貨。'],
+    ['ORDERED', '目前仍為待收貨（已下單），先前操作結果需由使用者重新確認。系統沒有自動重送；如要再操作，必須重新開啟確認流程。'],
   ] as const)('verifies DUPLICATE_RECEIVING through restricted GET and reports %s without a resend', async (verifiedStatus, expectedMessage) => {
     const requests: InternalAxiosRequestConfig[] = [];
     let reads = 0;
@@ -198,7 +328,7 @@ describe('SP-807 receiving and import verification boundaries', () => {
     await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: '確認整筆收貨' }));
     expect(await screen.findByText('收貨結果需要查核，已鎖定再次提交')).toBeTruthy();
     await user.click(screen.getByRole('button', { name: '重新查詢收貨狀態' }));
-    expect(await screen.findByText(new RegExp(expectedMessage))).toBeTruthy();
+    expect(await screen.findByText(expectedMessage)).toBeTruthy();
     expect(requests.filter(({ url }) => url === '/purchase-orders/42/receive')).toHaveLength(1);
     expect(requests.filter(({ url }) => url === '/receiving/purchase-orders/42')).toHaveLength(2);
     expect(requests.some(({ url, method }) => url === '/purchase-orders/42' && method === 'get')).toBe(false);

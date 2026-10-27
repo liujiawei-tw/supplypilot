@@ -102,8 +102,8 @@ export default function AiDraftProposalPanel() {
     setProposal(null); setError(null); setConfirmLock(null); setCreated(null);
   };
 
-  return <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
-    <div><Title level={4} style={{ marginBottom: 0 }}>AI 採購單草稿提案</Title><Text type="secondary">提案本身不會建立採購單；完整審閱並再次確認後才會建立草稿。</Text></div>
+  return <Space className="ai-draft-proposal" orientation="vertical" size="middle" style={{ width: '100%' }}>
+    <div className="ai-draft-proposal__heading"><Title className="ai-draft-proposal__title" level={4}>AI 採購單草稿提案</Title><Text type="secondary">提案本身不會建立採購單；完整審閱並再次確認後才會建立草稿。</Text></div>
     {created && <Alert type="success" showIcon title={`採購單 ${created.poNumber} 已建立`}
       description={<span>採購單編號：<Link to={`/purchase-orders/${created.id}`}>{created.id}</Link>；狀態：{displayLabel(created.status)}（僅建立草稿）。</span>} />}
     {error && <ErrorState title={confirmLock === 'UNKNOWN' ? '確認結果不明' : 'AI 草稿操作失敗'} error={error} />}
@@ -116,7 +116,7 @@ export default function AiDraftProposalPanel() {
       <Form.Item name="expectedDeliveryDate" label="預計交期（建立草稿時可留空）"><Input aria-label="AI 草稿預計交期" type="date" /></Form.Item>
       <Form.List name="items" rules={[{ validator: async (_, rows) => { if (!rows?.length) throw new Error('至少需要一筆品項'); } }]}>
         {(fields, { add, remove }, { errors }) => <Space orientation="vertical" style={{ width: '100%' }}>
-          {fields.map(({ key, ...field }, index) => <Card key={key} size="small" title={`品項 ${index + 1}`} extra={fields.length > 1 ? <Button aria-label={`移除 AI 草稿品項 ${index + 1}`} icon={<MinusCircleOutlined />} onClick={() => remove(field.name)} /> : null}>
+          {fields.map(({ key, ...field }, index) => <Card className="ai-draft-proposal__item" key={key} size="small" title={`品項 ${index + 1}`} extra={fields.length > 1 ? <Button aria-label={`移除 AI 草稿品項 ${index + 1}`} icon={<MinusCircleOutlined />} onClick={() => remove(field.name)} /> : null}>
             <Form.Item {...field} name={[field.name, 'materialId']} label="物料編號" rules={[{ required: true }]}><InputNumber aria-label={`AI 草稿品項 ${index + 1} 物料編號`} min={1} precision={0} style={{ width: '100%' }} /></Form.Item>
             <Form.Item {...field} name={[field.name, 'quantity']} label="數量" rules={[{ validator: async (_, value) => { if (!isPositiveDecimal(value)) throw new Error('請輸入大於 0 的數字'); } }]}><Input aria-label={`AI 草稿品項 ${index + 1} 數量`} inputMode="decimal" /></Form.Item>
             <Form.Item {...field} name={[field.name, 'unitPrice']} label="單價" rules={[{ validator: async (_, value) => { if (!isNonNegativeDecimal(value)) throw new Error('請輸入大於或等於 0 的數字'); } }]}><Input aria-label={`AI 草稿品項 ${index + 1} 單價`} inputMode="decimal" /></Form.Item>
@@ -133,7 +133,7 @@ export default function AiDraftProposalPanel() {
       <Button style={{ marginTop: 16 }} type="primary" loading={proposing} disabled={terminalConfirmLock} onClick={() => void propose()}>產生提案供審閱</Button>
     </Form>}
 
-    {draft && <Card title="後端提案快照" extra={<Button disabled={confirming || terminalConfirmLock} onClick={resetProposal}>捨棄並編輯</Button>}>
+    {draft && <Card className="ai-draft-proposal__snapshot" title="後端提案快照" extra={<Button disabled={confirming || terminalConfirmLock} onClick={resetProposal}>捨棄並編輯</Button>}>
       {confirmLock === 'UNKNOWN' ? <Alert type="warning" showIcon title="確認結果不明"
         description="可能已建立採購單。請先由人工查核採購單真實狀態；查核前不可重新確認、丟棄草稿或重新產生提案。" />
         : confirmLock === 'ALREADY_CONFIRMED' ? <Alert type="error" showIcon title="提案已確認"
@@ -142,13 +142,13 @@ export default function AiDraftProposalPanel() {
             description="此提案缺少到期時間或時間格式無法解析，為避免重複建立採購單，請修改草稿後重新產生提案。" />
             : <Alert type={expired || confirmLock === 'EXPIRED' ? 'error' : 'warning'} showIcon title={expired || confirmLock === 'EXPIRED' ? '提案已過期，禁止確認' : '請完整審閱；確認後只會建立草稿'}
               description={`到期時間：${proposal?.expiresAt}；${secondsLeft === null ? '無法解析到期時間' : `約剩 ${secondsLeft} 秒`}。後端 仍是最終到期判斷。`} />}
-      <Descriptions bordered size="small" column={1} style={{ marginTop: 12 }} items={[
+      <Descriptions className="ai-draft-proposal__metadata" bordered size="small" column={1} items={[
         { key: 'proposal', label: '提案編號', children: proposal?.proposalId },
         { key: 'supplier', label: '供應商編號', children: draft.supplierId },
         { key: 'delivery', label: '預計交期', children: draft.expectedDeliveryDate ?? '未設定（草稿允許留空）' },
       ]} />
       <Space orientation="vertical" style={{ width: '100%', marginTop: 12 }}>{items.map((item, index) => <div key={`${item.materialId}-${index}`}>
-        <Descriptions title={`品項 ${index + 1}`} bordered size="small" column={1} style={{ width: '100%' }} items={[
+        <Descriptions className="ai-draft-proposal__item-details" title={`品項 ${index + 1}`} bordered size="small" column={1} style={{ width: '100%' }} items={[
           { key: 'material', label: '物料編號', children: item.materialId },
           { key: 'quantity', label: '數量', children: item.quantity },
           { key: 'price', label: '單價', children: item.unitPrice },
