@@ -120,6 +120,23 @@ class AgenticSqlOutputPolicyTests {
     }
 
     @Test
+    void masksValidUnlabelledIbanAndBicWithoutMaskingCommercialAmounts() {
+        String value = "匯款 DE89370400440532013000；聯絡銀行 CHASUS33；報價 TWD 125.50";
+
+        String result = policy.maskColumnValue("content", value);
+
+        assertThat(result).contains("[BANK_ACCOUNT_REDACTED]", "[BANK_IDENTIFIER_REDACTED]", "TWD 125.50");
+        assertThat(result).doesNotContain("DE89370400440532013000", "CHASUS33");
+    }
+
+    @Test
+    void doesNotClassifyAnIbanShapedValueWithAnInvalidChecksumAsAnIban() {
+        String invalidIban = "DE89370400440532013001";
+
+        assertThat(policy.maskColumnValue("content", invalidIban)).isEqualTo(invalidIban);
+    }
+
+    @Test
     void masksVeryLongUnclassifiedNumericIdentifiers() {
         String value = "12345678901234567890";
 

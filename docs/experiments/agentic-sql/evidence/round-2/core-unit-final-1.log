@@ -1,0 +1,53 @@
+[INFO] Scanning for projects...
+[INFO] 
+[INFO] ------------------< com.supplypilot:supply-pilot-api >------------------
+[INFO] Building supply-pilot-api 0.0.1-SNAPSHOT
+[INFO]   from pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.5.0:resources (default-resources) @ supply-pilot-api ---
+[INFO] Copying 5 resources from src\main\resources to target\classes
+[INFO] Copying 37 resources from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.15.0:compile (default-compile) @ supply-pilot-api ---
+[INFO] Recompiling the module because of changed source code.
+[INFO] Compiling 315 source files with javac [debug parameters release 21] to target\classes
+[INFO] /C:/Users/z0976/OneDrive/�ୱ/dev-side/supplypilot/backend/src/main/java/com/supplypilot/agentic/sql/AgenticSqlStatementValidator.java: Some input files use or override a deprecated API.
+[INFO] /C:/Users/z0976/OneDrive/�ୱ/dev-side/supplypilot/backend/src/main/java/com/supplypilot/agentic/sql/AgenticSqlStatementValidator.java: Recompile with -Xlint:deprecation for details.
+[INFO] Some messages have been simplified; recompile with -Xdiags:verbose to get full output
+[INFO] -------------------------------------------------------------
+[WARNING] COMPILATION WARNING : 
+[INFO] -------------------------------------------------------------
+[WARNING] /C:/Users/z0976/OneDrive/�ୱ/dev-side/supplypilot/backend/src/main/java/com/supplypilot/agentic/service/AgenticSqlAnswerService.java:[231,42] getDefaultOptions() in org.springframework.ai.chat.model.ChatModel has been deprecated and marked for removal
+[WARNING] /C:/Users/z0976/OneDrive/�ୱ/dev-side/supplypilot/backend/src/main/java/com/supplypilot/agentic/service/AgenticSqlAnswerService.java:[231,80] getDefaultOptions() in org.springframework.ai.chat.model.ChatModel has been deprecated and marked for removal
+[WARNING] /C:/Users/z0976/OneDrive/�ୱ/dev-side/supplypilot/backend/src/main/java/com/supplypilot/ai/client/SpringAiDraftProposalGenerator.java:[165,42] getDefaultOptions() in org.springframework.ai.chat.model.ChatModel has been deprecated and marked for removal
+[WARNING] /C:/Users/z0976/OneDrive/�ୱ/dev-side/supplypilot/backend/src/main/java/com/supplypilot/ai/client/SpringAiDraftProposalGenerator.java:[165,76] getDefaultOptions() in org.springframework.ai.chat.model.ChatModel has been deprecated and marked for removal
+[WARNING] /C:/Users/z0976/OneDrive/�ୱ/dev-side/supplypilot/backend/src/main/java/com/supplypilot/ai/client/SpringAiProviderClient.java:[241,32] getDefaultOptions() in org.springframework.ai.chat.model.ChatModel has been deprecated and marked for removal
+[WARNING] /C:/Users/z0976/OneDrive/�ୱ/dev-side/supplypilot/backend/src/main/java/com/supplypilot/ai/client/SpringAiProviderClient.java:[242,33] getDefaultOptions() in org.springframework.ai.chat.model.ChatModel has been deprecated and marked for removal
+[INFO] 6 warnings 
+[INFO] -------------------------------------------------------------
+[INFO] -------------------------------------------------------------
+[ERROR] COMPILATION ERROR : 
+[INFO] -------------------------------------------------------------
+[ERROR] /C:/Users/z0976/OneDrive/�ୱ/dev-side/supplypilot/backend/src/main/java/com/supplypilot/agentic/service/AgenticSqlAnswerSupportVerifier.java:[202,69] incompatible types: invalid method reference
+    unexpected static method columnLeaf(java.lang.String) found in bound lookup
+[INFO] 1 error
+[INFO] -------------------------------------------------------------
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD FAILURE
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  20.577 s
+[INFO] Finished at: 2026-10-27T20:49:07+08:00
+[INFO] ------------------------------------------------------------------------
+[ERROR] Failed to execute goal org.apache.maven.plugins:maven-compiler-plugin:3.15.0:compile (default-compile) on project supply-pilot-api: Compilation failure
+[ERROR] /C:/Users/z0976/OneDrive/�ୱ/dev-side/supplypilot/backend/src/main/java/com/supplypilot/agentic/service/AgenticSqlAnswerSupportVerifier.java:[202,69] incompatible types: invalid method reference
+[ERROR]     unexpected static method columnLeaf(java.lang.String) found in bound lookup
+[ERROR] 
+[ERROR] -> [Help 1]
+[ERROR] 
+[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.
+[ERROR] Re-run Maven using the -X switch to enable full debug logging.
+[ERROR] 
+[ERROR] For more information about the errors and possible solutions, please read the following articles:
+[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoFailureException
+TEST_EXIT_CODE=1

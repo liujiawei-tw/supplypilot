@@ -28,6 +28,54 @@ class AgenticSqlStatementValidatorTests {
     }
 
     @Test
+    void tracksRealProjectionLineageAndDoesNotTreatSqlConstantsAsDatabaseEvidence() {
+        var noFromConstant = validator.validate(AgenticSqlDatabase.MYSQL,
+                "SELECT 999999 AS unit_price", 10);
+        var fromConstant = validator.validate(AgenticSqlDatabase.MYSQL,
+                "SELECT 999999 AS unit_price FROM suppliers LIMIT 1", 10);
+        var constantSupplierAndPrice = validator.validate(AgenticSqlDatabase.MYSQL,
+                "SELECT '虛構供應商' AS supplier_name, 999999 AS unit_price FROM suppliers", 10);
+        var realFieldAndDerived = validator.validate(AgenticSqlDatabase.MYSQL,
+                "SELECT s.supplier_name, s.unit_price + 10 AS adjusted_price FROM supplier_quotes s", 10);
+        var qualifiedJoin = validator.validate(AgenticSqlDatabase.MYSQL,
+                "SELECT s.supplier_name FROM suppliers s JOIN supplier_quotes q ON q.supplier_id = s.id", 10);
+        var ambiguousUnqualifiedJoin = validator.validate(AgenticSqlDatabase.MYSQL,
+                "SELECT supplier_name FROM suppliers s JOIN supplier_quotes q ON q.supplier_id = s.id", 10);
+        var aggregate = validator.validate(AgenticSqlDatabase.MYSQL,
+                "SELECT COUNT(*) AS supplier_count, SUM(unit_price) AS total_price, "
+                        + "AVG(unit_price) AS average_price, MIN(unit_price) AS min_price, "
+                        + "MAX(unit_price) AS max_price FROM supplier_quotes", 10);
+        var cte = validator.validate(AgenticSqlDatabase.POSTGRESQL,
+                "WITH quote_rows AS (SELECT unit_price FROM supplier_quotes) "
+                        + "SELECT AVG(unit_price) AS average_price FROM quote_rows", 10);
+        var schemaQualifiedCte = validator.validate(AgenticSqlDatabase.POSTGRESQL,
+                "WITH quote_rows AS (SELECT q.unit_price FROM agentic_data.supplier_quotes q) "
+                        + "SELECT AVG(unit_price) AS average_price FROM quote_rows", 10);
+        var constantCte = validator.validate(AgenticSqlDatabase.POSTGRESQL,
+                "WITH quote_rows AS (SELECT 999999 AS unit_price FROM suppliers) "
+                        + "SELECT unit_price FROM quote_rows", 10);
+
+        assertThat(noFromConstant.projectionSources()).containsEntry(1, java.util.Set.of());
+        assertThat(fromConstant.projectionSources()).containsEntry(1, java.util.Set.of());
+        assertThat(constantSupplierAndPrice.projectionSources())
+                .containsEntry(1, java.util.Set.of()).containsEntry(2, java.util.Set.of());
+        assertThat(realFieldAndDerived.projectionSources().get(1)).contains("supplier_quotes.supplier_name");
+        assertThat(realFieldAndDerived.projectionSources().get(2)).contains("supplier_quotes.unit_price");
+        assertThat(qualifiedJoin.projectionSources().get(1)).contains("suppliers.supplier_name");
+        assertThat(ambiguousUnqualifiedJoin.projectionSources()).containsEntry(1, java.util.Set.of());
+        assertThat(aggregate.projectionSources().get(1)).anyMatch(source -> source.startsWith("@aggregate:COUNT"));
+        for (int index = 2; index <= 5; index++) {
+            assertThat(aggregate.projectionSources().get(index)).contains("supplier_quotes.unit_price");
+        }
+        assertThat(aggregate.projectionSources().get(2)).anyMatch(source -> source.startsWith("@aggregate:SUM"));
+        assertThat(aggregate.projectionSources().get(4)).anyMatch(source -> source.startsWith("@aggregate:MIN"));
+        assertThat(aggregate.projectionSources().get(5)).anyMatch(source -> source.startsWith("@aggregate:MAX"));
+        assertThat(cte.projectionSources().get(1)).contains("supplier_quotes.unit_price");
+        assertThat(schemaQualifiedCte.projectionSources().get(1)).contains("agentic_data.supplier_quotes.unit_price");
+        assertThat(constantCte.projectionSources()).containsEntry(1, java.util.Set.of());
+    }
+
+    @Test
     void preservesSmallerCallerLimitAndOffset() {
         var parsed = validator.validate(AgenticSqlDatabase.POSTGRESQL,
                 "SELECT id FROM suppliers LIMIT 2 OFFSET 5", 10);

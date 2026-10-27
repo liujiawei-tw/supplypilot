@@ -13,6 +13,7 @@ import java.time.Duration;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -61,7 +62,9 @@ class AgenticSqlAnswerServiceTests {
         when(executor.execute(anyString(), eq(AgenticSqlDatabase.MYSQL), eq(SQL)))
                 .thenReturn(new AgenticSqlExecutionResult("query-call", AgenticSqlDatabase.MYSQL,
                         List.of("suppliers"), List.of("supplier_name", "unit_price", "api_token"),
-                        List.of(row), 1L, false, 4, List.of()));
+                        List.of(row), 1L, false, 4, List.of(), Map.of(
+                                "supplier_name", Set.of("suppliers.supplier_name"),
+                                "unit_price", Set.of("suppliers.unit_price"))));
 
         AtomicInteger calls = new AtomicInteger();
         ChatModel chatModel = new ChatModel() {
@@ -74,6 +77,10 @@ class AgenticSqlAnswerServiceTests {
                         "{\"database\":\"MYSQL\",\"sql\":\"" + SQL + "\"}");
                 String toolCallId = latestQueryToolCallId(prompt);
                 String answer = "{\"claims\":[{\"text\":\"Supplier A 的報價為 USD 125.50。\","
+                        + "\"fact\":{\"kind\":\"FIELD_VALUE\",\"attribute\":\"unit_price\","
+                        + "\"subject\":{\"toolCallId\":\"" + toolCallId
+                        + "\",\"rowIndex\":0,\"column\":\"supplier_name\"},\"value\":{\"toolCallId\":\""
+                        + toolCallId + "\",\"rowIndex\":0,\"column\":\"unit_price\"}},"
                         + "\"evidence\":[{\"toolCallId\":\"" + toolCallId
                         + "\",\"rowIndex\":0,\"column\":\"supplier_name\"},{\"toolCallId\":\""
                         + toolCallId + "\",\"rowIndex\":0,\"column\":\"unit_price\"}]}]}";
@@ -158,7 +165,9 @@ class AgenticSqlAnswerServiceTests {
                 .thenReturn(new AgenticSqlExecutionResult("query-call", AgenticSqlDatabase.MYSQL,
                         List.of("suppliers"), List.of("supplier_name", "unit_price"),
                         List.of(Map.of("supplier_name", "Supplier A", "unit_price", new BigDecimal("125.50"))),
-                        1L, false, 4, List.of()));
+                        1L, false, 4, List.of(), Map.of(
+                                "supplier_name", Set.of("suppliers.supplier_name"),
+                                "unit_price", Set.of("suppliers.unit_price"))));
         AtomicInteger calls = new AtomicInteger();
         ChatModel chatModel = new ChatModel() {
             @Override public ChatResponse call(Prompt prompt) {
@@ -169,6 +178,10 @@ class AgenticSqlAnswerServiceTests {
                         "{\"database\":\"MYSQL\",\"sql\":\"" + SQL + "\"}");
                 String id = latestQueryToolCallId(prompt);
                 String answer = "{\"claims\":[{\"text\":\"Supplier A 的報價為 USD 152.50。\","
+                        + "\"fact\":{\"kind\":\"FIELD_VALUE\",\"attribute\":\"unit_price\","
+                        + "\"subject\":{\"toolCallId\":\"" + id
+                        + "\",\"rowIndex\":0,\"column\":\"supplier_name\"},\"value\":{\"toolCallId\":\""
+                        + id + "\",\"rowIndex\":0,\"column\":\"unit_price\"}},"
                         + "\"evidence\":[{\"toolCallId\":\"" + id
                         + "\",\"rowIndex\":0,\"column\":\"supplier_name\"},{\"toolCallId\":\""
                         + id + "\",\"rowIndex\":0,\"column\":\"unit_price\"}]}]}";

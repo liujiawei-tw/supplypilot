@@ -30,9 +30,8 @@ public final class AgenticSqlDocumentEgressPolicy {
         if (!statement.documentContentReference()) return rows;
         if (mysqlConnection == null || statement.documentSourceTable() == null
                 || statement.documentIdColumnLabel() == null || statement.documentIdColumnLabel().isBlank()
-                || "semantic_chunks".equalsIgnoreCase(statement.documentSourceTable())
-                    && (statement.documentVersionColumnLabel() == null
-                        || statement.documentVersionColumnLabel().isBlank())) {
+                || statement.documentVersionColumnLabel() == null
+                || statement.documentVersionColumnLabel().isBlank()) {
             throw new AgenticSqlException(AgenticSqlException.Code.DOCUMENT_EGRESS_REJECTED);
         }
         try {
@@ -45,11 +44,9 @@ public final class AgenticSqlDocumentEgressPolicy {
                         || snapshot.version().isBlank()) {
                     throw new AgenticSqlException(AgenticSqlException.Code.DOCUMENT_EGRESS_REJECTED);
                 }
-                if ("semantic_chunks".equalsIgnoreCase(statement.documentSourceTable())) {
-                    Object sourceVersion = value(row, statement.documentVersionColumnLabel());
-                    if (sourceVersion == null || !snapshot.version().equals(sourceVersion.toString())) {
-                        throw new AgenticSqlException(AgenticSqlException.Code.DOCUMENT_EGRESS_REJECTED);
-                    }
+                Object sourceVersion = value(row, statement.documentVersionColumnLabel());
+                if (sourceVersion == null || !snapshot.version().equals(sourceVersion.toString())) {
+                    throw new AgenticSqlException(AgenticSqlException.Code.DOCUMENT_EGRESS_REJECTED);
                 }
             }
             return maskTextValues(rows);

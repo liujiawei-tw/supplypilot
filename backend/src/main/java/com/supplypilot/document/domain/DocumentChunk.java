@@ -30,6 +30,9 @@ public class DocumentChunk {
     @Column(name = "chunk_index", nullable = false)
     private int chunkIndex;
 
+    @Column(name = "document_version", length = 50)
+    private String documentVersion;
+
     @Column(name = "start_offset", nullable = false)
     private int startOffset;
 
@@ -48,6 +51,7 @@ public class DocumentChunk {
     protected DocumentChunk() {
     }
 
+    /** Keeps existing in-process retrieval projections tied to the owning document's version. */
     public static DocumentChunk create(
             DocumentMetadata document,
             int chunkIndex,
@@ -57,8 +61,23 @@ public class DocumentChunk {
             String embedding,
             Instant createdAt
     ) {
+        return create(document, document.getVersion(), chunkIndex, startOffset, endOffset,
+                content, embedding, createdAt);
+    }
+
+    public static DocumentChunk create(
+            DocumentMetadata document,
+            String documentVersion,
+            int chunkIndex,
+            int startOffset,
+            int endOffset,
+            String content,
+            String embedding,
+            Instant createdAt
+    ) {
         DocumentChunk chunk = new DocumentChunk();
         chunk.document = Objects.requireNonNull(document);
+        chunk.documentVersion = Objects.requireNonNull(documentVersion);
         chunk.chunkIndex = chunkIndex;
         chunk.startOffset = startOffset;
         chunk.endOffset = endOffset;
@@ -71,6 +90,7 @@ public class DocumentChunk {
     public Long getId() { return id; }
     public DocumentMetadata getDocument() { return document; }
     public int getChunkIndex() { return chunkIndex; }
+    public String getDocumentVersion() { return documentVersion; }
     public int getStartOffset() { return startOffset; }
     public int getEndOffset() { return endOffset; }
     public String getContent() { return content; }

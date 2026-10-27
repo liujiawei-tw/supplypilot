@@ -31,17 +31,18 @@ public final class AgenticSqlAnswerSupportVerifier {
             "(?i)^(?:po(?:_?number|_?no|_?id)?|purchase_?order(?:_?number|_?no|_?id)?)$");
     private static final Pattern COMPARISON_FIELD = Pattern.compile(
             "(?i).*(?:amount|price|cost|total|status|quantity|qty|currency).*");
-    private static final List<String> UNSUPPORTED_CONCLUSION_PHRASES = List.of(
-            "不穩定", "不可靠", "風險", "建議", "應該", "應暫停", "暫停合作", "停止合作", "汰換",
-            "異常", "不適合", "適合", "不合理", "合理", "可靠", "穩定", "良好", "優良", "優秀",
-            "不佳", "不足", "充足", "嚴重", "過高", "過低", "逾期", "遲交", "違約", "合規", "違規",
-            "品質好", "服務差", "unreliable", "unstable", "risk", "recommend", "should", "suspend",
-            "stop working with", "unsuitable", "suitable", "abnormal", "good", "bad", "poor", "excellent",
-            "insufficient", "sufficient", "severe", "overdue", "late", "breach", "compliant", "noncompliant",
-            "acceptable", "unacceptable", "caused", "causes", "leads to", "proves", "demonstrates");
-    private static final Set<String> COMPARISON_CONCLUSION_PHRASES = Set.of(
-            "最低", "最高", "最便宜", "最昂貴", "較低", "較高", "大於", "小於", "不高於", "不低於",
-            "lowest", "highest", "cheapest", "most expensive", "greater than", "less than");
+    private static final Map<String, List<String>> ASSERTION_FAMILIES = Map.of(
+            "FINANCIAL_CONDITION", List.of("破產", "倒閉", "bankrupt", "bankruptcy", "insolvent", "insolvency"),
+            "DELIVERY_RELIABILITY", List.of("交期可靠", "交付可靠", "交期不穩", "遲交", "late delivery",
+                    "不可靠", "可靠", "不穩定", "穩定", "reliable", "unreliable", "unstable", "stable",
+                    "reliable delivery", "unreliable delivery", "delivery is reliable", "on time delivery"),
+            "QUALITY", List.of("品質良好", "品質優良", "品質不佳", "品質差", "good quality", "poor quality",
+                    "defective", "defect rate"),
+            "PRICE_COMPARISON", List.of("最低價", "最高價", "報價最低", "報價最高", "最便宜", "最昂貴",
+                    "較低", "較高", "lowest", "highest", "cheapest", "most expensive"),
+            "RISK", List.of("風險", "高風險", "risk", "high risk"),
+            "RECOMMENDATION", List.of("建議", "應該", "暫停合作", "停止合作", "recommend", "should", "suspend"),
+            "CAUSAL", List.of("導致", "造成", "因為", "caused", "causes", "leads to"));
     private static final Set<String> MASKED_VALUES = Set.of(
             "[REDACTED_IDENTIFIER]", "[BANK_ACCOUNT_REDACTED]", "[BANK_IDENTIFIER_REDACTED]",
             "[ID_REDACTED]", "[EMAIL_REDACTED]", "[PHONE_REDACTED]", "[PERSONAL_DATA_REDACTED]",
@@ -81,8 +82,11 @@ public final class AgenticSqlAnswerSupportVerifier {
                 List<AgenticSqlEvidenceCell> cited = resolveReferences(evidence, cells);
                 boolean comparisonValid = cited != null
                         && validComparison(text, claim.get("comparison"), cited, cells);
-                if (cited == null || !containsClaimFacts(text, cited) || !comparisonValid
-                        || hasUnsupportedConclusion(text, cited, comparisonValid)) {
+                boolean factsPresent = cited != null && containsClaimFacts(text, cited);
+                boolean factSupported = cited != null && supportedFact(text, claim.get("fact"), claim.get("comparison"), cited, cells,
+                        comparisonValid);
+                boolean assertionsSupported = cited != null && assertionsSupported(text, claim.get("fact"), cited, comparisonValid);
+                if (cited == null || !factsPresent || !comparisonValid || !factSupported || !assertionsSupported) {
                     unsupported++;
                     continue;
                 }
@@ -125,6 +129,98 @@ public final class AgenticSqlAnswerSupportVerifier {
         return targetSeen && targetValue.compareTo(extreme) == 0;
     }
 
+    private boolean supportedFact(String claimText, JsonNode fact, JsonNode comparison,
+                                  List<AgenticSqlEvidenceCell> cited,
+                                  Map<CellKey, AgenticSqlEvidenceCell> cells,
+                                  boolean comparisonValid) {
+        if (fact == null || !fact.isObject()) return false;
+        String kind = textValue(fact.get("kind"));
+        String attribute = textValue(fact.get("attribute"));
+        AgenticSqlEvidenceCell value = resolveReference(fact.get("value"), cells);
+        boolean attrMatches = value != null && attributeMatches(attribute, kind, value.sourceColumns());
+        boolean textHasValue = value != null && containsValue(claimText, value.value());
+        if (kind == null || attribute == null || value == null || !cited.contains(value)
+                || !attrMatches || !textHasValue) return false;
+
+        JsonNode subjectReference = fact.get("subject");
+        if (!"AGGREGATE".equals(kind) && (subjectReference == null || subjectReference.isNull())) return false;
+        if (subjectReference != null && !subjectReference.isNull()) {
+            AgenticSqlEvidenceCell subject = resolveReference(subjectReference, cells);
+            if (subject == null || !cited.contains(subject) || !sameResultRow(subject, value)
+                    || !containsEntityValue(claimText, subject)) return false;
+        }
+
+        if ("COMPARISON".equals(kind)) {
+            return comparisonValid && comparison != null && comparison.isObject()
+                    && value.equals(resolveReference(comparison.get("target"), cells));
+        }
+        if ("INFERENCE".equals(kind)) {
+            return explicitlyQualifiedInference(claimText);
+        }
+        return "FIELD_VALUE".equals(kind) || "AGGREGATE".equals(kind);
+    }
+
+    private boolean attributeMatches(String attribute, String kind, Set<String> sources) {
+        String expected = columnLeaf(attribute);
+        if (expected.isBlank()) return false;
+        for (String source : sources) {
+            if ("AGGREGATE".equals(kind) && source.startsWith("@aggregate:")) {
+                String[] parts = source.split(":", 3);
+                if (parts.length < 2 || !expected.startsWith(parts[1].toLowerCase(Locale.ROOT))) continue;
+                if (parts.length == 2 || parts[2].startsWith("@rows:")) return true;
+                String expectedField = expected.substring(parts[1].length()).replaceAll("^[^a-z0-9]+", "");
+                if (expectedField.isBlank()) return true;
+                for (String input : parts[2].split(",")) {
+                    String leaf = columnLeaf(input);
+                    if (!leaf.isBlank() && expectedField.contains(leaf)) return true;
+                }
+                continue;
+            }
+            String leaf = columnLeaf(source);
+            if (leaf.equals(expected) || leaf.endsWith("_" + expected)) return true;
+        }
+        return false;
+    }
+
+    private static String columnLeaf(String value) {
+        if (value == null) return "";
+        return normalizeColumn(value.substring(value.lastIndexOf('.') + 1));
+    }
+
+    private boolean sameResultRow(AgenticSqlEvidenceCell left, AgenticSqlEvidenceCell right) {
+        return left.toolCallId().equals(right.toolCallId()) && left.rowIndex() == right.rowIndex();
+    }
+
+    private boolean containsValue(String claim, String value) {
+        if (claim == null || value == null || value.isBlank()) return false;
+        String numeric = normalizeNumber(value);
+        if (numeric != null) return claimNumbers(claim).contains(numeric);
+        return normalizeText(claim).contains(normalizeText(value));
+    }
+
+    private boolean containsEntityValue(String claim, AgenticSqlEvidenceCell subject) {
+        if (containsValue(claim, subject.value())) return true;
+        boolean supplierName = subject.sourceColumns().stream().map(AgenticSqlAnswerSupportVerifier::columnLeaf)
+                .anyMatch(column -> column.contains("supplier") || column.contains("vendor"));
+        if (!supplierName) return false;
+        String sourceName = normalizeText(subject.value());
+        String entityToken = sourceName.replaceFirst("^(?:supplier|vendor|company)", "");
+        String normalizedClaim = normalizeText(claim);
+        boolean supplierMarker = normalizedClaim.contains("供應商") || normalizedClaim.contains("廠商")
+                || normalizedClaim.contains("supplier") || normalizedClaim.contains("vendor");
+        return supplierMarker && !entityToken.isBlank() && normalizedClaim.contains(entityToken);
+    }
+
+    private Set<String> claimNumbers(String claim) {
+        Set<String> numbers = new HashSet<>();
+        Matcher matcher = NUMBER.matcher(claim);
+        while (matcher.find()) {
+            String normalized = normalizeNumber(matcher.group());
+            if (normalized != null) numbers.add(normalized);
+        }
+        return numbers;
+    }
+
     private List<AgenticSqlEvidenceCell> resolveReferences(JsonNode references,
                                                            Map<CellKey, AgenticSqlEvidenceCell> cells) {
         LinkedHashMap<CellKey, AgenticSqlEvidenceCell> result = new LinkedHashMap<>();
@@ -144,7 +240,8 @@ public final class AgenticSqlAnswerSupportVerifier {
         JsonNode rowIndex = reference.get("rowIndex");
         if (toolCallId == null || column == null || rowIndex == null || !rowIndex.canConvertToInt()) return null;
         AgenticSqlEvidenceCell cell = cells.get(new CellKey(toolCallId, rowIndex.asInt(), normalizeColumn(column)));
-        if (cell == null || cell.value() == null || MASKED_VALUES.contains(cell.value())) return null;
+        if (cell == null || cell.value() == null || !cell.sourceBacked() || cell.sourceColumns().isEmpty()
+                || MASKED_VALUES.contains(cell.value())) return null;
         return cell;
     }
 
@@ -174,23 +271,84 @@ public final class AgenticSqlAnswerSupportVerifier {
         return true;
     }
 
-    /**
-     * SQL cells can verify values and checked comparisons, but cannot substantiate an unrelated
-     * recommendation or causal judgment merely because the model attached a valid cell reference.
-     * Explicit status/risk values remain usable when the source value states the same conclusion.
-     */
-    private boolean hasUnsupportedConclusion(String claim, List<AgenticSqlEvidenceCell> cited,
-                                             boolean comparisonValid) {
-        String normalizedClaim = normalizeText(claim);
-        List<String> normalizedValues = cited.stream().map(AgenticSqlEvidenceCell::value)
-                .filter(value -> value != null).map(this::normalizeText).toList();
-        for (String phrase : UNSUPPORTED_CONCLUSION_PHRASES) {
-            if (!normalizedClaim.contains(normalizeText(phrase))) continue;
-            if (COMPARISON_CONCLUSION_PHRASES.contains(phrase) && comparisonValid) continue;
-            String normalizedPhrase = normalizeText(phrase);
-            if (normalizedValues.stream().noneMatch(value -> value.contains(normalizedPhrase))) return true;
+    /** Requires a typed, source-column-aligned proposition; citations alone never validate prose. */
+    private boolean assertionsSupported(String claim, JsonNode fact,
+                                        List<AgenticSqlEvidenceCell> cited, boolean comparisonValid) {
+        String kind = textValue(fact == null ? null : fact.get("kind"));
+        for (Map.Entry<String, List<String>> family : ASSERTION_FAMILIES.entrySet()) {
+            List<String> assertedPhrases = family.getValue().stream()
+                    .filter(phrase -> containsPhrase(claim, phrase)).toList();
+            if (assertedPhrases.isEmpty()) continue;
+            boolean direct = cited.stream().anyMatch(cell -> assertedPhrases.stream()
+                    .anyMatch(phrase -> containsPhrase(cell.value(), phrase)));
+            if (direct) continue;
+            if ("PRICE_COMPARISON".equals(family.getKey()) && comparisonValid
+                    && hasSourceRole(cited, "PRICE")) continue;
+            if (!"INFERENCE".equals(kind) || !explicitlyQualifiedInference(claim)
+                    || !familyHasRelevantSource(family.getKey(), cited, comparisonValid)) return false;
         }
-        return false;
+        return true;
+    }
+
+    private boolean familyHasRelevantSource(String family, List<AgenticSqlEvidenceCell> cited,
+                                            boolean comparisonValid) {
+        if ("RECOMMENDATION".equals(family) || "CAUSAL".equals(family)) {
+            return cited.stream().flatMap(cell -> cell.sourceColumns().stream()).distinct().count() >= 2;
+        }
+        if ("PRICE_COMPARISON".equals(family)) return comparisonValid && hasSourceRole(cited, "PRICE");
+        String role = switch (family) {
+            case "FINANCIAL_CONDITION" -> "FINANCIAL";
+            case "DELIVERY_RELIABILITY" -> "DELIVERY";
+            case "QUALITY" -> "QUALITY";
+            case "RISK" -> "RISK";
+            default -> "";
+        };
+        return !role.isEmpty() && hasSourceRole(cited, role);
+    }
+
+    private boolean hasSourceRole(List<AgenticSqlEvidenceCell> cited, String role) {
+        return cited.stream().flatMap(cell -> cell.sourceColumns().stream())
+                .anyMatch(source -> sourceRole(source).equals(role));
+    }
+
+    private String sourceRole(String source) {
+        String column = normalizeColumn(source.substring(source.lastIndexOf('.') + 1));
+        if (column.contains("price") || column.contains("cost") || column.contains("amount")
+                || column.contains("discount") || column.contains("quote") || column.contains("報價")
+                || column.contains("價格") || column.contains("成本")) return "PRICE";
+        if (column.contains("delivery") || column.contains("leadtime") || column.contains("shipment")
+                || column.contains("ontime") || column.contains("late") || column.contains("交期")
+                || column.contains("交貨") || column.contains("遲交")) return "DELIVERY";
+        if (column.contains("quality") || column.contains("defect") || column.contains("inspection")
+                || column.contains("品質") || column.contains("瑕疵")) return "QUALITY";
+        if (column.contains("financial") || column.contains("solvency") || column.contains("bankrupt")
+                || column.contains("insolvency") || column.contains("creditstatus") || column.contains("財務")
+                || column.contains("信用狀態")) return "FINANCIAL";
+        if (column.contains("risk") || column.contains("evaluation") || column.contains("rating")
+                || column.contains("score") || column.contains("風險") || column.contains("評估")
+                || column.contains("評分")) return "RISK";
+        return "OTHER";
+    }
+
+    private boolean explicitlyQualifiedInference(String claim) {
+        return List.of("推測", "推論", "可能", "或許", "初步判斷", "據此推測", "inference", "infer",
+                        "may", "might", "could", "possibly")
+                .stream().anyMatch(phrase -> containsPhrase(claim, phrase));
+    }
+
+    private boolean containsPhrase(String text, String phrase) {
+        if (text == null || phrase == null || phrase.isBlank()) return false;
+        if (phrase.codePoints().anyMatch(codePoint -> codePoint > 127)) {
+            String normalizedText = normalizeText(text);
+            String normalizedPhrase = normalizeText(phrase);
+            int at = normalizedText.indexOf(normalizedPhrase);
+            if (at < 0) return false;
+            if (("可靠".equals(normalizedPhrase) || "穩定".equals(normalizedPhrase))
+                    && at > 0 && normalizedText.charAt(at - 1) == '不') return false;
+            return true;
+        }
+        Pattern pattern = Pattern.compile("(?i)(?<![a-z])" + Pattern.quote(phrase) + "(?![a-z])");
+        return pattern.matcher(text).find();
     }
 
     private boolean hasConflictingSources(List<AgenticSqlEvidenceCell> evidence) {

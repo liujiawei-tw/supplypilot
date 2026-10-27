@@ -9,9 +9,19 @@ public record AgenticSqlEvidenceCell(
         Set<String> tables,
         int rowIndex,
         String column,
-        String value
+        String value,
+        Set<String> sourceColumns,
+        boolean sourceBacked
 ) {
     public AgenticSqlEvidenceCell {
         tables = Set.copyOf(tables);
+        sourceColumns = Set.copyOf(sourceColumns);
+    }
+
+    /** Compatibility constructor for trusted in-process fixtures; production supplies SQL lineage explicitly. */
+    public AgenticSqlEvidenceCell(String toolCallId, String database, Set<String> tables,
+                                  int rowIndex, String column, String value) {
+        this(toolCallId, database, tables, rowIndex, column, value,
+                tables.stream().map(table -> table + "." + column).collect(java.util.stream.Collectors.toSet()), true);
     }
 }

@@ -15,7 +15,9 @@ public record AgenticSqlValidatedStatement(
         boolean documentContentReference,
         String documentSourceTable,
         String documentIdColumnLabel,
-        String documentVersionColumnLabel
+        String documentVersionColumnLabel,
+        Map<Integer, java.util.Set<String>> projectionSources,
+        boolean projectionLineageAmbiguous
 ) {
     public AgenticSqlValidatedStatement {
         tables = List.copyOf(tables);
@@ -23,5 +25,8 @@ public record AgenticSqlValidatedStatement(
                 java.util.stream.Collectors.toUnmodifiableMap(Map.Entry::getKey,
                         entry -> List.copyOf(entry.getValue())));
         sensitiveColumns = Set.copyOf(sensitiveColumns);
+        projectionSources = projectionSources.entrySet().stream().collect(
+                java.util.stream.Collectors.toUnmodifiableMap(Map.Entry::getKey,
+                        entry -> java.util.Set.copyOf(entry.getValue())));
     }
 }

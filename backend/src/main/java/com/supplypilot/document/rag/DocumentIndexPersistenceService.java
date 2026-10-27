@@ -48,7 +48,7 @@ class DocumentIndexPersistenceService {
         chunks.deleteByDocumentId(documentId);
         chunks.flush();
         chunks.saveAll(prepared.stream().map(chunk -> DocumentChunk.create(
-                document, chunk.index(), chunk.startOffset(), chunk.endOffset(), chunk.content(),
+                document, document.getVersion(), chunk.index(), chunk.startOffset(), chunk.endOffset(), chunk.content(),
                 chunk.embedding(), clock.instant())).toList());
         if (document.getStatus() == DocumentStatus.PROCESSING) {
             document.markReady(clock.instant());

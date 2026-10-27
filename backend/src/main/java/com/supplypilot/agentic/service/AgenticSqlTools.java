@@ -155,6 +155,13 @@ public final class AgenticSqlTools {
                 payload.put("warning", "This semantic index can be missing or stale; verify important document facts against MySQL.");
             }
             payload.put("rows", sanitized.rows());
+            LinkedHashMap<String, Set<String>> columnSources = new LinkedHashMap<>();
+            List<String> visibleOutputColumns = sanitized.rows().isEmpty()
+                    ? result.columns() : List.copyOf(sanitized.rows().getFirst().keySet());
+            for (String column : visibleOutputColumns) {
+                columnSources.put(column, result.projectionSources().getOrDefault(column, Set.of()));
+            }
+            payload.put("columnSources", columnSources);
             String encoded = toJson(payload);
             if (encoded.length() > properties.maxResultChars()) {
                 failures.incrementAndGet();
@@ -171,7 +178,9 @@ public final class AgenticSqlTools {
                 for (var cell : sanitized.rows().get(rowIndex).entrySet()) {
                     evidenceCells.add(new AgenticSqlEvidenceCell(toolCallId, selected.name(),
                             Set.copyOf(result.tables()), rowIndex, cell.getKey(),
-                            cell.getValue() == null ? null : cell.getValue().toString()));
+                            cell.getValue() == null ? null : cell.getValue().toString(),
+                            result.projectionSources().getOrDefault(cell.getKey(), Set.of()),
+                            !result.projectionSources().getOrDefault(cell.getKey(), Set.of()).isEmpty()));
                 }
             }
             successfulQueries.incrementAndGet();

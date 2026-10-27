@@ -87,6 +87,7 @@ public final class AgenticSqlStatementValidator {
         }
 
         Set<String> sensitiveColumns = validateSelectTree(select);
+        AgenticSqlProjectionLineage.Result projectionLineage = AgenticSqlProjectionLineage.analyze(select);
         applyOuterLimit(select, Math.addExact(maxRows, 1));
         List<AgenticSqlTableReference> tables = collectTables(database, parsed);
         if (tables.stream().anyMatch(reference ->
@@ -125,13 +126,12 @@ public final class AgenticSqlStatementValidator {
                 throw new AgenticSqlException(AgenticSqlException.Code.UNSAFE_SQL);
             }
             documentIdColumnLabel = directDocumentColumnLabel(select, documentSourceTable, "document_id");
-            if (database == AgenticSqlDatabase.POSTGRESQL) {
-                documentVersionColumnLabel = directDocumentColumnLabel(select, documentSourceTable, "document_version");
-            }
+            documentVersionColumnLabel = directDocumentColumnLabel(select, documentSourceTable, "document_version");
         }
         return new AgenticSqlValidatedStatement(database, select.toString(), tables,
                 sensitiveProjectionColumns, sensitiveColumns, maskAllOutput,
-                documentContentReference, documentSourceTable, documentIdColumnLabel, documentVersionColumnLabel);
+                documentContentReference, documentSourceTable, documentIdColumnLabel, documentVersionColumnLabel,
+                projectionLineage.projectionSources(), projectionLineage.ambiguous());
     }
 
     private boolean hasTable(List<AgenticSqlTableReference> tables, String name) {

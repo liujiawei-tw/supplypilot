@@ -112,7 +112,7 @@ public final class AgenticSqlExecutor {
                 return new AgenticSqlExecutionResult(toolCallId, database,
                         validated.tables().stream().map(AgenticSqlTableReference::qualifiedName).toList(),
                         queryRows.columns(), returnedRows, (long) returnedRows.size(), queryRows.truncated(),
-                        elapsedMs(started), queryRows.sourceRows());
+                        elapsedMs(started), queryRows.sourceRows(), queryRows.projectionSources());
             }
         } catch (AgenticSqlException exception) {
             throw exception;
@@ -153,13 +153,23 @@ public final class AgenticSqlExecutor {
                 continue;
             }
             String uniqueLabel = uniqueLabel(label, labels);
+            java.util.Set<String> sourceColumns = validated.projectionSources().get(index);
+            if (sourceColumns == null && !validated.projectionLineageAmbiguous()
+                    && safeTableName(metadata, index) != null && !safeTableName(metadata, index).isBlank()
+                    && physicalName != null && !physicalName.isBlank()) {
+                sourceColumns = java.util.Set.of(safeTableName(metadata, index) + "." + physicalName);
+            }
+            if (sourceColumns == null || validated.projectionLineageAmbiguous()) sourceColumns = java.util.Set.of();
             outputColumns.add(new OutputColumn(index, uniqueLabel, physicalName,
                     safeSchemaName(metadata, index), safeTableName(metadata, index),
                     safeCatalogName(metadata, index), metadata.getColumnType(index),
-                    safeTypeName(metadata, index)));
+                    safeTypeName(metadata, index), sourceColumns));
         }
 
         List<String> columns = outputColumns.stream().map(OutputColumn::label).toList();
+        Map<String, java.util.Set<String>> projectionSources = outputColumns.stream().collect(
+                java.util.stream.Collectors.toUnmodifiableMap(OutputColumn::label,
+                        OutputColumn::sourceColumns));
         Map<TableKey, List<String>> primaryKeys = loadPrimaryKeys(databaseMetaData, database, outputColumns, sourceTables);
         List<Map<String, Object>> rows = new ArrayList<>();
         List<AgenticSqlSourceRow> sourceRows = new ArrayList<>();
@@ -200,7 +210,8 @@ public final class AgenticSqlExecutor {
             }
             if (rowTruncated) break;
         }
-        return new QueryRows(List.copyOf(columns), List.copyOf(rows), List.copyOf(sourceRows), truncated);
+        return new QueryRows(List.copyOf(columns), List.copyOf(rows), List.copyOf(sourceRows),
+                projectionSources, truncated);
     }
 
     private Value readValue(ResultSet resultSet, OutputColumn column, int remaining) throws SQLException {
@@ -453,11 +464,13 @@ public final class AgenticSqlExecutor {
     }
 
     private record QueryRows(List<String> columns, List<Map<String, Object>> rows,
-                             List<AgenticSqlSourceRow> sourceRows, boolean truncated) {
+                             List<AgenticSqlSourceRow> sourceRows,
+                             Map<String, java.util.Set<String>> projectionSources, boolean truncated) {
     }
 
     private record OutputColumn(int index, String label, String physicalColumn, String schema,
-                                String table, String catalog, int jdbcType, String typeName) {
+                                String table, String catalog, int jdbcType, String typeName,
+                                java.util.Set<String> sourceColumns) {
     }
 
     private record TableKey(String catalog, String schema, String table) {

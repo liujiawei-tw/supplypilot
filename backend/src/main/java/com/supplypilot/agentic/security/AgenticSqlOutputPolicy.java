@@ -51,14 +51,18 @@ public class AgenticSqlOutputPolicy {
                     + "|\\bsk-[A-Za-z0-9_-]{16,}\\b|\\b(?:gh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}|"
                     + "glpat-[A-Za-z0-9_-]{20,}|xox[baprs]-[A-Za-z0-9-]{10,})\\b)"
     );
+    private static final Pattern IBAN_CANDIDATE = Pattern.compile(
+            "(?i)(?<![A-Z0-9])[A-Z]{2}\\d{2}(?:[ -]?[A-Z0-9]){11,30}(?![A-Z0-9])");
+    private static final Pattern LABELED_BIC = Pattern.compile(
+            "(?i)(?:\\bSWIFT(?:\\s*/\\s*BIC)?\\b|\\bBIC\\b)\\s*[:：#=]?\\s*"
+                    + "[A-Z]{4}[A-Z]{2}[A-Z0-9]{2}(?:[A-Z0-9]{3})?\\b");
+    private static final Pattern BIC_CANDIDATE = Pattern.compile(
+            "(?<![A-Z0-9])[A-Z]{4}[A-Z]{2}[A-Z0-9]{2}(?:[A-Z0-9]{3})?(?![A-Z0-9])");
+    private static final java.util.Set<String> ISO_COUNTRY_CODES = java.util.Set.of(Locale.getISOCountries());
     private static final Pattern BANK_VALUE = Pattern.compile(
             "(?i)(?:bank account|account number|account no\\.?|acct(?:ount)?[_ -]?(?:no\\.?|number)?|"
                     + "routing number|iban|銀行(?:帳號|帳戶)|(?:匯款|收款)?帳號|帳戶)"
                     + "\\s*[:：#=]?\\s*(?:[^\\r\\n\\d]{1,32}\\s*)?\\d[\\dA-Z -]{5,}"
-    );
-    private static final Pattern SWIFT_BIC = Pattern.compile(
-            "(?i)(?:\\bSWIFT(?:\\s*/\\s*BIC)?\\b|\\bBIC\\b)\\s*[:：#=]?\\s*"
-                    + "[A-Z]{4}[A-Z]{2}[A-Z0-9]{2}(?:[A-Z0-9]{3})?\\b"
     );
     private static final Pattern PERSONAL_FIELD = Pattern.compile(
             "(?iu)(?:\\b(?:ssn|social security|passport(?: number| no\\.?)?|date of birth|home address|personal address|contact name|contact person|person name)\\b"
@@ -136,13 +140,59 @@ public class AgenticSqlOutputPolicy {
 
     private String maskText(String value) {
         String masked = SECRET_ASSIGNMENT.matcher(value).replaceAll("[SYSTEM_SECRET_REDACTED]");
-        masked = SWIFT_BIC.matcher(masked).replaceAll("[BANK_IDENTIFIER_REDACTED]");
+        masked = maskValidIbans(masked);
+        masked = maskBicTokens(masked);
         masked = BANK_VALUE.matcher(masked).replaceAll("[BANK_ACCOUNT_REDACTED]");
         masked = PERSONAL_FIELD.matcher(masked).replaceAll("[PERSONAL_DATA_REDACTED]");
         masked = EMAIL.matcher(masked).replaceAll("[EMAIL_REDACTED]");
         masked = TAIWAN_ID.matcher(masked).replaceAll("[ID_REDACTED]");
         masked = PHONE.matcher(masked).replaceAll("[PHONE_REDACTED]");
         return LONG_NUMBER.matcher(masked).replaceAll("[IDENTIFIER_REDACTED]");
+    }
+
+    private String maskValidIbans(String value) {
+        java.util.regex.Matcher matcher = IBAN_CANDIDATE.matcher(value);
+        StringBuffer masked = new StringBuffer(value.length());
+        while (matcher.find()) {
+            String candidate = matcher.group();
+            String compact = candidate.replace(" ", "").replace("-", "").toUpperCase(Locale.ROOT);
+            matcher.appendReplacement(masked, isValidIban(compact)
+                    ? "[BANK_ACCOUNT_REDACTED]" : java.util.regex.Matcher.quoteReplacement(candidate));
+        }
+        matcher.appendTail(masked);
+        return masked.toString();
+    }
+
+    private String maskBicTokens(String value) {
+        String labeled = LABELED_BIC.matcher(value).replaceAll("[BANK_IDENTIFIER_REDACTED]");
+        java.util.regex.Matcher matcher = BIC_CANDIDATE.matcher(labeled);
+        StringBuffer masked = new StringBuffer(value.length());
+        while (matcher.find()) {
+            String candidate = matcher.group();
+            boolean validCountry = candidate.substring(4, 6).matches("[A-Za-z]{2}")
+                    && ISO_COUNTRY_CODES.contains(candidate.substring(4, 6).toUpperCase(Locale.ROOT));
+            matcher.appendReplacement(masked, validCountry ? "[BANK_IDENTIFIER_REDACTED]"
+                    : java.util.regex.Matcher.quoteReplacement(candidate));
+        }
+        matcher.appendTail(masked);
+        return masked.toString();
+    }
+
+    private boolean isValidIban(String iban) {
+        if (iban.length() < 15 || iban.length() > 34 || !iban.matches("[A-Z]{2}\\d{2}[A-Z0-9]+")) return false;
+        String rearranged = iban.substring(4) + iban.substring(0, 4);
+        int remainder = 0;
+        for (int index = 0; index < rearranged.length(); index++) {
+            char character = rearranged.charAt(index);
+            if (Character.isDigit(character)) {
+                remainder = (remainder * 10 + Character.digit(character, 10)) % 97;
+            } else {
+                int value = character - 'A' + 10;
+                remainder = (remainder * 10 + value / 10) % 97;
+                remainder = (remainder * 10 + value % 10) % 97;
+            }
+        }
+        return remainder == 1;
     }
 
     private int serializedLength(List<Map<String, Object>> rows) {

@@ -1,0 +1,516 @@
+[INFO] Scanning for projects...
+[INFO] 
+[INFO] ------------------< com.supplypilot:supply-pilot-api >------------------
+[INFO] Building supply-pilot-api 0.0.1-SNAPSHOT
+[INFO]   from pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.5.0:resources (default-resources) @ supply-pilot-api ---
+[INFO] Copying 5 resources from src\main\resources to target\classes
+[INFO] Copying 37 resources from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.15.0:compile (default-compile) @ supply-pilot-api ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- resources:3.5.0:testResources (default-testResources) @ supply-pilot-api ---
+[INFO] Copying 3 resources from src\test\resources to target\test-classes
+[INFO] 
+[INFO] --- compiler:3.15.0:testCompile (default-testCompile) @ supply-pilot-api ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- surefire:3.5.6:test (default-test) @ supply-pilot-api ---
+[INFO] Using auto detected provider org.apache.maven.surefire.junitplatform.JUnitPlatformProvider
+[INFO] 
+[INFO] -------------------------------------------------------
+[INFO]  T E S T S
+[INFO] -------------------------------------------------------
+20:54:11.336 [main] INFO org.testcontainers.DockerClientFactory -- Testcontainers version: 2.0.5
+20:54:11.848 [main] INFO org.testcontainers.dockerclient.DockerClientProviderStrategy -- Loaded org.testcontainers.dockerclient.NpipeSocketClientProviderStrategy from ~/.testcontainers.properties, will try it first
+20:54:12.551 [main] INFO org.testcontainers.dockerclient.DockerClientProviderStrategy -- Found Docker environment with local Npipe socket (npipe:////./pipe/docker_engine)
+20:54:12.554 [main] INFO org.testcontainers.DockerClientFactory -- Docker host IP address is localhost
+20:54:12.588 [main] INFO org.testcontainers.DockerClientFactory -- Connected to docker: 
+  Server Version: 29.6.1
+  API Version: 1.55
+  Operating System: Docker Desktop
+  Total Memory: 19902 MB
+  Labels: 
+    com.docker.desktop.address=npipe://\\.\pipe\docker_cli
+20:54:12.613 [main] INFO org.testcontainers.images.PullPolicy -- Image pull policy will be performed by: DefaultPullPolicy()
+20:54:12.617 [main] INFO org.testcontainers.utility.ImageNameSubstitutor -- Image name substitution will be performed by: DefaultImageNameSubstitutor (composite of 'ConfigurationFileImageNameSubstitutor' and 'PrefixingImageNameSubstitutor')
+20:54:13.422 [main] INFO tc.testcontainers/ryuk:0.14.0 -- Creating container for image: testcontainers/ryuk:0.14.0
+20:54:13.977 [main] INFO tc.testcontainers/ryuk:0.14.0 -- Container testcontainers/ryuk:0.14.0 is starting: 85fc59516710c8a3cf5d66daaffc8e186bb51436dcde6d0d695f5fc4f19780f2
+20:54:15.025 [main] INFO tc.testcontainers/ryuk:0.14.0 -- Container testcontainers/ryuk:0.14.0 started in PT1.6029207S
+20:54:15.054 [main] INFO org.testcontainers.utility.RyukResourceReaper -- Ryuk started - will monitor and terminate Testcontainers containers on JVM exit
+20:54:15.054 [main] INFO org.testcontainers.DockerClientFactory -- Checking the system...
+20:54:15.056 [main] INFO org.testcontainers.DockerClientFactory -- ?? Docker server version should be at least 1.6.0
+[INFO] Running com.supplypilot.agentic.sql.AgenticSqlExecutorIntegrationTests
+20:54:15.509 [main] INFO tc.mysql:8.4.11 -- Creating container for image: mysql:8.4.11
+20:54:15.707 [main] INFO tc.mysql:8.4.11 -- Container mysql:8.4.11 is starting: 2bacb9ff484c9956d3ff4aa038275a56df0c575f9b3fa50c094b6f57bbdda146
+20:54:16.252 [main] INFO tc.mysql:8.4.11 -- Waiting for database connection to become available at jdbc:mysql://localhost:9415/supplypilot_agentic_test using query 'SELECT 1'
+20:54:32.084 [main] INFO tc.mysql:8.4.11 -- Container mysql:8.4.11 started in PT16.5749568S
+20:54:32.085 [main] INFO tc.mysql:8.4.11 -- Container is started (JDBC URL: jdbc:mysql://localhost:9415/supplypilot_agentic_test)
+20:54:32.085 [main] INFO tc.postgres:16-alpine -- Creating container for image: postgres:16-alpine
+20:54:32.218 [main] INFO tc.postgres:16-alpine -- Container postgres:16-alpine is starting: 61bf4ec1abefe5a06ff3de431a092d51973a1d49bded465f2b8885c56a5a3413
+20:54:34.538 [main] INFO tc.postgres:16-alpine -- Container postgres:16-alpine started in PT2.4528774S
+20:54:34.540 [main] INFO tc.postgres:16-alpine -- Container is started (JDBC URL: jdbc:postgresql://localhost:9216/supplypilot_agentic_test?loggerLevel=OFF)
+[ERROR] Tests run: 16, Failures: 1, Errors: 0, Skipped: 0, Time elapsed: 33.52 s <<< FAILURE! -- in com.supplypilot.agentic.sql.AgenticSqlExecutorIntegrationTests
+[ERROR] com.supplypilot.agentic.sql.AgenticSqlExecutorIntegrationTests.returnsLineageForRealFieldsOperationsAggregatesAndCtesButNotSqlConstants -- Time elapsed: 0.418 s <<< FAILURE!
+java.lang.AssertionError: 
+
+Expecting Set12:
+  ["future_items.long_text"]
+to contain:
+  ["agentic_data.future_items.long_text"]
+but could not find the following element(s):
+  ["agentic_data.future_items.long_text"]
+
+	at com.supplypilot.agentic.sql.AgenticSqlExecutorIntegrationTests.returnsLineageForRealFieldsOperationsAggregatesAndCtesButNotSqlConstants(AgenticSqlExecutorIntegrationTests.java:162)
+
+[INFO] Running com.supplypilot.integration.AgenticSqlAuthorizationIntegrationTests
+20:54:48.891 [main] INFO org.springframework.test.context.support.AnnotationConfigContextLoaderUtils -- Could not detect default configuration classes for test class [com.supplypilot.integration.AgenticSqlAuthorizationIntegrationTests]: AgenticSqlAuthorizationIntegrationTests does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
+20:54:49.316 [main] INFO org.springframework.boot.test.context.SpringBootTestContextBootstrapper -- Found @SpringBootConfiguration com.supplypilot.SupplyPilotApplication for test class com.supplypilot.integration.AgenticSqlAuthorizationIntegrationTests
+20:54:49.497 [main] INFO org.springframework.test.context.support.AnnotationConfigContextLoaderUtils -- Could not detect default configuration classes for test class [com.supplypilot.integration.AgenticSqlAuthorizationIntegrationTests]: AgenticSqlAuthorizationIntegrationTests does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
+20:54:49.498 [main] INFO org.springframework.test.context.support.AnnotationConfigContextLoaderUtils -- Could not detect default configuration classes for test class [com.supplypilot.integration.AbstractIntegrationTest]: AbstractIntegrationTest does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
+20:54:49.509 [main] INFO org.springframework.boot.test.context.SpringBootTestContextBootstrapper -- Found @SpringBootConfiguration com.supplypilot.SupplyPilotApplication for test class com.supplypilot.integration.AgenticSqlAuthorizationIntegrationTests
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+
+ :: Spring Boot ::                (v4.1.1)
+
+2026-10-27T20:54:50.445+08:00  INFO 31544 --- [supply-pilot-api] [           main] .AgenticSqlAuthorizationIntegrationTests : Starting AgenticSqlAuthorizationIntegrationTests using Java 21.0.10 with PID 31544 (started by Liu in C:\Users\z0976\OneDrive\�ୱ\dev-side\supplypilot\backend)
+2026-10-27T20:54:50.450+08:00  INFO 31544 --- [supply-pilot-api] [           main] .AgenticSqlAuthorizationIntegrationTests : The following 1 profile is active: "test"
+2026-10-27T20:54:53.369+08:00  INFO 31544 --- [supply-pilot-api] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2026-10-27T20:54:53.977+08:00  INFO 31544 --- [supply-pilot-api] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 581 ms. Found 15 JPA repository interfaces.
+2026-10-27T20:54:55.098+08:00  INFO 31544 --- [supply-pilot-api] [           main] tc.mysql:8.4.11                          : Creating container for image: mysql:8.4.11
+2026-10-27T20:54:55.263+08:00  INFO 31544 --- [supply-pilot-api] [           main] tc.mysql:8.4.11                          : Container mysql:8.4.11 is starting: 2881a1e830e4089cd3aad0d0f5c5a89962b8540d94cba1418a4f54075e37752f
+2026-10-27T20:54:55.670+08:00  INFO 31544 --- [supply-pilot-api] [           main] tc.mysql:8.4.11                          : Waiting for database connection to become available at jdbc:mysql://localhost:6587/supplypilot_demo_test using query 'SELECT 1'
+2026-10-27T20:55:10.869+08:00  INFO 31544 --- [supply-pilot-api] [           main] tc.mysql:8.4.11                          : Container mysql:8.4.11 started in PT15.7709197S
+2026-10-27T20:55:10.870+08:00  INFO 31544 --- [supply-pilot-api] [           main] tc.mysql:8.4.11                          : Container is started (JDBC URL: jdbc:mysql://localhost:6587/supplypilot_demo_test)
+2026-10-27T20:55:11.559+08:00  INFO 31544 --- [supply-pilot-api] [           main] org.flywaydb.core.FlywayExecutor         : Database: jdbc:mysql://localhost:6587/supplypilot_demo_test (MySQL 8.4)
+2026-10-27T20:55:11.788+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.c.i.s.JdbcTableSchemaHistory         : Schema history table `supplypilot_demo_test`.`flyway_schema_history` does not exist yet
+2026-10-27T20:55:11.798+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbValidate     : Successfully validated 34 migrations (execution time 00:00.096s)
+2026-10-27T20:55:11.840+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.c.i.s.JdbcTableSchemaHistory         : Creating Schema History table `supplypilot_demo_test`.`flyway_schema_history` ...
+2026-10-27T20:55:12.012+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Current version of schema `supplypilot_demo_test`: << Empty Schema >>
+2026-10-27T20:55:12.038+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "1 - baseline"
+2026-10-27T20:55:12.117+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "2 - create users"
+2026-10-27T20:55:12.258+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "3 - create materials and inventory"
+2026-10-27T20:55:12.446+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "4 - create suppliers"
+2026-10-27T20:55:12.560+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "5 - create supplier materials"
+2026-10-27T20:55:12.703+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "6 - create demands"
+2026-10-27T20:55:12.834+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "7 - create stock transactions"
+2026-10-27T20:55:12.967+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "8 - create inventory imports"
+2026-10-27T20:55:13.145+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "9 - create purchase orders"
+2026-10-27T20:55:13.433+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "10 - create purchase recommendations"
+2026-10-27T20:55:13.638+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "11 - link purchase order items to recommendations"
+2026-10-27T20:55:13.868+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "12 - add purchase order rejection audit"
+2026-10-27T20:55:14.135+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "13 - link stock transactions to purchase orders"
+2026-10-27T20:55:14.344+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "14 - create document metadata"
+2026-10-27T20:55:14.513+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "15 - create document chunks"
+2026-10-27T20:55:14.663+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "16 - create ai monthly token usage"
+2026-10-27T20:55:14.778+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "17 - create ai purchase draft proposals"
+2026-10-27T20:55:14.934+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "18 - document semantic outbound approval"
+2026-10-27T20:55:15.128+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "19 - document semantic review state"
+2026-10-27T20:55:15.310+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "20 - create demo dataset state"
+2026-10-27T20:55:15.416+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "21 - require production admin password change"
+2026-10-27T20:55:15.588+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "22 - create system initialization"
+2026-10-27T20:55:15.681+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "23 - unify user roles and management capability"
+2026-10-27T20:55:15.877+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "24 - user deletion and purchase order snapshots"
+2026-10-27T20:55:19.386+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "25 - add purchase order cancellation and ordered progress"
+2026-10-27T20:55:20.005+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "26 - add supplier promised delivery date"
+2026-10-27T20:55:20.311+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "27 - add receiving inspection and payment confirmation"
+2026-10-27T20:55:20.660+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "28 - add purchase order stage"
+2026-10-27T20:55:21.287+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "29 - constrain purchase order payment stage consistency"
+2026-10-27T20:55:21.652+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "30 - persistent semantic index jobs"
+2026-10-27T20:55:21.921+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "31 - add purchase order item currency snapshot"
+2026-10-27T20:55:22.290+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "32 - allow demo dataset update required state"
+2026-10-27T20:55:22.466+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "33 - trusted demo corpus provenance"
+2026-10-27T20:55:23.130+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "34 - document chunk version provenance"
+2026-10-27T20:55:23.255+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Successfully applied 34 migrations to schema `supplypilot_demo_test`, now at version v34 (execution time 00:09.722s)
+2026-10-27T20:55:23.534+08:00  INFO 31544 --- [supply-pilot-api] [           main] org.hibernate.orm.jpa                    : HHH008540: Processing PersistenceUnitInfo [name: default]
+2026-10-27T20:55:23.670+08:00  INFO 31544 --- [supply-pilot-api] [           main] org.hibernate.orm.core                   : HHH000001: Hibernate ORM core version 7.4.5.Final
+2026-10-27T20:55:24.397+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
+2026-10-27T20:55:24.459+08:00  INFO 31544 --- [supply-pilot-api] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
+2026-10-27T20:55:24.508+08:00  INFO 31544 --- [supply-pilot-api] [           main] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added connection com.mysql.cj.jdbc.ConnectionImpl@78e3bebd
+2026-10-27T20:55:24.515+08:00  INFO 31544 --- [supply-pilot-api] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
+2026-10-27T20:55:24.624+08:00  INFO 31544 --- [supply-pilot-api] [           main] org.hibernate.orm.connections.pooling    : HHH10001005: Database info:
+	Database JDBC URL [jdbc:mysql://localhost:6587/supplypilot_demo_test]
+	Database driver: MySQL Connector/J
+	Database dialect: MySQLDialect
+	Database version: 8.4.11
+	Default catalog/schema: supplypilot_demo_test/undefined
+	Autocommit mode: undefined/unknown
+	Isolation level: REPEATABLE_READ [default REPEATABLE_READ]
+	JDBC fetch size: none
+	Pool: DataSourceConnectionProvider
+	Minimum pool size: undefined/unknown
+	Maximum pool size: undefined/unknown
+2026-10-27T20:55:27.614+08:00  INFO 31544 --- [supply-pilot-api] [           main] org.hibernate.orm.core                   : HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2026-10-27T20:55:27.691+08:00  INFO 31544 --- [supply-pilot-api] [           main] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
+2026-10-27T20:55:27.775+08:00  INFO 31544 --- [supply-pilot-api] [           main] com.zaxxer.hikari.HikariDataSource       : agentic-mysql - Starting...
+2026-10-27T20:55:27.776+08:00  INFO 31544 --- [supply-pilot-api] [           main] com.zaxxer.hikari.HikariDataSource       : agentic-mysql - Start completed.
+2026-10-27T20:55:27.776+08:00  INFO 31544 --- [supply-pilot-api] [           main] com.zaxxer.hikari.HikariDataSource       : agentic-postgres - Starting...
+2026-10-27T20:55:27.779+08:00  INFO 31544 --- [supply-pilot-api] [           main] com.zaxxer.hikari.HikariDataSource       : agentic-postgres - Start completed.
+2026-10-27T20:55:28.118+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.s.d.j.r.query.QueryEnhancerFactories   : JSqlParser is in classpath; If applicable, JSqlParser will be used
+2026-10-27T20:55:28.118+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.s.d.j.r.query.QueryEnhancerFactories   : Hibernate is in classpath; If applicable, HQL parser will be used.
+2026-10-27T20:55:32.634+08:00  INFO 31544 --- [supply-pilot-api] [           main] eAuthenticationProviderManagerConfigurer : Global AuthenticationManager configured with AuthenticationProvider bean with name authenticationProvider
+2026-10-27T20:55:32.635+08:00  WARN 31544 --- [supply-pilot-api] [           main] r$InitializeUserDetailsManagerConfigurer : Global AuthenticationManager configured with an AuthenticationProvider bean. UserDetailsService beans will not be used by Spring Security for automatically configuring username/password login. Consider removing the AuthenticationProvider bean. Alternatively, consider using the UserDetailsService in a manually instantiated DaoAuthenticationProvider. If the current configuration is intentional, to turn off this warning, increase the logging level of 'org.springframework.security.config.annotation.authentication.configuration.InitializeUserDetailsBeanManagerConfigurer' to ERROR
+2026-10-27T20:55:34.509+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.s.b.a.e.web.EndpointLinksResolver      : Exposing 2 endpoints beneath base path '/actuator'
+2026-10-27T20:55:34.651+08:00  INFO 31544 --- [supply-pilot-api] [           main] .AgenticSqlAuthorizationIntegrationTests : Started AgenticSqlAuthorizationIntegrationTests in 45.016 seconds (process running for 84.782)
+Mockito is currently self-attaching to enable the inline-mock-maker. This will no longer work in future releases of the JDK. Please add Mockito as an agent to your build as described in Mockito's documentation: https://javadoc.io/doc/org.mockito/mockito-core/latest/org.mockito/org/mockito/Mockito.html#0.3
+WARNING: A Java agent has been loaded dynamically (C:\Users\z0976\.m2\repository\net\bytebuddy\byte-buddy-agent\1.18.11\byte-buddy-agent-1.18.11.jar)
+WARNING: If a serviceability tool is in use, please run with -XX:+EnableDynamicAgentLoading to hide this warning
+WARNING: If a serviceability tool is not in use, please run with -Djdk.instrument.traceUsage for more information
+WARNING: Dynamic loading of agents will be disallowed by default in a future release
+OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+2026-10-27T20:55:35.445+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.s.b.t.m.w.SpringBootMockServletContext : Initializing Spring TestDispatcherServlet ''
+2026-10-27T20:55:35.445+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.s.t.web.servlet.TestDispatcherServlet  : Initializing Servlet ''
+2026-10-27T20:55:35.446+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.s.t.web.servlet.TestDispatcherServlet  : Completed initialization in 1 ms
+2026-10-27T20:55:35.699+08:00  WARN 31544 --- [supply-pilot-api] [           main] c.s.c.exception.GlobalExceptionHandler   : Access denied: path=/api/v1/ai/agent-query, traceId=553dc332-e661-432a-b6d8-c4eb37abdc54
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 47.14 s -- in com.supplypilot.integration.AgenticSqlAuthorizationIntegrationTests
+[INFO] Running com.supplypilot.integration.AgenticSqlDisabledIntegrationTests
+2026-10-27T20:55:35.783+08:00  INFO 31544 --- [supply-pilot-api] [           main] t.c.s.AnnotationConfigContextLoaderUtils : Could not detect default configuration classes for test class [com.supplypilot.integration.AgenticSqlDisabledIntegrationTests]: AgenticSqlDisabledIntegrationTests does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
+2026-10-27T20:55:35.824+08:00  INFO 31544 --- [supply-pilot-api] [           main] .b.t.c.SpringBootTestContextBootstrapper : Found @SpringBootConfiguration com.supplypilot.SupplyPilotApplication for test class com.supplypilot.integration.AgenticSqlDisabledIntegrationTests
+2026-10-27T20:55:35.832+08:00  INFO 31544 --- [supply-pilot-api] [           main] t.c.s.AnnotationConfigContextLoaderUtils : Could not detect default configuration classes for test class [com.supplypilot.integration.AgenticSqlDisabledIntegrationTests]: AgenticSqlDisabledIntegrationTests does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
+2026-10-27T20:55:35.838+08:00  INFO 31544 --- [supply-pilot-api] [           main] t.c.s.AnnotationConfigContextLoaderUtils : Could not detect default configuration classes for test class [com.supplypilot.integration.AbstractIntegrationTest]: AbstractIntegrationTest does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
+2026-10-27T20:55:35.870+08:00  INFO 31544 --- [supply-pilot-api] [           main] .b.t.c.SpringBootTestContextBootstrapper : Found @SpringBootConfiguration com.supplypilot.SupplyPilotApplication for test class com.supplypilot.integration.AgenticSqlDisabledIntegrationTests
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+
+ :: Spring Boot ::                (v4.1.1)
+
+2026-10-27T20:55:35.990+08:00  INFO 31544 --- [supply-pilot-api] [           main] c.s.i.AgenticSqlDisabledIntegrationTests : Starting AgenticSqlDisabledIntegrationTests using Java 21.0.10 with PID 31544 (started by Liu in C:\Users\z0976\OneDrive\�ୱ\dev-side\supplypilot\backend)
+2026-10-27T20:55:35.991+08:00  INFO 31544 --- [supply-pilot-api] [           main] c.s.i.AgenticSqlDisabledIntegrationTests : The following 1 profile is active: "test"
+2026-10-27T20:55:37.902+08:00  INFO 31544 --- [supply-pilot-api] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2026-10-27T20:55:38.216+08:00  INFO 31544 --- [supply-pilot-api] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 309 ms. Found 15 JPA repository interfaces.
+2026-10-27T20:55:38.429+08:00  INFO 31544 --- [supply-pilot-api] [           main] tc.mysql:8.4.11                          : Creating container for image: mysql:8.4.11
+2026-10-27T20:55:38.602+08:00  INFO 31544 --- [supply-pilot-api] [           main] tc.mysql:8.4.11                          : Container mysql:8.4.11 is starting: 417357e564aa0ad8694eb7374d6de17eb170d8c2b3a6202b899b127543341589
+2026-10-27T20:55:39.054+08:00  INFO 31544 --- [supply-pilot-api] [           main] tc.mysql:8.4.11                          : Waiting for database connection to become available at jdbc:mysql://localhost:9815/supplypilot_demo_test using query 'SELECT 1'
+2026-10-27T20:55:53.287+08:00  INFO 31544 --- [supply-pilot-api] [           main] tc.mysql:8.4.11                          : Container mysql:8.4.11 started in PT14.8578821S
+2026-10-27T20:55:53.287+08:00  INFO 31544 --- [supply-pilot-api] [           main] tc.mysql:8.4.11                          : Container is started (JDBC URL: jdbc:mysql://localhost:9815/supplypilot_demo_test)
+2026-10-27T20:55:53.453+08:00  INFO 31544 --- [supply-pilot-api] [           main] org.flywaydb.core.FlywayExecutor         : Database: jdbc:mysql://localhost:9815/supplypilot_demo_test (MySQL 8.4)
+2026-10-27T20:55:53.528+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.c.i.s.JdbcTableSchemaHistory         : Schema history table `supplypilot_demo_test`.`flyway_schema_history` does not exist yet
+2026-10-27T20:55:53.531+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbValidate     : Successfully validated 34 migrations (execution time 00:00.043s)
+2026-10-27T20:55:53.560+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.c.i.s.JdbcTableSchemaHistory         : Creating Schema History table `supplypilot_demo_test`.`flyway_schema_history` ...
+2026-10-27T20:55:53.675+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Current version of schema `supplypilot_demo_test`: << Empty Schema >>
+2026-10-27T20:55:53.682+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "1 - baseline"
+2026-10-27T20:55:53.724+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "2 - create users"
+2026-10-27T20:55:53.843+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "3 - create materials and inventory"
+2026-10-27T20:55:54.020+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "4 - create suppliers"
+2026-10-27T20:55:54.169+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "5 - create supplier materials"
+2026-10-27T20:55:54.326+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "6 - create demands"
+2026-10-27T20:55:54.447+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "7 - create stock transactions"
+2026-10-27T20:55:54.597+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "8 - create inventory imports"
+2026-10-27T20:55:54.785+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "9 - create purchase orders"
+2026-10-27T20:55:55.116+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "10 - create purchase recommendations"
+2026-10-27T20:55:55.376+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "11 - link purchase order items to recommendations"
+2026-10-27T20:55:55.588+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "12 - add purchase order rejection audit"
+2026-10-27T20:55:55.832+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "13 - link stock transactions to purchase orders"
+2026-10-27T20:55:56.016+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "14 - create document metadata"
+2026-10-27T20:55:56.172+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "15 - create document chunks"
+2026-10-27T20:55:56.308+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "16 - create ai monthly token usage"
+2026-10-27T20:55:56.407+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "17 - create ai purchase draft proposals"
+2026-10-27T20:55:56.519+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "18 - document semantic outbound approval"
+2026-10-27T20:55:56.730+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "19 - document semantic review state"
+2026-10-27T20:55:56.922+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "20 - create demo dataset state"
+2026-10-27T20:55:57.023+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "21 - require production admin password change"
+2026-10-27T20:55:57.208+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "22 - create system initialization"
+2026-10-27T20:55:57.291+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "23 - unify user roles and management capability"
+2026-10-27T20:55:57.453+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "24 - user deletion and purchase order snapshots"
+2026-10-27T20:56:00.947+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "25 - add purchase order cancellation and ordered progress"
+2026-10-27T20:56:01.466+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "26 - add supplier promised delivery date"
+2026-10-27T20:56:01.758+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "27 - add receiving inspection and payment confirmation"
+2026-10-27T20:56:02.133+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "28 - add purchase order stage"
+2026-10-27T20:56:02.751+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "29 - constrain purchase order payment stage consistency"
+2026-10-27T20:56:03.058+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "30 - persistent semantic index jobs"
+2026-10-27T20:56:03.316+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "31 - add purchase order item currency snapshot"
+2026-10-27T20:56:03.683+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "32 - allow demo dataset update required state"
+2026-10-27T20:56:03.839+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "33 - trusted demo corpus provenance"
+2026-10-27T20:56:04.371+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "34 - document chunk version provenance"
+2026-10-27T20:56:04.515+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Successfully applied 34 migrations to schema `supplypilot_demo_test`, now at version v34 (execution time 00:09.444s)
+2026-10-27T20:56:04.621+08:00  INFO 31544 --- [supply-pilot-api] [           main] org.hibernate.orm.jpa                    : HHH008540: Processing PersistenceUnitInfo [name: default]
+2026-10-27T20:56:04.658+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
+2026-10-27T20:56:04.660+08:00  INFO 31544 --- [supply-pilot-api] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-2 - Starting...
+2026-10-27T20:56:04.681+08:00  INFO 31544 --- [supply-pilot-api] [           main] com.zaxxer.hikari.pool.HikariPool        : HikariPool-2 - Added connection com.mysql.cj.jdbc.ConnectionImpl@65a2eb50
+2026-10-27T20:56:04.681+08:00  INFO 31544 --- [supply-pilot-api] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-2 - Start completed.
+2026-10-27T20:56:04.684+08:00  INFO 31544 --- [supply-pilot-api] [           main] org.hibernate.orm.connections.pooling    : HHH10001005: Database info:
+	Database JDBC URL [jdbc:mysql://localhost:9815/supplypilot_demo_test]
+	Database driver: MySQL Connector/J
+	Database dialect: MySQLDialect
+	Database version: 8.4.11
+	Default catalog/schema: supplypilot_demo_test/undefined
+	Autocommit mode: undefined/unknown
+	Isolation level: REPEATABLE_READ [default REPEATABLE_READ]
+	JDBC fetch size: none
+	Pool: DataSourceConnectionProvider
+	Minimum pool size: undefined/unknown
+	Maximum pool size: undefined/unknown
+2026-10-27T20:56:05.296+08:00  INFO 31544 --- [supply-pilot-api] [           main] org.hibernate.orm.core                   : HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2026-10-27T20:56:05.326+08:00  INFO 31544 --- [supply-pilot-api] [           main] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
+2026-10-27T20:56:05.939+08:00  INFO 31544 --- [supply-pilot-api] [           main] eAuthenticationProviderManagerConfigurer : Global AuthenticationManager configured with AuthenticationProvider bean with name authenticationProvider
+2026-10-27T20:56:05.939+08:00  WARN 31544 --- [supply-pilot-api] [           main] r$InitializeUserDetailsManagerConfigurer : Global AuthenticationManager configured with an AuthenticationProvider bean. UserDetailsService beans will not be used by Spring Security for automatically configuring username/password login. Consider removing the AuthenticationProvider bean. Alternatively, consider using the UserDetailsService in a manually instantiated DaoAuthenticationProvider. If the current configuration is intentional, to turn off this warning, increase the logging level of 'org.springframework.security.config.annotation.authentication.configuration.InitializeUserDetailsBeanManagerConfigurer' to ERROR
+2026-10-27T20:56:06.437+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.s.b.a.e.web.EndpointLinksResolver      : Exposing 2 endpoints beneath base path '/actuator'
+2026-10-27T20:56:06.463+08:00  INFO 31544 --- [supply-pilot-api] [           main] c.s.i.AgenticSqlDisabledIntegrationTests : Started AgenticSqlDisabledIntegrationTests in 30.579 seconds (process running for 116.594)
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 30.71 s -- in com.supplypilot.integration.AgenticSqlDisabledIntegrationTests
+[INFO] Running com.supplypilot.integration.DocumentRagIntegrationTests
+2026-10-27T20:56:06.512+08:00  INFO 31544 --- [supply-pilot-api] [           main] .b.t.c.SpringBootTestContextBootstrapper : Found @SpringBootConfiguration com.supplypilot.SupplyPilotApplication for test class com.supplypilot.integration.DocumentRagIntegrationTests
+2026-10-27T20:56:06.514+08:00  INFO 31544 --- [supply-pilot-api] [           main] t.c.s.AnnotationConfigContextLoaderUtils : Could not detect default configuration classes for test class [com.supplypilot.integration.AbstractIntegrationTest]: AbstractIntegrationTest does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
+2026-10-27T20:56:06.524+08:00  INFO 31544 --- [supply-pilot-api] [           main] .b.t.c.SpringBootTestContextBootstrapper : Found @SpringBootConfiguration com.supplypilot.SupplyPilotApplication for test class com.supplypilot.integration.DocumentRagIntegrationTests
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+
+ :: Spring Boot ::                (v4.1.1)
+
+2026-10-27T20:56:06.592+08:00  INFO 31544 --- [supply-pilot-api] [           main] c.s.i.DocumentRagIntegrationTests        : Starting DocumentRagIntegrationTests using Java 21.0.10 with PID 31544 (started by Liu in C:\Users\z0976\OneDrive\�ୱ\dev-side\supplypilot\backend)
+2026-10-27T20:56:06.592+08:00  INFO 31544 --- [supply-pilot-api] [           main] c.s.i.DocumentRagIntegrationTests        : The following 1 profile is active: "test"
+2026-10-27T20:56:07.689+08:00  INFO 31544 --- [supply-pilot-api] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2026-10-27T20:56:07.996+08:00  INFO 31544 --- [supply-pilot-api] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 303 ms. Found 15 JPA repository interfaces.
+2026-10-27T20:56:08.164+08:00  INFO 31544 --- [supply-pilot-api] [           main] tc.mysql:8.4.11                          : Creating container for image: mysql:8.4.11
+2026-10-27T20:56:08.318+08:00  INFO 31544 --- [supply-pilot-api] [           main] tc.mysql:8.4.11                          : Container mysql:8.4.11 is starting: 04af434a7d1065e45343db59851f4c5e5a81b2e93c87dace35281444d1532c43
+2026-10-27T20:56:08.748+08:00  INFO 31544 --- [supply-pilot-api] [           main] tc.mysql:8.4.11                          : Waiting for database connection to become available at jdbc:mysql://localhost:13265/supplypilot_demo_test using query 'SELECT 1'
+2026-10-27T20:56:24.840+08:00  INFO 31544 --- [supply-pilot-api] [           main] tc.mysql:8.4.11                          : Container mysql:8.4.11 started in PT16.6752535S
+2026-10-27T20:56:24.840+08:00  INFO 31544 --- [supply-pilot-api] [           main] tc.mysql:8.4.11                          : Container is started (JDBC URL: jdbc:mysql://localhost:13265/supplypilot_demo_test)
+2026-10-27T20:56:25.072+08:00  INFO 31544 --- [supply-pilot-api] [           main] org.flywaydb.core.FlywayExecutor         : Database: jdbc:mysql://localhost:13265/supplypilot_demo_test (MySQL 8.4)
+2026-10-27T20:56:25.163+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.c.i.s.JdbcTableSchemaHistory         : Schema history table `supplypilot_demo_test`.`flyway_schema_history` does not exist yet
+2026-10-27T20:56:25.166+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbValidate     : Successfully validated 34 migrations (execution time 00:00.040s)
+2026-10-27T20:56:25.193+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.c.i.s.JdbcTableSchemaHistory         : Creating Schema History table `supplypilot_demo_test`.`flyway_schema_history` ...
+2026-10-27T20:56:25.290+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Current version of schema `supplypilot_demo_test`: << Empty Schema >>
+2026-10-27T20:56:25.297+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "1 - baseline"
+2026-10-27T20:56:25.340+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "2 - create users"
+2026-10-27T20:56:25.442+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "3 - create materials and inventory"
+2026-10-27T20:56:25.597+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "4 - create suppliers"
+2026-10-27T20:56:25.694+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "5 - create supplier materials"
+2026-10-27T20:56:25.807+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "6 - create demands"
+2026-10-27T20:56:25.912+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "7 - create stock transactions"
+2026-10-27T20:56:26.062+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "8 - create inventory imports"
+2026-10-27T20:56:26.240+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "9 - create purchase orders"
+2026-10-27T20:56:26.522+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "10 - create purchase recommendations"
+2026-10-27T20:56:26.726+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "11 - link purchase order items to recommendations"
+2026-10-27T20:56:26.943+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "12 - add purchase order rejection audit"
+2026-10-27T20:56:27.204+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "13 - link stock transactions to purchase orders"
+2026-10-27T20:56:27.402+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "14 - create document metadata"
+2026-10-27T20:56:27.532+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "15 - create document chunks"
+2026-10-27T20:56:27.642+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "16 - create ai monthly token usage"
+2026-10-27T20:56:27.741+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "17 - create ai purchase draft proposals"
+2026-10-27T20:56:27.870+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "18 - document semantic outbound approval"
+2026-10-27T20:56:28.072+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "19 - document semantic review state"
+2026-10-27T20:56:28.246+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "20 - create demo dataset state"
+2026-10-27T20:56:28.345+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "21 - require production admin password change"
+2026-10-27T20:56:28.518+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "22 - create system initialization"
+2026-10-27T20:56:28.594+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "23 - unify user roles and management capability"
+2026-10-27T20:56:28.751+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "24 - user deletion and purchase order snapshots"
+2026-10-27T20:56:31.775+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "25 - add purchase order cancellation and ordered progress"
+2026-10-27T20:56:32.211+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "26 - add supplier promised delivery date"
+2026-10-27T20:56:32.435+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "27 - add receiving inspection and payment confirmation"
+2026-10-27T20:56:32.714+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "28 - add purchase order stage"
+2026-10-27T20:56:33.280+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "29 - constrain purchase order payment stage consistency"
+2026-10-27T20:56:33.573+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "30 - persistent semantic index jobs"
+2026-10-27T20:56:33.859+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "31 - add purchase order item currency snapshot"
+2026-10-27T20:56:34.200+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "32 - allow demo dataset update required state"
+2026-10-27T20:56:34.349+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "33 - trusted demo corpus provenance"
+2026-10-27T20:56:34.907+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "34 - document chunk version provenance"
+2026-10-27T20:56:35.059+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Successfully applied 34 migrations to schema `supplypilot_demo_test`, now at version v34 (execution time 00:08.573s)
+2026-10-27T20:56:35.142+08:00  INFO 31544 --- [supply-pilot-api] [           main] org.hibernate.orm.jpa                    : HHH008540: Processing PersistenceUnitInfo [name: default]
+2026-10-27T20:56:35.173+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
+2026-10-27T20:56:35.175+08:00  INFO 31544 --- [supply-pilot-api] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-3 - Starting...
+2026-10-27T20:56:35.194+08:00  INFO 31544 --- [supply-pilot-api] [           main] com.zaxxer.hikari.pool.HikariPool        : HikariPool-3 - Added connection com.mysql.cj.jdbc.ConnectionImpl@4f814423
+2026-10-27T20:56:35.194+08:00  INFO 31544 --- [supply-pilot-api] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-3 - Start completed.
+2026-10-27T20:56:35.197+08:00  INFO 31544 --- [supply-pilot-api] [           main] org.hibernate.orm.connections.pooling    : HHH10001005: Database info:
+	Database JDBC URL [jdbc:mysql://localhost:13265/supplypilot_demo_test]
+	Database driver: MySQL Connector/J
+	Database dialect: MySQLDialect
+	Database version: 8.4.11
+	Default catalog/schema: supplypilot_demo_test/undefined
+	Autocommit mode: undefined/unknown
+	Isolation level: REPEATABLE_READ [default REPEATABLE_READ]
+	JDBC fetch size: none
+	Pool: DataSourceConnectionProvider
+	Minimum pool size: undefined/unknown
+	Maximum pool size: undefined/unknown
+2026-10-27T20:56:35.653+08:00  INFO 31544 --- [supply-pilot-api] [           main] org.hibernate.orm.core                   : HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2026-10-27T20:56:35.674+08:00  INFO 31544 --- [supply-pilot-api] [           main] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
+2026-10-27T20:56:36.151+08:00  INFO 31544 --- [supply-pilot-api] [           main] eAuthenticationProviderManagerConfigurer : Global AuthenticationManager configured with AuthenticationProvider bean with name authenticationProvider
+2026-10-27T20:56:36.152+08:00  WARN 31544 --- [supply-pilot-api] [           main] r$InitializeUserDetailsManagerConfigurer : Global AuthenticationManager configured with an AuthenticationProvider bean. UserDetailsService beans will not be used by Spring Security for automatically configuring username/password login. Consider removing the AuthenticationProvider bean. Alternatively, consider using the UserDetailsService in a manually instantiated DaoAuthenticationProvider. If the current configuration is intentional, to turn off this warning, increase the logging level of 'org.springframework.security.config.annotation.authentication.configuration.InitializeUserDetailsBeanManagerConfigurer' to ERROR
+2026-10-27T20:56:36.549+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.s.b.t.m.w.SpringBootMockServletContext : Initializing Spring TestDispatcherServlet ''
+2026-10-27T20:56:36.550+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.s.t.web.servlet.TestDispatcherServlet  : Initializing Servlet ''
+2026-10-27T20:56:36.559+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.s.b.a.e.web.EndpointLinksResolver      : Exposing 2 endpoints beneath base path '/actuator'
+2026-10-27T20:56:36.567+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.s.t.web.servlet.TestDispatcherServlet  : Completed initialization in 17 ms
+2026-10-27T20:56:36.609+08:00  INFO 31544 --- [supply-pilot-api] [           main] c.s.i.DocumentRagIntegrationTests        : Started DocumentRagIntegrationTests in 30.081 seconds (process running for 146.74)
+2026-10-27T20:56:37.971+08:00  WARN 31544 --- [supply-pilot-api] [           main] c.s.c.exception.GlobalExceptionHandler   : Business request failed: code=VALIDATION_FAILED, path=/api/v1/documents/2/ingestions, traceId=01d5fd30-25c1-49aa-9f1a-58ebcc26b015
+2026-10-27T20:56:38.788+08:00  WARN 31544 --- [supply-pilot-api] [           main] c.s.c.exception.GlobalExceptionHandler   : Business request failed: code=AI_PROVIDER_UNAVAILABLE, path=/api/v1/documents/5/ingestions, traceId=56e6da3d-5cb7-463f-bcf8-589331b1c363
+2026-10-27T20:56:39.373+08:00  WARN 31544 --- [supply-pilot-api] [           main] c.s.c.exception.GlobalExceptionHandler   : Access denied: path=/api/v1/documents/8/ingestions, traceId=ec59ad3c-9356-45d9-8e09-116b1d6a840b
+2026-10-27T20:56:39.403+08:00  WARN 31544 --- [supply-pilot-api] [           main] c.s.c.exception.GlobalExceptionHandler   : Access denied: path=/api/v1/documents/8/ingestions, traceId=71f050d6-4a90-4288-a990-0cd8f16c363e
+2026-10-27T20:56:39.426+08:00  WARN 31544 --- [supply-pilot-api] [           main] c.s.c.exception.GlobalExceptionHandler   : Access denied: path=/api/v1/documents/8/ingestions, traceId=e9bfeacb-af1f-496a-973c-219b1d5d9f23
+2026-10-27T20:56:39.429+08:00  WARN 31544 --- [supply-pilot-api] [           main] c.s.s.CustomAuthenticationEntryPoint     : Unauthenticated request: path=/api/v1/documents/8/ingestions, traceId=643cd647-b0b2-4448-af05-1cc8da992168, reason=Full authentication is required to access this resource
+2026-10-27T20:56:39.614+08:00  WARN 31544 --- [supply-pilot-api] [           main] c.s.c.exception.GlobalExceptionHandler   : Access denied: path=/api/v1/document-queries, traceId=da53e841-6ace-47bb-b32d-88ec0ee025e6
+2026-10-27T20:56:39.645+08:00  WARN 31544 --- [supply-pilot-api] [           main] c.s.c.exception.GlobalExceptionHandler   : Access denied: path=/api/v1/document-queries, traceId=dec6ea5a-b523-490d-befc-fc846daca0e2
+2026-10-27T20:56:39.647+08:00  WARN 31544 --- [supply-pilot-api] [           main] c.s.s.CustomAuthenticationEntryPoint     : Unauthenticated request: path=/api/v1/document-queries, traceId=f604a6c0-73fd-49f6-a50e-2ed7f8edeb5f, reason=Full authentication is required to access this resource
+[INFO] Tests run: 8, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 34.29 s -- in com.supplypilot.integration.DocumentRagIntegrationTests
+[INFO] Running com.supplypilot.integration.SemanticRagIntegrationTests
+2026-10-27T20:56:40.802+08:00  INFO 31544 --- [supply-pilot-api] [           main] .b.t.c.SpringBootTestContextBootstrapper : Found @SpringBootConfiguration com.supplypilot.SupplyPilotApplication for test class com.supplypilot.integration.SemanticRagIntegrationTests
+2026-10-27T20:56:40.803+08:00  INFO 31544 --- [supply-pilot-api] [           main] t.c.s.AnnotationConfigContextLoaderUtils : Could not detect default configuration classes for test class [com.supplypilot.integration.AbstractIntegrationTest]: AbstractIntegrationTest does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
+2026-10-27T20:56:40.812+08:00  INFO 31544 --- [supply-pilot-api] [           main] .b.t.c.SpringBootTestContextBootstrapper : Found @SpringBootConfiguration com.supplypilot.SupplyPilotApplication for test class com.supplypilot.integration.SemanticRagIntegrationTests
+2026-10-27T20:56:40.814+08:00  INFO 31544 --- [supply-pilot-api] [           main] tc.pgvector/pgvector:pg17                : Creating container for image: pgvector/pgvector:pg17
+2026-10-27T20:56:40.944+08:00  INFO 31544 --- [supply-pilot-api] [           main] tc.pgvector/pgvector:pg17                : Container pgvector/pgvector:pg17 is starting: c776cec788e7d95cd3c517a3892ee7e1aed331f57cb9c213924a926eaf674e66
+2026-10-27T20:56:43.073+08:00  INFO 31544 --- [supply-pilot-api] [           main] tc.pgvector/pgvector:pg17                : Container pgvector/pgvector:pg17 started in PT2.2593885S
+2026-10-27T20:56:43.074+08:00  INFO 31544 --- [supply-pilot-api] [           main] tc.pgvector/pgvector:pg17                : Container is started (JDBC URL: jdbc:postgresql://localhost:12989/test?loggerLevel=OFF)
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+
+ :: Spring Boot ::                (v4.1.1)
+
+2026-10-27T20:56:43.121+08:00  INFO 31544 --- [supply-pilot-api] [           main] c.s.i.SemanticRagIntegrationTests        : Starting SemanticRagIntegrationTests using Java 21.0.10 with PID 31544 (started by Liu in C:\Users\z0976\OneDrive\�ୱ\dev-side\supplypilot\backend)
+2026-10-27T20:56:43.121+08:00  INFO 31544 --- [supply-pilot-api] [           main] c.s.i.SemanticRagIntegrationTests        : The following 1 profile is active: "test"
+2026-10-27T20:56:44.194+08:00  INFO 31544 --- [supply-pilot-api] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2026-10-27T20:56:44.385+08:00  INFO 31544 --- [supply-pilot-api] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 187 ms. Found 15 JPA repository interfaces.
+2026-10-27T20:56:44.494+08:00  INFO 31544 --- [supply-pilot-api] [           main] tc.mysql:8.4.11                          : Creating container for image: mysql:8.4.11
+2026-10-27T20:56:44.705+08:00  INFO 31544 --- [supply-pilot-api] [           main] tc.mysql:8.4.11                          : Container mysql:8.4.11 is starting: 5ea0573015ce61ea63c826e2c4a8c81db1a338aa89ceffb9d7f3d4ac4eeba5be
+2026-10-27T20:56:45.218+08:00  INFO 31544 --- [supply-pilot-api] [           main] tc.mysql:8.4.11                          : Waiting for database connection to become available at jdbc:mysql://localhost:10165/supplypilot_demo_test using query 'SELECT 1'
+2026-10-27T20:56:59.996+08:00  INFO 31544 --- [supply-pilot-api] [           main] tc.mysql:8.4.11                          : Container mysql:8.4.11 started in PT15.5022831S
+2026-10-27T20:56:59.997+08:00  INFO 31544 --- [supply-pilot-api] [           main] tc.mysql:8.4.11                          : Container is started (JDBC URL: jdbc:mysql://localhost:10165/supplypilot_demo_test)
+2026-10-27T20:57:00.129+08:00  INFO 31544 --- [supply-pilot-api] [           main] org.flywaydb.core.FlywayExecutor         : Database: jdbc:mysql://localhost:10165/supplypilot_demo_test (MySQL 8.4)
+2026-10-27T20:57:00.204+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.c.i.s.JdbcTableSchemaHistory         : Schema history table `supplypilot_demo_test`.`flyway_schema_history` does not exist yet
+2026-10-27T20:57:00.206+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbValidate     : Successfully validated 34 migrations (execution time 00:00.038s)
+2026-10-27T20:57:00.237+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.c.i.s.JdbcTableSchemaHistory         : Creating Schema History table `supplypilot_demo_test`.`flyway_schema_history` ...
+2026-10-27T20:57:00.340+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Current version of schema `supplypilot_demo_test`: << Empty Schema >>
+2026-10-27T20:57:00.350+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "1 - baseline"
+2026-10-27T20:57:00.393+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "2 - create users"
+2026-10-27T20:57:00.511+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "3 - create materials and inventory"
+2026-10-27T20:57:00.681+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "4 - create suppliers"
+2026-10-27T20:57:00.781+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "5 - create supplier materials"
+2026-10-27T20:57:00.892+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "6 - create demands"
+2026-10-27T20:57:01.004+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "7 - create stock transactions"
+2026-10-27T20:57:01.122+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "8 - create inventory imports"
+2026-10-27T20:57:01.309+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "9 - create purchase orders"
+2026-10-27T20:57:01.575+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "10 - create purchase recommendations"
+2026-10-27T20:57:01.790+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "11 - link purchase order items to recommendations"
+2026-10-27T20:57:01.972+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "12 - add purchase order rejection audit"
+2026-10-27T20:57:02.218+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "13 - link stock transactions to purchase orders"
+2026-10-27T20:57:02.388+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "14 - create document metadata"
+2026-10-27T20:57:02.521+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "15 - create document chunks"
+2026-10-27T20:57:02.625+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "16 - create ai monthly token usage"
+2026-10-27T20:57:02.732+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "17 - create ai purchase draft proposals"
+2026-10-27T20:57:02.849+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "18 - document semantic outbound approval"
+2026-10-27T20:57:03.031+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "19 - document semantic review state"
+2026-10-27T20:57:03.203+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "20 - create demo dataset state"
+2026-10-27T20:57:03.292+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "21 - require production admin password change"
+2026-10-27T20:57:03.505+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "22 - create system initialization"
+2026-10-27T20:57:03.593+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "23 - unify user roles and management capability"
+2026-10-27T20:57:03.764+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "24 - user deletion and purchase order snapshots"
+2026-10-27T20:57:07.182+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "25 - add purchase order cancellation and ordered progress"
+2026-10-27T20:57:07.641+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "26 - add supplier promised delivery date"
+2026-10-27T20:57:07.865+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "27 - add receiving inspection and payment confirmation"
+2026-10-27T20:57:08.184+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "28 - add purchase order stage"
+2026-10-27T20:57:08.733+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "29 - constrain purchase order payment stage consistency"
+2026-10-27T20:57:09.053+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "30 - persistent semantic index jobs"
+2026-10-27T20:57:09.299+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "31 - add purchase order item currency snapshot"
+2026-10-27T20:57:09.604+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "32 - allow demo dataset update required state"
+2026-10-27T20:57:09.755+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "33 - trusted demo corpus provenance"
+2026-10-27T20:57:10.287+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema `supplypilot_demo_test` to version "34 - document chunk version provenance"
+2026-10-27T20:57:10.413+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Successfully applied 34 migrations to schema `supplypilot_demo_test`, now at version v34 (execution time 00:08.855s)
+2026-10-27T20:57:10.499+08:00  INFO 31544 --- [supply-pilot-api] [           main] org.hibernate.orm.jpa                    : HHH008540: Processing PersistenceUnitInfo [name: default]
+2026-10-27T20:57:10.531+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
+2026-10-27T20:57:10.533+08:00  INFO 31544 --- [supply-pilot-api] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-4 - Starting...
+2026-10-27T20:57:10.554+08:00  INFO 31544 --- [supply-pilot-api] [           main] com.zaxxer.hikari.pool.HikariPool        : HikariPool-4 - Added connection com.mysql.cj.jdbc.ConnectionImpl@5e745756
+2026-10-27T20:57:10.554+08:00  INFO 31544 --- [supply-pilot-api] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-4 - Start completed.
+2026-10-27T20:57:10.557+08:00  INFO 31544 --- [supply-pilot-api] [           main] org.hibernate.orm.connections.pooling    : HHH10001005: Database info:
+	Database JDBC URL [jdbc:mysql://localhost:10165/supplypilot_demo_test]
+	Database driver: MySQL Connector/J
+	Database dialect: MySQLDialect
+	Database version: 8.4.11
+	Default catalog/schema: supplypilot_demo_test/undefined
+	Autocommit mode: undefined/unknown
+	Isolation level: REPEATABLE_READ [default REPEATABLE_READ]
+	JDBC fetch size: none
+	Pool: DataSourceConnectionProvider
+	Minimum pool size: undefined/unknown
+	Maximum pool size: undefined/unknown
+2026-10-27T20:57:10.916+08:00  INFO 31544 --- [supply-pilot-api] [           main] org.hibernate.orm.core                   : HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2026-10-27T20:57:10.934+08:00  INFO 31544 --- [supply-pilot-api] [           main] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
+2026-10-27T20:57:11.355+08:00  INFO 31544 --- [supply-pilot-api] [           main] eAuthenticationProviderManagerConfigurer : Global AuthenticationManager configured with AuthenticationProvider bean with name authenticationProvider
+2026-10-27T20:57:11.355+08:00  WARN 31544 --- [supply-pilot-api] [           main] r$InitializeUserDetailsManagerConfigurer : Global AuthenticationManager configured with an AuthenticationProvider bean. UserDetailsService beans will not be used by Spring Security for automatically configuring username/password login. Consider removing the AuthenticationProvider bean. Alternatively, consider using the UserDetailsService in a manually instantiated DaoAuthenticationProvider. If the current configuration is intentional, to turn off this warning, increase the logging level of 'org.springframework.security.config.annotation.authentication.configuration.InitializeUserDetailsBeanManagerConfigurer' to ERROR
+2026-10-27T20:57:11.756+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.s.b.t.m.w.SpringBootMockServletContext : Initializing Spring TestDispatcherServlet ''
+2026-10-27T20:57:11.756+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.s.t.web.servlet.TestDispatcherServlet  : Initializing Servlet ''
+2026-10-27T20:57:11.763+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.s.b.a.e.web.EndpointLinksResolver      : Exposing 2 endpoints beneath base path '/actuator'
+2026-10-27T20:57:11.773+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.s.t.web.servlet.TestDispatcherServlet  : Completed initialization in 17 ms
+2026-10-27T20:57:11.812+08:00  INFO 31544 --- [supply-pilot-api] [           main] c.s.i.SemanticRagIntegrationTests        : Started SemanticRagIntegrationTests in 28.733 seconds (process running for 181.943)
+2026-10-27T20:57:11.876+08:00  INFO 31544 --- [supply-pilot-api] [           main] org.flywaydb.core.FlywayExecutor         : Database: jdbc:postgresql://localhost:12989/test?loggerLevel=OFF (PostgreSQL 17.11)
+2026-10-27T20:57:11.925+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.c.i.s.JdbcTableSchemaHistory         : Schema history table "public"."semantic_flyway_history" does not exist yet
+2026-10-27T20:57:11.927+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbValidate     : Successfully validated 2 migrations (execution time 00:00.013s)
+2026-10-27T20:57:11.948+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.c.i.s.JdbcTableSchemaHistory         : Creating Schema History table "public"."semantic_flyway_history" ...
+2026-10-27T20:57:12.002+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Current version of schema "public": << Empty Schema >>
+2026-10-27T20:57:12.011+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "1 - semantic index"
+2026-10-27T20:57:12.084+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "2 - semantic publication generation"
+2026-10-27T20:57:12.103+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Successfully applied 2 migrations to schema "public", now at version v2 (execution time 00:00.060s)
+2026-10-27T20:57:14.431+08:00  WARN 31544 --- [supply-pilot-api] [           main] c.s.d.semantic.SemanticIndexWorker       : Semantic index job failed: jobId=2, documentId=6, attempt=1, code=PROVIDER_RATE_LIMITED
+2026-10-27T20:57:21.382+08:00  INFO 31544 --- [supply-pilot-api] [           main] org.flywaydb.core.FlywayExecutor         : Database: jdbc:postgresql://localhost:12989/test?loggerLevel=OFF (PostgreSQL 17.11)
+2026-10-27T20:57:21.432+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbValidate     : Successfully validated 2 migrations (execution time 00:00.017s)
+2026-10-27T20:57:21.482+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Current version of schema "public": 2
+2026-10-27T20:57:21.484+08:00  INFO 31544 --- [supply-pilot-api] [           main] o.f.core.internal.command.DbMigrate      : Schema "public" is up to date. No migration necessary.
+2026-10-27T20:57:23.618+08:00  WARN 31544 --- [supply-pilot-api] [           main] c.s.c.exception.GlobalExceptionHandler   : Access denied: path=/api/v1/semantic-index/documents/15/approve-outbound, traceId=db8bddf2-2d30-4764-9846-40dd71d3fd4d
+2026-10-27T20:57:23.658+08:00  WARN 31544 --- [supply-pilot-api] [           main] c.s.c.exception.GlobalExceptionHandler   : Access denied: path=/api/v1/semantic-index/documents/16/exclude-outbound, traceId=52a12491-1da4-4150-9d1a-1df7b64d6fba
+2026-10-27T20:57:24.152+08:00  WARN 31544 --- [supply-pilot-api] [           main] c.s.c.exception.GlobalExceptionHandler   : Access denied: path=/api/v1/semantic-index/backfill, traceId=4973ba6a-cc6c-4b40-ba36-8d223a3bf095
+2026-10-27T20:57:27.051+08:00  WARN 31544 --- [supply-pilot-api] [           main] c.s.c.exception.GlobalExceptionHandler   : Access denied: path=/api/v1/document-queries, traceId=d988866a-5452-437e-b2ba-4bd06f8c3075
+2026-10-27T20:57:28.210+08:00  WARN 31544 --- [supply-pilot-api] [           main] c.s.d.semantic.SemanticIndexWorker       : Semantic index job failed: jobId=15, documentId=19, attempt=1, code=PROVIDER_RATE_LIMITED
+2026-10-27T20:57:28.323+08:00  WARN 31544 --- [supply-pilot-api] [           main] c.s.d.semantic.SemanticIndexWorker       : Semantic index job failed: jobId=15, documentId=19, attempt=2, code=PROVIDER_RATE_LIMITED
+2026-10-27T20:57:28.427+08:00  WARN 31544 --- [supply-pilot-api] [           main] c.s.d.semantic.SemanticIndexWorker       : Semantic index job failed: jobId=15, documentId=19, attempt=3, code=PROVIDER_RATE_LIMITED
+2026-10-27T20:57:28.547+08:00  WARN 31544 --- [supply-pilot-api] [           main] c.s.d.semantic.SemanticIndexWorker       : Semantic index job failed: jobId=15, documentId=19, attempt=4, code=PROVIDER_RATE_LIMITED
+2026-10-27T20:57:28.588+08:00  WARN 31544 --- [supply-pilot-api] [           main] c.s.c.exception.GlobalExceptionHandler   : Access denied: path=/api/v1/semantic-index/jobs, traceId=da061db8-378b-4336-b8d7-ea0134fe8643
+2026-10-27T20:57:28.602+08:00  WARN 31544 --- [supply-pilot-api] [           main] c.s.c.exception.GlobalExceptionHandler   : Access denied: path=/api/v1/semantic-index/jobs/15/retry, traceId=6b491062-583d-4992-bfd2-dea04bd1016a
+2026-10-27T20:57:30.308+08:00  WARN 31544 --- [supply-pilot-api] [           main] c.s.c.exception.GlobalExceptionHandler   : Business request failed: code=AI_PROVIDER_UNAVAILABLE, path=/api/v1/document-queries, traceId=a6771609-e290-4a75-b2ad-cb5c5f84f2a8
+2026-10-27T20:57:38.871+08:00  WARN 31544 --- [supply-pilot-api] [           main] c.s.c.exception.GlobalExceptionHandler   : Business request failed: code=VALIDATION_FAILED, path=/api/v1/document-queries, traceId=280caa8b-148b-4662-85b2-f94c3703603d
+2026-10-27T20:57:38.883+08:00  WARN 31544 --- [supply-pilot-api] [           main] c.s.c.exception.GlobalExceptionHandler   : Business request failed: code=VALIDATION_FAILED, path=/api/v1/document-queries, traceId=48c4fa4d-d5ec-4081-b2f5-1cbfe8a21b0f
+2026-10-27T20:57:38.893+08:00  WARN 31544 --- [supply-pilot-api] [           main] c.s.c.exception.GlobalExceptionHandler   : Business request failed: code=VALIDATION_FAILED, path=/api/v1/document-queries, traceId=7b16dc22-d3a9-4d6c-aee9-f856d8245aaf
+[INFO] Tests run: 22, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 63.09 s -- in com.supplypilot.integration.SemanticRagIntegrationTests
+[INFO] 
+[INFO] Results:
+[INFO] 
+[ERROR] Failures: 
+[ERROR]   AgenticSqlExecutorIntegrationTests.returnsLineageForRealFieldsOperationsAggregatesAndCtesButNotSqlConstants:162 
+Expecting Set12:
+  ["future_items.long_text"]
+to contain:
+  ["agentic_data.future_items.long_text"]
+but could not find the following element(s):
+  ["agentic_data.future_items.long_text"]
+
+[INFO] 
+[ERROR] Tests run: 48, Failures: 1, Errors: 0, Skipped: 0
+[INFO] 
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD FAILURE
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  03:43 min
+[INFO] Finished at: 2026-10-27T20:57:47+08:00
+[INFO] ------------------------------------------------------------------------
+[ERROR] Failed to execute goal org.apache.maven.plugins:maven-surefire-plugin:3.5.6:test (default-test) on project supply-pilot-api: There are test failures.
+[ERROR] 
+[ERROR] See C:\Users\z0976\OneDrive\�ୱ\dev-side\supplypilot\backend\target\surefire-reports for the individual test results.
+[ERROR] See dump files (if any exist) [date].dump, [date]-jvmRun[N].dump and [date].dumpstream.
+[ERROR] -> [Help 1]
+[ERROR] 
+[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.
+[ERROR] Re-run Maven using the -X switch to enable full debug logging.
+[ERROR] 
+[ERROR] For more information about the errors and possible solutions, please read the following articles:
+[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoFailureException
+TEST_EXIT_CODE=1
