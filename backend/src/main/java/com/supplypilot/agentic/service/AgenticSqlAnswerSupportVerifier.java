@@ -141,6 +141,7 @@ public final class AgenticSqlAnswerSupportVerifier {
         boolean textHasValue = value != null && containsValue(claimText, value.value());
         if (kind == null || attribute == null || value == null || !cited.contains(value)
                 || !attrMatches || !textHasValue) return false;
+        if ("DERIVED".equals(kind) && !explicitlyQualifiedCalculation(claimText)) return false;
 
         JsonNode subjectReference = fact.get("subject");
         if (!"AGGREGATE".equals(kind) && (subjectReference == null || subjectReference.isNull())) return false;
@@ -157,12 +158,22 @@ public final class AgenticSqlAnswerSupportVerifier {
         if ("INFERENCE".equals(kind)) {
             return explicitlyQualifiedInference(claimText);
         }
-        return "FIELD_VALUE".equals(kind) || "AGGREGATE".equals(kind);
+        return "FIELD_VALUE".equals(kind) || "AGGREGATE".equals(kind) || "DERIVED".equals(kind);
     }
 
     private boolean attributeMatches(String attribute, String kind, Set<String> sources) {
         String expected = columnLeaf(attribute);
         if (expected.isBlank()) return false;
+        String derivedNumeric = markerExpression(sources, "@derived-numeric:");
+        if (sources.stream().anyMatch(source -> source.startsWith("@transformed:")
+                || source.startsWith("@derived-aggregate:"))) return false;
+        if (derivedNumeric != null) {
+            return "DERIVED".equals(kind)
+                    && normalizeExpression(attribute).equals(normalizeExpression(derivedNumeric));
+        }
+        if ("DERIVED".equals(kind)) return false;
+        boolean aggregate = sources.stream().anyMatch(source -> source.startsWith("@aggregate:"));
+        if (aggregate != "AGGREGATE".equals(kind)) return false;
         for (String source : sources) {
             if ("AGGREGATE".equals(kind) && source.startsWith("@aggregate:")) {
                 String[] parts = source.split(":", 3);
@@ -180,6 +191,16 @@ public final class AgenticSqlAnswerSupportVerifier {
             if (leaf.equals(expected) || leaf.endsWith("_" + expected)) return true;
         }
         return false;
+    }
+
+    private String markerExpression(Set<String> sources, String prefix) {
+        return sources.stream().filter(source -> source.startsWith(prefix))
+                .map(source -> source.substring(prefix.length())).findFirst().orElse(null);
+    }
+
+    private String normalizeExpression(String value) {
+        return value == null ? "" : value.replace("`", "").replace("\"", "")
+                .replaceAll("\\s+", "").toLowerCase(Locale.ROOT);
     }
 
     private static String columnLeaf(String value) {
@@ -241,7 +262,9 @@ public final class AgenticSqlAnswerSupportVerifier {
         if (toolCallId == null || column == null || rowIndex == null || !rowIndex.canConvertToInt()) return null;
         AgenticSqlEvidenceCell cell = cells.get(new CellKey(toolCallId, rowIndex.asInt(), normalizeColumn(column)));
         if (cell == null || cell.value() == null || !cell.sourceBacked() || cell.sourceColumns().isEmpty()
-                || MASKED_VALUES.contains(cell.value())) return null;
+                || MASKED_VALUES.contains(cell.value())
+                || cell.sourceColumns().stream().anyMatch(source -> source.startsWith("@transformed:")
+                        || source.startsWith("@derived-aggregate:"))) return null;
         return cell;
     }
 
@@ -279,6 +302,7 @@ public final class AgenticSqlAnswerSupportVerifier {
             List<String> assertedPhrases = family.getValue().stream()
                     .filter(phrase -> containsPhrase(claim, phrase)).toList();
             if (assertedPhrases.isEmpty()) continue;
+            if ("DERIVED".equals(kind)) return false;
             boolean direct = cited.stream().anyMatch(cell -> assertedPhrases.stream()
                     .anyMatch(phrase -> containsPhrase(cell.value(), phrase)));
             if (direct) continue;
@@ -334,6 +358,12 @@ public final class AgenticSqlAnswerSupportVerifier {
         return List.of("推測", "推論", "可能", "或許", "初步判斷", "據此推測", "inference", "infer",
                         "may", "might", "could", "possibly")
                 .stream().anyMatch(phrase -> containsPhrase(claim, phrase));
+    }
+
+    private boolean explicitlyQualifiedCalculation(String claim) {
+        String lower = claim == null ? "" : claim.toLowerCase(Locale.ROOT);
+        return List.of("計算", "運算", "computed", "calculated", "calculation", "derived value")
+                .stream().anyMatch(lower::contains);
     }
 
     private boolean containsPhrase(String text, String phrase) {

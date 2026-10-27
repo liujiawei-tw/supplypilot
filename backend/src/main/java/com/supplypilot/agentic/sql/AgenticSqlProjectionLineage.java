@@ -8,8 +8,14 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
+import net.sf.jsqlparser.expression.BinaryExpression;
+import net.sf.jsqlparser.expression.DoubleValue;
 import net.sf.jsqlparser.expression.Function;
 import net.sf.jsqlparser.expression.ExpressionVisitorAdapter;
+import net.sf.jsqlparser.expression.LongValue;
+import net.sf.jsqlparser.expression.Parenthesis;
+import net.sf.jsqlparser.expression.SignedExpression;
+import net.sf.jsqlparser.expression.operators.relational.ExistsExpression;
 import net.sf.jsqlparser.schema.Column;
 import net.sf.jsqlparser.schema.Table;
 import net.sf.jsqlparser.statement.select.AllColumns;
@@ -29,15 +35,18 @@ final class AgenticSqlProjectionLineage {
     private AgenticSqlProjectionLineage() { }
 
     static Result analyze(Select select) {
-        QueryProjection query = new Analyzer().analyzeQuery(select, Map.of());
+        Analyzer analyzer = new Analyzer();
+        QueryProjection query = analyzer.analyzeQuery(select, Map.of());
         LinkedHashMap<Integer, Set<String>> sources = new LinkedHashMap<>();
         for (int index = 0; index < query.projections().size(); index++) {
             sources.put(index + 1, query.projections().get(index).sources());
         }
-        return new Result(sources, query.ambiguous());
+        return new Result(sources, query.ambiguous(), analyzer.unsafeDocumentContentUse,
+                analyzer.containsNestedSelectExpression);
     }
 
-    record Result(Map<Integer, Set<String>> projectionSources, boolean ambiguous) {
+    record Result(Map<Integer, Set<String>> projectionSources, boolean ambiguous,
+                  boolean unsafeDocumentContentUse, boolean containsNestedSelectExpression) {
         Result {
             projectionSources = projectionSources.entrySet().stream().collect(
                     java.util.stream.Collectors.toUnmodifiableMap(Map.Entry::getKey,
@@ -46,6 +55,12 @@ final class AgenticSqlProjectionLineage {
     }
 
     private static final class Analyzer {
+        private static final Set<String> AGGREGATES = Set.of("COUNT", "SUM", "AVG", "MIN", "MAX");
+        private static final Set<String> NUMERIC_FUNCTIONS = Set.of(
+                "ABS", "CEIL", "CEILING", "FLOOR", "MOD", "POWER", "ROUND", "TRUNC");
+        private boolean unsafeDocumentContentUse;
+        private boolean containsNestedSelectExpression;
+
         private QueryProjection analyzeQuery(Select select, Map<String, Relation> inheritedCtes) {
             Map<String, Relation> ctes = new LinkedHashMap<>(inheritedCtes);
             if (select.getWithItemsList() != null) {
@@ -85,10 +100,50 @@ final class AgenticSqlProjectionLineage {
                     wildcard = true;
                     projections.add(new Projection("*" + (index + 1), Set.of()));
                 } else {
-                    projections.add(new Projection(label(item), expressionSources(item.getExpression(), scope, rowSources)));
+                    Set<String> sources = expressionSources(item.getExpression(), scope, rowSources);
+                    if (hasDocumentContent(sources) && hasTransformation(sources)) unsafeDocumentContentUse = true;
+                    projections.add(new Projection(label(item), sources));
                 }
             }
+            inspectNonProjectionDocumentContent(plain, scope, rowSources);
             return new QueryProjection(projections, rowSources, wildcard);
+        }
+
+        private void inspectNonProjectionDocumentContent(PlainSelect plain, List<Relation> scope,
+                                                         Set<String> rowSources) {
+            List<net.sf.jsqlparser.expression.Expression> expressions = new ArrayList<>();
+            if (plain.getPreWhere() != null) expressions.add(plain.getPreWhere());
+            if (plain.getWhere() != null) expressions.add(plain.getWhere());
+            if (plain.getHaving() != null) expressions.add(plain.getHaving());
+            if (plain.getGroupBy() != null && plain.getGroupBy().getGroupByExpressions() != null) {
+                expressions.addAll(plain.getGroupBy().getGroupByExpressions());
+            }
+            if (plain.getOrderByElements() != null) {
+                plain.getOrderByElements().stream().map(element -> element.getExpression())
+                        .filter(java.util.Objects::nonNull).forEach(expressions::add);
+            }
+            if (plain.getJoins() != null) {
+                for (Join join : plain.getJoins()) {
+                    if (join.getOnExpressions() != null) expressions.addAll(join.getOnExpressions());
+                }
+            }
+            for (net.sf.jsqlparser.expression.Expression expression : expressions) {
+                if (hasDocumentContent(expressionSources(expression, scope, rowSources))) {
+                    unsafeDocumentContentUse = true;
+                    return;
+                }
+            }
+        }
+
+        private boolean hasDocumentContent(Set<String> sources) {
+            return sources.stream().map(AgenticSqlProjectionLineage::normalize)
+                    .anyMatch(source -> source.endsWith("document_chunks.content")
+                            || source.endsWith("semantic_chunks.content"));
+        }
+
+        private boolean hasTransformation(Set<String> sources) {
+            return sources.stream().anyMatch(source -> source.startsWith("@transformed:")
+                    || source.startsWith("@derived-numeric:") || source.startsWith("@derived-aggregate:"));
         }
 
         private QueryProjection combineBranches(List<QueryProjection> branches) {
@@ -161,28 +216,84 @@ final class AgenticSqlProjectionLineage {
                                              List<Relation> scope, Set<String> rowSources) {
             ExpressionLineageVisitor visitor = new ExpressionLineageVisitor();
             expression.accept(visitor, null);
-            if (visitor.nestedSelect()) return Set.of();
+            if (visitor.nestedSelect()) {
+                containsNestedSelectExpression = true;
+                return Set.of();
+            }
             LinkedHashSet<String> sources = new LinkedHashSet<>();
             for (Column column : visitor.columns()) {
                 Set<String> columnSources = resolve(column, scope);
                 if (columnSources.isEmpty()) return Set.of();
                 sources.addAll(columnSources);
             }
-            if (!sources.isEmpty()) {
-                for (Function function : visitor.functions()) {
-                    String name = function.getName() == null ? "" : function.getName().toUpperCase(Locale.ROOT);
-                    if (Set.of("COUNT", "SUM", "AVG", "MIN", "MAX").contains(name)) {
-                        sources.add("@aggregate:" + name + ":" + String.join(",", sources));
-                    }
+            List<Function> aggregates = visitor.functions().stream().filter(Analyzer::isAggregate).toList();
+            if (expression instanceof Function function && isAggregate(function)) {
+                if (sources.isEmpty() && "COUNT".equalsIgnoreCase(function.getName()) && !rowSources.isEmpty()) {
+                    sources.addAll(rowSources);
                 }
+                if (sources.isEmpty()) return Set.of();
+                sources.add("@aggregate:" + function.getName().toUpperCase(Locale.ROOT) + ":"
+                        + String.join(",", sources));
                 return Set.copyOf(sources);
             }
-            boolean rowCount = visitor.functions().stream().anyMatch(function ->
-                    "COUNT".equalsIgnoreCase(function.getName()));
-            if (rowCount && !rowSources.isEmpty()) {
-                return Set.of("@aggregate:COUNT:" + String.join(",", rowSources));
+            if (sources.isEmpty() && !aggregates.isEmpty()
+                    && aggregates.stream().anyMatch(function -> "COUNT".equalsIgnoreCase(function.getName()))) {
+                sources.addAll(rowSources);
             }
-            return Set.of();
+            if (sources.isEmpty()) return Set.of();
+            if (!aggregates.isEmpty()) {
+                if (isNumericFunction(expression)) sources.add("@derived-numeric:" + expression);
+                else sources.add("@derived-aggregate:" + expression);
+            } else if (expression instanceof Column) {
+                return Set.copyOf(sources);
+            } else if (isNumericArithmetic(expression) || isNumericFunction(expression)) {
+                sources.add("@derived-numeric:" + expression);
+            } else {
+                sources.add("@transformed:" + expression);
+            }
+            return Set.copyOf(sources);
+        }
+
+        private static boolean isAggregate(Function function) {
+            return function.getName() != null && AGGREGATES.contains(function.getName().toUpperCase(Locale.ROOT));
+        }
+
+        private boolean isNumericArithmetic(net.sf.jsqlparser.expression.Expression expression) {
+            if (expression instanceof Column || expression instanceof LongValue || expression instanceof DoubleValue) {
+                return true;
+            }
+            if (expression instanceof Parenthesis parenthesis) {
+                return isNumericArithmetic(parenthesis.getExpression());
+            }
+            if (expression instanceof SignedExpression signed) {
+                return isNumericArithmetic(signed.getExpression());
+            }
+            if (expression instanceof BinaryExpression binary) {
+                String operator = binary.getStringExpression();
+                return Set.of("+", "-", "*", "/", "%").contains(operator)
+                        && isNumericArithmetic(binary.getLeftExpression())
+                        && isNumericArithmetic(binary.getRightExpression());
+            }
+            if (expression instanceof Function function && isAggregate(function)) {
+                if ("COUNT".equalsIgnoreCase(function.getName())) return true;
+                return function.getParameters() != null && !function.getParameters().isEmpty()
+                        && function.getParameters().getExpressions().stream().allMatch(this::isNumericArithmetic);
+            }
+            if (expression instanceof Function function && isNumericFunctionName(function.getName())) {
+                return function.getParameters() != null && !function.getParameters().isEmpty()
+                        && function.getParameters().getExpressions().stream().allMatch(this::isNumericArithmetic);
+            }
+            return false;
+        }
+
+        private boolean isNumericFunction(net.sf.jsqlparser.expression.Expression expression) {
+            return expression instanceof Function function && isNumericFunctionName(function.getName())
+                    && function.getParameters() != null && !function.getParameters().isEmpty()
+                    && function.getParameters().getExpressions().stream().allMatch(this::isNumericArithmetic);
+        }
+
+        private static boolean isNumericFunctionName(String name) {
+            return name != null && NUMERIC_FUNCTIONS.contains(name.toUpperCase(Locale.ROOT));
         }
 
         private Set<String> resolve(Column column, List<Relation> scope) {
@@ -223,6 +334,12 @@ final class AgenticSqlProjectionLineage {
 
         @Override
         public <S> Void visit(ParenthesedSelect select, S context) {
+            nestedSelect = true;
+            return null;
+        }
+
+        @Override
+        public <S> Void visit(ExistsExpression exists, S context) {
             nestedSelect = true;
             return null;
         }

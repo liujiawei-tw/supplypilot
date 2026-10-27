@@ -12,6 +12,7 @@ import net.sf.jsqlparser.expression.Function;
 import net.sf.jsqlparser.expression.JdbcNamedParameter;
 import net.sf.jsqlparser.expression.JdbcParameter;
 import net.sf.jsqlparser.expression.NextValExpression;
+import net.sf.jsqlparser.expression.operators.relational.ExistsExpression;
 import net.sf.jsqlparser.expression.UserVariable;
 import net.sf.jsqlparser.expression.VariableAssignment;
 import net.sf.jsqlparser.expression.ExpressionVisitorAdapter;
@@ -117,7 +118,15 @@ public final class AgenticSqlStatementValidator {
             documentSourceTable = "semantic_chunks";
         }
         boolean documentContentReference = documentSourceTable != null
-                && (referencesColumnInSelect(select, "content") || containsWildcardProjection(select));
+                && (referencesColumnInSelect(select, "content") || containsWildcardProjection(select)
+                // Some JSQLParser expression visitors do not descend into every predicate subquery.
+                // The rendered, parsed tree is a conservative fallback so aliases or nested SQL
+                // cannot hide a reference to the document body from the outbound policy.
+                || containsIdentifier(select.toString(), "content"));
+        if (documentContentReference && (projectionLineage.unsafeDocumentContentUse()
+                || projectionLineage.containsNestedSelectExpression())) {
+            throw new AgenticSqlException(AgenticSqlException.Code.DOCUMENT_EGRESS_REJECTED);
+        }
         String documentIdColumnLabel = null;
         String documentVersionColumnLabel = null;
         if (documentContentReference) {
@@ -138,7 +147,30 @@ public final class AgenticSqlStatementValidator {
         return tables.stream().anyMatch(table -> normalizeName(table.name()).equals(name));
     }
 
+    private boolean containsIdentifier(String sql, String identifier) {
+        return java.util.regex.Pattern.compile("(?i)(?<![\\p{L}\\p{N}_])"
+                        + java.util.regex.Pattern.quote(identifier) + "(?![\\p{L}\\p{N}_])")
+                .matcher(sql).find();
+    }
+
     private boolean referencesColumnInSelect(Select select, String name) {
+        if (select instanceof PlainSelect plainSelect) {
+            if (plainSelect.getSelectItems().stream()
+                    .anyMatch(item -> referencesColumnInExpression(item.getExpression(), name))) return true;
+            if (referencesColumnInExpression(plainSelect.getPreWhere(), name)
+                    || referencesColumnInExpression(plainSelect.getWhere(), name)
+                    || referencesColumnInExpression(plainSelect.getHaving(), name)) return true;
+            if (plainSelect.getGroupBy() != null && plainSelect.getGroupBy().getGroupByExpressions() != null
+                    && plainSelect.getGroupBy().getGroupByExpressions().stream()
+                    .anyMatch(expression -> referencesColumnInExpression(expression, name))) return true;
+            if (plainSelect.getOrderByElements() != null && plainSelect.getOrderByElements().stream()
+                    .map(element -> element.getExpression()).filter(java.util.Objects::nonNull)
+                    .anyMatch(expression -> referencesColumnInExpression(expression, name))) return true;
+            if (plainSelect.getJoins() != null && plainSelect.getJoins().stream()
+                    .filter(join -> join.getOnExpressions() != null)
+                    .flatMap(join -> join.getOnExpressions().stream())
+                    .anyMatch(expression -> referencesColumnInExpression(expression, name))) return true;
+        }
         ColumnReferenceVisitor selectVisitor = new ColumnReferenceVisitor(name);
         select.accept(new SelectVisitorAdapter<>(selectVisitor), null);
         if (selectVisitor.found) return true;
@@ -159,6 +191,13 @@ public final class AgenticSqlStatementValidator {
             return referencesColumnInSelect(parenthesedSelect.getSelect(), name);
         }
         return false;
+    }
+
+    private boolean referencesColumnInExpression(net.sf.jsqlparser.expression.Expression expression, String name) {
+        if (expression == null) return false;
+        ColumnReferenceVisitor visitor = new ColumnReferenceVisitor(name);
+        expression.accept(visitor, null);
+        return visitor.found;
     }
 
     private boolean referencesColumnInSelect(FromItem fromItem, String name) {
@@ -511,6 +550,18 @@ public final class AgenticSqlStatementValidator {
         }
 
         @Override
+        public <S> Void visit(ExistsExpression exists, S context) {
+            if (exists.getRightExpression() != null) exists.getRightExpression().accept(this, context);
+            return null;
+        }
+
+        @Override
+        public <S> Void visit(ParenthesedSelect select, S context) {
+            select.getSelect().accept(new SelectVisitorAdapter<>(this), context);
+            return null;
+        }
+
+        @Override
         public <S> Void visit(JdbcParameter parameter, S context) {
             throw new AgenticSqlException(AgenticSqlException.Code.UNSAFE_SQL);
         }
@@ -560,6 +611,18 @@ public final class AgenticSqlStatementValidator {
             if (metadataPolicy.isSensitiveColumn(column.getColumnName())) columns.add(column.getColumnName());
             return super.visit(column, context);
         }
+
+        @Override
+        public <S> Void visit(ExistsExpression exists, S context) {
+            if (exists.getRightExpression() != null) exists.getRightExpression().accept(this, context);
+            return null;
+        }
+
+        @Override
+        public <S> Void visit(ParenthesedSelect select, S context) {
+            select.getSelect().accept(new SelectVisitorAdapter<>(this), context);
+            return null;
+        }
     }
 
     private static final class ColumnReferenceVisitor extends ExpressionVisitorAdapter<Void> {
@@ -574,6 +637,18 @@ public final class AgenticSqlStatementValidator {
         public <S> Void visit(Column column, S context) {
             if (normalizeName(column.getColumnName()).equals(expectedName)) found = true;
             return super.visit(column, context);
+        }
+
+        @Override
+        public <S> Void visit(ExistsExpression exists, S context) {
+            if (exists.getRightExpression() != null) exists.getRightExpression().accept(this, context);
+            return null;
+        }
+
+        @Override
+        public <S> Void visit(ParenthesedSelect select, S context) {
+            select.getSelect().accept(new SelectVisitorAdapter<>(this), context);
+            return null;
         }
     }
 

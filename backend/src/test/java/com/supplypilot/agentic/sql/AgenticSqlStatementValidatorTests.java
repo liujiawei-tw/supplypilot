@@ -76,6 +76,34 @@ class AgenticSqlStatementValidatorTests {
     }
 
     @Test
+    void distinguishesDirectFieldsAggregatesAndSqlDerivedProjectionEvidence() {
+        var direct = validator.validate(AgenticSqlDatabase.MYSQL,
+                "SELECT supplier_name FROM suppliers", 10);
+        var directAggregate = validator.validate(AgenticSqlDatabase.MYSQL,
+                "SELECT COUNT(*) AS supplier_count FROM suppliers", 10);
+        var adjustedAggregate = validator.validate(AgenticSqlDatabase.MYSQL,
+                "SELECT COUNT(*) + 999 AS supplier_count FROM suppliers", 10);
+        var numericCalculation = validator.validate(AgenticSqlDatabase.MYSQL,
+                "SELECT unit_price * quantity AS line_total FROM supplier_quotes", 10);
+        var injectedText = validator.validate(AgenticSqlDatabase.MYSQL,
+                "SELECT CONCAT(supplier_name, ' 已破產') AS supplier_status FROM suppliers", 10);
+
+        assertThat(direct.projectionSources().get(1)).contains("suppliers.supplier_name")
+                .noneMatch(source -> source.startsWith("@"));
+        assertThat(directAggregate.projectionSources().get(1))
+                .anyMatch(source -> source.startsWith("@aggregate:COUNT"));
+        assertThat(adjustedAggregate.projectionSources().get(1))
+                .anyMatch(source -> source.startsWith("@derived-aggregate:"))
+                .noneMatch(source -> source.startsWith("@aggregate:"));
+        assertThat(numericCalculation.projectionSources().get(1))
+                .contains("supplier_quotes.unit_price", "supplier_quotes.quantity")
+                .anyMatch(source -> source.startsWith("@derived-numeric:"));
+        assertThat(injectedText.projectionSources().get(1))
+                .contains("suppliers.supplier_name")
+                .anyMatch(source -> source.startsWith("@transformed:"));
+    }
+
+    @Test
     void preservesSmallerCallerLimitAndOffset() {
         var parsed = validator.validate(AgenticSqlDatabase.POSTGRESQL,
                 "SELECT id FROM suppliers LIMIT 2 OFFSET 5", 10);

@@ -13,6 +13,8 @@ import java.util.Set;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.supplypilot.agentic.config.AgenticSqlProperties;
+import com.supplypilot.agentic.service.AgenticSqlAnswerSupportVerifier;
+import com.supplypilot.agentic.service.AgenticSqlEvidenceCell;
 import com.supplypilot.agentic.security.AgenticSqlOutputPolicy;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -149,6 +151,8 @@ class AgenticSqlExecutorIntegrationTests {
                 "SELECT amount AS unit_price FROM agentic_items WHERE id = 1");
         var derivedValue = executor.execute("derived-value", AgenticSqlDatabase.MYSQL,
                 "SELECT amount + 10 AS adjusted_amount FROM agentic_items WHERE id = 1");
+        var roundedValue = executor.execute("rounded-value", AgenticSqlDatabase.MYSQL,
+                "SELECT ROUND(amount * 1.2, 2) AS adjusted_amount FROM agentic_items WHERE id = 1");
         var aggregates = executor.execute("aggregate-values", AgenticSqlDatabase.MYSQL,
                 "SELECT COUNT(*) AS row_count, SUM(amount) AS total_amount, AVG(amount) AS average_amount, "
                         + "MIN(amount) AS min_amount, MAX(amount) AS max_amount FROM agentic_items");
@@ -164,7 +168,10 @@ class AgenticSqlExecutorIntegrationTests {
         assertThat(fabricatedSupplier.projectionSources()).containsEntry("supplier_name", Set.of())
                 .containsEntry("unit_price", Set.of());
         assertThat(realField.projectionSources().get("unit_price")).contains("agentic_items.amount");
-        assertThat(derivedValue.projectionSources().get("adjusted_amount")).contains("agentic_items.amount");
+        assertThat(derivedValue.projectionSources().get("adjusted_amount"))
+                .contains("agentic_items.amount").anyMatch(source -> source.startsWith("@derived-numeric:"));
+        assertThat(roundedValue.projectionSources().get("adjusted_amount"))
+                .contains("agentic_items.amount").anyMatch(source -> source.startsWith("@derived-numeric:"));
         assertThat(aggregates.projectionSources().get("row_count"))
                 .anyMatch(source -> source.startsWith("@aggregate:COUNT"));
         assertThat(aggregates.projectionSources().get("average_amount"))
@@ -177,6 +184,50 @@ class AgenticSqlExecutorIntegrationTests {
                 .contains("agentic_items.amount").anyMatch(source -> source.startsWith("@aggregate:MAX"));
         assertThat(cte.projectionSources().get("text_length")).contains("agentic_data.future_items.long_text");
         assertThat(constantCte.projectionSources()).containsEntry("unit_price", Set.of());
+    }
+
+    @Test
+    void sqlAdjustedAggregateCannotBeUsedAsTheActualSupplierCount() {
+        AgenticSqlExecutor executor = executor(10, 10, 2000);
+        var result = executor.execute("adjusted-count", AgenticSqlDatabase.MYSQL,
+                "SELECT COUNT(*) + 999 AS supplier_count FROM agentic_items");
+        var count = evidenceCell(result, "supplier_count", 0);
+        String answer = """
+                {"claims":[{"text":"資料庫中共有 1001 家供應商。",
+                "fact":{"kind":"AGGREGATE","attribute":"COUNT(*)",
+                "value":{"toolCallId":"adjusted-count","rowIndex":0,"column":"supplier_count"}},
+                "evidence":[{"toolCallId":"adjusted-count","rowIndex":0,"column":"supplier_count"}]}]}
+                """;
+
+        var support = new AgenticSqlAnswerSupportVerifier(new ObjectMapper()).verify(answer, List.of(count));
+
+        assertThat(result.rows().getFirst()).containsEntry("supplier_count", "1001");
+        assertThat(support.answer()).isEmpty();
+        assertThat(support.fullySupported()).isFalse();
+    }
+
+    @Test
+    void sqlConcatenatedSupplierStatusCannotBeUsedAsBusinessEvidence() {
+        AgenticSqlExecutor executor = executor(10, 10, 2000);
+        var result = executor.execute("concatenated-status", AgenticSqlDatabase.MYSQL,
+                "SELECT name AS supplier_name, CONCAT(name, ' 已破產') AS supplier_status "
+                        + "FROM agentic_items WHERE id = 1");
+        var supplier = evidenceCell(result, "supplier_name", 0);
+        var status = evidenceCell(result, "supplier_status", 0);
+        String answer = """
+                {"claims":[{"text":"alpha 已破產。",
+                "fact":{"kind":"FIELD_VALUE","attribute":"name",
+                "subject":{"toolCallId":"concatenated-status","rowIndex":0,"column":"supplier_name"},
+                "value":{"toolCallId":"concatenated-status","rowIndex":0,"column":"supplier_status"}},
+                "evidence":[{"toolCallId":"concatenated-status","rowIndex":0,"column":"supplier_name"},
+                            {"toolCallId":"concatenated-status","rowIndex":0,"column":"supplier_status"}]}]}
+                """;
+
+        var support = new AgenticSqlAnswerSupportVerifier(new ObjectMapper()).verify(answer, List.of(supplier, status));
+
+        assertThat(result.rows().getFirst().get("supplier_status").toString()).startsWith("alpha ");
+        assertThat(support.answer()).isEmpty();
+        assertThat(support.fullySupported()).isFalse();
     }
 
     @Test
@@ -465,6 +516,18 @@ class AgenticSqlExecutorIntegrationTests {
                 .isInstanceOf(AgenticSqlException.class)
                 .extracting(error -> ((AgenticSqlException) error).code())
                 .isEqualTo(AgenticSqlException.Code.DOCUMENT_EGRESS_REJECTED);
+        assertThatThrownBy(() -> executor.execute("reverse-semantic-content", AgenticSqlDatabase.POSTGRESQL,
+                "SELECT REVERSE(c.content) AS reversed_content, c.document_id, c.document_version "
+                        + "FROM agentic_data.semantic_chunks c WHERE c.document_version = 'v1'"))
+                .isInstanceOf(AgenticSqlException.class)
+                .extracting(error -> ((AgenticSqlException) error).code())
+                .isEqualTo(AgenticSqlException.Code.DOCUMENT_EGRESS_REJECTED);
+        assertThatThrownBy(() -> executor.execute("substring-semantic-predicate", AgenticSqlDatabase.POSTGRESQL,
+                "SELECT c.document_id, c.document_version FROM agentic_data.semantic_chunks c "
+                        + "WHERE SUBSTRING(c.content, 1, 1) = 'c'"))
+                .isInstanceOf(AgenticSqlException.class)
+                .extracting(error -> ((AgenticSqlException) error).code())
+                .isEqualTo(AgenticSqlException.Code.DOCUMENT_EGRESS_REJECTED);
 
         var currentSemantic = executor.execute("current-version", AgenticSqlDatabase.POSTGRESQL,
                 "SELECT content, document_id, document_version FROM agentic_data.semantic_chunks "
@@ -474,15 +537,20 @@ class AgenticSqlExecutorIntegrationTests {
     }
 
     @Test
-    void masksSensitiveDocumentTextThroughAliasedFunctionProjectionsAndRejectsUntraceableSubqueries() {
+    void rejectsTransformedDocumentTextAndStillMasksDirectDocumentContent() {
         AgenticSqlExecutor executor = executor(10, 10, 2000);
 
-        var transformed = executor.execute("document-function-alias", AgenticSqlDatabase.MYSQL,
+        assertThatThrownBy(() -> executor.execute("document-function-alias", AgenticSqlDatabase.MYSQL,
                 "SELECT CONCAT(c.content) AS clause, c.document_id AS document_id, "
                         + "c.document_version AS document_version "
+                        + "FROM document_chunks c WHERE c.id = 43"))
+                .isInstanceOf(AgenticSqlException.class)
+                .extracting(error -> ((AgenticSqlException) error).code())
+                .isEqualTo(AgenticSqlException.Code.DOCUMENT_EGRESS_REJECTED);
+        var direct = executor.execute("document-direct", AgenticSqlDatabase.MYSQL,
+                "SELECT c.content AS clause, c.document_id, c.document_version "
                         + "FROM document_chunks c WHERE c.id = 43");
-
-        assertThat(transformed.rows()).singleElement().satisfies(row -> {
+        assertThat(direct.rows()).singleElement().satisfies(row -> {
             assertThat(row.get("clause").toString()).contains("[BANK_IDENTIFIER_REDACTED]",
                     "[BANK_ACCOUNT_REDACTED]", "TWD 125.50");
             assertThat(row.get("clause").toString()).doesNotContain("CHASUS33", "123456789012",
@@ -504,6 +572,55 @@ class AgenticSqlExecutorIntegrationTests {
                 .isInstanceOf(AgenticSqlException.class)
                 .extracting(error -> ((AgenticSqlException) error).code())
                 .isEqualTo(AgenticSqlException.Code.DOCUMENT_EGRESS_REJECTED);
+    }
+
+    @Test
+    void rejectsReverseOfSensitiveMysqlDocumentContentBeforeItCanReachTheModel() {
+        AgenticSqlExecutor executor = executor(10, 10, 2000);
+
+        assertThatThrownBy(() -> executor.execute("document-reverse", AgenticSqlDatabase.MYSQL,
+                "SELECT REVERSE(c.content) AS reversed_content, c.document_id, c.document_version "
+                        + "FROM document_chunks c WHERE c.id = 43"))
+                .isInstanceOf(AgenticSqlException.class)
+                .extracting(error -> ((AgenticSqlException) error).code())
+                .isEqualTo(AgenticSqlException.Code.DOCUMENT_EGRESS_REJECTED);
+    }
+
+    @Test
+    void rejectsPartialSubstringOfSensitiveMysqlDocumentContentBeforeItCanReachTheModel() {
+        AgenticSqlExecutor executor = executor(10, 10, 2000);
+
+        assertThatThrownBy(() -> executor.execute("document-substring", AgenticSqlDatabase.MYSQL,
+                "SELECT SUBSTRING(c.content, 1, 12) AS segment, c.document_id, c.document_version "
+                        + "FROM document_chunks c WHERE c.id = 43"))
+                .isInstanceOf(AgenticSqlException.class)
+                .extracting(error -> ((AgenticSqlException) error).code())
+                .isEqualTo(AgenticSqlException.Code.DOCUMENT_EGRESS_REJECTED);
+    }
+
+    @Test
+    void rejectsDocumentContentTransformationsUsedAsRowExistenceOracles() {
+        AgenticSqlExecutor executor = executor(10, 10, 2000);
+
+        assertThatThrownBy(() -> executor.execute("document-substring-predicate", AgenticSqlDatabase.MYSQL,
+                "SELECT c.document_id, c.document_version FROM document_chunks c "
+                        + "WHERE SUBSTRING(c.content, 1, 1) = 'S'"))
+                .isInstanceOf(AgenticSqlException.class)
+                .extracting(error -> ((AgenticSqlException) error).code())
+                .isEqualTo(AgenticSqlException.Code.DOCUMENT_EGRESS_REJECTED);
+        assertThatThrownBy(() -> executor.execute("document-subquery-predicate", AgenticSqlDatabase.MYSQL,
+                "SELECT c.document_id, c.document_version FROM document_chunks c "
+                        + "WHERE EXISTS (SELECT 1 WHERE REVERSE(c.content) LIKE '%33SUSAHC%')"))
+                .isInstanceOf(AgenticSqlException.class)
+                .extracting(error -> ((AgenticSqlException) error).code())
+                .isEqualTo(AgenticSqlException.Code.DOCUMENT_EGRESS_REJECTED);
+    }
+
+    private AgenticSqlEvidenceCell evidenceCell(AgenticSqlExecutionResult result, String column, int rowIndex) {
+        Set<String> sources = result.projectionSources().getOrDefault(column, Set.of());
+        String value = result.rows().get(rowIndex).get(column).toString();
+        return new AgenticSqlEvidenceCell(result.toolCallId(), result.database().name(), Set.copyOf(result.tables()),
+                rowIndex, column, value, sources, !sources.isEmpty());
     }
 
     @Test

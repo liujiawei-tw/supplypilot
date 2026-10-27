@@ -71,6 +71,38 @@ class AgenticSqlAnswerSupportVerifierTests {
     }
 
     @Test
+    void acceptsAnExplicitlyLabeledNumericCalculationWithoutTreatingItAsARawField() {
+        var result = verifier.verify("""
+                {"claims":[{"text":"Supplier A 的 line total 經計算為 251.00。",
+                "fact":{"kind":"DERIVED","attribute":"unit_price * quantity",
+                "subject":{"toolCallId":"q","rowIndex":0,"column":"supplier_name"},
+                "value":{"toolCallId":"q","rowIndex":0,"column":"line_total"}},
+                "evidence":[{"toolCallId":"q","rowIndex":0,"column":"supplier_name"},
+                            {"toolCallId":"q","rowIndex":0,"column":"line_total"}]}]}
+                """, List.of(
+                cell("q", "supplier_quotes", 0, "supplier_name", "Supplier A"),
+                new AgenticSqlEvidenceCell("q", "MYSQL", Set.of("supplier_quotes"), 0,
+                        "line_total", "251.00", Set.of("supplier_quotes.unit_price", "supplier_quotes.quantity",
+                        "@derived-numeric:unit_price * quantity"), true)));
+
+        assertThat(result.answer()).contains("251.00");
+        assertThat(result.fullySupported()).isTrue();
+    }
+
+    @Test
+    void doesNotAcceptNumericDerivedValuesAsRawFieldClaims() {
+        var result = verifier.verify(envelope("Supplier A 的 unit_price 為 251.00。", "q", 0,
+                        "supplier_name", "line_total"), List.of(
+                cell("q", "supplier_quotes", 0, "supplier_name", "Supplier A"),
+                new AgenticSqlEvidenceCell("q", "MYSQL", Set.of("supplier_quotes"), 0,
+                        "line_total", "251.00", Set.of("supplier_quotes.unit_price", "supplier_quotes.quantity",
+                        "@derived-numeric:unit_price * quantity"), true)));
+
+        assertThat(result.answer()).isEmpty();
+        assertThat(result.fullySupported()).isFalse();
+    }
+
+    @Test
     void verifiesMinimumComparisonAgainstTheReferencedCandidates() {
         String answer = "供應商 A 報價最低，為 125.50。";
         String envelope = """
