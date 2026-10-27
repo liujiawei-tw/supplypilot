@@ -24,6 +24,7 @@ import java.util.TreeMap;
 import com.supplypilot.agentic.config.AgenticSqlDataSources;
 import com.supplypilot.agentic.config.AgenticSqlProperties;
 import com.supplypilot.agentic.security.AgenticSqlOutputPolicy;
+import com.supplypilot.agentic.security.AgenticSqlDocumentEgressPolicy;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
@@ -41,6 +42,7 @@ public final class AgenticSqlExecutor {
     private final AgenticSqlConnectionProvider connections;
     private final AgenticSqlMetadataPolicy metadataPolicy;
     private final AgenticSqlOutputPolicy outputPolicy;
+    private final AgenticSqlDocumentEgressPolicy documentEgressPolicy;
 
     @Autowired
     public AgenticSqlExecutor(AgenticSqlDataSources dataSources,
@@ -67,6 +69,7 @@ public final class AgenticSqlExecutor {
         this.schemaInspector = schemaInspector;
         this.metadataPolicy = metadataPolicy;
         this.outputPolicy = outputPolicy;
+        this.documentEgressPolicy = new AgenticSqlDocumentEgressPolicy(outputPolicy);
     }
 
     public AgenticSqlExecutionResult execute(String toolCallId, AgenticSqlDatabase database, String sql) {
@@ -84,15 +87,32 @@ public final class AgenticSqlExecutor {
             try (Statement statement = connection.createStatement()) {
                 statement.setQueryTimeout(timeoutSeconds(properties.statementTimeout()));
                 statement.setMaxRows(properties.maxRows() + 1);
+                QueryRows queryRows;
                 try (ResultSet resultSet = statement.executeQuery(validated.sql())) {
-                    QueryRows queryRows = readRows(connection.getMetaData(), database, resultSet,
+                    queryRows = readRows(connection.getMetaData(), database, resultSet,
                             sourceTables, validated);
-                    connection.rollback();
-                    return new AgenticSqlExecutionResult(toolCallId, database,
-                            validated.tables().stream().map(AgenticSqlTableReference::qualifiedName).toList(),
-                            queryRows.columns(), queryRows.rows(), (long) queryRows.rows().size(), queryRows.truncated(),
-                            elapsedMs(started), queryRows.sourceRows());
                 }
+                List<Map<String, Object>> returnedRows = queryRows.rows();
+                if (validated.documentContentReference()) {
+                    if (database == AgenticSqlDatabase.MYSQL) {
+                        returnedRows = documentEgressPolicy.inspectAndProtect(connection, validated, returnedRows);
+                    } else {
+                        try (Connection mysqlConnection = connections.open(AgenticSqlDatabase.MYSQL)) {
+                            mysqlConnection.setReadOnly(true);
+                            mysqlConnection.setAutoCommit(false);
+                            beginReadOnlyTransaction(mysqlConnection, AgenticSqlDatabase.MYSQL,
+                                    properties.statementTimeout());
+                            returnedRows = documentEgressPolicy.inspectAndProtect(
+                                    mysqlConnection, validated, returnedRows);
+                            mysqlConnection.rollback();
+                        }
+                    }
+                }
+                connection.rollback();
+                return new AgenticSqlExecutionResult(toolCallId, database,
+                        validated.tables().stream().map(AgenticSqlTableReference::qualifiedName).toList(),
+                        queryRows.columns(), returnedRows, (long) returnedRows.size(), queryRows.truncated(),
+                        elapsedMs(started), queryRows.sourceRows());
             }
         } catch (AgenticSqlException exception) {
             throw exception;

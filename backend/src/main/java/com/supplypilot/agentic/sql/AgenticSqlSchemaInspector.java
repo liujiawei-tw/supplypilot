@@ -24,6 +24,8 @@ import org.springframework.stereotype.Component;
 public final class AgenticSqlSchemaInspector {
     private static final String[] DISCOVERABLE_TABLE_TYPES = {"TABLE", "VIEW", "MATERIALIZED VIEW"};
     private static final int MAX_REMARK_LENGTH = 240;
+    private static final int MAX_PAGE_SIZE = 100;
+    private static final int MAX_OFFSET = 100_000;
 
     private final AgenticSqlDataSources dataSources;
     private final AgenticSqlProperties properties;
@@ -59,41 +61,43 @@ public final class AgenticSqlSchemaInspector {
 
     public AgenticSqlSchemaResult inspectSchema(String toolCallId, AgenticSqlDatabase database,
                                                 String requestedSchema, String requestedTable) {
+        return inspectSchema(toolCallId, database, requestedSchema, requestedTable, 0,
+                Math.min(MAX_PAGE_SIZE, properties.maxRows()));
+    }
+
+    public AgenticSqlSchemaResult inspectSchema(String toolCallId, AgenticSqlDatabase database,
+                                                String requestedSchema, String requestedTable,
+                                                int offset, int requestedPageSize) {
         if (toolCallId == null || toolCallId.isBlank() || database == null) {
             throw new AgenticSqlException(AgenticSqlException.Code.INVALID_SQL);
         }
+        if (offset < 0 || offset > MAX_OFFSET || requestedPageSize < 1) {
+            throw new AgenticSqlException(AgenticSqlException.Code.INVALID_SQL);
+        }
+        int pageSize = Math.min(MAX_PAGE_SIZE, Math.min(properties.maxRows(), requestedPageSize));
         try (Connection connection = connections.open(database)) {
             connection.setReadOnly(true);
             DatabaseMetaData metadata = connection.getMetaData();
             String currentCatalog = connection.getCatalog();
-            List<String> schemas = visibleSchemas(database, metadata, currentCatalog, requestedSchema);
+            List<VisibleTable> matching = listVisibleTables(metadata, database, currentCatalog).stream()
+                    .filter(table -> matches(requestedSchema,
+                            database == AgenticSqlDatabase.MYSQL ? currentCatalog : table.schema()))
+                    .filter(table -> matches(requestedTable, table.name()))
+                    .sorted(Comparator.comparing((VisibleTable table) ->
+                                    database == AgenticSqlDatabase.MYSQL ? currentCatalog : table.schema(),
+                                    Comparator.nullsFirst(String.CASE_INSENSITIVE_ORDER))
+                            .thenComparing(VisibleTable::name, String.CASE_INSENSITIVE_ORDER))
+                    .toList();
+            int start = Math.min(offset, matching.size());
+            int end = Math.min(matching.size(), start + pageSize);
             List<AgenticSqlTableSchema> tables = new ArrayList<>();
-            for (String schema : schemas) {
-                try (ResultSet rows = metadata.getTables(
-                        database == AgenticSqlDatabase.MYSQL ? currentCatalog : currentCatalog,
-                        database == AgenticSqlDatabase.MYSQL ? null : schema,
-                        null, DISCOVERABLE_TABLE_TYPES)) {
-                    while (rows.next()) {
-                        String tableName = rows.getString("TABLE_NAME");
-                        String tableSchema = rows.getString("TABLE_SCHEM");
-                        String tableCatalog = rows.getString("TABLE_CAT");
-                        String tableType = rows.getString("TABLE_TYPE");
-                        String effectiveSchema = database == AgenticSqlDatabase.MYSQL
-                                ? currentCatalog : tableSchema;
-                        if (!isAllowedTableType(tableType)
-                                || !metadataPolicy.isTableVisible(database, effectiveSchema, tableName)
-                                || !matches(requestedTable, tableName)) continue;
-                        if (database == AgenticSqlDatabase.MYSQL && tableCatalog != null
-                                && !tableCatalog.equalsIgnoreCase(currentCatalog)) continue;
-                        tables.add(readTable(metadata, database, currentCatalog, effectiveSchema, tableName,
-                                rows.getString("REMARKS")));
-                    }
-                }
+            for (VisibleTable table : matching.subList(start, end)) {
+                String effectiveSchema = database == AgenticSqlDatabase.MYSQL ? currentCatalog : table.schema();
+                tables.add(readTable(metadata, database, currentCatalog, effectiveSchema, table.name(), null));
             }
-            tables.sort(Comparator.comparing(AgenticSqlTableSchema::schema,
-                            Comparator.nullsFirst(String.CASE_INSENSITIVE_ORDER))
-                    .thenComparing(AgenticSqlTableSchema::name, String.CASE_INSENSITIVE_ORDER));
-            return new AgenticSqlSchemaResult(toolCallId, database, tables);
+            boolean hasMore = end < matching.size();
+            return new AgenticSqlSchemaResult(toolCallId, database, tables, offset, pageSize,
+                    hasMore, hasMore ? end : null);
         } catch (AgenticSqlException exception) {
             throw exception;
         } catch (SQLException exception) {

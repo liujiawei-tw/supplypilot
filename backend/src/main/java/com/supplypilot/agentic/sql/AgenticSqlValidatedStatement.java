@@ -11,7 +11,11 @@ public record AgenticSqlValidatedStatement(
         List<AgenticSqlTableReference> tables,
         Map<Integer, List<String>> sensitiveProjectionColumns,
         Set<String> sensitiveColumns,
-        boolean maskAllOutput
+        boolean maskAllOutput,
+        boolean documentContentReference,
+        String documentSourceTable,
+        String documentIdColumnLabel,
+        String documentVersionColumnLabel
 ) {
     public AgenticSqlValidatedStatement {
         tables = List.copyOf(tables);

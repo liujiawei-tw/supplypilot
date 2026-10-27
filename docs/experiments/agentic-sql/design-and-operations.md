@@ -23,8 +23,12 @@
 
 - MySQL 與 PostgreSQL 使用兩組 Agent 專用連線帳號，不重用主應用程式或 SemanticStore 的帳密。連線設唯讀，statement 設時間上限，另以 SQL AST 拒絕非 SELECT／唯讀 CTE、多重語句、鎖定、寫檔與非安全函式。資料庫端最小權限 `SELECT` grant 是必要的第二道保護；應用程式不建立 DB user 或修改 grant。
 - Schema Discovery 隨設定的資料庫 schema metadata 動態列出業務表與欄，不依賴每種問題一支固定業務工具。系統 schema、認證／安全內部資料及憑證欄位不得提供給模型。
+- Schema Discovery 以穩定排序和 1–100 筆有界頁面回傳；回應提供 `nextOffset`，並可用 schema 或精確表名縮小範圍。SQL 工具仍依同一 metadata policy 過濾 system schema、認證表及機密欄位。
 - 本次實驗政策允許相關商業價格、成本、折扣、PO 金額與業務文件內容送 Gemini；此決策不改變舊 RAG 的 `OutboundDocumentPolicy`。密碼、雜湊、API key、token、private key 與認證資料會排除；個人身分識別碼、聯絡方式及銀行帳號會遮罩，不向模型提供原始值。
-- 為避免 JDBC 欄位 metadata 無法追溯 derived `FROM (SELECT ...)` 投影的別名來源，該類查詢目前會遮罩整列所有輸出欄位；請優先用 CTE 或直接投影重試。這是來源追蹤邊界，不會把價格等業務資料列入敏感欄位政策。
+- 文件原文在傳入模型前經獨立的 `AgenticSqlDocumentEgressPolicy` 檢查：來源必須可追溯並投影直接 `document_id`；MySQL 文件 metadata 必須為 `READY` 且有目前版本，原始 chunks 只保留目前版本並與 READY 狀態同一交易替換；PostgreSQL `semantic_chunks` 還必須投影 `document_version` 並符合目前 MySQL 文件版本。無法確認時拒絕該工具結果並要求 Agent 改寫。凡 SQL 在投影或條件中引用文件 `content`，均執行來源檢查；每次出站也會掃描實際字串值並遮罩 SWIFT/BIC、銀行帳號、個資及系統機密；合法業務金額仍保留。此檢查不依賴舊 RAG 檢索、Embedding、向量發布或相似度。
+- JDBC 欄位 metadata 無法安全追溯敏感來源時，含敏感欄位的 derived `FROM (SELECT ...)` 會以可修正的 `SQL_REJECTED` 拒絕；沒有敏感欄位的一般 derived query 正常執行，不會以全列遮罩冒充成功取得業務資料。可改用 CTE、直接 JOIN 或直接投影。
+- 最終模型回覆採 Agentic SQL 專用的結構化 claims；每項事實引用本次 SQL 結果的 `toolCallId`、列與欄。後端核對引用、數值、業務識別值與 MIN/MAX 比較；SQL 聚合輸出列可直接作為可查證證據。未在來源值明示的風險、因果、適合度與合作建議會省略，除非是經驗證的比較語句；不存在的來源引用或不支持的事實會回 `PARTIAL`；重複業務識別值在不同表有矛盾數值時回傳衝突警示。這套驗證不使用舊 RAG `EvidenceValidator` 或語意相似度門檻。
+- 雙資料庫狀態區分為：成功查詢皆無列且沒有工具失敗為 `NO_DATA`；至少一個資料來源成功、另一來源失敗為 `PARTIAL`；沒有任何 SQL 查詢成功且曾發生工具／資料庫錯誤為 `QUERY_FAILED`；沒有可判斷的查詢且沒有錯誤時才為 `NEEDS_CLARIFICATION`。
 - 使用者已補充：目前專案不會有員工個資、供應商銀行帳號或身分證號。上述欄位與值的遮罩仍作為防禦性保護，避免未來資料來源或 schema 擴充時意外外送；一般業務資料表與欄位仍採動態探索。
 - 新路徑只將回答所需的結果送模型，不預先把整庫 schema 或資料載入 prompt。工具呼叫、單次查詢時間、回傳列數、欄數、字元數和模型輸出都設上限。日誌只記工具類型、資料庫、表、耗時、列數、截斷、錯誤分類與可取得的 token 用量；不得記問題原文、SQL、結果內容或憑證。
 - 真實 Gemini／正式資料環境的啟用須另行核對 Gemini 資料處理條款與部署設定。功能預設關閉；本次不部署、不改正式 RAG 開關，也不宣稱已完成真實 Provider 驗收。

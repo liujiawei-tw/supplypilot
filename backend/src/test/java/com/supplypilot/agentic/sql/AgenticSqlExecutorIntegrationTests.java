@@ -62,9 +62,14 @@ class AgenticSqlExecutorIntegrationTests {
                     + " CONSTRAINT fk_future_item FOREIGN KEY(item_id) REFERENCES agentic_items(id),"
                     + " INDEX idx_future_item_value(value_text))");
             statement.execute("CREATE TABLE ai_purchase_draft_proposals (id CHAR(36) PRIMARY KEY, payload_json JSON)");
+            statement.execute("CREATE TABLE document_metadata (id BIGINT PRIMARY KEY, version VARCHAR(50), status VARCHAR(20))");
+            statement.execute("INSERT INTO document_metadata VALUES (7, 'v1', 'READY'), (8, 'v1', 'PROCESSING')");
             statement.execute("CREATE TABLE document_chunks (id BIGINT PRIMARY KEY, document_id BIGINT,"
                     + " content TEXT, embedding TEXT)");
-            statement.execute("INSERT INTO document_chunks VALUES (41, 7, 'authoritative mysql source', 'hidden-vector')");
+            statement.execute("INSERT INTO document_chunks VALUES (41, 7, 'authoritative mysql source', 'hidden-vector'),"
+                    + " (42, 8, 'unreviewed document source', 'hidden-vector'),"
+                    + " (43, 7, 'SWIFT: CHASUS33; account number: 123456789012; ID: A123456789; quote TWD 125.50',"
+                    + " 'hidden-vector')");
         }
         try (Connection connection = postgresAdminConnection(); Statement statement = connection.createStatement()) {
             statement.execute("CREATE SCHEMA agentic_data");
@@ -172,10 +177,10 @@ class AgenticSqlExecutorIntegrationTests {
         var reorderedCte = executor.execute("reordered-cte", AgenticSqlDatabase.MYSQL,
                 "WITH x AS (SELECT bank_account_no AS item, name AS label FROM agentic_items WHERE id = 1) "
                         + "SELECT label AS ordinary, item AS note FROM x");
-        var derivedJoin = executor.execute("derived-join", AgenticSqlDatabase.MYSQL,
-                "SELECT q.label AS ordinary, q.item AS note FROM "
-                        + "(SELECT bank_account_no AS item, name AS label FROM agentic_items WHERE id = 1) q "
-                        + "JOIN agentic_items i ON i.id = 1");
+        var ordinaryDerivedMysql = executor.execute("derived-ordinary-mysql", AgenticSqlDatabase.MYSQL,
+                "SELECT q.label FROM (SELECT name AS label FROM agentic_items WHERE id = 1) q");
+        var ordinaryDerivedPostgres = executor.execute("derived-ordinary-postgres", AgenticSqlDatabase.POSTGRESQL,
+                "SELECT q.label FROM (SELECT long_text AS label FROM agentic_data.future_items WHERE id = 4) q");
         var contact = executor.execute("contact", AgenticSqlDatabase.MYSQL,
                 "SELECT contact_person AS description FROM agentic_items WHERE id = 1");
         var bankFunction = executor.execute("bank-function", AgenticSqlDatabase.MYSQL,
@@ -191,6 +196,17 @@ class AgenticSqlExecutorIntegrationTests {
         var tokenText = executor.execute("token-text", AgenticSqlDatabase.MYSQL,
                 "SELECT 'token=must-not-send' AS note");
 
+        assertThatThrownBy(() -> executor.execute("derived-sensitive-mysql", AgenticSqlDatabase.MYSQL,
+                "SELECT q.item FROM (SELECT bank_account_no AS item FROM agentic_items WHERE id = 1) q"))
+                .isInstanceOf(AgenticSqlException.class)
+                .extracting(error -> ((AgenticSqlException) error).code())
+                .isEqualTo(AgenticSqlException.Code.UNSAFE_SQL);
+        assertThatThrownBy(() -> executor.execute("derived-sensitive-postgres", AgenticSqlDatabase.POSTGRESQL,
+                "SELECT q.item FROM (SELECT bank_account_no AS item FROM agentic_data.future_items WHERE id = 3) q"))
+                .isInstanceOf(AgenticSqlException.class)
+                .extracting(error -> ((AgenticSqlException) error).code())
+                .isEqualTo(AgenticSqlException.Code.UNSAFE_SQL);
+
         assertThat(bank.rows().getFirst().get("note")).isEqualTo("[REDACTED_IDENTIFIER]");
         assertThat(accountFunction.rows().getFirst().get("note")).isEqualTo("[REDACTED_IDENTIFIER]");
         assertThat(identityCast.rows().getFirst().get("note")).isEqualTo("[REDACTED_IDENTIFIER]");
@@ -198,8 +214,10 @@ class AgenticSqlExecutorIntegrationTests {
                 .containsOnly("[SENSITIVE_DATA_REDACTED]");
         assertThat(reorderedCte.rows().getFirst().values())
                 .containsOnly("[SENSITIVE_DATA_REDACTED]");
-        assertThat(derivedJoin.rows().getFirst().values())
-                .containsOnly("[SENSITIVE_DATA_REDACTED]");
+        assertThat(ordinaryDerivedMysql.rows()).singleElement()
+                .satisfies(row -> assertThat(row).containsEntry("label", "alpha"));
+        assertThat(ordinaryDerivedPostgres.rows()).singleElement()
+                .satisfies(row -> assertThat(row).containsEntry("label", "short"));
         assertThat(contact.rows().getFirst().get("description")).isEqualTo("[REDACTED_IDENTIFIER]");
         assertThat(bankFunction.rows().getFirst().get("note")).isEqualTo("[REDACTED_IDENTIFIER]");
         assertThat(bankCast.rows().getFirst().get("note")).isEqualTo("[REDACTED_IDENTIFIER]");
@@ -209,7 +227,6 @@ class AgenticSqlExecutorIntegrationTests {
         assertThat(bankCast.rows().toString()).doesNotContain("123456789012");
         assertThat(nestedCte.rows().toString()).doesNotContain("123456789012");
         assertThat(reorderedCte.rows().toString()).doesNotContain("123456789012");
-        assertThat(derivedJoin.rows().toString()).doesNotContain("123456789012");
         assertThat(contact.rows().toString()).doesNotContain("Alice Example");
         assertThat(tokenText.rows().toString()).doesNotContain("must-not-send");
         assertThat(email.rows().getFirst().get("description").toString()).doesNotContain("alice@example.com");
@@ -283,6 +300,60 @@ class AgenticSqlExecutorIntegrationTests {
     }
 
     @Test
+    void discoversTablesBeyondTheDefaultSchemaPageWithoutReturningHiddenSystemTables() throws SQLException {
+        try (Connection connection = postgresAdminConnection(); Statement statement = connection.createStatement()) {
+            statement.execute("CREATE SCHEMA agentic_paging");
+            for (int index = 0; index < 105; index++) {
+                statement.execute("CREATE TABLE agentic_paging.agentic_page_" + String.format("%03d", index)
+                        + " (id BIGINT PRIMARY KEY, value_text VARCHAR(30))");
+            }
+        }
+        AgenticSqlSchemaInspector inspector = inspector(100, 32, 12000);
+
+        var firstPage = inspector.inspectSchema("page-1", AgenticSqlDatabase.POSTGRESQL,
+                "agentic_paging", null, 0, 100);
+        var secondPage = inspector.inspectSchema("page-2", AgenticSqlDatabase.POSTGRESQL,
+                "agentic_paging", null, 100, 100);
+
+        assertThat(firstPage.tables()).hasSize(100);
+        assertThat(firstPage.hasMore()).isTrue();
+        assertThat(firstPage.nextOffset()).isEqualTo(100);
+        assertThat(secondPage.tables()).extracting(AgenticSqlTableSchema::name)
+                .contains("agentic_page_104");
+        assertThat(secondPage.tables()).extracting(AgenticSqlTableSchema::name)
+                .doesNotContain("users", "pg_catalog");
+        assertThat(java.util.stream.Stream.concat(firstPage.tables().stream(), secondPage.tables().stream())
+                .map(AgenticSqlTableSchema::name).distinct().count()).isEqualTo(105);
+        assertThat(inspector.inspectSchema("table-filter", AgenticSqlDatabase.POSTGRESQL,
+                "agentic_paging", "agentic_page_104", 0, 1).tables())
+                .extracting(AgenticSqlTableSchema::name).containsExactly("agentic_page_104");
+    }
+
+    @Test
+    void discoversTablesBeyondTheDefaultMysqlSchemaPage() throws SQLException {
+        try (Connection connection = mysqlAdminConnection(); Statement statement = connection.createStatement()) {
+            for (int index = 0; index < 105; index++) {
+                statement.execute("CREATE TABLE zz_agentic_page_" + String.format("%03d", index)
+                        + " (id BIGINT PRIMARY KEY, value_text VARCHAR(30))");
+            }
+        }
+        AgenticSqlSchemaInspector inspector = inspector(100, 32, 12000);
+
+        var firstPage = inspector.inspectSchema("mysql-page-1", AgenticSqlDatabase.MYSQL,
+                MYSQL.getDatabaseName(), null, 0, 100);
+        var secondPage = inspector.inspectSchema("mysql-page-2", AgenticSqlDatabase.MYSQL,
+                MYSQL.getDatabaseName(), null, 100, 100);
+
+        assertThat(firstPage.tables()).hasSize(100);
+        assertThat(firstPage.hasMore()).isTrue();
+        assertThat(secondPage.tables()).extracting(AgenticSqlTableSchema::name)
+                .contains("zz_agentic_page_104");
+        assertThat(java.util.stream.Stream.concat(firstPage.tables().stream(), secondPage.tables().stream())
+                .map(AgenticSqlTableSchema::name).distinct().count())
+                .isEqualTo(firstPage.tables().size() + secondPage.tables().size());
+    }
+
+    @Test
     void missingPostgresIndexDoesNotPreventReadingAuthoritativeMysqlDocumentChunks() throws SQLException {
         try (Connection connection = postgresAdminConnection(); Statement statement = connection.createStatement()) {
             statement.execute("DROP TABLE IF EXISTS public.semantic_chunks");
@@ -293,10 +364,75 @@ class AgenticSqlExecutorIntegrationTests {
         assertThat(inspector.inspectSchema("missing", AgenticSqlDatabase.POSTGRESQL, "public", "semantic_chunks")
                 .tables()).isEmpty();
         var mysqlSource = executor.execute("source", AgenticSqlDatabase.MYSQL,
-                "SELECT id, content FROM document_chunks WHERE id = 41");
+                "SELECT id, document_id, content FROM document_chunks WHERE id = 41");
 
         assertThat(mysqlSource.rows()).singleElement()
                 .satisfies(row -> assertThat(row).containsEntry("content", "authoritative mysql source"));
+    }
+
+    @Test
+    void blocksUnverifiableOrNonReadyDocumentTextAndRejectsStalePostgresDocumentVersions() throws SQLException {
+        try (Connection connection = postgresAdminConnection(); Statement statement = connection.createStatement()) {
+            statement.execute("CREATE TABLE agentic_data.semantic_chunks (document_id BIGINT,"
+                    + " document_version VARCHAR(50), content TEXT)");
+            statement.execute("INSERT INTO agentic_data.semantic_chunks VALUES "
+                    + "(7, 'v0', 'stale source must not be sent'), (7, 'v1', 'current quotation TWD 125.50')");
+        }
+        AgenticSqlExecutor executor = executor(10, 10, 2000);
+
+        assertThatThrownBy(() -> executor.execute("missing-document-id", AgenticSqlDatabase.MYSQL,
+                "SELECT content FROM document_chunks WHERE id = 41"))
+                .isInstanceOf(AgenticSqlException.class)
+                .extracting(error -> ((AgenticSqlException) error).code())
+                .isEqualTo(AgenticSqlException.Code.DOCUMENT_EGRESS_REJECTED);
+        assertThatThrownBy(() -> executor.execute("not-ready", AgenticSqlDatabase.MYSQL,
+                "SELECT content AS clause, document_id FROM document_chunks WHERE document_id = 8"))
+                .isInstanceOf(AgenticSqlException.class)
+                .extracting(error -> ((AgenticSqlException) error).code())
+                .isEqualTo(AgenticSqlException.Code.DOCUMENT_EGRESS_REJECTED);
+        assertThatThrownBy(() -> executor.execute("stale-version", AgenticSqlDatabase.POSTGRESQL,
+                "SELECT content, document_id, document_version FROM agentic_data.semantic_chunks "
+                        + "WHERE document_version = 'v0'"))
+                .isInstanceOf(AgenticSqlException.class)
+                .extracting(error -> ((AgenticSqlException) error).code())
+                .isEqualTo(AgenticSqlException.Code.DOCUMENT_EGRESS_REJECTED);
+
+        var currentSemantic = executor.execute("current-version", AgenticSqlDatabase.POSTGRESQL,
+                "SELECT content, document_id, document_version FROM agentic_data.semantic_chunks "
+                        + "WHERE document_version = 'v1'");
+        assertThat(currentSemantic.rows()).singleElement().satisfies(row ->
+                assertThat(row).containsEntry("content", "current quotation TWD 125.50"));
+    }
+
+    @Test
+    void masksSensitiveDocumentTextThroughAliasedFunctionProjectionsAndRejectsUntraceableSubqueries() {
+        AgenticSqlExecutor executor = executor(10, 10, 2000);
+
+        var transformed = executor.execute("document-function-alias", AgenticSqlDatabase.MYSQL,
+                "SELECT CONCAT(c.content) AS clause, c.document_id AS document_id "
+                        + "FROM document_chunks c WHERE c.id = 43");
+
+        assertThat(transformed.rows()).singleElement().satisfies(row -> {
+            assertThat(row.get("clause").toString()).contains("[BANK_IDENTIFIER_REDACTED]",
+                    "[BANK_ACCOUNT_REDACTED]", "TWD 125.50");
+            assertThat(row.get("clause").toString()).doesNotContain("CHASUS33", "123456789012", "A123456789");
+        });
+        assertThatThrownBy(() -> executor.execute("document-derived", AgenticSqlDatabase.MYSQL,
+                "SELECT d.clause, d.document_id FROM "
+                        + "(SELECT CONCAT(content) AS clause, document_id FROM document_chunks WHERE id = 43) d"))
+                .isInstanceOf(AgenticSqlException.class)
+                .extracting(error -> ((AgenticSqlException) error).code())
+                .isEqualTo(AgenticSqlException.Code.DOCUMENT_EGRESS_REJECTED);
+        assertThatThrownBy(() -> executor.execute("document-content-filter", AgenticSqlDatabase.MYSQL,
+                "SELECT document_id FROM document_chunks WHERE content LIKE '%unreviewed document source%'"))
+                .isInstanceOf(AgenticSqlException.class)
+                .extracting(error -> ((AgenticSqlException) error).code())
+                .isEqualTo(AgenticSqlException.Code.DOCUMENT_EGRESS_REJECTED);
+        assertThatThrownBy(() -> executor.execute("document-content-aggregate", AgenticSqlDatabase.MYSQL,
+                "SELECT COUNT(*) AS matching_chunks FROM document_chunks WHERE content LIKE '%CHASUS33%'"))
+                .isInstanceOf(AgenticSqlException.class)
+                .extracting(error -> ((AgenticSqlException) error).code())
+                .isEqualTo(AgenticSqlException.Code.DOCUMENT_EGRESS_REJECTED);
     }
 
     @Test

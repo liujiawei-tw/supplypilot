@@ -93,6 +93,33 @@ class AgenticSqlOutputPolicyTests {
     }
 
     @Test
+    void masksSwiftBicAndBankIdentifiersInsideBusinessDocumentTextButKeepsCommercialTerms() {
+        String result = policy.maskColumnValue("content",
+                "付款條件：報價 TWD 125.50，折扣 3%。銀行 SWIFT: CHASUS33，帳號：123456789012；" +
+                        "身分證：A123456789。");
+
+        assertThat(result).contains("TWD 125.50", "折扣 3%", "[BANK_IDENTIFIER_REDACTED]");
+        assertThat(result).contains("[ID_REDACTED]");
+        assertThat(result).doesNotContain("CHASUS33", "123456789012", "A123456789");
+    }
+
+    @Test
+    void scansSensitiveValuesEvenWhenSqlRenamesOrTransformsTheOutputColumn() {
+        Map<String, Object> projected = Map.of(
+                "clause", "SWIFT: CHASUS33",
+                "function_output", "銀行帳號：123456789012，報價 TWD 125.50",
+                "derived_result", "身分證：A123456789");
+
+        var result = policy.sanitizeRows(List.of(projected), 10, 4096);
+
+        assertThat(result.rows().getFirst().get("clause")).isEqualTo("[BANK_IDENTIFIER_REDACTED]");
+        assertThat(result.rows().getFirst().get("function_output").toString())
+                .contains("[BANK_ACCOUNT_REDACTED]", "TWD 125.50");
+        assertThat(result.rows().getFirst().get("derived_result")).isEqualTo("身分證：[ID_REDACTED]");
+        assertThat(result.rows().toString()).doesNotContain("CHASUS33", "123456789012", "A123456789");
+    }
+
+    @Test
     void masksVeryLongUnclassifiedNumericIdentifiers() {
         String value = "12345678901234567890";
 

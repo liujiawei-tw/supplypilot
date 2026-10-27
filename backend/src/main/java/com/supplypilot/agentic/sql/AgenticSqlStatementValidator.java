@@ -102,11 +102,166 @@ public final class AgenticSqlStatementValidator {
         // columns that follow a star. If the same query also references a sensitive identifier,
         // fail closed for every returned value rather than risk masking the wrong alias.
         if (!sensitiveColumns.isEmpty() && containsWildcardProjection(select)) maskAllOutput = true;
-        // JDBC metadata and the current lineage mapper cannot reliably trace columns through a
-        // derived FROM subquery. Mask its entire result until provenance can be mapped by alias.
-        if (containsDerivedFromSubquery(select)) maskAllOutput = true;
+        // The current mapper cannot preserve sensitive-field positions through arbitrary derived
+        // projections/reordering. Reject only those ambiguous sensitive queries; ordinary derived
+        // queries stay usable and are not returned as successful all-masked business data.
+        if (containsDerivedFromSubquery(select)
+                && (!sensitiveColumns.isEmpty() || containsSensitiveColumnInNestedSource(select))) {
+            throw new AgenticSqlException(AgenticSqlException.Code.UNSAFE_SQL);
+        }
+        String documentSourceTable = null;
+        if (database == AgenticSqlDatabase.MYSQL && hasTable(tables, "document_chunks")) {
+            documentSourceTable = "document_chunks";
+        } else if (database == AgenticSqlDatabase.POSTGRESQL && hasTable(tables, "semantic_chunks")) {
+            documentSourceTable = "semantic_chunks";
+        }
+        boolean documentContentReference = documentSourceTable != null
+                && (referencesColumnInSelect(select, "content") || containsWildcardProjection(select));
+        String documentIdColumnLabel = null;
+        String documentVersionColumnLabel = null;
+        if (documentContentReference) {
+            if (tables.stream().filter(table -> Set.of("document_chunks", "semantic_chunks")
+                    .contains(normalizeName(table.name()))).count() != 1) {
+                throw new AgenticSqlException(AgenticSqlException.Code.UNSAFE_SQL);
+            }
+            documentIdColumnLabel = directDocumentColumnLabel(select, documentSourceTable, "document_id");
+            if (database == AgenticSqlDatabase.POSTGRESQL) {
+                documentVersionColumnLabel = directDocumentColumnLabel(select, documentSourceTable, "document_version");
+            }
+        }
         return new AgenticSqlValidatedStatement(database, select.toString(), tables,
-                sensitiveProjectionColumns, sensitiveColumns, maskAllOutput);
+                sensitiveProjectionColumns, sensitiveColumns, maskAllOutput,
+                documentContentReference, documentSourceTable, documentIdColumnLabel, documentVersionColumnLabel);
+    }
+
+    private boolean hasTable(List<AgenticSqlTableReference> tables, String name) {
+        return tables.stream().anyMatch(table -> normalizeName(table.name()).equals(name));
+    }
+
+    private boolean referencesColumnInSelect(Select select, String name) {
+        ColumnReferenceVisitor selectVisitor = new ColumnReferenceVisitor(name);
+        select.accept(new SelectVisitorAdapter<>(selectVisitor), null);
+        if (selectVisitor.found) return true;
+        if (select.getWithItemsList() != null && select.getWithItemsList().stream()
+                .map(WithItem::getParenthesedStatement)
+                .filter(ParenthesedSelect.class::isInstance)
+                .map(ParenthesedSelect.class::cast)
+                .anyMatch(body -> referencesColumnInSelect(body.getSelect(), name))) return true;
+        if (select instanceof PlainSelect plainSelect) {
+            if (referencesColumnInSelect(plainSelect.getFromItem(), name)) return true;
+            return plainSelect.getJoins() != null && plainSelect.getJoins().stream()
+                    .anyMatch(join -> referencesColumnInSelect(join.getRightItem(), name));
+        }
+        if (select instanceof SetOperationList setOperationList) {
+            return setOperationList.getSelects().stream().anyMatch(branch -> referencesColumnInSelect(branch, name));
+        }
+        if (select instanceof ParenthesedSelect parenthesedSelect) {
+            return referencesColumnInSelect(parenthesedSelect.getSelect(), name);
+        }
+        return false;
+    }
+
+    private boolean referencesColumnInSelect(FromItem fromItem, String name) {
+        if (fromItem instanceof ParenthesedSelect parenthesedSelect) {
+            return referencesColumnInSelect(parenthesedSelect.getSelect(), name);
+        }
+        if (fromItem instanceof ParenthesedFromItem parenthesed) {
+            if (referencesColumnInSelect(parenthesed.getFromItem(), name)) return true;
+            return parenthesed.getJoins() != null && parenthesed.getJoins().stream()
+                    .anyMatch(join -> referencesColumnInSelect(join.getRightItem(), name));
+        }
+        return false;
+    }
+
+    /** Finds sensitive fields projected inside a derived source before aliases hide their lineage. */
+    private boolean containsSensitiveColumnInNestedSource(Select select) {
+        if (select instanceof PlainSelect plainSelect) {
+            if (containsSensitiveColumnInDerivedItem(plainSelect.getFromItem())) return true;
+            if (plainSelect.getJoins() != null && plainSelect.getJoins().stream()
+                    .anyMatch(join -> containsSensitiveColumnInDerivedItem(join.getRightItem()))) return true;
+        } else if (select instanceof SetOperationList setOperationList
+                && setOperationList.getSelects().stream().anyMatch(this::containsSensitiveColumnInNestedSource)) {
+            return true;
+        } else if (select instanceof ParenthesedSelect parenthesedSelect
+                && containsSensitiveColumnInNestedSource(parenthesedSelect.getSelect())) {
+            return true;
+        }
+        return select.getWithItemsList() != null && select.getWithItemsList().stream()
+                .map(WithItem::getParenthesedStatement)
+                .filter(ParenthesedSelect.class::isInstance)
+                .map(ParenthesedSelect.class::cast)
+                .anyMatch(body -> containsSensitiveColumnInNestedSource(body.getSelect())
+                        || containsSensitiveProjection(body.getSelect()));
+    }
+
+    private boolean containsSensitiveColumnInDerivedItem(FromItem fromItem) {
+        if (fromItem instanceof ParenthesedSelect parenthesedSelect) {
+            Select nested = parenthesedSelect.getSelect();
+            return containsSensitiveProjection(nested) || containsSensitiveColumnInNestedSource(nested);
+        }
+        if (fromItem instanceof ParenthesedFromItem parenthesed) {
+            if (containsSensitiveColumnInDerivedItem(parenthesed.getFromItem())) return true;
+            return parenthesed.getJoins() != null && parenthesed.getJoins().stream()
+                    .anyMatch(join -> containsSensitiveColumnInDerivedItem(join.getRightItem()));
+        }
+        return false;
+    }
+
+    private boolean containsSensitiveProjection(Select select) {
+        if (select instanceof PlainSelect plainSelect) {
+            if (plainSelect.getSelectItems().stream()
+                    .anyMatch(item -> !sensitiveColumnsIn(item.getExpression()).isEmpty())) return true;
+        } else if (select instanceof SetOperationList setOperationList) {
+            if (setOperationList.getSelects().stream().anyMatch(this::containsSensitiveProjection)) return true;
+        } else if (select instanceof ParenthesedSelect parenthesedSelect) {
+            if (containsSensitiveProjection(parenthesedSelect.getSelect())) return true;
+        }
+        if (select.getWithItemsList() != null && select.getWithItemsList().stream()
+                .map(WithItem::getParenthesedStatement)
+                .filter(ParenthesedSelect.class::isInstance)
+                .map(ParenthesedSelect.class::cast)
+                .anyMatch(body -> containsSensitiveProjection(body.getSelect()))) return true;
+        if (select instanceof PlainSelect plainSelect) {
+            if (containsSensitiveColumnInDerivedItem(plainSelect.getFromItem())) return true;
+            return plainSelect.getJoins() != null && plainSelect.getJoins().stream()
+                    .anyMatch(join -> containsSensitiveColumnInDerivedItem(join.getRightItem()));
+        }
+        return false;
+    }
+
+    private String directDocumentColumnLabel(Select select, String documentTable, String columnName) {
+        if (!(select instanceof PlainSelect plainSelect)) return null;
+        List<Table> directTables = new ArrayList<>();
+        collectDirectTables(plainSelect.getFromItem(), directTables);
+        if (plainSelect.getJoins() != null) {
+            for (Join join : plainSelect.getJoins()) collectDirectTables(join.getRightItem(), directTables);
+        }
+        List<Table> matchingTables = directTables.stream()
+                .filter(table -> normalizeName(table.getName()).equals(documentTable)).toList();
+        if (matchingTables.size() != 1) return null;
+        Table source = matchingTables.getFirst();
+        String sourceAlias = source.getAlias() == null ? source.getName() : source.getAlias().getName();
+        for (net.sf.jsqlparser.statement.select.SelectItem<?> item : plainSelect.getSelectItems()) {
+            if (!(item.getExpression() instanceof Column column)
+                    || !normalizeName(column.getColumnName()).equals(columnName)) continue;
+            String qualifier = column.getTable() == null ? null : column.getTable().getName();
+            if (qualifier != null && !normalizeName(qualifier).equals(normalizeName(sourceAlias))
+                    && !normalizeName(qualifier).equals(documentTable)) continue;
+            if (qualifier == null && directTables.size() != 1) continue;
+            return item.getAlias() == null ? column.getColumnName() : item.getAlias().getName();
+        }
+        return null;
+    }
+
+    private void collectDirectTables(FromItem item, List<Table> tables) {
+        if (item instanceof Table table) {
+            tables.add(table);
+        } else if (item instanceof ParenthesedFromItem parenthesed) {
+            collectDirectTables(parenthesed.getFromItem(), tables);
+            if (parenthesed.getJoins() != null) {
+                for (Join join : parenthesed.getJoins()) collectDirectTables(join.getRightItem(), tables);
+            }
+        }
     }
 
     private boolean containsDerivedFromSubquery(Select select) {
@@ -403,6 +558,21 @@ public final class AgenticSqlStatementValidator {
         @Override
         public <S> Void visit(Column column, S context) {
             if (metadataPolicy.isSensitiveColumn(column.getColumnName())) columns.add(column.getColumnName());
+            return super.visit(column, context);
+        }
+    }
+
+    private static final class ColumnReferenceVisitor extends ExpressionVisitorAdapter<Void> {
+        private final String expectedName;
+        private boolean found;
+
+        private ColumnReferenceVisitor(String expectedName) {
+            this.expectedName = normalizeName(expectedName);
+        }
+
+        @Override
+        public <S> Void visit(Column column, S context) {
+            if (normalizeName(column.getColumnName()).equals(expectedName)) found = true;
             return super.visit(column, context);
         }
     }

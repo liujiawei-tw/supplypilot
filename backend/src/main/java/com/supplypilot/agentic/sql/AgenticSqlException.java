@@ -16,6 +16,8 @@ public final class AgenticSqlException extends RuntimeException {
     public enum Code {
         INVALID_SQL("The SQL query is invalid or unsupported."),
         UNSAFE_SQL("The SQL query contains a disallowed operation."),
+        DOCUMENT_EGRESS_REJECTED("The document source is not current or cannot be safely verified for AI output."),
+        DOCUMENT_EGRESS_UNAVAILABLE("The document source could not be checked before AI output."),
         DATABASE_UNAVAILABLE("The selected database is unavailable."),
         QUERY_TIMEOUT("The database query exceeded its time limit."),
         QUERY_FAILED("The database query could not be completed.");

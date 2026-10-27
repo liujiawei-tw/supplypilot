@@ -18,6 +18,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.supplypilot.agentic.config.AgenticSqlProperties;
+import com.supplypilot.agentic.dto.AgenticSqlQueryResponse;
 import com.supplypilot.agentic.dto.AgenticSqlQueryStatus;
 import com.supplypilot.agentic.security.AgenticSqlOutputPolicy;
 import com.supplypilot.agentic.sql.AgenticSqlDatabase;
@@ -42,12 +43,14 @@ import org.springframework.beans.factory.ObjectProvider;
 
 class AgenticSqlAnswerServiceTests {
     private static final String SQL = "SELECT supplier_name, unit_price FROM suppliers ORDER BY unit_price";
+    private static final String MYSQL_STATUS_SQL = "SELECT id FROM suppliers";
+    private static final String POSTGRES_STATUS_SQL = "SELECT id FROM analytics";
 
     @Test
     void exploresSchemaThenQueriesAndReturnsEvidenceAndProviderUsage() {
         AgenticSqlExecutor executor = mock(AgenticSqlExecutor.class);
         AgenticSqlSchemaInspector inspector = mock(AgenticSqlSchemaInspector.class);
-        when(inspector.inspectSchema(anyString(), eq(AgenticSqlDatabase.MYSQL), isNull(), eq("suppliers")))
+        when(inspector.inspectSchema(anyString(), eq(AgenticSqlDatabase.MYSQL), isNull(), eq("suppliers"), eq(0), eq(100)))
                 .thenReturn(new AgenticSqlSchemaResult("schema-call", AgenticSqlDatabase.MYSQL,
                         List.of(new AgenticSqlTableSchema("supplypilot", "suppliers", List.of(), List.of(),
                                 List.of(), List.of(), "AUTHORITATIVE", "MYSQL", null, null))));
@@ -69,7 +72,12 @@ class AgenticSqlAnswerServiceTests {
                         "{\"database\":\"MYSQL\",\"schema\":null,\"table\":\"suppliers\"}");
                 if (call == 2) return toolCall("execute_readonly_sql",
                         "{\"database\":\"MYSQL\",\"sql\":\"" + SQL + "\"}");
-                return response(AssistantMessage.builder().content("Supplier A 的報價為 USD 125.50。")
+                String toolCallId = latestQueryToolCallId(prompt);
+                String answer = "{\"claims\":[{\"text\":\"Supplier A 的報價為 USD 125.50。\","
+                        + "\"evidence\":[{\"toolCallId\":\"" + toolCallId
+                        + "\",\"rowIndex\":0,\"column\":\"supplier_name\"},{\"toolCallId\":\""
+                        + toolCallId + "\",\"rowIndex\":0,\"column\":\"unit_price\"}]}]}";
+                return response(AssistantMessage.builder().content(answer)
                         .toolCalls(List.of()).build());
             }
 
@@ -98,7 +106,8 @@ class AgenticSqlAnswerServiceTests {
             assertThat(result.usage().promptTokens()).isEqualTo(15);
             assertThat(result.usage().completionTokens()).isEqualTo(6);
             assertThat(result.usage().totalTokens()).isEqualTo(21);
-            verify(inspector).inspectSchema(anyString(), eq(AgenticSqlDatabase.MYSQL), isNull(), eq("suppliers"));
+            verify(inspector).inspectSchema(anyString(), eq(AgenticSqlDatabase.MYSQL), isNull(),
+                    eq("suppliers"), eq(0), eq(100));
             verify(executor).execute(anyString(), eq(AgenticSqlDatabase.MYSQL), eq(SQL));
         } finally {
             modelExecutor.close();
@@ -137,9 +146,151 @@ class AgenticSqlAnswerServiceTests {
         }
     }
 
+    @Test
+    void omitsAModelPriceClaimThatDoesNotMatchTheExecutedSqlValue() {
+        AgenticSqlExecutor executor = mock(AgenticSqlExecutor.class);
+        AgenticSqlSchemaInspector inspector = mock(AgenticSqlSchemaInspector.class);
+        when(inspector.inspectSchema(anyString(), eq(AgenticSqlDatabase.MYSQL), isNull(), eq("suppliers"), eq(0), eq(100)))
+                .thenReturn(new AgenticSqlSchemaResult("schema-call", AgenticSqlDatabase.MYSQL,
+                        List.of(new AgenticSqlTableSchema("supplypilot", "suppliers", List.of(), List.of(),
+                                List.of(), List.of(), "AUTHORITATIVE", "MYSQL", null, null))));
+        when(executor.execute(anyString(), eq(AgenticSqlDatabase.MYSQL), eq(SQL)))
+                .thenReturn(new AgenticSqlExecutionResult("query-call", AgenticSqlDatabase.MYSQL,
+                        List.of("suppliers"), List.of("supplier_name", "unit_price"),
+                        List.of(Map.of("supplier_name", "Supplier A", "unit_price", new BigDecimal("125.50"))),
+                        1L, false, 4, List.of()));
+        AtomicInteger calls = new AtomicInteger();
+        ChatModel chatModel = new ChatModel() {
+            @Override public ChatResponse call(Prompt prompt) {
+                int call = calls.incrementAndGet();
+                if (call == 1) return toolCall("inspect_schema",
+                        "{\"database\":\"MYSQL\",\"schema\":null,\"table\":\"suppliers\"}");
+                if (call == 2) return toolCall("execute_readonly_sql",
+                        "{\"database\":\"MYSQL\",\"sql\":\"" + SQL + "\"}");
+                String id = latestQueryToolCallId(prompt);
+                String answer = "{\"claims\":[{\"text\":\"Supplier A 的報價為 USD 152.50。\","
+                        + "\"evidence\":[{\"toolCallId\":\"" + id
+                        + "\",\"rowIndex\":0,\"column\":\"supplier_name\"},{\"toolCallId\":\""
+                        + id + "\",\"rowIndex\":0,\"column\":\"unit_price\"}]}]}";
+                return response(new AssistantMessage(answer));
+            }
+            @Override public ChatOptions getDefaultOptions() { return ToolCallingChatOptions.builder().build(); }
+            @Override public ChatOptions getOptions() { return getDefaultOptions(); }
+        };
+        ObjectMapper mapper = new ObjectMapper().findAndRegisterModules();
+        var modelExecutor = Executors.newVirtualThreadPerTaskExecutor();
+        try {
+            AgenticSqlAnswerService service = createService(chatModel, executor, inspector, mapper, modelExecutor);
+            var result = service.query("比較供應商報價");
+
+            assertThat(result.status()).isEqualTo(AgenticSqlQueryStatus.PARTIAL);
+            assertThat(result.answer()).doesNotContain("152.50").contains("缺乏 SQL 結果支持");
+            assertThat(result.warnings()).contains("UNSUPPORTED_MODEL_CLAIMS");
+        } finally {
+            modelExecutor.close();
+        }
+    }
+
+    @Test
+    void distinguishesNoDataFromPartialOrTotalDatabaseFailure() {
+        assertThat(runDatabasePair(false, false).status()).isEqualTo(AgenticSqlQueryStatus.NO_DATA);
+        assertThat(runDatabasePair(true, false).status()).isEqualTo(AgenticSqlQueryStatus.PARTIAL);
+        assertThat(runDatabasePair(false, true).status()).isEqualTo(AgenticSqlQueryStatus.PARTIAL);
+        var bothFailed = runDatabasePair(true, true);
+        assertThat(bothFailed.status()).isEqualTo(AgenticSqlQueryStatus.QUERY_FAILED);
+        assertThat(bothFailed.answer()).contains("無法判定是否存在");
+    }
+
+    private static AgenticSqlQueryResponse runDatabasePair(boolean mysqlFails, boolean postgresFails) {
+        AgenticSqlExecutor executor = mock(AgenticSqlExecutor.class);
+        AgenticSqlSchemaInspector inspector = mock(AgenticSqlSchemaInspector.class);
+        when(inspector.inspectSchema(anyString(), eq(AgenticSqlDatabase.MYSQL), isNull(), eq("suppliers"), eq(0), eq(100)))
+                .thenReturn(new AgenticSqlSchemaResult("mysql-schema", AgenticSqlDatabase.MYSQL, List.of()));
+        when(inspector.inspectSchema(anyString(), eq(AgenticSqlDatabase.POSTGRESQL), eq("public"), eq("analytics"), eq(0), eq(100)))
+                .thenReturn(new AgenticSqlSchemaResult("pg-schema", AgenticSqlDatabase.POSTGRESQL, List.of()));
+        if (mysqlFails) {
+            when(executor.execute(anyString(), eq(AgenticSqlDatabase.MYSQL), eq(MYSQL_STATUS_SQL)))
+                    .thenThrow(new com.supplypilot.agentic.sql.AgenticSqlException(
+                            com.supplypilot.agentic.sql.AgenticSqlException.Code.DATABASE_UNAVAILABLE));
+        } else {
+            when(executor.execute(anyString(), eq(AgenticSqlDatabase.MYSQL), eq(MYSQL_STATUS_SQL)))
+                    .thenReturn(emptyResult(AgenticSqlDatabase.MYSQL, "suppliers"));
+        }
+        if (postgresFails) {
+            when(executor.execute(anyString(), eq(AgenticSqlDatabase.POSTGRESQL), eq(POSTGRES_STATUS_SQL)))
+                    .thenThrow(new com.supplypilot.agentic.sql.AgenticSqlException(
+                            com.supplypilot.agentic.sql.AgenticSqlException.Code.DATABASE_UNAVAILABLE));
+        } else {
+            when(executor.execute(anyString(), eq(AgenticSqlDatabase.POSTGRESQL), eq(POSTGRES_STATUS_SQL)))
+                    .thenReturn(emptyResult(AgenticSqlDatabase.POSTGRESQL, "analytics"));
+        }
+        ChatModel model = new ChatModel() {
+            private final AtomicInteger calls = new AtomicInteger();
+            @Override public ChatResponse call(Prompt prompt) {
+                return switch (calls.incrementAndGet()) {
+                    case 1 -> toolCall("inspect_schema",
+                            "{\"database\":\"MYSQL\",\"table\":\"suppliers\"}");
+                    case 2 -> toolCall("execute_readonly_sql",
+                            "{\"database\":\"MYSQL\",\"sql\":\"" + MYSQL_STATUS_SQL + "\"}");
+                    case 3 -> toolCall("inspect_schema",
+                            "{\"database\":\"POSTGRESQL\",\"schema\":\"public\",\"table\":\"analytics\"}");
+                    case 4 -> toolCall("execute_readonly_sql",
+                            "{\"database\":\"POSTGRESQL\",\"sql\":\"" + POSTGRES_STATUS_SQL + "\"}");
+                    default -> response(new AssistantMessage("資料不存在"));
+                };
+            }
+            @Override public ChatOptions getDefaultOptions() { return ToolCallingChatOptions.builder().build(); }
+            @Override public ChatOptions getOptions() { return getDefaultOptions(); }
+        };
+        ObjectMapper mapper = new ObjectMapper().findAndRegisterModules();
+        var modelExecutor = Executors.newVirtualThreadPerTaskExecutor();
+        try {
+            return createService(model, executor, inspector, mapper, modelExecutor).query("跨資料庫查詢");
+        } finally {
+            modelExecutor.close();
+        }
+    }
+
+    private static AgenticSqlExecutionResult emptyResult(AgenticSqlDatabase database, String table) {
+        return new AgenticSqlExecutionResult("query", database, List.of(table), List.of("id"),
+                List.of(), 0L, false, 2, List.of());
+    }
+
+    private static AgenticSqlAnswerService createService(ChatModel chatModel, AgenticSqlExecutor executor,
+                                                          AgenticSqlSchemaInspector inspector, ObjectMapper mapper,
+                                                          java.util.concurrent.ExecutorService modelExecutor) {
+        @SuppressWarnings("unchecked") ObjectProvider<ChatModel> chatModels = mock(ObjectProvider.class);
+        when(chatModels.getIfAvailable()).thenReturn(chatModel);
+        CurrentUserProvider users = mock(CurrentUserProvider.class);
+        when(users.getCurrentUserId()).thenReturn(42L);
+        return new AgenticSqlAnswerService(chatModels, executor, inspector, new AgenticSqlOutputPolicy(mapper),
+                properties(), users, mapper, modelExecutor, new SimpleMeterRegistry());
+    }
+
     private static ChatResponse toolCall(String name, String arguments) {
         return response(AssistantMessage.builder().content("").toolCalls(List.of(
                 new AssistantMessage.ToolCall(name, "function", name, arguments))).build());
+    }
+
+    private static String latestQueryToolCallId(Prompt prompt) {
+        ObjectMapper mapper = new ObjectMapper();
+        for (var message : prompt.getInstructions()) {
+            if (message instanceof org.springframework.ai.chat.messages.ToolResponseMessage toolResponse) {
+                List<org.springframework.ai.chat.messages.ToolResponseMessage.ToolResponse> responses =
+                        toolResponse.getResponses();
+                for (int index = responses.size() - 1; index >= 0; index--) {
+                    try {
+                        var payload = mapper.readTree(responses.get(index).responseData());
+                        if (payload != null && payload.has("rows") && payload.hasNonNull("toolCallId")) {
+                            return payload.get("toolCallId").asText();
+                        }
+                    } catch (Exception ignored) {
+                        // Earlier tool responses such as schema JSON are not SQL evidence.
+                    }
+                }
+            }
+        }
+        throw new IllegalStateException("Tool result did not include an evidence call id: " + prompt);
     }
 
     private static ChatResponse response(AssistantMessage message) {

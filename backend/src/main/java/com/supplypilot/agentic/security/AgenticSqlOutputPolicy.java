@@ -52,8 +52,13 @@ public class AgenticSqlOutputPolicy {
                     + "glpat-[A-Za-z0-9_-]{20,}|xox[baprs]-[A-Za-z0-9-]{10,})\\b)"
     );
     private static final Pattern BANK_VALUE = Pattern.compile(
-            "(?i)(?:bank account|account number|routing number|iban|swift|bic|銀行帳號|銀行帳戶|匯款帳號|收款帳號)"
+            "(?i)(?:bank account|account number|account no\\.?|acct(?:ount)?[_ -]?(?:no\\.?|number)?|"
+                    + "routing number|iban|銀行(?:帳號|帳戶)|(?:匯款|收款)?帳號|帳戶)"
                     + "\\s*[:：#=]?\\s*(?:[^\\r\\n\\d]{1,32}\\s*)?\\d[\\dA-Z -]{5,}"
+    );
+    private static final Pattern SWIFT_BIC = Pattern.compile(
+            "(?i)(?:\\bSWIFT(?:\\s*/\\s*BIC)?\\b|\\bBIC\\b)\\s*[:：#=]?\\s*"
+                    + "[A-Z]{4}[A-Z]{2}[A-Z0-9]{2}(?:[A-Z0-9]{3})?\\b"
     );
     private static final Pattern PERSONAL_FIELD = Pattern.compile(
             "(?iu)(?:\\b(?:ssn|social security|passport(?: number| no\\.?)?|date of birth|home address|personal address|contact name|contact person|person name)\\b"
@@ -131,6 +136,7 @@ public class AgenticSqlOutputPolicy {
 
     private String maskText(String value) {
         String masked = SECRET_ASSIGNMENT.matcher(value).replaceAll("[SYSTEM_SECRET_REDACTED]");
+        masked = SWIFT_BIC.matcher(masked).replaceAll("[BANK_IDENTIFIER_REDACTED]");
         masked = BANK_VALUE.matcher(masked).replaceAll("[BANK_ACCOUNT_REDACTED]");
         masked = PERSONAL_FIELD.matcher(masked).replaceAll("[PERSONAL_DATA_REDACTED]");
         masked = EMAIL.matcher(masked).replaceAll("[EMAIL_REDACTED]");

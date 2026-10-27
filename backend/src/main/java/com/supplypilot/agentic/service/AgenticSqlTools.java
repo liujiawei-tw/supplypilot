@@ -42,6 +42,7 @@ public final class AgenticSqlTools {
     private final AtomicInteger toolCallCount = new AtomicInteger();
     private final List<AgenticSqlToolCallResponse> toolCalls = new CopyOnWriteArrayList<>();
     private final List<AgenticSqlSourceResponse> sources = new CopyOnWriteArrayList<>();
+    private final List<AgenticSqlEvidenceCell> evidenceCells = new CopyOnWriteArrayList<>();
     private final AtomicInteger successfulQueries = new AtomicInteger();
     private final AtomicInteger returnedRows = new AtomicInteger();
     private final AtomicInteger failures = new AtomicInteger();
@@ -60,18 +61,22 @@ public final class AgenticSqlTools {
         this.objectMapper = objectMapper;
     }
 
-    @Tool(name = "inspect_schema", description = "Discover accessible tables and columns in MYSQL or POSTGRESQL. First call without table to list available table names; then call with one table to inspect its columns, types, keys and relationships. PostgreSQL semantic_chunks is a derived, potentially stale index; MySQL document_chunks is authoritative.")
+    @Tool(name = "inspect_schema", description = "Discover accessible tables and columns in MYSQL or POSTGRESQL. List tables in bounded pages; use nextOffset to continue, schema/table filters to narrow discovery, then inspect one table for columns, types, keys and relationships. PostgreSQL semantic_chunks is a derived, potentially stale index; MySQL document_chunks is authoritative.")
     public String inspectSchema(
             @ToolParam(description = "Database to inspect: MYSQL or POSTGRESQL") String database,
             @ToolParam(description = "Optional schema name", required = false) @Nullable String schema,
-            @ToolParam(description = "Optional table name; omit to list tables") @Nullable String table
+            @ToolParam(description = "Optional exact table name; omit to list tables") @Nullable String table,
+            @ToolParam(description = "Zero-based table offset; use nextOffset from the prior page", required = false)
+            @Nullable Integer offset,
+            @ToolParam(description = "Page size from 1 to 100", required = false) @Nullable Integer pageSize
     ) {
         String toolCallId = newToolCallId();
         long started = System.nanoTime();
         if (!beginToolCall()) return toolLimitResponse(toolCallId, "INSPECT_SCHEMA");
         try {
             AgenticSqlDatabase selected = AgenticSqlDatabase.valueOf(database.trim().toUpperCase());
-            AgenticSqlSchemaResult result = schemaInspector.inspectSchema(toolCallId, selected, schema, table);
+            AgenticSqlSchemaResult result = schemaInspector.inspectSchema(toolCallId, selected, schema, table,
+                    offset == null ? 0 : offset, pageSize == null ? Math.min(100, properties.maxRows()) : pageSize);
             List<Map<String, Object>> tablePayload = new ArrayList<>();
             for (AgenticSqlTableSchema item : result.tables()) {
                 LinkedHashMap<String, Object> encoded = new LinkedHashMap<>();
@@ -91,9 +96,16 @@ public final class AgenticSqlTools {
             }
             boolean truncated = tablePayload.size() > properties.maxRows();
             if (truncated) tablePayload = tablePayload.subList(0, properties.maxRows());
-            String payload = toJson(Map.of("toolCallId", toolCallId,
-                    "database", selected.name(), "tables", tablePayload,
-                    "truncated", truncated));
+            LinkedHashMap<String, Object> schemaPayload = new LinkedHashMap<>();
+            schemaPayload.put("toolCallId", toolCallId);
+            schemaPayload.put("database", selected.name());
+            schemaPayload.put("tables", tablePayload);
+            schemaPayload.put("offset", result.offset());
+            schemaPayload.put("pageSize", result.pageSize());
+            schemaPayload.put("hasMore", result.hasMore());
+            schemaPayload.put("nextOffset", result.nextOffset());
+            schemaPayload.put("truncated", truncated);
+            String payload = toJson(schemaPayload);
             if (payload.length() > properties.maxResultChars()) {
                 toolCalls.add(new AgenticSqlToolCallResponse(toolCallId, "INSPECT_SCHEMA", selected.name(),
                         List.of(), tablePayload.size(), true, elapsedMs(started), "TRUNCATED", null));
@@ -155,6 +167,13 @@ public final class AgenticSqlTools {
                     sources.add(sourceResponse(result, source));
                 }
             }
+            for (int rowIndex = 0; rowIndex < sanitized.rows().size(); rowIndex++) {
+                for (var cell : sanitized.rows().get(rowIndex).entrySet()) {
+                    evidenceCells.add(new AgenticSqlEvidenceCell(toolCallId, selected.name(),
+                            Set.copyOf(result.tables()), rowIndex, cell.getKey(),
+                            cell.getValue() == null ? null : cell.getValue().toString()));
+                }
+            }
             successfulQueries.incrementAndGet();
             returnedRows.addAndGet(sanitized.rows().size());
             toolCalls.add(new AgenticSqlToolCallResponse(toolCallId, "EXECUTE_READONLY_SQL", selected.name(),
@@ -170,7 +189,7 @@ public final class AgenticSqlTools {
                     List.of(), 0, false, elapsedMs(started), "FAILED", errorCode));
             log.info("agentic-sql tool=execute_readonly_sql database={} elapsedMs={} errorCode={}",
                     db, elapsedMs(started), errorCode);
-            return errorCode + ": the read-only query was not executed. Revise it using the discovered schema; do not repeat unchanged SQL.";
+            return safeFailureMessage(errorCode);
         }
     }
 
@@ -209,6 +228,8 @@ public final class AgenticSqlTools {
             return switch (sqlFailure.code()) {
                 case INVALID_SQL -> "SQL_SYNTAX_ERROR";
                 case UNSAFE_SQL -> "SQL_REJECTED";
+                case DOCUMENT_EGRESS_REJECTED -> "DOCUMENT_EGRESS_REJECTED";
+                case DOCUMENT_EGRESS_UNAVAILABLE -> "DOCUMENT_EGRESS_UNAVAILABLE";
                 case DATABASE_UNAVAILABLE -> "DATABASE_UNAVAILABLE";
                 case QUERY_TIMEOUT -> "QUERY_TIMEOUT";
                 case QUERY_FAILED -> "QUERY_FAILED";
@@ -218,6 +239,22 @@ public final class AgenticSqlTools {
         if (type.contains("VALIDATION") || type.contains("REJECT")) return "SQL_REJECTED";
         if (type.contains("TIMEOUT")) return "QUERY_TIMEOUT";
         return "QUERY_FAILED";
+    }
+
+    private String safeFailureMessage(String errorCode) {
+        if ("DOCUMENT_EGRESS_REJECTED".equals(errorCode)) {
+            return "DOCUMENT_EGRESS_REJECTED: document text was not returned. Use a READY/current document and "
+                    + "project its direct document_id; for PostgreSQL semantic_chunks also project document_version. "
+                    + "Rewrite derived document projections as a direct table query.";
+        }
+        if ("SQL_REJECTED".equals(errorCode)) {
+            return "SQL_REJECTED: the read-only query was not executed. Rewrite ambiguous sensitive derived projections "
+                    + "as a CTE or direct JOIN and retry with discovered schema.";
+        }
+        if ("DOCUMENT_EGRESS_UNAVAILABLE".equals(errorCode)) {
+            return "DOCUMENT_EGRESS_UNAVAILABLE: document text was not returned because its current source could not be checked.";
+        }
+        return errorCode + ": the read-only query was not executed. Revise it using the discovered schema; do not repeat unchanged SQL.";
     }
 
     private String safeDatabase(String database) {
@@ -266,5 +303,9 @@ public final class AgenticSqlTools {
 
     public int failures() {
         return failures.get();
+    }
+
+    public List<AgenticSqlEvidenceCell> evidenceCells() {
+        return List.copyOf(evidenceCells);
     }
 }
