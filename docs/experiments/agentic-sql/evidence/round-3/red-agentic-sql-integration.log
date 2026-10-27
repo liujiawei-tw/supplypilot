@@ -1,0 +1,123 @@
+[INFO] Scanning for projects...
+[INFO] 
+[INFO] ------------------< com.supplypilot:supply-pilot-api >------------------
+[INFO] Building supply-pilot-api 0.0.1-SNAPSHOT
+[INFO]   from pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.5.0:resources (default-resources) @ supply-pilot-api ---
+[INFO] Copying 5 resources from src\main\resources to target\classes
+[INFO] Copying 37 resources from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.15.0:compile (default-compile) @ supply-pilot-api ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- resources:3.5.0:testResources (default-testResources) @ supply-pilot-api ---
+[INFO] Copying 3 resources from src\test\resources to target\test-classes
+[INFO] 
+[INFO] --- compiler:3.15.0:testCompile (default-testCompile) @ supply-pilot-api ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- surefire:3.5.6:test (default-test) @ supply-pilot-api ---
+[INFO] Using auto detected provider org.apache.maven.surefire.junitplatform.JUnitPlatformProvider
+[INFO] 
+[INFO] -------------------------------------------------------
+[INFO]  T E S T S
+[INFO] -------------------------------------------------------
+21:39:58.651 [main] INFO org.testcontainers.DockerClientFactory -- Testcontainers version: 2.0.5
+21:39:59.498 [main] INFO org.testcontainers.dockerclient.DockerClientProviderStrategy -- Loaded org.testcontainers.dockerclient.NpipeSocketClientProviderStrategy from ~/.testcontainers.properties, will try it first
+21:40:00.498 [main] INFO org.testcontainers.dockerclient.DockerClientProviderStrategy -- Found Docker environment with local Npipe socket (npipe:////./pipe/docker_engine)
+21:40:00.501 [main] INFO org.testcontainers.DockerClientFactory -- Docker host IP address is localhost
+21:40:00.533 [main] INFO org.testcontainers.DockerClientFactory -- Connected to docker: 
+  Server Version: 29.6.1
+  API Version: 1.55
+  Operating System: Docker Desktop
+  Total Memory: 19902 MB
+  Labels: 
+    com.docker.desktop.address=npipe://\\.\pipe\docker_cli
+21:40:00.568 [main] INFO org.testcontainers.images.PullPolicy -- Image pull policy will be performed by: DefaultPullPolicy()
+21:40:00.573 [main] INFO org.testcontainers.utility.ImageNameSubstitutor -- Image name substitution will be performed by: DefaultImageNameSubstitutor (composite of 'ConfigurationFileImageNameSubstitutor' and 'PrefixingImageNameSubstitutor')
+21:40:01.313 [main] INFO tc.testcontainers/ryuk:0.14.0 -- Creating container for image: testcontainers/ryuk:0.14.0
+21:40:01.770 [main] INFO tc.testcontainers/ryuk:0.14.0 -- Container testcontainers/ryuk:0.14.0 is starting: c970d7b523536b80583010c6a313f0a8ea25e25118c4eafa04604b1ba3f3a41c
+21:40:02.504 [main] INFO tc.testcontainers/ryuk:0.14.0 -- Container testcontainers/ryuk:0.14.0 started in PT1.18969S
+21:40:02.522 [main] INFO org.testcontainers.utility.RyukResourceReaper -- Ryuk started - will monitor and terminate Testcontainers containers on JVM exit
+21:40:02.523 [main] INFO org.testcontainers.DockerClientFactory -- Checking the system...
+21:40:02.525 [main] INFO org.testcontainers.DockerClientFactory -- ?? Docker server version should be at least 1.6.0
+[INFO] Running com.supplypilot.agentic.sql.AgenticSqlExecutorIntegrationTests
+21:40:02.887 [main] INFO tc.mysql:8.4.11 -- Creating container for image: mysql:8.4.11
+21:40:03.086 [main] INFO tc.mysql:8.4.11 -- Container mysql:8.4.11 is starting: 3c3abf1d0f035c7d10cf7894ca4bb8091e4e91065b10a81b9630e507ca59b1cf
+21:40:03.602 [main] INFO tc.mysql:8.4.11 -- Waiting for database connection to become available at jdbc:mysql://localhost:6934/supplypilot_agentic_test using query 'SELECT 1'
+21:40:21.777 [main] INFO tc.mysql:8.4.11 -- Container mysql:8.4.11 started in PT18.8902823S
+21:40:21.778 [main] INFO tc.mysql:8.4.11 -- Container is started (JDBC URL: jdbc:mysql://localhost:6934/supplypilot_agentic_test)
+21:40:21.779 [main] INFO tc.postgres:16-alpine -- Creating container for image: postgres:16-alpine
+21:40:21.996 [main] INFO tc.postgres:16-alpine -- Container postgres:16-alpine is starting: ce3d0acdbe5c09fab9babb43c198568010758ddc4dad5efb8d033ca1c061fcc3
+21:40:25.064 [main] INFO tc.postgres:16-alpine -- Container postgres:16-alpine started in PT3.2853193S
+21:40:25.064 [main] INFO tc.postgres:16-alpine -- Container is started (JDBC URL: jdbc:postgresql://localhost:6691/supplypilot_agentic_test?loggerLevel=OFF)
+[ERROR] Tests run: 18, Failures: 4, Errors: 0, Skipped: 0, Time elapsed: 37.58 s <<< FAILURE! -- in com.supplypilot.agentic.sql.AgenticSqlExecutorIntegrationTests
+[ERROR] com.supplypilot.agentic.sql.AgenticSqlExecutorIntegrationTests.blocksUnverifiableOrNonReadyDocumentTextAndRejectsStalePostgresDocumentVersions -- Time elapsed: 0.870 s <<< FAILURE!
+java.lang.AssertionError: 
+
+Expecting code to raise a throwable.
+	at com.supplypilot.agentic.sql.AgenticSqlExecutorIntegrationTests.blocksUnverifiableOrNonReadyDocumentTextAndRejectsStalePostgresDocumentVersions(AgenticSqlExecutorIntegrationTests.java:514)
+
+[ERROR] com.supplypilot.agentic.sql.AgenticSqlExecutorIntegrationTests.sqlConcatenatedSupplierStatusCannotBeUsedAsBusinessEvidence -- Time elapsed: 0.170 s <<< FAILURE!
+java.lang.AssertionError: 
+
+Expecting empty but was: "alpha �w�}���C"
+	at com.supplypilot.agentic.sql.AgenticSqlExecutorIntegrationTests.sqlConcatenatedSupplierStatusCannotBeUsedAsBusinessEvidence(AgenticSqlExecutorIntegrationTests.java:224)
+
+[ERROR] com.supplypilot.agentic.sql.AgenticSqlExecutorIntegrationTests.sqlAdjustedAggregateCannotBeUsedAsTheActualSupplierCount -- Time elapsed: 0.048 s <<< FAILURE!
+java.lang.AssertionError: 
+
+Expecting map:
+  {"supplier_count"="1001"}
+to contain entries:
+  ["supplier_count"=1001L]
+but the following map entries had different values:
+  ["supplier_count"="1001" (expected: 1001L)]
+	at com.supplypilot.agentic.sql.AgenticSqlExecutorIntegrationTests.sqlAdjustedAggregateCannotBeUsedAsTheActualSupplierCount(AgenticSqlExecutorIntegrationTests.java:199)
+
+[ERROR] com.supplypilot.agentic.sql.AgenticSqlExecutorIntegrationTests.rejectsTransformedDocumentTextAndStillMasksDirectDocumentContent -- Time elapsed: 0.040 s <<< FAILURE!
+java.lang.AssertionError: 
+
+Expecting code to raise a throwable.
+	at com.supplypilot.agentic.sql.AgenticSqlExecutorIntegrationTests.rejectsTransformedDocumentTextAndStillMasksDirectDocumentContent(AgenticSqlExecutorIntegrationTests.java:532)
+
+[INFO] 
+[INFO] Results:
+[INFO] 
+[ERROR] Failures: 
+[ERROR]   AgenticSqlExecutorIntegrationTests.blocksUnverifiableOrNonReadyDocumentTextAndRejectsStalePostgresDocumentVersions:514 
+Expecting code to raise a throwable.
+[ERROR]   AgenticSqlExecutorIntegrationTests.rejectsTransformedDocumentTextAndStillMasksDirectDocumentContent:532 
+Expecting code to raise a throwable.
+[ERROR]   AgenticSqlExecutorIntegrationTests.sqlAdjustedAggregateCannotBeUsedAsTheActualSupplierCount:199 
+Expecting map:
+  {"supplier_count"="1001"}
+to contain entries:
+  ["supplier_count"=1001L]
+but the following map entries had different values:
+  ["supplier_count"="1001" (expected: 1001L)]
+[ERROR]   AgenticSqlExecutorIntegrationTests.sqlConcatenatedSupplierStatusCannotBeUsedAsBusinessEvidence:224 
+Expecting empty but was: "alpha �w�}���C"
+[INFO] 
+[ERROR] Tests run: 18, Failures: 4, Errors: 0, Skipped: 0
+[INFO] 
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD FAILURE
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  53.028 s
+[INFO] Finished at: 2026-10-27T21:40:40+08:00
+[INFO] ------------------------------------------------------------------------
+[ERROR] Failed to execute goal org.apache.maven.plugins:maven-surefire-plugin:3.5.6:test (default-test) on project supply-pilot-api: There are test failures.
+[ERROR] 
+[ERROR] See C:\Users\z0976\OneDrive\�ୱ\dev-side\supplypilot\backend\target\surefire-reports for the individual test results.
+[ERROR] See dump files (if any exist) [date].dump, [date]-jvmRun[N].dump and [date].dumpstream.
+[ERROR] -> [Help 1]
+[ERROR] 
+[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.
+[ERROR] Re-run Maven using the -X switch to enable full debug logging.
+[ERROR] 
+[ERROR] For more information about the errors and possible solutions, please read the following articles:
+[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoFailureException
+RECORDED_EXIT_CODE=1

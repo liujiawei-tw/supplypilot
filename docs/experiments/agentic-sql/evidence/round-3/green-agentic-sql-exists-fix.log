@@ -1,0 +1,90 @@
+[INFO] Scanning for projects...
+[INFO] 
+[INFO] ------------------< com.supplypilot:supply-pilot-api >------------------
+[INFO] Building supply-pilot-api 0.0.1-SNAPSHOT
+[INFO]   from pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.5.0:resources (default-resources) @ supply-pilot-api ---
+[INFO] Copying 5 resources from src\main\resources to target\classes
+[INFO] Copying 37 resources from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.15.0:compile (default-compile) @ supply-pilot-api ---
+[INFO] Recompiling the module because of changed source code.
+[INFO] Compiling 315 source files with javac [debug parameters release 21] to target\classes
+[WARNING] /C:/Users/z0976/OneDrive/�ୱ/dev-side/supplypilot/backend/src/main/java/com/supplypilot/agentic/service/AgenticSqlAnswerService.java:[232,42] getDefaultOptions() in org.springframework.ai.chat.model.ChatModel has been deprecated and marked for removal
+[WARNING] /C:/Users/z0976/OneDrive/�ୱ/dev-side/supplypilot/backend/src/main/java/com/supplypilot/agentic/service/AgenticSqlAnswerService.java:[232,80] getDefaultOptions() in org.springframework.ai.chat.model.ChatModel has been deprecated and marked for removal
+[WARNING] /C:/Users/z0976/OneDrive/�ୱ/dev-side/supplypilot/backend/src/main/java/com/supplypilot/agentic/sql/AgenticSqlProjectionLineage.java:[265,39] net.sf.jsqlparser.expression.Parenthesis in net.sf.jsqlparser.expression has been deprecated and marked for removal
+[WARNING] /C:/Users/z0976/OneDrive/�ୱ/dev-side/supplypilot/backend/src/main/java/com/supplypilot/ai/client/SpringAiDraftProposalGenerator.java:[165,42] getDefaultOptions() in org.springframework.ai.chat.model.ChatModel has been deprecated and marked for removal
+[WARNING] /C:/Users/z0976/OneDrive/�ୱ/dev-side/supplypilot/backend/src/main/java/com/supplypilot/ai/client/SpringAiDraftProposalGenerator.java:[165,76] getDefaultOptions() in org.springframework.ai.chat.model.ChatModel has been deprecated and marked for removal
+[WARNING] /C:/Users/z0976/OneDrive/�ୱ/dev-side/supplypilot/backend/src/main/java/com/supplypilot/ai/client/SpringAiProviderClient.java:[241,32] getDefaultOptions() in org.springframework.ai.chat.model.ChatModel has been deprecated and marked for removal
+[WARNING] /C:/Users/z0976/OneDrive/�ୱ/dev-side/supplypilot/backend/src/main/java/com/supplypilot/ai/client/SpringAiProviderClient.java:[242,33] getDefaultOptions() in org.springframework.ai.chat.model.ChatModel has been deprecated and marked for removal
+[INFO] /C:/Users/z0976/OneDrive/�ୱ/dev-side/supplypilot/backend/src/main/java/com/supplypilot/agentic/sql/AgenticSqlStatementValidator.java: Some input files use or override a deprecated API.
+[INFO] /C:/Users/z0976/OneDrive/�ୱ/dev-side/supplypilot/backend/src/main/java/com/supplypilot/agentic/sql/AgenticSqlStatementValidator.java: Recompile with -Xlint:deprecation for details.
+[INFO] 
+[INFO] --- resources:3.5.0:testResources (default-testResources) @ supply-pilot-api ---
+[INFO] Copying 3 resources from src\test\resources to target\test-classes
+[INFO] 
+[INFO] --- compiler:3.15.0:testCompile (default-testCompile) @ supply-pilot-api ---
+[INFO] Recompiling the module because of changed dependency.
+[INFO] Compiling 150 source files with javac [debug parameters release 21] to target\test-classes
+[WARNING] /C:/Users/z0976/OneDrive/�ୱ/dev-side/supplypilot/backend/src/test/java/com/supplypilot/agentic/service/AgenticSqlAnswerServiceTests.java:[91,42] getDefaultOptions() in org.springframework.ai.chat.model.ChatModel has been deprecated and marked for removal
+[WARNING] /C:/Users/z0976/OneDrive/�ୱ/dev-side/supplypilot/backend/src/test/java/com/supplypilot/agentic/service/AgenticSqlAnswerServiceTests.java:[130,42] getDefaultOptions() in org.springframework.ai.chat.model.ChatModel has been deprecated and marked for removal
+[WARNING] /C:/Users/z0976/OneDrive/�ୱ/dev-side/supplypilot/backend/src/test/java/com/supplypilot/agentic/service/AgenticSqlAnswerServiceTests.java:[190,42] getDefaultOptions() in org.springframework.ai.chat.model.ChatModel has been deprecated and marked for removal
+[WARNING] /C:/Users/z0976/OneDrive/�ୱ/dev-side/supplypilot/backend/src/test/java/com/supplypilot/agentic/service/AgenticSqlAnswerServiceTests.java:[255,42] getDefaultOptions() in org.springframework.ai.chat.model.ChatModel has been deprecated and marked for removal
+[WARNING] /C:/Users/z0976/OneDrive/�ୱ/dev-side/supplypilot/backend/src/test/java/com/supplypilot/ai/client/SpringAiDraftProposalGeneratorTests.java:[43,42] getDefaultOptions() in org.springframework.ai.chat.model.ChatModel has been deprecated and marked for removal
+[WARNING] /C:/Users/z0976/OneDrive/�ୱ/dev-side/supplypilot/backend/src/test/java/com/supplypilot/ai/client/SpringAiProviderClientTests.java:[828,67] getDefaultOptions() in org.springframework.ai.chat.model.ChatModel has been deprecated and marked for removal
+[WARNING] /C:/Users/z0976/OneDrive/�ୱ/dev-side/supplypilot/backend/src/test/java/com/supplypilot/integration/AiControllerIntegrationTests.java:[316,28] getDefaultOptions() in org.springframework.ai.chat.model.ChatModel has been deprecated and marked for removal
+[WARNING] /C:/Users/z0976/OneDrive/�ୱ/dev-side/supplypilot/backend/src/test/java/com/supplypilot/integration/AiDraftProposalIntegrationTests.java:[286,46] getDefaultOptions() in org.springframework.ai.chat.model.ChatModel has been deprecated and marked for removal
+[INFO] /C:/Users/z0976/OneDrive/�ୱ/dev-side/supplypilot/backend/src/test/java/com/supplypilot/agentic/sql/AgenticSqlExecutorIntegrationTests.java: Some input files use or override a deprecated API.
+[INFO] /C:/Users/z0976/OneDrive/�ୱ/dev-side/supplypilot/backend/src/test/java/com/supplypilot/agentic/sql/AgenticSqlExecutorIntegrationTests.java: Recompile with -Xlint:deprecation for details.
+[INFO] /C:/Users/z0976/OneDrive/�ୱ/dev-side/supplypilot/backend/src/test/java/com/supplypilot/demand/service/DemandServiceTests.java: Some input files use unchecked or unsafe operations.
+[INFO] /C:/Users/z0976/OneDrive/�ୱ/dev-side/supplypilot/backend/src/test/java/com/supplypilot/demand/service/DemandServiceTests.java: Recompile with -Xlint:unchecked for details.
+[INFO] 
+[INFO] --- surefire:3.5.6:test (default-test) @ supply-pilot-api ---
+[INFO] Using auto detected provider org.apache.maven.surefire.junitplatform.JUnitPlatformProvider
+[INFO] 
+[INFO] -------------------------------------------------------
+[INFO]  T E S T S
+[INFO] -------------------------------------------------------
+22:01:31.988 [main] INFO org.testcontainers.DockerClientFactory -- Testcontainers version: 2.0.5
+22:01:32.627 [main] INFO org.testcontainers.dockerclient.DockerClientProviderStrategy -- Loaded org.testcontainers.dockerclient.NpipeSocketClientProviderStrategy from ~/.testcontainers.properties, will try it first
+22:01:42.697 [main] WARN org.testcontainers.dockerclient.DockerClientProviderStrategy -- DOCKER_HOST npipe:////./pipe/docker_engine is not listening
+java.lang.RuntimeException: java.nio.file.AccessDeniedException: \\.\pipe\docker_engine
+	at com.github.dockerjava.transport.NamedPipeSocket.connect(NamedPipeSocket.java:62)
+	at com.github.dockerjava.transport.NamedPipeSocket.connect(NamedPipeSocket.java:43)
+	at org.testcontainers.dockerclient.DockerClientProviderStrategy.lambda$test$3(DockerClientProviderStrategy.java:214)
+	at org.testcontainers.shaded.org.awaitility.core.AssertionCondition.lambda$new$0(AssertionCondition.java:53)
+	at org.testcontainers.shaded.org.awaitility.core.ConditionAwaiter$ConditionPoller.call(ConditionAwaiter.java:248)
+	at org.testcontainers.shaded.org.awaitility.core.ConditionAwaiter$ConditionPoller.call(ConditionAwaiter.java:235)
+	at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:317)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+	at java.base/java.lang.Thread.run(Thread.java:1583)
+Caused by: java.nio.file.AccessDeniedException: \\.\pipe\docker_engine
+	at java.base/sun.nio.fs.WindowsException.translateToIOException(WindowsException.java:89)
+	at java.base/sun.nio.fs.WindowsException.rethrowAsIOException(WindowsException.java:96)
+	at java.base/sun.nio.fs.WindowsChannelFactory.newAsynchronousFileChannel(WindowsChannelFactory.java:209)
+	at java.base/sun.nio.fs.WindowsFileSystemProvider.newAsynchronousFileChannel(WindowsFileSystemProvider.java:144)
+	at java.base/java.nio.channels.AsynchronousFileChannel.open(AsynchronousFileChannel.java:259)
+	at java.base/java.nio.channels.AsynchronousFileChannel.open(AsynchronousFileChannel.java:323)
+	at com.github.dockerjava.transport.NamedPipeSocket.connect(NamedPipeSocket.java:53)
+	... 9 common frames omitted
+22:01:42.716 [main] INFO org.testcontainers.dockerclient.DockerMachineClientProviderStrategy -- docker-machine executable was not found on PATH ([C:\Windows\System32\WindowsPowerShell\7, C:\Users\z0976\.codex\tmp\arg0-windows\codex-arg0o6Hglo, C:\Users\z0976\.cache\codex-runtimes\codex-primary-runtime\dependencies\native\libheif\libheif\bin, C:\Users\z0976\.cache\codex-runtimes\codex-primary-runtime\dependencies\native\jxrlib\jxrlib\bin, C:\Users\z0976\.cache\codex-runtimes\codex-primary-runtime\dependencies\native\poppler\Library\bin, C:\Users\z0976\.cache\codex-runtimes\codex-primary-runtime\dependencies\bin\override, C:\Program Files\Zulu\zulu-21\bin\, C:\Program Files\Common Files\Oracle\Java\javapath, D:\VMware\VMware Workstation\bin\, C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common, C:\Program Files (x86)\Common Files\Intel\Shared Libraries\redist\intel64\compiler, C:\Program Files (x86)\Common Files\Oracle\Java\javapath, C:\Windows\system32, C:\Windows, C:\Windows\System32\Wbem, C:\Windows\System32\WindowsPowerShell\v1.0\, C:\Windows\System32\OpenSSH\, C:\Program Files\NVIDIA Corporation\NVIDIA NvDLISR, C:\Program Files\Intel\WiFi\bin\, C:\Program Files\Common Files\Intel\WirelessCommon\, C:\WINDOWS\system32, C:\WINDOWS, C:\WINDOWS\System32\Wbem, C:\WINDOWS\System32\WindowsPowerShell\v1.0\, C:\WINDOWS\System32\OpenSSH\, C:\Program Files (x86)\dotnet\, C:\Program Files\Microsoft SQL Server\Client SDK\ODBC\110\Tools\Binn\, C:\Program Files (x86)\Microsoft SQL Server\120\Tools\Binn\, C:\Program Files\Microsoft SQL Server\120\Tools\Binn\, C:\Program Files\Microsoft SQL Server\120\DTS\Binn\, C:\Program Files (x86)\Windows Kits\8.1\Windows Performance Toolkit\, C:\Program Files\dotnet\, C:\Program Files\Git\cmd, C:\Program Files\nodejs\, C:\Program Files\Docker\Docker\resources\bin, C:\Windows\System32\WindowsPowerShell\7\, C:\Users\z0976\anaconda3, C:\Users\z0976\anaconda3\Library\mingw-w64\bin, C:\Users\z0976\anaconda3\Library\usr\bin, C:\Users\z0976\anaconda3\Library\bin, C:\Users\z0976\anaconda3\Scripts, C:\Users\z0976\AppData\Local\Programs\Python\Python313\Scripts\, C:\Users\z0976\AppData\Local\Programs\Python\Python313\, C:\Users\z0976\.cache\codex-runtimes\codex-primary-runtime\dependencies\native\powershell, C:\Users\z0976\AppData\Local\Microsoft\WindowsApps, C:\Users\z0976\AppData\Local\Programs\Microsoft VS Code\bin, C:\Users\z0976\AppData\Local\GitHubDesktop\bin, C:\Users\z0976\AppData\Local\Programs\Ollama, C:\Users\z0976\AppData\Roaming\npm, C:\Program Files\MySQL\MySQL Server 9.7\bin, C:\Users\z0976\.lmstudio\bin, C:\Users\z0976\.cache\codex-runtimes\codex-primary-runtime\dependencies\bin\fallback, C:\Users\z0976\.cache\codex-runtimes\codex-primary-runtime\dependencies\node\bin, C:\Users\z0976\.cache\codex-runtimes\codex-primary-runtime\dependencies\native\git\cmd, C:\Users\z0976\AppData\Local\OpenAI\Codex\bin\c602dfdab3808440, C:\Users\z0976\AppData\Local\OpenAI\Codex\bin\2993767bd1dfb009])
+22:01:42.717 [main] ERROR org.testcontainers.dockerclient.DockerClientProviderStrategy -- Could not find a valid Docker environment. Please check configuration. Attempted configurations were:
+As no valid configuration was found, execution cannot continue.
+See https://java.testcontainers.org/on_failure.html for more details.
+[INFO] Running com.supplypilot.agentic.sql.AgenticSqlExecutorIntegrationTests
+[WARNING] Tests run: 21, Failures: 0, Errors: 0, Skipped: 21, Time elapsed: 0.016 s -- in com.supplypilot.agentic.sql.AgenticSqlExecutorIntegrationTests
+[INFO] 
+[INFO] Results:
+[INFO] 
+[INFO] Tests run: 21, Failures: 0, Errors: 0, Skipped: 21
+[INFO] 
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  48.928 s
+[INFO] Finished at: 2026-10-27T22:01:42+08:00
+[INFO] ------------------------------------------------------------------------
+RECORDED_EXIT_CODE=0

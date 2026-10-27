@@ -1,0 +1,89 @@
+[INFO] Scanning for projects...
+[INFO] 
+[INFO] ------------------< com.supplypilot:supply-pilot-api >------------------
+[INFO] Building supply-pilot-api 0.0.1-SNAPSHOT
+[INFO]   from pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.5.0:resources (default-resources) @ supply-pilot-api ---
+[INFO] Copying 5 resources from src\main\resources to target\classes
+[INFO] Copying 37 resources from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.15.0:compile (default-compile) @ supply-pilot-api ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- resources:3.5.0:testResources (default-testResources) @ supply-pilot-api ---
+[INFO] Copying 3 resources from src\test\resources to target\test-classes
+[INFO] 
+[INFO] --- compiler:3.15.0:testCompile (default-testCompile) @ supply-pilot-api ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- surefire:3.5.6:test (default-test) @ supply-pilot-api ---
+[INFO] Using auto detected provider org.apache.maven.surefire.junitplatform.JUnitPlatformProvider
+[INFO] 
+[INFO] -------------------------------------------------------
+[INFO]  T E S T S
+[INFO] -------------------------------------------------------
+22:02:02.487 [main] INFO org.testcontainers.DockerClientFactory -- Testcontainers version: 2.0.5
+22:02:02.929 [main] INFO org.testcontainers.dockerclient.DockerClientProviderStrategy -- Loaded org.testcontainers.dockerclient.NpipeSocketClientProviderStrategy from ~/.testcontainers.properties, will try it first
+22:02:03.469 [main] INFO org.testcontainers.dockerclient.DockerClientProviderStrategy -- Found Docker environment with local Npipe socket (npipe:////./pipe/docker_engine)
+22:02:03.472 [main] INFO org.testcontainers.DockerClientFactory -- Docker host IP address is localhost
+22:02:03.496 [main] INFO org.testcontainers.DockerClientFactory -- Connected to docker: 
+  Server Version: 29.6.1
+  API Version: 1.55
+  Operating System: Docker Desktop
+  Total Memory: 19902 MB
+  Labels: 
+    com.docker.desktop.address=npipe://\\.\pipe\docker_cli
+22:02:03.512 [main] INFO org.testcontainers.images.PullPolicy -- Image pull policy will be performed by: DefaultPullPolicy()
+22:02:03.514 [main] INFO org.testcontainers.utility.ImageNameSubstitutor -- Image name substitution will be performed by: DefaultImageNameSubstitutor (composite of 'ConfigurationFileImageNameSubstitutor' and 'PrefixingImageNameSubstitutor')
+22:02:04.108 [main] INFO tc.testcontainers/ryuk:0.14.0 -- Creating container for image: testcontainers/ryuk:0.14.0
+22:02:04.469 [main] INFO tc.testcontainers/ryuk:0.14.0 -- Container testcontainers/ryuk:0.14.0 is starting: 0b017ece2905f481a5a3d0b5701bab315f53efcd87cd1207486cd574ef1d5da0
+22:02:04.958 [main] INFO tc.testcontainers/ryuk:0.14.0 -- Container testcontainers/ryuk:0.14.0 started in PT0.8491616S
+22:02:04.971 [main] INFO org.testcontainers.utility.RyukResourceReaper -- Ryuk started - will monitor and terminate Testcontainers containers on JVM exit
+22:02:04.972 [main] INFO org.testcontainers.DockerClientFactory -- Checking the system...
+22:02:04.973 [main] INFO org.testcontainers.DockerClientFactory -- ?? Docker server version should be at least 1.6.0
+[INFO] Running com.supplypilot.agentic.sql.AgenticSqlExecutorIntegrationTests
+22:02:05.229 [main] INFO tc.mysql:8.4.11 -- Creating container for image: mysql:8.4.11
+22:02:05.355 [main] INFO tc.mysql:8.4.11 -- Container mysql:8.4.11 is starting: 922204a4106d8bcc37841dfa2e501456ac67c5422235240a5befb5201ab5d038
+22:02:05.733 [main] INFO tc.mysql:8.4.11 -- Waiting for database connection to become available at jdbc:mysql://localhost:3707/supplypilot_agentic_test using query 'SELECT 1'
+22:02:18.863 [main] INFO tc.mysql:8.4.11 -- Container mysql:8.4.11 started in PT13.6341084S
+22:02:18.864 [main] INFO tc.mysql:8.4.11 -- Container is started (JDBC URL: jdbc:mysql://localhost:3707/supplypilot_agentic_test)
+22:02:18.865 [main] INFO tc.postgres:16-alpine -- Creating container for image: postgres:16-alpine
+22:02:18.986 [main] INFO tc.postgres:16-alpine -- Container postgres:16-alpine is starting: 426e50d55ec87b1af2097b32d23394afe4e47a348a88a304f7abcb92b66a973b
+22:02:20.905 [main] INFO tc.postgres:16-alpine -- Container postgres:16-alpine started in PT2.0399946S
+22:02:20.906 [main] INFO tc.postgres:16-alpine -- Container is started (JDBC URL: jdbc:postgresql://localhost:2719/supplypilot_agentic_test?loggerLevel=OFF)
+[ERROR] Tests run: 21, Failures: 1, Errors: 0, Skipped: 0, Time elapsed: 30.11 s <<< FAILURE! -- in com.supplypilot.agentic.sql.AgenticSqlExecutorIntegrationTests
+[ERROR] com.supplypilot.agentic.sql.AgenticSqlExecutorIntegrationTests.rejectsDocumentContentTransformationsUsedAsRowExistenceOracles -- Time elapsed: 0.072 s <<< FAILURE!
+java.lang.AssertionError: 
+
+Expecting code to raise a throwable.
+	at com.supplypilot.agentic.sql.AgenticSqlExecutorIntegrationTests.rejectsDocumentContentTransformationsUsedAsRowExistenceOracles(AgenticSqlExecutorIntegrationTests.java:611)
+
+[INFO] 
+[INFO] Results:
+[INFO] 
+[ERROR] Failures: 
+[ERROR]   AgenticSqlExecutorIntegrationTests.rejectsDocumentContentTransformationsUsedAsRowExistenceOracles:611 
+Expecting code to raise a throwable.
+[INFO] 
+[ERROR] Tests run: 21, Failures: 1, Errors: 0, Skipped: 0
+[INFO] 
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD FAILURE
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  39.326 s
+[INFO] Finished at: 2026-10-27T22:02:35+08:00
+[INFO] ------------------------------------------------------------------------
+[ERROR] Failed to execute goal org.apache.maven.plugins:maven-surefire-plugin:3.5.6:test (default-test) on project supply-pilot-api: There are test failures.
+[ERROR] 
+[ERROR] See C:\Users\z0976\OneDrive\�ୱ\dev-side\supplypilot\backend\target\surefire-reports for the individual test results.
+[ERROR] See dump files (if any exist) [date].dump, [date]-jvmRun[N].dump and [date].dumpstream.
+[ERROR] -> [Help 1]
+[ERROR] 
+[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.
+[ERROR] Re-run Maven using the -X switch to enable full debug logging.
+[ERROR] 
+[ERROR] For more information about the errors and possible solutions, please read the following articles:
+[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoFailureException
+RECORDED_EXIT_CODE=1
