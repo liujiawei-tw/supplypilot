@@ -61,6 +61,26 @@ supplypilot:
     max-model-calls: ${AI_MAX_MODEL_CALLS:5}
     monthly-token-warning-enabled: ${AI_MONTHLY_TOKEN_WARNING_ENABLED:false}
     monthly-token-warning-threshold: ${AI_MONTHLY_TOKEN_WARNING_THRESHOLD:1000000}
+  agentic:
+    sql:
+      enabled: ${AGENTIC_SQL_ENABLED:false}
+      question-timeout: ${AGENTIC_SQL_QUESTION_TIMEOUT:PT90S}
+      provider-timeout: ${AGENTIC_SQL_PROVIDER_TIMEOUT:PT30S}
+      statement-timeout: ${AGENTIC_SQL_STATEMENT_TIMEOUT:PT15S}
+      max-tool-calls: ${AGENTIC_SQL_MAX_TOOL_CALLS:10}
+      max-model-calls: ${AGENTIC_SQL_MAX_MODEL_CALLS:12}
+      max-rows: ${AGENTIC_SQL_MAX_ROWS:100}
+      max-columns: ${AGENTIC_SQL_MAX_COLUMNS:32}
+      max-result-chars: ${AGENTIC_SQL_MAX_RESULT_CHARS:12000}
+      max-output-tokens: ${AGENTIC_SQL_MAX_OUTPUT_TOKENS:2048}
+      mysql:
+        jdbc-url: ${AGENTIC_MYSQL_JDBC_URL:}
+        username: ${AGENTIC_MYSQL_USERNAME:}
+        password: ${AGENTIC_MYSQL_PASSWORD:}
+      postgres:
+        jdbc-url: ${AGENTIC_POSTGRES_JDBC_URL:}
+        username: ${AGENTIC_POSTGRES_USERNAME:}
+        password: ${AGENTIC_POSTGRES_PASSWORD:}
   semantic:
     jdbc-url: ${SEMANTIC_DB_URL:}
     username: ${SEMANTIC_DB_USERNAME:}
