@@ -1,0 +1,15 @@
+
+> frontend@0.0.0 test
+> vitest run tests/sp807.test.tsx -t shows a retryable receiving list error without empty copy
+
+
+ RUN  v4.1.11 C:/Users/z0976/.codex/worktrees/procurement-tool-ux-redesign/supplypilot/frontend
+
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+
+ Test Files  1 passed (1)
+      Tests  1 passed | 21 skipped (22)
+   Start at  15:13:35
+   Duration  14.20s (transform 2.29s, setup 372ms, import 10.24s, tests 1.90s, environment 1.36s)
+
+EXIT_CODE=0

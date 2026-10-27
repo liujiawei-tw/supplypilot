@@ -1,0 +1,313 @@
+
+> frontend@0.0.0 test
+> vitest run tests/sp807.test.tsx -t retryable list error.*ORDERED
+
+
+ RUN  v4.1.11 C:/Users/z0976/.codex/worktrees/procurement-tool-ux-redesign/supplypilot/frontend
+
+Not implemented: Window's getComputedStyle() method: with pseudo-elements
+stderr | tests/sp807.test.tsx > SP-807 receiving and import verification boundaries > shows a retryable list error without empty copy, then shows the successful empty state (ORDERED)
+Warning: [antd: Spin] `tip` is deprecated. Please use `description` instead.
+
+ ❯ tests/sp807.test.tsx (23 tests | 1 failed | 22 skipped) 1367ms
+     × shows a retryable list error without empty copy, then shows the successful empty state (ORDERED) 1361ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/sp807.test.tsx > SP-807 receiving and import verification boundaries > shows a retryable list error without empty copy, then shows the successful empty state (ORDERED)
+TestingLibraryElementError: Unable to find an element with the text: 收貨清單載入失敗. This could be because the text is broken up by multiple elements. In this case, you can provide a function for your text matcher to make your matcher more flexible.
+
+Ignored nodes: comments, script, style
+<body>
+  <div>
+    <div
+      class="app-layout"
+    >
+      <a
+        class="app-skip-link"
+        href="#main-content"
+      >
+        跳至主要內容
+      </a>
+      <header
+        class="app-header"
+      >
+        <div
+          class="app-header__topline"
+        >
+          <a
+            aria-label="SupplyPilot 採購工作區"
+            class="app-brand"
+            data-discover="true"
+            href="/"
+          >
+            <img
+              alt=""
+              aria-hidden="true"
+              class="app-brand__mark"
+              height="40"
+              src="/favicon.svg"
+              width="40"
+            />
+            <span
+              class="app-brand__wordmark"
+            >
+              <strong>
+                SupplyPilot
+              </strong>
+              <span>
+                採購工作台
+              </span>
+            </span>
+          </a>
+          <div
+            class="app-header__finder"
+          >
+            <button
+              aria-keyshortcuts="Control+K Meta+K"
+              aria-label="搜尋採購資料"
+              class="ant-btn css-dev-only-do-not-override-oc1rc0 css-var-_r_0_ ant-btn-default ant-btn-color-default ant-btn-variant-outlined app-finder-trigger"
+              type="button"
+            >
+              <span
+                class="ant-btn-icon"
+              >
+                <span
+                  aria-hidden="true"
+                  aria-label="search"
+                  class="anticon anticon-search"
+                  role="img"
+                >
+                  <svg
+                    aria-hidden="true"
+                    data-icon="search"
+                    fill="currentColor"
+                    focusable="false"
+                    height="1em"
+                    viewBox="64 64 896 896"
+                    width="1em"
+                  >
+                    <path
+                      d="M909.6 854.5L649.9 594.8C690.2 542.7 712 479 712 412c0-80.2-31.3-155.4-87.9-212.1-56.6-56.7-132-87.9-212.1-87.9s-155.5 31.3-212.1 87.9C143.2 256.5 112 331.8 112 412c0 80.1 31.3 155.5 87.9 212.1C256.5 680.8 331.8 712 412 712c67 0 130.6-21.8 182.7-62l259.7 259.6a8.2 8.2 0 0011.6 0l43.6-43.5a8.2 8.2 0 000-11.6zM570.4 570.4C528 612.7 471.8 636 412 636s-116-23.3-158.4-65.6C211.3 528 188 471.8 188 412s23.3-116.1 65.6-158.4C296 211.3 352.2 188 412 188s116.1 23.2 158.4 65.6S636 352.2 636 412s-23.3 116.1-65.6 158.4z"
+                    />
+                  </svg>
+                </span>
+              </span>
+              <span>
+                搜尋採購資料
+              </span>
+              <kbd
+                aria-hidden="true"
+              >
+                Ctrl K
+              </kbd>
+            </button>
+            <span
+              class="ant-typography app-finder-hint css-dev-only-do-not-override-oc1rc0 css-var-_r_0_"
+            >
+              採購單、供應商、物料與庫存；文件依範圍查詢
+            </span>
+          </div>
+          <div
+            class="app-account"
+          >
+            <div
+              class="app-account__identity"
+            >
+              <span
+                class="ant-typography app-account__name css-dev-only-do-not-override-oc1rc0 css-var-_r_0_"
+              >
+                Warehouse
+              </span>
+              <span
+                class="ant-typography app-account__role css-dev-only-do-not-override-oc1rc0 css-var-_r_0_"
+              >
+                倉庫人員
+              </span>
+            </div>
+            <button
+              class="ant-btn css-dev-only-do-not-override-oc1rc0 css-var-_r_0_ ant-btn-default ant-btn-color-default ant-btn-variant-outlined app-logout-button"
+              type="button"
+            >
+              <span
+                class="ant-btn-icon"
+              >
+                <span
+                  aria-label="logout"
+                  class="anticon anticon-logout"
+                  role="img"
+                >
+                  <svg
+                    aria-hidden="true"
+                    data-icon="logout"
+                    fill="currentColor"
+                    focusable="false"
+                    height="1em"
+                    viewBox="64 64 896 896"
+                    width="1em"
+                  >
+                    <path
+                      d="M868 732h-70.3c-4.8 0-9.3 2.1-12.3 5.8-7 8.5-14.5 16.7-22.4 24.5a353.84 353.84 0 01-112.7 75.9A352.8 352.8 0 01512.4 866c-47.9 0-94.3-9.4-137.9-27.8a353.84 353.84 0 01-112.7-75.9 353.28 353.28 0 01-76-112.5C167.3 606.2 158 559.9 158 512s9.4-94.2 27.8-137.8c17.8-42.1 43.4-80 76-112.5s70.5-58.1 112.7-75.9c43.6-18.4 90-27.8 137.9-27.8 47.9 0 94.3 9.3 137.9 27.8 42.2 17.8 80.1 43.4 112.7 75.9 7.9 7.9 15.3 16.1 22.4 24.5 3 3.7 7.6 5.8 12.3 5.8H868c6.3 0 10.2-7 6.7-12.3C798 160.5 663.8 81.6 511.3 82 271.7 82.6 79.6 277.1 82 516.4 84.4 751.9 276.2 942 512.4 942c152.1 0 285.7-78.8 362.3-197.7 3.4-5.3-.4-12.3-6.7-12.3zm88.9-226.3L815 393.7c-5.3-4.2-13-.4-13 6.3v76H488c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h314v76c0 6.7 7.8 10.5 13 6.3l141.9-112a8 8 0 000-12.6z"
+                    />
+                  </svg>
+                </span>
+              </span>
+              <span>
+                ...
+
+Ignored nodes: comments, script, style
+<body>
+  <div>
+    <div
+      class="app-layout"
+    >
+      <a
+        class="app-skip-link"
+        href="#main-content"
+      >
+        跳至主要內容
+      </a>
+      <header
+        class="app-header"
+      >
+        <div
+          class="app-header__topline"
+        >
+          <a
+            aria-label="SupplyPilot 採購工作區"
+            class="app-brand"
+            data-discover="true"
+            href="/"
+          >
+            <img
+              alt=""
+              aria-hidden="true"
+              class="app-brand__mark"
+              height="40"
+              src="/favicon.svg"
+              width="40"
+            />
+            <span
+              class="app-brand__wordmark"
+            >
+              <strong>
+                SupplyPilot
+              </strong>
+              <span>
+                採購工作台
+              </span>
+            </span>
+          </a>
+          <div
+            class="app-header__finder"
+          >
+            <button
+              aria-keyshortcuts="Control+K Meta+K"
+              aria-label="搜尋採購資料"
+              class="ant-btn css-dev-only-do-not-override-oc1rc0 css-var-_r_0_ ant-btn-default ant-btn-color-default ant-btn-variant-outlined app-finder-trigger"
+              type="button"
+            >
+              <span
+                class="ant-btn-icon"
+              >
+                <span
+                  aria-hidden="true"
+                  aria-label="search"
+                  class="anticon anticon-search"
+                  role="img"
+                >
+                  <svg
+                    aria-hidden="true"
+                    data-icon="search"
+                    fill="currentColor"
+                    focusable="false"
+                    height="1em"
+                    viewBox="64 64 896 896"
+                    width="1em"
+                  >
+                    <path
+                      d="M909.6 854.5L649.9 594.8C690.2 542.7 712 479 712 412c0-80.2-31.3-155.4-87.9-212.1-56.6-56.7-132-87.9-212.1-87.9s-155.5 31.3-212.1 87.9C143.2 256.5 112 331.8 112 412c0 80.1 31.3 155.5 87.9 212.1C256.5 680.8 331.8 712 412 712c67 0 130.6-21.8 182.7-62l259.7 259.6a8.2 8.2 0 0011.6 0l43.6-43.5a8.2 8.2 0 000-11.6zM570.4 570.4C528 612.7 471.8 636 412 636s-116-23.3-158.4-65.6C211.3 528 188 471.8 188 412s23.3-116.1 65.6-158.4C296 211.3 352.2 188 412 188s116.1 23.2 158.4 65.6S636 352.2 636 412s-23.3 116.1-65.6 158.4z"
+                    />
+                  </svg>
+                </span>
+              </span>
+              <span>
+                搜尋採購資料
+              </span>
+              <kbd
+                aria-hidden="true"
+              >
+                Ctrl K
+              </kbd>
+            </button>
+            <span
+              class="ant-typography app-finder-hint css-dev-only-do-not-override-oc1rc0 css-var-_r_0_"
+            >
+              採購單、供應商、物料與庫存；文件依範圍查詢
+            </span>
+          </div>
+          <div
+            class="app-account"
+          >
+            <div
+              class="app-account__identity"
+            >
+              <span
+                class="ant-typography app-account__name css-dev-only-do-not-override-oc1rc0 css-var-_r_0_"
+              >
+                Warehouse
+              </span>
+              <span
+                class="ant-typography app-account__role css-dev-only-do-not-override-oc1rc0 css-var-_r_0_"
+              >
+                倉庫人員
+              </span>
+            </div>
+            <button
+              class="ant-btn css-dev-only-do-not-override-oc1rc0 css-var-_r_0_ ant-btn-default ant-btn-color-default ant-btn-variant-outlined app-logout-button"
+              type="button"
+            >
+              <span
+                class="ant-btn-icon"
+              >
+                <span
+                  aria-label="logout"
+                  class="anticon anticon-logout"
+                  role="img"
+                >
+                  <svg
+                    aria-hidden="true"
+                    data-icon="logout"
+                    fill="currentColor"
+                    focusable="false"
+                    height="1em"
+                    viewBox="64 64 896 896"
+                    width="1em"
+                  >
+                    <path
+                      d="M868 732h-70.3c-4.8 0-9.3 2.1-12.3 5.8-7 8.5-14.5 16.7-22.4 24.5a353.84 353.84 0 01-112.7 75.9A352.8 352.8 0 01512.4 866c-47.9 0-94.3-9.4-137.9-27.8a353.84 353.84 0 01-112.7-75.9 353.28 353.28 0 01-76-112.5C167.3 606.2 158 559.9 158 512s9.4-94.2 27.8-137.8c17.8-42.1 43.4-80 76-112.5s70.5-58.1 112.7-75.9c43.6-18.4 90-27.8 137.9-27.8 47.9 0 94.3 9.3 137.9 27.8 42.2 17.8 80.1 43.4 112.7 75.9 7.9 7.9 15.3 16.1 22.4 24.5 3 3.7 7.6 5.8 12.3 5.8H868c6.3 0 10.2-7 6.7-12.3C798 160.5 663.8 81.6 511.3 82 271.7 82.6 79.6 277.1 82 516.4 84.4 751.9 276.2 942 512.4 942c152.1 0 285.7-78.8 362.3-197.7 3.4-5.3-.4-12.3-6.7-12.3zm88.9-226.3L815 393.7c-5.3-4.2-13-.4-13 6.3v76H488c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h314v76c0 6.7 7.8 10.5 13 6.3l141.9-112a8 8 0 000-12.6z"
+                    />
+                  </svg>
+                </span>
+              </span>
+              <span>
+                ...
+ ❯ waitForWrapper node_modules/@testing-library/dom/dist/wait-for.js:163:27
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:86:33
+ ❯ tests/sp807.test.tsx:286:25
+    284|
+    285|     await open(`/receiving/purchase-orders?status=${status}`);
+    286|     expect(await screen.findByText('收貨清單載入失敗')).toBeTruthy();
+       |                         ^
+    287|     expect(listReads).toBe(1);
+    288|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 22 skipped (23)
+   Start at  15:11:12
+   Duration  12.53s (transform 2.25s, setup 389ms, import 9.15s, tests 1.37s, environment 1.32s)
+
+EXIT_CODE=1

@@ -2,11 +2,13 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AxiosError, type AxiosResponse, type InternalAxiosRequestConfig } from 'axios';
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { MemoryRouter } from 'react-router-dom';
 import App from '../src/App';
 import { toApiError } from '../src/api/apiError';
 import { axiosClient, TOKEN_STORAGE_KEY } from '../src/api/axiosClient';
 import ErrorState from '../src/components/ErrorState';
 import { router } from '../src/router/routes';
+import ReceivingPage from '../src/pages/Receiving/ReceivingPage';
 import type { ReceivingPurchaseOrderResponse } from '../src/api/receiving';
 import type { AuthenticatedUser } from '../src/types/api';
 
@@ -265,6 +267,40 @@ describe('SP-807 receiving and import verification boundaries', () => {
       finishFilteredRequest?.({ content: [], page: 0, size: 20, totalElements: 0, totalPages: 0 });
     }
     await waitFor(() => expect(document.querySelector('.receiving-queue__mobile')?.textContent).toContain('尚無已收貨紀錄'));
+  });
+
+  it('shows a retryable receiving list error without empty copy, then shows the successful empty state', async () => {
+    let listReads = 0;
+    axiosClient.defaults.adapter = vi.fn(async (config) => {
+      if (config.url === '/auth/me') return response(config, warehouse);
+      if (config.url === '/receiving/purchase-orders') {
+        listReads += 1;
+        if (listReads === 1) throw failure(500, 'INTERNAL_SERVER_ERROR', 'Receiving list unavailable');
+        return response(config, { content: [], page: 0, size: 20, totalElements: 0, totalPages: 0 });
+      }
+      throw new Error(`Unexpected ${config.method} ${config.url}`);
+    });
+
+    render(<MemoryRouter initialEntries={['/receiving/purchase-orders?status=RECEIVED']}><ReceivingPage /></MemoryRouter>);
+    await waitFor(() => expect(listReads).toBe(1));
+    expect(await screen.findByText('收貨清單載入失敗')).toBeTruthy();
+    expect(listReads).toBe(1);
+
+    const desktop = document.querySelector<HTMLElement>('.receiving-queue__table');
+    const mobile = document.querySelector<HTMLElement>('.receiving-queue__mobile');
+    expect(desktop).toBeTruthy();
+    expect(mobile).toBeTruthy();
+    expect(within(desktop!).queryByText('目前沒有待收貨 PO')).toBeNull();
+    expect(within(desktop!).queryByText('尚無已收貨紀錄')).toBeNull();
+    expect(within(mobile!).queryByText('目前沒有待收貨 PO')).toBeNull();
+    expect(within(mobile!).queryByText('尚無已收貨紀錄')).toBeNull();
+
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('button', { name: '重新載入' }));
+    await waitFor(() => expect(listReads).toBe(2));
+    expect(await within(desktop!).findByText('尚無已收貨紀錄')).toBeTruthy();
+    expect(await within(mobile!).findByText('尚無已收貨紀錄')).toBeTruthy();
+    expect(screen.queryByText('收貨清單載入失敗')).toBeNull();
   });
 
   it.each([

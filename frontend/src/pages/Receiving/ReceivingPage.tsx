@@ -178,7 +178,9 @@ export default function ReceivingPage() {
         columns={columns}
         dataSource={loading ? [] : records}
         loading={loading}
-        locale={{ emptyText: <EmptyState simple description={query.status === 'ORDERED' ? '目前沒有待收貨 PO' : '尚無已收貨紀錄'} /> }}
+        locale={{ emptyText: error
+          ? <span aria-hidden="true" />
+          : <EmptyState simple description={query.status === 'ORDERED' ? '目前沒有待收貨 PO' : '尚無已收貨紀錄'} /> }}
         pagination={{ current: pageNumber, pageSize, total, showSizeChanger: true, showTotal: (count) => `共 ${count} 筆` }}
         onChange={handleTableChange}
       />
@@ -187,7 +189,9 @@ export default function ReceivingPage() {
     <section className="receiving-queue__mobile" aria-label="收貨採購單清單">
       {loading
         ? <div className="receiving-queue__loading"><Spin tip="正在載入收貨清單" /></div>
-        : records.length === 0
+        : error
+          ? null
+          : records.length === 0
           ? <EmptyState simple description={query.status === 'ORDERED' ? '目前沒有待收貨 PO' : '尚無已收貨紀錄'} />
           : <ul className="receiving-queue__mobile-list">
             {records.map((row) => <li className="receiving-queue__mobile-record" key={row.id}>
