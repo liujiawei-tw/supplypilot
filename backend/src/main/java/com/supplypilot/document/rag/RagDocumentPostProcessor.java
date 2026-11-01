@@ -58,17 +58,18 @@ public class RagDocumentPostProcessor implements DocumentPostProcessor {
             Validated result = validate(query.text(), candidate, snapshots);
             if (result != null) validated.add(result);
         }
-        validated.sort(Comparator.comparingDouble((Validated item) -> item.evidence().relevanceScore())
-                .reversed().thenComparing(item -> item.evidence().documentId())
-                .thenComparingInt(item -> item.evidence().chunkIndex()));
+        validated.sort(Comparator.comparingDouble((Validated item) -> item.evidence().getFirst().relevanceScore())
+                .reversed().thenComparing(item -> item.evidence().getFirst().documentId())
+                .thenComparingInt(item -> item.evidence().getFirst().chunkIndex()));
         List<Validated> limited = validated.stream().limit(properties.topK()).toList();
-        boolean hasDemo = limited.stream().anyMatch(item -> item.evidence().demoBaseline());
+        List<VerifiedRagEvidence> evidence = limited.stream().flatMap(item -> item.evidence().stream()).toList();
+        boolean hasDemo = evidence.stream().anyMatch(VerifiedRagEvidence::demoBaseline);
         if (limited.isEmpty() || !demoEligibility.hasCompleteTemporalEvidence(query.text(),
-                limited.stream().map(item -> item.evidence().verifiedTemporalExcerpt()).toList(), hasDemo)) {
+                evidence.stream().map(VerifiedRagEvidence::verifiedTemporalExcerpt).toList(), hasDemo)) {
             collector.set(List.of());
             throw new NoVerifiedRagEvidenceException();
         }
-        collector.set(limited.stream().map(Validated::evidence).toList());
+        collector.set(evidence);
         return limited.stream().map(Validated::contextDocument).toList();
     }
 
@@ -110,30 +111,42 @@ public class RagDocumentPostProcessor implements DocumentPostProcessor {
             return null;
         }
 
-        String applicable = demoEligibility.restrictBusinessFactContent(document, question, candidate.getText());
-        if (applicable == null || applicable.isBlank()) return null;
-        String excerpt = applicable.strip();
-        if (excerpt.isBlank()) return null;
-        TemporalRoleContext temporalRole = TEMPORAL_ROLE_MARKER.matcher(excerpt).find()
+        DemoCorpusRagEligibility.RestrictedBusinessFactContent restricted =
+                demoEligibility.restrictBusinessFactContentWithSources(document, question, candidate.getText());
+        if (restricted == null || restricted.context() == null || restricted.context().isBlank()
+                || restricted.sourceExcerpts().isEmpty()) return null;
+        String contextExcerpt = restricted.context().strip();
+        if (contextExcerpt.isBlank()) return null;
+        if (endOffset - startOffset != candidate.getText().length()) return null;
+        TemporalRoleContext temporalRole = TEMPORAL_ROLE_MARKER.matcher(contextExcerpt).find()
                 ? null : verifiedTemporalRoleAtOffset(snapshot, source, sourcePosition);
+        String contextText = temporalRole == null ? contextExcerpt : temporalRole.marker() + " " + contextExcerpt;
         List<String> verifiedMaterialCodes = IdentifierMatcher.find(question).stream()
                 .flatMap(identifier -> java.util.Arrays.stream(identifier.split("/")))
                 .filter(identifier -> identifier.startsWith("MAT-") || identifier.startsWith("MATERIAL-"))
                 .toList();
 
         var supplier = document.getSupplier();
-        VerifiedRagEvidence evidence = new VerifiedRagEvidence(documentId, document.getDemoDocumentKey(),
-                document.getDocumentType(), document.getTitle(), version,
-                supplier == null ? null : supplier.getId(), supplier == null ? null : supplier.getCode(),
-                supplier == null ? null : supplier.getName(), chunkIndex, startOffset, endOffset,
-                excerpt, score, document.isDemoBaseline(),
-                temporalRole == null ? null : temporalRole.role(),
-                temporalRole == null ? null : temporalRole.startOffset(),
-                temporalRole == null ? null : temporalRole.endOffset(),
-                verifiedMaterialCodes.size() == 1 ? java.util.Set.copyOf(verifiedMaterialCodes)
-                        : java.util.Set.of());
-        String contextExcerpt = temporalRole == null ? excerpt : temporalRole.marker() + " " + excerpt;
-        Document context = Document.builder().id(candidate.getId()).text(contextExcerpt)
+        List<VerifiedRagEvidence> evidence = new ArrayList<>();
+        for (DemoCorpusRagEligibility.SourceExcerpt sourceExcerpt : restricted.sourceExcerpts()) {
+            if (sourceExcerpt.startOffset() < 0 || sourceExcerpt.endOffset() > candidate.getText().length()
+                    || sourceExcerpt.endOffset() - sourceExcerpt.startOffset() != sourceExcerpt.text().length()
+                    || !candidate.getText().regionMatches(sourceExcerpt.startOffset(), sourceExcerpt.text(), 0,
+                            sourceExcerpt.text().length())) return null;
+            int excerptStart = startOffset + sourceExcerpt.startOffset();
+            int excerptEnd = startOffset + sourceExcerpt.endOffset();
+            evidence.add(new VerifiedRagEvidence(documentId, document.getDemoDocumentKey(),
+                    document.getDocumentType(), document.getTitle(), version,
+                    supplier == null ? null : supplier.getId(), supplier == null ? null : supplier.getCode(),
+                    supplier == null ? null : supplier.getName(), chunkIndex, excerptStart, excerptEnd,
+                    sourceExcerpt.text(), score, document.isDemoBaseline(),
+                    temporalRole == null ? null : temporalRole.role(),
+                    temporalRole == null ? null : temporalRole.startOffset(),
+                    temporalRole == null ? null : temporalRole.endOffset(),
+                    verifiedMaterialCodes.size() == 1 ? java.util.Set.copyOf(verifiedMaterialCodes)
+                            : java.util.Set.of(), contextText));
+        }
+        Document context = Document.builder().id(candidate.getId()).text(contextText)
                 .metadata(candidate.getMetadata()).score(score).build();
         return new Validated(evidence, context);
     }
@@ -211,6 +224,6 @@ public class RagDocumentPostProcessor implements DocumentPostProcessor {
 
     private record SourceSnapshot(DocumentMetadata document, List<DocumentChunk> chunks,
                                   String sourceHash, OutboundDocumentPolicy.Decision decision) { }
-    private record Validated(VerifiedRagEvidence evidence, Document contextDocument) { }
+    private record Validated(List<VerifiedRagEvidence> evidence, Document contextDocument) { }
     private record TemporalRoleContext(String role, String marker, int startOffset, int endOffset) { }
 }

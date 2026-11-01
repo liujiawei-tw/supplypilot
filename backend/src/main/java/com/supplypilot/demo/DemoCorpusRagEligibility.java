@@ -52,6 +52,7 @@ public class DemoCorpusRagEligibility {
             Pattern.CASE_INSENSITIVE);
     private static final Pattern SUPPLIER_CODE = Pattern.compile("(?i)\\bSUP-\\d{3}\\b");
     private static final Pattern MATERIAL_CODE = Pattern.compile("(?i)\\bMAT-\\d{3}\\b");
+    private static final Pattern CLAUSE_BOUNDARY = Pattern.compile("(?<=[。！？!?])\\s*|[；;]\\s*|\\r?\\n");
 
     private final ObjectMapper objectMapper;
     private final Path samplesRoot;
@@ -168,35 +169,74 @@ public class DemoCorpusRagEligibility {
 
     /** Retains only source text that is safe for the selected fact scope and period. */
     public String restrictBusinessFactContent(DocumentMetadata document, String question, String content) {
-        if (content == null || content.isBlank() || document == null || hasNoDemoProvenance(document)) return content;
+        return restrictBusinessFactContentWithSources(document, question, content).context();
+    }
+
+    /**
+     * Returns the same restricted Gemini context together with exact source spans for response citations.
+     * Generated scope and period labels are only present in context and never attributed to source offsets.
+     */
+    public RestrictedBusinessFactContent restrictBusinessFactContentWithSources(
+            DocumentMetadata document, String question, String content) {
+        if (content == null || content.isBlank()) {
+            return new RestrictedBusinessFactContent(content, List.of());
+        }
+        if (document == null || hasNoDemoProvenance(document)) {
+            return new RestrictedBusinessFactContent(content,
+                    List.of(new SourceExcerpt(content, 0, content.length())));
+        }
         Optional<CurrentDemoCatalogIdentity> identity = currentIdentity(document);
-        if (identity.isEmpty()) return "";
+        if (identity.isEmpty()) return new RestrictedBusinessFactContent("", List.of());
         List<BusinessFactApplicability> managed = managedPolicies(identity.get());
         if (managed.isEmpty()) {
-            return document.isDemoBaseline() && requiresCatalogQuotationPeriod(question) ? "" : content;
+            if (document.isDemoBaseline() && requiresCatalogQuotationPeriod(question)) {
+                return new RestrictedBusinessFactContent("", List.of());
+            }
+            return new RestrictedBusinessFactContent(content,
+                    List.of(new SourceExcerpt(content, 0, content.length())));
         }
-        if (!isApplicableToQuery(document, question)) return "";
+        if (!isApplicableToQuery(document, question)) return new RestrictedBusinessFactContent("", List.of());
 
         TemporalQuery temporal = temporalQuery(question);
         List<BusinessFactApplicability> applicable = policiesForTemporalIntent(
                 policiesFor(identity.get(), question), temporal);
-        if (applicable.isEmpty()) return "";
+        if (applicable.isEmpty()) return new RestrictedBusinessFactContent("", List.of());
 
         Set<String> safeExcerpts = new java.util.LinkedHashSet<>();
+        Map<String, SourceExcerpt> sourceExcerpts = new java.util.LinkedHashMap<>();
         for (BusinessFactApplicability fact : applicable) {
             FactSource current = fact.currentSource();
             if (current != null && current.matches(identity.get()) && currentSourceAllowed(current, temporal)) {
-                String safe = currentExcerpt(content, fact);
-                if (!safe.isBlank()) safeExcerpts.add(prefixPeriod(safe, false, current, fact, temporal, question));
+                List<SourceExcerpt> safe = currentExcerptParts(content, fact);
+                if (!safe.isEmpty()) {
+                    safeExcerpts.add(prefixPeriod(joinExcerptTexts(safe, " "), false, current, fact, temporal,
+                            question));
+                    addSourceExcerpts(sourceExcerpts, safe);
+                }
             }
             for (FactSource historical : fact.historicalSources()) {
                 if (historical.matches(identity.get()) && historicalSourceAllowed(historical, temporal)) {
-                    String safe = historicalExcerpt(content, historical, fact, question);
-                    if (!safe.isBlank()) safeExcerpts.add(prefixPeriod(safe, true, historical, fact, temporal, question));
+                    List<SourceExcerpt> safe = historicalExcerptParts(content, historical, fact, question);
+                    if (!safe.isEmpty()) {
+                        safeExcerpts.add(prefixPeriod(joinExcerptTexts(safe, "。"), true, historical, fact,
+                                temporal, question));
+                        addSourceExcerpts(sourceExcerpts, safe);
+                    }
                 }
             }
         }
-        return String.join("\n", safeExcerpts).trim();
+        return new RestrictedBusinessFactContent(String.join("\n", safeExcerpts).trim(),
+                List.copyOf(sourceExcerpts.values()));
+    }
+
+    private void addSourceExcerpts(Map<String, SourceExcerpt> target, List<SourceExcerpt> excerpts) {
+        for (SourceExcerpt excerpt : excerpts) {
+            target.putIfAbsent(excerpt.startOffset() + ":" + excerpt.endOffset(), excerpt);
+        }
+    }
+
+    private String joinExcerptTexts(List<SourceExcerpt> excerpts, String separator) {
+        return excerpts.stream().map(SourceExcerpt::text).collect(java.util.stream.Collectors.joining(separator));
     }
 
     private String prefixPeriod(String content, boolean historical, FactSource source,
@@ -223,23 +263,30 @@ public class DemoCorpusRagEligibility {
         return "【期間 " + period.label() + "】";
     }
 
-    private String historicalExcerpt(String content, FactSource source, BusinessFactApplicability fact,
-            String question) {
-        String section = explicitPeriodSection(content, "【歷史條件】", "問答：");
-        if (section.isBlank()) return "";
+    private List<SourceExcerpt> historicalExcerptParts(String content, FactSource source,
+            BusinessFactApplicability fact, String question) {
+        int start = content.indexOf("【歷史條件】");
+        if (start < 0) return List.of();
+        int end = content.length();
+        int questionStart = content.indexOf("問答：", start + "【歷史條件】".length());
+        if (questionStart >= 0) end = Math.min(end, questionStart);
+        while (start < end && content.charAt(start) <= ' ') start++;
+        while (end > start && content.charAt(end - 1) <= ' ') end--;
+        if (start >= end) return List.of();
         Set<String> requestedMaterials = codes(question, MATERIAL_CODE);
         Set<String> requestedSuppliers = codes(question, SUPPLIER_CODE);
-        List<String> safe = clauses(section).stream().filter(clause -> {
-            Set<String> mentioned = codes(clause, MATERIAL_CODE);
-            Set<String> mentionedSuppliers = codes(clause, SUPPLIER_CODE);
+        return sourceClauses(content, start, end).stream().filter(clause -> {
+            String text = clause.text();
+            Set<String> mentioned = codes(text, MATERIAL_CODE);
+            Set<String> mentionedSuppliers = codes(text, SUPPLIER_CODE);
             if (mentioned.size() > 1 || mentioned.stream().anyMatch(code -> !code.equals(fact.materialCode()))) {
                 return false;
             }
             if (mentionedSuppliers.size() > 1
                     || mentionedSuppliers.stream().anyMatch(code -> !code.equals(fact.supplierCode()))) return false;
-            if (!clause.contains(source.effectiveUntil().toString())
-                    && !clause.contains(source.effectiveFrom().toString())) return false;
-            Matcher dates = EXACT_DATE.matcher(clause);
+            if (!text.contains(source.effectiveUntil().toString())
+                    && !text.contains(source.effectiveFrom().toString())) return false;
+            Matcher dates = EXACT_DATE.matcher(text);
             while (dates.find()) {
                 String value = dates.group();
                 if (!value.equals(source.effectiveFrom().toString())
@@ -250,47 +297,51 @@ public class DemoCorpusRagEligibility {
                     && (requestedSuppliers.isEmpty() || mentionedSuppliers.isEmpty()
                             || requestedSuppliers.contains(fact.supplierCode()));
         }).toList();
-        return String.join("。", safe).trim();
     }
 
-    private String currentExcerpt(String content, BusinessFactApplicability fact) {
+    private List<SourceExcerpt> currentExcerptParts(String content, BusinessFactApplicability fact) {
         int end = content.length();
         for (String marker : List.of("【歷史條件】", "問答：")) {
             int markerIndex = content.indexOf(marker);
             if (markerIndex >= 0) end = Math.min(end, markerIndex);
         }
+        int start = 0;
         String currentSection = content.substring(0, end);
         int currentMarker = currentSection.indexOf("【現行條件】");
-        if (currentMarker >= 0) currentSection = currentSection.substring(currentMarker);
+        if (currentMarker >= 0) start = currentMarker;
         Set<String> excludedDates = new HashSet<>();
         fact.supersededSources().stream().map(FactSource::effectiveUntil).map(LocalDate::toString)
                 .forEach(excludedDates::add);
-        return clauses(currentSection).stream().filter(clause -> {
-            if (excludedDates.stream().anyMatch(clause::contains)) return false;
-            Set<String> mentioned = codes(clause, MATERIAL_CODE);
-            Set<String> mentionedSuppliers = codes(clause, SUPPLIER_CODE);
+        return sourceClauses(content, start, end).stream().filter(clause -> {
+            String text = clause.text();
+            if (excludedDates.stream().anyMatch(text::contains)) return false;
+            Set<String> mentioned = codes(text, MATERIAL_CODE);
+            Set<String> mentionedSuppliers = codes(text, SUPPLIER_CODE);
             boolean materialMatches = mentioned.isEmpty()
                     || mentioned.size() == 1 && mentioned.contains(fact.materialCode());
             boolean supplierMatches = mentionedSuppliers.isEmpty()
                     || mentionedSuppliers.size() == 1 && mentionedSuppliers.contains(fact.supplierCode());
             return materialMatches && supplierMatches;
-        }).collect(java.util.stream.Collectors.joining(" ")).trim();
+        }).toList();
     }
 
-    private List<String> clauses(String content) {
-        return java.util.Arrays.stream(content.split("(?<=[。！？!?])\\s*|[；;]\\s*|\\r?\\n"))
-                .map(String::trim).filter(clause -> !clause.isBlank()).toList();
-    }
-
-    private String explicitPeriodSection(String content, String startMarker, String... endMarkers) {
-        int start = content.indexOf(startMarker);
-        if (start < 0) return "";
-        int end = content.length();
-        for (String endMarker : endMarkers) {
-            int candidate = content.indexOf(endMarker, start + startMarker.length());
-            if (candidate >= 0) end = Math.min(end, candidate);
+    private List<SourceExcerpt> sourceClauses(String content, int start, int end) {
+        String region = content.substring(start, end);
+        Matcher boundary = CLAUSE_BOUNDARY.matcher(region);
+        List<SourceExcerpt> result = new ArrayList<>();
+        int clauseStart = 0;
+        while (boundary.find()) {
+            addTrimmedSourceExcerpt(content, start + clauseStart, start + boundary.start(), result);
+            clauseStart = boundary.end();
         }
-        return content.substring(start, end).trim();
+        addTrimmedSourceExcerpt(content, start + clauseStart, end, result);
+        return List.copyOf(result);
+    }
+
+    private void addTrimmedSourceExcerpt(String content, int start, int end, List<SourceExcerpt> target) {
+        while (start < end && content.charAt(start) <= ' ') start++;
+        while (end > start && content.charAt(end - 1) <= ' ') end--;
+        if (start < end) target.add(new SourceExcerpt(content.substring(start, end), start, end));
     }
 
     /** Returns the exact pinned catalog identity when all persisted provenance fields match it. */
@@ -706,6 +757,31 @@ public class DemoCorpusRagEligibility {
     private record CatalogEntry(String datasetKey, String documentKey, DocumentType type, String title,
             String version, String corpusVersion, String sourceSha256, String themeKey,
             String provenanceOrigin, String supplierCode, String supplierName) { }
+
+    public record SourceExcerpt(String text, int startOffset, int endOffset) {
+        public SourceExcerpt {
+            if (text == null || text.isBlank() || startOffset < 0 || endOffset <= startOffset
+                    || endOffset - startOffset != text.length()) {
+                throw new IllegalArgumentException("Source excerpt offsets must identify its exact text");
+            }
+        }
+    }
+
+    public record RestrictedBusinessFactContent(String context, List<SourceExcerpt> sourceExcerpts) {
+        public RestrictedBusinessFactContent {
+            sourceExcerpts = sourceExcerpts == null ? List.of() : List.copyOf(sourceExcerpts);
+            if (context != null && context.isBlank() && !sourceExcerpts.isEmpty()) {
+                throw new IllegalArgumentException("Empty context cannot publish source excerpts");
+            }
+        }
+
+        public static RestrictedBusinessFactContent unmodified(String content) {
+            return content == null || content.isBlank()
+                    ? new RestrictedBusinessFactContent(content, List.of())
+                    : new RestrictedBusinessFactContent(content,
+                            List.of(new SourceExcerpt(content, 0, content.length())));
+        }
+    }
 
     private enum SourceApplicability { CURRENT, HISTORICAL, SUPERSEDED }
 

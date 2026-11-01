@@ -25,10 +25,13 @@ class DocumentQueryServiceTests {
         String rawQuestion = " SUP-001 的 jane@example.com MAT-001 標準交期是多久？ ";
         String safeQuestion = "SUP-001 的 [EMAIL] MAT-001 標準交期是多久？";
         SpringAiRagAnswerPipeline pipeline = mock(SpringAiRagAnswerPipeline.class);
+        String sourceText = "不相關段落。MAT-001 標準交期為 ORDERED 後 5 個曆日。";
+        String excerpt = "MAT-001 標準交期為 ORDERED 後 5 個曆日。";
+        int excerptStart = sourceText.indexOf(excerpt);
         VerifiedRagEvidence source = new VerifiedRagEvidence(
                 27L, "SP-901-DOC-001", DocumentType.SUPPLIER_CONTRACT,
                 "SUP-001 交付協議", "2.1", 8L, "SUP-001", "甲方供應商",
-                3, 120, 184, "MAT-001 標準交期為 ORDERED 後 5 個曆日。", 0.87, false);
+                3, excerptStart, excerptStart + excerpt.length(), excerpt, 0.87, false);
         when(pipeline.answer(safeQuestion)).thenReturn(
                 new SpringAiRagAnswerPipeline.QueryResult(true, "MAT-001 標準交期為 5 個曆日。", List.of(source)));
         DocumentQueryService service = new DocumentQueryService(pipeline, new OutboundDocumentPolicy());
@@ -47,9 +50,11 @@ class DocumentQueryServiceTests {
             assertThat(mapped.supplierCode()).isEqualTo("SUP-001");
             assertThat(mapped.supplierName()).isEqualTo("甲方供應商");
             assertThat(mapped.chunkIndex()).isEqualTo(3);
-            assertThat(mapped.startOffset()).isEqualTo(120);
-            assertThat(mapped.endOffset()).isEqualTo(184);
+            assertThat(mapped.startOffset()).isEqualTo(excerptStart);
+            assertThat(mapped.endOffset()).isEqualTo(excerptStart + excerpt.length());
             assertThat(mapped.excerpt()).isEqualTo(source.excerpt());
+            assertThat(mapped.endOffset() - mapped.startOffset()).isEqualTo(mapped.excerpt().length());
+            assertThat(sourceText.substring(mapped.startOffset(), mapped.endOffset())).isEqualTo(mapped.excerpt());
             assertThat(mapped.relevanceScore()).isEqualTo(0.87);
         });
         verify(pipeline).answer(safeQuestion);

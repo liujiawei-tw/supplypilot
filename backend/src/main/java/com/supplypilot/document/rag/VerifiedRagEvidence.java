@@ -23,10 +23,22 @@ public record VerifiedRagEvidence(
         String verifiedTemporalRole,
         Integer temporalRoleStartOffset,
         Integer temporalRoleEndOffset,
-        Set<String> verifiedMaterialCodes
+        Set<String> verifiedMaterialCodes,
+        String contextExcerpt
 ) {
     public VerifiedRagEvidence {
         verifiedMaterialCodes = verifiedMaterialCodes == null ? Set.of() : Set.copyOf(verifiedMaterialCodes);
+        contextExcerpt = contextExcerpt == null ? excerpt : contextExcerpt;
+    }
+
+    public VerifiedRagEvidence(Long documentId, String documentKey, DocumentType documentType, String title,
+            String version, Long supplierId, String supplierCode, String supplierName, int chunkIndex,
+            int startOffset, int endOffset, String excerpt, double relevanceScore, boolean demoBaseline,
+            String verifiedTemporalRole, Integer temporalRoleStartOffset, Integer temporalRoleEndOffset,
+            Set<String> verifiedMaterialCodes) {
+        this(documentId, documentKey, documentType, title, version, supplierId, supplierCode, supplierName,
+                chunkIndex, startOffset, endOffset, excerpt, relevanceScore, demoBaseline, verifiedTemporalRole,
+                temporalRoleStartOffset, temporalRoleEndOffset, verifiedMaterialCodes, excerpt);
     }
 
     public VerifiedRagEvidence(Long documentId, String documentKey, DocumentType documentType, String title,
@@ -35,14 +47,15 @@ public record VerifiedRagEvidence(
             String verifiedTemporalRole, Integer temporalRoleStartOffset, Integer temporalRoleEndOffset) {
         this(documentId, documentKey, documentType, title, version, supplierId, supplierCode, supplierName,
                 chunkIndex, startOffset, endOffset, excerpt, relevanceScore, demoBaseline, verifiedTemporalRole,
-                temporalRoleStartOffset, temporalRoleEndOffset, Set.of());
+                temporalRoleStartOffset, temporalRoleEndOffset, Set.of(), excerpt);
     }
 
     public VerifiedRagEvidence(Long documentId, String documentKey, DocumentType documentType, String title,
             String version, Long supplierId, String supplierCode, String supplierName, int chunkIndex,
             int startOffset, int endOffset, String excerpt, double relevanceScore, boolean demoBaseline) {
         this(documentId, documentKey, documentType, title, version, supplierId, supplierCode, supplierName,
-                chunkIndex, startOffset, endOffset, excerpt, relevanceScore, demoBaseline, null, null, null, Set.of());
+                chunkIndex, startOffset, endOffset, excerpt, relevanceScore, demoBaseline, null, null, null, Set.of(),
+                excerpt);
     }
 
     public boolean hasVerifiedTemporalRole(String role) {
@@ -53,12 +66,15 @@ public record VerifiedRagEvidence(
     }
 
     public String verifiedTemporalExcerpt() {
-        if (verifiedTemporalRole == null) return excerpt;
+        String text = contextExcerpt == null ? excerpt : contextExcerpt;
+        if (verifiedTemporalRole == null || text.contains("【歷史條件】") || text.contains("【現行條件】")) {
+            return text;
+        }
         String marker = switch (verifiedTemporalRole) {
             case "HISTORICAL" -> "【歷史條件】";
             case "CURRENT" -> "【現行條件】";
             default -> "";
         };
-        return marker.isBlank() ? excerpt : marker + " " + excerpt;
+        return marker.isBlank() ? text : marker + " " + text;
     }
 }

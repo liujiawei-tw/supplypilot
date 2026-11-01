@@ -80,9 +80,10 @@ class RagDocumentPostProcessorTests {
     void leavesQuestionSupportJudgmentToModelAfterLiveSourceChecksPass() {
         Fixture fixture = fixture(CONTENT, SCORE, 0, CONTENT.length());
         String question = "SUP-001 的 MAT-001 付款方式是什麼？";
-        when(fixture.demoEligibility().restrictBusinessFactContent(
+        when(fixture.demoEligibility().restrictBusinessFactContentWithSources(
                 eq(fixture.document()), eq(question), anyString()))
-                .thenAnswer(invocation -> invocation.getArgument(2));
+                .thenAnswer(invocation -> DemoCorpusRagEligibility.RestrictedBusinessFactContent.unmodified(
+                        invocation.getArgument(2)));
         when(fixture.demoEligibility().hasCompleteTemporalEvidence(anyString(), anyList(), anyBoolean()))
                 .thenReturn(true);
         fixture.collector().begin();
@@ -140,9 +141,10 @@ class RagDocumentPostProcessorTests {
         List<String> safeChunks = List.of(identifierChunk, factChunk);
         when(demoEligibility.inspectSource(document, source, sourceHash, DOCUMENT_GENERATION, policy))
                 .thenReturn(new OutboundDocumentPolicy.Decision("APPROVED", null, safeChunks));
-        when(demoEligibility.restrictBusinessFactContent(document, QUESTION, identifierChunk))
-                .thenReturn(identifierChunk);
-        when(demoEligibility.restrictBusinessFactContent(document, QUESTION, factChunk)).thenReturn(factChunk);
+        when(demoEligibility.restrictBusinessFactContentWithSources(document, QUESTION, identifierChunk))
+                .thenReturn(DemoCorpusRagEligibility.RestrictedBusinessFactContent.unmodified(identifierChunk));
+        when(demoEligibility.restrictBusinessFactContentWithSources(document, QUESTION, factChunk))
+                .thenReturn(DemoCorpusRagEligibility.RestrictedBusinessFactContent.unmodified(factChunk));
         when(demoEligibility.hasCompleteTemporalEvidence(eq(QUESTION), anyList(), eq(false))).thenReturn(true);
 
         SemanticProperties properties = new SemanticProperties("jdbc:postgresql://localhost/test", "test", "test",
@@ -167,8 +169,44 @@ class RagDocumentPostProcessorTests {
             assertThat(evidence.endOffset()).isEqualTo(sourceText.length());
         });
         verify(demoEligibility, org.mockito.Mockito.never())
-                .restrictBusinessFactContent(document, QUESTION, identifierChunk);
-        verify(demoEligibility).restrictBusinessFactContent(document, QUESTION, factChunk);
+                .restrictBusinessFactContentWithSources(document, QUESTION, identifierChunk);
+        verify(demoEligibility).restrictBusinessFactContentWithSources(document, QUESTION, factChunk);
+    }
+
+    @Test
+    void returnsExactFactScopedSourceOffsetsAndKeepsSyntheticScopeOnlyInContext() {
+        String question = "SUP-001 的 MAT-001 標準交期是多久？";
+        String sourceText = "SUP-001 supplies MAT-001. SUP-002 supplies MAT-002.\n"
+                + "MAT-001 標準交期為 5 個日曆日。 MAT-002 標準交期為 12 個日曆日。";
+        String factExcerpt = "MAT-001 標準交期為 5 個日曆日。";
+        int excerptStart = sourceText.indexOf(factExcerpt);
+        int absoluteStart = 700;
+        List<DocumentChunk> source = List.of(sourceChunk(0, absoluteStart,
+                absoluteStart + sourceText.length(), sourceText));
+        Fixture fixture = fixture(source, List.of(sourceText), 0, SCORE, question);
+        String context = "【現行條件】來源範圍 SUP-001 MAT-001。" + factExcerpt;
+        when(fixture.demoEligibility().restrictBusinessFactContentWithSources(
+                fixture.document(), question, sourceText))
+                .thenReturn(new DemoCorpusRagEligibility.RestrictedBusinessFactContent(context, List.of(
+                        new DemoCorpusRagEligibility.SourceExcerpt(factExcerpt, excerptStart,
+                                excerptStart + factExcerpt.length()))));
+        fixture.collector().begin();
+
+        List<Document> contexts = fixture.processor().process(new Query(question), List.of(fixture.candidate()));
+
+        assertThat(contexts).singleElement().satisfies(document -> {
+            assertThat(document.getText()).contains("來源範圍 SUP-001 MAT-001", factExcerpt)
+                    .doesNotContain("SUP-002", "MAT-002", "12 個日曆日");
+        });
+        assertThat(fixture.collector().get()).singleElement().satisfies(evidence -> {
+            assertThat(evidence.excerpt()).isEqualTo(factExcerpt);
+            assertThat(evidence.startOffset()).isEqualTo(absoluteStart + excerptStart);
+            assertThat(evidence.endOffset()).isEqualTo(absoluteStart + excerptStart + factExcerpt.length());
+            assertThat(evidence.endOffset() - evidence.startOffset()).isEqualTo(evidence.excerpt().length());
+            assertThat(sourceText.substring(evidence.startOffset() - absoluteStart,
+                    evidence.endOffset() - absoluteStart)).isEqualTo(evidence.excerpt());
+            assertThat(evidence.excerpt()).doesNotContain("SUP-002", "MAT-002", "12 個日曆日", "來源範圍");
+        });
     }
 
     @Test
@@ -331,9 +369,10 @@ class RagDocumentPostProcessorTests {
         when(demoEligibility.isEligible(document)).thenReturn(true);
         when(demoEligibility.inspectSource(document, source, sourceHash, DOCUMENT_GENERATION, policy))
                 .thenReturn(new OutboundDocumentPolicy.Decision("APPROVED", null, safeChunks));
-        when(demoEligibility.restrictBusinessFactContent(eq(document), eq(question),
+        when(demoEligibility.restrictBusinessFactContentWithSources(eq(document), eq(question),
                 org.mockito.ArgumentMatchers.anyString()))
-                .thenAnswer(invocation -> invocation.getArgument(2));
+                .thenAnswer(invocation -> DemoCorpusRagEligibility.RestrictedBusinessFactContent.unmodified(
+                        invocation.getArgument(2)));
         DocumentChunk sourceChunk = source.getFirst();
         String sourceText = sourceChunk.getContent();
         when(demoEligibility.hasCompleteTemporalEvidence(eq(question), anyList(), eq(false))).thenReturn(true);
@@ -390,8 +429,9 @@ class RagDocumentPostProcessorTests {
             org.mockito.Mockito.when(demoEligibility.inspectSource(document, List.of(sourceChunk), sourceHash,
                     DOCUMENT_GENERATION, policy))
                     .thenReturn(new OutboundDocumentPolicy.Decision("APPROVED", null, List.of(safeChunk)));
-            org.mockito.Mockito.when(demoEligibility.restrictBusinessFactContent(document, QUESTION,
-                    safeChunk)).thenReturn(safeChunk);
+            org.mockito.Mockito.when(demoEligibility.restrictBusinessFactContentWithSources(document, QUESTION,
+                    safeChunk)).thenReturn(DemoCorpusRagEligibility.RestrictedBusinessFactContent.unmodified(
+                            safeChunk));
         }
     }
 }

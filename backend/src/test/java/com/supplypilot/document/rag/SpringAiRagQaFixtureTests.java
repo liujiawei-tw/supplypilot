@@ -358,12 +358,14 @@ class SpringAiRagQaFixtureTests {
                     .map(chunk -> gate.approvedChunk() == null ? chunk.content() : gate.approvedChunk()).toList();
             when(demoEligibility.inspectSource(document, sourceChunks, sourceHash, documentGeneration, policy))
                     .thenReturn(new OutboundDocumentPolicy.Decision("APPROVED", null, safeChunks));
-            when(demoEligibility.restrictBusinessFactContent(eq(document), eq(question),
+            when(demoEligibility.restrictBusinessFactContentWithSources(eq(document), eq(question),
                     org.mockito.ArgumentMatchers.anyString()))
-                    .thenAnswer(invocation -> invocation.getArgument(2));
+                    .thenAnswer(invocation -> DemoCorpusRagEligibility.RestrictedBusinessFactContent.unmodified(
+                            invocation.getArgument(2)));
             for (SourceSnippet snippet : documentSnippets) {
-                when(demoEligibility.restrictBusinessFactContent(document, question,
-                        snippet.indexedChunk().content())).thenReturn(snippet.indexedChunk().content());
+                String content = snippet.indexedChunk().content();
+                when(demoEligibility.restrictBusinessFactContentWithSources(document, question, content))
+                        .thenReturn(DemoCorpusRagEligibility.RestrictedBusinessFactContent.unmodified(content));
             }
 
             for (SourceSnippet snippet : documentSnippets) {
