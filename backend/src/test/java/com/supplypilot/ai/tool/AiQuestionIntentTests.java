@@ -37,7 +37,7 @@ class AiQuestionIntentTests {
                 .contains("SUPPLYPILOT_INTENT_CLASSIFIER");
         assertThat(captured.get().getUserMessage().getText())
                 .isEqualTo("SUP-003 的服務時段是哪些日子、幾點到幾點？");
-        assertThat(captured.get().getOptions().getMaxTokens()).isEqualTo(128);
+        assertThat(captured.get().getOptions()).isNull();
     }
 
     @Test
