@@ -3,6 +3,8 @@ package com.supplypilot.ai.tool;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.util.Set;
+
 import com.supplypilot.ai.dto.AiToolType;
 import com.supplypilot.common.exception.BusinessException;
 import com.supplypilot.common.exception.ErrorCode;
@@ -13,26 +15,28 @@ class AiQueryPlannerTests {
 
     @Test
     void selectsOnlyTheFixedReadToolAllowlist() {
-        assertThat(planner.plan("為什麼 MAT-001 建議買 200kg？").tool())
+        assertThat(plan("為什麼 MAT-001 建議買 200kg？", AiToolType.EXPLAIN_RECOMMENDATION).tool())
                 .isEqualTo(AiToolType.EXPLAIN_RECOMMENDATION);
-        assertThat(planner.plan("MAT-001 的供應商排名").tool())
+        assertThat(plan("MAT-001 的供應商排名", AiToolType.QUERY_SUPPLIER_RANKING).tool())
                 .isEqualTo(AiToolType.QUERY_SUPPLIER_RANKING);
-        assertThat(planner.plan("MAT-001 現在庫存多少").tool())
+        assertThat(plan("MAT-001 現在庫存多少", AiToolType.QUERY_INVENTORY).tool())
                 .isEqualTo(AiToolType.QUERY_INVENTORY);
-        assertThat(planner.plan("列出 MAT-001 的未收貨採購單").tool())
+        assertThat(plan("列出 MAT-001 的未收貨採購單", AiToolType.QUERY_OPEN_PO).tool())
                 .isEqualTo(AiToolType.QUERY_OPEN_PO);
-        assertThat(planner.plan("合約的付款條件是什麼").tool())
+        assertThat(plan("合約的付款條件是什麼", AiToolType.SEARCH_DOCUMENTS).tool())
                 .isEqualTo(AiToolType.SEARCH_DOCUMENTS);
-        assertThat(planner.plan("供應商合約的付款條件").tool())
+        assertThat(plan("供應商合約的付款條件", AiToolType.SEARCH_DOCUMENTS).tool())
                 .isEqualTo(AiToolType.SEARCH_DOCUMENTS);
     }
 
     @Test
     void extractsOnlyExplicitResourceIdentifiers() {
-        AiQueryPlan plan = planner.plan("請解釋 recommendation id 42 for mat-001");
+        AiQueryPlan plan = planner.plan("請解釋 recommendation id 42 for mat-001",
+                Set.of(AiToolType.EXPLAIN_RECOMMENDATION));
         assertThat(plan.recommendationId()).isEqualTo(42L);
         assertThat(plan.materialCode()).isEqualTo("MAT-001");
-        assertThat(planner.plan("為什麼 MAT-001 建議買 200kg？").recommendationId()).isNull();
+        assertThat(planner.plan("為什麼 MAT-001 建議買 200kg？", Set.of(AiToolType.EXPLAIN_RECOMMENDATION))
+                .recommendationId()).isNull();
         assertThat(planner.materialCode("SUP-001 的 MAT-001 標準交期是多久？")).isEqualTo("MAT-001");
         assertThat(planner.materialCode("SUP-001 的交期是多少？")).isNull();
         assertThat(planner.materialCode("MAT-A1 的庫存是多少？")).isEqualTo("MAT-A1");
@@ -103,7 +107,8 @@ class AiQueryPlannerTests {
     void recognizesNamedMaterialInventoryQuestionsWithoutAskingForItsCode() {
         String question = "阿薩姆紅茶萃取物 目前庫存?";
 
-        assertThat(planner.plan(question).tool()).isEqualTo(AiToolType.QUERY_INVENTORY);
+        assertThat(planner.plan(question, Set.of(AiToolType.QUERY_INVENTORY)).tool())
+                .isEqualTo(AiToolType.QUERY_INVENTORY);
         assertThat(planner.missingIdentifier(question)).isNull();
         assertThat(planner.materialName(question)).isEqualTo("阿薩姆紅茶萃取物");
         assertThat(planner.materialCodes("阿薩姆紅茶萃取物 目前庫存?")).isEmpty();
@@ -119,7 +124,8 @@ class AiQueryPlannerTests {
 
     @Test
     void recognizesConversationalOpenPurchaseOrderRequest() {
-        assertThat(planner.plan("有哪些採購單已經下單、但還沒收貨？幫我列出單號、供應商和預計交貨日。")
+        assertThat(planner.plan("有哪些採購單已經下單、但還沒收貨？幫我列出單號、供應商和預計交貨日。",
+                Set.of(AiToolType.QUERY_OPEN_PO))
                 .tool()).isEqualTo(AiToolType.QUERY_OPEN_PO);
     }
 
@@ -139,7 +145,7 @@ class AiQueryPlannerTests {
         assertThat(planner.supplierCode("SUP-001 評價?")).isEqualTo("SUP-001");
         assertThat(planner.supplierCodes("SUP-001 / SUP-002 評價?"))
                 .containsExactly("SUP-001", "SUP-002");
-        assertThat(planner.plan("SUP-001 / SUP-002 評價?").supplierCodes())
+        assertThat(planner.plan("SUP-001 / SUP-002 評價?", Set.of(AiToolType.QUERY_SUPPLIER)).supplierCodes())
                 .containsExactly("SUP-001", "SUP-002");
         assertThat(planner.supplierCodes("SUP-001 / SUP-001 評價?"))
                 .containsExactly("SUP-001");
@@ -149,12 +155,15 @@ class AiQueryPlannerTests {
     void parsesEnglishChineseAndMixedNamesWithoutTreatingQueryWordsAsNames() {
         assertThat(planner.materialName("Assam inventory?")).isEqualTo("Assam");
         assertThat(planner.supplierName("Supplier Two reliability rating?")).isEqualTo("Supplier Two");
-        assertThat(planner.plan("Supplier Two reliability rating?").tool()).isEqualTo(AiToolType.QUERY_SUPPLIER);
+        assertThat(planner.plan("Supplier Two reliability rating?", Set.of(AiToolType.QUERY_SUPPLIER)).tool())
+                .isEqualTo(AiToolType.QUERY_SUPPLIER);
         assertThat(planner.supplierName("What is Supplier Two's reliability rating?"))
                 .isEqualTo("Supplier Two");
-        assertThat(planner.plan("What is Supplier Two's reliability rating?").tool()).isEqualTo(AiToolType.QUERY_SUPPLIER);
+        assertThat(planner.plan("What is Supplier Two's reliability rating?", Set.of(AiToolType.QUERY_SUPPLIER)).tool())
+                .isEqualTo(AiToolType.QUERY_SUPPLIER);
         assertThat(planner.materialName("How much inventory does Assam have?")).isEqualTo("Assam");
-        assertThat(planner.plan("How much inventory does Assam have?").tool()).isEqualTo(AiToolType.QUERY_INVENTORY);
+        assertThat(planner.plan("How much inventory does Assam have?", Set.of(AiToolType.QUERY_INVENTORY)).tool())
+                .isEqualTo(AiToolType.QUERY_INVENTORY);
         assertThat(planner.materialName("阿薩姆紅茶萃取物目前庫存?")).isEqualTo("阿薩姆紅茶萃取物");
         assertThat(planner.materialName("阿薩姆 Assam 紅茶 inventory?")).isEqualTo("阿薩姆 Assam 紅茶");
         assertThat(planner.materialName("Assam-2 inventory?")).isEqualTo("Assam-2");
@@ -162,5 +171,9 @@ class AiQueryPlannerTests {
         assertThat(planner.materialName("inventory stock level?")).isNull();
         assertThat(planner.supplierName("supplier reliability rating?")).isNull();
         assertThat(planner.missingIdentifier("Supplier Two reliability rating?")).isNull();
+    }
+
+    private AiQueryPlan plan(String question, AiToolType requestedTool) {
+        return planner.plan(question, Set.of(requestedTool));
     }
 }

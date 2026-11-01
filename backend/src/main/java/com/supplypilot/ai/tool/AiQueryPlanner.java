@@ -3,6 +3,7 @@ package com.supplypilot.ai.tool;
 import java.util.Locale;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -51,11 +52,18 @@ public class AiQueryPlanner {
             + "(?:收貨|核准|駁回|下單|調整庫存|建立(?:採購)?草稿))");
 
     public AiQueryPlan plan(String message) {
+        return plan(message, Set.of(AiToolType.SEARCH_DOCUMENTS));
+    }
+
+    public AiQueryPlan plan(String message, Set<AiToolType> requested) {
         String normalized = validate(message);
-        var requested = AiQuestionIntent.requestedTools(normalized);
+        requested = requested == null || requested.isEmpty()
+                ? Set.of(AiToolType.SEARCH_DOCUMENTS) : Set.copyOf(requested);
         AiToolType tool = requested.contains(AiToolType.SEARCH_DOCUMENTS) ? AiToolType.SEARCH_DOCUMENTS
                 : requested.contains(AiToolType.QUERY_PURCHASE_ORDER) ? AiToolType.QUERY_PURCHASE_ORDER
                 : requested.contains(AiToolType.QUERY_SUPPLIER_RANKING) ? AiToolType.QUERY_SUPPLIER_RANKING
+                : requested.contains(AiToolType.EXPLAIN_RECOMMENDATION)
+                    ? AiToolType.EXPLAIN_RECOMMENDATION
                 : requested.contains(AiToolType.QUERY_RECOMMENDATION)
                     ? containsAny(normalized.toLowerCase(Locale.ROOT), "why", "explain", "為什麼", "原因")
                         ? AiToolType.EXPLAIN_RECOMMENDATION : AiToolType.QUERY_RECOMMENDATION

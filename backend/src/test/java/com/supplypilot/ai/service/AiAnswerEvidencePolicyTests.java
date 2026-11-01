@@ -3,6 +3,7 @@ package com.supplypilot.ai.service;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
+import java.util.Set;
 
 import com.supplypilot.ai.dto.AiQueryStatus;
 import com.supplypilot.ai.dto.AiSourceResponse;
@@ -26,7 +27,8 @@ class AiAnswerEvidencePolicyTests {
                 excerpt, List.of(sourceResponse));
 
         assertThat(excerpt.length()).isEqualTo(sourceResponse.endOffset() - sourceResponse.startOffset());
-        assertThat(policy.supportingResults(question, List.of(searchResult))).containsExactly(searchResult);
+        assertThat(policy.supportingResults(question, Set.of(AiToolType.SEARCH_DOCUMENTS),
+                List.of(searchResult))).containsExactly(searchResult);
     }
 
     @Test
@@ -41,7 +43,8 @@ class AiAnswerEvidencePolicyTests {
         AiToolResult searchResult = new AiToolResult(AiToolType.SEARCH_DOCUMENTS, AiQueryStatus.ANSWERED,
                 deliveryClause, List.of(supplierSource, factSource));
 
-        assertThat(policy.supportingResults(question, List.of(searchResult))).containsExactly(searchResult);
+        assertThat(policy.supportingResults(question, Set.of(AiToolType.SEARCH_DOCUMENTS),
+                List.of(searchResult))).containsExactly(searchResult);
         assertThat(searchResult.sources()).containsExactly(supplierSource, factSource);
         assertThat(searchResult.sources()).allSatisfy(source ->
                 assertThat(source.endOffset() - source.startOffset()).isEqualTo(source.excerpt().length()));
@@ -65,8 +68,19 @@ class AiAnswerEvidencePolicyTests {
         AiToolResult crossDocumentResult = new AiToolResult(AiToolType.SEARCH_DOCUMENTS,
                 AiQueryStatus.ANSWERED, requestedMaterialClause, List.of(supplierSource, separateDocumentFact));
 
-        assertThat(policy.supportingResults(question, List.of(wrongMaterialResult))).isEmpty();
-        assertThat(policy.supportingResults(question, List.of(crossDocumentResult))).isEmpty();
+        assertThat(policy.supportingResults(question, Set.of(AiToolType.SEARCH_DOCUMENTS),
+                List.of(wrongMaterialResult))).isEmpty();
+        assertThat(policy.supportingResults(question, Set.of(AiToolType.SEARCH_DOCUMENTS),
+                List.of(crossDocumentResult))).isEmpty();
+    }
+
+    @Test
+    void emptyClassifiedIntentFailsClosedInsteadOfAcceptingAnyAnsweredTool() {
+        AiToolResult inventory = new AiToolResult(AiToolType.QUERY_INVENTORY, AiQueryStatus.ANSWERED,
+                "MAT-001 庫存為 10 KG。", List.of(AiSourceResponse.resource("INVENTORY", 1, "MAT-001")));
+
+        assertThat(policy.supportingResults("MAT-001 庫存?", Set.of(), List.of(inventory))).isEmpty();
+        assertThat(policy.partialResults("MAT-001 庫存?", Set.of(), List.of(inventory))).isEmpty();
     }
 
     private AiSourceResponse source(String resourceId, String documentKey, String version, int chunkIndex,

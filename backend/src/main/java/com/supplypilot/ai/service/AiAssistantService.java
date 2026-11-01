@@ -53,10 +53,12 @@ public class AiAssistantService {
         }
         var result = queryProvider(validated);
         var executions = result.results();
-        var supporting = evidencePolicy.supportingResults(validated, executions);
+        var requestedTools = result.requestedTools();
+        var supporting = evidencePolicy.supportingResults(validated, requestedTools, executions);
         if (supporting.isEmpty()) {
-            var partial = evidencePolicy.partialResults(validated, executions);
-            List<String> incompleteNotes = evidencePolicy.incompleteNotes(validated, executions, partial);
+            var partial = evidencePolicy.partialResults(validated, requestedTools, executions);
+            List<String> incompleteNotes = evidencePolicy.incompleteNotes(validated, requestedTools,
+                    executions, partial);
             if (!partial.isEmpty()) {
                 AiAnswerData partialDetails = AiAnswerData.merge(partial.stream().map(item -> item.details()).toList());
                 List<String> notes = java.util.stream.Stream.concat(partialDetails.notes().stream(),

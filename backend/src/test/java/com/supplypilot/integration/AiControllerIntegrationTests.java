@@ -274,6 +274,14 @@ class AiControllerIntegrationTests extends AbstractIntegrationTest {
                         "{\"summary\":\"已依據查得的資料整理以下結果。\",\"factIndexes\":[" + indexes + "]}"))));
             }
             String question = prompt.getUserMessage().getText();
+            boolean intentClassification = prompt.getInstructions().stream()
+                    .filter(org.springframework.ai.chat.messages.SystemMessage.class::isInstance)
+                    .map(org.springframework.ai.chat.messages.SystemMessage.class::cast)
+                    .anyMatch(system -> system.getText().contains("SUPPLYPILOT_INTENT_CLASSIFIER"));
+            if (intentClassification) {
+                return new ChatResponse(List.of(new Generation(new AssistantMessage(
+                        "{\"tools\":[" + classifiedTools(question) + "]}"))));
+            }
             String lower = question.toLowerCase(Locale.ROOT);
             String material = material(question);
             String tool;
@@ -330,6 +338,27 @@ class AiControllerIntegrationTests extends AbstractIntegrationTest {
 
         private String escape(String value) {
             return value.replace("\\", "\\\\").replace("\"", "\\\"");
+        }
+
+        private String classifiedTools(String question) {
+            String lower = question.toLowerCase(Locale.ROOT);
+            List<String> tools = new java.util.ArrayList<>();
+            if (lower.contains("合約") || lower.contains("標準交期") || lower.contains("服務時段")
+                    || lower.contains("文件") || lower.contains("sop")) tools.add("SEARCH_DOCUMENTS");
+            if (lower.contains("庫存") || lower.contains("inventory")) tools.add("QUERY_INVENTORY");
+            if (lower.contains("未收貨") || lower.contains("未完成採購單") || lower.contains("open po")) {
+                tools.add("QUERY_OPEN_PO");
+            }
+            if (lower.contains("供應商排名") || lower.contains("supplier ranking")) {
+                tools.add("QUERY_SUPPLIER_RANKING");
+            }
+            if (lower.contains("建議") || lower.contains("recommendation")) {
+                tools.add(lower.contains("為什麼") || lower.contains("explain")
+                        ? "EXPLAIN_RECOMMENDATION" : "QUERY_RECOMMENDATION");
+            }
+            if (tools.isEmpty()) tools.add("SEARCH_DOCUMENTS");
+            return tools.stream().map(tool -> "\"" + tool + "\"")
+                    .collect(java.util.stream.Collectors.joining(","));
         }
     }
 }

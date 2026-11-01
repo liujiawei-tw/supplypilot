@@ -441,7 +441,7 @@ System.getenv()
 - API Key 或憑證禁止 Commit、寫入 Log 或傳回 HTTP Response。Timeout / Unavailable / Invalid Response 沿用既有 AI Error Contract。
 - Local/Test 若未設定 Provider，核心 Backend 不得因為 AI 功能未啟用而無法啟動；呼叫未啟用的 AI 能力才返回適切既有 AI Error。
 - 自動化測試透過 Fake ChatModel／ToolCallback 運作，不得呼叫真實付費 Provider。Production 需要有效 Provider 設定，且不得使用 Fake Provider 偽裝成真正的模型整合。
-- V1 使用同步單輪 JSON，不配置 Chat Memory。`AI_MAX_OUTPUT_TOKENS` 限制明確套用 `AiProperties` 的模型呼叫；文件 RAG 不配置應用程式層級輸出 token 上限。`AI_MAX_TOOL_CALLS` 限制一次請求的工具執行次數，`AI_MAX_MODEL_CALLS` 限制模型呼叫輪數，`AI_PROVIDER_TIMEOUT` 限制整次 Provider 等待時間。其他 AI 呼叫的預設分別為 512、4、5、15 秒。
+- V1 使用同步單輪 JSON，不配置 Chat Memory。`AI_MAX_OUTPUT_TOKENS` 限制明確套用 `AiProperties` 的模型呼叫；文件 RAG 不配置應用程式層級輸出 token 上限。`/api/v1/ai/query` 會先用一次 Spring AI 呼叫分類問題；分類、工具選擇及答案生成都計入 `AI_MAX_MODEL_CALLS` 和 `AI_PROVIDER_TIMEOUT`，因此模型呼叫上限至少為 3。`AI_MAX_TOOL_CALLS` 限制一次請求的工具執行次數。其他 AI 呼叫的預設分別為 512、4、5、15 秒。
 - AI Query 的唯讀 allowlist 關閉 `returnDirect`，Spring AI 可在同一請求呼叫多個工具。`answer` 與 `sources` 一律由 Backend 已授權工具結果組成；複合查詢不完整時，可顯示個別通過驗證的事實，並在 `details.notes` 指明缺漏；若沒有可用部分事實，`answer=null`。後端另以 `summary` 回傳經狀態驗證的安全句型，前端在型別化 `details` 之前顯示摘要。摘要不得包含業務事實或數字，也不代表任意 LLM 改寫已通過語意驗證。摘要有效且實際顯示時才使用 `answerSource=MODEL_EXPLANATION`；摘要無效、缺漏或未顯示時使用 `BACKEND_FACTS`。`purchaseOrderTotalCount` 回傳符合條件的總筆數，`purchaseOrders` 最多取得 100 筆；前端需同時呈現真實總數、已取得筆數與尚未列出筆數。資料查詢失敗使用 `AI_QUERY_FAILED`，與查無業務資料的 `NOT_FOUND` 分開。
 - 缺少 Material Code／Recommendation ID 等必要識別時，`status=NEEDS_CLARIFICATION`、`answer` 說明需補充的欄位、`tools=[]`、`sources=[]`、`answerSource=BACKEND_CLARIFICATION`；V1 不保存上下文，需重新提出完整問題。
 - Tool Result 傳給 Gemini 的內容限定為工具種類、狀態及最多 1500 字的查詢事實，不傳 Source 摘錄或無關資料。月度 Token 用量警示的實際規則與驗證方式見下節；此警示不是平台硬費用上限。

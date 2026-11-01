@@ -22,11 +22,9 @@ public class AiAnswerEvidencePolicy {
         this.evidenceValidator = evidenceValidator;
     }
 
-    public List<AiToolResult> supportingResults(String question, List<AiToolResult> executions) {
-        Set<AiToolType> requested = AiQuestionIntent.requestedTools(question);
-        if (requested.isEmpty()) {
-            return executions.stream().filter(this::answered).toList();
-        }
+    public List<AiToolResult> supportingResults(String question, Set<AiToolType> requested,
+                                               List<AiToolResult> executions) {
+        if (requested == null || requested.isEmpty()) return List.of();
         List<AiToolResult> supporting = executions.stream()
                 .filter(result -> requested.stream().anyMatch(tool -> AiQuestionIntent.satisfies(tool, result.tool())))
                 .filter(result -> result.status() == AiQueryStatus.ANSWERED
@@ -65,11 +63,11 @@ public class AiAnswerEvidencePolicy {
     }
 
     /** Returns individually supported results when a compound request cannot be completed in full. */
-    public List<AiToolResult> partialResults(String question, List<AiToolResult> executions) {
-        Set<AiToolType> requested = AiQuestionIntent.requestedTools(question);
+    public List<AiToolResult> partialResults(String question, Set<AiToolType> requested,
+                                             List<AiToolResult> executions) {
+        if (requested == null || requested.isEmpty()) return List.of();
         return executions.stream()
-                .filter(result -> requested.isEmpty() ? result.status() == AiQueryStatus.ANSWERED
-                        : requested.stream().anyMatch(tool -> AiQuestionIntent.satisfies(tool, result.tool())))
+                .filter(result -> requested.stream().anyMatch(tool -> AiQuestionIntent.satisfies(tool, result.tool())))
                 .filter(result -> result.status() == AiQueryStatus.ANSWERED
                         || result.status() == AiQueryStatus.NOT_FOUND
                         || result.status() == AiQueryStatus.NEEDS_CLARIFICATION)
@@ -78,9 +76,10 @@ public class AiAnswerEvidencePolicy {
     }
 
     /** Explains incomplete parts without conflating document gaps, business gaps, and absent tool results. */
-    public List<String> incompleteNotes(String question, List<AiToolResult> executions,
+    public List<String> incompleteNotes(String question, Set<AiToolType> requested,
+                                        List<AiToolResult> executions,
                                         List<AiToolResult> partialResults) {
-        Set<AiToolType> requested = AiQuestionIntent.requestedTools(question);
+        if (requested == null || requested.isEmpty()) return List.of();
         List<String> notes = new java.util.ArrayList<>();
         for (AiToolType tool : requested) {
             boolean hasSupportedResult = partialResults.stream()
@@ -171,12 +170,6 @@ public class AiAnswerEvidencePolicy {
             case QUERY_RECOMMENDATION, EXPLAIN_RECOMMENDATION -> "採購建議查詢";
             case QUERY_SUPPLIER_RANKING -> "供應商排名查詢";
         };
-    }
-
-    private boolean answered(AiToolResult result) {
-        return result != null && result.status() == AiQueryStatus.ANSWERED
-                && result.trustedFacts() != null && !result.trustedFacts().isBlank()
-                && result.sources() != null;
     }
 
     private boolean supportedDocument(String question, AiToolResult result) {

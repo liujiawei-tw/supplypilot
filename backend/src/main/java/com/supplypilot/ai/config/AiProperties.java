@@ -15,7 +15,7 @@ public record AiProperties(
         @NotNull Duration providerTimeout,
         @Positive @Max(4096) int maxOutputTokens,
         @Min(1) @Max(12) int maxToolCalls,
-        @Min(2) @Max(12) int maxModelCalls,
+        @Min(3) @Max(12) int maxModelCalls,
         boolean monthlyTokenWarningEnabled,
         @Min(1) long monthlyTokenWarningThreshold
 ) {

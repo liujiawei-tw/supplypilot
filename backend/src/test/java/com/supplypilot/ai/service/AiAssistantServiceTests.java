@@ -10,6 +10,7 @@ import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.lenient;
 
 import java.util.List;
+import java.util.Set;
 
 import com.supplypilot.ai.client.AiProviderClient;
 import com.supplypilot.ai.client.AiProviderException;
@@ -54,7 +55,7 @@ class AiAssistantServiceTests {
         when(provider.isConfigured()).thenReturn(true);
         when(provider.query(any())).thenReturn(new AiProviderResponse(
                 List.of(result), result.trustedFacts(), "MODEL_EXPLANATION", 21,
-                "已依據查得的資料整理以下結果。"));
+                "已依據查得的資料整理以下結果。", Set.of(AiToolType.QUERY_INVENTORY)));
         var response = service.query("庫存");
         assertThat(response.status()).isEqualTo(AiQueryStatus.ANSWERED);
         assertThat(response.answer()).contains(result.trustedFacts());
@@ -203,7 +204,8 @@ class AiAssistantServiceTests {
                 "查無 SUP-991 與 SUP-992 的供應商主檔。", details);
         AiToolResult unavailableInventory = AiToolResult.insufficientEvidence(AiToolType.QUERY_INVENTORY);
 
-        var response = queryWith("SUP-991 / SUP-992 評價與庫存?", List.of(missing, unavailableInventory));
+        var response = queryWith("SUP-991 / SUP-992 評價與庫存?", List.of(missing, unavailableInventory),
+                Set.of(AiToolType.QUERY_SUPPLIER, AiToolType.QUERY_INVENTORY));
 
         assertThat(response.status()).isEqualTo(AiQueryStatus.INSUFFICIENT_EVIDENCE);
         assertThat(response.details().unmatchedIdentifiers()).containsExactly("SUP-991", "SUP-992");
@@ -227,7 +229,8 @@ class AiAssistantServiceTests {
     void preservesInsufficientEvidenceWithoutInventingAnAnswer() {
         when(provider.isConfigured()).thenReturn(true);
         AiToolResult insufficient = AiToolResult.insufficientEvidence(AiToolType.SEARCH_DOCUMENTS);
-        when(provider.query(any())).thenReturn(new AiProviderResponse(List.of(insufficient), null, null, 12));
+        when(provider.query(any())).thenReturn(new AiProviderResponse(List.of(insufficient), null, null, 12,
+                null, Set.of(AiToolType.QUERY_INVENTORY)));
         var response = service.query("庫存");
         assertThat(response.status()).isEqualTo(AiQueryStatus.INSUFFICIENT_EVIDENCE);
         assertThat(response.answer()).isNull();
@@ -324,13 +327,14 @@ class AiAssistantServiceTests {
         AiToolResult document = document(clause, "1");
 
         var documentOnly = queryWith("SUP-001 的 MAT-001 標準交期是多久？",
-                List.of(missingRecommendation, document));
+                List.of(missingRecommendation, document), Set.of(AiToolType.SEARCH_DOCUMENTS));
         assertThat(documentOnly.status()).isEqualTo(AiQueryStatus.ANSWERED);
         assertThat(documentOnly.answer()).contains("8 個曆日");
         assertThat(documentOnly.sources()).containsExactlyElementsOf(document.sources());
 
         var compound = queryWith("SUP-001 的 MAT-001 合約交期與採購建議為何？",
-                List.of(missingRecommendation, document));
+                List.of(missingRecommendation, document),
+                Set.of(AiToolType.SEARCH_DOCUMENTS, AiToolType.QUERY_RECOMMENDATION));
         assertThat(compound.status()).isEqualTo(AiQueryStatus.INSUFFICIENT_EVIDENCE);
         assertThat(compound.answer()).contains("8 個曆日");
         assertThat(compound.sources()).containsExactlyElementsOf(document.sources());
@@ -369,7 +373,8 @@ class AiAssistantServiceTests {
         AiToolResult inventory = tool(AiToolType.QUERY_INVENTORY, "MAT-001 庫存為 200 KG。", "INVENTORY");
         AiToolResult recommendation = tool(AiToolType.QUERY_RECOMMENDATION,
                 "MAT-001 建議採購 100 KG。", "PURCHASE_RECOMMENDATION");
-        var response = queryWith(question, List.of(inventory, recommendation));
+        var response = queryWith(question, List.of(inventory, recommendation),
+                Set.of(AiToolType.QUERY_INVENTORY, AiToolType.QUERY_RECOMMENDATION));
         assertThat(response.status()).isEqualTo(AiQueryStatus.ANSWERED);
         assertThat(response.answer()).contains("庫存為 200 KG", "建議採購 100 KG");
         assertThat(response.sources()).hasSize(2);
@@ -378,23 +383,33 @@ class AiAssistantServiceTests {
     @Test
     void explanationToolCanAnswerExplicitRecommendationQuestion() {
         var response = queryWith("為什麼推薦 MAT-001？", List.of(tool(AiToolType.EXPLAIN_RECOMMENDATION,
-                "MAT-001 的推薦原因已核對。", "PURCHASE_RECOMMENDATION")));
+                "MAT-001 的推薦原因已核對。", "PURCHASE_RECOMMENDATION")),
+                Set.of(AiToolType.EXPLAIN_RECOMMENDATION));
         assertThat(response.status()).isEqualTo(AiQueryStatus.ANSWERED);
     }
 
     private void assertContractQuestionInsufficient(List<AiToolResult> results) {
-        var response = queryWith("SUP-001 的 MAT-001 標準交期是多久？", results);
+        var response = queryWith("SUP-001 的 MAT-001 標準交期是多久？", results,
+                Set.of(AiToolType.SEARCH_DOCUMENTS));
         assertThat(response.status()).isEqualTo(AiQueryStatus.INSUFFICIENT_EVIDENCE);
         assertThat(response.answer()).isNull();
         assertThat(response.sources()).isEmpty();
     }
 
     private com.supplypilot.ai.dto.AiQueryResponse queryWith(String question, List<AiToolResult> results) {
+        Set<AiToolType> requestedTools = results.isEmpty() ? Set.of()
+                : Set.of(results.getFirst().tool());
+        return queryWith(question, results, requestedTools);
+    }
+
+    private com.supplypilot.ai.dto.AiQueryResponse queryWith(String question, List<AiToolResult> results,
+                                                              Set<AiToolType> requestedTools) {
         when(planner.validate(question)).thenReturn(question);
         when(provider.isConfigured()).thenReturn(true);
         when(provider.query(any())).thenReturn(new AiProviderResponse(results,
                 results.stream().map(AiToolResult::trustedFacts).filter(java.util.Objects::nonNull)
-                        .collect(java.util.stream.Collectors.joining("\n")), "MODEL_EXPLANATION", 21));
+                        .collect(java.util.stream.Collectors.joining("\n")), "MODEL_EXPLANATION", 21,
+                null, requestedTools));
         return service.query(question);
     }
 

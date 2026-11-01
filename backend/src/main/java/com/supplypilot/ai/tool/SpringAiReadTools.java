@@ -20,6 +20,7 @@ public final class SpringAiReadTools {
     private final AiToolRegistry registry;
     private final int maxToolCalls;
     private final String originalQuestion;
+    private final Set<AiToolType> requestedTools;
     private final Set<String> permittedMaterials;
     private final Set<String> permittedSuppliers;
     private final String permittedSupplierName;
@@ -30,9 +31,16 @@ public final class SpringAiReadTools {
 
     public SpringAiReadTools(AiToolRegistry registry, AiQueryPlanner planner,
                              String originalQuestion, int maxToolCalls) {
+        this(registry, planner, originalQuestion, maxToolCalls,
+                Set.of(AiToolType.values()));
+    }
+
+    public SpringAiReadTools(AiToolRegistry registry, AiQueryPlanner planner,
+                             String originalQuestion, int maxToolCalls, Set<AiToolType> requestedTools) {
         this.registry = registry;
         this.maxToolCalls = maxToolCalls;
         this.originalQuestion = originalQuestion;
+        this.requestedTools = requestedTools == null ? Set.of() : Set.copyOf(requestedTools);
         this.permittedMaterials = Set.copyOf(planner.materialCodes(originalQuestion));
         this.permittedSuppliers = Set.copyOf(planner.supplierCodes(originalQuestion));
         this.permittedSupplierName = planner.supplierName(originalQuestion);
@@ -168,6 +176,9 @@ public final class SpringAiReadTools {
         if (executions.size() >= maxToolCalls) {
             throw new AiProviderException(ErrorCode.AI_INVALID_RESPONSE, AiFailureReason.TOOL_CALL_LIMIT);
         }
+        if (!requestedTools.contains(plan.tool())) {
+            throw new AiProviderException(ErrorCode.AI_INVALID_RESPONSE, AiFailureReason.UNKNOWN_OR_FORBIDDEN_TOOL);
+        }
         if (plan.tool() != AiToolType.SEARCH_DOCUMENTS) {
             List<String> materialCodes = new ArrayList<>(plan.materialCodes());
             if (plan.materialCode() != null) materialCodes.add(plan.materialCode());
@@ -222,7 +233,7 @@ public final class SpringAiReadTools {
         } catch (BusinessException failure) {
             if (failure.getErrorCode() != ErrorCode.RECOMMENDATION_NOT_FOUND
                     || !isRecommendationTool(plan.tool())
-                    || AiQuestionIntent.requiresRecommendation(originalQuestion)) {
+                    || requestedTools.stream().anyMatch(this::isRecommendationTool)) {
                 throw failure;
             }
             ignoredOptionalRecommendationMisses++;
