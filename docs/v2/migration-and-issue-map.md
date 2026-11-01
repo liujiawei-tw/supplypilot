@@ -17,7 +17,7 @@
 | 看板模型 | V1 正式 PO 只有五個 lifecycle statuses，沒有 8 Stage 持久化 | 八階段目前位置、只往前、操作跨狀態須後端命令、無拖曳歷史 | #142 |
 | 看板 UI | 現有 /purchase-orders 是 Table | 同頁看板/列表，桌面預設 Kanban，手機基本列表 | #143 |
 | PO 查詢 | status、supplierId、materialId、日期、逾期、排序分頁 | 額外 PO 號、供應商代碼/名稱、物料代碼 | #144 |
-| 文件查詢 | lexical/semantic 二選一，Evidence Validator | Hybrid Retrieval + 來源文件/版本/原文摘錄；無頁碼/合約比較 | #145 |
+| 文件查詢 | lexical/semantic 二選一，Evidence Validator | Spring AI Advisor + pgvector；Retriever 最多 10 份、門檻 0.4，模型判斷候選相關性並附檢索來源；無頁碼/合約比較 | #145 |
 | Semantic Gate | V1 新 READY 文件可能阻斷整體 Gate；人工 Backfill/Audit | 已發布文件獨立可用，新文件管理員核准即非同步索引/重試/原子發布 | #146 |
 | Demo 資料/語料 | V1 基線五份文件、六家供應商；更新資料集可能只拒絕版本差異 | #147 Reset 已取消；#178 擴為契約資料與 15 份 Seed 文件，首次審查依正常流程執行，舊資料使用非破壞性確認更新 | #178 |
 | 介面 / RWD | V1 有繁中與 UI-D 200%/RWD，格式仍需一致 | 統一 zh-TW、台灣時區/千分位/幣別；桌面完整、手機基本查詢 | #148 |

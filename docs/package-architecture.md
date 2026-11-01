@@ -1080,9 +1080,9 @@ transaction-boundary.md
 
 ---
 
-## 目前 Spring AI 文件 RAG 架構（2026-11-01 遷移分支）
+## 目前 Spring AI 文件 RAG 架構（本機 main，2026-11-01）
 
-本節更新較早 SP-710／SP-722 文件問答路徑描述；它記錄遷移分支的實際接線及尚未通過的驗收，不表示已合併或部署。
+本節更新較早 SP-710／SP-722 文件問答路徑描述；Spring AI 查詢與分類程式已在本機 main。此本機程式狀態不表示最新變更已部署到 Demo／正式服務。
 
 ```text
 POST /api/v1/document-queries ─┐
@@ -1102,11 +1102,11 @@ AI SEARCH_DOCUMENTS ──────────┘       │
 
 問答與 AI Tool 仍共用同一個 `DocumentQueryService`；`DocumentQueryController` 維持 `/api/v1/document-queries` API。索引流程是 `DocumentIngestionService → SpringAiDocumentProcessingService (TextReader/TikaDocumentReader + TokenTextSplitter) → DocumentIndexPersistenceService (MySQL source chunks) → approved durable SemanticIndexWorker → SpringAiVectorIndexService → PgVectorStore`。新 Query 只使用 Advisor／PgVectorStore；MySQL `document_metadata` 與 `document_chunks` 仍提供權威狀態及來源證明。PostgreSQL DataSource 與 MySQL `DataSource` 分開注入。
 
-`DocumentPreviewService` 負責使用者預覽；預覽原始段落／表格契約不能以 RAG 的 Tika 輸出取代。`SpringAiDocumentProcessingService` 用 `TextReader`／Tika、`TokenTextSplitter` 與可驗證 offset 建立 MySQL source chunks；PDF/DOCX Tika 解析受 `DOCUMENT_RAG_PARSER_TIMEOUT`（預設 30 秒）和輸入大小限制。`OutboundDocumentPolicy`、逐文件審核、job 重試、Demo provenance、生命週期核對、`RagDocumentPostProcessor` 與 `EvidenceValidator` 仍在生成前限制哪些來源可進入 Context；Gemini 生成後不再執行答案主張驗證，回應會附上已驗證來源供核對。
+`DocumentPreviewService` 負責使用者預覽；預覽原始段落／表格契約不能以 RAG 的 Tika 輸出取代。`SpringAiDocumentProcessingService` 用 `TextReader`／Tika、`TokenTextSplitter` 與可驗證 offset 建立 MySQL source chunks；PDF/DOCX Tika 解析受 `DOCUMENT_RAG_PARSER_TIMEOUT`（預設 30 秒）和輸入大小限制。`OutboundDocumentPolicy`、逐文件審核、job 重試與 Demo provenance 在索引／發布流程執行。RAG Advisor 只按向量 metadata 的 generation、READY、APPROVED 條件檢索；自製 `RagDocumentPostProcessor` 已移除，候選直接交給模型判斷。`EvidenceValidator` 仍由 AI 助理的 `AiAnswerEvidencePolicy` 使用，可能在 `/api/v1/ai/query` 拒絕文件工具結果；它不是 `RetrievalAugmentationAdvisor` 的後處理器。Gemini 生成後不逐句驗證答案主張。
 
 PgVectorStore 的正式資料表為 `semantic_rag_vectors`，先用 `indexType=NONE` 做 exact similarity。`SpringAiVectorIndexService` 只發布完整且仍核准的向量 generation；發布交易也從此向量表更新 `semantic_chunks` 的 Agentic SQL 相容投影。MySQL `document_chunks` 與 PostgreSQL `semantic_chunks`／`semantic_document_indexes`／`semantic_generations`／`semantic_gate_audit` schema、既有資料與 Agentic SQL 可讀欄位均保留。`SemanticVectorCleanupScheduler` 預設每 300,000 毫秒清理一頁失效／舊代次向量。
 
-**相容性與驗收狀態：** `semantic_chunks` 投影程式已加入，但尚未跑 Agentic SQL 實際回歸，因此不得宣稱已驗證相容。舊 `DocumentRetrievalService`、`HybridRetrievalService`、`SemanticRetrievalService`、`SemanticEmbeddingService` 已從 production 移除；其純演算法測例改由 `RagDocumentPostProcessorTests`、`SpringAiVectorIndexServiceTests`、`TimedEmbeddingModelTests` 與 `SpringAiPgVectorStoreIntegrationTests` 覆蓋新元件契約。`DemoCorpusRagVersionIsolationIntegrationTests` 保留來源、核准、版本與查詢適用性檢查，但舊 lexical/semantic retrieval 及端到端比較答案斷言尚待 Advisor-driven Testcontainers 測試補回。有限跨供應商比較為本次使用者 Prompt 納入的 scope；現有 Validator 僅支持明確兩個 SUP code、單一 material/fact type 和精確數值／單位／方向／差額驗證。
+相容性與驗收：`semantic_chunks` 相容投影與既有 Agentic SQL contract 均有 Testcontainers 驗證。舊 lexical／semantic retrieval 類別已移除；`RagDocumentPostProcessor` 與其測試也已從目前程式移除。最新 PostProcessor 移除後的 Advisor 精準測試 10/10、RAG Testcontainers 問答矩陣 42/42 通過；完整 Maven `verify` 未在這次修改後重跑。舊版本的測試結果與部署記錄仍保留於 [`RAG 驗證記錄`](evidence/spring-ai-rag-validation-2026-11-01.md)。
 
-遷移驗證與啟用狀態見 [`semantic-rag-runbook.md`](semantic-rag-runbook.md)。目前 `SEMANTIC_READ_ENABLED=false`。遷移分支已執行 Maven 全量 `verify`（1,093 tests、4 failures、0 errors、2 skipped、Exit Code 1）；三項 AI controller failures 在 main 基底重現，read gate 契約更新後 targeted Testcontainers 測試通過 1/1。PgVectorStore、文件 RAG、Agentic SQL 類別及 Gemini synthetic smoke 均有通過項目。正式／Demo migration、Backfill／完整性對帳、真實文件問答與 Browser E2E 仍未驗收。詳見 [`docs/evidence/spring-ai-rag-validation-2026-11-01.md`](evidence/spring-ai-rag-validation-2026-11-01.md)。
+遷移驗證與環境狀態見 [`semantic-rag-runbook.md`](semantic-rag-runbook.md)。`SEMANTIC_READ_ENABLED` 程式預設為 `false`；部署設定可另行開啟。正式環境已記錄 V3 migration、121 份回填及 readiness/gate，正式 Gemini 問答 2 題 PASS、1 題 PARTIAL；隔離本機 Demo 三題 Gemini 問答記錄為 3/3 PASS。最新本機程式尚未部署，Browser E2E 未執行。歷史全量 Maven `verify` 曾 FAIL；此次 PostProcessor 修正後未重跑全量套件。詳見 [`RAG 驗證記錄`](evidence/spring-ai-rag-validation-2026-11-01.md) 與 [`正式環境遷移記錄`](evidence/spring-ai-rag-production-migration-2026-11-01.md)。
 

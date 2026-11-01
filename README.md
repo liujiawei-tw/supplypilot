@@ -8,20 +8,22 @@ SupplyPilot 是採購與供應鏈決策平台。Backend 以 Java 21、Spring Boo
 > **不要將 V2 規格決策或已建立的 GitHub Issues 誤認為功能已完成、通過 E2E，或已部署 AWS。**
 
 - **V1（現有程式基線）：** Java / Spring Boot、MySQL、PostgreSQL/pgvector、React 與 Docker Compose，仍保有原本 Demand、Recommendation、V1 多角色以及目前 Semantic Gate 的已實作流程。
-- **V2（本輪開發目標）：** 直接建立 PO DRAFT 與八階段 Kanban；採購單取消、整筆驗收與人工付款確認、獨立的期望到貨日及供應商承諾交期、採購單搜尋；多帳號單一 ADMIN 業務角色、獨立人員管理授權；文件 RAG 以 Spring AI Advisor、PgVectorStore、Gemini Embedding／Chat 和核准後逐文件索引為目標。這些需求需依 Issue 實作及驗收；本次遷移分支的精準及 Testcontainers RAG 回歸已通過，但全量 Maven `verify` 仍記錄 FAIL，正式／Demo DB Backfill、完整性對帳、Browser／真實文件問答及啟用驗收尚未完成。
+- **V2（本輪開發目標）：** 直接建立 PO DRAFT 與八階段 Kanban；採購單取消、整筆驗收與人工付款確認、獨立的期望到貨日及供應商承諾交期、採購單搜尋；多帳號單一 ADMIN 業務角色、獨立人員管理授權。文件 RAG 的 Spring AI Advisor／PgVectorStore 查詢程式已在本機 `main`；各模組仍依 Issue 與實際環境驗收狀態追蹤。
 - **規格權威：** [V2 需求總綱](docs/v2/README.md)、[V1→V2 差異與 Issues](docs/v2/migration-and-issue-map.md)；帳號、PO／看板、RAG、UI、Demo 之詳細契約見 [docs/v2/](docs/v2/README.md)。V1 規格與 V2 明確衝突時，以已確認的 V2 需求為準；V2 未覆蓋之安全、交易及驗證限制仍須遵守。
 - **實作追蹤：** [V2 Issues #136～#149](https://github.com/liujiawei-tw/supplypilot/issues?q=is%3Aissue+is%3Aopen+V2)；既有 [AI 回答格式 #126](https://github.com/liujiawei-tw/supplypilot/issues/126) 與 [AI 多條件查詢 #127](https://github.com/liujiawei-tw/supplypilot/issues/127) 分開追蹤。**狀態以 GitHub Issues、已合併 PR 及實際測試證據為準。**
 - **交付順序：** V2 功能逐張 Issue／Code Review／PR → 本機測試及 Docker／真實 AI/RAG 驗收 → [AWS Demo #133](https://github.com/liujiawei-tw/supplypilot/issues/133) → 最終展示影片。AWS 公開 Demo 共用帳號權限**延後至部署階段決策**，目前不自動部署或對外授權。
 
 **V2 本輪明確不新增：** 文件級 ACL、PDF 頁碼定位、無限制的新舊合約／條款比較與缺漏偵測、Supplier Ranking、庫存安全庫存警示、採購單 CSV/Excel/PDF 匯出、PO 附件關聯及通知中心；本次使用者 Prompt 另列入有限多文件摘要及明確供應商間單一數值事實比較，範圍與 fail-closed 條件見 [RAG 安全設計](docs/security-design.md#文件-rag-資料來源與治理)。請勿依舊版 V1 提案自行恢復其他已取消功能。
 
-### Spring AI 文件 RAG 遷移狀態（2026-11-01）
+### 本機 main 的 Spring AI 文件 RAG 狀態（2026-11-01）
 
-功能分支已將 `POST /api/v1/document-queries` 與共用 `SEARCH_DOCUMENTS` 入口接到 `DocumentQueryController → DocumentQueryService → ChatClient → RetrievalAugmentationAdvisor → VectorStoreDocumentRetriever → PgVectorStore`。新向量表是 `semantic_rag_vectors`；MySQL 保留文件狀態與來源資料權威性，成功發布時同步建立 `semantic_chunks` 相容投影。既有 Agentic SQL 程式未修改；其單元、授權及 Testcontainers executor 回歸在 Maven suite 中通過。實際 Demo／正式資料的遷移、Backfill 與投影資料對帳尚未執行。
+本機 `main` 的 `POST /api/v1/document-queries` 與共用 `SEARCH_DOCUMENTS` 入口使用 `ChatClient → RetrievalAugmentationAdvisor → VectorStoreDocumentRetriever → PgVectorStore`。Retriever 最多取 10 份、相似度門檻預設 0.4；符合向量 metadata 條件的候選直接交由模型判斷。自製 `RagDocumentPostProcessor` 已移除。問題分類 `AiQuestionIntent` 也透過 Spring AI `ChatModel` 分類並解析工具類別。新向量表為 `semantic_rag_vectors`；MySQL 保留文件與索引發布的來源資料，成功發布時同步建立 `semantic_chunks` 相容投影。
 
-Backend 全量 `verify` 曾執行 1,093 項測試，4 failures、0 errors、2 skipped、Exit Code 1；三項 AI controller failures 在精確 base `1a76b62` 重現。答案驗證器依使用者指示移除後，必要 RAG 單元與 Testcontainers 整合測試 150/150 通過。真實 Gemini 合成文件三題問答 1/3：直接交期題答對；ORDERED 改述與文件未載的單價題回 `INSUFFICIENT_EVIDENCE`。Demo／正式 DB migration、Backfill 與真實 Demo 文件三題查詢列為後續；Browser E2E 依使用者指示暫不執行。完整證據見 [Spring AI RAG 驗證記錄](docs/evidence/spring-ai-rag-validation-2026-11-01.md)。
+本機 main 這次移除 PostProcessor 的測試命令與結果見 [本機 main RAG 驗證紀錄](docs/evidence/local-main-rag-postprocessor-removal-2026-11-01.md)。
 
-目前 `SEMANTIC_READ_ENABLED` 預設 `false`；閘門關閉代表服務尚未啟用並回 503，不代表已執行檢索但證據不足。真實 Gemini Chat／Embedding synthetic smoke 2/2 通過；隔離 Demo Compose 四個服務曾全部 healthy，索引 worker 關閉。答案驗證器移除後，合成文件三題問答 1/3。後續依使用者指示做 Demo／正式 DB migration、Backfill 與真實文件查詢，再用 Demo 文件測試三題並記錄；Browser E2E 暫不做。詳見 [Semantic RAG Runbook](docs/semantic-rag-runbook.md)。
+本次移除 PostProcessor 後，Spring AI Advisor 單元／服務精準測試 10/10、Testcontainers RAG 問答矩陣 42/42 通過；使用 Fake Chat／Embedding，未重跑全量 Maven `verify`，不代表真實 Gemini E2E。正式環境曾完成 V3 migration、121 份回填與 readiness/gate；正式 Gemini 文件問答紀錄為 2 題通過、1 題部分符合。隔離本機 Demo 設定後的真實 Gemini 三題紀錄為 3/3 通過。Browser E2E 依使用者指示未執行。部署證據見 [正式環境遷移記錄](docs/evidence/spring-ai-rag-production-migration-2026-11-01.md) 與 [驗證記錄](docs/evidence/spring-ai-rag-validation-2026-11-01.md)。
+
+`SEMANTIC_READ_ENABLED` 的程式預設仍為 `false`；正式環境紀錄曾明確設為 `true` 並完成回填與 readiness/gate。正式環境執行版本與本機 main 的最新 PostProcessor 移除提交不同；程式修改尚未部署。真實 Gemini 問答結果與環境範圍以各自證據記錄為準。詳見 [Semantic RAG Runbook](docs/semantic-rag-runbook.md)。
 
 ## V2 Agent 協作（Matt Pocock Skills）
 
@@ -128,7 +130,7 @@ Demo 密碼變更後也使用上述 `down → up`。Production 使用 `docker co
 
 更多 Profile、Environment Variable 及 Secret 規則見 `docs/environment-configuration.md`。
 
-Spring AI RAG 遷移分支的部署限制：不能以本節既有 Docker 操作代表已執行新 PostgreSQL migration 或 Backfill；不要清除任何 Named Volume，也不要在 Gate 前手動開啟 `SEMANTIC_READ_ENABLED`。先依 [`docs/semantic-rag-runbook.md`](docs/semantic-rag-runbook.md) 完成備份、非破壞式 migration、回填與必要測試。
+本機 main 的 RAG 程式修改不會自動更新已部署服務。不要清除任何 Named Volume；部署新版程式前，先依 [`docs/semantic-rag-runbook.md`](docs/semantic-rag-runbook.md) 核對環境目前的 migration、索引回填、readiness/gate 與版本差異。正式環境既有遷移結果見上方部署證據；不要將其誤認為最新本機程式已部署。
 
 ## V2-102 Migration 與 Docker Compose
 

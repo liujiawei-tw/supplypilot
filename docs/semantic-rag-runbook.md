@@ -39,7 +39,7 @@ MySQL V19 增加審核版本、狀態與原因。V18 時期只有來源雜湊的
 ## 本機與 Demo 設定
 
 1. 使用既有 MySQL 與 PostgreSQL 服務；設定 `.env` 的 MySQL、`SEMANTIC_DB_PASSWORD` 及 `SEMANTIC_DB_URL=jdbc:postgresql://localhost:5432/supplypilot_semantic`。可執行 `docker compose --profile semantic up -d` 啟動既有 semantic PostgreSQL profile。Demo PostgreSQL 使用原有服務與獨立持久化設定；不可建立第二台 PostgreSQL，也不可清除任何 volume。
-2. 設定 `GEMINI_API_KEY`、`GEMINI_EMBEDDING_MODEL=gemini-embedding-001`、`SEMANTIC_DIMENSIONS=768`、新的 `SEMANTIC_GENERATION_KEY`、TopK／threshold 及 Chunk Size／Overlap／最大數量。沒有合法 Gemini key 時應標記真實 Provider 測試 `NOT RUN`；不以 Fake Provider 冒稱 Gemini 驗收。`SEMANTIC_EMBEDDING_TIMEOUT` 預設 15 秒；超時按安全錯誤與工作 Retry 規則處理。
+2. 設定 `GEMINI_API_KEY`、`GEMINI_EMBEDDING_MODEL=gemini-embedding-001`、`SEMANTIC_DIMENSIONS=768`、新的 `SEMANTIC_GENERATION_KEY`、相似度 threshold 及 Chunk Size／Overlap／最大數量。RAG Advisor 的 `topK` 固定為 10；`SEMANTIC_TOP_K` 不控制此 retriever。沒有合法 Gemini key 時應標記真實 Provider 測試 `NOT RUN`；不以 Fake Provider 冒稱 Gemini 驗收。`SEMANTIC_EMBEDDING_TIMEOUT` 預設 15 秒；超時按安全錯誤與工作 Retry 規則處理。
 3. 先建立／核對可還原備份，再按上方程序盤點舊表及資料量。使用版本化 migration 新增 `semantic_rag_vectors`，確認 migration 不會刪除舊表或初始化時清表。保持 `SEMANTIC_READ_ENABLED=false`。
 4. 管理員先審查並對可出站文件核准來源雜湊，再用 `POST /api/v1/semantic-index/backfill?afterId=0&limit=25` 分頁處理；以回應 `lastId` 作下一頁 cursor，`morePossible=false` 後再由 0 執行，以重試符合條件的失敗文件。每次最多 100 份。回應有 READY/FAILED/SKIPPED/REQUIRES_REVIEW 計數。持久 Job worker 應使用新的 Spring AI PgVectorStore 寫入，而非舊 `semantic_chunks` 表。
 5. 管理員讀取 `GET /api/v1/semantic-index/readiness`，處理所有 pending/failed/review；報表列出排除清單、來源版本、model ID、dimension、generation。Gate 必須至少有 **1 份 READY** 語意文件，且 FAILED、REQUIRES_REVIEW、PENDING 均為零；零文件或全部 SKIPPED 不通過。執行固定 20 題案例、授權／版本／撤銷／Demo 隔離、真實 PgVectorStore PostgreSQL 整合測試並留存 SHA 綁定證據。用 `POST /api/v1/semantic-index/gate-audit` 記錄統計；最新一次失敗審核會撤銷先前 PASS。只有 Gate 完整通過後，授權維運人員才明確設定 `SEMANTIC_READ_ENABLED=true`。
@@ -76,20 +76,20 @@ V2-302 將核准與 Embedding 拆成可恢復的背景工作。ADMIN 核准 READ
 - GET /api/v1/semantic-index/jobs?limit=50 列出近期工作；POST /api/v1/semantic-index/jobs/{jobId}/retry 僅允許 ADMIN 將仍符合目前核准快照的 FAILED 工作重新排入佇列。
 - 狀態為 QUEUED、PROCESSING、RETRY_WAIT、SUCCEEDED、FAILED、SUPERSEDED。工作使用持久化 MySQL queue；process 重啟後逾期 lease 可重新領取，達到最大嘗試次數的逾期工作會成為 FAILED。
 - HTTP 429、timeout 與 5xx 以指數退避重試，尊重有界的 Retry-After；其他 provider 4xx 與無效向量不重試。管理端只顯示安全錯誤代碼，不保存或回傳 provider 錯誤本文。
-- Spring AI PgVectorStore 將穩定 ID 的新向量寫入 `semantic_rag_vectors`；完成 chunk 數量、維度、generation、來源 hash 與 metadata 完整性核對後才發布索引狀態。發布時程式會從新向量表同步維護 `semantic_chunks` 相容投影；舊 schema 與既有列保留，`semantic_chunks` 不參與文件問答檢索。失敗或未完成的代次不可進入查詢 Context；較舊文件代次或同代次不同來源雜湊不得覆蓋目前發布。查詢以 Advisor metadata filter 限制 generation、READY 與出站核准狀態；符合條件的 Top-10 候選直接交給模型判斷，不再經 Evidence Validator／自製 PostProcessor 篩選。遷移分支的 PgVectorStore projection integration 與 Agentic SQL regression 類別已通過；Demo／正式資料投影對帳仍未執行。
+- Spring AI PgVectorStore 將穩定 ID 的新向量寫入 `semantic_rag_vectors`；完成 chunk 數量、維度、generation、來源 hash 與 metadata 完整性核對後才發布索引狀態。發布時程式會從新向量表同步維護 `semantic_chunks` 相容投影；舊 schema 與既有列保留，`semantic_chunks` 不參與文件問答檢索。失敗或未完成的代次不可進入查詢 Context；較舊文件代次或同代次不同來源雜湊不得覆蓋目前發布。查詢以 Advisor metadata filter 限制 generation、READY 與出站核准狀態；符合條件的 Top-10 候選直接交給模型判斷，不再經 Evidence Validator／自製 PostProcessor 篩選。PgVectorStore projection integration 與 Agentic SQL regression 類別已通過 Testcontainers；正式與隔離本機 Demo migration、回填及 readiness/gate 有完成證據。獨立的正式／Demo `semantic_chunks` 投影列數對帳未在現有證據中記錄。
 - 配置由 SEMANTIC_INDEX_WORKER_ENABLED、SEMANTIC_INDEX_POLL_INTERVAL_MILLIS、SEMANTIC_INDEX_LEASE_DURATION、SEMANTIC_INDEX_MAX_ATTEMPTS、SEMANTIC_INDEX_INITIAL_RETRY_DELAY、SEMANTIC_INDEX_MAX_RETRY_DELAY 控制。預設 worker 啟用、輪詢 1 秒、lease 5 分鐘、最多 4 次、退避 2 秒起且上限 1 分鐘。
 - 以 job 清單檢查失敗代碼與嘗試次數；確認目前文件仍 READY 且核准有效後按「手動重試」。文件版本、來源、核准或模型 generation 已變更時，舊工作會被隔離，須對目前文件重新核准才能建立新工作。
 
 Fake Provider 整合測試只驗證交易邊界、job 狀態、重試與資料隔離，不代表真實 Gemini API 通過。真實 Provider smoke test 仍須使用獲准測試文字及部署金鑰，並另行保存回應證據。
 
-## 目前遷移分支狀態（2026-11-01）
+## 本機 main 與環境現況（2026-11-01）
 
-本節描述功能分支中的程式狀態，不代表 main、任何已部署環境或實際資料庫已遷移。該分支已接上 `DocumentQueryService → ChatClient → RetrievalAugmentationAdvisor → VectorStoreDocumentRetriever → PgVectorStore`，新增 `semantic_rag_vectors` PostgreSQL migration，並讓索引工作寫入 Spring AI PgVectorStore。MySQL 仍是文件主檔、狀態及 source-chunk 權威資料庫；`SEMANTIC_READ_ENABLED` 預設為 `false`。
+本機 main 已接上 `DocumentQueryService → ChatClient → RetrievalAugmentationAdvisor → VectorStoreDocumentRetriever → PgVectorStore`，並使用 Spring AI 建立索引。Retriever 依向量 metadata 限制已發布 generation、READY、APPROVED，採相似度 0.4、最多 10 份候選；沒有自製 `RagDocumentPostProcessor`，候選由模型判斷。`AiQuestionIntent` 以 Spring AI `ChatModel` 分類問題。程式的 `SEMANTIC_READ_ENABLED` 預設為 `false`；正式環境已有獨立 migration、回填與啟用紀錄，但本機 main 最新程式尚未部署。
 
 **歷史狀態快照（後續投影實作前）：** 遷移早期尚未證明會同步維護 `semantic_chunks` 相容投影。此狀態已被後續程式與測試取代：新索引會同步維護投影，PgVectorStore projection integration 與 Agentic SQL regression 類別已通過本機測試。以下保留當時測試記錄的狀態演進；目前原始驗證摘要見 [`Spring AI RAG 驗證記錄`](evidence/spring-ai-rag-validation-2026-11-01.md)。
 
 ### 目前驗證記錄
 
-Maven 全量測試、遷移相關通過項目、read gate 修正的 targeted regression、Gemini provider smoke、Compose health smoke 與失敗分診，詳見 [`Spring AI RAG 驗證記錄`](evidence/spring-ai-rag-validation-2026-11-01.md)。全量 Maven `verify` 目前是 **FAIL**，不能宣稱 Backend 全量 CI 通過。`SEMANTIC_READ_ENABLED` 預設仍為 `false`。
+移除 PostProcessor 後，Advisor／服務精準測試 10/10、Testcontainers RAG 問答矩陣 42/42 通過（Fake Chat／Embedding）；這些不是 Gemini E2E。全量 Maven `verify` 未在本機 main 最新修改後重跑；早先 1,093 tests、4 failures 的結果仍是該舊工作樹的歷史 FAIL。正式環境曾完成 V3 migration、121 份回填與 readiness/gate，正式 Gemini 問答為 2 PASS、1 PARTIAL；隔離本機 Demo 三題 Gemini 問答記錄為 3/3 PASS。Browser E2E 未執行。細節見 [`Spring AI RAG 驗證記錄`](evidence/spring-ai-rag-validation-2026-11-01.md) 與 [`正式環境遷移記錄`](evidence/spring-ai-rag-production-migration-2026-11-01.md)。
 
-目前沒有正式／Demo 文件數、chunk 數、資料庫 Backfill 結果或完整性對帳結果，也沒有正式啟用資格。除非本 Runbook 的備份、migration、投影、Backfill、核對、測試及切換條件全部以相同交付 SHA 的證據驗證完成，保持讀取閘門關閉；不得執行 `docker compose down -v` 或刪除／重建任何資料 Volume。
+正式環境既有 migration／回填和 readiness/gate 已有證據；部署紀錄列出 121 份 READY、0 failed/pending/requires-review，正式 Gemini 文件問答 2 PASS、1 PARTIAL。隔離本機 Demo 也有 121 READY、migration/backfill/gate 與三題 Gemini 問答 3/3 記錄。這些環境驗收使用的程式版本早於本機 main 最新 PostProcessor 移除提交；要驗證新程式仍需另行部署及測試。尚未對最新程式執行 Browser E2E 或全量 Maven `verify`。不得執行 `docker compose down -v` 或刪除／重建任何資料 Volume。

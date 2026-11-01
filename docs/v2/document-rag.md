@@ -1,6 +1,6 @@
 # SupplyPilot V2 — Documents & AI / 實用版採購 RAG
 
-> 本文件保留 V2 文件管理、權限、Demo 語料與答案證據需求。本次核定的 RAG 架構遷移以 Spring AI 2.0.1 原生元件取代舊正式查詢路徑；此文件與 Runbook 描述目標及操作程序，不代表程式切換、資料回填或真實 Gemini 驗收已完成。Agentic SQL 不在遷移範圍。
+> 本文件保留 V2 文件管理、權限、Demo 語料與答案證據需求。Spring AI 2.0.1 查詢／索引與問題分類程式已在本機 main；最新 RAG PostProcessor 移除修改尚未部署。正式環境及隔離本機 Demo 的既有 migration、回填與 Gemini 問答證據，依文末連結分開記錄。Agentic SQL 不在遷移範圍。
 
 ## 1. 保留的三種使用情境
 
@@ -23,11 +23,13 @@
 - 正式文件問答使用 Spring AI `RetrievalAugmentationAdvisor`、`VectorStoreDocumentRetriever`、`PgVectorStore`、`ChatClient`、`ContextualQueryAugmenter` 與 Gemini `EmbeddingModel`。不得保留自製 lexical/semantic 檢索或 RRF 作為正式查詢路徑。
 - Retriever 使用 Filter Expression 限制已發布 generation、`READY` 文件與 `APPROVED` 出站狀態；相似度門檻為 0.4，候選最多 10 份。相似度全低於門檻時，回傳 `INSUFFICIENT_EVIDENCE`。
 - 不使用自製 `DocumentPostProcessor` 做候選文件來源、版本、事實適用性或語意支持篩選；Spring AI Advisor 把符合 Retriever 條件的候選直接交給模型判斷。來源由 Advisor 回傳的實際 `Document` metadata 建立。
+- 不宣稱「引用文字存在」代表「答案 100% 正確／完整」；來源欄位取自 Advisor 回傳的向量 Document metadata，不由 LLM 自造，但查詢時不再對 MySQL 權威資料做即時逐來源驗證。
+- `/api/v1/ai/query` 另有 `AiAnswerEvidencePolicy`／`EvidenceValidator`，可能依文件來源格式及摘錄支持度拒絕 `SEARCH_DOCUMENTS` 工具結果；此規則不在直連 `/api/v1/document-queries` 的 Advisor 路徑中。
 - 出站敏感資料政策仍由文件核准與索引流程執行；向量檢索只取 `APPROVED` 文件，模型不得用來判斷或規避敏感資料政策。
 - PgVectorStore 使用獨立 PostgreSQL `DataSource`／`JdbcTemplate` 與 `semantic_rag_vectors` 資料表。不得讓 PgVectorStore 使用 Spring Boot 的 MySQL 主 `DataSource`。
 - 採 exact similarity，不建 HNSW／IVFFlat。Schema 以可追蹤的 PostgreSQL Flyway Migration 建立；PgVectorStore 關閉啟動自動建表，並固定 `remove-existing-vector-store-table=false`。
 - 不新增 PDF 頁碼欄位、頁碼抽取、條文號解析。現有 Chunk index/offset 可作內部證據查核，但不必把技術座標顯示為使用者要求的「頁碼」。
-- 不宣稱「引用文字存在」代表「答案 100% 正確/完整」；對數字、條件與拒答設可測試的支持邊界。來源一律後端查核，不由 LLM 自造。
+
 - 相關文件不符合查詢時回不足證據；不能為回答完整而將無關內容塞入來源。
 
 ## 3. 解析、切塊與來源位置
@@ -62,7 +64,7 @@ Documents API 會分開回傳文件 ingestion `status`、持久化 `semanticRevi
 ### 舊資料表保留與新索引切換
 
 - `document_metadata` 與 MySQL `document_chunks` 保留為權威文件與來源資料；不得刪改其 Agentic SQL 可讀取的欄位／版本契約。
-- PostgreSQL `semantic_chunks`、`semantic_document_indexes`、`semantic_generations`、`semantic_gate_audit` 保留原結構及既有資料；Agentic SQL 的欄位與讀取契約不可變更。新問答只查 `semantic_rag_vectors`。目前遷移分支已加入從新向量索引同步投影至 `semantic_chunks` 的寫入路徑；PgVectorStore projection integration 與既有 Agentic SQL regression 類別已通過 Testcontainers Maven suite。正式／Demo 資料對帳仍未完成；詳見 [`semantic-rag-runbook.md`](../semantic-rag-runbook.md) 與 [`驗證記錄`](../evidence/spring-ai-rag-validation-2026-11-01.md)。
+- PostgreSQL `semantic_chunks`、`semantic_document_indexes`、`semantic_generations`、`semantic_gate_audit` 保留原結構及既有資料；Agentic SQL 的欄位與讀取契約不可變更。新問答只查 `semantic_rag_vectors`。本機 main 有從新向量索引同步投影至 `semantic_chunks` 的寫入路徑；PgVectorStore projection integration 與既有 Agentic SQL regression 類別已通過 Testcontainers。正式與隔離本機 Demo migration／回填有完成紀錄；最新本機程式尚未部署到這些環境。詳見 [`semantic-rag-runbook.md`](../semantic-rag-runbook.md)、[`驗證記錄`](../evidence/spring-ai-rag-validation-2026-11-01.md) 與 [`正式環境遷移記錄`](../evidence/spring-ai-rag-production-migration-2026-11-01.md)。
 - 新表與舊表分離。不得把既有 embedding 複製到新表；新 Chunking／模型／metadata 契約不相同，必須從符合當前審核與出站政策的來源重做 Gemini Embedding。
 - 遷移和切換程序、備份、可重入 Backfill、數量與來源完整性核對、啟用條件及回復方式，見 [`semantic-rag-runbook.md`](../semantic-rag-runbook.md)。
 
@@ -74,7 +76,7 @@ Documents API 會分開回傳文件 ingestion `status`、持久化 `semanticRevi
 - 只有 demo profile、明確允許的 MySQL DEMO 資料庫、demo 文件儲存根目錄、相符 Repository catalog entry、READY chunks/source proof 及當下 `OutboundDocumentPolicy` 都通過時，專用 system approval seam 才能記錄 `SYSTEM / TRUSTED_DEMO_CORPUS` 審查和 enqueue 現有 durable job。它不偽裝管理員，沒有 HTTP 授權入口；一般上傳與一般 API 仍走使用者既有審查流程。需審查或政策阻擋的結果會保留原因，不排索引工作。Policy 依具體敏感值與上下文判斷，不因單獨出現「姓名」「地址」「銀行」等詞而拒絕。只有固定 Catalog、原文 SHA、文件 provenance、報價主資料及雙資料庫目標均通過伺服器驗證的虛構 Demo 文件，才可略過商業金額規則；憑證、銀行帳戶、個資仍照常攔截，普通 Upload 不可自我宣稱 Demo。
 - Semantic PostgreSQL URL 必須指向設定的 demo database，host 僅允許 Compose `pgvector` 或 loopback (`localhost`、`127.0.0.1`、`::1`)。URL 缺少或目標不符時保留文件 READY、記錄 `REQUIRES_REVIEW` 且不 enqueue；已驗證為 demo 的目標暫時不可連線時，durable job 可等待既有 worker 重試，API 必須顯示待處理/不可用，直到 PostgreSQL 發布證明核對成功。
 - 純文字來源的 `sourceSha256` 使用 UTF-8 文字將 CRLF/CR 換行正規化為 LF 後計算；`samples/documents/*.txt` 固定以 LF 儲存，確保跨平台 hash 穩定。
-- `SEED_BASELINE` 是唯一可能進入受限 system approval 的分類；policy 不允許時仍須人工處理。跨文件事實適用性按 Catalog 明確列出的 supplier、material、fact type 與期間篩選；預設、current 或 latest 查詢只使用 Catalog 指定且涵蓋今天的現行來源；缺少現行來源或來源已到期時回覆資料不足。歷史查詢可用明確年份、日期或期間，並依精確有效日期篩選。明確的歷史與現行比較要求同一 supplier/material/fact type 同時具備兩側來源，引用摘錄分別標示期間；含糊的以前及缺少任一側證據時 fail closed。受管制文件的 scope 不匹配時一律排除，歷史摘錄只保留相符期間證據及不含其他物料條件的句子。舊文件 metadata、原文、核准與 audit 保留；普通無 provenance Upload 不套用這項 Demo 專屬規則。SUP-005 人工 UI Upload 文件為 `MANUAL_UI_UPLOAD_ONLY`，沒有可信 provenance，不得被 Seeder 建立、採用或引用為 baseline fixture。
+- `SEED_BASELINE` 是唯一可能進入受限 system approval 的分類；policy 不允許時仍須人工處理。Catalog 的事實適用性資料用於可信 Demo corpus 核准與索引資格；目前不在 RAG 查詢時篩選候選或驗證答案。符合 metadata filter 的向量候選交由模型判斷相關性與支持度。舊文件 metadata、原文、核准與 audit 保留；普通無 provenance Upload 不套用這項 Demo 專屬規則。SUP-005 人工 UI Upload 文件為 `MANUAL_UI_UPLOAD_ONLY`，沒有可信 provenance，不得被 Seeder 建立、採用或引用為 baseline fixture。
 - Catalog/source 更新若與資料庫既有來源不同，sync 保留並標記衝突；一般文件仍由正常上傳、審查與版本流程處理。標題變更會讓舊 review 失效，不能複製舊核准。
 - 靜態 Fixture PASS 只代表檔案、來源關聯及預期格式通過檢查，不表示 Gemini RAG 回答品質 PASS。
 

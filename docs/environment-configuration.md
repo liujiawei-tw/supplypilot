@@ -62,7 +62,7 @@ AWS_SECRET_ACCESS_KEY
 
 沒有使用 AWS 時，AWS variables 可不設定。
 
-Spring AI RAG 遷移分支另外讀取下列設定；`SEMANTIC_READ_ENABLED` 預設為 `false`，不得在 Backfill、完整性核對及必要驗收完成前開啟：
+本機 main 的 Spring AI RAG 使用下列設定；`SEMANTIC_READ_ENABLED` 程式預設為 `false`。變更 read gate 前，先核對目標環境的 migration、索引狀態與 readiness 證據：
 
 | Variable | Default | 用途 |
 |---|---:|---|
@@ -72,7 +72,7 @@ Spring AI RAG 遷移分支另外讀取下列設定；`SEMANTIC_READ_ENABLED` 預
 | `SEMANTIC_DIMENSIONS` | `768` | PgVectorStore 向量維度。 |
 | `SEMANTIC_GENERATION_KEY` | `gemini-embedding-001-768-spring-ai-chunk500-overlap70-v2` | 隔離模型、維度及 chunking 世代。 |
 | `SEMANTIC_INDEX_WORKER_ENABLED` | `true` | 控制背景語意索引 worker；手動回填維護期間可暫設 `false`，Compose 會把設定傳給 Backend。 |
-| `SEMANTIC_TOP_K` | `8` | 最終核准來源數上限。 |
+| `SEMANTIC_TOP_K` | `8` | 綁定於 SemanticProperties 的相容設定；目前 RAG Advisor 的 retriever 直接設定 `topK=10`，此環境變數不改變文件查詢候選上限。 |
 | `SEMANTIC_SIMILARITY_THRESHOLD` | `0.4` | 向量檢索相似度下限。 |
 | `SEMANTIC_READ_ENABLED` | `false` | 文件 RAG 查詢啟用閘門。 |
 | `DOCUMENT_RAG_CHUNK_SIZE` | `500` | TokenTextSplitter chunk 設定。 |
@@ -82,7 +82,7 @@ Spring AI RAG 遷移分支另外讀取下列設定；`SEMANTIC_READ_ENABLED` 預
 | `SEMANTIC_EMBEDDING_TIMEOUT` | `15s` | Spring AI EmbeddingModel 單次呼叫逾時。 |
 | `SEMANTIC_VECTOR_CLEANUP_INTERVAL_MILLIS` | `300000` | worker 啟用時向量清理排程的固定間隔；每輪最多處理一頁 stale/revoked 向量。 |
 
-目前程式包含 Tika 解析逾時、Embedding timeout、PgVectorStore 索引與 stale-vector cleanup。成功發布會同步寫入 `semantic_chunks` 相容投影；舊表與資料保留。Testcontainers PgVectorStore 投影與 Agentic SQL regression 已通過；正式／Demo DB migration、Backfill、文件資料對帳及真實文件問答流程尚未驗證。正式設定與 Backfill 前置作業見 [`semantic-rag-runbook.md`](semantic-rag-runbook.md)。
+目前程式包含 Tika 解析逾時、Embedding timeout、PgVectorStore 索引與 stale-vector cleanup。成功發布會同步寫入 `semantic_chunks` 相容投影；舊表與資料保留。Testcontainers PgVectorStore 投影與 Agentic SQL regression 已通過；正式環境及隔離本機 Demo 的 migration、121 份回填與 readiness/gate 都有完成紀錄。正式環境 Gemini 問答為 2 PASS、1 PARTIAL；本機 Demo 三題問答為 3/3 PASS。這些實環境使用的程式版本早於本機 main 最新 PostProcessor 移除修改；獨立投影列數對帳未在證據中記錄。操作與版本差異見 [`semantic-rag-runbook.md`](semantic-rag-runbook.md)。
 
 ---
 
@@ -575,6 +575,6 @@ Worker 預設啟用。部署多個 Backend instance 時，MySQL FOR UPDATE SKIP 
 
 ## Spring AI RAG 遷移驗證狀態（2026-11-01）
 
-目前功能分支查詢路徑為 `DocumentQueryService → ChatClient → RetrievalAugmentationAdvisor → VectorStoreDocumentRetriever → PgVectorStore`；索引路徑以 Spring AI 文件解析／chunking 將核准片段寫入 `semantic_rag_vectors`，完成發布後建立 `semantic_chunks` 相容投影。遷移相關 Maven 與 Testcontainers 測試已執行；完整 `verify` 為 1,093 tests、4 failures、0 errors、2 skipped、Exit Code 1。三項 AI controller failure 在 main 基線重現；read gate 預期更新後的單項 Testcontainers 測試通過 1/1。細項與原始 log 位置見 [`docs/evidence/spring-ai-rag-validation-2026-11-01.md`](evidence/spring-ai-rag-validation-2026-11-01.md)。
+本機 main 查詢路徑為 `DocumentQueryService → ChatClient → RetrievalAugmentationAdvisor → VectorStoreDocumentRetriever → PgVectorStore`；候選最多 10 份、相似度門檻依 `SEMANTIC_SIMILARITY_THRESHOLD`（預設 0.4），不再由自製 RAG PostProcessor 篩選。索引路徑使用 Spring AI 文件解析／chunking 寫入 `semantic_rag_vectors`，發布時建立 `semantic_chunks` 相容投影。移除 PostProcessor 後，精準測試 10/10、Testcontainers RAG 問答矩陣 42/42 通過；全量 `verify` 未在此版本重跑。歷史失敗與環境驗收結果見 [`docs/evidence/spring-ai-rag-validation-2026-11-01.md`](evidence/spring-ai-rag-validation-2026-11-01.md) 及 [`正式環境遷移記錄`](evidence/spring-ai-rag-production-migration-2026-11-01.md)。
 
-`SemanticRagIntegrationTests` 的 Testcontainers MySQL／PostgreSQL/pgvector、PgVectorStore migration／相容投影測試及 Agentic SQL regression 類別通過；這些不代表正式／Demo 資料已 migration、Backfill 或完成完整性對帳。真實 Gemini Embedding／Chat synthetic smoke 2/2 通過，隔離 Compose 只驗服務 healthy，沒有做真實文件 RAG 查詢。Browser E2E 與部署資料驗收仍未執行；`SEMANTIC_READ_ENABLED=false`。GitHub Actions：`PAUSED BY USER / NOT USED AS GATE`。
+Testcontainers 的 MySQL／PostgreSQL/pgvector、PgVectorStore migration／相容投影及 Agentic SQL regression 類別通過。正式與隔離本機 Demo 的 migration、121 份回填及 readiness/gate 另有環境紀錄；真實 Gemini 文件問答結果分別為正式 2 PASS／1 PARTIAL、本機 Demo 3/3 PASS。最新本機 main 程式尚未部署，Browser E2E 未執行。`SEMANTIC_READ_ENABLED` 程式預設 `false`；正式環境曾明確設為 `true`。GitHub Actions：`PAUSED BY USER / NOT USED AS GATE`。本機 main PostProcessor 移除的測試結果見 [`本機 main RAG 驗證`](evidence/local-main-rag-postprocessor-removal-2026-11-01.md)。

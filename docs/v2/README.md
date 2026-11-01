@@ -23,7 +23,7 @@
 | 交期 | 核准後期望到貨日不可改；供應商承諾交期獨立保存且可更新 |
 | 供應商 | 保留 0～100 的人工可靠度及品質評分，不做歷史評鑑或自動計分 |
 | 查詢與 UI | PO 號、供應商代碼/名稱、物料代碼搜尋；同頁看板／列表切換；桌面優先，手機基本查詢 |
-| RAG | MySQL 關鍵字／元資料 + pgvector Hybrid Retrieval，Evidence Validator，答案附來源文件及原文摘錄 |
+| RAG | Spring AI ChatClient／RetrievalAugmentationAdvisor／VectorStoreDocumentRetriever + PgVectorStore；最多 10 份、相似度門檻 0.4，模型判斷文件相關性與答案支持度並回傳檢索來源 |
 | 文件發布 | 一般文件經管理員核准後非同步自動索引；可信 Demo Seed 依系統審核及出站政策處理；逐文件原子發布、自動有限次重試、失敗可由管理員重試 |
 | Demo | Reset 已取消；主資料與語料契約可驗證；固定可信 Seed 依系統審核及出站政策處理，一般新增來源仍須管理員審查；既有資料更新使用目標確認 Dry Run/Apply 與明確人工步驟 |
 | 格式 | zh-TW、Asia/Taipei、千分位；AI 金額最多兩位小數且去除尾隨零，不改 BigDecimal 精度 |

@@ -1832,11 +1832,11 @@ INACTIVE
 
 實際 Storage 可使用 S3。
 
-### 文件問答索引階段（Spring AI 遷移工作分支）
+### 文件問答索引階段（本機 main）
 
-`READY` 只表示 MySQL 文件來源及來源 chunks 已保存，**不表示已完成出站核准或可供問答檢索**。管理員核准且政策判定可出站後，持久化索引工作才呼叫 EmbeddingModel 並寫入 PostgreSQL `semantic_rag_vectors`。索引完整發布並通過後端來源檢查後，才可進入生成 Context。
+`READY` 只表示 MySQL 文件來源及來源 chunks 已保存，**不表示已完成出站核准或可供問答檢索**。管理員核准且政策判定可出站後，持久化索引工作才呼叫 EmbeddingModel 並寫入 PostgreSQL `semantic_rag_vectors`。索引發布前由工作流程核對來源版本、hash、generation 與核准狀態；查詢時則由向量 metadata filter 限制候選，不做檢索後 MySQL 即時來源驗證。
 
-目前實作分支改以 Spring AI `TextReader`／`TikaDocumentReader`、`TokenTextSplitter`、`PgVectorStore` 與 Gemini Embedding 建立索引；MySQL 仍是文件來源及交易狀態的權威資料庫。Testcontainers 已驗證 V3 schema migration 與 PgVectorStore 寫入；正式／Demo 資料庫 migration、Backfill、跨庫資料完整性對帳及正式啟用尚未驗收。操作程序與限制見 [`semantic-rag-runbook.md`](semantic-rag-runbook.md)；本段不代表已完成部署或已啟用。
+本機 main 使用 Spring AI `TextReader`／`TikaDocumentReader`、`TokenTextSplitter`、`PgVectorStore` 與 Gemini Embedding 建立索引；MySQL 仍保存文件來源與交易狀態。Testcontainers 驗證 V3 migration 與 PgVectorStore 寫入。正式 Demo 環境 migration、回填與 readiness/gate 已有完成紀錄；本機 main 最新程式尚未部署。環境結果及操作限制見 [`semantic-rag-runbook.md`](semantic-rag-runbook.md)。
 
 ---
 
@@ -1879,9 +1879,9 @@ Document Version Replacement 可留後續版本。
 }
 ```
 
-有已驗證文件證據時回 `200 OK`、`status=ANSWERED`、答案及由後端建立的 `sources`。沒有已驗證證據時回 `200 OK`、`status=INSUFFICIENT_EVIDENCE`、`answer=null`、`sources=[]`。來源欄位為 `documentId`、`documentKey`、`documentType`、`title`、`version`、`supplierId`／`supplierCode`／`supplierName`、`chunkIndex`、`startOffset`、`endOffset`、`excerpt` 與 `relevanceScore`；offset 是正規化抽取文字內的 Java UTF-16 字元位置，分數來自實際檢索結果，不得由模型生成。
+有檢索文件且模型回傳非空答案時回 `200 OK`、`status=ANSWERED`、答案及由 Advisor 文件 metadata 建立的 `sources`。沒有達標候選、模型回空答案或回 `INSUFFICIENT_EVIDENCE` 時回 `200 OK`、`status=INSUFFICIENT_EVIDENCE`、`answer=null`、`sources=[]`。來源欄位為 `documentId`、`documentKey`、`documentType`、`title`、`version`、`supplierId`／`supplierCode`／`supplierName`、`chunkIndex`、`startOffset`、`endOffset`、`excerpt` 與 `relevanceScore`；來源與分數取自 Advisor 實際回傳的向量文件 metadata，不接受模型自報。
 
-`DocumentSearchTool` 的 `SEARCH_DOCUMENTS` 也呼叫同一個 `DocumentQueryService`，不另設舊 RAG 查詢路徑。遷移分支的服務路徑使用 Spring AI `ChatClient`、`RetrievalAugmentationAdvisor`、`VectorStoreDocumentRetriever` 及 PgVectorStore。`SEMANTIC_READ_ENABLED=false` 時不執行檢索，文件 API 回 HTTP 503 `AI_PROVIDER_UNAVAILABLE`；經正常檢索但無已驗證來源才回 HTTP 200 `INSUFFICIENT_EVIDENCE`。AI 助理將文件工具故障包裝為既有 HTTP 503 `AI_QUERY_FAILED`。分層測試已執行，但正式／Demo DB Backfill、完整性對帳及真實文件查詢 E2E 尚未驗收，不能宣稱已正式啟用。
+`DocumentSearchTool` 的 `SEARCH_DOCUMENTS` 也呼叫同一個 `DocumentQueryService`，不另設舊 RAG 查詢路徑。本機 main 使用 Spring AI `ChatClient`、`RetrievalAugmentationAdvisor`、`VectorStoreDocumentRetriever` 及 PgVectorStore。`SEMANTIC_READ_ENABLED=false` 時不執行檢索，文件 API 回 HTTP 503 `AI_PROVIDER_UNAVAILABLE`；沒有達標候選，或模型回空答案／`INSUFFICIENT_EVIDENCE` 時回 HTTP 200 `INSUFFICIENT_EVIDENCE`。直連文件 API 的候選由模型判斷；但 `/api/v1/ai/query` 尚有獨立的 `AiAnswerEvidencePolicy`／`EvidenceValidator`，可能依摘錄支持度拒絕 `SEARCH_DOCUMENTS` 工具結果。AI 助理將文件工具故障包裝為既有 HTTP 503 `AI_QUERY_FAILED`。正式環境資料 migration／回填和 Gemini 查詢結果見 Runbook 證據；本機 main 最新 PostProcessor 移除修改尚未部署。
 
 ---
 
@@ -1892,6 +1892,8 @@ Document Version Replacement 可留後續版本。
 ## POST /api/v1/ai/query
 
 權限：`PROCUREMENT_STAFF`、`PROCUREMENT_MANAGER`、`ADMIN`。V1 為單輪同步 JSON，無持久對話記憶或 Streaming 契約。
+
+工具分類由 `AiQuestionIntent` 呼叫 Spring AI `ChatModel` 取得 JSON，再解析成允許的 `AiToolType`；分類 wrapper 與 Prompt 是應用程式程式碼，模型推論使用 Spring AI。
 
 ### Request
 
@@ -2037,7 +2039,7 @@ StockTransaction
 {"question":"SUP-001 的 MAT-001 標準交期是多久？"}
 ```
 
-有經後端即時來源核對的 Context，且模型回傳非空答案時回 `200`。後端回傳已驗證的來源清單，但不逐句驗證生成答案是否受來源支持；系統提示仍要求模型只根據 Context 作答。沒有可用來源、模型回傳空答案或 `INSUFFICIENT_EVIDENCE` 時，回 `INSUFFICIENT_EVIDENCE`：
+Advisor 傳入候選文件 Context，且模型回傳非空答案時回 `200`。後端以檢索文件 metadata 建立來源清單，但不逐句驗證生成答案是否受來源支持；系統提示仍要求模型只根據 Context 作答。沒有檢索候選、模型回傳空答案或 `INSUFFICIENT_EVIDENCE` 時，回 `INSUFFICIENT_EVIDENCE`：
 
 ```json
 {
@@ -2061,11 +2063,11 @@ StockTransaction
 }
 ```
 
-找不到通過即時來源狀態、核准與出站政策檢查的檢索候選，或模型依 Context 回傳空答案／`INSUFFICIENT_EVIDENCE` 時，API 回 `200`、`status=INSUFFICIENT_EVIDENCE`、`answer=null`、`sources=[]`。Context 是否足以支持回答由模型依 system prompt 判斷；後端不再用答案支持驗證器檢查生成結果。Sources 的 document/version/chunk/offset 與 excerpt 仍由後端依 MySQL 權威資料建立，不接受模型自報來源。若 `SEMANTIC_READ_ENABLED=false`，不執行檢索而回 HTTP 503 `AI_PROVIDER_UNAVAILABLE`；透過 `/api/v1/ai/query` 呼叫時，既有工具錯誤包裝碼為 `AI_QUERY_FAILED`。
+Advisor 依 metadata filter 只取已發布 generation、`READY` 且 `APPROVED` 的向量文件；retriever 最多 10 份、相似度門檻預設 0.4。沒有達標候選時回 `INSUFFICIENT_EVIDENCE`；有候選時直接交給模型判斷，沒有自製 `RagDocumentPostProcessor` 或檢索後 MySQL 來源驗證。Sources 的 document/version/chunk/offset、excerpt 與 score 由 Advisor 回傳的向量文件 metadata 建立，不接受模型自報。`/api/v1/ai/query` 另外會經 `AiAnswerEvidencePolicy`／`EvidenceValidator` 檢查 `SEARCH_DOCUMENTS` 的來源格式與摘錄支持度，可能拒絕該工具結果。若 `SEMANTIC_READ_ENABLED=false`，不執行檢索而回 HTTP 503 `AI_PROVIDER_UNAVAILABLE`；透過 `/api/v1/ai/query` 呼叫時，既有工具錯誤包裝碼為 `AI_QUERY_FAILED`。
 
-文件問答只會把通過來源及適用性檢查的 Context 提供給模型。有限多文件摘要或供應商比較仍應明確指定對象與要比較的事實；模型依 system prompt 僅根據 Context 作答，後端不驗證生成後的數值、差額或答案主張。Demo Catalog 的歷史／現行適用性規則另按明確日期與文件期間限制候選來源。
+文件問答會把符合 Retriever 向量 metadata filter 的 Context 提供給模型。有限多文件摘要或供應商比較仍應明確指定對象與要比較的事實；模型依 system prompt 僅根據 Context 作答，後端不驗證生成後的數值、差額或答案主張。一般 RAG 檢索不以 Demo Catalog 的 business-fact applicability 做候選過濾；該 catalog 仍用於可信 Demo corpus／索引資格檢查。
 
-索引由 MySQL 文件儲存與出站核准流程觸發：核准來源 hash 後建立持久索引工作；worker 重新檢查 READY、版本、hash、generation、Demo 資格與出站政策，再用 Spring AI 文件讀取／chunking 寫入 `semantic_rag_vectors`。完整發布成功後，同步維護 PostgreSQL `semantic_chunks` 相容投影，讓既有 Agentic SQL 讀取契約可延續。`semantic_chunks`、索引登錄表與歷史資料不刪除；新文件問答只從 `semantic_rag_vectors` 檢索。PgVectorStore migration／相容投影與 Agentic SQL existing contract tests 已在 Testcontainers Maven suite 通過；部署資料 Backfill、正式文件數量／metadata 完整性對帳與真實文件查詢 E2E 尚未執行。
+索引由 MySQL 文件儲存與出站核准流程觸發：核准來源 hash 後建立持久索引工作；worker 重新檢查 READY、版本、hash、generation、Demo 資格與出站政策，再用 Spring AI 文件讀取／chunking 寫入 `semantic_rag_vectors`。完整發布成功後，同步維護 PostgreSQL `semantic_chunks` 相容投影，讓既有 Agentic SQL 讀取契約可延續。`semantic_chunks`、索引登錄表與歷史資料不刪除；新文件問答只從 `semantic_rag_vectors` 檢索。正式環境已完成 migration、121 份文件回填及 readiness/gate，結果見 [`正式環境遷移記錄`](evidence/spring-ai-rag-production-migration-2026-11-01.md)。該部署版本早於本機 main 最新 PostProcessor 移除修改。
 
 ---
 

@@ -64,9 +64,9 @@ Fixture 的 `expectedStatus`、答案要點及引用條件是靜態驗證契約�
 
 ## Dataset Version 與 AUTO_SAFE 操作
 
-目前 `main` 的 `.env.demo.example` 仍以 `sp-906-zh-tw-v2` 為例；本功能分支的目標是 `sp-907-zh-tw-v3`，其 `.env.demo.example` 是可提交範例。`.env.demo` 是使用者本機設定，可能含有 Secret，不應提交，也不可用範例檔整份覆寫。
+本機 main 的 `.env.demo.example` 已以 `sp-907-zh-tw-v3` 作為可提交範例。`.env.demo` 是使用者本機設定，可能含有 Secret，不應提交，也不可用範例檔整份覆寫。
 
-此分支的後端 `AUTO_SAFE` 只接受目標版本 `sp-907-zh-tw-v3`。請保留既有 `DEMO_DATASET_UPGRADE_MODE=AUTO_SAFE`，並確認 Docker Compose 實際解析出的 Dataset Version 是 `sp-907-zh-tw-v3`。若解析結果仍是 `sp-906-zh-tw-v2`，請先停止啟動並在本機 `.env.demo` 將重複的 Dataset Version 設定整理成單一 `DEMO_DATASET_VERSION=sp-907-zh-tw-v3`；不要改寫其他 Secret。版本不相容時後端會拒絕啟動，不應藉由連接既有資料庫來試錯。
+本機 main 的後端 `AUTO_SAFE` 只接受目標版本 `sp-907-zh-tw-v3`。請保留既有 `DEMO_DATASET_UPGRADE_MODE=AUTO_SAFE`，並確認 Docker Compose 實際解析出的 Dataset Version 是 `sp-907-zh-tw-v3`。若解析結果仍是 `sp-906-zh-tw-v2`，請先停止啟動並在本機 `.env.demo` 將重複的 Dataset Version 設定整理成單一 `DEMO_DATASET_VERSION=sp-907-zh-tw-v3`；不要改寫其他 Secret。版本不相容時後端會拒絕啟動，不應藉由連接既有資料庫來試錯。
 
 從 Repository 根目錄可用以下 PowerShell 指令只檢查核准欄位；不要改成輸出完整 Compose Config：
 
