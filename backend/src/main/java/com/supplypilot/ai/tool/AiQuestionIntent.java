@@ -11,8 +11,8 @@ import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.messages.SystemMessage;
 import org.springframework.ai.chat.messages.UserMessage;
+import org.springframework.ai.chat.prompt.ChatOptions;
 import org.springframework.ai.chat.prompt.Prompt;
-import org.springframework.ai.model.tool.ToolCallingChatOptions;
 
 /** Spring AI classification result used to constrain tool execution and answer evidence. */
 public record AiQuestionIntent(Set<AiToolType> requestedTools, Integer totalTokens) {
@@ -44,7 +44,7 @@ public record AiQuestionIntent(Set<AiToolType> requestedTools, Integer totalToke
 
     public static AiQuestionIntent classify(ChatModel model, String question) {
         ChatResponse response = model.call(new Prompt(List.of(new SystemMessage(SYSTEM_PROMPT),
-                new UserMessage(question)), ToolCallingChatOptions.builder().maxTokens(128).build()));
+                new UserMessage(question)), ChatOptions.builder().maxTokens(128).build()));
         Integer tokens = response != null && response.getMetadata() != null
                 && response.getMetadata().getUsage() != null
                 ? response.getMetadata().getUsage().getTotalTokens() : null;
