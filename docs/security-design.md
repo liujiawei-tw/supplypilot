@@ -1346,6 +1346,6 @@ Provider response body、exception message、文件內容及敏感來源值不�
 
 文件解析對 PDF/DOCX 使用有上限的 Tika worker，`DOCUMENT_RAG_PARSER_TIMEOUT` 預設 30 秒，逾時會取消該工作並回安全解析錯誤；輸入大小、DOCX 展開大小及 entry 數也各自受限。向量清理排程在索引 worker 啟用時預設每 300,000 毫秒執行一頁，移除 superseded、撤銷或來源已變更的舊向量；失敗或無法判定的 cleanup 保留資料並記錄不含內容的安全事件。
 
-生成答案不逐句比對或刪除主張。系統提示要求 Gemini 只根據 Context 作答，但這不是後端保證；答案可能與來源不符或合併矛盾來源。直連 `/api/v1/document-queries` 的 sources 取自 Advisor 實際回傳的 vector Document metadata，不接受模型自報，但查詢階段不再對 MySQL 即時來源狀態做二次驗證。`/api/v1/ai/query` 另有 `AiAnswerEvidencePolicy`／`EvidenceValidator`，會檢查文件工具結果的來源格式與摘錄支持度；這是該 AI API 的獨立結果政策，不是 Advisor 的 RAG 文件篩選器。使用者應同時核對答案與來源摘錄。
+生成答案不逐句比對或刪除主張。系統提示要求 Gemini 只根據 Context 作答，但這不是後端保證；答案可能與來源不符或合併矛盾來源。`/api/v1/document-queries` 與 `/api/v1/ai/query` 的文件查詢都經同一 Advisor；sources 取自 Advisor 實際回傳的 vector Document metadata，不接受模型自報，但查詢階段不再對 MySQL 即時來源狀態或答案主張做二次驗證。明確供應商代碼只用作檢索候選範圍的 metadata filter，不構成文件級 ACL 或授權；generation、READY、APPROVED 與既有登入／角色授權仍須同時成立。使用者應同時核對答案與來源摘錄。
 
 `SEMANTIC_READ_ENABLED` 程式預設 `false`；正式環境紀錄則已明確啟用並完成 V3 migration、121 份回填及 readiness/gate。正式 Gemini 文件問答為 2 PASS、1 PARTIAL；本機 Demo 三題 Gemini 查詢記錄為 3/3 PASS。本機 main 最新 PostProcessor 移除提交尚未部署。該修改後 Advisor／服務精準測試 10/10、RAG Testcontainers 矩陣 42/42 通過；全量 Maven `verify` 未在最新修改後重跑，Browser E2E 未執行。詳見 [`Spring AI RAG 驗證記錄`](evidence/spring-ai-rag-validation-2026-11-01.md)、[`正式環境遷移記錄`](evidence/spring-ai-rag-production-migration-2026-11-01.md) 與 [`semantic-rag-runbook.md`](semantic-rag-runbook.md)。

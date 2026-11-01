@@ -1881,7 +1881,7 @@ Document Version Replacement 可留後續版本。
 
 有檢索文件且模型回傳非空答案時回 `200 OK`、`status=ANSWERED`、答案及由 Advisor 文件 metadata 建立的 `sources`。沒有達標候選、模型回空答案或回 `INSUFFICIENT_EVIDENCE` 時回 `200 OK`、`status=INSUFFICIENT_EVIDENCE`、`answer=null`、`sources=[]`。來源欄位為 `documentId`、`documentKey`、`documentType`、`title`、`version`、`supplierId`／`supplierCode`／`supplierName`、`chunkIndex`、`startOffset`、`endOffset`、`excerpt` 與 `relevanceScore`；來源與分數取自 Advisor 實際回傳的向量文件 metadata，不接受模型自報。
 
-`DocumentSearchTool` 的 `SEARCH_DOCUMENTS` 也呼叫同一個 `DocumentQueryService`，不另設舊 RAG 查詢路徑。本機 main 使用 Spring AI `ChatClient`、`RetrievalAugmentationAdvisor`、`VectorStoreDocumentRetriever` 及 PgVectorStore。`SEMANTIC_READ_ENABLED=false` 時不執行檢索，文件 API 回 HTTP 503 `AI_PROVIDER_UNAVAILABLE`；沒有達標候選，或模型回空答案／`INSUFFICIENT_EVIDENCE` 時回 HTTP 200 `INSUFFICIENT_EVIDENCE`。直連文件 API 的候選由模型判斷；但 `/api/v1/ai/query` 尚有獨立的 `AiAnswerEvidencePolicy`／`EvidenceValidator`，可能依摘錄支持度拒絕 `SEARCH_DOCUMENTS` 工具結果。AI 助理將文件工具故障包裝為既有 HTTP 503 `AI_QUERY_FAILED`。正式環境資料 migration／回填和 Gemini 查詢結果見 Runbook 證據；本機 main 最新 PostProcessor 移除修改尚未部署。
+`DocumentSearchTool` 的 `SEARCH_DOCUMENTS` 也呼叫同一個 `DocumentQueryService`，不另設舊 RAG 查詢路徑。本機 main 使用 Spring AI `ChatClient`、`RetrievalAugmentationAdvisor`、`VectorStoreDocumentRetriever` 及 PgVectorStore。`SEMANTIC_READ_ENABLED=false` 時不執行檢索，文件 API 回 HTTP 503 `AI_PROVIDER_UNAVAILABLE`；沒有達標候選，或模型回空答案／`INSUFFICIENT_EVIDENCE` 時回 HTTP 200 `INSUFFICIENT_EVIDENCE`。兩條 API 路徑使用同一文件候選與模型判斷流程；明確指定供應商代碼時，Retriever 以 Spring AI request-scoped metadata filter 限定候選供應商。`/api/v1/ai/query` 的 `AiToolResultPolicy` 保留工具狀態與複合查詢涵蓋規則，不再於檢索後逐份拒絕文件摘錄。AI 助理將文件工具故障包裝為既有 HTTP 503 `AI_QUERY_FAILED`。正式環境資料 migration／回填和 Gemini 查詢結果見 Runbook 證據；本機 main 最新 PostProcessor 移除修改尚未部署。
 
 ---
 
@@ -2063,7 +2063,7 @@ Advisor 傳入候選文件 Context，且模型回傳非空答案時回 `200`。�
 }
 ```
 
-Advisor 依 metadata filter 只取已發布 generation、`READY` 且 `APPROVED` 的向量文件；retriever 最多 10 份、相似度門檻預設 0.4。沒有達標候選時回 `INSUFFICIENT_EVIDENCE`；有候選時直接交給模型判斷，沒有自製 `RagDocumentPostProcessor` 或檢索後 MySQL 來源驗證。Sources 的 document/version/chunk/offset、excerpt 與 score 由 Advisor 回傳的向量文件 metadata 建立，不接受模型自報。`/api/v1/ai/query` 另外會經 `AiAnswerEvidencePolicy`／`EvidenceValidator` 檢查 `SEARCH_DOCUMENTS` 的來源格式與摘錄支持度，可能拒絕該工具結果。若 `SEMANTIC_READ_ENABLED=false`，不執行檢索而回 HTTP 503 `AI_PROVIDER_UNAVAILABLE`；透過 `/api/v1/ai/query` 呼叫時，既有工具錯誤包裝碼為 `AI_QUERY_FAILED`。
+Advisor 依 metadata filter 只取已發布 generation、`READY` 且 `APPROVED` 的向量文件；問題明確包含供應商代碼時，同一 Spring AI request filter 也限定供應商。retriever 最多 10 份、相似度門檻預設 0.4。沒有達標候選時回 `INSUFFICIENT_EVIDENCE`；有候選時直接交給模型判斷，沒有自製 `RagDocumentPostProcessor` 或檢索後 MySQL 來源驗證。Sources 的 document/version/chunk/offset、excerpt 與 score 由 Advisor 回傳的向量文件 metadata 建立，不接受模型自報。`/api/v1/ai/query` 的 `AiToolResultPolicy` 檢查工具狀態與複合業務查詢涵蓋，不再做另一套文件摘錄支持度篩選。若 `SEMANTIC_READ_ENABLED=false`，不執行檢索而回 HTTP 503 `AI_PROVIDER_UNAVAILABLE`；透過 `/api/v1/ai/query` 呼叫時，既有工具錯誤包裝碼為 `AI_QUERY_FAILED`。
 
 文件問答會把符合 Retriever 向量 metadata filter 的 Context 提供給模型。有限多文件摘要或供應商比較仍應明確指定對象與要比較的事實；模型依 system prompt 僅根據 Context 作答，後端不驗證生成後的數值、差額或答案主張。一般 RAG 檢索不以 Demo Catalog 的 business-fact applicability 做候選過濾；該 catalog 仍用於可信 Demo corpus／索引資格檢查。
 

@@ -5,6 +5,7 @@ export type DecimalValue = string | number;
 /** BigDecimal fields in Material, Inventory, SupplierMaterial, PO, Receiving, and StockTransaction response DTOs. */
 const BIG_DECIMAL_FIELDS = new Set(['quantity', 'unitPrice', 'lineTotal', 'total', 'amount', 'averageUnitPrice',
   'minimumUnitPrice', 'maximumUnitPrice', 'reliabilityScore', 'qualityScore', 'moq', 'packageMultiple', 'safetyStock']);
+const FLOAT_FIELDS = new Set(['relevanceScore']);
 
 /**
  * Parse API numbers according to the formal response DTO field type.
@@ -17,6 +18,13 @@ export function parseDecimalJson(data: unknown): unknown {
     if (!isLosslessNumber(value)) return value;
     const token = value.value;
     if (BIG_DECIMAL_FIELDS.has(key)) return token;
+    if (FLOAT_FIELDS.has(key)) {
+      const floating = Number(token);
+      if (!Number.isFinite(floating)) {
+        throw new RangeError(`Non-finite number token for field "${key}": ${token}`);
+      }
+      return floating;
+    }
     if (!isInteger(token)) {
       throw new TypeError(`Unexpected non-integral token for integer field "${key}": ${token}`);
     }

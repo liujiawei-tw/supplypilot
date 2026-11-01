@@ -8,7 +8,7 @@
 ## 獨立執行路徑
 
 - 新入口為 `POST /api/v1/ai/agent-query`，採版本化回應 DTO。功能開關 `AGENTIC_SQL_ENABLED` 預設 `false`；未明確啟用時不建立 Agent 專用資料庫連線或執行入口。
-- Agent 使用獨立的 System Prompt、ChatClient、request context 與兩項泛用工具：`inspect_schema`、`execute_readonly_sql`。核心問答路徑不呼叫舊 `AiQueryPlanner`、固定業務工具、`DocumentQueryService`、Hybrid/Semantic Retrieval 或 `EvidenceValidator`。
+- Agent 使用獨立的 System Prompt、ChatClient、request context 與兩項泛用工具：`inspect_schema`、`execute_readonly_sql`。核心問答路徑不呼叫舊 `AiQueryPlanner`、固定業務工具、`DocumentQueryService`、Hybrid/Semantic Retrieval 或歷史 RAG `EvidenceValidator`。
 - 舊 `POST /api/v1/ai/query` 與 `POST /api/v1/document-queries` 保持原狀，僅由 A/B runner 作為 baseline 呼叫。runner 收齊兩邊結果後才並排呈現，不會把任一方的答案或工具軌跡傳給另一方。
 - 新入口沿用已登入的採購角色授權。SQL 工具本身不提供 HTTP、檔案、Shell 或其他網路能力；資料表文字與文件內容皆視為不可信資料。
 
@@ -27,7 +27,7 @@
 - 本次實驗政策允許相關商業價格、成本、折扣、PO 金額與業務文件內容送 Gemini；此決策不改變舊 RAG 的 `OutboundDocumentPolicy`。密碼、雜湊、API key、token、private key 與認證資料會排除；個人身分識別碼、聯絡方式及銀行帳號會遮罩，不向模型提供原始值。
 - 文件原文在傳入模型前經獨立的 `AgenticSqlDocumentEgressPolicy` 檢查：來源必須可追溯並投影直接 `document_id` 及 `document_version`；MySQL 文件 metadata 必須為 `READY` 且有目前版本，MySQL 原始 chunks 必須有寫入時蓋印的版本並與 MySQL metadata 一致；PostgreSQL `semantic_chunks` 亦須投影版本且符合目前 MySQL 文件版本。無法確認時拒絕該工具結果並要求 Agent 改寫。Migration V34 後，既有沒有版本 provenance 的 MySQL chunks 會保持 `NULL` 並 fail closed，須由既有索引重建寫入目前版本；此為來源可信檢查，不要求逐筆人工審核，也不依賴舊 RAG 檢索、Embedding、向量發布或相似度。凡 SQL 在投影或條件（包含子查詢）中引用文件 `content`，均先檢查來源及版本；若以函數加工、分段擷取或內容相關條件取得原文，則 fail closed，避免 `REVERSE`、`SUBSTRING` 或列存在性判斷繞過檢查。每次直接原文出站也會掃描實際字串值，依格式／校驗檢查 IBAN，並遮罩標記與無標籤 SWIFT/BIC、銀行帳號、個資及系統機密；合法業務金額仍保留。
 - JDBC 欄位 metadata 無法安全追溯敏感來源時，含敏感欄位的 derived `FROM (SELECT ...)` 會以可修正的 `SQL_REJECTED` 拒絕；沒有敏感欄位的一般 derived query 正常執行，不會以全列遮罩冒充成功取得業務資料。可改用 CTE、直接 JOIN 或直接投影。
-- 最終模型回覆採 Agentic SQL 專用的結構化 claims；每項事實引用本次 SQL 結果的 `toolCallId`、列與欄，並標記事實種類、來源欄位、主體與值。列級欄位事實、比較、推論及分組衍生聚合都必須提供與值同一結果列的主體；直接聚合及未分組且無實體主體的衍生聚合可省略主體。後端核對欄位來源 lineage、同列主體和值、數值、業務識別值、聚合函數及 MIN/MAX 候選；純 SQL 常數不能引用。風險、財務狀況、交付可靠度、品質、因果及建議等定性主張，需有對應來源欄位或直接來源值；只有間接依據時須標記為明確推論並受來源角色限制，無法驗證的主張不作已證實事實，已支持的其他內容保留並回 `PARTIAL`。重複業務識別值在不同表有矛盾數值時回傳衝突警示。這套驗證不使用舊 RAG `EvidenceValidator` 或語意相似度門檻，仍不構成通用自然語言形式化證明。
+- 最終模型回覆採 Agentic SQL 專用的結構化 claims；每項事實引用本次 SQL 結果的 `toolCallId`、列與欄，並標記事實種類、來源欄位、主體與值。列級欄位事實、比較、推論及分組衍生聚合都必須提供與值同一結果列的主體；直接聚合及未分組且無實體主體的衍生聚合可省略主體。後端核對欄位來源 lineage、同列主體和值、數值、業務識別值、聚合函數及 MIN/MAX 候選；純 SQL 常數不能引用。風險、財務狀況、交付可靠度、品質、因果及建議等定性主張，需有對應來源欄位或直接來源值；只有間接依據時須標記為明確推論並受來源角色限制，無法驗證的主張不作已證實事實，已支持的其他內容保留並回 `PARTIAL`。重複業務識別值在不同表有矛盾數值時回傳衝突警示。這套驗證不使用歷史 RAG 證據檢查器或語意相似度門檻，仍不構成通用自然語言形式化證明。
 - 雙資料庫狀態區分為：成功查詢皆無列且沒有工具失敗為 `NO_DATA`；至少一個資料來源成功、另一來源失敗為 `PARTIAL`；沒有任何 SQL 查詢成功且曾發生工具／資料庫錯誤為 `QUERY_FAILED`；沒有可判斷的查詢且沒有錯誤時才為 `NEEDS_CLARIFICATION`。
 - 使用者已補充：目前專案不會有員工個資、供應商銀行帳號或身分證號。上述欄位與值的遮罩仍作為防禦性保護，避免未來資料來源或 schema 擴充時意外外送；一般業務資料表與欄位仍採動態探索。
 - 新路徑只將回答所需的結果送模型，不預先把整庫 schema 或資料載入 prompt。工具呼叫、單次查詢時間、回傳列數、欄數、字元數和模型輸出都設上限。日誌只記工具類型、資料庫、表、耗時、列數、截斷、錯誤分類與可取得的 token 用量；不得記問題原文、SQL、結果內容或憑證。

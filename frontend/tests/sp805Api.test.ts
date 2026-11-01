@@ -37,6 +37,14 @@ describe('SP-805 API contracts', () => {
     });
   });
 
+  it('parses floating point AI source relevance scores as numbers', () => {
+    const result = parseDecimalJson('{"status":"ANSWERED","sources":[{"resourceType":"DOCUMENT","relevanceScore":0.9}]}') as {
+      sources: Array<{ relevanceScore: number }>;
+    };
+
+    expect(result.sources[0].relevanceScore).toBeCloseTo(0.9);
+  });
+
   it('covers PO, Receiving, and StockTransaction BigDecimal response fields', () => {
     const po = parseDecimalJson('{"id":42,"items":[{"id":1,"quantity":100,"unitPrice":123.4500,"total":1.23E+8}]}') as { items: Array<Record<string, unknown>> };
     const receiving = parseDecimalJson('{"id":42,"items":[{"id":1,"quantity":999999999999999999999}]}') as { items: Array<Record<string, unknown>> };

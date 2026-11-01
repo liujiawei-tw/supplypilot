@@ -2545,9 +2545,9 @@ Issue #139 的測試指令、環境、測試數、Migration 與 CI 狀態以 [`d
 以下是完整替換的驗收矩陣；程式接線、既有 fixture 或單元 Fake Provider 都不能替代相應的整合／真實 Provider 驗收。
 
 - **ETL／來源契約：** Fake 檔案及既有固定 PDF、DOCX、TXT fixture 覆蓋正常解析、異常／過大輸入、UTF-8、繁體中文／英文／表格／換行、Chunk Size、Overlap、最大數量、offset 原文切片及預覽／下載契約。實作另設 PDF/DOCX Tika parser timeout（`DOCUMENT_RAG_PARSER_TIMEOUT`，預設 30 秒）；timeout/cancellation 負向案例仍須加入並執行。offset 必須可回到 normalized extracted text；不可以模型 chunk 或字節位置代替。
-- **Spring AI Pipeline：** 驗證 `DocumentQueryService` 使用 `ChatClient`、`RetrievalAugmentationAdvisor`、`VectorStoreDocumentRetriever` 與 PgVectorStore；核對 metadata filter、相似度門檻、真實檢索分數及最多 10 份候選直接進入模型 Context。不要再以 `RagDocumentPostProcessor` 篩選候選。`/api/v1/ai/query` 的 `AiAnswerEvidencePolicy`／`EvidenceValidator` 是 Advisor 外部的獨立工具結果檢查，需分開驗證。
+- **Spring AI Pipeline：** 驗證 `DocumentQueryService` 使用 `ChatClient`、`RetrievalAugmentationAdvisor`、`VectorStoreDocumentRetriever` 與 PgVectorStore；核對 generation／READY／APPROVED metadata filter、明確供應商代碼的 request-scoped filter、相似度門檻、真實檢索分數及最多 10 份候選直接進入模型 Context。不要再以自製 RAG 後處理器篩選候選。`/api/v1/ai/query` 另由 `AiToolResultPolicy` 驗證工具狀態及複合業務查詢涵蓋。
 - **PostgreSQL／MySQL：** 使用 Testcontainers PostgreSQL/pgvector 與 MySQL，加 Fake EmbeddingModel／ChatModel 驗證實際 `PgVectorStore.add/search/delete`、索引 generation／維度／metadata、bounded cleanup stale-page 行為、跨 DB 部分失敗補償、冪等重試、版本更新、撤銷、過期／權限改變和 Agentic SQL 對既有欄位的回歸。V3 migration 不可清表或刪除舊 schema。
-- **答案生成契約：** 後端不逐句驗證或改寫 Gemini 生成答案；system prompt 要求只根據 Context 作答，但此要求不構成程式保證。直連文件 API 將 metadata filter 通過的 Advisor 候選直接交給模型，sources 取自向量文件 metadata；查詢時沒有 MySQL 即時來源二次驗證。另需測試 `/api/v1/ai/query` 的 `AiAnswerEvidencePolicy` 對文件工具結果之來源格式及摘錄支持檢查。真實文件 QA 必須核對答案正確性與來源。
+- **答案生成契約：** 後端不逐句驗證或改寫 Gemini 生成答案；system prompt 要求只根據 Context 作答，但此要求不構成程式保證。兩條文件查詢路徑都將 metadata filter 通過的 Advisor 候選交給模型，sources 取自向量文件 metadata；查詢時沒有 MySQL 即時來源二次驗證。真實文件 QA 必須使用 Demo 語料核對答案正確性、供應商範圍與來源。
 - **至少 20 題可重現問答：** 對單文件、多文件／供應商比較、付款、交期、歷史／現行版本、矛盾、錯誤 supplier/material ID、無答案、無權限與證據不足，分別核對 retrieval、事實、source、version、authorization 和拒答；不得只斷言回答文字非空。完整數值比較與歷史／現行 Demo 答案都須由實際 Advisor evidence 驗證。
 - **正式 Provider／部署：** 另記錄 Gemini Embedding／Chat Smoke、Browser API/UI、Docker Compose 與 Demo 啟動證據；Fake 不可代表 Gemini PASS。GitHub Actions 依使用者決策標示 `PAUSED BY USER / NOT USED AS GATE`。
 

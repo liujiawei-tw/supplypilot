@@ -1441,4 +1441,4 @@ UML 建議在 Validation / Exception 與 Security Design 鎖定後製作。
 
 Worker 以獨立短交易領取 job／更新 lease，並以唯讀 MySQL 交易載入及重驗來源快照。Gemini 每個 chunk 呼叫都在 MySQL 交易外執行。發佈時由 PostgreSQL 自己的一個交易鎖定索引列、比較文件 generation 與來源 hash、替換 chunks 並將狀態設為 READY；任何一步失敗都 rollback。MySQL 與 PostgreSQL 不組成分散式交易，持久化 job、有限重試及 lease 到期回收提供恢復能力。
 
-發布索引前由工作流程核對 generation、來源版本/hash、核准政策與 chunk offsets。查詢時以向量 metadata filter 限制 generation、READY 與 APPROVED；目前不會逐候選重新查詢 MySQL，也不經 `EvidenceValidator` 或自製 `RagDocumentPostProcessor` 篩選。候選交給模型判斷相關性與答案支持度。
+發布索引前由工作流程核對 generation、來源版本/hash、核准政策與 chunk offsets。查詢時以向量 metadata filter 限制 generation、READY 與 APPROVED；問題明確包含供應商代碼時，另以 Spring AI request-scoped filter 限定供應商。查詢不會逐候選重新查詢 MySQL，也不使用自製 RAG 後處理器；候選交給模型判斷相關性與答案支持度。

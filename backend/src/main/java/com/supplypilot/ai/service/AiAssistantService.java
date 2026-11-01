@@ -23,18 +23,18 @@ public class AiAssistantService {
     private final AiQueryPlanner planner;
     private final AiProviderClient provider;
     private final CurrentUserProvider currentUserProvider;
-    private final AiAnswerEvidencePolicy evidencePolicy;
+    private final AiToolResultPolicy toolResultPolicy;
 
     public AiAssistantService(
             AiQueryPlanner planner,
             AiProviderClient provider,
             CurrentUserProvider currentUserProvider,
-            AiAnswerEvidencePolicy evidencePolicy
+            AiToolResultPolicy toolResultPolicy
     ) {
         this.planner = planner;
         this.provider = provider;
         this.currentUserProvider = currentUserProvider;
-        this.evidencePolicy = evidencePolicy;
+        this.toolResultPolicy = toolResultPolicy;
     }
 
     @PreAuthorize("hasAnyRole('PROCUREMENT_STAFF', 'PROCUREMENT_MANAGER', 'ADMIN')")
@@ -54,10 +54,10 @@ public class AiAssistantService {
         var result = queryProvider(validated);
         var executions = result.results();
         var requestedTools = result.requestedTools();
-        var supporting = evidencePolicy.supportingResults(validated, requestedTools, executions);
+        var supporting = toolResultPolicy.supportingResults(validated, requestedTools, executions);
         if (supporting.isEmpty()) {
-            var partial = evidencePolicy.partialResults(validated, requestedTools, executions);
-            List<String> incompleteNotes = evidencePolicy.incompleteNotes(validated, requestedTools,
+            var partial = toolResultPolicy.partialResults(validated, requestedTools, executions);
+            List<String> incompleteNotes = toolResultPolicy.incompleteNotes(validated, requestedTools,
                     executions, partial);
             if (!partial.isEmpty()) {
                 AiAnswerData partialDetails = AiAnswerData.merge(partial.stream().map(item -> item.details()).toList());

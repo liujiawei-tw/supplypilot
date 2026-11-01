@@ -3,7 +3,6 @@ package com.supplypilot.document.rag;
 import org.springframework.ai.rag.advisor.RetrievalAugmentationAdvisor;
 import org.springframework.ai.rag.generation.augmentation.ContextualQueryAugmenter;
 import org.springframework.ai.rag.retrieval.search.VectorStoreDocumentRetriever;
-import org.springframework.ai.vectorstore.filter.FilterExpressionBuilder;
 import org.springframework.ai.vectorstore.pgvector.PgVectorStore;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Condition;
@@ -14,6 +13,7 @@ import org.springframework.context.annotation.Lazy;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.core.type.AnnotatedTypeMetadata;
 
+import com.supplypilot.ai.tool.AiQueryPlanner;
 import com.supplypilot.document.semantic.SemanticProperties;
 
 @Configuration(proxyBeanMethods = false)
@@ -24,22 +24,19 @@ public class SpringAiRagConfiguration {
     @Conditional(SemanticRagConfigured.class)
     RetrievalAugmentationAdvisor documentRagAdvisor(
             @Qualifier("ragQueryVectorStore") PgVectorStore vectorStore,
-            SemanticProperties properties) {
-        var filters = new FilterExpressionBuilder();
-        var publishedApprovedGeneration = filters.and(
-                filters.and(filters.eq("generationKey", properties.generationKey()),
-                        filters.eq("documentStatus", "READY")),
-                filters.eq("outboundApprovalStatus", "APPROVED")).build();
+            SemanticProperties properties, AiQueryPlanner queryPlanner) {
+        var queryTransformer = new SupplierScopedRagQueryTransformer(queryPlanner, properties);
 
         var retriever = VectorStoreDocumentRetriever.builder()
                 .vectorStore(vectorStore)
                 .topK(10)
                 .similarityThreshold(properties.similarityThreshold())
-                .filterExpression(publishedApprovedGeneration)
+                .filterExpression(queryTransformer::publishedApprovedGenerationFilter)
                 .build();
 
         return RetrievalAugmentationAdvisor.builder()
                 .documentRetriever(retriever)
+                .queryTransformers(queryTransformer)
                 .queryAugmenter(ContextualQueryAugmenter.builder().allowEmptyContext(false).build())
                 .build();
     }

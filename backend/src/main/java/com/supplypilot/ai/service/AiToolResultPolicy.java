@@ -1,37 +1,34 @@
 package com.supplypilot.ai.service;
 
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
+import java.util.Locale;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import com.supplypilot.ai.dto.AiQueryStatus;
-import com.supplypilot.ai.dto.AiSourceResponse;
 import com.supplypilot.ai.dto.AiToolType;
+import com.supplypilot.ai.tool.AiQueryPlanner;
 import com.supplypilot.ai.tool.AiQuestionIntent;
 import com.supplypilot.ai.tool.AiToolResult;
-import com.supplypilot.document.rag.EvidenceValidator;
 import org.springframework.stereotype.Component;
 
-/** Checks whether a trusted tool result addresses the question, beyond merely having run successfully. */
+/** Applies domain coverage rules to structured tool results; document evidence is handled by RAG retrieval. */
 @Component
-public class AiAnswerEvidencePolicy {
-    private final EvidenceValidator evidenceValidator;
+public class AiToolResultPolicy {
+    private final AiQueryPlanner planner;
 
-    public AiAnswerEvidencePolicy(EvidenceValidator evidenceValidator) {
-        this.evidenceValidator = evidenceValidator;
+    public AiToolResultPolicy(AiQueryPlanner planner) {
+        this.planner = planner;
     }
 
     public List<AiToolResult> supportingResults(String question, Set<AiToolType> requested,
                                                List<AiToolResult> executions) {
         if (requested == null || requested.isEmpty()) return List.of();
-        List<AiToolResult> supporting = executions.stream()
-                .filter(result -> requested.stream().anyMatch(tool -> AiQuestionIntent.satisfies(tool, result.tool())))
-                .filter(result -> result.status() == AiQueryStatus.ANSWERED
-                        || result.status() == AiQueryStatus.NOT_FOUND
-                        || result.status() == AiQueryStatus.NEEDS_CLARIFICATION)
-                .filter(result -> result.tool() != AiToolType.SEARCH_DOCUMENTS || supportedDocument(question, result))
-                .toList();
+        List<AiToolResult> supporting = acceptedResults(requested, executions);
+
         // A compound request is not complete when only one of its explicitly requested facts is present.
         if (requested.stream().anyMatch(tool -> supporting.stream()
                 .noneMatch(result -> AiQuestionIntent.satisfies(tool, result.tool())))
@@ -45,42 +42,36 @@ public class AiAnswerEvidencePolicy {
             }
         }
         if (requested.contains(AiToolType.QUERY_SUPPLIER)) {
-            Set<String> expectedCodes = Set.copyOf(new com.supplypilot.ai.tool.AiQueryPlanner().supplierCodes(question));
+            Set<String> expectedCodes = Set.copyOf(planner.supplierCodes(question));
             if (!expectedCodes.isEmpty()) {
                 Set<String> observedCodes = supporting.stream()
                         .filter(result -> result.tool() == AiToolType.QUERY_SUPPLIER)
-                        .flatMap(result -> java.util.stream.Stream.concat(
+                        .flatMap(result -> Stream.concat(
                                 result.details().suppliers().stream().map(item -> item.supplierCode()),
                                 result.details().unmatchedIdentifiers().stream()))
-                        .filter(java.util.Objects::nonNull)
-                        .map(value -> value.toUpperCase(java.util.Locale.ROOT))
-                        .collect(java.util.stream.Collectors.toSet());
+                        .filter(Objects::nonNull)
+                        .map(value -> value.toUpperCase(Locale.ROOT))
+                        .collect(Collectors.toSet());
                 if (!expectedCodes.equals(observedCodes.stream().filter(expectedCodes::contains)
-                        .collect(java.util.stream.Collectors.toSet()))) return List.of();
+                        .collect(Collectors.toSet()))) return List.of();
             }
         }
         return supporting;
     }
 
-    /** Returns individually supported results when a compound request cannot be completed in full. */
+    /** Returns individually successful requested tool results if a compound request is incomplete. */
     public List<AiToolResult> partialResults(String question, Set<AiToolType> requested,
                                              List<AiToolResult> executions) {
         if (requested == null || requested.isEmpty()) return List.of();
-        return executions.stream()
-                .filter(result -> requested.stream().anyMatch(tool -> AiQuestionIntent.satisfies(tool, result.tool())))
-                .filter(result -> result.status() == AiQueryStatus.ANSWERED
-                        || result.status() == AiQueryStatus.NOT_FOUND
-                        || result.status() == AiQueryStatus.NEEDS_CLARIFICATION)
-                .filter(result -> result.tool() != AiToolType.SEARCH_DOCUMENTS || supportedDocument(question, result))
-                .toList();
+        return acceptedResults(requested, executions);
     }
 
-    /** Explains incomplete parts without conflating document gaps, business gaps, and absent tool results. */
+    /** Explains incomplete tool/domain coverage without making document evidence decisions. */
     public List<String> incompleteNotes(String question, Set<AiToolType> requested,
                                         List<AiToolResult> executions,
                                         List<AiToolResult> partialResults) {
         if (requested == null || requested.isEmpty()) return List.of();
-        List<String> notes = new java.util.ArrayList<>();
+        List<String> notes = new ArrayList<>();
         for (AiToolType tool : requested) {
             boolean hasSupportedResult = partialResults.stream()
                     .anyMatch(result -> AiQuestionIntent.satisfies(tool, result.tool()));
@@ -95,7 +86,8 @@ public class AiAnswerEvidencePolicy {
                 notes.add("尚未取得可信的" + toolLabel(tool) + "結果。");
             }
         }
-        Set<String> expectedMaterials = Set.copyOf(new com.supplypilot.ai.tool.AiQueryPlanner().materialCodes(question));
+
+        Set<String> expectedMaterials = Set.copyOf(planner.materialCodes(question));
         for (AiToolType tool : requested) {
             if (!requiresMaterialCoverage(tool) || expectedMaterials.isEmpty()) continue;
             Set<String> observed = observedMaterialCodes(tool, partialResults);
@@ -104,19 +96,29 @@ public class AiAnswerEvidencePolicy {
             if (!missing.isEmpty()) notes.add("尚未取得以下" + toolLabel(tool) + "物料結果："
                     + String.join("、", missing) + "。");
         }
-        Set<String> expectedSuppliers = Set.copyOf(new com.supplypilot.ai.tool.AiQueryPlanner().supplierCodes(question));
+
+        Set<String> expectedSuppliers = Set.copyOf(planner.supplierCodes(question));
         if (requested.contains(AiToolType.QUERY_SUPPLIER) && !expectedSuppliers.isEmpty()) {
             Set<String> observed = partialResults.stream().filter(result -> result.tool() == AiToolType.QUERY_SUPPLIER)
-                    .flatMap(result -> java.util.stream.Stream.concat(
+                    .flatMap(result -> Stream.concat(
                             result.details().suppliers().stream().map(item -> item.supplierCode()),
                             result.details().unmatchedIdentifiers().stream()))
-                    .filter(java.util.Objects::nonNull)
-                    .map(value -> value.toUpperCase(java.util.Locale.ROOT))
-                    .collect(java.util.stream.Collectors.toSet());
+                    .filter(Objects::nonNull)
+                    .map(value -> value.toUpperCase(Locale.ROOT))
+                    .collect(Collectors.toSet());
             List<String> missing = expectedSuppliers.stream().filter(expected -> !observed.contains(expected)).toList();
             if (!missing.isEmpty()) notes.add("尚未取得以下供應商代碼的結果：" + String.join("、", missing) + "。");
         }
         return notes.stream().distinct().toList();
+    }
+
+    private List<AiToolResult> acceptedResults(Set<AiToolType> requested, List<AiToolResult> executions) {
+        return executions.stream()
+                .filter(result -> requested.stream().anyMatch(tool -> AiQuestionIntent.satisfies(tool, result.tool())))
+                .filter(result -> result.status() == AiQueryStatus.ANSWERED
+                        || result.status() == AiQueryStatus.NOT_FOUND
+                        || result.status() == AiQueryStatus.NEEDS_CLARIFICATION)
+                .toList();
     }
 
     private boolean requiresMaterialCoverage(AiToolType tool) {
@@ -125,7 +127,7 @@ public class AiAnswerEvidencePolicy {
     }
 
     private boolean allRequestedMaterialsCovered(AiToolType tool, String question, List<AiToolResult> results) {
-        Set<String> expected = Set.copyOf(new com.supplypilot.ai.tool.AiQueryPlanner().materialCodes(question));
+        Set<String> expected = Set.copyOf(planner.materialCodes(question));
         if (expected.isEmpty()) return true;
         Set<String> observed = observedMaterialCodes(tool, results);
         return expected.stream().allMatch(code -> observed.stream().anyMatch(value -> matchesMaterialCode(code, value)));
@@ -134,24 +136,24 @@ public class AiAnswerEvidencePolicy {
     private Set<String> observedMaterialCodes(AiToolType tool, List<AiToolResult> results) {
         return results.stream().filter(result -> result.tool() == tool)
                 .flatMap(result -> {
-                    java.util.stream.Stream<String> codes = result.details().queriedMaterialCodes().stream();
-                    codes = java.util.stream.Stream.concat(codes, result.details().unmatchedIdentifiers().stream());
+                    Stream<String> codes = result.details().queriedMaterialCodes().stream();
+                    codes = Stream.concat(codes, result.details().unmatchedIdentifiers().stream());
                     return switch (tool) {
-                        case QUERY_INVENTORY -> java.util.stream.Stream.concat(codes,
+                        case QUERY_INVENTORY -> Stream.concat(codes,
                                 result.details().inventory().stream().map(item -> item.materialCode()));
-                        case QUERY_SUPPLIER_QUOTES -> java.util.stream.Stream.concat(codes,
+                        case QUERY_SUPPLIER_QUOTES -> Stream.concat(codes,
                                 result.details().quotes().stream().map(item -> item.materialCode()));
-                        case QUERY_AVERAGE_PRICE -> java.util.stream.Stream.concat(codes,
+                        case QUERY_AVERAGE_PRICE -> Stream.concat(codes,
                                 result.details().averagePrices().stream().map(item -> item.materialCode()));
-                        case QUERY_OPEN_PO -> java.util.stream.Stream.concat(codes,
+                        case QUERY_OPEN_PO -> Stream.concat(codes,
                                 result.details().purchaseOrders().stream().flatMap(order -> order.items().stream())
                                         .map(item -> item.materialCode()));
                         default -> codes;
                     };
                 })
-                .filter(java.util.Objects::nonNull)
-                .map(value -> value.toUpperCase(java.util.Locale.ROOT))
-                .collect(java.util.stream.Collectors.toSet());
+                .filter(Objects::nonNull)
+                .map(value -> value.toUpperCase(Locale.ROOT))
+                .collect(Collectors.toSet());
     }
 
     private boolean matchesMaterialCode(String expected, String observed) {
@@ -170,33 +172,5 @@ public class AiAnswerEvidencePolicy {
             case QUERY_RECOMMENDATION, EXPLAIN_RECOMMENDATION -> "採購建議查詢";
             case QUERY_SUPPLIER_RANKING -> "供應商排名查詢";
         };
-    }
-
-    private boolean supportedDocument(String question, AiToolResult result) {
-        if (result.sources().isEmpty() || result.sources().stream().anyMatch(source -> !validDocumentSource(source))) {
-            return false;
-        }
-        Map<SourceDocumentIdentity, List<AiSourceResponse>> excerptsByDocument = result.sources().stream()
-                .collect(Collectors.groupingBy(source -> new SourceDocumentIdentity(source.resourceId(),
-                        source.documentKey(), source.version())));
-        return excerptsByDocument.values().stream().allMatch(sources -> {
-            String combinedExcerpt = sources.stream().map(AiSourceResponse::excerpt)
-                    .collect(Collectors.joining("\n"));
-            return !evidenceValidator.supportedExcerpt(question, combinedExcerpt).isBlank();
-        });
-    }
-
-    private boolean validDocumentSource(AiSourceResponse source) {
-        return source != null && "DOCUMENT".equals(source.resourceType())
-                && source.resourceId() != null && !source.resourceId().isBlank()
-                && source.version() != null && !source.version().isBlank()
-                && source.chunkIndex() != null && source.chunkIndex() >= 0
-                && source.startOffset() != null && source.startOffset() >= 0
-                && source.endOffset() != null && source.endOffset() > source.startOffset()
-                && source.excerpt() != null
-                && source.excerpt().length() == source.endOffset() - source.startOffset();
-    }
-
-    private record SourceDocumentIdentity(String resourceId, String documentKey, String version) {
     }
 }

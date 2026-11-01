@@ -24,7 +24,6 @@ import com.supplypilot.ai.tool.AiQueryPlanner;
 import com.supplypilot.ai.tool.AiToolResult;
 import com.supplypilot.common.exception.BusinessException;
 import com.supplypilot.common.exception.ErrorCode;
-import com.supplypilot.document.rag.EvidenceValidator;
 import com.supplypilot.security.CurrentUserProvider;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -43,7 +42,7 @@ class AiAssistantServiceTests {
     @BeforeEach
     void setUp() {
         service = new AiAssistantService(planner, provider, currentUserProvider,
-                new AiAnswerEvidencePolicy(new EvidenceValidator()));
+                new AiToolResultPolicy(new AiQueryPlanner()));
         result = new AiToolResult(AiToolType.QUERY_INVENTORY, AiQueryStatus.ANSWERED,
                 "MAT-001 庫存為 200 KG。", List.of(AiSourceResponse.resource("INVENTORY", 7, "MAT-001")));
         when(currentUserProvider.getCurrentUserId()).thenReturn(11L);
@@ -295,18 +294,6 @@ class AiAssistantServiceTests {
     }
 
     @Test
-    void anotherSuppliersDocumentCannotAnswerContractLeadTime() {
-        assertContractQuestionInsufficient(List.of(document("SUP-002 的 MAT-001 標準交期為 ORDERED 後 3 個曆日。", "2")));
-    }
-
-    @Test
-    void recommendationAndWrongDocumentCannotAnswerContractLeadTime() {
-        assertContractQuestionInsufficient(List.of(
-                tool(AiToolType.QUERY_RECOMMENDATION, "MAT-001 建議採購。", "PURCHASE_RECOMMENDATION"),
-                document("SUP-002 的 MAT-001 標準交期為 ORDERED 後 3 個曆日。", "2")));
-    }
-
-    @Test
     void relevantContractDocumentExcludesUnrequestedRecommendationFactsAndSources() {
         String question = "SUP-001 的 MAT-001 標準交期是多久？";
         String clause = "SUP-001 的 MAT-001 標準交期為 ORDERED 後 6 個曆日。";
@@ -353,18 +340,6 @@ class AiAssistantServiceTests {
             assertThat(source.chunkIndex()).isZero();
             assertThat(source.endOffset() - source.startOffset()).isEqualTo(source.excerpt().length());
         });
-    }
-
-    @Test
-    void documentWithoutValidCitationCannotAnswerContractLeadTime() {
-        String clause = "SUP-001 的 MAT-001 標準交期為 ORDERED 後 6 個曆日。";
-        AiToolResult missingSource = new AiToolResult(AiToolType.SEARCH_DOCUMENTS,
-                AiQueryStatus.ANSWERED, clause, List.of());
-        assertContractQuestionInsufficient(List.of(missingSource));
-        AiSourceResponse badOffset = new AiSourceResponse("DOCUMENT", "1", "測試合約", null, "1.0", 1L,
-                0, 0, clause.length() + 1, clause, 0.9);
-        assertContractQuestionInsufficient(List.of(new AiToolResult(AiToolType.SEARCH_DOCUMENTS,
-                AiQueryStatus.ANSWERED, clause, List.of(badOffset))));
     }
 
     @Test

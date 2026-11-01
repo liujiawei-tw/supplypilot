@@ -8,6 +8,9 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.time.Duration;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
@@ -15,6 +18,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicReference;
 
 import com.supplypilot.ai.config.AiProperties;
+import com.supplypilot.ai.tool.AiQueryPlanner;
 import com.supplypilot.common.exception.BusinessException;
 import com.supplypilot.common.exception.ErrorCode;
 import com.supplypilot.document.domain.DocumentType;
@@ -75,6 +79,39 @@ class SpringAiRagAdvisorPipelineTests {
             assertThat(request.getValue().getQuery()).isEqualTo(QUESTION);
             assertThat(request.getValue().getTopK()).isEqualTo(10);
             assertThat(request.getValue().getSimilarityThreshold()).isEqualTo(0.4);
+        }
+    }
+
+    @Test
+    void advisorAppliesSupplierScopeToDemoProfileRetrieval() throws IOException {
+        String demoProfile = readDemoSupplierProfile();
+        assertThat(demoProfile).contains("服務時段：週一至週五 09:00–17:00");
+        PgVectorStore vectorStore = mock(PgVectorStore.class);
+        when(vectorStore.similaritySearch(any(SearchRequest.class)))
+                .thenReturn(List.of(retrievedDocument(demoProfile, 0.67, "SUP-003")));
+
+        AtomicReference<Prompt> modelPrompt = new AtomicReference<>();
+        ChatModel model = fakeModel("SUP-003 服務時段為週一至週五 09:00–17:00。", modelPrompt);
+        RetrievalAugmentationAdvisor advisor = advisor(vectorStore);
+
+        try (ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
+            SpringAiRagAnswerPipeline pipeline = pipeline(model, advisor, executor);
+
+            var result = pipeline.answer("Sup-003 服務時段");
+
+            assertThat(result.answered()).isTrue();
+            assertThat(result.evidence()).singleElement()
+                    .extracting(VerifiedRagEvidence::supplierCode).isEqualTo("SUP-003");
+            assertThat(modelPrompt.get().getContents()).contains("週一至週五 09:00–17:00");
+
+            org.mockito.ArgumentCaptor<SearchRequest> request = org.mockito.ArgumentCaptor.forClass(SearchRequest.class);
+            verify(vectorStore).similaritySearch(request.capture());
+            String filter = request.getValue().getFilterExpression().toString();
+            assertThat(filter)
+                    .contains("generationKey", "test-generation")
+                    .contains("documentStatus", "READY")
+                    .contains("outboundApprovalStatus", "APPROVED")
+                    .contains("supplierCode", "SUP-003");
         }
     }
 
@@ -143,7 +180,7 @@ class SpringAiRagAdvisorPipelineTests {
     }
 
     private RetrievalAugmentationAdvisor advisor(PgVectorStore vectorStore) {
-        return new SpringAiRagConfiguration().documentRagAdvisor(vectorStore, semanticProperties());
+        return new SpringAiRagConfiguration().documentRagAdvisor(vectorStore, semanticProperties(), new AiQueryPlanner());
     }
 
     private SpringAiRagAnswerPipeline pipeline(ChatModel model, RetrievalAugmentationAdvisor advisor,
@@ -176,6 +213,11 @@ class SpringAiRagAdvisorPipelineTests {
     }
 
     private Document retrievedDocument(String content, double score) {
+        return retrievedDocument(content, score, "SUP-001");
+    }
+
+    private Document retrievedDocument(String content, double score, String supplierCode) {
+        String title = "SUP-001".equals(supplierCode) ? "SUP-001 供貨協議" : supplierCode + " 供應商文件";
         return Document.builder().id("vector-doc-1").text(content).score(score).metadata(Map.ofEntries(
                 Map.entry("documentId", 41L),
                 Map.entry("documentVersion", "2.0"),
@@ -188,10 +230,20 @@ class SpringAiRagAdvisorPipelineTests {
                 Map.entry("documentStatus", "READY"),
                 Map.entry("outboundApprovalStatus", "APPROVED"),
                 Map.entry("documentType", "SUPPLIER_CONTRACT"),
-                Map.entry("title", "SUP-001 供貨協議"),
+                Map.entry("title", title),
                 Map.entry("documentKey", "DOC-TEST-041"),
                 Map.entry("supplierId", 501L),
-                Map.entry("supplierCode", "SUP-001"),
+                Map.entry("supplierCode", supplierCode),
                 Map.entry("supplierName", "測試供應商"))).build();
+    }
+
+    private String readDemoSupplierProfile() throws IOException {
+        Path current = Path.of("").toAbsolutePath();
+        while (current != null) {
+            Path sample = current.resolve("samples/documents/supplier-sup-003-supplier-profile-sp907-v2.txt");
+            if (Files.isRegularFile(sample)) return Files.readString(sample);
+            current = current.getParent();
+        }
+        throw new IllegalStateException("Committed SUP-003 Demo corpus file is unavailable");
     }
 }
