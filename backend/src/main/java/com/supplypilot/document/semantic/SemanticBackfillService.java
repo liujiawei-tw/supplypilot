@@ -24,24 +24,24 @@ public class SemanticBackfillService {
     private final DocumentMetadataRepository documents;
     private final DocumentChunkRepository chunks;
     private final OutboundDocumentPolicy policy;
-    private final SemanticEmbeddingService embeddings;
+    private final SpringAiVectorIndexService vectorIndex;
     private final SemanticStore store;
     private final DemoCorpusRagEligibility demoEligibility;
 
     public SemanticBackfillService(DocumentMetadataRepository documents, DocumentChunkRepository chunks,
-                                   OutboundDocumentPolicy policy, SemanticEmbeddingService embeddings,
+                                   OutboundDocumentPolicy policy, SpringAiVectorIndexService vectorIndex,
                                    SemanticStore store) {
-        this(documents, chunks, policy, embeddings, store, DemoCorpusRagEligibility.manualUploadsOnly());
+        this(documents, chunks, policy, vectorIndex, store, DemoCorpusRagEligibility.manualUploadsOnly());
     }
 
     @Autowired
     public SemanticBackfillService(DocumentMetadataRepository documents, DocumentChunkRepository chunks,
-                                   OutboundDocumentPolicy policy, SemanticEmbeddingService embeddings,
+                                   OutboundDocumentPolicy policy, SpringAiVectorIndexService vectorIndex,
                                    SemanticStore store, DemoCorpusRagEligibility demoEligibility) {
         this.documents = documents;
         this.chunks = chunks;
         this.policy = policy;
-        this.embeddings = embeddings;
+        this.vectorIndex = vectorIndex;
         this.store = store;
         this.demoEligibility = demoEligibility;
     }
@@ -83,22 +83,19 @@ public class SemanticBackfillService {
         if (existing != null && "READY".equals(existing.status()) && hash.equals(existing.sourceHash())
                 && existing.expectedCount() == source.size()
                 && existing.publicationGeneration() == document.getSemanticIndexGeneration()
-                && store.matchesSource(document.getId(), document.getVersion(),
+                && store.matchesSource(document.getId(), document.getVersion(), hash,
+                        document.getSemanticIndexGeneration(),
                         sourceProof(source, decision.safeChunks()))) {
             return "READY";
         }
         try {
-            store.mark(document.getId(), document.getVersion(), "PROCESSING", null,
-                    hash, source.size(), document.getSemanticIndexGeneration());
-            List<SemanticStore.SafeChunk> prepared = new ArrayList<>();
+            List<SemanticIndexSnapshotReader.SourceChunk> prepared = new ArrayList<>();
             for (int i = 0; i < source.size(); i++) {
                 DocumentChunk chunk = source.get(i);
-                prepared.add(new SemanticStore.SafeChunk(chunk.getChunkIndex(), chunk.getStartOffset(),
-                        chunk.getEndOffset(), decision.safeChunks().get(i),
-                        embeddings.document(decision.safeChunks().get(i))));
+                prepared.add(new SemanticIndexSnapshotReader.SourceChunk(chunk.getChunkIndex(),
+                        chunk.getStartOffset(), chunk.getEndOffset(), decision.safeChunks().get(i)));
             }
-            return store.publish(document.getId(), document.getVersion(), hash,
-                    document.getSemanticIndexGeneration(), prepared) ? "READY" : "FAILED";
+            return vectorIndex.index(document, hash, prepared) ? "READY" : "FAILED";
         } catch (RuntimeException failure) {
             String reason = failure instanceof BusinessException business
                     ? business.getErrorCode().name() : "INDEXING_FAILURE";
@@ -123,8 +120,7 @@ public class SemanticBackfillService {
         }
     }
 
-    static List<SemanticStore.SourceChunk> sourceProof(List<DocumentChunk> source,
-                                                        List<String> safeChunks) {
+    static List<SemanticStore.SourceChunk> sourceProof(List<DocumentChunk> source, List<String> safeChunks) {
         List<SemanticStore.SourceChunk> proof = new ArrayList<>(source.size());
         for (int i = 0; i < source.size(); i++) {
             DocumentChunk chunk = source.get(i);

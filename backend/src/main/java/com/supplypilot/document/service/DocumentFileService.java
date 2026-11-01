@@ -8,8 +8,6 @@ import java.util.Set;
 import com.supplypilot.common.exception.BusinessException;
 import com.supplypilot.common.exception.ErrorCode;
 import com.supplypilot.document.domain.DocumentMetadata;
-import com.supplypilot.document.rag.DocumentParsingException;
-import com.supplypilot.document.rag.DocumentTextExtractor;
 import com.supplypilot.document.repository.DocumentMetadataRepository;
 import org.springframework.core.io.InputStreamSource;
 import org.springframework.http.MediaType;
@@ -27,16 +25,16 @@ public class DocumentFileService {
 
     private final DocumentMetadataRepository documentRepository;
     private final DocumentStorageService storageService;
-    private final DocumentTextExtractor textExtractor;
+    private final DocumentPreviewService previewService;
 
     public DocumentFileService(
             DocumentMetadataRepository documentRepository,
             DocumentStorageService storageService,
-            DocumentTextExtractor textExtractor
+            DocumentPreviewService previewService
     ) {
         this.documentRepository = documentRepository;
         this.storageService = storageService;
-        this.textExtractor = textExtractor;
+        this.previewService = previewService;
     }
 
     @PreAuthorize("hasAnyRole('PROCUREMENT_STAFF', 'PROCUREMENT_MANAGER', 'ADMIN')")
@@ -53,13 +51,13 @@ public class DocumentFileService {
         }
 
         try {
-            byte[] text = textExtractor.extractPreviewText(storagePath).getBytes(StandardCharsets.UTF_8);
+            byte[] text = previewService.extractPreviewText(storagePath).getBytes(StandardCharsets.UTF_8);
             if (text.length > MAX_PREVIEW_BYTES) {
                 throw new BusinessException(ErrorCode.FILE_TOO_LARGE);
             }
             return new DocumentFileContent(filename, new MediaType("text", "plain", StandardCharsets.UTF_8),
                     text.length, () -> new ByteArrayInputStream(text));
-        } catch (DocumentParsingException exception) {
+        } catch (DocumentPreviewException exception) {
             throw new BusinessException(ErrorCode.DOCUMENT_PREVIEW_INVALID);
         }
     }

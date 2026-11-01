@@ -6,8 +6,6 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Optional;
 
 import com.supplypilot.common.exception.BusinessException;
@@ -26,21 +24,19 @@ public class SemanticIndexWorker {
 
     private final SemanticIndexJobRepository jobs;
     private final SemanticIndexSnapshotReader snapshots;
-    private final SemanticEmbeddingService embeddings;
+    private final SpringAiVectorIndexService vectorIndex;
     private final SemanticStore store;
-    private final SemanticProperties semanticProperties;
     private final SemanticIndexingProperties indexingProperties;
     private final Clock clock;
 
     public SemanticIndexWorker(SemanticIndexJobRepository jobs, SemanticIndexSnapshotReader snapshots,
-                               SemanticEmbeddingService embeddings, SemanticStore store,
-                               SemanticProperties semanticProperties, SemanticIndexingProperties indexingProperties,
+                               SpringAiVectorIndexService vectorIndex, SemanticStore store,
+                               SemanticIndexingProperties indexingProperties,
                                Clock clock) {
         this.jobs = jobs;
         this.snapshots = snapshots;
-        this.embeddings = embeddings;
+        this.vectorIndex = vectorIndex;
         this.store = store;
-        this.semanticProperties = semanticProperties;
         this.indexingProperties = indexingProperties;
         this.clock = clock;
     }
@@ -51,6 +47,7 @@ public class SemanticIndexWorker {
         SemanticIndexJob job = jobs.claimNext(now, now.plus(indexingProperties.leaseDuration()),
                 indexingProperties.maxAttempts()).orElse(null);
         if (job == null) return false;
+        SemanticIndexSnapshotReader.Snapshot indexedSnapshot = null;
         try {
             store.ensureGeneration();
             SemanticIndexSnapshotReader.Result result = snapshots.load(job);
@@ -59,31 +56,27 @@ public class SemanticIndexWorker {
                 return true;
             }
             SemanticIndexSnapshotReader.Snapshot snapshot = result.snapshot();
-            List<SemanticStore.SafeChunk> indexed = new ArrayList<>(snapshot.chunks().size());
-            for (SemanticIndexSnapshotReader.SourceChunk chunk : snapshot.chunks()) {
-                if (!snapshots.isCurrentApproved(job)) {
-                    jobs.supersede(job.id(), job.attempts(), "SOURCE_OR_APPROVAL_CHANGED", clock.instant());
-                    return true;
-                }
-                List<Float> vector = embeddings.document(chunk.content());
-                indexed.add(new SemanticStore.SafeChunk(chunk.index(), chunk.startOffset(), chunk.endOffset(),
-                        chunk.content(), vector));
-                Instant leaseUntil = clock.instant().plus(indexingProperties.leaseDuration());
-                if (!jobs.renewLease(job.id(), job.attempts(), leaseUntil, clock.instant())) return true;
-            }
-            if (!snapshots.isCurrentApproved(job)) {
+            indexedSnapshot = snapshot;
+            boolean published = vectorIndex.index(job.documentId(), snapshot.version(), snapshot.sourceHash(),
+                    job.documentGeneration(), snapshot.chunks(), () -> snapshots.isCurrentApproved(job)
+                            && jobs.renewLease(job.id(), job.attempts(),
+                            clock.instant().plus(indexingProperties.leaseDuration()), clock.instant()));
+            if (!published) {
                 jobs.supersede(job.id(), job.attempts(), "SOURCE_OR_APPROVAL_CHANGED", clock.instant());
                 return true;
             }
-            boolean published = store.publish(job.documentId(), snapshot.version(), snapshot.sourceHash(),
-                    job.documentGeneration(), indexed);
-            if (!published) {
-                jobs.supersede(job.id(), job.attempts(), "NEWER_PUBLICATION_EXISTS", clock.instant());
-            } else {
-                jobs.succeed(job.id(), job.attempts(), clock.instant());
-            }
+            jobs.succeed(job.id(), job.attempts(), clock.instant());
         } catch (RuntimeException failure) {
             Failure safe = safeFailure(failure);
+            if (indexedSnapshot != null) {
+                try {
+                    store.mark(job.documentId(), indexedSnapshot.version(), "FAILED", safe.code(),
+                            indexedSnapshot.sourceHash(), indexedSnapshot.chunks().size(),
+                            job.documentGeneration());
+                } catch (RuntimeException publicationFailure) {
+                    failure.addSuppressed(publicationFailure);
+                }
+            }
             Instant failedAt = clock.instant();
             boolean retryable = safe.retryable() && job.attempts() < indexingProperties.maxAttempts();
             Instant nextAttempt = failedAt;

@@ -27,8 +27,7 @@ import com.supplypilot.document.domain.DocumentStatus;
 import com.supplypilot.document.domain.DocumentType;
 import com.supplypilot.document.dto.response.DocumentSemanticIndexResponse;
 import com.supplypilot.document.rag.DocumentIngestionService;
-import com.supplypilot.document.rag.DocumentTextExtractor;
-import com.supplypilot.document.rag.TextChunker;
+import com.supplypilot.document.rag.SpringAiDocumentProcessingService;
 import com.supplypilot.document.repository.DocumentChunkRepository;
 import com.supplypilot.document.repository.DocumentMetadataRepository;
 import com.supplypilot.document.semantic.DocumentSemanticLifecycleReader;
@@ -62,8 +61,7 @@ public class DemoCorpusSyncService {
     private final DocumentIngestionService ingestion;
     private final DocumentStorageService storage;
     private final DocumentChunkRepository chunks;
-    private final DocumentTextExtractor textExtractor;
-    private final TextChunker chunker;
+    private final SpringAiDocumentProcessingService documentProcessing;
     private final DemoCorpusTrustedApprovalService approvals;
     private final DocumentSemanticLifecycleReader lifecycleReader;
     private final DemoCorpusSyncLock synchronizationLock;
@@ -74,7 +72,7 @@ public class DemoCorpusSyncService {
             DocumentMetadataRepository documents, SupplierRepository suppliers,
             DocumentService documentService, DocumentIngestionService ingestion,
             DocumentStorageService storage, DocumentChunkRepository chunks,
-            DocumentTextExtractor textExtractor, TextChunker chunker,
+            SpringAiDocumentProcessingService documentProcessing,
             DemoCorpusTrustedApprovalService approvals, DocumentSemanticLifecycleReader lifecycleReader,
             DemoCorpusSyncLock synchronizationLock) {
         this.demoProperties = demoProperties;
@@ -88,8 +86,7 @@ public class DemoCorpusSyncService {
         this.ingestion = ingestion;
         this.storage = storage;
         this.chunks = chunks;
-        this.textExtractor = textExtractor;
-        this.chunker = chunker;
+        this.documentProcessing = documentProcessing;
         this.approvals = approvals;
         this.lifecycleReader = lifecycleReader;
         this.synchronizationLock = synchronizationLock;
@@ -269,7 +266,8 @@ public class DemoCorpusSyncService {
     private boolean isReadyFromStoredSource(DocumentMetadata document) {
         if (document.getStatus() != DocumentStatus.READY) return false;
         try {
-            List<TextChunker.TextChunk> expected = chunker.chunk(textExtractor.extract(document.getStoragePath()));
+            List<SpringAiDocumentProcessingService.SourceChunk> expected =
+                    documentProcessing.readAndSplit(document.getStoragePath());
             List<DocumentChunk> actual = chunks.findByDocumentIdOrderByChunkIndex(document.getId());
             if (expected.isEmpty() || expected.size() != actual.size()) return false;
             for (int i = 0; i < expected.size(); i++) {

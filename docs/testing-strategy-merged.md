@@ -2539,5 +2539,22 @@ Issue #139 的測試指令、環境、測試數、Migration 與 CI 狀態以 [`d
 - 驗證未開始第 6 欄及每種未到貨/短收/品質不合格情境都不能通過舊 `/receive`；只有三旗標全真且保存驗收操作者/時間才完成整筆收貨。
 - 使用多品項交易失敗注入，驗證 Inventory、StockTransaction、PO 收貨狀態及稽核全部 rollback；重複收貨及並發收貨至多一筆成功。
 - 以同一 MySQL PO 鎖同步執行取消/開始驗收，以及重複付款確認/撤銷；查詢 PO、Inventory 版本與 StockTransaction 確認無競態雙重提交。
+
+## Spring AI 文件 RAG 遷移測試與目前證據（2026-11-01）
+
+以下是完整替換的驗收矩陣；程式接線、既有 fixture 或單元 Fake Provider 都不能替代相應的整合／真實 Provider 驗收。
+
+- **ETL／來源契約：** Fake 檔案及既有固定 PDF、DOCX、TXT fixture 覆蓋正常解析、異常／過大輸入、UTF-8、繁體中文／英文／表格／換行、Chunk Size、Overlap、最大數量、offset 原文切片及預覽／下載契約。實作另設 PDF/DOCX Tika parser timeout（`DOCUMENT_RAG_PARSER_TIMEOUT`，預設 30 秒）；timeout/cancellation 負向案例仍須加入並執行。offset 必須可回到 normalized extracted text；不可以模型 chunk 或字節位置代替。
+- **Spring AI Pipeline：** 驗證查詢確實由 `DocumentQueryService` 呼叫 `ChatClient` 與 `RetrievalAugmentationAdvisor`，並由 `VectorStoreDocumentRetriever` 使用 PgVectorStore；核對 metadata filter、Similarity Threshold、真實檢索分數，以及沒有證據時不呼叫 ChatModel。
+- **PostgreSQL／MySQL：** 使用 Testcontainers PostgreSQL/pgvector 與 MySQL，加 Fake EmbeddingModel／ChatModel 驗證實際 `PgVectorStore.add/search/delete`、索引 generation／維度／metadata、bounded cleanup stale-page 行為、跨 DB 部分失敗補償、冪等重試、版本更新、撤銷、過期／權限改變和 Agentic SQL 對既有欄位的回歸。V3 migration 不可清表或刪除舊 schema。
+- **答案生成契約：** 後端不再逐句驗證或改寫 Gemini 生成答案；system prompt 要求只根據 Context 作答，但此要求不構成程式保證。測試須確認只有經即時授權與來源驗證的文件能進入 Context，API citations 由後端證據產生；真實文件 QA 必須核對答案正確性，包含來源矛盾時模型的回答。
+- **至少 20 題可重現問答：** 對單文件、多文件／供應商比較、付款、交期、歷史／現行版本、矛盾、錯誤 supplier/material ID、無答案、無權限與證據不足，分別核對 retrieval、事實、source、version、authorization 和拒答；不得只斷言回答文字非空。完整數值比較與歷史／現行 Demo 答案都須由實際 Advisor evidence 驗證。
+- **正式 Provider／部署：** 另記錄 Gemini Embedding／Chat Smoke、Browser API/UI、Docker Compose 與 Demo 啟動證據；Fake 不可代表 Gemini PASS。GitHub Actions 依使用者決策標示 `PAUSED BY USER / NOT USED AS GATE`。
+
+### 目前遷移分支的驗證狀態
+
+執行結果、完整 Maven 失敗分診、通過的 Testcontainers／Agentic SQL 回歸、真實 Gemini synthetic smoke 與未驗收項目，集中記錄於 [`docs/evidence/spring-ai-rag-validation-2026-11-01.md`](evidence/spring-ai-rag-validation-2026-11-01.md)。全量 Maven `verify` 已執行但 **FAIL**（1,093 tests、4 failures、0 errors、2 skipped、Exit Code 1）；不可寫成 `NOT RUN` 或 PASS。三項 controller failure 在 main 基底重現，read gate 契約修正後 targeted 測試通過 1/1；全量 `verify` 未在該 test-only 修正後重跑。
+
+移除答案驗證器後，必要 RAG 單元與 Testcontainers 整合測試為 150/150 PASS；測試使用 Fake Chat／Embedding。全量 Maven `verify` 仍記錄較早工作樹的 1,093 tests、4 failures、Exit Code 1，未依使用者限制重跑。真實 Gemini 合成文件三題問答為 1/3，未通過。Demo／正式 DB migration、Backfill 與真實 Demo 文件三題查詢列為後續工作；Browser E2E 依使用者指示暫不執行。Gemini provider smoke 與 Compose health 僅驗證各自範圍。GitHub Actions：`PAUSED BY USER / NOT USED AS GATE`。`SEMANTIC_READ_ENABLED` 維持預設 `false`。
 - 付款確認與撤銷皆維持 `RECEIVED`，且不改庫存或庫存交易；重複、未付款撤銷、非 RECEIVED 狀態、401/403、錯誤 request 與未知結果查詢流程均要驗證。
 - Flyway V27 以既有 PO 預設旗標/付款未確認做舊資料相容測試；Front-end API、互動狀態及載入後持久資料需精準測試。完整 Issue #141 驗收記錄於 `docs/evidence/issue-141-validation.md`。

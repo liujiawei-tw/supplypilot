@@ -1078,3 +1078,35 @@ transaction-boundary.md
 - [ ] 能記錄／估算請求用量、延遲、失敗與預算警示，不能宣稱 Google AI Studio 原生具備未驗證的硬額度限制。
 - [ ] Test 使用可控制的 Fake ChatModel，不呼叫真實付費 Provider；Demo 手動 Smoke Test 使用真實 Gemini。
 
+---
+
+## 目前 Spring AI 文件 RAG 架構（2026-11-01 遷移分支）
+
+本節更新較早 SP-710／SP-722 文件問答路徑描述；它記錄遷移分支的實際接線及尚未通過的驗收，不表示已合併或部署。
+
+```text
+POST /api/v1/document-queries ─┐
+                              ├─ DocumentQueryService
+AI SEARCH_DOCUMENTS ──────────┘       │
+                                      ▼
+                              ChatClient + Gemini ChatModel
+                                      │
+                           RetrievalAugmentationAdvisor
+                                      │
+                           VectorStoreDocumentRetriever
+                                      │
+                  PgVectorStore + Gemini EmbeddingModel
+                                      │
+                 PostgreSQL semantic_rag_vectors
+```
+
+問答與 AI Tool 仍共用同一個 `DocumentQueryService`；`DocumentQueryController` 維持 `/api/v1/document-queries` API。索引流程是 `DocumentIngestionService → SpringAiDocumentProcessingService (TextReader/TikaDocumentReader + TokenTextSplitter) → DocumentIndexPersistenceService (MySQL source chunks) → approved durable SemanticIndexWorker → SpringAiVectorIndexService → PgVectorStore`。新 Query 只使用 Advisor／PgVectorStore；MySQL `document_metadata` 與 `document_chunks` 仍提供權威狀態及來源證明。PostgreSQL DataSource 與 MySQL `DataSource` 分開注入。
+
+`DocumentPreviewService` 負責使用者預覽；預覽原始段落／表格契約不能以 RAG 的 Tika 輸出取代。`SpringAiDocumentProcessingService` 用 `TextReader`／Tika、`TokenTextSplitter` 與可驗證 offset 建立 MySQL source chunks；PDF/DOCX Tika 解析受 `DOCUMENT_RAG_PARSER_TIMEOUT`（預設 30 秒）和輸入大小限制。`OutboundDocumentPolicy`、逐文件審核、job 重試、Demo provenance、生命週期核對、`RagDocumentPostProcessor` 與 `EvidenceValidator` 仍在生成前限制哪些來源可進入 Context；Gemini 生成後不再執行答案主張驗證，回應會附上已驗證來源供核對。
+
+PgVectorStore 的正式資料表為 `semantic_rag_vectors`，先用 `indexType=NONE` 做 exact similarity。`SpringAiVectorIndexService` 只發布完整且仍核准的向量 generation；發布交易也從此向量表更新 `semantic_chunks` 的 Agentic SQL 相容投影。MySQL `document_chunks` 與 PostgreSQL `semantic_chunks`／`semantic_document_indexes`／`semantic_generations`／`semantic_gate_audit` schema、既有資料與 Agentic SQL 可讀欄位均保留。`SemanticVectorCleanupScheduler` 預設每 300,000 毫秒清理一頁失效／舊代次向量。
+
+**相容性與驗收狀態：** `semantic_chunks` 投影程式已加入，但尚未跑 Agentic SQL 實際回歸，因此不得宣稱已驗證相容。舊 `DocumentRetrievalService`、`HybridRetrievalService`、`SemanticRetrievalService`、`SemanticEmbeddingService` 已從 production 移除；其純演算法測例改由 `RagDocumentPostProcessorTests`、`SpringAiVectorIndexServiceTests`、`TimedEmbeddingModelTests` 與 `SpringAiPgVectorStoreIntegrationTests` 覆蓋新元件契約。`DemoCorpusRagVersionIsolationIntegrationTests` 保留來源、核准、版本與查詢適用性檢查，但舊 lexical/semantic retrieval 及端到端比較答案斷言尚待 Advisor-driven Testcontainers 測試補回。有限跨供應商比較為本次使用者 Prompt 納入的 scope；現有 Validator 僅支持明確兩個 SUP code、單一 material/fact type 和精確數值／單位／方向／差額驗證。
+
+遷移驗證與啟用狀態見 [`semantic-rag-runbook.md`](semantic-rag-runbook.md)。目前 `SEMANTIC_READ_ENABLED=false`。遷移分支已執行 Maven 全量 `verify`（1,093 tests、4 failures、0 errors、2 skipped、Exit Code 1）；三項 AI controller failures 在 main 基底重現，read gate 契約更新後 targeted Testcontainers 測試通過 1/1。PgVectorStore、文件 RAG、Agentic SQL 類別及 Gemini synthetic smoke 均有通過項目。正式／Demo migration、Backfill／完整性對帳、真實文件問答與 Browser E2E 仍未驗收。詳見 [`docs/evidence/spring-ai-rag-validation-2026-11-01.md`](evidence/spring-ai-rag-validation-2026-11-01.md)。
+

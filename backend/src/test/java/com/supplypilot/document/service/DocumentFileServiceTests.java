@@ -9,7 +9,6 @@ import com.supplypilot.common.exception.BusinessException;
 import com.supplypilot.common.exception.ErrorCode;
 import com.supplypilot.document.domain.DocumentMetadata;
 import com.supplypilot.document.domain.DocumentType;
-import com.supplypilot.document.rag.DocumentTextExtractor;
 import com.supplypilot.document.repository.DocumentMetadataRepository;
 import com.supplypilot.user.domain.User;
 import com.supplypilot.user.domain.UserRole;
@@ -37,7 +36,7 @@ class DocumentFileServiceTests {
     @BeforeEach
     void setUp() {
         service = new DocumentFileService(documentRepository, storageService,
-                new DocumentTextExtractor(storageService));
+                new DocumentPreviewService(storageService));
     }
 
     @Test

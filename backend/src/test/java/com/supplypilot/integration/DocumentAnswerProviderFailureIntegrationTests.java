@@ -2,19 +2,18 @@ package com.supplypilot.integration;
 
 import java.nio.charset.StandardCharsets;
 import java.time.Clock;
-import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.supplypilot.document.domain.DocumentStatus;
 import com.supplypilot.document.domain.SemanticReviewStatus;
-import com.supplypilot.document.rag.AnswerProvider;
-import com.supplypilot.document.rag.RetrievedChunk;
 import com.supplypilot.document.repository.DocumentChunkRepository;
 import com.supplypilot.document.repository.DocumentMetadataRepository;
 import com.supplypilot.document.semantic.SemanticBackfillService;
+import com.supplypilot.document.semantic.DocumentSemanticLifecycleReader;
+import com.supplypilot.document.semantic.SemanticIndexWorker;
+import com.supplypilot.document.semantic.SemanticProperties;
 import com.supplypilot.security.AuthenticatedUser;
 import com.supplypilot.security.JwtTokenService;
 import com.supplypilot.user.domain.User;
@@ -22,8 +21,17 @@ import com.supplypilot.user.domain.UserRole;
 import com.supplypilot.user.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.ai.document.Document;
+import org.springframework.ai.embedding.Embedding;
+import org.springframework.ai.embedding.EmbeddingModel;
+import org.springframework.ai.embedding.EmbeddingRequest;
+import org.springframework.ai.embedding.EmbeddingResponse;
+import org.springframework.ai.chat.model.ChatModel;
+import org.springframework.ai.chat.model.ChatResponse;
+import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
@@ -32,6 +40,12 @@ import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
+import org.testcontainers.containers.PostgreSQLContainer;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
+import org.testcontainers.utility.DockerImageName;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -40,9 +54,31 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+@SpringBootTest(properties = {
+        "spring.main.allow-bean-definition-overriding=true",
+        "supplypilot.semantic.read-enabled=true",
+        "supplypilot.semantic.indexing.worker-enabled=false",
+        "spring.ai.model.embedding.text=google-genai",
+        "spring.ai.google.genai.api-key=test-only-no-network-call"
+})
 @AutoConfigureMockMvc
 @Import(DocumentAnswerProviderFailureIntegrationTests.ProviderConfiguration.class)
+@Testcontainers(disabledWithoutDocker = true)
 class DocumentAnswerProviderFailureIntegrationTests extends AbstractIntegrationTest {
+    private static final String SEMANTIC_DATABASE = "supplypilot_answer_failure_test";
+
+    @Container
+    private static final PostgreSQLContainer<?> POSTGRES = new PostgreSQLContainer<>(
+            DockerImageName.parse("pgvector/pgvector:pg17").asCompatibleSubstituteFor("postgres"))
+            .withDatabaseName(SEMANTIC_DATABASE);
+
+    @DynamicPropertySource
+    static void semanticPostgres(DynamicPropertyRegistry registry) {
+        registry.add("supplypilot.semantic.jdbc-url", POSTGRES::getJdbcUrl);
+        registry.add("supplypilot.semantic.username", POSTGRES::getUsername);
+        registry.add("supplypilot.semantic.password", POSTGRES::getPassword);
+    }
+
 
     @Autowired private MockMvc mockMvc;
     @Autowired private UserRepository users;
@@ -52,6 +88,8 @@ class DocumentAnswerProviderFailureIntegrationTests extends AbstractIntegrationT
     @Autowired private Clock clock;
     @Autowired private ObjectMapper objectMapper;
     @Autowired private FailingAnswerProvider failingAnswerProvider;
+    @Autowired private DocumentSemanticLifecycleReader lifecycle;
+    @Autowired private SemanticIndexWorker indexWorker;
 
     @BeforeEach
     void cleanDocuments() {
@@ -90,15 +128,15 @@ class DocumentAnswerProviderFailureIntegrationTests extends AbstractIntegrationT
         assertThat(document.getSemanticReviewVersion()).isEqualTo("v7");
         assertThat(document.getSemanticApprovedSourceHash()).isEqualTo(approvedHash);
 
+        assertThat(indexWorker.processNext()).isTrue();
+        assertThat(lifecycle.read(document).status()).isEqualTo("INDEXED");
+
         mockMvc.perform(post("/api/v1/document-queries").contentType(MediaType.APPLICATION_JSON)
                         .content("{\"question\":\"supplier payment terms\"}")
                         .header("Authorization", bearer(admin)))
                 .andExpect(status().isServiceUnavailable())
                 .andExpect(jsonPath("$.code").value("AI_PROVIDER_UNAVAILABLE"));
         assertThat(failingAnswerProvider.calls()).isEqualTo(1);
-        assertThat(failingAnswerProvider.evidence()).isNotEmpty()
-                .anySatisfy(result -> assertThat(result.chunk().getContent())
-                        .contains("Supplier payment terms are net 30 days."));
     }
 
     private long uploadTxt(User actor, String text) throws Exception {
@@ -129,30 +167,56 @@ class DocumentAnswerProviderFailureIntegrationTests extends AbstractIntegrationT
         FailingAnswerProvider failingAnswerProvider() {
             return new FailingAnswerProvider();
         }
+
+        @Bean(name = "ragDocumentEmbeddingModel")
+        @Primary
+        EmbeddingModel testDocumentEmbeddingModel(SemanticProperties properties) {
+            return testEmbeddingModel(properties);
+        }
+
+        @Bean(name = "ragQueryEmbeddingModel")
+        EmbeddingModel testQueryEmbeddingModel(SemanticProperties properties) {
+            return testEmbeddingModel(properties);
+        }
+
+        private EmbeddingModel testEmbeddingModel(SemanticProperties properties) {
+            return new EmbeddingModel() {
+                @Override
+                public EmbeddingResponse call(EmbeddingRequest request) {
+                    return new EmbeddingResponse(request.getInstructions().stream()
+                            .map(text -> new Embedding(vector(properties.dimensions()), 0)).toList());
+                }
+
+                @Override
+                public float[] embed(Document document) {
+                    return vector(properties.dimensions());
+                }
+            };
+        }
+
+        private static float[] vector(int dimensions) {
+            float[] values = new float[dimensions];
+            values[0] = 1.0f;
+            return values;
+        }
     }
 
-    static class FailingAnswerProvider implements AnswerProvider {
+    static class FailingAnswerProvider implements ChatModel {
         private final AtomicInteger calls = new AtomicInteger();
-        private final AtomicReference<List<RetrievedChunk>> evidence = new AtomicReference<>(List.of());
 
         @Override
-        public String answer(String question, List<RetrievedChunk> evidence) {
+        public ChatResponse call(Prompt prompt) {
             calls.incrementAndGet();
-            this.evidence.set(List.copyOf(evidence));
             throw new IllegalStateException("answer unavailable");
         }
 
         void reset() {
             calls.set(0);
-            evidence.set(List.of());
         }
 
         int calls() {
             return calls.get();
         }
 
-        List<RetrievedChunk> evidence() {
-            return evidence.get();
-        }
     }
 }

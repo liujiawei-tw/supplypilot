@@ -203,14 +203,11 @@ class AiControllerIntegrationTests extends AbstractIntegrationTest {
     }
 
     @Test
-    void preservesInsufficientDocumentEvidenceContractAndValidatesRequest() throws Exception {
+    void disabledDocumentSearchReturnsProviderUnavailableAndValidatesRequest() throws Exception {
         User admin = user(UserRole.ADMIN);
         query(admin, "不存在於任何文件的唯一問題 " + suffix())
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value("INSUFFICIENT_EVIDENCE"))
-                .andExpect(jsonPath("$.answer").doesNotExist())
-                .andExpect(jsonPath("$.tools[0]").value("SEARCH_DOCUMENTS"))
-                .andExpect(jsonPath("$.sources.length()").value(0));
+                .andExpect(status().isServiceUnavailable())
+                .andExpect(jsonPath("$.code").value("AI_QUERY_FAILED"));
         query(admin, " ").andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"));
     }

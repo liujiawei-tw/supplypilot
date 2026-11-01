@@ -591,7 +591,8 @@ public class DemoDatasetCoordinator implements DemoDataCoordinator {
         }
         transactions.executeWithoutResult(transaction -> {
             for (String table : List.of(
-                    "ai_purchase_draft_proposals", "document_chunks", "document_metadata",
+                    "ai_purchase_draft_proposals", "demo_corpus_sync_outcomes", "demo_corpus_sync_conflicts",
+                    "document_chunks", "document_metadata",
                     "inventory_import_items", "inventory_import_batches", "stock_transactions",
                     "purchase_order_items", "purchase_orders", "supplier_recommendation_result",
                     "purchase_recommendation", "demands", "supplier_materials", "inventory",

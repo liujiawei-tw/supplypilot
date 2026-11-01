@@ -1,0 +1,68 @@
+{
+  "environment": "local-demo",
+  "composeProject": "supplypilot-sp903-local-demo",
+  "datasetKey": "SP-901",
+  "corpusVersion": "sp-907-zh-tw-v3",
+  "api": "POST /api/v1/document-queries",
+  "generationKey": "gemini-embedding-001-768-spring-ai-v1",
+  "diagnosticMode": "Temporarily allowed empty context and exposed the raw INSUFFICIENT_EVIDENCE model marker; live source approval validation remained enabled. Temporary code changes were reverted after this run.",
+  "browserE2e": "NOT_RUN",
+  "questions": [
+    {
+      "question": "採購單進入 ORDERED 後，SUP-001 的 MAT-001 要等多久交貨？",
+      "documentFact": "標準交期為 5 個日曆日，從正式 PO 進入 ORDERED 起算。",
+      "result": {
+        "status": "ANSWERED",
+        "answer": "INSUFFICIENT_EVIDENCE",
+        "sources": []
+      },
+      "verdict": "FAIL: no source retrieved"
+    },
+    {
+      "question": "SUP-001 的服務時段是哪些日子、幾點到幾點？",
+      "documentFact": "週一至週五 09:00–16:30。",
+      "result": {
+        "status": "ANSWERED",
+        "answer": "INSUFFICIENT_EVIDENCE",
+        "sources": []
+      },
+      "verdict": "FAIL: no source retrieved"
+    },
+    {
+      "question": "SUP-001/MAT-001 承諾到貨日異動時，案例契約要求記錄哪些資訊？",
+      "documentFact": "記錄原日期、新日期、通知時間與收件角色。",
+      "result": {
+        "status": "ANSWERED",
+        "answer": "INSUFFICIENT_EVIDENCE",
+        "sources": [
+          {
+            "documentId": 28,
+            "documentKey": "DOC-SUP-001-DELIVERY-COORDINATION-SP907",
+            "title": "福爾摩沙原料工坊（SUP-001）｜交期協調案例",
+            "version": "2.0",
+            "excerpt": "交期案例編號：SIM-DEL-SUP-001-01；公司期望到貨日期：2026-09-06；供應商初始承諾到貨日期：2026-09-06；最終承諾到貨日期：2026-09-07；模擬實際到貨日期：2026-09-07；標準交期是 ORDERED 後 5 個日曆日",
+            "relevanceScore": 0.8196423351764679
+          },
+          {
+            "documentId": 7,
+            "documentKey": "DOC-SUP-001-CONTRACT",
+            "title": "SUP-001 阿薩姆紅茶萃取物交付協議",
+            "version": "1.0",
+            "excerpt": "標準交期為 5 個日曆日。；若供應商預見交期可能延後；應在原承諾到貨日之前通知採購窗口並說明新交貨日期；通知不會自行修改採購單上的公司期望到貨日。；公司期望日期不會因此自行變更。",
+            "relevanceScore": 0.7786196023225784
+          },
+          {
+            "documentId": 31,
+            "documentKey": "DOC-SUP-001-BUYER-EVALUATION-SP907",
+            "title": "福爾摩沙原料工坊（SUP-001）｜採購端主觀評語",
+            "version": "2.0",
+            "excerpt": "交期案例 SIM-DEL-SUP-001-01",
+            "relevanceScore": 0.7142611443996429
+          }
+        ]
+      },
+      "verdict": "FAIL: answer withheld and retrieved sources do not cover requested fields"
+    }
+  ],
+  "summary": "0/3 correct supported answers. This is a failed real-Gemini Demo corpus query run, not a RAG PASS. Demo corpus documents identify themselves as fictional showcase data."
+}

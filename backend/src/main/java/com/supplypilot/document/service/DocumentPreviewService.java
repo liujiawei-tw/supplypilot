@@ -1,9 +1,9 @@
-package com.supplypilot.document.rag;
+package com.supplypilot.document.service;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.io.InputStream;
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.charset.CharacterCodingException;
 import java.nio.charset.CodingErrorAction;
@@ -14,95 +14,45 @@ import java.util.zip.ZipInputStream;
 
 import com.supplypilot.common.exception.BusinessException;
 import com.supplypilot.common.exception.ErrorCode;
-import com.supplypilot.document.service.DocumentFileValidator;
-import com.supplypilot.document.service.DocumentStorageService;
-import org.apache.pdfbox.Loader;
-import org.apache.pdfbox.pdmodel.PDDocument;
-import org.apache.pdfbox.text.PDFTextStripper;
 import org.apache.poi.xwpf.usermodel.XWPFDocument;
-import org.apache.poi.xwpf.usermodel.XWPFParagraph;
 import org.apache.poi.xwpf.usermodel.XWPFTable;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 
-@Component
-public class DocumentTextExtractor {
+/** Reads user-facing TXT and DOCX previews without participating in RAG ingestion or indexing. */
+@Service
+public class DocumentPreviewService {
 
-    private static final int MAX_PARSE_BYTES = (int) DocumentFileValidator.MAX_FILE_BYTES;
+    private static final int MAX_PREVIEW_BYTES = (int) DocumentFileValidator.MAX_FILE_BYTES;
     private static final int MAX_DOCX_ZIP_ENTRIES = 4_096;
+
     private final DocumentStorageService storage;
 
-    public DocumentTextExtractor(DocumentStorageService storage) {
+    public DocumentPreviewService(DocumentStorageService storage) {
         this.storage = storage;
     }
 
-    public String extract(String storagePath) {
-        String extension = extension(storagePath);
-        try (InputStream input = storage.read(storagePath)) {
-            String text = switch (extension) {
-                case ".txt" -> decodeUtf8(readLimited(input));
-                case ".pdf" -> extractPdf(readLimited(input));
-                case ".docx" -> extractDocx(input);
-                default -> throw new DocumentParsingException("Unsupported stored document format");
-            };
-            String normalized = text.replace('\u0000', ' ').replaceAll("[\\t\\x0B\\f\\r ]+", " ")
-                    .replaceAll(" *\\n+ *", "\n").trim();
-            if (normalized.isBlank()) {
-                throw new DocumentParsingException("Document contains no recognizable text");
-            }
-            return normalized;
-        } catch (DocumentParsingException exception) {
-            throw exception;
-        } catch (Exception exception) {
-            throw new DocumentParsingException("Document could not be parsed", exception);
-        }
-    }
-
     /**
-     * Extracts user-facing preview text without changing the RAG ingestion extraction contract.
      * TXT bytes are returned as-is after strict UTF-8 decoding. DOCX body elements retain their
      * document order, including interleaved paragraphs and tables.
      */
     public String extractPreviewText(String storagePath) {
         String extension = extension(storagePath);
         if (!extension.equals(".txt") && !extension.equals(".docx")) {
-            throw new DocumentParsingException("Preview text is not supported for this document format");
+            throw new DocumentPreviewException("Preview text is not supported for this document format");
         }
         try (InputStream input = storage.read(storagePath)) {
             byte[] bytes = readPreviewLimited(input);
             return switch (extension) {
                 case ".txt" -> decodeUtf8(bytes);
                 case ".docx" -> extractDocxPreview(bytes);
-                default -> throw new DocumentParsingException("Unsupported preview text format");
+                default -> throw new DocumentPreviewException("Unsupported preview format");
             };
-        } catch (DocumentParsingException exception) {
+        } catch (DocumentPreviewException exception) {
             throw exception;
         } catch (BusinessException exception) {
             throw exception;
         } catch (Exception exception) {
-            throw new DocumentParsingException("Document preview could not be parsed", exception);
-        }
-    }
-
-    private String extractPdf(byte[] bytes) throws IOException {
-        try (PDDocument document = Loader.loadPDF(bytes)) {
-            if (document.isEncrypted()) {
-                throw new DocumentParsingException("Encrypted PDF is not supported");
-            }
-            return new PDFTextStripper().getText(document);
-        }
-    }
-
-    private String extractDocx(InputStream input) throws IOException {
-        try (XWPFDocument document = new XWPFDocument(input)) {
-            StringBuilder text = new StringBuilder();
-            for (XWPFParagraph paragraph : document.getParagraphs()) {
-                text.append(paragraph.getText()).append('\n');
-            }
-            for (XWPFTable table : document.getTables()) {
-                table.getRows().forEach(row -> row.getTableCells().forEach(cell ->
-                        text.append(cell.getText()).append('\n')));
-            }
-            return text.toString();
+            throw new DocumentPreviewException("Document preview could not be parsed", exception);
         }
     }
 
@@ -111,7 +61,7 @@ public class DocumentTextExtractor {
         try (XWPFDocument document = new XWPFDocument(new ByteArrayInputStream(bytes))) {
             StringBuilder text = new StringBuilder();
             for (var element : document.getBodyElements()) {
-                if (element instanceof XWPFParagraph paragraph) {
+                if (element instanceof org.apache.poi.xwpf.usermodel.XWPFParagraph paragraph) {
                     appendPreviewText(text, paragraph.getText());
                     text.append('\n');
                 } else if (element instanceof XWPFTable table) {
@@ -126,7 +76,7 @@ public class DocumentTextExtractor {
                 ensurePreviewTextWithinLimit(text);
             }
             String preview = text.toString();
-            if (preview.getBytes(StandardCharsets.UTF_8).length > MAX_PARSE_BYTES) {
+            if (preview.getBytes(StandardCharsets.UTF_8).length > MAX_PREVIEW_BYTES) {
                 throw new BusinessException(ErrorCode.FILE_TOO_LARGE);
             }
             return preview;
@@ -143,12 +93,12 @@ public class DocumentTextExtractor {
             while ((entry = zip.getNextEntry()) != null) {
                 hasEntries = true;
                 if (++entryCount > MAX_DOCX_ZIP_ENTRIES) {
-                    throw new DocumentParsingException("DOCX package contains too many entries");
+                    throw new DocumentPreviewException("DOCX package contains too many entries");
                 }
                 int read;
                 while ((read = zip.read(buffer)) >= 0) {
                     expandedBytes += read;
-                    if (expandedBytes > MAX_PARSE_BYTES) {
+                    if (expandedBytes > MAX_PREVIEW_BYTES) {
                         throw new BusinessException(ErrorCode.FILE_TOO_LARGE);
                     }
                 }
@@ -156,7 +106,7 @@ public class DocumentTextExtractor {
             }
         }
         if (!hasEntries) {
-            throw new DocumentParsingException("DOCX document is not a valid ZIP package");
+            throw new DocumentPreviewException("DOCX document is not a valid ZIP package");
         }
     }
 
@@ -166,7 +116,7 @@ public class DocumentTextExtractor {
     }
 
     private void ensurePreviewTextWithinLimit(StringBuilder text) {
-        if (text.length() > MAX_PARSE_BYTES) {
+        if (text.length() > MAX_PREVIEW_BYTES) {
             throw new BusinessException(ErrorCode.FILE_TOO_LARGE);
         }
     }
@@ -178,23 +128,8 @@ public class DocumentTextExtractor {
         int read;
         while ((read = input.read(buffer)) >= 0) {
             total += read;
-            if (total > MAX_PARSE_BYTES) {
+            if (total > MAX_PREVIEW_BYTES) {
                 throw new BusinessException(ErrorCode.FILE_TOO_LARGE);
-            }
-            output.write(buffer, 0, read);
-        }
-        return output.toByteArray();
-    }
-
-    private byte[] readLimited(InputStream input) throws IOException {
-        ByteArrayOutputStream output = new ByteArrayOutputStream();
-        byte[] buffer = new byte[8192];
-        int total = 0;
-        int read;
-        while ((read = input.read(buffer)) >= 0) {
-            total += read;
-            if (total > MAX_PARSE_BYTES) {
-                throw new DocumentParsingException("Stored document exceeds parser limit");
             }
             output.write(buffer, 0, read);
         }
@@ -208,7 +143,7 @@ public class DocumentTextExtractor {
                     .onUnmappableCharacter(CodingErrorAction.REPORT)
                     .decode(ByteBuffer.wrap(bytes)).toString();
         } catch (CharacterCodingException exception) {
-            throw new DocumentParsingException("TXT document is not valid UTF-8", exception);
+            throw new DocumentPreviewException("TXT document is not valid UTF-8", exception);
         }
     }
 

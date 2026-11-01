@@ -1810,7 +1810,7 @@ Upload File
 ↓
 Save DocumentMetadata(status = PROCESSING)
 ↓
-Parse / Chunk / Embedding / Vector Store
+Parse / TokenTextSplitter / persist source chunks in MySQL
 ↓
 READY
 ```
@@ -1831,6 +1831,12 @@ INACTIVE
 ```
 
 實際 Storage 可使用 S3。
+
+### 文件問答索引階段（Spring AI 遷移工作分支）
+
+`READY` 只表示 MySQL 文件來源及來源 chunks 已保存，**不表示已完成出站核准或可供問答檢索**。管理員核准且政策判定可出站後，持久化索引工作才呼叫 EmbeddingModel 並寫入 PostgreSQL `semantic_rag_vectors`。索引完整發布並通過後端來源檢查後，才可進入生成 Context。
+
+目前實作分支改以 Spring AI `TextReader`／`TikaDocumentReader`、`TokenTextSplitter`、`PgVectorStore` 與 Gemini Embedding 建立索引；MySQL 仍是文件來源及交易狀態的權威資料庫。Testcontainers 已驗證 V3 schema migration 與 PgVectorStore 寫入；正式／Demo 資料庫 migration、Backfill、跨庫資料完整性對帳及正式啟用尚未驗收。操作程序與限制見 [`semantic-rag-runbook.md`](semantic-rag-runbook.md)；本段不代表已完成部署或已啟用。
 
 ---
 
@@ -1862,6 +1868,20 @@ status
 ```
 
 Document Version Replacement 可留後續版本。
+
+## POST /api/v1/document-queries
+
+文件問答 API 維持既有路徑；已登入的 `PROCUREMENT_STAFF`、`PROCUREMENT_MANAGER` 或 `ADMIN` 可查詢。`question` 必填，最多 2000 字元。
+
+```json
+{
+  "question": "SUP-002 的標準交期是多久？"
+}
+```
+
+有已驗證文件證據時回 `200 OK`、`status=ANSWERED`、答案及由後端建立的 `sources`。沒有已驗證證據時回 `200 OK`、`status=INSUFFICIENT_EVIDENCE`、`answer=null`、`sources=[]`。來源欄位為 `documentId`、`documentKey`、`documentType`、`title`、`version`、`supplierId`／`supplierCode`／`supplierName`、`chunkIndex`、`startOffset`、`endOffset`、`excerpt` 與 `relevanceScore`；offset 是正規化抽取文字內的 Java UTF-16 字元位置，分數來自實際檢索結果，不得由模型生成。
+
+`DocumentSearchTool` 的 `SEARCH_DOCUMENTS` 也呼叫同一個 `DocumentQueryService`，不另設舊 RAG 查詢路徑。遷移分支的服務路徑使用 Spring AI `ChatClient`、`RetrievalAugmentationAdvisor`、`VectorStoreDocumentRetriever` 及 PgVectorStore。`SEMANTIC_READ_ENABLED=false` 時不執行檢索，文件 API 回 HTTP 503 `AI_PROVIDER_UNAVAILABLE`；經正常檢索但無已驗證來源才回 HTTP 200 `INSUFFICIENT_EVIDENCE`。AI 助理將文件工具故障包裝為既有 HTTP 503 `AI_QUERY_FAILED`。分層測試已執行，但正式／Demo DB Backfill、完整性對帳及真實文件查詢 E2E 尚未驗收，不能宣稱已正式啟用。
 
 ---
 
@@ -2008,6 +2028,44 @@ Ordering
 Receiving
 StockTransaction
 ```
+
+## POST /api/v1/document-queries（文件 RAG）
+
+權限：`PROCUREMENT_STAFF`、`PROCUREMENT_MANAGER`、`ADMIN`。請求中的 `question` 必填、不可空白，長度上限 2,000 字元；後端先依出站規則檢查問題，再交給 `ChatClient → RetrievalAugmentationAdvisor → VectorStoreDocumentRetriever → PgVectorStore`。Embedding 查詢逾時或 Chat Provider 失敗使用 `AI_TIMEOUT`／`AI_PROVIDER_UNAVAILABLE`，不退回舊 MySQL lexical retrieval。
+
+```json
+{"question":"SUP-001 的 MAT-001 標準交期是多久？"}
+```
+
+有經後端即時來源核對的 Context，且模型回傳非空答案時回 `200`。後端回傳已驗證的來源清單，但不逐句驗證生成答案是否受來源支持；系統提示仍要求模型只根據 Context 作答。沒有可用來源、模型回傳空答案或 `INSUFFICIENT_EVIDENCE` 時，回 `INSUFFICIENT_EVIDENCE`：
+
+```json
+{
+  "status": "ANSWERED",
+  "answer": "SUP-001 的 MAT-001 標準交期為 ORDERED 後 5 個曆日。",
+  "sources": [{
+    "documentId": 42,
+    "documentKey": "DOC-SUP-001-CONTRACT",
+    "documentType": "SUPPLIER_CONTRACT",
+    "title": "SUP-001 供貨契約",
+    "version": "v2",
+    "supplierId": 7,
+    "supplierCode": "SUP-001",
+    "supplierName": "福爾摩沙原料工坊",
+    "chunkIndex": 0,
+    "startOffset": 0,
+    "endOffset": 96,
+    "excerpt": "SUP-001 supplies MAT-001 ...",
+    "relevanceScore": 0.87
+  }]
+}
+```
+
+找不到通過即時來源狀態、核准與出站政策檢查的檢索候選，或模型依 Context 回傳空答案／`INSUFFICIENT_EVIDENCE` 時，API 回 `200`、`status=INSUFFICIENT_EVIDENCE`、`answer=null`、`sources=[]`。Context 是否足以支持回答由模型依 system prompt 判斷；後端不再用答案支持驗證器檢查生成結果。Sources 的 document/version/chunk/offset 與 excerpt 仍由後端依 MySQL 權威資料建立，不接受模型自報來源。若 `SEMANTIC_READ_ENABLED=false`，不執行檢索而回 HTTP 503 `AI_PROVIDER_UNAVAILABLE`；透過 `/api/v1/ai/query` 呼叫時，既有工具錯誤包裝碼為 `AI_QUERY_FAILED`。
+
+文件問答只會把通過來源及適用性檢查的 Context 提供給模型。有限多文件摘要或供應商比較仍應明確指定對象與要比較的事實；模型依 system prompt 僅根據 Context 作答，後端不驗證生成後的數值、差額或答案主張。Demo Catalog 的歷史／現行適用性規則另按明確日期與文件期間限制候選來源。
+
+索引由 MySQL 文件儲存與出站核准流程觸發：核准來源 hash 後建立持久索引工作；worker 重新檢查 READY、版本、hash、generation、Demo 資格與出站政策，再用 Spring AI 文件讀取／chunking 寫入 `semantic_rag_vectors`。完整發布成功後，同步維護 PostgreSQL `semantic_chunks` 相容投影，讓既有 Agentic SQL 讀取契約可延續。`semantic_chunks`、索引登錄表與歷史資料不刪除；新文件問答只從 `semantic_rag_vectors` 檢索。PgVectorStore migration／相容投影與 Agentic SQL existing contract tests 已在 Testcontainers Maven suite 通過；部署資料 Backfill、正式文件數量／metadata 完整性對帳與真實文件查詢 E2E 尚未執行。
 
 ---
 
@@ -2576,7 +2634,12 @@ V28 Migration 將 DRAFT、APPROVED、已知 OrderedProgress 與明確付款事�
 
 | Method | Path | 行為 |
 |---|---|---|
-| GET | /api/v1/semantic-index/jobs?limit=50 | 讀取近期 job；limit 預設 50，範圍 1–200。 |
+| POST | /api/v1/semantic-index/documents/{id}/approve-outbound | 管理員審查該文件當前來源 hash；核准後建立持久化索引工作。Worker 會在送往 EmbeddingModel 前重驗狀態、版本與 outbound policy。 |
+| POST | /api/v1/semantic-index/documents/{id}/exclude-outbound | 管理員明確排除目前文件來源，撤銷舊 generation 的查詢資格。 |
+| GET | /api/v1/semantic-index/jobs?limit=50 | 讀取近期索引工作；limit 預設 50，範圍 1–200。 |
 | POST | /api/v1/semantic-index/jobs/{jobId}/retry | 將仍符合現行文件來源、版本、核准及模型 generation 的 FAILED job 重設為 QUEUED。 |
+| POST | /api/v1/semantic-index/backfill?afterId=0&limit=25 | 管理員執行有界 cursor backfill／恢復作業；一般核准流程會自動排入單文件工作，不要求日常按全域 Gate。 |
+| GET | /api/v1/semantic-index/readiness | 管理員查詢現行索引 readiness 與排除／失敗計數。 |
+| POST | /api/v1/semantic-index/gate-audit | 管理員記錄 readiness audit；不可用於取代本遷移需完成的正式資料核對。 |
 
 Job response 欄位：id、documentId、version、status、attempts、maxAttempts、retryCount、nextAttemptAt、failureCode、updatedAt。狀態包括 QUEUED、PROCESSING、RETRY_WAIT、SUCCEEDED、FAILED、SUPERSEDED。重複核准事件依文件、版本、來源 hash、模型 generation、文件 generation 去重。重試非 FAILED job 為冪等回應（若仍在執行或等待中），不會新增 provider 呼叫。

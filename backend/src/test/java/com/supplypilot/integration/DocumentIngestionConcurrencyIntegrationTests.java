@@ -15,8 +15,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.supplypilot.document.domain.DocumentChunk;
 import com.supplypilot.document.domain.DocumentStatus;
-import com.supplypilot.document.rag.EmbeddingProvider;
-import com.supplypilot.document.rag.TextChunker;
+import com.supplypilot.document.rag.SpringAiDocumentProcessingService;
 import com.supplypilot.document.repository.DocumentChunkRepository;
 import com.supplypilot.document.repository.DocumentMetadataRepository;
 import com.supplypilot.security.AuthenticatedUser;
@@ -66,7 +65,7 @@ class DocumentIngestionConcurrencyIntegrationTests extends AbstractIntegrationTe
     @Autowired private JwtTokenService tokens;
     @Autowired private Clock clock;
     @Autowired private ObjectMapper objectMapper;
-    @Autowired private TextChunker chunker;
+    @Autowired private SpringAiDocumentProcessingService documentProcessing;
     @Autowired private ConcurrencyProbe probe;
 
     @BeforeEach
@@ -82,7 +81,7 @@ class DocumentIngestionConcurrencyIntegrationTests extends AbstractIntegrationTe
     }
 
     @Test
-    void concurrentIngestionsSerializeAndLeaveOnlyTheLastCompleteChunkSet() throws Exception {
+    void concurrentIngestionsSerializeAndLeaveOneCompleteChunkSet() throws Exception {
         User admin = user();
         String text = multiChunkText();
         long documentId = uploadTxt(admin, text);
@@ -92,9 +91,9 @@ class DocumentIngestionConcurrencyIntegrationTests extends AbstractIntegrationTe
 
         assertThat(results.first().getResponse().getStatus()).isEqualTo(200);
         assertThat(results.second().getResponse().getStatus()).isEqualTo(200);
-        assertCompleteIndex(documentId, text, "2.0,0.0");
+        assertCompleteIndex(documentId, text);
         assertThat(documents.findById(documentId).orElseThrow().getStatus()).isEqualTo(DocumentStatus.READY);
-        assertThat(session.transactionObservedDuringEmbedding.get()).isFalse();
+        assertThat(session.transactionObservedDuringProcessing.get()).isFalse();
         assertDistinctTransactions(session);
     }
 
@@ -109,21 +108,21 @@ class DocumentIngestionConcurrencyIntegrationTests extends AbstractIntegrationTe
 
         assertThat(results.first().getResponse().getStatus()).isEqualTo(200);
         assertThat(results.second().getResponse().getStatus()).isEqualTo(500);
-        assertCompleteIndex(documentId, text, "1.0,0.0");
+        assertCompleteIndex(documentId, text);
         assertThat(documents.findById(documentId).orElseThrow().getStatus()).isEqualTo(DocumentStatus.READY);
-        assertThat(session.transactionObservedDuringEmbedding.get()).isFalse();
+        assertThat(session.transactionObservedDuringProcessing.get()).isFalse();
         assertDistinctTransactions(session);
     }
 
     @Test
-    void inactiveUpdateCommittedDuringEmbeddingCannotBeOverwrittenByIngestion() throws Exception {
+    void inactiveUpdateCommittedDuringParsingCannotBeOverwrittenByIngestion() throws Exception {
         User admin = user();
         long documentId = uploadTxt(admin, "Supplier payment terms are net 30 days.");
-        ProbeSession session = probe.begin(Mode.PAUSE_DURING_EMBEDDING);
+        ProbeSession session = probe.begin(Mode.PAUSE_DURING_PARSING);
         ExecutorService ingestionExecutor = executor("ingest-first");
         try {
             Future<MvcResult> ingestion = ingestionExecutor.submit(() -> ingest(documentId, admin));
-            session.awaitEmbedding();
+            session.awaitProcessing();
 
             mockMvc.perform(patch("/api/v1/documents/{id}", documentId)
                             .contentType(MediaType.APPLICATION_JSON)
@@ -132,19 +131,19 @@ class DocumentIngestionConcurrencyIntegrationTests extends AbstractIntegrationTe
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.status").value("INACTIVE"));
 
-            session.releaseEmbedding.countDown();
+            session.releaseProcessing.countDown();
             MvcResult result = ingestion.get(AWAIT_SECONDS, TimeUnit.SECONDS);
             assertThat(result.getResponse().getStatus()).isEqualTo(400);
             assertThat(objectMapper.readTree(result.getResponse().getContentAsString()).path("code").asText())
                     .isEqualTo("VALIDATION_FAILED");
         } finally {
-            session.releaseEmbedding.countDown();
+            session.releaseProcessing.countDown();
             ingestionExecutor.shutdownNow();
         }
 
         assertThat(documents.findById(documentId).orElseThrow().getStatus()).isEqualTo(DocumentStatus.INACTIVE);
         assertThat(chunks.countByDocumentId(documentId)).isZero();
-        assertThat(session.transactionObservedDuringEmbedding.get()).isFalse();
+        assertThat(session.transactionObservedDuringProcessing.get()).isFalse();
     }
 
     private Pair runCompetingIngestions(long documentId, User actor, ProbeSession session) throws Exception {
@@ -170,14 +169,14 @@ class DocumentIngestionConcurrencyIntegrationTests extends AbstractIntegrationTe
                 .andReturn();
     }
 
-    private void assertCompleteIndex(long documentId, String text, String expectedEmbedding) {
-        List<TextChunker.TextChunk> expected = chunker.chunk(text.trim());
+    private void assertCompleteIndex(long documentId, String text) {
+        List<SpringAiDocumentProcessingService.SourceChunk> expected = documentProcessing.split(text);
         List<DocumentChunk> actual = chunks.findByDocumentIdOrderByChunkIndex(documentId);
         assertThat(actual).hasSize(expected.size());
         assertThat(actual).extracting(DocumentChunk::getChunkIndex).doesNotHaveDuplicates();
-        assertThat(actual).extracting(DocumentChunk::getEmbedding).containsOnly(expectedEmbedding);
+        assertThat(actual).extracting(DocumentChunk::getEmbedding).containsOnly("[]");
         for (int index = 0; index < expected.size(); index++) {
-            TextChunker.TextChunk expectedChunk = expected.get(index);
+            SpringAiDocumentProcessingService.SourceChunk expectedChunk = expected.get(index);
             DocumentChunk actualChunk = actual.get(index);
             assertThat(actualChunk.getChunkIndex()).isEqualTo(expectedChunk.index());
             assertThat(actualChunk.getStartOffset()).isEqualTo(expectedChunk.startOffset());
@@ -228,7 +227,7 @@ class DocumentIngestionConcurrencyIntegrationTests extends AbstractIntegrationTe
     enum Mode {
         CONCURRENT_SUCCESS,
         FAIL_SECOND_REPLACEMENT,
-        PAUSE_DURING_EMBEDDING
+        PAUSE_DURING_PARSING
     }
 
     static final class ProbeSession {
@@ -236,9 +235,9 @@ class DocumentIngestionConcurrencyIntegrationTests extends AbstractIntegrationTe
         private final CountDownLatch firstSave = new CountDownLatch(1);
         private final CountDownLatch releaseFirstSave = new CountDownLatch(1);
         private final CountDownLatch secondLockAttempt = new CountDownLatch(1);
-        private final CountDownLatch embedding = new CountDownLatch(1);
-        private final CountDownLatch releaseEmbedding = new CountDownLatch(1);
-        private final AtomicBoolean transactionObservedDuringEmbedding = new AtomicBoolean();
+        private final CountDownLatch processing = new CountDownLatch(1);
+        private final CountDownLatch releaseProcessing = new CountDownLatch(1);
+        private final AtomicBoolean transactionObservedDuringProcessing = new AtomicBoolean();
         private final AtomicReference<EntityManager> firstPersistenceContext = new AtomicReference<>();
         private final AtomicReference<EntityManager> secondPersistenceContext = new AtomicReference<>();
 
@@ -254,8 +253,8 @@ class DocumentIngestionConcurrencyIntegrationTests extends AbstractIntegrationTe
             assertThat(secondLockAttempt.await(AWAIT_SECONDS, TimeUnit.SECONDS)).isTrue();
         }
 
-        void awaitEmbedding() throws InterruptedException {
-            assertThat(embedding.await(AWAIT_SECONDS, TimeUnit.SECONDS)).isTrue();
+        void awaitProcessing() throws InterruptedException {
+            assertThat(processing.await(AWAIT_SECONDS, TimeUnit.SECONDS)).isTrue();
         }
     }
 
@@ -277,29 +276,6 @@ class DocumentIngestionConcurrencyIntegrationTests extends AbstractIntegrationTe
         }
     }
 
-    static final class ControlledEmbeddingProvider implements EmbeddingProvider {
-        private final ConcurrencyProbe probe;
-
-        ControlledEmbeddingProvider(ConcurrencyProbe probe) {
-            this.probe = probe;
-        }
-
-        @Override
-        public List<Double> embed(String text) {
-            ProbeSession session = probe.session();
-            if (session != null && TransactionSynchronizationManager.isActualTransactionActive()) {
-                session.transactionObservedDuringEmbedding.set(true);
-            }
-            if (session != null && session.mode == Mode.PAUSE_DURING_EMBEDDING
-                    && Thread.currentThread().getName().equals("ingest-first")) {
-                session.embedding.countDown();
-                await(session.releaseEmbedding);
-            }
-            double generation = Thread.currentThread().getName().equals("ingest-second") ? 2.0 : 1.0;
-            return List.of(generation, 0.0);
-        }
-    }
-
     @Aspect
     static final class PersistenceProbeAspect {
         private final ConcurrencyProbe probe;
@@ -308,6 +284,22 @@ class DocumentIngestionConcurrencyIntegrationTests extends AbstractIntegrationTe
         PersistenceProbeAspect(ConcurrencyProbe probe, EntityManagerFactory entityManagerFactory) {
             this.probe = probe;
             this.entityManagerFactory = entityManagerFactory;
+        }
+
+        @Around("bean(springAiDocumentProcessingService) && execution(* readAndSplit(..))")
+        Object observeDocumentProcessing(ProceedingJoinPoint invocation) throws Throwable {
+            ProbeSession session = probe.session();
+            if (session != null) {
+                if (TransactionSynchronizationManager.isActualTransactionActive()) {
+                    session.transactionObservedDuringProcessing.set(true);
+                }
+                if (session.mode == Mode.PAUSE_DURING_PARSING
+                        && Thread.currentThread().getName().equals("ingest-first")) {
+                    session.processing.countDown();
+                    await(session.releaseProcessing);
+                }
+            }
+            return invocation.proceed();
         }
 
         @Around("bean(documentMetadataRepository) && execution(* findByIdForUpdate(..))")
@@ -334,7 +326,7 @@ class DocumentIngestionConcurrencyIntegrationTests extends AbstractIntegrationTe
                 return invocation.proceed();
             }
             if (Thread.currentThread().getName().equals("ingest-first")
-                    && session.mode != Mode.PAUSE_DURING_EMBEDDING) {
+                    && session.mode != Mode.PAUSE_DURING_PARSING) {
                 session.firstSave.countDown();
                 await(session.releaseFirstSave);
             }
@@ -364,12 +356,6 @@ class DocumentIngestionConcurrencyIntegrationTests extends AbstractIntegrationTe
         @Bean
         ConcurrencyProbe concurrencyProbe() {
             return new ConcurrencyProbe();
-        }
-
-        @Bean
-        @Primary
-        EmbeddingProvider controlledEmbeddingProvider(ConcurrencyProbe probe) {
-            return new ControlledEmbeddingProvider(probe);
         }
 
         @Bean

@@ -28,7 +28,7 @@ import com.supplypilot.document.domain.DocumentStatus;
 import com.supplypilot.document.domain.DocumentType;
 import com.supplypilot.document.repository.DocumentMetadataRepository;
 import com.supplypilot.document.repository.DocumentChunkRepository;
-import com.supplypilot.document.rag.DocumentTextExtractor;
+import com.supplypilot.document.rag.SpringAiDocumentProcessingService;
 import com.supplypilot.document.semantic.DocumentSemanticLifecycleReader;
 import com.supplypilot.demand.domain.Demand;
 import com.supplypilot.demand.repository.DemandRepository;
@@ -89,7 +89,7 @@ class DemoSeedSmokeIntegrationTests {
     @Autowired private PurchaseOrderRepository purchaseOrders;
     @Autowired private DocumentMetadataRepository documents;
     @Autowired private DocumentChunkRepository documentChunks;
-    @Autowired private DocumentTextExtractor documentTextExtractor;
+    @Autowired private SpringAiDocumentProcessingService documentProcessing;
     @Autowired private DocumentSemanticLifecycleReader semanticLifecycleReader;
     @Autowired private DemoDataCoordinator coordinator;
     @Autowired private com.supplypilot.security.DemoBaselineCredentialAuthenticator demoAuthenticator;
@@ -259,12 +259,13 @@ class DemoSeedSmokeIntegrationTests {
         assertThat(baselineDocuments).allSatisfy(document -> {
             Path source = Path.of(System.getProperty("java.io.tmpdir"), "supplypilot-demo-seed-test-documents",
                     document.getStoragePath());
-            String text = documentTextExtractor.extract(document.getStoragePath());
+            String text = documentProcessing.extract(document.getStoragePath());
             assertThat(text).contains("標題：" + document.getTitle());
             var chunks = documentChunks.findByDocumentIdOrderByChunkIndex(document.getId());
             assertThat(chunks).isNotEmpty();
             assertThat(chunks).allSatisfy(chunk -> {
-                assertThat(chunk.getContent()).isEqualTo(text.substring(chunk.getStartOffset(), chunk.getEndOffset()).trim());
+                assertThat(chunk.getContent())
+                        .isEqualTo(text.substring(chunk.getStartOffset(), chunk.getEndOffset()));
                 assertThat(chunk.getEmbedding()).isNotBlank();
             });
         });

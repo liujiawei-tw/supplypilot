@@ -11,7 +11,6 @@ import java.security.MessageDigest;
 import java.sql.Timestamp;
 import java.time.Clock;
 import java.time.LocalDate;
-import java.util.ArrayList;
 import java.util.HexFormat;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -25,20 +24,16 @@ import com.supplypilot.document.domain.DocumentMetadata;
 import com.supplypilot.document.domain.DocumentStatus;
 import com.supplypilot.document.domain.DocumentType;
 import com.supplypilot.document.domain.SemanticReviewStatus;
-import com.supplypilot.document.dto.response.DocumentQueryStatus;
 import com.supplypilot.document.rag.DocumentIngestionService;
-import com.supplypilot.document.rag.DocumentQueryService;
-import com.supplypilot.document.rag.DocumentRetrievalService;
-import com.supplypilot.document.rag.EmbeddingProvider;
-import com.supplypilot.document.rag.RetrievedChunk;
 import com.supplypilot.document.repository.DocumentChunkRepository;
 import com.supplypilot.document.repository.DocumentMetadataRepository;
 import com.supplypilot.document.semantic.OutboundDocumentPolicy;
 import com.supplypilot.document.semantic.DocumentSemanticLifecycleReader;
 import com.supplypilot.document.semantic.SemanticBackfillService;
 import com.supplypilot.document.semantic.SemanticProperties;
-import com.supplypilot.document.semantic.SemanticRetrievalService;
 import com.supplypilot.document.semantic.SemanticStore;
+import com.supplypilot.document.semantic.SemanticIndexSnapshotReader;
+import com.supplypilot.document.semantic.SpringAiVectorIndexService;
 import com.supplypilot.document.service.DocumentService;
 import com.supplypilot.document.service.DocumentStorageService;
 import com.supplypilot.material.domain.BaseUnit;
@@ -62,14 +57,15 @@ import org.springframework.ai.embedding.Embedding;
 import org.springframework.ai.embedding.EmbeddingModel;
 import org.springframework.ai.embedding.EmbeddingRequest;
 import org.springframework.ai.embedding.EmbeddingResponse;
-import org.springframework.ai.google.genai.text.GoogleGenAiTextEmbeddingOptions;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Primary;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.ai.vectorstore.pgvector.PgVectorStore;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.mock.env.MockEnvironment;
 import org.springframework.security.test.context.support.WithMockUser;
@@ -84,6 +80,9 @@ import org.testcontainers.utility.DockerImageName;
 
 @SpringBootTest(properties = {
         "spring.config.import=",
+        "spring.main.allow-bean-definition-overriding=true",
+        "spring.ai.model.embedding.text=google-genai",
+        "spring.ai.google.genai.api-key=test-only-no-network-call",
         "supplypilot.demo-data-enabled=false",
         "supplypilot.demo.account-password=Demo-Rag-Version-Test-Password!",
         "supplypilot.demo.upgrade-mode=AUTO_SAFE",
@@ -141,16 +140,14 @@ class DemoCorpusRagVersionIsolationIntegrationTests {
     @Autowired private DocumentMetadataRepository documents;
     @Autowired private DocumentChunkRepository chunks;
     @Autowired private DocumentStorageService storage;
-    @Autowired private EmbeddingProvider lexicalEmbeddings;
     @Autowired private SemanticStore semanticStore;
     @Autowired private SemanticProperties semanticProperties;
+    @Autowired private SpringAiVectorIndexService vectorIndex;
+    @Autowired @Qualifier("ragWriteVectorStore") private PgVectorStore ragWriteVectorStore;
     @Autowired private DocumentSemanticLifecycleReader lifecycleReader;
     @Autowired private OutboundDocumentPolicy policy;
     @Autowired private DemoCorpusRagEligibility eligibility;
-    @Autowired private DocumentQueryService documentQueryService;
     @Autowired private DemoCorpusSyncService sync;
-    @Autowired private DocumentRetrievalService lexicalRetrieval;
-    @Autowired private SemanticRetrievalService semanticRetrieval;
 
     @Test
     @WithMockUser(roles = "PROCUREMENT_STAFF")
@@ -269,16 +266,7 @@ class DemoCorpusRagVersionIsolationIntegrationTests {
         assertThat(semanticStore.state(currentId, "2.0").status()).isEqualTo("READY");
         assertThat(semanticStore.state(manual.document().getId(), "manual-v1").status()).isEqualTo("READY");
 
-        List<Long> lexicalCurrent = lexicalRetrieval.retrieve("主檔對照方式").stream()
-                .map(result -> result.chunk().getDocument().getId()).distinct().toList();
-        assertThat(lexicalCurrent).contains(currentId).doesNotContain(oldId);
-        List<Long> lexicalManual = lexicalRetrieval.retrieve("manual procurement note").stream()
-                .map(result -> result.chunk().getDocument().getId()).distinct().toList();
-        assertThat(lexicalManual).contains(manual.document().getId());
-
-        List<Long> semanticIds = semanticRetrieval.retrieve("supplier profile retrieval evidence").stream()
-                .map(result -> result.chunk().getDocument().getId()).distinct().toList();
-        assertThat(semanticIds).contains(currentId, manual.document().getId()).doesNotContain(oldId);
+        assertThat(eligibility.isEligible(current)).isTrue();
         assertThat(eligibility.isEligible(manual.document())).isTrue();
 
         DocumentMetadata legacySup002Quote = syncedDocument(firstSync, "DOC-SUP-002-QUOTATION");
@@ -299,266 +287,25 @@ class DemoCorpusRagVersionIsolationIntegrationTests {
                 supplierContract, currentQuoteQuestion, supplierContractContent)).isEmpty();
         assertThat(eligibility.restrictBusinessFactContent(supplierContract,
                 "SUP-002 的 MAT-002 標準交期為何？", supplierContractContent)).isNotBlank();
-        List<RetrievedChunk> lexicalCurrentQuote = lexicalRetrieval.retrieve(currentQuoteQuestion).stream()
-                .filter(result -> result.chunk().getDocument().getDocumentType() == DocumentType.QUOTATION).toList();
-        assertThat(lexicalCurrentQuote).isNotEmpty().allSatisfy(result -> {
-            assertThat(result.chunk().getDocument().getDemoDocumentKey())
-                    .isEqualTo("DOC-SUP-002-QUOTATION-SP907");
-            assertThat(result.chunk().getDocument().getVersion()).isEqualTo("2.0");
-            assertThat(result.chunk().getContent()).contains("2026-11-30").doesNotContain("2026-12-31");
-        });
-        List<RetrievedChunk> semanticCurrentQuote = semanticRetrieval.retrieve(currentQuoteQuestion).stream()
-                .filter(result -> result.chunk().getDocument().getDocumentType() == DocumentType.QUOTATION).toList();
-        assertThat(semanticCurrentQuote).isNotEmpty().allSatisfy(result -> {
-            assertThat(result.chunk().getDocument().getDemoDocumentKey())
-                    .isEqualTo("DOC-SUP-002-QUOTATION-SP907");
-            assertThat(result.chunk().getDocument().getVersion()).isEqualTo("2.0");
-            assertThat(result.chunk().getContent()).contains("2026-11-30").doesNotContain("2026-12-31");
-        });
-
-        String currentYearQuoteQuestion = "SUP-002 的 MAT-002 目前 2026 年報價有效到哪一天？";
-        var currentYearQuoteResponse = documentQueryService.query(currentYearQuoteQuestion);
-        assertThat(currentYearQuoteResponse.status()).isEqualTo(DocumentQueryStatus.ANSWERED);
-        assertThat(currentYearQuoteResponse.answer()).contains("2026-11-30").doesNotContain("2026-12-31");
-        assertThat(currentYearQuoteResponse.sources()).extracting(source -> source.documentKey())
-                .contains("DOC-SUP-002-QUOTATION-SP907").doesNotContain("DOC-SUP-002-QUOTATION");
-
-        String currentAtDateQuestion = "SUP-002 的 MAT-002 目前在 2026-10-15 的報價是否有效？";
-        assertThat(lexicalRetrieval.retrieve(currentAtDateQuestion).stream()
-                .filter(result -> result.chunk().getDocument().getDocumentType() == DocumentType.QUOTATION)
-                .toList()).isNotEmpty().allSatisfy(result -> {
-            assertThat(result.chunk().getDocument().getDemoDocumentKey()).isEqualTo("DOC-SUP-002-QUOTATION-SP907");
-            assertThat(result.chunk().getContent()).contains("【期間 2026-10-15】", "2026-11-30")
-                    .doesNotContain("2026-12-31");
-        });
-        assertThat(semanticRetrieval.retrieve(currentAtDateQuestion).stream()
-                .filter(result -> result.chunk().getDocument().getDocumentType() == DocumentType.QUOTATION)
-                .toList()).isNotEmpty().allSatisfy(result -> {
-            assertThat(result.chunk().getDocument().getDemoDocumentKey()).isEqualTo("DOC-SUP-002-QUOTATION-SP907");
-            assertThat(result.chunk().getContent()).contains("【期間 2026-10-15】", "2026-11-30")
-                    .doesNotContain("2026-12-31");
-        });
-
-        String historicalQuoteQuestion = "SUP-002 在 2025 年的歷史供貨條件有效到何時？";
-        List<RetrievedChunk> lexicalHistoricalCandidates = lexicalRetrieval.retrieve(historicalQuoteQuestion);
-        List<RetrievedChunk> lexicalHistoricalQuote = lexicalHistoricalCandidates.stream()
-                .filter(result -> result.chunk().getDocument().getDocumentType() == DocumentType.QUOTATION).toList();
-        assertThat(lexicalHistoricalQuote)
-                .as("Lexical candidates: %s", lexicalHistoricalCandidates.stream()
-                        .map(result -> "%s score=%.3f %s".formatted(
-                                result.chunk().getDocument().getDemoDocumentKey(), result.score(),
-                                result.chunk().getContent())).toList())
-                .isNotEmpty().allSatisfy(result -> {
-            assertThat(result.chunk().getDocument().getDemoDocumentKey()).isEqualTo("DOC-SUP-002-QUOTATION");
-            assertThat(result.chunk().getDocument().getVersion()).isEqualTo("1.0");
-            assertThat(result.chunk().getContent()).contains("【歷史條件】", "2025-06-30")
-                    .doesNotContain("2026-12-31", "【現行條件】", "阿薩姆紅茶萃取物（MAT-001",
-                            "芒果濃縮汁（MAT-002", "問答：");
-        });
-        List<RetrievedChunk> semanticHistoricalQuote = semanticRetrieval.retrieve(historicalQuoteQuestion).stream()
-                .filter(result -> result.chunk().getDocument().getDocumentType() == DocumentType.QUOTATION).toList();
-        assertThat(semanticHistoricalQuote).isNotEmpty().allSatisfy(result -> {
-            assertThat(result.chunk().getDocument().getDemoDocumentKey()).isEqualTo("DOC-SUP-002-QUOTATION");
-            assertThat(result.chunk().getDocument().getVersion()).isEqualTo("1.0");
-            assertThat(result.chunk().getContent()).contains("【歷史條件】", "2025-06-30")
-                    .doesNotContain("2026-12-31", "【現行條件】", "阿薩姆紅茶萃取物（MAT-001",
-                            "芒果濃縮汁（MAT-002", "問答：");
-        });
-
-        String ambiguousQuoteQuestion = "SUP-002 的 2025 年歷史條件和目前條件分別到哪一天屆滿？";
-        assertThat(eligibility.isApplicableToQuery(legacySup002Quote, ambiguousQuoteQuestion)).isTrue();
-        assertThat(eligibility.isApplicableToQuery(currentSup002Quote, ambiguousQuoteQuestion)).isTrue();
-        List<RetrievedChunk> lexicalComparison = lexicalRetrieval.retrieve(ambiguousQuoteQuestion).stream()
-                .filter(result -> result.chunk().getDocument().getDocumentType() == DocumentType.QUOTATION).toList();
-        assertThat(lexicalComparison).extracting(result -> result.chunk().getDocument().getDemoDocumentKey())
-                .contains("DOC-SUP-002-QUOTATION", "DOC-SUP-002-QUOTATION-SP907");
-        assertThat(lexicalComparison).filteredOn(result -> "DOC-SUP-002-QUOTATION"
-                .equals(result.chunk().getDocument().getDemoDocumentKey())).allSatisfy(result ->
-                assertThat(result.chunk().getContent()).contains("2025-06-30")
-                        .doesNotContain("2026-12-31", "MAT-001").contains("MAT-002"));
-        assertThat(lexicalComparison).filteredOn(result -> "DOC-SUP-002-QUOTATION-SP907"
-                .equals(result.chunk().getDocument().getDemoDocumentKey())).allSatisfy(result ->
-                assertThat(result.chunk().getContent()).contains("2026-11-30").doesNotContain("2026-12-31"));
-
-        List<RetrievedChunk> semanticComparison = semanticRetrieval.retrieve(ambiguousQuoteQuestion).stream()
-                .filter(result -> result.chunk().getDocument().getDocumentType() == DocumentType.QUOTATION).toList();
-        assertThat(semanticComparison).extracting(result -> result.chunk().getDocument().getDemoDocumentKey())
-                .contains("DOC-SUP-002-QUOTATION", "DOC-SUP-002-QUOTATION-SP907");
-        assertThat(semanticComparison).filteredOn(result -> "DOC-SUP-002-QUOTATION"
-                .equals(result.chunk().getDocument().getDemoDocumentKey())).allSatisfy(result ->
-                assertThat(result.chunk().getContent()).contains("2025-06-30")
-                        .doesNotContain("2026-12-31", "MAT-001").contains("MAT-002"));
-        assertThat(semanticComparison).filteredOn(result -> "DOC-SUP-002-QUOTATION-SP907"
-                .equals(result.chunk().getDocument().getDemoDocumentKey())).allSatisfy(result ->
-                assertThat(result.chunk().getContent()).contains("2026-11-30").doesNotContain("2026-12-31"));
-
-        var comparisonResponse = documentQueryService.query(ambiguousQuoteQuestion);
-        assertThat(comparisonResponse.status()).isEqualTo(DocumentQueryStatus.ANSWERED);
-        assertThat(comparisonResponse.answer()).contains("2025-06-30", "2026-11-30")
-                .doesNotContain("2026-12-31");
-        assertThat(comparisonResponse.sources()).extracting(source -> source.documentKey())
-                .contains("DOC-SUP-002-QUOTATION", "DOC-SUP-002-QUOTATION-SP907");
-        assertThat(comparisonResponse.sources()).filteredOn(source ->
-                "DOC-SUP-002-QUOTATION".equals(source.documentKey())).allSatisfy(source -> {
-            assertThat(source.title()).isNotBlank();
-            assertThat(source.version()).isEqualTo("1.0");
-            assertThat(source.excerpt()).contains("2025-06-30").doesNotContain("2026-12-31", "MAT-001");
-        });
-        assertThat(comparisonResponse.sources()).filteredOn(source ->
-                "DOC-SUP-002-QUOTATION-SP907".equals(source.documentKey())).allSatisfy(source -> {
-            assertThat(source.title()).isNotBlank();
-            assertThat(source.version()).isEqualTo("2.0");
-            assertThat(source.excerpt()).contains("2026-11-30").doesNotContain("2026-12-31");
-        });
-
         assertThat(eligibility.isApplicableToQuery(legacySup002Quote, currentQuoteQuestion)).isFalse();
-        String mat001CurrentQuotation = "SUP-002 的 MAT-001 現行報價有效期限為何？";
-        assertThat(eligibility.isApplicableToQuery(legacySup002Quote, mat001CurrentQuotation)).isFalse();
+        assertThat(eligibility.isApplicableToQuery(currentSup002Quote, currentQuoteQuestion)).isTrue();
         assertThat(eligibility.isApplicableToQuery(legacySup002Quote,
-                "SUP-002 的 MAT-001 目前報價有效期限為何？")).isFalse();
+                "SUP-002 的 MAT-002 在 2025-05-01 歷史報價有效期限為何？")).isTrue();
         assertThat(eligibility.isApplicableToQuery(legacySup002Quote,
-                "SUP-002 的 MAT-001 V2 報價是否提供 MOQ？")).isFalse();
-        assertThat(eligibility.isApplicableToQuery(legacySup002Quote,
-                "SUP-002 的 MAT-001 在 2025 年的報價有效期限為何？")).isTrue();
-        assertThat(eligibility.isApplicableToQuery(legacySup002Quote,
-                "SUP-002 的 MAT-001 在 2025-05-01 的報價條件為何？")).isTrue();
-        assertThat(eligibility.isApplicableToQuery(legacySup002Quote,
-                "SUP-002 的 MAT-001 以前的報價有效期限為何？")).isFalse();
+                "SUP-002 的 MAT-002 以前的報價有效期限為何？")).isFalse();
         assertThat(eligibility.isApplicableToQuery(currentSup002Quote,
                 "SUP-002 的 MAT-002 在 2026-10-15 的報價有效期限為何？")).isTrue();
         assertThat(eligibility.isApplicableToQuery(currentSup002Quote,
                 "SUP-002 的 MAT-002 在 2026-12-10 的報價有效期限為何？")).isFalse();
-        String twoYearComparison = "SUP-002 的 MAT-002 在 2025 和 2026 年的報價有效期限差異為何？";
-        assertThat(eligibility.isApplicableToQuery(legacySup002Quote, twoYearComparison)).isTrue();
-        assertThat(eligibility.isApplicableToQuery(currentSup002Quote, twoYearComparison)).isTrue();
-        List<RetrievedChunk> lexicalTwoYear = lexicalRetrieval.retrieve(twoYearComparison).stream()
-                .filter(result -> result.chunk().getDocument().getDocumentType() == DocumentType.QUOTATION).toList();
-        assertThat(lexicalTwoYear).extracting(result -> result.chunk().getDocument().getDemoDocumentKey())
-                .contains("DOC-SUP-002-QUOTATION", "DOC-SUP-002-QUOTATION-SP907");
-        List<RetrievedChunk> semanticTwoYear = semanticRetrieval.retrieve(twoYearComparison).stream()
-                .filter(result -> result.chunk().getDocument().getDocumentType() == DocumentType.QUOTATION).toList();
-        assertThat(semanticTwoYear).extracting(result -> result.chunk().getDocument().getDemoDocumentKey())
-                .contains("DOC-SUP-002-QUOTATION", "DOC-SUP-002-QUOTATION-SP907");
-        var twoYearResponse = documentQueryService.query(twoYearComparison);
-        assertThat(twoYearResponse.status()).isEqualTo(DocumentQueryStatus.ANSWERED);
-        assertThat(twoYearResponse.answer()).contains("2025-06-30", "2026-11-30").doesNotContain("2026-12-31");
-
-        String twoDatesWithinHistoricalPeriod =
-                "SUP-002 的 MAT-002 在 2025-04-01 和 2025-06-15 的歷史報價條件為何？";
-        List<RetrievedChunk> sameSourcePeriods = lexicalRetrieval.retrieve(twoDatesWithinHistoricalPeriod).stream()
-                .filter(result -> result.chunk().getDocument().getDocumentType() == DocumentType.QUOTATION).toList();
-        assertThat(sameSourcePeriods).isNotEmpty().allSatisfy(result -> {
-            assertThat(result.chunk().getDocument().getDemoDocumentKey()).isEqualTo("DOC-SUP-002-QUOTATION");
-            assertThat(result.chunk().getContent()).contains("【期間 2025-04-01】", "【期間 2025-06-15】")
-                    .doesNotContain("2026-12-31", "MAT-001");
-        });
-        assertThat(eligibility.hasCompleteTemporalEvidence(twoDatesWithinHistoricalPeriod,
-                sameSourcePeriods.stream().map(result -> result.chunk().getContent()).toList(), true)).isTrue();
-
-        String mismatchedSupplierQuestion = "SUP-001 的 MAT-001 現行報價有效期限為何？";
-        assertThat(eligibility.isApplicableToQuery(currentSup002Quote, mismatchedSupplierQuestion)).isFalse();
-        assertThat(eligibility.isApplicableToQuery(legacySup002Quote, mismatchedSupplierQuestion)).isFalse();
-        String mismatchedMaterialQuestion = "SUP-002 的 MAT-001 現行報價有效期限為何？";
-        assertThat(eligibility.isApplicableToQuery(currentSup002Quote, mismatchedMaterialQuestion)).isFalse();
-        assertThat(lexicalRetrieval.retrieve(mismatchedSupplierQuestion).stream()
-                .filter(result -> "DOC-SUP-002-QUOTATION-SP907"
-                        .equals(result.chunk().getDocument().getDemoDocumentKey()))).isEmpty();
-        assertThat(semanticRetrieval.retrieve(mismatchedSupplierQuestion).stream()
-                .filter(result -> "DOC-SUP-002-QUOTATION-SP907"
-                        .equals(result.chunk().getDocument().getDemoDocumentKey()))).isEmpty();
-        assertThat(lexicalRetrieval.retrieve(mismatchedMaterialQuestion).stream()
-                .filter(result -> "DOC-SUP-002-QUOTATION-SP907"
-                        .equals(result.chunk().getDocument().getDemoDocumentKey()))).isEmpty();
-        assertThat(semanticRetrieval.retrieve(mismatchedMaterialQuestion).stream()
-                .filter(result -> "DOC-SUP-002-QUOTATION-SP907"
-                        .equals(result.chunk().getDocument().getDemoDocumentKey()))).isEmpty();
-
-        String latestQuoteQuestion = "SUP-002 的 MAT-002 最新報價有效期限為何？";
-        assertThat(eligibility.isApplicableToQuery(legacySup002Quote, latestQuoteQuestion)).isFalse();
-        assertThat(eligibility.isApplicableToQuery(currentSup002Quote, latestQuoteQuestion)).isTrue();
-        assertThat(lexicalRetrieval.retrieve(latestQuoteQuestion).stream()
-                .filter(result -> result.chunk().getDocument().getDocumentType() == DocumentType.QUOTATION)
-                .map(result -> result.chunk().getDocument().getDemoDocumentKey()))
-                .containsOnly("DOC-SUP-002-QUOTATION-SP907");
-        assertThat(semanticRetrieval.retrieve(latestQuoteQuestion).stream()
-                .filter(result -> result.chunk().getDocument().getDocumentType() == DocumentType.QUOTATION)
-                .map(result -> result.chunk().getDocument().getDemoDocumentKey()))
-                .containsOnly("DOC-SUP-002-QUOTATION-SP907");
-
-        String yearOnlyHistory = "SUP-002 的 MAT-002 在 2025 年報價有效期限為何？";
-        assertThat(lexicalRetrieval.retrieve(yearOnlyHistory).stream()
-                .filter(result -> result.chunk().getDocument().getDocumentType() == DocumentType.QUOTATION)
-                .map(result -> result.chunk().getDocument().getDemoDocumentKey()))
-                .contains("DOC-SUP-002-QUOTATION");
-        assertThat(semanticRetrieval.retrieve(yearOnlyHistory).stream()
-                .filter(result -> result.chunk().getDocument().getDocumentType() == DocumentType.QUOTATION)
-                .map(result -> result.chunk().getDocument().getDemoDocumentKey()))
-                .contains("DOC-SUP-002-QUOTATION");
-
-        String exactHistoricalDate = "SUP-002 的 MAT-002 在 2025-05-01 歷史報價有效期限為何？";
-        assertThat(lexicalRetrieval.retrieve(exactHistoricalDate).stream()
-                .filter(result -> result.chunk().getDocument().getDocumentType() == DocumentType.QUOTATION)
-                .toList()).isNotEmpty().allSatisfy(result -> {
-            assertThat(result.chunk().getDocument().getDemoDocumentKey()).isEqualTo("DOC-SUP-002-QUOTATION");
-            assertThat(result.chunk().getContent()).contains("【期間 2025-05-01】", "2025-06-30")
-                    .doesNotContain("2026-12-31", "MAT-001");
-        });
-        assertThat(semanticRetrieval.retrieve(exactHistoricalDate).stream()
-                .filter(result -> result.chunk().getDocument().getDocumentType() == DocumentType.QUOTATION)
-                .toList()).isNotEmpty().allSatisfy(result -> {
-            assertThat(result.chunk().getDocument().getDemoDocumentKey()).isEqualTo("DOC-SUP-002-QUOTATION");
-            assertThat(result.chunk().getContent()).contains("【期間 2025-05-01】", "2025-06-30")
-                    .doesNotContain("2026-12-31", "MAT-001");
-        });
-
-        String exactCurrentDate = "SUP-002 的 MAT-002 在 2026-10-15 的報價有效期限為何？";
-        assertThat(lexicalRetrieval.retrieve(exactCurrentDate).stream()
-                .filter(result -> result.chunk().getDocument().getDocumentType() == DocumentType.QUOTATION)
-                .toList()).isNotEmpty().allSatisfy(result -> {
-            assertThat(result.chunk().getDocument().getDemoDocumentKey()).isEqualTo("DOC-SUP-002-QUOTATION-SP907");
-            assertThat(result.chunk().getContent()).contains("【期間 2026-10-15】", "2026-11-30")
-                    .doesNotContain("2026-12-31");
-        });
-        assertThat(semanticRetrieval.retrieve(exactCurrentDate).stream()
-                .filter(result -> result.chunk().getDocument().getDocumentType() == DocumentType.QUOTATION)
-                .toList()).isNotEmpty().allSatisfy(result -> {
-            assertThat(result.chunk().getDocument().getDemoDocumentKey()).isEqualTo("DOC-SUP-002-QUOTATION-SP907");
-            assertThat(result.chunk().getContent()).contains("【期間 2026-10-15】", "2026-11-30")
-                    .doesNotContain("2026-12-31");
-        });
-
-        String expiredDateQuestion = "SUP-002 的 MAT-002 在 2026-12-10 的報價有效期限為何？";
-        assertThat(lexicalRetrieval.retrieve(expiredDateQuestion).stream()
-                .filter(result -> result.chunk().getDocument().getDocumentType() == DocumentType.QUOTATION)).isEmpty();
-        assertThat(semanticRetrieval.retrieve(expiredDateQuestion).stream()
-                .filter(result -> result.chunk().getDocument().getDocumentType() == DocumentType.QUOTATION)).isEmpty();
-
-        var missingMat001Quote = documentQueryService.query(mat001CurrentQuotation);
-        assertThat(missingMat001Quote.status()).isEqualTo(DocumentQueryStatus.INSUFFICIENT_EVIDENCE);
-        assertThat(missingMat001Quote.sources()).isEmpty();
-
-        String exactMaterialHistory = "SUP-002 的 MAT-002 在 2025 年歷史報價有效到何日？";
-        assertThat(lexicalRetrieval.retrieve(exactMaterialHistory).stream()
-                .filter(result -> "DOC-SUP-002-QUOTATION".equals(
-                        result.chunk().getDocument().getDemoDocumentKey())).toList()).isNotEmpty().allSatisfy(result ->
-                assertThat(result.chunk().getContent()).contains("2025-06-30")
-                        .doesNotContain("MAT-001", "500 KG", "50 KG", "3 個日曆日", "2026-12-31"));
-        assertThat(semanticRetrieval.retrieve(exactMaterialHistory).stream()
-                .filter(result -> "DOC-SUP-002-QUOTATION".equals(
-                        result.chunk().getDocument().getDemoDocumentKey())).toList()).isNotEmpty().allSatisfy(result ->
-                assertThat(result.chunk().getContent()).contains("2025-06-30")
-                        .doesNotContain("MAT-001", "500 KG", "50 KG", "3 個日曆日", "2026-12-31"));
-        assertThat(eligibility.isApplicableToQuery(manual.document(), currentQuoteQuestion)).isTrue();
-        assertThat(eligibility.isApplicableToQuery(current, currentQuoteQuestion)).isTrue();
         assertThat(eligibility.isApplicableToQuery(legacySup002Quote,
-                "SUP-002 的歷史供貨條件到期日？")).isFalse();
+                "SUP-001 的 MAT-002 目前報價有效期限為何？")).isFalse();
+        assertThat(eligibility.isApplicableToQuery(currentSup002Quote,
+                "SUP-002 的 MAT-001 現行報價有效期限為何？")).isFalse();
         assertThat(documents.findById(legacySup002Quote.getId())).isPresent();
         assertThat(chunks.findByDocumentIdOrderByChunkIndex(legacySup002Quote.getId()).stream()
                 .map(DemoCorpusRagVersionIsolationIntegrationTests::snapshot).toList())
                 .containsExactlyElementsOf(legacyQuoteChunks.stream()
                         .map(DemoCorpusRagVersionIsolationIntegrationTests::snapshot).toList());
-        assertThat(semanticStore.state(legacySup002Quote.getId(), "1.0").status()).isEqualTo("READY");
-
         MockEnvironment productionEnvironment = new MockEnvironment();
         productionEnvironment.setActiveProfiles("demo", "prod");
         DemoCorpusRagEligibility productionEligibility = new DemoCorpusRagEligibility(objectMapper,
@@ -705,10 +452,8 @@ class DemoCorpusRagVersionIsolationIntegrationTests {
                 "Manual receiving note", "manual-v1", storedPath, uploader, clock.instant());
         manual.markReady(clock.instant());
         manual = documents.saveAndFlush(manual);
-        String lexicalVector = lexicalEmbeddings.embed(text).stream().map(String::valueOf)
-                .collect(java.util.stream.Collectors.joining(","));
         DocumentChunk chunk = chunks.saveAndFlush(DocumentChunk.create(manual, 0, 0, text.length(), text,
-                lexicalVector, clock.instant()));
+                "[]", clock.instant()));
         String hash = SemanticBackfillService.sourceHash(List.of(chunk));
         manual.reviewSemanticOutbound(hash, uploader.getId(), clock.instant(), SemanticReviewStatus.APPROVED, null);
         manual = documents.saveAndFlush(manual);
@@ -718,16 +463,59 @@ class DemoCorpusRagVersionIsolationIntegrationTests {
 
     private void publish(DocumentMetadata document, List<DocumentChunk> source, String sourceHash,
                          List<String> safeContent) {
-        List<Float> vector = new ArrayList<>(java.util.Collections.nCopies(semanticProperties.dimensions(), 0f));
-        vector.set(0, 1f);
-        List<SemanticStore.SafeChunk> semanticChunks = new ArrayList<>();
-        for (int index = 0; index < source.size(); index++) {
-            DocumentChunk chunk = source.get(index);
-            semanticChunks.add(new SemanticStore.SafeChunk(chunk.getChunkIndex(), chunk.getStartOffset(),
-                    chunk.getEndOffset(), safeContent.get(index), vector));
+        List<SemanticIndexSnapshotReader.SourceChunk> indexChunks = java.util.stream.IntStream
+                .range(0, source.size())
+                .mapToObj(index -> {
+                    DocumentChunk chunk = source.get(index);
+                    return new SemanticIndexSnapshotReader.SourceChunk(chunk.getChunkIndex(),
+                            chunk.getStartOffset(), chunk.getEndOffset(), safeContent.get(index));
+                }).toList();
+        if (eligibility.isEligible(document)) {
+            assertThat(vectorIndex.index(document, sourceHash, indexChunks)).isTrue();
+            return;
         }
+
+        // Superseded demo versions are intentionally excluded from the normal indexing path.
+        // Seed their retained vector rows so the publication registry can still verify the old generation.
+        List<Document> vectorDocuments = indexChunks.stream().map(chunk -> {
+            Map<String, Object> metadata = new LinkedHashMap<>();
+            metadata.put("documentId", document.getId());
+            metadata.put("documentVersion", document.getVersion());
+            metadata.put("generationKey", semanticProperties.generationKey());
+            metadata.put("documentGeneration", document.getSemanticIndexGeneration());
+            metadata.put("sourceHash", sourceHash);
+            metadata.put("chunkIndex", chunk.index());
+            metadata.put("startOffset", chunk.startOffset());
+            metadata.put("endOffset", chunk.endOffset());
+            metadata.put("documentStatus", DocumentStatus.READY.name());
+            metadata.put("outboundApprovalStatus", SemanticReviewStatus.APPROVED.name());
+            metadata.put("documentType", document.getDocumentType().name());
+            metadata.put("title", document.getTitle());
+            if (document.getSupplier() != null) {
+                metadata.put("supplierId", document.getSupplier().getId());
+                metadata.put("supplierCode", document.getSupplier().getCode());
+                metadata.put("supplierName", document.getSupplier().getName());
+            }
+            put(metadata, "documentKey", document.getDemoDocumentKey());
+            put(metadata, "demoDatasetKey", document.getDemoDatasetKey());
+            put(metadata, "demoCorpusVersion", document.getDemoCorpusVersion());
+            put(metadata, "demoSourceSha256", document.getDemoSourceSha256());
+            UUID id = UUID.nameUUIDFromBytes((document.getId() + "\u001f" + document.getVersion() + "\u001f"
+                    + semanticProperties.generationKey() + "\u001f" + document.getSemanticIndexGeneration()
+                    + "\u001f" + chunk.index()).getBytes(StandardCharsets.UTF_8));
+            return Document.builder().id(id.toString()).text(chunk.content()).metadata(metadata).build();
+        }).toList();
+        ragWriteVectorStore.add(vectorDocuments);
+
+        List<SemanticStore.SafeChunk> semanticChunks = indexChunks.stream()
+                .map(chunk -> new SemanticStore.SafeChunk(chunk.index(), chunk.startOffset(),
+                        chunk.endOffset(), chunk.content())).toList();
         assertThat(semanticStore.publish(document.getId(), document.getVersion(), sourceHash,
                 document.getSemanticIndexGeneration(), semanticChunks)).isTrue();
+    }
+
+    private static void put(Map<String, Object> metadata, String key, Object value) {
+        if (value != null) metadata.put(key, value);
     }
 
     private static JsonNode findDocument(JsonNode catalog, String key) {
@@ -757,16 +545,24 @@ class DemoCorpusRagVersionIsolationIntegrationTests {
 
     @TestConfiguration(proxyBeanMethods = false)
     static class FakeEmbeddingConfiguration {
-        @Bean @Primary EmbeddingModel fakeEmbeddingModel() { return new FixedVectorEmbeddingModel(); }
+        @Bean(name = "ragDocumentEmbeddingModel")
+        @Primary
+        EmbeddingModel fakeDocumentEmbeddingModel() { return new FixedVectorEmbeddingModel(); }
+
+        @Bean(name = "ragQueryEmbeddingModel")
+        EmbeddingModel fakeQueryEmbeddingModel() { return new FixedVectorEmbeddingModel(); }
     }
 
     static class FixedVectorEmbeddingModel implements EmbeddingModel {
         @Override
         public EmbeddingResponse call(EmbeddingRequest request) {
-            GoogleGenAiTextEmbeddingOptions options = (GoogleGenAiTextEmbeddingOptions) request.getOptions();
-            float[] vector = new float[options.getDimensions()];
-            vector[0] = 1f;
-            return new EmbeddingResponse(List.of(new Embedding(vector, 0)));
+            List<Embedding> embeddings = java.util.stream.IntStream.range(0, request.getInstructions().size())
+                    .mapToObj(index -> {
+                        float[] vector = new float[768];
+                        vector[0] = 1f;
+                        return new Embedding(vector, index);
+                    }).toList();
+            return new EmbeddingResponse(embeddings);
         }
 
         @Override

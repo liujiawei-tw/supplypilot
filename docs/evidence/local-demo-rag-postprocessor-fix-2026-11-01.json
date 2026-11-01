@@ -1,0 +1,34 @@
+{
+  "environment": "local-demo",
+  "composeProject": "supplypilot-sp903-local-demo",
+  "api": "POST /api/v1/document-queries",
+  "question": "採購單進入 ORDERED 後，SUP-001 的 MAT-001 要等多久交貨？",
+  "beforeChangeTrace": {
+    "vectorCandidates": 50,
+    "postProcessorAccepted": 0,
+    "rejectedByReason": {
+      "NO_SUPPORTED_EXCERPT": 41,
+      "DEMO_FACT_NOT_APPLICABLE": 5,
+      "LIVE_SOURCE_NOT_VERIFIED": 4
+    },
+    "conclusion": "VectorStore returned candidates; the main drop was the deterministic answer-support excerpt check before model context."
+  },
+  "change": "Removed deterministic answer-support excerpt filtering. Kept live source status, approval, version/hash/generation, outbound-policy, safe-chunk, and Demo eligibility checks.",
+  "targetedTest": {
+    "command": "mvnw.cmd '-Dtest=RagDocumentPostProcessorTests' '-DargLine=-javaagent:C:/Users/z0976/.m2/repository/org/mockito/mockito-core/5.23.0/mockito-core-5.23.0.jar' test",
+    "tests": 9,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "exitCode": 0
+  },
+  "afterChangeDemoGeminiQuery": {
+    "status": "ANSWERED",
+    "answer": "採購單進入 ORDERED 狀態後，SUP-001",
+    "sourceCount": 5,
+    "firstSourceDocumentKey": "DOC-SUP-001-CONTRACT",
+    "firstSourceContainsFact": "採購單進入正式狀態 ORDERED 後，標準交期為 5 個日曆日。",
+    "verdict": "Context delivery confirmed; answer incomplete, so the real Gemini document-QA check did not pass."
+  },
+  "browserE2E": "NOT_RUN"
+}

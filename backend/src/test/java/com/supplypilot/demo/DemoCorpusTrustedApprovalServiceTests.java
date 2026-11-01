@@ -20,8 +20,8 @@ import com.supplypilot.document.domain.DocumentChunk;
 import com.supplypilot.document.domain.DocumentMetadata;
 import com.supplypilot.document.domain.DocumentType;
 import com.supplypilot.document.domain.SemanticReviewStatus;
-import com.supplypilot.document.rag.DocumentTextExtractor;
-import com.supplypilot.document.rag.TextChunker;
+import com.supplypilot.document.rag.RagChunkingProperties;
+import com.supplypilot.document.rag.SpringAiDocumentProcessingService;
 import com.supplypilot.document.repository.DocumentChunkRepository;
 import com.supplypilot.document.repository.DocumentMetadataRepository;
 import com.supplypilot.document.semantic.OutboundDocumentPolicy;
@@ -57,7 +57,7 @@ class DemoCorpusTrustedApprovalServiceTests {
     private SemanticIndexJobRepository jobs;
     private SemanticProperties semantic;
     private OutboundDocumentPolicy policy;
-    private DocumentTextExtractor extractor;
+    private SpringAiDocumentProcessingService documentProcessing;
     private DemoCorpusSyncService.BaselineEntry entry;
     private DocumentMetadata document;
     private List<DocumentChunk> sourceChunks;
@@ -88,8 +88,8 @@ class DemoCorpusTrustedApprovalServiceTests {
         chunks = mock(DocumentChunkRepository.class);
         storage = mock(DocumentStorageService.class);
         jobs = mock(SemanticIndexJobRepository.class);
-        extractor = mock(DocumentTextExtractor.class);
-        when(extractor.extract("stored/source.txt")).thenReturn(source.trim());
+        documentProcessing = new SpringAiDocumentProcessingService(storage,
+                new RagChunkingProperties(800, 80, 1000));
         semantic = properties("jdbc:postgresql://pgvector:5432/supplypilot_semantic_demo");
         policy = new OutboundDocumentPolicy();
 
@@ -98,13 +98,12 @@ class DemoCorpusTrustedApprovalServiceTests {
                 entry.themeKey(), entry.corpusVersion(), entry.sourceSha256(), entry.provenanceOrigin(), NOW);
         ReflectionTestUtils.setField(document, "id", 44L);
         document.markReady(NOW.plusSeconds(1));
-        TextChunker chunker = new TextChunker();
-        sourceChunks = chunker.chunk(source.trim()).stream().map(c -> DocumentChunk.create(document,
-                c.index(), c.startOffset(), c.endOffset(), c.content(), "[]", NOW)).toList();
         when(documents.findByIdForUpdateWithSupplier(44L)).thenReturn(Optional.of(document));
+        when(storage.read("stored/source.txt")).thenAnswer(invocation ->
+                new ByteArrayInputStream(source.getBytes(StandardCharsets.UTF_8)));
+        sourceChunks = documentProcessing.readAndSplit("stored/source.txt").stream().map(c -> DocumentChunk.create(document,
+                c.index(), c.startOffset(), c.endOffset(), c.content(), "[]", NOW)).toList();
         when(chunks.findByDocumentIdOrderByChunkIndex(44L)).thenReturn(sourceChunks);
-        when(storage.read("stored/source.txt"))
-                .thenReturn(new ByteArrayInputStream(source.getBytes(StandardCharsets.UTF_8)));
     }
 
     @Test
@@ -169,7 +168,7 @@ class DemoCorpusTrustedApprovalServiceTests {
         semantic = properties(url);
         return new DemoCorpusTrustedApprovalService(demo, temp.resolve("demo-document-storage").toString(),
                 jdbc, documents, chunks, storage, jobs, semantic, policy,
-                Clock.fixed(NOW, ZoneOffset.UTC), new ObjectMapper(), extractor, new TextChunker());
+                Clock.fixed(NOW, ZoneOffset.UTC), new ObjectMapper(), documentProcessing);
     }
 
     private static SemanticProperties properties(String url) {

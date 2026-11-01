@@ -26,8 +26,7 @@ import com.supplypilot.document.semantic.OutboundDocumentPolicy;
 import com.supplypilot.document.semantic.SemanticBackfillService;
 import com.supplypilot.document.semantic.SemanticIndexJobRepository;
 import com.supplypilot.document.semantic.SemanticProperties;
-import com.supplypilot.document.rag.DocumentTextExtractor;
-import com.supplypilot.document.rag.TextChunker;
+import com.supplypilot.document.rag.SpringAiDocumentProcessingService;
 import com.supplypilot.document.service.DocumentStorageService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Profile;
@@ -58,15 +57,14 @@ public class DemoCorpusTrustedApprovalService {
     private final OutboundDocumentPolicy outboundPolicy;
     private final Clock clock;
     private final ObjectMapper objectMapper;
-    private final DocumentTextExtractor textExtractor;
-    private final TextChunker chunker;
+    private final SpringAiDocumentProcessingService documentProcessing;
 
     public DemoCorpusTrustedApprovalService(DemoProperties demoProperties,
             @Value("${supplypilot.document-storage.path:./data/demo-documents}") String documentStoragePath,
             JdbcTemplate jdbc, DocumentMetadataRepository documents, DocumentChunkRepository chunks,
             DocumentStorageService storage, SemanticIndexJobRepository jobs,
             SemanticProperties semanticProperties, OutboundDocumentPolicy outboundPolicy, Clock clock,
-            ObjectMapper objectMapper, DocumentTextExtractor textExtractor, TextChunker chunker) {
+            ObjectMapper objectMapper, SpringAiDocumentProcessingService documentProcessing) {
         this.demoProperties = demoProperties;
         this.documentStorageRoot = Path.of(documentStoragePath).toAbsolutePath().normalize();
         this.jdbc = jdbc;
@@ -78,8 +76,7 @@ public class DemoCorpusTrustedApprovalService {
         this.outboundPolicy = outboundPolicy;
         this.clock = clock;
         this.objectMapper = objectMapper;
-        this.textExtractor = textExtractor;
-        this.chunker = chunker;
+        this.documentProcessing = documentProcessing;
     }
 
     @Transactional
@@ -142,9 +139,9 @@ public class DemoCorpusTrustedApprovalService {
     }
 
     private boolean chunksMatchStoredSource(DocumentMetadata document, List<DocumentChunk> stored) {
-        List<com.supplypilot.document.rag.TextChunker.TextChunk> expected;
+        List<SpringAiDocumentProcessingService.SourceChunk> expected;
         try {
-            expected = chunker.chunk(textExtractor.extract(document.getStoragePath()));
+            expected = documentProcessing.readAndSplit(document.getStoragePath());
         } catch (RuntimeException failure) {
             return false;
         }

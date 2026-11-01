@@ -120,7 +120,9 @@ class DemoFlywayPreflightIntegrationTests {
             assertThat(queryForLong("supplypilot_demo_preflight_test", """
                     SELECT COUNT(*) FROM demo_dataset_state WHERE dataset_key = 'SP-901' AND status = 'COMPLETE'
                     """)).isOne();
-            assertThat(queryForLong("supplypilot_demo_preflight_test", "SELECT COUNT(*) FROM document_metadata")).isEqualTo(5L);
+            assertThat(queryForLong("supplypilot_demo_preflight_test", """
+                    SELECT COUNT(*) FROM document_metadata WHERE demo_dataset_key = 'SP-901'
+                    """)).isEqualTo(115L);
         }
     }
 

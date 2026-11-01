@@ -19,6 +19,9 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 class DocumentIndexPersistenceService {
 
+    /** The legacy MySQL column remains readable, but no longer stores a RAG retrieval embedding. */
+    private static final String LEGACY_EMBEDDING_NOT_USED = "[]";
+
     private final DocumentMetadataRepository documents;
     private final DocumentChunkRepository chunks;
     private final Clock clock;
@@ -49,7 +52,7 @@ class DocumentIndexPersistenceService {
         chunks.flush();
         chunks.saveAll(prepared.stream().map(chunk -> DocumentChunk.create(
                 document, document.getVersion(), chunk.index(), chunk.startOffset(), chunk.endOffset(), chunk.content(),
-                chunk.embedding(), clock.instant())).toList());
+                LEGACY_EMBEDDING_NOT_USED, clock.instant())).toList());
         if (document.getStatus() == DocumentStatus.PROCESSING) {
             document.markReady(clock.instant());
         }

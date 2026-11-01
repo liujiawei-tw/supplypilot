@@ -19,8 +19,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.supplypilot.document.domain.DocumentChunk;
 import com.supplypilot.document.domain.DocumentMetadata;
 import com.supplypilot.document.domain.DocumentType;
-import com.supplypilot.document.rag.DocumentTextExtractor;
-import com.supplypilot.document.rag.TextChunker;
+import com.supplypilot.document.rag.RagChunkingProperties;
+import com.supplypilot.document.rag.SpringAiDocumentProcessingService;
 import com.supplypilot.document.repository.DocumentChunkRepository;
 import com.supplypilot.document.repository.DocumentMetadataRepository;
 import com.supplypilot.document.semantic.OutboundDocumentPolicy;
@@ -73,8 +73,8 @@ class TrustedDemoCorpusOutboundPolicyTests {
             String source = sourceByStoragePath.get(invocation.getArgument(0));
             return source == null ? null : new ByteArrayInputStream(source.getBytes(StandardCharsets.UTF_8));
         });
-        DocumentTextExtractor extractor = mock(DocumentTextExtractor.class);
-        when(extractor.extract(anyString())).thenAnswer(invocation -> sourceByStoragePath.get(invocation.getArgument(0)));
+        SpringAiDocumentProcessingService documentProcessing = new SpringAiDocumentProcessingService(storage,
+                new RagChunkingProperties(800, 80, 1000));
         SemanticIndexJobRepository jobs = mock(SemanticIndexJobRepository.class);
 
         DemoProperties demo = new DemoProperties();
@@ -86,9 +86,8 @@ class TrustedDemoCorpusOutboundPolicyTests {
         OutboundDocumentPolicy policy = new OutboundDocumentPolicy();
         DemoCorpusTrustedApprovalService service = new DemoCorpusTrustedApprovalService(demo,
                 temp.resolve("demo-document-storage").toString(), jdbc, documents, chunks, storage,
-                jobs, semantic, policy, Clock.fixed(NOW, ZoneOffset.UTC), mapper, extractor, new TextChunker());
+                jobs, semantic, policy, Clock.fixed(NOW, ZoneOffset.UTC), mapper, documentProcessing);
 
-        TextChunker chunker = new TextChunker();
         int approved = 0;
         long id = 1000;
         for (JsonNode row : rows) {
@@ -104,7 +103,7 @@ class TrustedDemoCorpusOutboundPolicyTests {
             ReflectionTestUtils.setField(document, "id", id);
             document.markReady(NOW.plusSeconds(1));
             documentsById.put(id, document);
-            List<DocumentChunk> documentChunks = chunker.chunk(source).stream()
+            List<DocumentChunk> documentChunks = documentProcessing.split(source).stream()
                     .map(chunk -> DocumentChunk.create(document, chunk.index(), chunk.startOffset(),
                             chunk.endOffset(), chunk.content(), "[]", NOW)).toList();
             chunksById.put(id, documentChunks);

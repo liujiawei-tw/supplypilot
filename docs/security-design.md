@@ -1336,4 +1336,16 @@ Approve、Reject、Mark Ordered、Begin Receiving Inspection、Cancel、Receive 
 
 只有 ADMIN 可核准／排除文件、讀取索引工作的近期狀態及手動重試失敗工作。核准與 enqueue 同時保存於 MySQL，且只有政策判定為 APPROVED 的內容才會排入背景索引。Worker 每次送出前都重驗 READY 狀態、文件版本、來源 hash、文件 generation、核准快照及 OutboundDocumentPolicy；被遮蔽的 Email、台灣身分證及手機欄位只以安全替代文字送往 Gemini。未核准、需人工檢查或已排除的內容不會送往 Provider。
 
-Provider response body、exception message、文件內容及敏感來源值不得寫入 job failure 或日誌。Job API 僅暴露固定安全 failure code；管理員手動重試也會重新驗證現行核准，避免舊工作在核准撤銷或來源更新後重送。RAG Hybrid Retrieval 持續使用逐文件 MySQL 核對及既有 Evidence Validator。
+Provider response body、exception message、文件內容及敏感來源值不得寫入 job failure 或日誌。Job API 僅暴露固定安全 failure code；管理員手動重試也會重新驗證現行核准，避免舊工作在核准撤銷或來源更新後重送。此處「RAG Hybrid Retrieval」是遷移前文件記錄；目前預定正式路徑與未驗證項目見下方 Spring AI RAG 遷移安全註記。
+
+## Spring AI 文件 RAG 遷移安全註記（2026-11-01）
+
+功能分支中的目標查詢流程為 `ChatClient → RetrievalAugmentationAdvisor → VectorStoreDocumentRetriever → PgVectorStore → ContextualQueryAugmenter → Gemini ChatModel`。向量 Metadata Filter 先限制 generation、READY 及核准狀態；檢索後必須再以 MySQL 權威資料檢查即時 READY 狀態、version、document generation、source hash、核准版本、Demo corpus 資格與 `OutboundDocumentPolicy`。只有經驗證的來源片段可以交給模型；無證據時應回 `INSUFFICIENT_EVIDENCE`，而不呼叫 ChatModel。
+
+索引前必須先核准特定文件版本及來源 hash，並再次執行出站政策；不符合條件的原文不得到達 EmbeddingModel。PgVectorStore 使用獨立 PostgreSQL DataSource，不能改用 MySQL 主 DataSource。MySQL `document_metadata`／`document_chunks` 仍是來源與狀態權威。成功發布 PgVectorStore generation 時，程式會在 PostgreSQL 發布交易中由 `semantic_rag_vectors` 同步建立 `semantic_chunks` 衍生投影；`semantic_chunks`、`semantic_document_indexes`、`semantic_generations`、`semantic_gate_audit` schema 與既有資料均保留。Agentic SQL production 程式未修改；投影 integration 與既有 Agentic SQL regression 類別已通過 Testcontainers Maven suite。正式／Demo 資料的投影、筆數與完整性對帳仍未執行。
+
+文件解析對 PDF/DOCX 使用有上限的 Tika worker，`DOCUMENT_RAG_PARSER_TIMEOUT` 預設 30 秒，逾時會取消該工作並回安全解析錯誤；輸入大小、DOCX 展開大小及 entry 數也各自受限。向量清理排程在索引 worker 啟用時預設每 300,000 毫秒執行一頁，移除 superseded、撤銷或來源已變更的舊向量；失敗或無法判定的 cleanup 保留資料並記錄不含內容的安全事件。
+
+生成答案不再經 `RagAnswerValidator` 逐句比對或刪除主張。系統提示仍要求 Gemini 只根據 Context 作答，但這是模型指示，不是後端強制保證；API 可能回傳與來源不一致或彼此矛盾的答案。後端仍在生成前以向量 filter、MySQL 即時狀態／版本／hash／核准、Demo 適用性與 `OutboundDocumentPolicy` 驗證來源，並只回傳已驗證的來源清單。沒有可驗證來源時不呼叫 ChatModel；有來源時，使用者應同時核對答案與摘錄。跨供應商比較也不再由答案驗證器檢查數值、方向或差額。
+
+`SEMANTIC_READ_ENABLED` 預設 `false`。全量 Maven `verify` 執行 1,093 tests 後為 4 failures、0 errors、2 skipped、Exit Code 1；三個 `AiControllerIntegrationTests` 失敗在 main 基底重現，read gate 關閉契約更新後的 targeted Testcontainers 測試通過 1/1。遷移相關 PgVectorStore、文件 RAG、Demo reset 與 Agentic SQL 類別已在全量 suite 通過。Tika timeout 負向案例、正式資料 Backfill、完整正式／Demo 對帳、真實 Gemini 文件問答及 Browser E2E 仍未驗收，因此不可啟用讀取閘門。詳細測試分診見 [`Spring AI RAG 驗證記錄`](evidence/spring-ai-rag-validation-2026-11-01.md) 與 [`semantic-rag-runbook.md`](semantic-rag-runbook.md)。

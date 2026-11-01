@@ -205,7 +205,7 @@ class DocumentSemanticLifecycleReaderTests {
         when(document.getVersion()).thenReturn("v1");
         when(document.getSemanticReviewStatus()).thenReturn(SemanticReviewStatus.APPROVED);
         when(document.getSemanticApprovedSourceHash()).thenReturn(
-                SemanticBackfillService.sourceHash(List.of(DocumentChunk.create(document, 0, 0,
+                SemanticBackfillService.sourceHash(List.of(DocumentChunk.create(document, "v1", 0, 0,
                         source.length(), source, "[0.0,0.0,0.0]", NOW))));
         when(document.getSemanticReviewVersion()).thenReturn("v1");
         when(document.getSemanticIndexGeneration()).thenReturn(7L);

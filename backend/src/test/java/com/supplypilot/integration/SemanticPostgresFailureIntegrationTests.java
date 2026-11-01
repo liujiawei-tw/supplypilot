@@ -3,12 +3,10 @@ package com.supplypilot.integration;
 import java.time.Clock;
 import java.util.List;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 import com.supplypilot.document.domain.DocumentChunk;
 import com.supplypilot.document.domain.DocumentMetadata;
 import com.supplypilot.document.domain.DocumentType;
-import com.supplypilot.document.rag.LocalLexicalEmbeddingProvider;
 import com.supplypilot.document.repository.DocumentChunkRepository;
 import com.supplypilot.document.repository.DocumentMetadataRepository;
 import com.supplypilot.document.semantic.SemanticBackfillService;
@@ -49,7 +47,7 @@ class SemanticPostgresFailureIntegrationTests extends AbstractIntegrationTest {
     @Autowired Clock clock;
 
     @Test
-    void unavailablePostgresReturnsAi503WithoutLexicalFallbackOrCoreFailure() throws Exception {
+    void unavailableRagPipelineReturnsAi503WithoutBreakingCoreDocumentListing() throws Exception {
         User admin = users.saveAndFlush(User.create("pg-down-" + UUID.randomUUID(), "hash",
                 "Postgres outage", UserRole.ADMIN, clock.instant()));
         String bearer = "Bearer " + tokens.generateToken(
@@ -72,10 +70,8 @@ class SemanticPostgresFailureIntegrationTests extends AbstractIntegrationTest {
         document.markReady(clock.instant());
         document = documents.saveAndFlush(document);
         String content = "Forklift capacity checks occur before each work shift.";
-        String embedding = new LocalLexicalEmbeddingProvider().embed(content).stream()
-                .map(String::valueOf).collect(Collectors.joining(","));
         chunks.saveAndFlush(DocumentChunk.create(document, 0, 0, content.length(), content,
-                embedding, clock.instant()));
+                "[]", clock.instant()));
         String bearer = "Bearer " + tokens.generateToken(
                 new AuthenticatedUser(admin.getId(), admin.getUsername(), admin.getRole()));
         mvc.perform(post("/api/v1/semantic-index/documents/{id}/approve-outbound", document.getId())

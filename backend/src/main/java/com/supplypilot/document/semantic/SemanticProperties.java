@@ -10,7 +10,7 @@ public record SemanticProperties(
         String generationKey, boolean readEnabled, int topK, double similarityThreshold,
         Duration embeddingTimeout
 ) {
-    public static final String CHUNKING_VERSION = "sp710-v1";
+    public static final String CHUNKING_VERSION = "spring-ai-token-chunk500-overlap70-v2";
 
     public SemanticProperties {
         if (modelId == null || modelId.isBlank() || generationKey == null || generationKey.isBlank()

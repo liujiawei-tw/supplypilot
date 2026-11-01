@@ -1,0 +1,50 @@
+{
+  "runDate": "2026-11-01",
+  "environment": "local-demo",
+  "api": "POST /api/v1/document-queries",
+  "generationKey": "gemini-embedding-001-768-spring-ai-chunk500-overlap70-v2",
+  "settings": {
+    "similarityThreshold": 0.4,
+    "topK": 8,
+    "rawCandidates": 80,
+    "chunkSize": 500,
+    "overlapCharacters": 70,
+    "temperature": 0.4,
+    "applicationConfiguredMaxOutputTokens": null
+  },
+  "readinessAudit": {
+    "passed": true,
+    "auditId": 6,
+    "ready": 121,
+    "pending": 0,
+    "failed": 0,
+    "requiresReview": 0
+  },
+  "results": [
+    {
+      "question": "採購單進入 ORDERED 後，SUP-001 的 MAT-001 要等多久交貨？",
+      "status": "ANSWERED",
+      "answer": "* 採購單進入 ORDERED 後起算，SUP-001 的 MAT-001 標準交期為 5 個日曆日。",
+      "expectedFact": "5 個日曆日",
+      "supportingSource": "DOC-SUP-001-CONTRACT",
+      "verdict": "PASS"
+    },
+    {
+      "question": "SUP-001 的服務時段是哪些日子、幾點到幾點？",
+      "status": "ANSWERED",
+      "answer": "* 服務日子：週一至週五\n* 服務時間：09:00–16:30",
+      "expectedFact": "週一至週五 09:00–16:30",
+      "supportingSource": "DOC-SUP-001-SUPPLIER-PROFILE-SP907",
+      "verdict": "PASS"
+    },
+    {
+      "question": "SUP-001/MAT-001 承諾到貨日異動時，案例契約要求記錄哪些資訊？",
+      "status": "ANSWERED",
+      "answer": "* 原日期\n* 新日期\n* 通知時間\n* 收件角色",
+      "expectedFact": "原日期、新日期、通知時間、收件角色",
+      "verdict": "PASS"
+    }
+  ],
+  "summary": "3/3 expected document facts were answered with sources. The second question was queried once more only to recover the exact response after console output truncation.",
+  "browserE2E": "NOT_RUN"
+}

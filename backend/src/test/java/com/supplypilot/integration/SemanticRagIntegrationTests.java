@@ -5,8 +5,12 @@ import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.Clock;
+import java.time.Duration;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
@@ -16,7 +20,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.stream.Collectors;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -24,14 +27,17 @@ import com.supplypilot.document.domain.DocumentChunk;
 import com.supplypilot.document.domain.DocumentMetadata;
 import com.supplypilot.document.domain.DocumentStatus;
 import com.supplypilot.document.domain.DocumentType;
-import com.supplypilot.document.rag.LocalLexicalEmbeddingProvider;
 import com.supplypilot.document.repository.DocumentChunkRepository;
 import com.supplypilot.document.repository.DocumentMetadataRepository;
+import com.supplypilot.document.rag.RagEvidenceCollector;
+import com.supplypilot.document.semantic.SemanticProperties;
+import com.supplypilot.document.semantic.SemanticProviderException;
 import com.supplypilot.document.semantic.SemanticStore;
 import com.supplypilot.document.semantic.SemanticIndexJob;
 import com.supplypilot.document.semantic.SemanticIndexJobRepository;
 import com.supplypilot.document.semantic.SemanticIndexJobStatus;
 import com.supplypilot.document.semantic.SemanticIndexWorker;
+import com.supplypilot.common.exception.ErrorCode;
 import com.supplypilot.security.AuthenticatedUser;
 import com.supplypilot.security.JwtTokenService;
 import com.supplypilot.user.domain.User;
@@ -40,6 +46,12 @@ import com.supplypilot.user.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.ai.document.Document;
+import org.springframework.ai.chat.messages.AssistantMessage;
+import org.springframework.ai.chat.model.ChatModel;
+import org.springframework.ai.chat.model.ChatResponse;
+import org.springframework.ai.chat.model.Generation;
+import org.springframework.ai.chat.prompt.ChatOptions;
+import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.embedding.Embedding;
 import org.springframework.ai.embedding.EmbeddingModel;
 import org.springframework.ai.embedding.EmbeddingRequest;
@@ -56,6 +68,7 @@ import org.springframework.http.HttpStatusCode;
 import org.springframework.http.MediaType;
 import org.springframework.web.client.RestClientResponseException;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.TestPropertySource;
@@ -66,18 +79,23 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 import org.testcontainers.utility.DockerImageName;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@TestPropertySource(properties = "supplypilot.semantic.indexing.max-retry-delay=PT60S")
+@TestPropertySource(properties = {
+        "spring.main.allow-bean-definition-overriding=true",
+        "supplypilot.semantic.indexing.max-retry-delay=PT60S",
+        "spring.ai.model.embedding.text=google-genai",
+        "spring.ai.google.genai.api-key=test-only-key"
+})
 @AutoConfigureMockMvc
 @Import(SemanticRagIntegrationTests.FakeConfiguration.class)
 class SemanticRagIntegrationTests extends AbstractIntegrationTest {
     private static final PostgreSQLContainer POSTGRES = new PostgreSQLContainer(
             DockerImageName.parse("pgvector/pgvector:pg17").asCompatibleSubstituteFor("postgres"));
+    private static final List<Integer> CHAT_EVIDENCE_SIZES = new CopyOnWriteArrayList<>();
 
     static { POSTGRES.start(); }
 
@@ -98,20 +116,28 @@ class SemanticRagIntegrationTests extends AbstractIntegrationTest {
     @Autowired Clock clock;
     @Autowired FakeModel model;
     @Autowired SemanticStore store;
+    @Autowired SemanticProperties semanticProperties;
     @Autowired SemanticIndexWorker worker;
     @Autowired SemanticIndexJobRepository indexJobs;
     @Autowired JdbcTemplate jdbc;
+    private JdbcTemplate semanticJdbc;
 
     @BeforeEach
     void clean() throws SQLException {
+        DriverManagerDataSource semanticDataSource = new DriverManagerDataSource(
+                POSTGRES.getJdbcUrl(), POSTGRES.getUsername(), POSTGRES.getPassword());
+        semanticDataSource.setDriverClassName("org.postgresql.Driver");
+        semanticJdbc = new JdbcTemplate(semanticDataSource);
         model.inputs.clear();
         model.tasks.clear();
         model.transactionStates.clear();
+        CHAT_EVIDENCE_SIZES.clear();
         model.fail.set(false);
         model.failure.set(null);
         model.blockNext.set(false);
         model.providerStarted = new CountDownLatch(0);
         model.releaseProvider = new CountDownLatch(0);
+        jdbc.update("DELETE FROM semantic_index_jobs");
         chunks.deleteAllInBatch();
         documents.deleteAllInBatch();
         store.ensureSchema();
@@ -119,6 +145,7 @@ class SemanticRagIntegrationTests extends AbstractIntegrationTest {
                 POSTGRES.getUsername(), POSTGRES.getPassword());
              var statement = connection.createStatement()) {
             statement.executeUpdate("DELETE FROM semantic_chunks");
+            statement.executeUpdate("DELETE FROM semantic_rag_vectors");
             statement.executeUpdate("DELETE FROM semantic_document_indexes");
             statement.executeUpdate("DELETE FROM semantic_gate_audit");
         }
@@ -145,6 +172,13 @@ class SemanticRagIntegrationTests extends AbstractIntegrationTest {
         approve(admin, safeId);
         approve(admin, reviewId);
         exclude(admin, excludedId);
+        assertThat(worker.processNext()).isTrue();
+        assertThat(model.inputs).hasSize(1);
+        assertThat(model.tasks).containsExactly(GoogleGenAiTextEmbeddingOptions.TaskType.RETRIEVAL_DOCUMENT);
+        assertThat(model.inputs.getFirst()).contains("[EMAIL]")
+                .contains("[PHONE]")
+                .doesNotContain("alice@example.com", "+886912345678",
+                        "secret-value", "Supplier contract");
 
         query(admin, "forklift capacity").andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("ANSWERED"));
@@ -157,12 +191,8 @@ class SemanticRagIntegrationTests extends AbstractIntegrationTest {
                 .andExpect(status().isOk()).andExpect(jsonPath("$.ready").value(1))
                 .andExpect(jsonPath("$.skipped").value(1))
                 .andExpect(jsonPath("$.requiresReview").value(1));
-        assertThat(model.inputs).hasSize(1);
-        assertThat(model.tasks).containsExactly(GoogleGenAiTextEmbeddingOptions.TaskType.RETRIEVAL_DOCUMENT);
-        assertThat(model.inputs.getFirst()).contains("[EMAIL]")
-                .contains("[PHONE]")
-                .doesNotContain("alice@example.com", "+886912345678",
-                        "secret-value", "Supplier contract");
+        assertThat(model.inputs).isEmpty();
+        assertThat(model.tasks).isEmpty();
         assertThat(store.state(reviewId, "v1").status()).isEqualTo("REQUIRES_REVIEW");
         mvc.perform(post("/api/v1/semantic-index/gate-audit").header("Authorization", bearer(admin)))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.passed").value(false));
@@ -180,12 +210,15 @@ class SemanticRagIntegrationTests extends AbstractIntegrationTest {
                 .andExpect(jsonPath("$.sources[0].version").value("v1"))
                 .andExpect(jsonPath("$.sources[0].startOffset").value(0))
                 .andExpect(jsonPath("$.sources[0].excerpt").value(org.hamcrest.Matchers.containsString(
-                        "Forklift capacity is 500 kilograms. Contact [EMAIL]")))
-                .andExpect(jsonPath("$.sources[0].excerpt").value(org.hamcrest.Matchers.containsString("[PHONE]")))
+                        "Forklift capacity is 500 kilograms")))
+                .andExpect(jsonPath("$.sources[0].excerpt").value(
+                        org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("Contact"))))
                 .andExpect(jsonPath("$.sources[0].excerpt").value(
                         org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("[ID]"))))
                 .andExpect(jsonPath("$.sources[0].excerpt").value(
-                        org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("alice@example.com"))));
+                        org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("alice@example.com"))))
+                .andExpect(jsonPath("$.sources[0].excerpt").value(
+                        org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("+886912345678"))));
         assertThat(model.tasks).contains(GoogleGenAiTextEmbeddingOptions.TaskType.RETRIEVAL_QUERY);
         query(planner, "forklift capacity").andExpect(status().isForbidden());
         query(manager, "unknown topic").andExpect(status().isOk())
@@ -432,12 +465,11 @@ class SemanticRagIntegrationTests extends AbstractIntegrationTest {
     @Test
     void oldGenerationMarksCannotOverwriteNewerReadyPublication() {
         long id = 841L;
-        List<Float> vector = new java.util.ArrayList<>(java.util.Collections.nCopies(768, 0f));
-        vector.set(0, 1f);
         List<SemanticStore.SourceChunk> currentSource =
                 List.of(new SemanticStore.SourceChunk(0, 0, 6, "newer"));
+        seedVector(id, "v1", "newer-hash", 2, 0, 0, 6, "newer");
         assertThat(store.publish(id, "v1", "newer-hash", 2,
-                List.of(new SemanticStore.SafeChunk(0, 0, 6, "newer", vector)))).isTrue();
+                List.of(new SemanticStore.SafeChunk(0, 0, 6, "newer")))).isTrue();
 
         store.mark(id, "v1", "PROCESSING", null, "old-processing-hash", 1, 1);
         store.mark(id, "v1", "FAILED", "PROVIDER_UNAVAILABLE", "old-failed-hash", 1, 1);
@@ -451,21 +483,20 @@ class SemanticRagIntegrationTests extends AbstractIntegrationTest {
     @Test
     void sameGenerationProcessingMarkCannotReleaseReadyHashFence() {
         long id = 842L;
-        List<Float> vector = new java.util.ArrayList<>(java.util.Collections.nCopies(768, 0f));
-        vector.set(0, 1f);
         List<SemanticStore.SourceChunk> currentSource =
                 List.of(new SemanticStore.SourceChunk(0, 0, 6, "newer"));
+        seedVector(id, "v1", "newer-hash", 2, 0, 0, 6, "newer");
         assertThat(store.publish(id, "v1", "newer-hash", 2,
-                List.of(new SemanticStore.SafeChunk(0, 0, 6, "newer", vector)))).isTrue();
+                List.of(new SemanticStore.SafeChunk(0, 0, 6, "newer")))).isTrue();
 
         store.mark(id, "v1", "PROCESSING", null, "newer-hash", 1, 2);
         assertThat(store.state(id, "v1").status()).isEqualTo("READY");
         assertThat(store.publish(id, "v1", "newer-hash", 2,
-                List.of(new SemanticStore.SafeChunk(0, 0, 6, "newer", vector)))).isTrue();
+                List.of(new SemanticStore.SafeChunk(0, 0, 6, "newer")))).isTrue();
 
         store.mark(id, "v1", "PROCESSING", null, "stale-same-generation-hash", 1, 2);
         assertThat(store.publish(id, "v1", "stale-same-generation-hash", 2,
-                List.of(new SemanticStore.SafeChunk(0, 0, 5, "stale", vector)))).isFalse();
+                List.of(new SemanticStore.SafeChunk(0, 0, 5, "stale")))).isFalse();
 
         assertThat(store.state(id, "v1").status()).isEqualTo("READY");
         assertThat(store.state(id, "v1").publicationGeneration()).isEqualTo(2);
@@ -498,10 +529,8 @@ class SemanticRagIntegrationTests extends AbstractIntegrationTest {
             String newerContent = "Quality checks are performed daily.";
             DocumentMetadata document = documents.findById(documentId).orElseThrow();
             jdbc.update("DELETE FROM document_chunks WHERE document_id = ?", documentId);
-            String lexicalVector = new LocalLexicalEmbeddingProvider().embed(newerContent).stream()
-                    .map(String::valueOf).collect(Collectors.joining(","));
             chunks.saveAndFlush(DocumentChunk.create(document, 0, 0, newerContent.length(), newerContent,
-                    lexicalVector, clock.instant()));
+                    "[]", clock.instant()));
             approve(admin, documentId);
             long newGeneration = documents.findById(documentId).orElseThrow().getSemanticIndexGeneration();
             assertThat(newGeneration).isGreaterThan(oldGeneration);
@@ -541,22 +570,20 @@ class SemanticRagIntegrationTests extends AbstractIntegrationTest {
     @Test
     void olderPublicationGenerationCannotReplaceNewerPgvectorRows() {
         long id = 840L;
-        List<Float> vector = new java.util.ArrayList<>(java.util.Collections.nCopies(768, 0f));
-        vector.set(0, 1f);
+        seedVector(id, "v1", "newer-hash", 2, 0, 0, 6, "newer");
         assertThat(store.publish(id, "v1", "newer-hash", 2,
-                List.of(new SemanticStore.SafeChunk(0, 0, 6, "newer", vector)))).isTrue();
+                List.of(new SemanticStore.SafeChunk(0, 0, 6, "newer")))).isTrue();
         assertThat(store.publish(id, "v1", "older-hash", 1,
-                List.of(new SemanticStore.SafeChunk(0, 0, 5, "older", vector)))).isFalse();
+                List.of(new SemanticStore.SafeChunk(0, 0, 5, "older")))).isFalse();
 
         assertThat(store.state(id, "v1").publicationGeneration()).isEqualTo(2);
         assertThat(store.state(id, "v1").sourceHash()).isEqualTo("newer-hash");
         assertThat(store.matchesSource(id, "v1",
                 List.of(new SemanticStore.SourceChunk(0, 0, 6, "newer")))).isTrue();
         assertThat(store.publish(id, "v1", "different-hash", 2,
-                List.of(new SemanticStore.SafeChunk(0, 0, 5, "stale", vector)))).isFalse();
-        assertThatThrownBy(() -> store.publish(id, "v1", "failed-generation", 3,
-                List.of(new SemanticStore.SafeChunk(0, 0, 5, "partial", List.of(1.0f)))))
-                .isInstanceOf(RuntimeException.class);
+                List.of(new SemanticStore.SafeChunk(0, 0, 5, "stale")))).isFalse();
+        assertThat(store.publish(id, "v1", "failed-generation", 3,
+                List.of(new SemanticStore.SafeChunk(0, 0, 5, "partial")))).isFalse();
         assertThat(store.state(id, "v1").status()).isEqualTo("READY");
         assertThat(store.state(id, "v1").publicationGeneration()).isEqualTo(2);
         assertThat(store.state(id, "v1").sourceHash()).isEqualTo("newer-hash");
@@ -598,6 +625,7 @@ class SemanticRagIntegrationTests extends AbstractIntegrationTest {
         assertThat(store.chunkCount(id, "v1")).isEqualTo(1);
         store.mark(id, "v1", "PROCESSING", null, store.state(id, "v1").sourceHash(), 1);
         assertThat(store.state(id, "v1").status()).isEqualTo("READY");
+        assertThat(worker.processNext()).isTrue();
         mvc.perform(post("/api/v1/semantic-index/gate-audit").header("Authorization", bearer(admin)))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.passed").value(true));
         query(admin, "forklift lifting").andExpect(status().isOk())
@@ -609,32 +637,7 @@ class SemanticRagIntegrationTests extends AbstractIntegrationTest {
     }
 
     @Test
-    void exactSimilarityAndGenerationIsolationUseOnlySelectedModel() throws Exception {
-        User admin = user(UserRole.ADMIN);
-        long forklift = ready(admin, DocumentType.PRODUCT_SPECIFICATION, "Forklift capacity is 500 kilograms.");
-        long quality = ready(admin, DocumentType.QUALITY_REQUIREMENT, "Quality inspection happens daily.");
-        approve(admin, forklift);
-        approve(admin, quality);
-        mvc.perform(post("/api/v1/semantic-index/backfill").header("Authorization", bearer(admin)))
-                .andExpect(status().isOk()).andExpect(jsonPath("$.ready").value(2));
-        float[] numbers = new float[768];
-        numbers[0] = 1;
-        List<Float> query = new java.util.ArrayList<>();
-        for (float number : numbers) query.add(number);
-        assertThat(store.search(query, 2).getFirst().documentId()).isEqualTo(forklift);
-        assertThat(store.search(query, 2).getFirst().score()).isEqualTo(1.0);
-
-        var newGeneration = new SemanticStore(new com.supplypilot.document.semantic.SemanticProperties(
-                POSTGRES.getJdbcUrl(), POSTGRES.getUsername(), POSTGRES.getPassword(),
-                "another-embedding-model", 3, "another-model-3-v1", false, 5, 0.45,
-                java.time.Duration.ofSeconds(5)));
-        newGeneration.ensureGeneration();
-        assertThat(newGeneration.search(List.of(1f, 0f, 0f), 5)).isEmpty();
-        assertThat(store.search(query, 2)).hasSize(2);
-    }
-
-    @Test
-    void documentQueryFusesMysqlAndPgvectorEvidenceOnceInReciprocalRankOrder() throws Exception {
+    void documentQueryReturnsPgvectorEvidenceWithLiveMysqlProvenance() throws Exception {
         User admin = user(UserRole.ADMIN);
         String firstContent = "Forklift capacity is 500 kilograms.";
         String secondContent = "Forklift capacity is 600 kilograms. Operators should inspect the load before every shift.";
@@ -645,23 +648,28 @@ class SemanticRagIntegrationTests extends AbstractIntegrationTest {
 
         mvc.perform(post("/api/v1/semantic-index/backfill").header("Authorization", bearer(admin)))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.ready").value(2));
+        assertThat(worker.processNext()).isTrue();
+        assertThat(worker.processNext()).isTrue();
         mvc.perform(post("/api/v1/semantic-index/gate-audit").header("Authorization", bearer(admin)))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.passed").value(true));
 
         String response = query(admin, "forklift capacity")
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value("ANSWERED"))
                 .andReturn().getResponse().getContentAsString();
+        assertThat(CHAT_EVIDENCE_SIZES).as("verified RAG evidence passed to ChatModel")
+                .isNotEmpty().allMatch(size -> size > 0);
+        assertThat(objectMapper.readTree(response).path("status").asText()).isEqualTo("ANSWERED");
         JsonNode sources = objectMapper.readTree(response).path("sources");
 
         assertThat(sources).hasSize(2);
         assertThat(sources.get(0).path("documentId").asLong()).isEqualTo(firstId);
-        assertThat(sources.get(0).path("excerpt").asText()).isEqualTo(firstContent);
+        assertThat(sources.get(0).path("excerpt").asText()).isEqualTo("Forklift capacity is 500 kilograms");
         assertThat(sources.get(0).path("relevanceScore").asDouble()).isEqualTo(1.0);
         assertThat(sources.get(1).path("documentId").asLong()).isEqualTo(secondId);
-        assertThat(sources.get(1).path("excerpt").asText()).isEqualTo(secondContent);
+        assertThat(sources.get(1).path("excerpt").asText())
+                .isEqualTo("Forklift capacity is 600 kilograms");
         assertThat(sources.get(1).path("relevanceScore").asDouble())
-                .isCloseTo(61.0 / 62.0, org.assertj.core.data.Offset.offset(1.0e-9));
+                .isEqualTo(1.0);
         assertThat(model.tasks).contains(GoogleGenAiTextEmbeddingOptions.TaskType.RETRIEVAL_QUERY);
     }
 
@@ -700,14 +708,13 @@ class SemanticRagIntegrationTests extends AbstractIntegrationTest {
         mvc.perform(post("/api/v1/semantic-index/gate-audit").header("Authorization", bearer(admin)))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.passed").value(true));
 
-        List<Float> vector = new java.util.ArrayList<>(java.util.Collections.nCopies(768, 0f));
-        vector.set(0, 1f);
-        store.publish(id, "v1", store.state(id, "v1").sourceHash(), 1,
-                List.of(new SemanticStore.SafeChunk(0, 0, content.length(), "altered text", vector)));
+        semanticJdbc.update("UPDATE semantic_rag_vectors SET content = ? WHERE metadata::jsonb ->> 'documentId' = ? "
+                        + "AND metadata::jsonb ->> 'documentVersion' = ? AND metadata::jsonb ->> 'generationKey' = ?",
+                "altered text", Long.toString(id), "v1", semanticProperties.generationKey());
         mvc.perform(get("/api/v1/semantic-index/readiness").header("Authorization", bearer(admin)))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.passed").value(false));
         query(admin, "forklift procedure").andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value("ANSWERED"));
+                .andExpect(jsonPath("$.status").value("INSUFFICIENT_EVIDENCE"));
 
         mvc.perform(post("/api/v1/semantic-index/backfill").header("Authorization", bearer(admin)))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.ready").value(1));
@@ -838,15 +845,15 @@ class SemanticRagIntegrationTests extends AbstractIntegrationTest {
         approve(admin, validId);
         mvc.perform(post("/api/v1/semantic-index/backfill").header("Authorization", bearer(admin)))
                 .andExpect(status().isOk());
+        assertThat(worker.processNext()).isTrue();
         mvc.perform(post("/api/v1/semantic-index/gate-audit").header("Authorization", bearer(admin)))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.passed").value(true));
 
-        List<Float> vector = new java.util.ArrayList<>(java.util.Collections.nCopies(768, 0f));
-        vector.set(0, 1f);
         for (long staleId = -30; staleId < 0; staleId++) {
             store.mark(staleId, "v1", "PROCESSING", null, "stale", 1);
+            seedVector(staleId, "v1", "stale", 0, 0, 0, 5, "stale");
             store.publish(staleId, "v1", "stale", 0,
-                    List.of(new SemanticStore.SafeChunk(0, 0, 5, "stale", vector)));
+                    List.of(new SemanticStore.SafeChunk(0, 0, 5, "stale")));
         }
         query(admin, "forklift procedure").andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("ANSWERED"))
@@ -876,10 +883,8 @@ class SemanticRagIntegrationTests extends AbstractIntegrationTest {
                 "unused.txt", actor, clock.instant());
         document.markReady(clock.instant());
         document = documents.saveAndFlush(document);
-        String embedding = new LocalLexicalEmbeddingProvider().embed(content).stream()
-                .map(String::valueOf).collect(Collectors.joining(","));
         chunks.saveAndFlush(DocumentChunk.create(document, 0, 0, content.length(), content,
-                embedding, clock.instant()));
+                "[]", clock.instant()));
         return document.getId();
     }
 
@@ -893,12 +898,70 @@ class SemanticRagIntegrationTests extends AbstractIntegrationTest {
                 new AuthenticatedUser(user.getId(), user.getUsername(), user.getRole()));
     }
 
+    private void seedVector(long documentId, String version, String sourceHash, long documentGeneration,
+            int chunkIndex, int startOffset, int endOffset, String content) {
+        Map<String, Object> metadata = new HashMap<>();
+        metadata.put("documentId", documentId);
+        metadata.put("documentVersion", version);
+        metadata.put("generationKey", semanticProperties.generationKey());
+        metadata.put("documentGeneration", documentGeneration);
+        metadata.put("sourceHash", sourceHash);
+        metadata.put("chunkIndex", chunkIndex);
+        metadata.put("startOffset", startOffset);
+        metadata.put("endOffset", endOffset);
+        metadata.put("documentStatus", "READY");
+        metadata.put("outboundApprovalStatus", "APPROVED");
+        String metadataJson;
+        try {
+            metadataJson = objectMapper.writeValueAsString(metadata);
+        } catch (java.io.IOException failure) {
+            throw new IllegalStateException("Could not encode test vector metadata", failure);
+        }
+        List<String> dimensions = new ArrayList<>(java.util.Collections.nCopies(768, "0"));
+        dimensions.set(0, "1");
+        String embedding = "[" + String.join(",", dimensions) + "]";
+        UUID vectorId = UUID.nameUUIDFromBytes((documentId + "\u001f" + version + "\u001f"
+                + semanticProperties.generationKey() + "\u001f" + documentGeneration + "\u001f" + chunkIndex)
+                .getBytes(StandardCharsets.UTF_8));
+        semanticJdbc.update("""
+                INSERT INTO semantic_rag_vectors (id, content, metadata, embedding)
+                VALUES (?, ?, CAST(? AS json), CAST(? AS vector))
+                """, vectorId, content, metadataJson, embedding);
+    }
+
     @TestConfiguration(proxyBeanMethods = false)
     static class FakeConfiguration {
         @Bean @Primary FakeModel fakeEmbeddingModel() { return new FakeModel(); }
+
+        @Bean @Primary
+        ChatModel fakeRagChatModel(RagEvidenceCollector collector) {
+            return new ChatModel() {
+                private final ChatOptions options = ChatOptions.builder().build();
+
+                @Override
+                public ChatResponse call(Prompt prompt) {
+                    List<com.supplypilot.document.rag.VerifiedRagEvidence> evidence = collector.get();
+                    CHAT_EVIDENCE_SIZES.add(evidence.size());
+                    String answer = evidence.stream().map(item -> item.excerpt())
+                            .findFirst().orElse("");
+                    return new ChatResponse(List.of(new Generation(new AssistantMessage(answer))));
+                }
+
+                @Override public ChatOptions getDefaultOptions() { return options; }
+                @Override public ChatOptions getOptions() { return options; }
+            };
+        }
+
+        @Bean(name = "ragDocumentEmbeddingModel")
+        EmbeddingModel ragDocumentEmbeddingModel(FakeModel model) { return model; }
+
+        @Bean(name = "ragQueryEmbeddingModel")
+        EmbeddingModel ragQueryEmbeddingModel(FakeModel model) { return model.queryModel(); }
     }
 
     static class FakeModel implements EmbeddingModel {
+        private final FakeModel shared;
+        private final GoogleGenAiTextEmbeddingOptions.TaskType taskType;
         final List<String> inputs = new CopyOnWriteArrayList<>();
         final List<GoogleGenAiTextEmbeddingOptions.TaskType> tasks = new CopyOnWriteArrayList<>();
         final AtomicBoolean fail = new AtomicBoolean();
@@ -909,13 +972,27 @@ class SemanticRagIntegrationTests extends AbstractIntegrationTest {
         volatile CountDownLatch providerStarted = new CountDownLatch(0);
         volatile CountDownLatch releaseProvider = new CountDownLatch(0);
 
+        FakeModel() {
+            shared = this;
+            taskType = GoogleGenAiTextEmbeddingOptions.TaskType.RETRIEVAL_DOCUMENT;
+        }
+
+        private FakeModel(FakeModel shared, GoogleGenAiTextEmbeddingOptions.TaskType taskType) {
+            this.shared = shared;
+            this.taskType = taskType;
+        }
+
+        FakeModel queryModel() {
+            return new FakeModel(shared, GoogleGenAiTextEmbeddingOptions.TaskType.RETRIEVAL_QUERY);
+        }
+
         @Override
         public EmbeddingResponse call(EmbeddingRequest request) {
-            transactionStates.add(TransactionSynchronizationManager.isActualTransactionActive());
-            if (blockNext.compareAndSet(true, false)) {
-                providerStarted.countDown();
+            shared.transactionStates.add(TransactionSynchronizationManager.isActualTransactionActive());
+            if (shared.blockNext.compareAndSet(true, false)) {
+                shared.providerStarted.countDown();
                 try {
-                    if (!releaseProvider.await(12, TimeUnit.SECONDS)) {
+                    if (!shared.releaseProvider.await(12, TimeUnit.SECONDS)) {
                         throw new IllegalStateException("fake provider latch timed out");
                     }
                 } catch (InterruptedException exception) {
@@ -923,19 +1000,32 @@ class SemanticRagIntegrationTests extends AbstractIntegrationTest {
                     throw new IllegalStateException("fake provider interrupted", exception);
                 }
             }
-            RuntimeException configuredFailure = failure.get();
+            RuntimeException configuredFailure = shared.failure.get();
+            if (configuredFailure instanceof RestClientResponseException response
+                    && response.getStatusCode().value() == 429) {
+                String retryAfter = response.getResponseHeaders() == null ? null
+                        : response.getResponseHeaders().getFirst(HttpHeaders.RETRY_AFTER);
+                Duration delay = null;
+                if (retryAfter != null && retryAfter.matches("[0-9]+")) {
+                    try { delay = Duration.ofSeconds(Long.parseLong(retryAfter)); }
+                    catch (ArithmeticException | NumberFormatException ignored) { }
+                }
+                throw new SemanticProviderException(ErrorCode.AI_PROVIDER_UNAVAILABLE, true, delay,
+                        "PROVIDER_RATE_LIMITED");
+            }
             if (configuredFailure != null) throw configuredFailure;
-            if (fail.get()) throw new IllegalStateException("fake provider unavailable");
-            String content = request.getInstructions().getFirst();
-            inputs.add(content);
-            GoogleGenAiTextEmbeddingOptions options =
-                    (GoogleGenAiTextEmbeddingOptions) request.getOptions();
-            assertThat(options.getDimensions()).isEqualTo(768);
-            tasks.add(options.getTaskType());
-            float[] vector = new float[768];
-            vector[content.toLowerCase().contains("forklift") ? 0 :
-                    content.toLowerCase().contains("quality") ? 1 : 2] = 1.0f;
-            return new EmbeddingResponse(List.of(new Embedding(vector, 0)));
+            if (shared.fail.get()) throw new IllegalStateException("fake provider unavailable");
+            shared.inputs.addAll(request.getInstructions());
+            shared.tasks.addAll(java.util.Collections.nCopies(request.getInstructions().size(), taskType));
+            List<Embedding> embeddings = java.util.stream.IntStream.range(0, request.getInstructions().size())
+                    .mapToObj(index -> {
+                        String content = request.getInstructions().get(index);
+                        float[] vector = new float[768];
+                        vector[content.toLowerCase().contains("forklift") ? 0 :
+                                content.toLowerCase().contains("quality") ? 1 : 2] = 1.0f;
+                        return new Embedding(vector, index);
+                    }).toList();
+            return new EmbeddingResponse(embeddings);
         }
 
         @Override

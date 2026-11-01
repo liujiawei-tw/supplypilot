@@ -62,6 +62,27 @@ AWS_SECRET_ACCESS_KEY
 
 沒有使用 AWS 時，AWS variables 可不設定。
 
+Spring AI RAG 遷移分支另外讀取下列設定；`SEMANTIC_READ_ENABLED` 預設為 `false`，不得在 Backfill、完整性核對及必要驗收完成前開啟：
+
+| Variable | Default | 用途 |
+|---|---:|---|
+| `SEMANTIC_DB_URL` | 空值 | 專用 PostgreSQL／pgvector JDBC URL；Spring Boot 主 `DB_URL` 仍是 MySQL。 |
+| `SEMANTIC_DB_USERNAME`／`SEMANTIC_DB_PASSWORD` | 空值 | PostgreSQL 登入資訊；密碼由 Secret Manager／執行環境注入。 |
+| `GEMINI_EMBEDDING_MODEL` | `gemini-embedding-001` | Spring AI EmbeddingModel ID。 |
+| `SEMANTIC_DIMENSIONS` | `768` | PgVectorStore 向量維度。 |
+| `SEMANTIC_GENERATION_KEY` | `gemini-embedding-001-768-spring-ai-chunk500-overlap70-v2` | 隔離模型、維度及 chunking 世代。 |
+| `SEMANTIC_TOP_K` | `8` | 最終核准來源數上限。 |
+| `SEMANTIC_SIMILARITY_THRESHOLD` | `0.4` | 向量檢索相似度下限。 |
+| `SEMANTIC_READ_ENABLED` | `false` | 文件 RAG 查詢啟用閘門。 |
+| `DOCUMENT_RAG_CHUNK_SIZE` | `500` | TokenTextSplitter chunk 設定。 |
+| `DOCUMENT_RAG_CHUNK_OVERLAP_CHARACTERS` | `70` | 來源文字字元 overlap wrapper 設定。 |
+| `DOCUMENT_RAG_MAX_CHUNKS` | `1000` | 每份文件切塊硬上限。 |
+| `DOCUMENT_RAG_PARSER_TIMEOUT` | `30s` | PDF/DOCX Tika 解析工作逾時；允許範圍大於 0 且不超過 5 分鐘。TXT 讀取仍受檔案大小及 UTF-8 檢查限制。 |
+| `SEMANTIC_EMBEDDING_TIMEOUT` | `15s` | Spring AI EmbeddingModel 單次呼叫逾時。 |
+| `SEMANTIC_VECTOR_CLEANUP_INTERVAL_MILLIS` | `300000` | worker 啟用時向量清理排程的固定間隔；每輪最多處理一頁 stale/revoked 向量。 |
+
+目前程式包含 Tika 解析逾時、Embedding timeout、PgVectorStore 索引與 stale-vector cleanup。成功發布會同步寫入 `semantic_chunks` 相容投影；舊表與資料保留。Testcontainers PgVectorStore 投影與 Agentic SQL regression 已通過；正式／Demo DB migration、Backfill、文件資料對帳及真實文件問答流程尚未驗證。正式設定與 Backfill 前置作業見 [`semantic-rag-runbook.md`](semantic-rag-runbook.md)。
+
 ---
 
 # 3. Local
@@ -307,6 +328,8 @@ AI_MONTHLY_TOKEN_WARNING_THRESHOLD=1000000
 也可作為相容別名，但 `GEMINI_*` 優先。`.env` 不會被直接載入為 Spring 環境變數，
 啟動流程仍須安全地注入；單純填入 `.env` 不會自動啟用 Provider。
 
+文件 RAG 的 Gemini Chat 溫度固定為 `0.4`，未設定應用程式層級的輸出 token 上限，使用 Gemini Provider／模型預設上限。`AI_MAX_OUTPUT_TOKENS` 仍限制有明確套用 `AiProperties` 的其他 AI 呼叫，不套用於文件 RAG 的 `ChatClient`。
+
 不得：
 
 ```text
@@ -417,7 +440,7 @@ System.getenv()
 - API Key 或憑證禁止 Commit、寫入 Log 或傳回 HTTP Response。Timeout / Unavailable / Invalid Response 沿用既有 AI Error Contract。
 - Local/Test 若未設定 Provider，核心 Backend 不得因為 AI 功能未啟用而無法啟動；呼叫未啟用的 AI 能力才返回適切既有 AI Error。
 - 自動化測試透過 Fake ChatModel／ToolCallback 運作，不得呼叫真實付費 Provider。Production 需要有效 Provider 設定，且不得使用 Fake Provider 偽裝成真正的模型整合。
-- V1 使用同步單輪 JSON，不配置 Chat Memory。`AI_MAX_OUTPUT_TOKENS` 限制每次模型輸出，`AI_MAX_TOOL_CALLS` 限制一次請求的工具執行次數，`AI_MAX_MODEL_CALLS` 限制模型呼叫輪數，`AI_PROVIDER_TIMEOUT` 限制整次 Provider 等待時間。預設分別為 512、4、5、15 秒。
+- V1 使用同步單輪 JSON，不配置 Chat Memory。`AI_MAX_OUTPUT_TOKENS` 限制明確套用 `AiProperties` 的模型呼叫；文件 RAG 不配置應用程式層級輸出 token 上限。`AI_MAX_TOOL_CALLS` 限制一次請求的工具執行次數，`AI_MAX_MODEL_CALLS` 限制模型呼叫輪數，`AI_PROVIDER_TIMEOUT` 限制整次 Provider 等待時間。其他 AI 呼叫的預設分別為 512、4、5、15 秒。
 - AI Query 的唯讀 allowlist 關閉 `returnDirect`，Spring AI 可在同一請求呼叫多個工具。`answer` 與 `sources` 一律由 Backend 已授權工具結果組成；複合查詢不完整時，可顯示個別通過驗證的事實，並在 `details.notes` 指明缺漏；若沒有可用部分事實，`answer=null`。後端另以 `summary` 回傳經狀態驗證的安全句型，前端在型別化 `details` 之前顯示摘要。摘要不得包含業務事實或數字，也不代表任意 LLM 改寫已通過語意驗證。摘要有效且實際顯示時才使用 `answerSource=MODEL_EXPLANATION`；摘要無效、缺漏或未顯示時使用 `BACKEND_FACTS`。`purchaseOrderTotalCount` 回傳符合條件的總筆數，`purchaseOrders` 最多取得 100 筆；前端需同時呈現真實總數、已取得筆數與尚未列出筆數。資料查詢失敗使用 `AI_QUERY_FAILED`，與查無業務資料的 `NOT_FOUND` 分開。
 - 缺少 Material Code／Recommendation ID 等必要識別時，`status=NEEDS_CLARIFICATION`、`answer` 說明需補充的欄位、`tools=[]`、`sources=[]`、`answerSource=BACKEND_CLARIFICATION`；V1 不保存上下文，需重新提出完整問題。
 - Tool Result 傳給 Gemini 的內容限定為工具種類、狀態及最多 1500 字的查詢事實，不傳 Source 摘錄或無關資料。月度 Token 用量警示的實際規則與驗證方式見下節；此警示不是平台硬費用上限。
@@ -548,3 +571,9 @@ SEMANTIC_INDEX_INITIAL_RETRY_DELAY=PT2S
 SEMANTIC_INDEX_MAX_RETRY_DELAY=PT1M
 
 Worker 預設啟用。部署多個 Backend instance 時，MySQL FOR UPDATE SKIP LOCKED 協調各 instance 領取不同工作；lease 到期後可回收中斷工作。退避及 Provider Retry-After 都受最大 retry delay 限制。測試 profile 關閉排程 worker，以便測試明確控制 job 執行。
+
+## Spring AI RAG 遷移驗證狀態（2026-11-01）
+
+目前功能分支查詢路徑為 `DocumentQueryService → ChatClient → RetrievalAugmentationAdvisor → VectorStoreDocumentRetriever → PgVectorStore`；索引路徑以 Spring AI 文件解析／chunking 將核准片段寫入 `semantic_rag_vectors`，完成發布後建立 `semantic_chunks` 相容投影。遷移相關 Maven 與 Testcontainers 測試已執行；完整 `verify` 為 1,093 tests、4 failures、0 errors、2 skipped、Exit Code 1。三項 AI controller failure 在 main 基線重現；read gate 預期更新後的單項 Testcontainers 測試通過 1/1。細項與原始 log 位置見 [`docs/evidence/spring-ai-rag-validation-2026-11-01.md`](evidence/spring-ai-rag-validation-2026-11-01.md)。
+
+`SemanticRagIntegrationTests` 的 Testcontainers MySQL／PostgreSQL/pgvector、PgVectorStore migration／相容投影測試及 Agentic SQL regression 類別通過；這些不代表正式／Demo 資料已 migration、Backfill 或完成完整性對帳。真實 Gemini Embedding／Chat synthetic smoke 2/2 通過，隔離 Compose 只驗服務 healthy，沒有做真實文件 RAG 查詢。Browser E2E 與部署資料驗收仍未執行；`SEMANTIC_READ_ENABLED=false`。GitHub Actions：`PAUSED BY USER / NOT USED AS GATE`。

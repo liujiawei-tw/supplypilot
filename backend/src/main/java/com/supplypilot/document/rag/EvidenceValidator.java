@@ -21,8 +21,15 @@ public class EvidenceValidator {
     private static final double MINIMUM_SCORE = 0.15;
     private static final Pattern EVIDENCE_CLAUSE_BOUNDARY = Pattern.compile(
             "(?<=[。！？!?])\\s*|(?<!\\d)\\.(?!\\d)\\s*|[，,；;\\r\\n]+");
+    private static final Pattern TEMPORAL_ROLE_MARKER = Pattern.compile("【(?:歷史|現行)條件】");
     private static final Pattern EVIDENCE_SENTENCE_BOUNDARY = Pattern.compile(
             "(?<=[。！？!?])\\s*|(?<!\\d)\\.(?!\\d)\\s*|\\r?\\n+");
+    private static final Pattern MATERIAL_CONTEXT_BOUNDARY = Pattern.compile(
+            "(?<=[。！？!?])\\s*|(?<!\\d)\\.(?!\\d)\\s*|[;；\\r\\n]+");
+    private static final Pattern ORDINAL_STAGE_REFERENCE = Pattern.compile(
+            "第\\s*幾\\s*(?:個)?\\s*(?:階段|步驟|階|步)");
+    private static final Pattern PRODUCT_NAME_EVIDENCE = Pattern.compile(
+            "(?i)(?:主檔名稱|物料名稱|品項名稱|產品名稱|\\b(?:product|material|item)\\s+name\\b)");
     private static final Pattern QUESTION_HINT = Pattern.compile("(?i)^(?:問答\\s*[:：]|預期依據\\s*[:：]|q\\s*&\\s*a\\s*[:：])");
     private static final Pattern CONDITION_LEAD = Pattern.compile(
             "(?i)(?:若|如果|假如|倘若|如|當|凡是|凡發生|\\bif\\b|\\bwhen\\b|\\bunless\\b|"
@@ -31,6 +38,9 @@ public class EvidenceValidator {
             "(?i)(?:這些(?:情況|狀況|條件)|上述(?:情況|狀況|條件)?|以上(?:情況|狀況|條件)?|"
                     + "these\\s+(?:conditions|cases|situations)|those\\s+(?:conditions|cases|situations)|"
                     + "such\\s+(?:conditions|cases|situations)|\\bthey\\b)");
+    private static final Pattern CONDITIONAL_DISPOSITION_QUESTION = Pattern.compile(
+            "(?i)(?:如何|怎麼|怎樣|應如何).{0,12}(?:處理|處置|因應|應對)|"
+                    + "(?:what|how).{0,32}(?:handle|handled|happen|do|respond)");
     private static final Pattern SPECIFIC_CONDITION = Pattern.compile(
             "(?i)(?:缺(?:少|失)|不足|破損|損壞|受(?:到)?污染|污染|不符|停機|故障|逾期|遺失|錯誤|失效|洩漏|"
                     + "超(?:出|過)|broken|damaged?|contaminated|incorrect|mismatch(?:ed)?|missing|absent|"
@@ -62,7 +72,7 @@ public class EvidenceValidator {
                     + "|\\d+(?:[.,]\\d+)?\\s*(?:元|圓)");
     private static final String NUMERIC_VALUE = "\\d+(?:[.,]\\d+)?";
     private static final String DURATION_VALUE = "(?:calendar\\s+days?|business\\s+days?|days?|weeks?|months?|years?|"
-            + "hours?|minutes?|個曆日|曆日|工作天|工作日|天|日|週|星期|個月|年|小時|分鐘)";
+            + "hours?|minutes?|個日曆日|個曆日|日曆日|曆日|個工作天|個工作日|工作天|工作日|天|日|週|星期|個月|年|小時|分鐘)";
     private static final Pattern DELIVERY_ASSERTION = Pattern.compile("(?i)(?:標準)?(?:交貨期|交期|"
             + "standard\\s+lead\\s+time|lead\\s+time|delivery\\s+time|delivery)"
             + "[^。！？.!?，,；;\\r\\n]{0,35}?(?:為|是|訂為|定為|requires|is|takes|equals|:|：)"
@@ -91,14 +101,32 @@ public class EvidenceValidator {
     /** Query concept aliases support common Chinese/English terminology without supplying answers. */
     private static final List<Topic> TOPICS = List.of(
             new Topic("delivery", "lead time", "delivery time", "standard delivery", "standard lead time",
-                    "交期", "交貨期", "標準交期"),
+                    "交期", "交貨期", "標準交期", "到貨日", "承諾到貨日", "公司期望到貨日",
+                    "期望到貨日", "期望日期", "延誤", "延遲", "延後", "遲延"),
             new Topic("quotation validity", "quotation", "quote", "validity", "valid",
-                    "報價", "報價期間", "有效期限", "有效期", "有效期間", "有效至", "屆滿", "到期"),
+                    "報價", "報價期間", "有效期限", "有效期", "有效日", "供貨條件有效日",
+                    "有效期間", "有效至", "屆滿", "到期"),
+            new Topic("minimum order quantity", "minimum order quantity", "moq", "最低訂購量", "最低量",
+                    "最低起訂量", "最小訂購量", "起訂量"),
+            new Topic("packaging multiple", "packaging multiple", "order increment", "package multiple",
+                    "包裝倍數", "包裝增量", "訂購倍數", "整數倍"),
             new Topic("storage", "storage", "stored", "store", "storage condition",
                     "儲存", "存放", "保存"),
+            new Topic("product name", "product name", "material name", "item name", "name",
+                    "主檔名稱", "物料名稱", "品項名稱", "產品名稱", "名稱"),
             new Topic("unit", "base unit", "unit", "基本單位", "單位"),
+            new Topic("label information", "label", "label information", "labeling", "labelling",
+                    "label display", "display on label", "標籤", "標示", "標籤顯示", "標籤上顯示", "辨認"),
             new Topic("role", "role", "who", "responsible", "operator", "人員", "角色", "誰"),
-            new Topic("receiving", "receive", "receiving", "receipt", "收貨", "收取"),
+            new Topic("receiving", "receive", "receiving", "receipt", "partial receipt", "partial receiving",
+                    "收貨", "收取", "部分收貨", "收一部分"),
+            new Topic("purchase order cancellation", "cancellation", "cancel", "cancelled", "取消採購單",
+                    "取消"),
+            new Topic("supplier material relations", "supplier material relationships", "supply relationships",
+                    "供應材料關係", "供貨關係", "供應關係"),
+            new Topic("quality evidence", "quality checklist", "inspection result", "inspection evidence",
+                    "到貨文件檢核點", "檢核點", "檢查點", "檢驗結果", "檢驗文件", "檢驗證據"),
+            new Topic("cooperation history", "cooperation history", "合作歷程", "合作案例", "來源契約", "案例日期", "處理結果"),
             new Topic("approval", "approve", "approval", "核准"),
             new Topic("quarantine", "isolate", "isolated", "isolation", "quarantine", "quarantined", "隔離"),
             new Topic("payment", "payment", "pay", "payment terms", "付款"),
@@ -136,29 +164,68 @@ public class EvidenceValidator {
 
     /** Returns bounded source clauses/sentences that support requested facts, never generated business claims. */
     public String supportedExcerpt(String question, String content) {
+        return supportedExcerpt(question, content, content);
+    }
+
+    /**
+     * Validates facts selected from one local chunk while using only the same verified document's safe text to
+     * disambiguate supplier/material scope. Scope text never contributes clauses to the returned excerpt.
+     */
+    public String supportedExcerpt(String question, String localContent, String scopeContent) {
+        if (localContent == null || localContent.isBlank()) return "";
+        String verifiedScope = scopeContent == null ? "" : scopeContent;
+        String identifierScope = splitEvidenceClauses(verifiedScope).stream()
+                .filter(clause -> !isQuestionHint(clause))
+                .collect(java.util.stream.Collectors.joining(" "));
         List<Topic> requestedTopics = requestedTopics(question);
         Set<String> identifiers = identifiers(question);
         Set<String> materialIdentifiers = materialIdentifiers(question);
-        Set<String> sourceMaterialIdentifiers = materialIdentifiers(content);
-        if (!sourceMaterialIdentifiers.containsAll(materialIdentifiers)) return "";
-        boolean conditionListQuestion = asksForConditions(question);
-        List<String> clauses = conditionListQuestion
-                ? supportedConditionWindows(question, content) : splitEvidenceClauses(content);
+        Set<String> sourceMaterialIdentifiers = materialIdentifiers(identifierScope);
+        if (!materialIdentifiers.isEmpty()
+                && materialIdentifiers.stream().noneMatch(sourceMaterialIdentifiers::contains)) return "";
+        boolean conditionEvidenceRequested = asksForConditions(question)
+                || asksForConditionalDisposition(question, requestedTopics);
+        boolean cancellationQuestion = requestedTopics.stream()
+                .anyMatch(topic -> topic.name().equals("purchase order cancellation"));
+        List<String> clauses = conditionEvidenceRequested
+                ? supportedConditionWindows(question, localContent)
+                : cancellationQuestion ? splitEvidenceSentences(localContent) : splitEvidenceClauses(localContent);
         clauses = clauses.stream().filter(clause -> hasNoConflictingIdentifiers(clause, identifiers)).toList();
         List<String> matching = new ArrayList<>();
         boolean quantitative = needsQuantitativeAnswer(question);
-        if (!requestedTopics.isEmpty()) {
+        if (conditionEvidenceRequested) {
+            // supportedConditionWindows already requires a concrete condition and its disposition;
+            // do not split that verified pair back into a condition-only fragment here.
+            matching.addAll(clauses.stream().filter(clause -> !isQuestionHint(clause))
+                    .map(String::trim).toList());
+            List<Topic> otherFacetTopics = requestedTopics.stream()
+                    .filter(topic -> !topic.name().equals("quarantine")).toList();
+            if (!otherFacetTopics.isEmpty()) {
+                for (String clause : splitEvidenceClauses(localContent)) {
+                    if (isQuestionHint(clause) || !hasNoConflictingIdentifiers(clause, identifiers)
+                            || clauses.stream().anyMatch(window -> window.contains(clause))
+                            || (hasConditionLead(clause) && !CONDITION_ACTION.matcher(clause).find()
+                                    && splitEvidenceSentences(localContent).stream()
+                                            .filter(sentence -> sentence.contains(clause))
+                                            .noneMatch(sentence -> CONDITION_ACTION.matcher(sentence).find()))
+                            || otherFacetTopics.stream().noneMatch(topic -> topicMatchesEvidence(topic, clause))) {
+                        continue;
+                    }
+                    String scopedClause = materialScopedClause(localContent, clause, materialIdentifiers,
+                            sourceMaterialIdentifiers);
+                    if (scopedClause != null) matching.add(scopedClause.trim());
+                }
+            }
+        } else if (!requestedTopics.isEmpty()) {
             for (String clause : clauses) {
                 if (isQuestionHint(clause)) continue;
                 String normalized = normalize(clause);
-                boolean topicMatch = quantitative
-                        ? requestedTopics.stream().allMatch(topic -> topic.matches(normalized))
-                        : requestedTopics.stream().anyMatch(topic -> topic.matches(normalized));
-                boolean materialMatch = materialIdentifiers.isEmpty()
-                        || sourceMaterialIdentifiers.size() <= 1
-                        || IdentifierMatcher.containsAll(normalized, materialIdentifiers);
-                if (topicMatch && materialMatch && (!quantitative || containsSupportedValue(question, List.of(clause)))) {
-                    matching.add(clause.trim());
+                boolean topicMatch = requestedTopics.stream().anyMatch(topic -> topicMatchesEvidence(topic, normalized));
+                String scopedClause = materialScopedClause(localContent, clause, materialIdentifiers,
+                        sourceMaterialIdentifiers);
+                if (topicMatch && scopedClause != null
+                        && (!quantitative || containsSupportedValue(question, List.of(clause)))) {
+                    matching.add(scopedClause.trim());
                 }
             }
         } else {
@@ -169,22 +236,32 @@ public class EvidenceValidator {
                 if (hasEnoughLexicalSupport(queryTerms, overlap)) matching.add(clause.trim());
             }
         }
+        Set<String> requestedSuppliers = supplierIdentifiers(identifiers);
+        Set<String> sourceSuppliers = supplierIdentifiers(IdentifierMatcher.find(identifierScope));
+        if (!requestedSuppliers.isEmpty() && sourceSuppliers.size() > 1) {
+            // In a mixed-supplier source, each selected fact needs its own supplier binding.
+            // A requested SUP ID on a different selected facet must not authorize an unbound one.
+            matching.removeIf(clause -> supplierIdentifiers(IdentifierMatcher.find(clause)).stream()
+                    .noneMatch(requestedSuppliers::contains));
+        }
         String excerpt = matching.stream().filter(value -> !value.isBlank()).distinct()
-                .collect(java.util.stream.Collectors.joining(" "));
-        if (excerpt.isBlank() || !containsAllIdentifiers(content, identifiers)) return "";
-        if (!containsAllTopics(question, matching)) return "";
+                .collect(java.util.stream.Collectors.joining("；"));
+        if (excerpt.isBlank() || !matchesRequestedIdentifierScope(identifierScope, excerpt, identifiers)) {
+            return "";
+        }
+        if (!containsAnyTopic(question, matching)) return "";
         if (needsQuantitativeAnswer(question) && !containsSupportedValue(question, matching)) return "";
         return excerpt;
     }
 
     private boolean supportsQuestion(String question, String content) {
-        String normalizedContent = normalize(content);
         List<Topic> requestedTopics = requestedTopics(question);
-        if (!containsAllIdentifiers(normalizedContent, identifiers(question))) return false;
         if (!requestedTopics.isEmpty()) {
-            if (requestedTopics.stream().anyMatch(topic -> !topic.matches(normalizedContent))) return false;
             String excerpt = supportedExcerpt(question, content);
             return !excerpt.isBlank();
+        }
+        if (asksForConditions(question) || asksForConditionalDisposition(question, requestedTopics)) {
+            return !supportedExcerpt(question, content).isBlank();
         }
         Set<String> terms = meaningfulTerms(question);
         long overlap = terms.stream().filter(term -> meaningfulTerms(content).contains(term)).count();
@@ -199,7 +276,7 @@ public class EvidenceValidator {
 
     private Set<String> meaningfulTerms(String text) {
         Set<String> terms = new HashSet<>();
-        for (String term : LocalLexicalEmbeddingProvider.tokens(text)) {
+        for (String term : EvidenceTextTokenizer.tokens(text)) {
             if (term.length() > 1 && !QUESTION_WORDS.contains(term)) terms.add(term);
             else if (term.length() == 1 && term.charAt(0) >= 0x4E00 && !CJK_STOP_CHARACTERS.contains(term)) {
                 terms.add(term);
@@ -210,7 +287,24 @@ public class EvidenceValidator {
 
     private List<Topic> requestedTopics(String question) {
         String normalized = normalize(question);
-        return TOPICS.stream().filter(topic -> topic.matches(normalized)).toList();
+        return TOPICS.stream().filter(topic -> topic.matches(normalized))
+                .filter(topic -> !topic.name().equals("product name") || isProductNameQuestion(question, normalized))
+                .toList();
+    }
+
+    private boolean isProductNameQuestion(String question, String normalizedQuestion) {
+        boolean explicitProductName = containsAny(normalizedQuestion, "product name", "material name", "item name",
+                "主檔名稱", "物料名稱", "品項名稱", "產品名稱");
+        boolean supplierName = containsAny(normalizedQuestion, "supplier name", "vendor name", "供應商名稱");
+        return explicitProductName || (!supplierName && !materialIdentifiers(question).isEmpty());
+    }
+
+    private boolean topicMatchesEvidence(Topic topic, String text) {
+        String normalizedText = normalize(text);
+        if (topic.name().equals("product name")) {
+            return PRODUCT_NAME_EVIDENCE.matcher(normalizedText).find();
+        }
+        return topic.matches(normalizedText);
     }
 
     private Set<String> identifiers(String question) {
@@ -218,21 +312,63 @@ public class EvidenceValidator {
     }
 
     private Set<String> materialIdentifiers(String text) {
-        return IdentifierMatcher.find(text).stream()
+        return identifierComponents(IdentifierMatcher.find(text)).stream()
                 .filter(identifier -> identifier.startsWith("MAT-") || identifier.startsWith("MATERIAL-"))
                 .collect(java.util.stream.Collectors.toSet());
     }
 
+    /** Slash-delimited supplier/material pairs contain two independently scoped identifiers. */
+    private Set<String> identifierComponents(Set<String> identifiers) {
+        return identifiers.stream().flatMap(identifier -> java.util.Arrays.stream(identifier.split("/")))
+                .map(String::trim).filter(value -> !value.isBlank())
+                .collect(java.util.stream.Collectors.toUnmodifiableSet());
+    }
+
     private boolean needsQuantitativeAnswer(String question) {
-        String normalized = normalize(question);
+        String normalized = ORDINAL_STAGE_REFERENCE.matcher(normalize(question)).replaceAll(" ");
         return containsAny(normalized, "多少", "幾", "多久", "費率", "保費", "rate", "premium",
                 "how much", "how many", "how long", "what is the fee", "what is the cost");
     }
 
-    private boolean containsAllTopics(String question, List<String> sentences) {
+    private boolean containsAnyTopic(String question, List<String> sentences) {
         List<Topic> requested = requestedTopics(question);
-        return requested.stream().allMatch(topic -> sentences.stream()
-                .anyMatch(sentence -> topic.matches(normalize(sentence))));
+        if (requested.isEmpty() || requested.stream().anyMatch(topic -> sentences.stream()
+                .anyMatch(sentence -> topic.matches(normalize(sentence))))) return true;
+        return asksForConditionalDisposition(question, requested) && sentences.stream()
+                .anyMatch(sentence -> hasConditionInformation(sentence)
+                        && CONDITION_ACTION.matcher(sentence).find()
+                        && sharesSpecificCondition(question, sentence));
+    }
+
+    private String materialScopedClause(String localContent, String clause, Set<String> requestedMaterials,
+            Set<String> sourceMaterials) {
+        if (requestedMaterials.isEmpty()) return clause;
+        Set<String> clauseMaterials = materialIdentifiers(clause);
+        if (!clauseMaterials.isEmpty()) {
+            return clauseMaterials.stream().allMatch(requestedMaterials::contains) ? clause : null;
+        }
+        if (requestedMaterials.size() != 1) return null;
+        if (sourceMaterials.equals(requestedMaterials)) return clause;
+
+        int searchFrom = 0;
+        int clauseStart;
+        while ((clauseStart = localContent.indexOf(clause, searchFrom)) >= 0) {
+            int contextStart = materialContextStart(localContent, clauseStart);
+            Set<String> precedingMaterials = materialIdentifiers(localContent.substring(contextStart, clauseStart));
+            if (precedingMaterials.equals(requestedMaterials)) {
+                return localContent.substring(contextStart, clauseStart + clause.length());
+            }
+            searchFrom = clauseStart + 1;
+        }
+        return null;
+    }
+
+    private int materialContextStart(String content, int endOffset) {
+        int start = 0;
+        Matcher matcher = MATERIAL_CONTEXT_BOUNDARY.matcher(content);
+        while (matcher.find() && matcher.end() <= endOffset) start = matcher.end();
+        while (start < endOffset && Character.isWhitespace(content.charAt(start))) start++;
+        return start;
     }
 
     private boolean containsSupportedValue(String question, List<String> sentences) {
@@ -258,13 +394,68 @@ public class EvidenceValidator {
         return false;
     }
 
-    private boolean containsAllIdentifiers(String content, Set<String> identifiers) {
-        return IdentifierMatcher.containsAll(content, identifiers);
+    private boolean matchesRequestedIdentifierScope(String scopeContent, String supportingExcerpt,
+            Set<String> requestedIdentifiers) {
+        if (requestedIdentifiers.isEmpty()) return true;
+        Set<String> supportIdentifiers = IdentifierMatcher.find(supportingExcerpt);
+        if (!hasNoConflictingIdentifiers(supportingExcerpt, requestedIdentifiers)) return false;
+        Set<String> requestedSuppliers = supplierIdentifiers(requestedIdentifiers);
+        Set<String> sourceSuppliers = supplierIdentifiers(IdentifierMatcher.find(scopeContent));
+        // An identifier-free policy can support a supplier-scoped question, but a source tied to
+        // a different supplier must not become relevant merely because its selected clause omits
+        // the supplier code. This also protects combined supplier/material questions when the
+        // source has the requested material elsewhere in the document.
+        if (!requestedSuppliers.isEmpty() && !sourceSuppliers.isEmpty()
+                && sourceSuppliers.stream().noneMatch(requestedSuppliers::contains)) return false;
+        if (sourceSuppliers.size() > 1 && !requestedSuppliers.isEmpty()) {
+            Set<String> evidenceSuppliers = supplierIdentifiers(supportIdentifiers);
+            if (evidenceSuppliers.stream().noneMatch(requestedSuppliers::contains)) return false;
+        }
+        Set<String> requestedMaterials = materialIdentifiers(String.join(" ", requestedIdentifiers));
+        Set<String> sourceMaterials = materialIdentifiers(scopeContent);
+        if (!requestedMaterials.isEmpty()
+                && requestedMaterials.stream().noneMatch(sourceMaterials::contains)) return false;
+        if (requestedIdentifiers.stream().allMatch(this::isSupplierIdentifier)) {
+            Set<String> supportSuppliers = supplierIdentifiers(supportIdentifiers);
+            Set<String> supportMaterials = materialIdentifiers(supportingExcerpt);
+            // Identifier-free generic policy can support a supplier-only question. A fact tied to a
+            // material can inherit supplier scope only when the verified document has one supplier.
+            if (supportSuppliers.isEmpty()) {
+                if (supportMaterials.isEmpty()) return true;
+                return sourceSuppliers.size() == 1 && sourceSuppliers.stream().anyMatch(requestedSuppliers::contains);
+            }
+            return supportSuppliers.stream().anyMatch(requestedSuppliers::contains);
+        }
+        if (!requestedMaterials.isEmpty()) {
+            Set<String> supportMaterials = materialIdentifiers(supportingExcerpt);
+            return !supportMaterials.isEmpty()
+                    ? supportMaterials.stream().anyMatch(requestedMaterials::contains)
+                    : requestedMaterials.size() == 1 && sourceMaterials.equals(requestedMaterials);
+        }
+        if (supportIdentifiers.isEmpty()) return false;
+        // A candidate may support one facet of a cross-document question (for example, a material
+        // quality rule) without repeating every supplier identifier named by the query. Exact
+        // requested material IDs are checked against the whole source above; identifier conflicts
+        // are checked only against the selected evidence clauses, so another material's fact does
+        // not invalidate a matching clause.
+        return supportIdentifiers.stream().anyMatch(requestedIdentifiers::contains);
+    }
+
+    private Set<String> supplierIdentifiers(Set<String> identifiers) {
+        return identifierComponents(identifiers).stream().filter(this::isSupplierIdentifier)
+                .collect(java.util.stream.Collectors.toUnmodifiableSet());
+    }
+
+    private boolean isSupplierIdentifier(String identifier) {
+        // Supplier type labels such as SUPPLIER_CONTRACT are identifiers to the generic
+        // tokenizer, but are not supplier codes and must not make a single-supplier document
+        // look ambiguous. Supplier codes use a hyphen after the SUP/SUPPLIER prefix.
+        return identifier.matches("(?i)(?:SUP|SUPPLIER)-[A-Z0-9]+(?:-[A-Z0-9]+)*");
     }
 
     private boolean hasNoConflictingIdentifiers(String clause, Set<String> requestedIdentifiers) {
         if (requestedIdentifiers.isEmpty()) return true;
-        Set<String> clauseIdentifiers = IdentifierMatcher.find(clause);
+        Set<String> clauseIdentifiers = identifierComponents(IdentifierMatcher.find(clause));
         return clauseIdentifiers.stream().noneMatch(clauseIdentifier -> {
             String family = identifierFamily(clauseIdentifier);
             return requestedIdentifiers.stream().anyMatch(requested -> identifierFamily(requested).equals(family))
@@ -280,8 +471,30 @@ public class EvidenceValidator {
     }
 
     private List<String> splitEvidenceClauses(String content) {
-        return List.of(EVIDENCE_CLAUSE_BOUNDARY.split(content)).stream()
-                .filter(clause -> !isQuestionHint(clause)).toList();
+        List<String> clauses = new ArrayList<>();
+        String activeRole = "";
+        for (String rawClause : EVIDENCE_CLAUSE_BOUNDARY.split(content)) {
+            String clause = rawClause.trim();
+            if (clause.isBlank() || isQuestionHint(clause)) continue;
+            Matcher roleMarkers = TEMPORAL_ROLE_MARKER.matcher(clause);
+            while (roleMarkers.find()) activeRole = roleMarkers.group();
+            if (activeRole.isBlank()) {
+                clauses.add(clause);
+            } else if (TEMPORAL_ROLE_MARKER.matcher(clause).find()) {
+                clauses.add(clause);
+            } else {
+                // Clause splitting can place a role tag before a comma while leaving the actual
+                // date or fact after it. Keep the source's explicit role with later clauses until
+                // another role marker occurs; this does not cross source chunks or documents.
+                clauses.add(activeRole + " " + clause);
+            }
+        }
+        return List.copyOf(clauses);
+    }
+
+    private List<String> splitEvidenceSentences(String content) {
+        return List.of(EVIDENCE_SENTENCE_BOUNDARY.split(content)).stream()
+                .map(String::trim).filter(sentence -> !sentence.isBlank() && !isQuestionHint(sentence)).toList();
     }
 
     private List<String> supportedConditionWindows(String question, String content) {
@@ -297,22 +510,23 @@ public class EvidenceValidator {
                 }
             }
 
-            if (supportsListQuestion(question, sentence, topics) && index > 0
-                    && CONDITION_REFERENCE.matcher(sentence).find()
+            if (index > 0 && CONDITION_REFERENCE.matcher(sentence).find()
                     && hasConditionInformation(sentences.get(index - 1))) {
-                supported.add(sentences.get(index - 1) + " " + sentence);
+                String linked = sentences.get(index - 1) + " " + sentence;
+                if (supportsListQuestion(question, linked, topics)) supported.add(linked);
             }
-            if (supportsListQuestion(question, sentence, topics) && index > 0
-                    && endsWithEnumerationContinuation(sentences.get(index - 1))) {
+            if (index > 0 && endsWithEnumerationContinuation(sentences.get(index - 1))) {
                 int start = index - 1;
                 while (start > 0 && endsWithEnumerationContinuation(sentences.get(start - 1))) start--;
                 String continuation = String.join(" ", sentences.subList(start, index + 1));
-                if (hasConditionInformation(continuation)) supported.add(continuation);
+                if (hasConditionInformation(continuation) && supportsListQuestion(question, continuation, topics)) {
+                    supported.add(continuation);
+                }
             }
             if (index + 1 < sentences.size()) {
                 String nextSentence = sentences.get(index + 1);
                 if (hasConditionInformation(sentence) && CONDITION_REFERENCE.matcher(nextSentence).find()
-                        && supportsListQuestion(question, nextSentence, topics)) {
+                        && supportsListQuestion(question, sentence + " " + nextSentence, topics)) {
                     supported.add(sentence + " " + nextSentence);
                 }
             }
@@ -354,13 +568,45 @@ public class EvidenceValidator {
                 + "^when\\s+should\\b.*");
     }
 
+    private boolean asksForConditionalDisposition(String question, List<Topic> topics) {
+        String normalized = normalize(question);
+        boolean genericWhenQuestion = normalized.matches("^when\\s+should\\b.*");
+        boolean explicitCondition = SPECIFIC_CONDITION.matcher(normalized).find()
+                || (CONDITION_LEAD.matcher(normalized).find() && !genericWhenQuestion);
+        return explicitCondition
+                && (topics.stream().anyMatch(topic -> topic.name().equals("quarantine"))
+                || CONDITIONAL_DISPOSITION_QUESTION.matcher(normalized).find());
+    }
+
     private boolean supportsListQuestion(String question, String sentence, List<Topic> topics) {
+        boolean quarantineQuestion = topics.stream().anyMatch(topic -> topic.name().equals("quarantine"));
+        if (quarantineQuestion) {
+            if (!hasConditionInformation(sentence) || !CONDITION_ACTION.matcher(sentence).find()
+                    || topics.stream().noneMatch(topic -> topic.matches(normalize(sentence)))) return false;
+            return !asksForConditionalDisposition(question, topics) || sharesSpecificCondition(question, sentence);
+        }
+        if (asksForConditionalDisposition(question, topics)) {
+            return hasConditionInformation(sentence) && CONDITION_ACTION.matcher(sentence).find()
+                    && sharesSpecificCondition(question, sentence);
+        }
         if (topics.stream().anyMatch(topic -> topic.matches(normalize(sentence)))) return true;
         if (!topics.isEmpty()) return false;
         Set<String> queryTerms = meaningfulTerms(question);
         Set<String> sentenceTerms = meaningfulTerms(sentence);
         long overlap = queryTerms.stream().filter(sentenceTerms::contains).count();
         return hasEnoughLexicalSupport(queryTerms, overlap);
+    }
+
+    private boolean sharesSpecificCondition(String question, String sentence) {
+        Set<String> questionConditions = matchedConditions(question);
+        return matchedConditions(sentence).stream().anyMatch(questionConditions::contains);
+    }
+
+    private Set<String> matchedConditions(String value) {
+        Set<String> conditions = new HashSet<>();
+        Matcher matcher = SPECIFIC_CONDITION.matcher(normalize(value));
+        while (matcher.find()) conditions.add(matcher.group());
+        return conditions;
     }
 
     private boolean hasConditionInformation(String sentence) {

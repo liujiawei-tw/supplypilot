@@ -36,12 +36,15 @@ class DocumentIndexPersistenceServiceTests {
                 documents, chunks, Clock.fixed(Instant.parse("2026-10-27T12:00:00Z"), ZoneOffset.UTC),
                 mock(DocumentMapper.class), entityManager);
 
-        service.replaceIndex(7L, List.of(new PreparedChunk(0, 0, 12, "quotation text", "embedding")));
+        service.replaceIndex(7L, List.of(new PreparedChunk(0, 0, 14, "quotation text")));
 
         @SuppressWarnings({"rawtypes", "unchecked"})
         ArgumentCaptor<List<DocumentChunk>> saved = ArgumentCaptor.forClass((Class) List.class);
         verify(chunks).saveAll(saved.capture());
         assertThat(saved.getValue()).singleElement()
-                .extracting(DocumentChunk::getDocumentVersion).isEqualTo("v7");
+                .satisfies(chunk -> {
+                    assertThat(chunk.getDocumentVersion()).isEqualTo("v7");
+                    assertThat(chunk.getEmbedding()).isEqualTo("[]");
+                });
     }
 }

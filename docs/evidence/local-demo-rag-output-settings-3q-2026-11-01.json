@@ -1,0 +1,41 @@
+{
+  "environment": "local-demo",
+  "composeProject": "supplypilot-sp903-local-demo",
+  "model": "gemini-3.6-flash",
+  "generationSettings": {
+    "temperature": 0.4,
+    "applicationConfiguredMaxOutputTokens": null,
+    "note": "RAG inherits the Gemini Provider/model default output limit. AI_MAX_OUTPUT_TOKENS remains 512 for other calls that explicitly use AiProperties."
+  },
+  "api": "POST /api/v1/document-queries",
+  "results": [
+    {
+      "question": "採購單進入 ORDERED 後，SUP-001 的 MAT-001 要等多久交貨？",
+      "documentFact": "5 個日曆日",
+      "status": "ANSWERED",
+      "answer": "* 供應商 SUP-001 供應之物料 MAT-001（阿薩姆紅茶萃取物），在採購單進入正式狀態 ORDERED 後，標準交期為 5 個日曆日。",
+      "sourceCount": 5,
+      "supportingSource": "DOC-SUP-001-CONTRACT",
+      "verdict": "PASS"
+    },
+    {
+      "question": "SUP-001 的服務時段是哪些日子、幾點到幾點？",
+      "documentFact": "週一至週五 09:00–16:30",
+      "status": "ANSWERED",
+      "answer": "* 服務日子：週一至週五\n* 服務時間：09:00–16:30",
+      "sourceCount": 5,
+      "supportingSource": "DOC-SUP-001-SUPPLIER-PROFILE-SP907",
+      "verdict": "PASS"
+    },
+    {
+      "question": "SUP-001/MAT-001 承諾到貨日異動時，案例契約要求記錄哪些資訊？",
+      "documentFact": "原日期、新日期、通知時間與收件角色（samples/documents/supplier-sup-001-contract-terms-sp907-v2.txt）",
+      "status": "INSUFFICIENT_EVIDENCE",
+      "answer": null,
+      "sourceCount": 0,
+      "verdict": "FAIL: no source returned; this run did not determine whether vector retrieval missed or post-processing removed candidates"
+    }
+  ],
+  "summary": "2/3 supported answers returned. The third document fact exists in the corpus source file but the API returned no sources.",
+  "browserE2E": "NOT_RUN"
+}

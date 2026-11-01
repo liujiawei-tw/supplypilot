@@ -511,9 +511,9 @@
       "category": "conditional_process",
       "question": "採購單在看板第幾階段可取消？進入收貨檢查後呢？",
       "expectedAnswerPoints": [
-        "第 4 階段的 APPROVED 與第 5 階段的 ORDERED 採購單可依規則取消為 CANCELLED，並記錄原因。",
-        "第 6 至第 8 階段不可取消。",
-        "前三階段的 DRAFT 若遭駁回則為 REJECTED。"
+        "位於 APPROVED_PENDING_ORDER 的 APPROVED 採購單及位於 ORDER_FOLLOW_UP 的 ORDERED 採購單可依規則取消為 CANCELLED，並記錄取消原因。",
+        "進入 RECEIVING_INSPECTION、PAYMENT_RECONCILIATION 或 COMPLETED 後，不允許以取消替代收貨或付款例外處理。",
+        "前三個階段正式狀態為 DRAFT；若於核准流程中被駁回，正式狀態記為 REJECTED。"
       ],
       "expectedSourceKeys": [
         "DOC-SOP-KANBAN"
@@ -528,23 +528,7 @@
           "sources": [
             {
               "documentKey": "DOC-SOP-KANBAN",
-              "excerpt": "採購單在前三個階段正式狀態為 DRAFT；若於核准流程中被駁回，正式狀態記為 REJECTED。位於 APPROVED_PENDING_ORDER 的 APPROVED 採購單，或位於 ORDER_FOLLOW_UP 的 ORDERED 採購單，可依規則取消為 CANCELLED，並記錄取消原因；尚未收貨的取消不應造成庫存異動。進入 RECEIVING_INSPECTION、PAYMENT_RECONCILIATION 或 COMPLETED 後，不允許以取消替代收貨或付款例外處理。\n\n看板欄位只顯示目前階段，不保留每次移動的歷史清單。採購單正式狀態和看板階段各自表達不同資訊，不得把 REJECTED 或 CANCELLED 當作一般流程階段。\n\n問答：哪些階段可取消採購單，哪些階段不可取消？\n預期依據：第 4 階段的 APPROVED 與第 5 階段的 ORDERED 採購單可依規則取消為 CANCELLED；第 6 至第 8 階段不可取消；前三階段的 DRAFT 若遭駁回則為 REJECTED。"
-            }
-          ]
-        },
-        {
-          "sources": [
-            {
-              "documentKey": "DOC-SOP-KANBAN",
-              "excerpt": "預期依據：第 4 階段的 APPROVED 與第 5 階段的 ORDERED 採購單可依規則取消為 CANCELLED；第 6 至第 8 階段不可取消；前三階段的 DRAFT 若遭駁回則為 REJECTED。"
-            }
-          ]
-        },
-        {
-          "sources": [
-            {
-              "documentKey": "DOC-SOP-KANBAN",
-              "excerpt": "預期依據：第 4 階段的 APPROVED 與第 5 階段的 ORDERED 採購單可依規則取消為 CANCELLED；第 6 至第 8 階段不可取消；前三階段的 DRAFT 若遭駁回則為 REJECTED。"
+              "excerpt": "採購單在前三個階段正式狀態為 DRAFT；若於核准流程中被駁回，正式狀態記為 REJECTED。位於 APPROVED_PENDING_ORDER 的 APPROVED 採購單，或位於 ORDER_FOLLOW_UP 的 ORDERED 採購單，可依規則取消為 CANCELLED，並記錄取消原因；尚未收貨的取消不應造成庫存異動。進入 RECEIVING_INSPECTION、PAYMENT_RECONCILIATION 或 COMPLETED 後，不允許以取消替代收貨或付款例外處理。\n\n看板欄位只顯示目前階段，不保留每次移動的歷史清單。採購單正式狀態和看板階段各自表達不同資訊，不得把 REJECTED 或 CANCELLED 當作一般流程階段。"
             }
           ]
         }
@@ -627,8 +611,7 @@
       "question": "SUP-002 的 2025 年歷史條件和目前條件分別到哪一天屆滿？",
       "expectedAnswerPoints": [
         "歷史條件於 2025-06-30 屆滿。",
-        "目前報價期間為 2026-10-01 至 2026-11-30（含首尾日）。",
-        "報價期間：2026-10-01 至 2026-11-30（含首尾日），有效 61 個曆日。"
+        "目前報價期間為 2026-10-01 至 2026-11-30（含首尾日）。"
       ],
       "expectedSourceKeys": [
         "DOC-SUP-002-QUOTATION",
@@ -645,14 +628,6 @@
             {
               "documentKey": "DOC-SUP-002-QUOTATION",
               "excerpt": "【歷史條件】本文件所載上一期展示條件適用於 2025-03-01 至 2025-06-30，於 2025-06-30 屆滿"
-            }
-          ]
-        },
-        {
-          "sources": [
-            {
-              "documentKey": "DOC-SUP-002-QUOTATION-SP907",
-              "excerpt": "報價期間：2026-10-01 至 2026-11-30（含首尾日），有效 61 個曆日。"
             }
           ]
         },
@@ -784,23 +759,7 @@
           "sources": [
             {
               "documentKey": "DOC-SUP-010-CONTRACT",
-              "excerpt": "預期依據：每次增量 25 KG、最低 100 KG、ORDERED 後 7 個日曆日。"
-            }
-          ]
-        },
-        {
-          "sources": [
-            {
-              "documentKey": "DOC-SUP-010-CONTRACT",
-              "excerpt": "預期依據：每次增量 25 KG、最低 100 KG、ORDERED 後 7 個日曆日。"
-            }
-          ]
-        },
-        {
-          "sources": [
-            {
-              "documentKey": "DOC-SUP-010-CONTRACT",
-              "excerpt": "預期依據：每次增量 25 KG、最低 100 KG、ORDERED 後 7 個日曆日。"
+              "excerpt": "供應商南島風味貿易（SUP-010）供應椰奶基底（MAT-012），物料基本單位為 KG。此品項最低訂購量為 100 KG，訂購數量須為 25 KG 的整數倍；採購單進入 ORDERED 後標準交期為 7 個日曆日。"
             }
           ]
         }

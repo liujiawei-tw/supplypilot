@@ -1,6 +1,7 @@
 package com.supplypilot.document.semantic;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 
 import javax.sql.DataSource;
@@ -18,6 +19,8 @@ import org.springframework.transaction.support.TransactionTemplate;
 /** PostgreSQL owns only semantic indexes. It never participates in MySQL transactions. */
 @Component
 public class SemanticStore {
+    public static final String RAG_VECTOR_TABLE = "semantic_rag_vectors";
+
     private final SemanticProperties properties;
     private final DataSource dataSource;
     private final JdbcTemplate jdbc;
@@ -52,7 +55,9 @@ public class SemanticStore {
         }
         if (!migrated) {
             Flyway.configure().dataSource(dataSource).locations("classpath:db/semantic")
-                    .table("semantic_flyway_history").load().migrate();
+                    .table("semantic_flyway_history")
+                    .placeholders(Map.of("ragVectorDimensions", Integer.toString(properties.dimensions())))
+                    .load().migrate();
             migrated = true;
         }
     }
@@ -101,19 +106,10 @@ public class SemanticStore {
                 rs.getString(4), rs.getInt(5), rs.getLong(6)), documentId, version, generationKey);
         if (states.isEmpty()) return new PublicationCheck(null, false, 0);
         IndexState state = states.getFirst();
-        List<SourceChunk> actual = jdbc.query("""
-                SELECT chunk_index, start_offset, end_offset, content
-                  FROM semantic_chunks
-                 WHERE document_id = ? AND document_version = ? AND generation_key = ?
-                 ORDER BY chunk_index
-                """, (rs, row) -> new SourceChunk(rs.getInt(1), rs.getInt(2),
-                rs.getInt(3), rs.getString(4)), documentId, version, generationKey);
-        Integer count = jdbc.queryForObject("""
-                SELECT CASE WHEN count(*) = count(*) FILTER (WHERE vector_dims(embedding) = ?)
-                            THEN count(*) ELSE -1 END
-                  FROM semantic_chunks
-                 WHERE document_id = ? AND document_version = ? AND generation_key = ?
-                """, Integer.class, properties.dimensions(), documentId, version, generationKey);
+        List<SourceChunk> actual = readVectorSources(documentId, version, generationKey,
+                sourceHash, documentGeneration);
+        Integer count = vectorChunkCount(documentId, version, generationKey,
+                sourceHash, documentGeneration);
         boolean current = "READY".equals(state.status())
                 && sourceHash.equals(state.sourceHash())
                 && state.expectedCount() == expectedSource.size()
@@ -149,13 +145,18 @@ public class SemanticStore {
                 expectedCount, reason, documentGeneration);
     }
 
-    /**
-     * Publishes all chunks and the READY marker in one PostgreSQL transaction.
-     * A delayed worker from an older approval generation cannot replace a newer publication.
-     */
+    /** Publishes lifecycle metadata after PgVectorStore has written and verified every chunk. */
     public boolean publish(long documentId, String version, String sourceHash, long documentGeneration,
                            List<SafeChunk> chunks) {
         ensureGeneration();
+        List<SourceChunk> expected = chunks.stream().map(chunk -> new SourceChunk(chunk.index(),
+                chunk.startOffset(), chunk.endOffset(), chunk.content())).toList();
+        if (!expected.equals(readVectorSources(documentId, version, properties.generationKey(),
+                sourceHash, documentGeneration))
+                || vectorChunkCount(documentId, version, properties.generationKey(),
+                sourceHash, documentGeneration) != expected.size()) {
+            return false;
+        }
         Boolean published = transactions.execute(transaction -> {
             jdbc.update("""
                     INSERT INTO semantic_document_indexes
@@ -182,31 +183,42 @@ public class SemanticStore {
             }
 
             jdbc.update("""
-                    UPDATE semantic_document_indexes
-                       SET status = 'PROCESSING', source_hash = ?, expected_chunk_count = ?,
-                           failure_reason = NULL, publication_generation = ?, updated_at = now()
-                     WHERE document_id = ? AND document_version = ? AND generation_key = ?
-                    """, sourceHash, chunks.size(), documentGeneration, documentId, version,
-                    properties.generationKey());
-            jdbc.update("""
-                    DELETE FROM semantic_chunks WHERE document_id = ? AND document_version = ?
-                      AND generation_key = ?
-                    """, documentId, version, properties.generationKey());
-            for (SafeChunk chunk : chunks) {
-                jdbc.update("""
-                        INSERT INTO semantic_chunks(document_id, document_version, generation_key,
-                            chunk_index, start_offset, end_offset, content, embedding)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, CAST(? AS vector))
-                        """, documentId, version, properties.generationKey(), chunk.index(),
-                        chunk.startOffset(), chunk.endOffset(), chunk.content(), vector(chunk.embedding()));
-            }
-            jdbc.update("""
                     UPDATE semantic_document_indexes SET status = 'READY', failure_reason = NULL,
                       source_hash = ?, expected_chunk_count = ?, publication_generation = ?,
                       updated_at = now()
                      WHERE document_id = ? AND document_version = ? AND generation_key = ?
                     """, sourceHash, chunks.size(), documentGeneration, documentId, version,
                     properties.generationKey());
+
+            // Agentic SQL still reads semantic_chunks as a derived PostgreSQL content projection.
+            // Keep that contract current while all document-RAG retrieval uses PgVectorStore.
+            jdbc.update("""
+                    DELETE FROM semantic_chunks
+                     WHERE document_id = ? AND document_version = ? AND generation_key = ?
+                    """, documentId, version, properties.generationKey());
+            int projected = jdbc.update("""
+                    INSERT INTO semantic_chunks
+                        (document_id, document_version, generation_key, chunk_index,
+                         start_offset, end_offset, content, embedding)
+                    SELECT (metadata::jsonb ->> 'documentId')::bigint,
+                           metadata::jsonb ->> 'documentVersion',
+                           metadata::jsonb ->> 'generationKey',
+                           (metadata::jsonb ->> 'chunkIndex')::integer,
+                           (metadata::jsonb ->> 'startOffset')::integer,
+                           (metadata::jsonb ->> 'endOffset')::integer,
+                           content, embedding
+                      FROM semantic_rag_vectors
+                     WHERE metadata::jsonb ->> 'documentId' = ?
+                       AND metadata::jsonb ->> 'documentVersion' = ?
+                       AND metadata::jsonb ->> 'generationKey' = ?
+                       AND metadata::jsonb ->> 'sourceHash' = ?
+                       AND metadata::jsonb ->> 'documentGeneration' = ?
+                     ORDER BY (metadata::jsonb ->> 'chunkIndex')::integer
+                    """, Long.toString(documentId), version, properties.generationKey(), sourceHash,
+                    Long.toString(documentGeneration));
+            if (projected != chunks.size()) {
+                throw new IllegalStateException("Agentic SQL semantic projection is incomplete");
+            }
             return true;
         });
         return Boolean.TRUE.equals(published);
@@ -215,25 +227,27 @@ public class SemanticStore {
 
     public int chunkCount(long documentId, String version) {
         ensureGeneration();
-        return jdbc.queryForObject("""
-                SELECT CASE WHEN count(*) = count(*) FILTER (WHERE vector_dims(embedding) = ?)
-                            THEN count(*) ELSE -1 END
-                  FROM semantic_chunks WHERE document_id = ? AND document_version = ?
-                    AND generation_key = ?
-                """, Integer.class, properties.dimensions(), documentId, version,
-                properties.generationKey());
+        IndexState publication = state(documentId, version);
+        if (publication == null || publication.sourceHash() == null) return 0;
+        return vectorChunkCount(documentId, version, properties.generationKey(),
+                publication.sourceHash(), publication.publicationGeneration());
     }
 
     public boolean matchesSource(long documentId, String version, List<SourceChunk> expected) {
         ensureGeneration();
-        List<SourceChunk> actual = jdbc.query("""
-                SELECT chunk_index, start_offset, end_offset, content
-                  FROM semantic_chunks WHERE document_id = ? AND document_version = ?
-                    AND generation_key = ? ORDER BY chunk_index
-                """, (rs, row) -> new SourceChunk(rs.getInt(1), rs.getInt(2),
-                        rs.getInt(3), rs.getString(4)), documentId, version,
-                properties.generationKey());
-        return actual.equals(expected) && chunkCount(documentId, version) == expected.size();
+        IndexState publication = state(documentId, version);
+        if (publication == null || publication.sourceHash() == null) return false;
+        return matchesSource(documentId, version, publication.sourceHash(),
+                publication.publicationGeneration(), expected);
+    }
+
+    public boolean matchesSource(long documentId, String version, String sourceHash,
+                                 long documentGeneration, List<SourceChunk> expected) {
+        ensureGeneration();
+        return expected.equals(readVectorSources(documentId, version, properties.generationKey(),
+                sourceHash, documentGeneration))
+                && vectorChunkCount(documentId, version, properties.generationKey(), sourceHash,
+                documentGeneration) == expected.size();
     }
 
     public long audit(long actorUserId, int ready, int skipped, int failed, int review, int pending) {
@@ -265,46 +279,84 @@ public class SemanticStore {
         ensureSchema();
         transactions.executeWithoutResult(transaction -> {
             jdbc.update("DELETE FROM semantic_gate_audit");
+            jdbc.update("DELETE FROM " + RAG_VECTOR_TABLE);
             jdbc.update("DELETE FROM semantic_chunks");
             jdbc.update("DELETE FROM semantic_document_indexes");
             jdbc.update("DELETE FROM semantic_generations");
         });
     }
 
-    public List<Candidate> search(List<Float> query, int topK) {
-        return search(query, topK, 0);
-    }
-
-    public List<Candidate> search(List<Float> query, int topK, int offset) {
-        ensureGeneration();
+    private List<SourceChunk> readVectorSources(long documentId, String version, String generationKey,
+                                                String sourceHash, long documentGeneration) {
         return jdbc.query("""
-                SELECT c.document_id, c.document_version, c.chunk_index, c.start_offset,
-                       c.end_offset, c.content, 1 - (c.embedding <=> CAST(? AS vector)) AS score
-                  FROM semantic_chunks c JOIN semantic_document_indexes i
-                    ON i.document_id = c.document_id AND i.document_version = c.document_version
-                   AND i.generation_key = c.generation_key
-                 WHERE c.generation_key = ? AND i.status = 'READY'
-                 ORDER BY c.embedding <=> CAST(? AS vector), c.document_id, c.chunk_index
-                 LIMIT ? OFFSET ?
-                """, (rs, row) -> new Candidate(rs.getLong(1), rs.getString(2), rs.getInt(3),
-                        rs.getInt(4), rs.getInt(5), rs.getString(6), rs.getDouble(7)),
-                vector(query), properties.generationKey(), vector(query), topK, offset);
+                SELECT (metadata::jsonb ->> 'chunkIndex')::integer,
+                       (metadata::jsonb ->> 'startOffset')::integer,
+                       (metadata::jsonb ->> 'endOffset')::integer, content
+                  FROM semantic_rag_vectors
+                 WHERE metadata::jsonb ->> 'documentId' = ?
+                   AND metadata::jsonb ->> 'documentVersion' = ?
+                   AND metadata::jsonb ->> 'generationKey' = ?
+                   AND metadata::jsonb ->> 'sourceHash' = ?
+                   AND metadata::jsonb ->> 'documentGeneration' = ?
+                 ORDER BY (metadata::jsonb ->> 'chunkIndex')::integer
+                """, (rs, row) -> new SourceChunk(rs.getInt(1), rs.getInt(2), rs.getInt(3), rs.getString(4)),
+                Long.toString(documentId), version, generationKey, sourceHash,
+                Long.toString(documentGeneration));
     }
 
-    private String vector(List<Float> values) {
-        if (values.size() != properties.dimensions()) {
-            throw new BusinessException(ErrorCode.AI_INVALID_RESPONSE);
-        }
-        StringBuilder result = new StringBuilder("[");
-        for (int i = 0; i < values.size(); i++) {
-            float value = values.get(i);
-            if (!Float.isFinite(value)) {
-                throw new BusinessException(ErrorCode.AI_INVALID_RESPONSE);
-            }
-            if (i > 0) result.append(',');
-            result.append(value);
-        }
-        return result.append(']').toString();
+    private int vectorChunkCount(long documentId, String version, String generationKey,
+                                 String sourceHash, long documentGeneration) {
+        Integer count = jdbc.queryForObject("""
+                SELECT CASE WHEN count(*) = count(*) FILTER (WHERE vector_dims(embedding) = ?)
+                            THEN count(*) ELSE -1 END
+                  FROM semantic_rag_vectors
+                 WHERE metadata::jsonb ->> 'documentId' = ?
+                   AND metadata::jsonb ->> 'documentVersion' = ?
+                   AND metadata::jsonb ->> 'generationKey' = ?
+                   AND metadata::jsonb ->> 'sourceHash' = ?
+                   AND metadata::jsonb ->> 'documentGeneration' = ?
+                """, Integer.class, properties.dimensions(), Long.toString(documentId), version,
+                generationKey, sourceHash, Long.toString(documentGeneration));
+        return count == null ? 0 : count;
+    }
+
+    /** Returns distinct document IDs in the Spring AI store for bounded stale-vector reconciliation. */
+    public List<Long> vectorDocumentIdsAfter(long afterDocumentId, int limit) {
+        if (limit < 1 || limit > 1_000) throw new IllegalArgumentException("Invalid vector cleanup page size");
+        if (jdbc == null) return List.of();
+        return jdbc.query("""
+                SELECT DISTINCT (metadata::jsonb ->> 'documentId')::bigint AS document_id
+                  FROM semantic_rag_vectors
+                 WHERE metadata::jsonb ? 'documentId'
+                   AND (metadata::jsonb ->> 'documentId')::bigint > ?
+                 ORDER BY document_id
+                 LIMIT ?
+                """, (rs, row) -> rs.getLong(1), afterDocumentId, limit);
+    }
+
+    /** Returns every Spring AI vector ID belonging to a document, including obsolete versions. */
+    public List<String> vectorIdsForDocument(long documentId) {
+        if (jdbc == null) return List.of();
+        return jdbc.query("""
+                SELECT id::text FROM semantic_rag_vectors
+                 WHERE metadata::jsonb ->> 'documentId' = ?
+                 ORDER BY id
+                """, (rs, row) -> rs.getString(1), Long.toString(documentId));
+    }
+
+    public List<VectorReference> vectorReferencesForDocument(long documentId) {
+        if (jdbc == null) return List.of();
+        return jdbc.query("""
+                SELECT id::text,
+                       metadata::jsonb ->> 'documentVersion',
+                       metadata::jsonb ->> 'generationKey',
+                       metadata::jsonb ->> 'sourceHash',
+                       metadata::jsonb ->> 'documentGeneration'
+                  FROM semantic_rag_vectors
+                 WHERE metadata::jsonb ->> 'documentId' = ?
+                 ORDER BY id
+                """, (rs, row) -> new VectorReference(rs.getString(1), rs.getString(2),
+                rs.getString(3), rs.getString(4), rs.getString(5)), Long.toString(documentId));
     }
 
     private record PublicationState(long generation, String status, String sourceHash) { }
@@ -316,9 +368,8 @@ public class SemanticStore {
         }
     }
     public record PublicationCheck(IndexState state, boolean current, int publishedChunks) { }
-    public record SafeChunk(int index, int startOffset, int endOffset, String content,
-                            List<Float> embedding) { }
+    public record SafeChunk(int index, int startOffset, int endOffset, String content) { }
     public record SourceChunk(int index, int startOffset, int endOffset, String content) { }
-    public record Candidate(long documentId, String version, int chunkIndex, int startOffset,
-                            int endOffset, String content, double score) { }
+    public record VectorReference(String id, String documentVersion, String generationKey,
+                                  String sourceHash, String documentGeneration) { }
 }

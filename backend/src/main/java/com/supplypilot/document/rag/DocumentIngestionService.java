@@ -19,9 +19,7 @@ import org.springframework.stereotype.Service;
 public class DocumentIngestionService {
 
     private final DocumentMetadataRepository documents;
-    private final DocumentTextExtractor extractor;
-    private final TextChunker chunker;
-    private final EmbeddingProvider embeddings;
+    private final SpringAiDocumentProcessingService documentProcessing;
     private final DocumentIndexPersistenceService persistence;
     private final DocumentMapper mapper;
     private final DocumentSemanticLifecycleReader lifecycleReader;
@@ -29,18 +27,14 @@ public class DocumentIngestionService {
 
     public DocumentIngestionService(
             DocumentMetadataRepository documents,
-            DocumentTextExtractor extractor,
-            TextChunker chunker,
-            EmbeddingProvider embeddings,
+            SpringAiDocumentProcessingService documentProcessing,
             DocumentIndexPersistenceService persistence,
             DocumentMapper mapper,
             DocumentSemanticLifecycleReader lifecycleReader,
             Clock clock
     ) {
         this.documents = documents;
-        this.extractor = extractor;
-        this.chunker = chunker;
-        this.embeddings = embeddings;
+        this.documentProcessing = documentProcessing;
         this.persistence = persistence;
         this.mapper = mapper;
         this.lifecycleReader = lifecycleReader;
@@ -71,40 +65,18 @@ public class DocumentIngestionService {
             throw new BusinessException(ErrorCode.VALIDATION_FAILED);
         }
 
-        final String text;
+        final List<SpringAiDocumentProcessingService.SourceChunk> sourceChunks;
         try {
-            text = extractor.extract(document.getStoragePath());
+            sourceChunks = documentProcessing.readAndSplit(document.getStoragePath());
         } catch (DocumentParsingException exception) {
             return toResponse(persistence.markFailedIfProcessing(documentId).id());
         }
 
-        final List<TextChunker.TextChunk> textChunks;
-        try {
-            textChunks = chunker.chunk(text);
-        } catch (RuntimeException exception) {
-            return toResponse(persistence.markFailedIfProcessing(documentId).id());
-        }
-
         List<PreparedChunk> prepared = new ArrayList<>();
-        try {
-            for (TextChunker.TextChunk chunk : textChunks) {
-                String embedding = EmbeddingCodec.encode(embeddings.embed(chunk.content()));
-                prepared.add(new PreparedChunk(chunk.index(), chunk.startOffset(), chunk.endOffset(),
-                        chunk.content(), embedding));
-            }
-            if (prepared.isEmpty()) {
-                return toResponse(persistence.markFailedIfProcessing(documentId).id());
-            }
-        } catch (BusinessException exception) {
-            persistence.markFailedIfProcessing(documentId);
-            throw exception;
-        } catch (IllegalArgumentException exception) {
-            persistence.markFailedIfProcessing(documentId);
-            throw new BusinessException(ErrorCode.AI_INVALID_RESPONSE);
-        } catch (RuntimeException exception) {
-            persistence.markFailedIfProcessing(documentId);
-            throw new BusinessException(ErrorCode.AI_PROVIDER_UNAVAILABLE);
+        for (SpringAiDocumentProcessingService.SourceChunk chunk : sourceChunks) {
+            prepared.add(new PreparedChunk(chunk.index(), chunk.startOffset(), chunk.endOffset(), chunk.content()));
         }
+        if (prepared.isEmpty()) return toResponse(persistence.markFailedIfProcessing(documentId).id());
 
         try {
             persistence.replaceIndex(documentId, List.copyOf(prepared));

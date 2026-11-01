@@ -1,6 +1,6 @@
 # SupplyPilot Documentation
 
-This directory preserves the V1 implementation baseline. **Confirmed V2 requirements and planned changes live under [docs/v2/](v2/README.md); they are not implemented merely because the specifications exist.** GitHub Issues and merged pull requests remain the source of implementation status.
+This directory preserves the V1 implementation baseline and current V2 implementation notes. **Confirmed V2 requirements and planned changes live under [docs/v2/](v2/README.md); they are not implemented merely because the specifications exist.** GitHub Issues, merged pull requests and recorded validation evidence remain the source of implementation status. The Spring AI RAG migration branch writes a `semantic_chunks` compatibility projection from published PgVectorStore chunks, and the projection and existing Agentic SQL regression classes passed locally. The fixed RAG QA matrix passed 42/42 through API, Advisor and Testcontainers PgVectorStore using Fake Chat/Embedding models; answer validator tests passed 44/44, excerpt validator tests 41/41, and four affected RAG suites passed 102/102. Full Maven `verify` ran 1,093 tests and failed with four AI controller failures: three reproduce on the base SHA, and the remaining stale read-gate expectation passed after its targeted contract update. Full `verify` was not rerun after the final answer validation changes. Database Backfill, corpus integrity reconciliation, Browser E2E and real Gemini document-query E2E remain unverified. `SEMANTIC_READ_ENABLED` stays off by default. See the [Semantic RAG runbook](semantic-rag-runbook.md), [validation evidence](evidence/spring-ai-rag-validation-2026-11-01.md) and [API migration status](api.md#post-apiv1document-queries) for details.
 
 ## SupplyPilot V2 已確認需求（待實作）
 
@@ -40,6 +40,7 @@ This directory preserves the V1 implementation baseline. **Confirmed V2 requirem
 - [Frontend design](frontend-design.md)
 - [Impeccable 前端改善審查、UI-A/B/C/D 與 E9 依賴](impeccable-ui-review-plan.md)
 - [Semantic RAG runbook](semantic-rag-runbook.md)
+- [Spring AI RAG current migration/API status](api.md#post-apiv1document-queries)
 - [Environment configuration](environment-configuration.md)
 - [Cross-document consistency review](cross-document-consistency-review.md)
 - [Pre-implementation checklist](pre-implementation-checklist.md)

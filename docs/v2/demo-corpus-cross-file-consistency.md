@@ -46,7 +46,7 @@ corpus-catalog.json schema 4 加入 `businessFactApplicability`，以 Supplier�
 
 ### 真實 RAG／Gemini
 
-MySQL／pgvector 證據來自隔離 Testcontainers 版本隔離整合測試，使用測試 embedding，不連線使用者 Demo DB，也不呼叫 Gemini。真實 Gemini Embedding/Chat、Browser E2E、線上 Demo DB 與 AWS 均為 NOT RUN。靜態 PASS 與這些整合測試不代表 Gemini 能在自由語言問題中理解未覆蓋的時態語意或選對所有現行版本。
+MySQL／pgvector 證據來自隔離 Testcontainers 版本隔離整合測試，使用測試 embedding，不連線使用者 Demo DB，也不呼叫 Gemini。另有真實 Gemini Embedding／Chat synthetic provider smoke 2/2 通過；此 smoke 沒有查詢 Demo corpus 或驗證文件答案。Browser E2E、線上 Demo DB、AWS，以及 Gemini 下的 Demo 歷史／現行文件端到端比較仍為 NOT RUN。靜態 PASS、整合測試及 synthetic provider smoke 都不代表 Gemini 能在自由語言問題中理解未覆蓋的時態語意或選對所有現行版本。
 
 ### 非阻擋 V2 整合待辦
 
