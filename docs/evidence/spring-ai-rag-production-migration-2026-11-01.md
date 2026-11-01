@@ -29,5 +29,7 @@
 ## 本次驗證範圍
 
 - `AiAnswerEvidencePolicyTests`：3 tests，0 failures，0 errors，0 skipped；Maven `BUILD SUCCESS`。
+- 合併執行 AiAnswerEvidencePolicyTests,RagDocumentPostProcessorTests,DocumentQueryServiceTests 未完成：在 DocumentQueryServiceTests 遇 Mockito Windows 動態 attach pipe 錯誤後卡住，人工停止、exit 1；不列為 PASS。之後單獨重跑本次變更的 policy suite 並成功。
 - Browser E2E：`NOT RUN`（依使用者指示不做）。
 - 獨立審查：未執行（依使用者最新指示）。
+
