@@ -13,8 +13,6 @@ import com.supplypilot.TestcontainersConfiguration;
 import com.supplypilot.document.domain.DocumentChunk;
 import com.supplypilot.document.domain.DocumentMetadata;
 import com.supplypilot.document.domain.DocumentType;
-import com.supplypilot.document.rag.RagDocumentPostProcessor;
-import com.supplypilot.document.rag.RagEvidenceCollector;
 import com.supplypilot.document.repository.DocumentChunkRepository;
 import com.supplypilot.document.repository.DocumentMetadataRepository;
 import com.supplypilot.document.semantic.SemanticBackfillService;
@@ -32,7 +30,6 @@ import com.supplypilot.user.repository.UserRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 import org.springframework.ai.document.Document;
-import org.springframework.ai.rag.Query;
 import org.springframework.ai.vectorstore.SearchRequest;
 import org.springframework.ai.vectorstore.filter.FilterExpressionBuilder;
 import org.springframework.ai.vectorstore.pgvector.PgVectorStore;
@@ -96,8 +93,6 @@ class SpringAiRealDocumentRagE2ETests {
     @Autowired SemanticIndexJobRepository jobs;
     @Autowired SemanticProperties semanticProperties;
     @Autowired SemanticStore semanticStore;
-    @Autowired RagDocumentPostProcessor documentPostProcessor;
-    @Autowired RagEvidenceCollector evidenceCollector;
     @Autowired @Qualifier("ragQueryVectorStore") PgVectorStore queryVectorStore;
 
     @Test
@@ -135,17 +130,9 @@ class SpringAiRealDocumentRagE2ETests {
                         filters.eq("documentStatus", "READY")),
                 filters.eq("outboundApprovalStatus", "APPROVED")).build();
         var retrieved = queryVectorStore.similaritySearch(SearchRequest.builder()
-                .query(question).topK(50).similarityThreshold(semanticProperties.similarityThreshold())
+                .query(question).topK(10).similarityThreshold(semanticProperties.similarityThreshold())
                 .filterExpression(approvedGeneration).build());
         assertThat(retrieved).extracting(Document::getText).contains(content);
-        evidenceCollector.begin();
-        try {
-            var verifiedContext = documentPostProcessor.process(new Query(question), retrieved);
-            assertThat(verifiedContext).hasSize(1);
-            assertThat(evidenceCollector.get()).hasSize(1);
-        } finally {
-            evidenceCollector.clear();
-        }
 
         String paraphrasedQuestion = "採購單進入 ORDERED 後，SUP-001 的 MAT-001 要等多久交貨？";
         String unsupportedQuestion = "SUP-001 的 MAT-001 單價是多少？";

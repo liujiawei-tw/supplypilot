@@ -8,23 +8,22 @@
 2. 歷史合約或供應商文件單份條款查詢；不做缺少條款判定。報價文件可依 Catalog 同一供應商／物料／事實類型做明確期間的歷史與現行比較。有限多文件摘要及明確供應商比較可使用已核准且適用的來源；生成答案由模型依系統提示組成，後端不逐句驗證答案主張。
 3. 供應商評鑑、投訴與歷史報告**文件查詢與有來源摘要**；不憑文件自動計算客觀可靠度或交期 KPI。
 
-系統提示要求只以文件 Context 作答；若查不到可驗證來源，後端回 INSUFFICIENT_EVIDENCE 並短路。生成答案的主張目前不由後端逐句核驗，不能保證模型不虛構或不合併矛盾來源。
+系統提示要求只以文件 Context 作答並由模型判斷候選文件是否支持問題；若向量檢索沒有相似度達 0.4 的候選，後端回 INSUFFICIENT_EVIDENCE。生成答案的主張不由後端逐句核驗，不能保證模型不虛構或不合併矛盾來源。
 
 ## 2. Spring AI 文件問答流程
 
     使用者提問
       → DocumentQueryService / SEARCH_DOCUMENTS
       → Spring AI ChatClient + RetrievalAugmentationAdvisor
-      → VectorStoreDocumentRetriever + MySQL 篩選後的 PgVectorStore 候選
-      → DocumentPostProcessor：即時 MySQL 版本、READY、核准、適用性及出站政策核對
-      → ContextualQueryAugmenter：僅將通過核對的 Context 交給 Gemini ChatModel
-      → EvidenceValidator／RagDocumentPostProcessor：檢查可進入 Context 的來源
-      → DocumentQueryResponse：模型答案 + 後端建立的文件名稱/版本/逐字摘錄
+      → VectorStoreDocumentRetriever + PgVectorStore（最多 10 份、相似度門檻 0.4）
+      → ContextualQueryAugmenter：將檢索候選直接放入 Gemini Context
+      → Gemini ChatModel：自行判斷候選與問題是否相關、是否足以回答
+      → DocumentQueryResponse：模型答案 + Advisor 回傳的檢索文件來源
 
 - 正式文件問答使用 Spring AI `RetrievalAugmentationAdvisor`、`VectorStoreDocumentRetriever`、`PgVectorStore`、`ChatClient`、`ContextualQueryAugmenter` 與 Gemini `EmbeddingModel`。不得保留自製 lexical/semantic 檢索或 RRF 作為正式查詢路徑。
-- MySQL 仍是文件主檔、供應商關聯、READY 狀態、版本、授權及審核狀態的權威來源。向量 Metadata Filter 僅縮小候選集合，不能取代每次查詢時的 MySQL 即時核對。
-- 檢索後文件必須在進入 Advisor Context／Gemini ChatModel 之前通過 MySQL 狀態、來源版本、當前授權、Demo 適用期間與 `OutboundDocumentPolicy` 驗證。沒有有效證據時，回傳 `INSUFFICIENT_EVIDENCE` 並短路，不呼叫生成模型。
-- 使用 `SearchRequest`／Filter Expression 限制已發布 generation、文件版本及核准狀態。舊版本、已撤銷、過期、未授權或未核准文件即使仍存在向量表，也不得進入模型 Context。
+- Retriever 使用 Filter Expression 限制已發布 generation、`READY` 文件與 `APPROVED` 出站狀態；相似度門檻為 0.4，候選最多 10 份。相似度全低於門檻時，回傳 `INSUFFICIENT_EVIDENCE`。
+- 不使用自製 `DocumentPostProcessor` 做候選文件來源、版本、事實適用性或語意支持篩選；Spring AI Advisor 把符合 Retriever 條件的候選直接交給模型判斷。來源由 Advisor 回傳的實際 `Document` metadata 建立。
+- 出站敏感資料政策仍由文件核准與索引流程執行；向量檢索只取 `APPROVED` 文件，模型不得用來判斷或規避敏感資料政策。
 - PgVectorStore 使用獨立 PostgreSQL `DataSource`／`JdbcTemplate` 與 `semantic_rag_vectors` 資料表。不得讓 PgVectorStore 使用 Spring Boot 的 MySQL 主 `DataSource`。
 - 採 exact similarity，不建 HNSW／IVFFlat。Schema 以可追蹤的 PostgreSQL Flyway Migration 建立；PgVectorStore 關閉啟動自動建表，並固定 `remove-existing-vector-store-table=false`。
 - 不新增 PDF 頁碼欄位、頁碼抽取、條文號解析。現有 Chunk index/offset 可作內部證據查核，但不必把技術座標顯示為使用者要求的「頁碼」。
@@ -37,14 +36,14 @@
 - 使用 Spring AI 2.0.1 `TokenTextSplitter`，自訂繁體中文標點，配置 Chunk Size、Overlap 與最大 Chunk 數。2.0.1 的 `TokenTextSplitter` 沒有原生 overlap 參數；需使用受測、保留來源位置的 wrapper 套用 overlap，並在切分後再次硬性驗證最大 Chunk 數。不得為取得 overlap 而升級 Spring AI。
 - 文件 Preview 是獨立服務；TXT 嚴格 UTF-8 預覽及 DOCX 段落／表格原始順序、大小和 ZIP 安全限制必須保持，不可直接以 RAG 的 Tika 輸出替代使用者預覽。
 - Chunk offsets 只有在 Chunk 文字可精確映射回正規化抽取純文字時才回傳；offset 是該純文字的 Java UTF-16 字元位置，不代表 PDF 位元組位置或 PDF 頁碼。無法精確映射時 API 欄位必須為 `null` 或明確回報不可用，不可填假值。
-- `Document` Metadata 保存 `documentId`、`documentKey`、type、title、version、supplier、chunkIndex、offset、source hash、model generation、chunking version 及 Demo provenance。來源清單與 relevance score 由已通過後端驗證的實際檢索結果建立，LLM 不得自行提供 Source ID 或分數。
+- `Document` Metadata 保存 `documentId`、`documentKey`、type、title、version、supplier、chunkIndex、offset、source hash、model generation、chunking version 及 Demo provenance。來源清單與 relevance score 取自 Advisor 回傳的實際檢索文件，LLM 不自行提供 Source ID 或分數。
 
 ## 4. 敏感資料安全（採既有方案 A）
 
 - 沿用現有 OutboundDocumentPolicy、管理員針對內容版本/hash 的核准及 REQUIRES_REVIEW/SKIPPED 規則。
 - 可遮罩的 Email、電話與台灣身分證字號以等長遮罩輸出，保留來源 Chunk offset 對應；憑證、銀行、商業及個人敏感內容仍須阻擋出站。
 - 包含金額、折扣、銀行帳戶、認證資訊等敏感內容，依既有策略不可外送 Gemini Embedding；**MySQL 搜尋命中不構成 Chat 外送許可**。
-- PgVector 檢索結果需在**交給 LLM 之前**重新過濾並驗證可外送的證據；索引時審核不能取代查詢時檢查，不可新增任何免審查路徑。
+- 僅已核准出站且狀態為 `READY` 的向量文件可進入 Retriever 候選；檢索候選不再經自製來源／語意驗證器篩除。敏感資料政策仍須在索引與出站核准流程中執行，不能委由 LLM 判斷。
 - 文件級 ACL 暫緩；這不等於放棄現有登入/角色、原文讀取及索引操作授權。受此限制，部分敏感合約可能無法透過語意/AI 問答查詢，應誠實呈現。
 
 ## 5. 逐文件發布（取代日常全域 Gate）
@@ -69,7 +68,7 @@ Documents API 會分開回傳文件 ingestion `status`、持久化 `semanticRevi
 
 ## 6. Demo 語料與首次審查
 
-- Demo Seed 使用 `samples/documents/corpus-catalog.json` 記錄文件鍵、類型、theme、版本、標題、供應商/物料關聯、`SP-901` corpus provenance 與來源 SHA-256；`samples/documents/rag-fixtures.json` 記錄靜態問答及預期引用。Catalog schema 4 另以 `businessFactApplicability` 對 supplier/material/fact type/effective period 表達跨 Document Key 的現行、歷史與已取代來源，供後端候選驗證與答案證據核對使用；這些欄位只建立可信來源清單，本身不記錄或授予核准結果，也不能證明資料已傳送或索引已發布。
+- Demo Seed 使用 `samples/documents/corpus-catalog.json` 記錄文件鍵、類型、theme、版本、標題、供應商/物料關聯、`SP-901` corpus provenance 與來源 SHA-256；`samples/documents/rag-fixtures.json` 記錄靜態問答及預期引用。Catalog schema 4 的 `businessFactApplicability` 描述 supplier/material/fact type/effective period，供 Demo 文件可信核准及索引 readiness 使用；問答時不由此欄位篩選相關候選或驗證模型答案。
 - `DemoCorpusSyncService` 只讀取 demo Repository corpus 的 catalog 與來源，固定核對 schema 4、business fact applicability version 2、dataset key、corpus version、文件鍵、類型、標題、版本、supplier 關聯、政策、provenance 和 canonical-LF source hash。同步與系統核准共用 `DemoCorpusCatalogTrust`，要求 catalog 為一般檔案且非 symlink，且 UTF-8 內容換行正規化為 LF 後符合固定 SHA-256 `A831EB8B21771E39F525668972EE4526F124090AB1CCB416A551608DEB7DBDAD`；外部自製同 envelope catalog 不受信任。重跑以 `(datasetKey, documentKey, version)` 和持久 provenance 辨識基線，絕不只靠標題合併。
 - 無 provenance 的舊 Seed 只有在 type/title/version/supplier 與 catalog 完全相符、唯一候選且資料庫儲存來源的 canonical-LF hash 完全相符時才可採用並寫入 provenance。候選歧義、來源或欄位不同、已存在 keyed baseline 被改動時，建立同步 conflict 並保留原文件；不覆寫其來源，也不覆蓋有效人工審查 audit。
 - 只有 demo profile、明確允許的 MySQL DEMO 資料庫、demo 文件儲存根目錄、相符 Repository catalog entry、READY chunks/source proof 及當下 `OutboundDocumentPolicy` 都通過時，專用 system approval seam 才能記錄 `SYSTEM / TRUSTED_DEMO_CORPUS` 審查和 enqueue 現有 durable job。它不偽裝管理員，沒有 HTTP 授權入口；一般上傳與一般 API 仍走使用者既有審查流程。需審查或政策阻擋的結果會保留原因，不排索引工作。Policy 依具體敏感值與上下文判斷，不因單獨出現「姓名」「地址」「銀行」等詞而拒絕。只有固定 Catalog、原文 SHA、文件 provenance、報價主資料及雙資料庫目標均通過伺服器驗證的虛構 Demo 文件，才可略過商業金額規則；憑證、銀行帳戶、個資仍照常攔截，普通 Upload 不可自我宣稱 Demo。
@@ -102,8 +101,8 @@ Documents API 會分開回傳文件 ingestion `status`、持久化 `semanticRevi
 
 ## 9. 驗收
 
-- Spring AI Advisor 的向量檢索只回傳已發布 generation 的候選，後端每次依 MySQL 即時狀態、版本、供應商／Demo 適用期間及出站政策重新驗證；不混入舊版本或無關文件。
-- 回答有真實文件名稱、版本與引用原文；無證據不回答實質細節。
+- Spring AI Advisor 的向量檢索只回傳已發布 generation、`READY`、出站核准且相似度至少 0.4 的最多 10 份候選；其相關性與答案支持度由模型判斷。
+- 回答來源取自 Advisor 實際回傳文件；沒有相似度達標候選時回 `INSUFFICIENT_EVIDENCE`。
 - 未核准/敏感文件不經任何路徑送入 Gemini；Provider 故障不阻斷核心採購 MySQL 業務。
 - 新文件排隊、失敗、重試、手動再索引不影響既有可查文件；管理員不需日常全域 Gate 操作。
 - Demo Catalog 版本/hash 不符時不得自動核准或發布索引；衝突必須保留並由人工查核。文件 `READY`、政策核准、durable job 狀態及 Semantic `INDEXED` 必須各自有真實證據，不得互相推定。

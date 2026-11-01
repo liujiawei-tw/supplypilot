@@ -24,7 +24,7 @@ public class SpringAiRagConfiguration {
     @Conditional(SemanticRagConfigured.class)
     RetrievalAugmentationAdvisor documentRagAdvisor(
             @Qualifier("ragQueryVectorStore") PgVectorStore vectorStore,
-            RagDocumentPostProcessor documentPostProcessor, SemanticProperties properties) {
+            SemanticProperties properties) {
         var filters = new FilterExpressionBuilder();
         var publishedApprovedGeneration = filters.and(
                 filters.and(filters.eq("generationKey", properties.generationKey()),
@@ -33,14 +33,13 @@ public class SpringAiRagConfiguration {
 
         var retriever = VectorStoreDocumentRetriever.builder()
                 .vectorStore(vectorStore)
-                .topK(Math.min(80, Math.max(properties.topK(), properties.topK() * 10)))
+                .topK(10)
                 .similarityThreshold(properties.similarityThreshold())
                 .filterExpression(publishedApprovedGeneration)
                 .build();
 
         return RetrievalAugmentationAdvisor.builder()
                 .documentRetriever(retriever)
-                .documentPostProcessors(documentPostProcessor)
                 .queryAugmenter(ContextualQueryAugmenter.builder().allowEmptyContext(false).build())
                 .build();
     }

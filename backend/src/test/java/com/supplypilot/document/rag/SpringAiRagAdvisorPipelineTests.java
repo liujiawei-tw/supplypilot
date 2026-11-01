@@ -4,7 +4,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -30,80 +29,73 @@ import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.document.Document;
 import org.springframework.ai.rag.advisor.RetrievalAugmentationAdvisor;
 import org.springframework.ai.rag.generation.augmentation.ContextualQueryAugmenter;
-import org.springframework.ai.rag.postretrieval.document.DocumentPostProcessor;
 import org.springframework.ai.rag.retrieval.search.VectorStoreDocumentRetriever;
 import org.springframework.ai.vectorstore.SearchRequest;
-import org.springframework.ai.vectorstore.VectorStore;
-import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.ai.vectorstore.pgvector.PgVectorStore;
 import org.springframework.beans.factory.BeanCreationException;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.support.StaticListableBeanFactory;
 
 class SpringAiRagAdvisorPipelineTests {
     private static final String QUESTION = "SUP-001 的 MAT-001 標準交期是多少？";
     private static final String EXCERPT = "SUP-001 的 MAT-001 標準交期為 5 個日曆日。";
-    private static final String ANSWER = "SUP-999 的 MAT-999 標準交期為 999 個工作天。";
+    private static final String ANSWER = "依文件，MAT-001 標準交期為 5 個日曆日。";
 
     @Test
-    void advisorReturnsModelAnswerUnfilteredAndKeepsBackendCollectedEvidence() {
-        RagEvidenceCollector collector = new RagEvidenceCollector();
-        VerifiedRagEvidence backendEvidence = evidence();
-        Document retrieved = Document.builder().id("vector-doc-1").text(EXCERPT)
-                .metadata(Map.of("documentId", 41L)).score(0.94).build();
-        VectorStore vectorStore = mock(VectorStore.class);
+    void advisorPassesRetrievedCandidatesToModelAndReturnsTheirSources() {
+        Document retrieved = retrievedDocument(EXCERPT, 0.94);
+        PgVectorStore vectorStore = mock(PgVectorStore.class);
         when(vectorStore.similaritySearch(any(SearchRequest.class))).thenReturn(List.of(retrieved));
 
         AtomicReference<Prompt> modelPrompt = new AtomicReference<>();
         ChatModel model = fakeModel(ANSWER, modelPrompt);
-        DocumentPostProcessor collectorPostProcessor = (query, documents) -> {
-            assertThat(query.text()).isEqualTo(QUESTION);
-            assertThat(documents).extracting(Document::getText).contains(EXCERPT);
-            collector.set(List.of(backendEvidence));
-            return documents;
-        };
-        RetrievalAugmentationAdvisor advisor = advisor(vectorStore, collectorPostProcessor);
+        RetrievalAugmentationAdvisor advisor = advisor(vectorStore);
 
         try (ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
-            SpringAiRagAnswerPipeline pipeline = pipeline(model, advisor, collector, executor);
+            SpringAiRagAnswerPipeline pipeline = pipeline(model, advisor, executor);
 
             SpringAiRagAnswerPipeline.QueryResult result = pipeline.answer(QUESTION);
 
             assertThat(result.answered()).isTrue();
             assertThat(result.answer()).isEqualTo(ANSWER);
-            assertThat(result.evidence()).containsExactly(backendEvidence);
+            assertThat(result.evidence()).singleElement().satisfies(source -> {
+                assertThat(source.documentId()).isEqualTo(41L);
+                assertThat(source.documentKey()).isEqualTo("DOC-TEST-041");
+                assertThat(source.documentType()).isEqualTo(DocumentType.SUPPLIER_CONTRACT);
+                assertThat(source.title()).isEqualTo("SUP-001 供貨協議");
+                assertThat(source.supplierCode()).isEqualTo("SUP-001");
+                assertThat(source.excerpt()).isEqualTo(EXCERPT);
+                assertThat(source.relevanceScore()).isEqualTo(0.94);
+            });
             assertThat(modelPrompt.get()).isNotNull();
             assertThat(modelPrompt.get().getContents()).contains(QUESTION, EXCERPT);
 
             org.mockito.ArgumentCaptor<SearchRequest> request = org.mockito.ArgumentCaptor.forClass(SearchRequest.class);
             verify(vectorStore).similaritySearch(request.capture());
             assertThat(request.getValue().getQuery()).isEqualTo(QUESTION);
+            assertThat(request.getValue().getTopK()).isEqualTo(10);
+            assertThat(request.getValue().getSimilarityThreshold()).isEqualTo(0.4);
         }
     }
 
     @Test
-    void emptyAdvisorRetrievalReturnsInsufficientEvidenceWithoutCallingChatModel() {
-        RagEvidenceCollector collector = new RagEvidenceCollector();
-        VectorStore vectorStore = mock(VectorStore.class);
+    void emptyThresholdedRetrievalReturnsInsufficientEvidenceEvenIfModelGuesses() {
+        PgVectorStore vectorStore = mock(PgVectorStore.class);
         when(vectorStore.similaritySearch(any(SearchRequest.class))).thenReturn(List.of());
 
         AtomicReference<Prompt> modelPrompt = new AtomicReference<>();
-        ChatModel model = fakeModel("SUP-001 的 MAT-001 標準交期為 999 個日曆日。", modelPrompt);
-        DocumentPostProcessor failClosedPostProcessor = (query, documents) -> {
-            collector.set(List.of());
-            if (documents.isEmpty()) throw new NoVerifiedRagEvidenceException();
-            return documents;
-        };
-        RetrievalAugmentationAdvisor advisor = advisor(vectorStore, failClosedPostProcessor);
+        ChatModel model = fakeModel("SUP-001 的 MAT-001 標準交期為 999 天。", modelPrompt);
+        RetrievalAugmentationAdvisor advisor = advisor(vectorStore);
 
         try (ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
-            SpringAiRagAnswerPipeline pipeline = pipeline(model, advisor, collector, executor);
+            SpringAiRagAnswerPipeline pipeline = pipeline(model, advisor, executor);
 
             SpringAiRagAnswerPipeline.QueryResult result = pipeline.answer(QUESTION);
 
             assertThat(result.answered()).isFalse();
             assertThat(result.answer()).isNull();
             assertThat(result.evidence()).isEmpty();
-            assertThat(modelPrompt.get()).isNull();
-            verify(model, never()).call(any(Prompt.class));
+            assertThat(modelPrompt.get()).isNotNull();
             verify(vectorStore).similaritySearch(any(SearchRequest.class));
         }
     }
@@ -112,16 +104,14 @@ class SpringAiRagAdvisorPipelineTests {
     void disabledSemanticReadsReturnProviderUnavailableWithoutResolvingProviders() {
         StaticListableBeanFactory beans = new StaticListableBeanFactory();
         ObjectProvider<ChatModel> models = beans.getBeanProvider(ChatModel.class);
-        ObjectProvider<RetrievalAugmentationAdvisor> advisors =
-                beans.getBeanProvider(RetrievalAugmentationAdvisor.class);
+        ObjectProvider<RetrievalAugmentationAdvisor> advisors = beans.getBeanProvider(RetrievalAugmentationAdvisor.class);
         SemanticProperties properties = new SemanticProperties("jdbc:postgresql://localhost/test", "test",
-                "test", "test-embedding", 3, "test-generation", false, 8, 0.45, Duration.ofSeconds(2));
+                "test", "test-embedding", 3, "test-generation", false, 8, 0.4, Duration.ofSeconds(2));
         AiProperties aiProperties = new AiProperties(Duration.ofSeconds(3), 256, 3, 5, false, 1000);
 
         try (ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
             SpringAiRagAnswerPipeline pipeline = new SpringAiRagAnswerPipeline(models, advisors, properties,
-                    new RagEvidenceCollector(), executor,
-                    aiProperties);
+                    executor, aiProperties);
 
             assertThatThrownBy(() -> pipeline.answer(QUESTION))
                     .isInstanceOf(BusinessException.class)
@@ -133,55 +123,44 @@ class SpringAiRagAdvisorPipelineTests {
     @Test
     void unavailableLazyAdvisorIsReportedAsProviderUnavailable() {
         @SuppressWarnings("unchecked") ObjectProvider<ChatModel> models = mock(ObjectProvider.class);
-        @SuppressWarnings("unchecked") ObjectProvider<RetrievalAugmentationAdvisor> advisors =
-                mock(ObjectProvider.class);
+        @SuppressWarnings("unchecked") ObjectProvider<RetrievalAugmentationAdvisor> advisors = mock(ObjectProvider.class);
         when(models.getIfAvailable()).thenReturn(mock(ChatModel.class));
         when(advisors.getIfAvailable()).thenThrow(new BeanCreationException(
                 "documentRagAdvisor", "PostgreSQL is temporarily unavailable"));
 
         SemanticProperties properties = new SemanticProperties("jdbc:postgresql://127.0.0.1:1/test", "test",
-                "test", "test-embedding", 3, "test-generation", true, 8, 0.45, Duration.ofSeconds(2));
+                "test", "test-embedding", 3, "test-generation", true, 8, 0.4, Duration.ofSeconds(2));
         AiProperties aiProperties = new AiProperties(Duration.ofSeconds(3), 256, 3, 5, false, 1000);
         try (ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
             SpringAiRagAnswerPipeline pipeline = new SpringAiRagAnswerPipeline(models, advisors, properties,
-                    new RagEvidenceCollector(), executor,
-                    aiProperties);
+                    executor, aiProperties);
 
-            org.assertj.core.api.Assertions.assertThatThrownBy(() -> pipeline.answer(QUESTION))
+            assertThatThrownBy(() -> pipeline.answer(QUESTION))
                     .isInstanceOf(BusinessException.class)
                     .satisfies(failure -> assertThat(((BusinessException) failure).getErrorCode())
                             .isEqualTo(ErrorCode.AI_PROVIDER_UNAVAILABLE));
         }
     }
 
-    private RetrievalAugmentationAdvisor advisor(VectorStore vectorStore,
-            DocumentPostProcessor postProcessor) {
-        VectorStoreDocumentRetriever retriever = VectorStoreDocumentRetriever.builder()
-                .vectorStore(vectorStore)
-                .topK(8)
-                .similarityThreshold(0.45)
-                .build();
-        return RetrievalAugmentationAdvisor.builder()
-                .documentRetriever(retriever)
-                .documentPostProcessors(postProcessor)
-                .queryAugmenter(ContextualQueryAugmenter.builder().allowEmptyContext(false).build())
-                .build();
+    private RetrievalAugmentationAdvisor advisor(PgVectorStore vectorStore) {
+        return new SpringAiRagConfiguration().documentRagAdvisor(vectorStore, semanticProperties());
     }
 
     private SpringAiRagAnswerPipeline pipeline(ChatModel model, RetrievalAugmentationAdvisor advisor,
-            RagEvidenceCollector collector, ExecutorService executor) {
+            ExecutorService executor) {
         StaticListableBeanFactory beans = new StaticListableBeanFactory();
         beans.addBean("testChatModel", model);
         beans.addBean("testRetrievalAugmentationAdvisor", advisor);
         ObjectProvider<ChatModel> models = beans.getBeanProvider(ChatModel.class);
-        ObjectProvider<RetrievalAugmentationAdvisor> advisors = beans.getBeanProvider(
-                RetrievalAugmentationAdvisor.class);
-        SemanticProperties semanticProperties = new SemanticProperties("jdbc:postgresql://localhost/test", "test",
-                "test", "test-embedding", 3, "test-generation", true, 8, 0.45, Duration.ofSeconds(2));
-        AiProperties aiProperties = new AiProperties(Duration.ofSeconds(3), 256, 3, 5,
-                false, 1000);
-        return new SpringAiRagAnswerPipeline(models, advisors, semanticProperties, collector,
-                executor, aiProperties);
+        ObjectProvider<RetrievalAugmentationAdvisor> advisors = beans.getBeanProvider(RetrievalAugmentationAdvisor.class);
+        SemanticProperties semanticProperties = semanticProperties();
+        AiProperties aiProperties = new AiProperties(Duration.ofSeconds(3), 256, 3, 5, false, 1000);
+        return new SpringAiRagAnswerPipeline(models, advisors, semanticProperties, executor, aiProperties);
+    }
+
+    private SemanticProperties semanticProperties() {
+        return new SemanticProperties("jdbc:postgresql://localhost/test", "test", "test",
+                "test-embedding", 3, "test-generation", true, 8, 0.4, Duration.ofSeconds(2));
     }
 
     private ChatModel fakeModel(String answer, AtomicReference<Prompt> prompt) {
@@ -196,9 +175,23 @@ class SpringAiRagAdvisorPipelineTests {
         return model;
     }
 
-    private VerifiedRagEvidence evidence() {
-        return new VerifiedRagEvidence(41L, "DOC-TEST-041", DocumentType.SUPPLIER_CONTRACT,
-                "測試供應商報價", "v1", 501L, "SUP-001", "測試供應商", 0,
-                0, EXCERPT.length(), EXCERPT, 0.94, false);
+    private Document retrievedDocument(String content, double score) {
+        return Document.builder().id("vector-doc-1").text(content).score(score).metadata(Map.ofEntries(
+                Map.entry("documentId", 41L),
+                Map.entry("documentVersion", "2.0"),
+                Map.entry("generationKey", "test-generation"),
+                Map.entry("documentGeneration", 1L),
+                Map.entry("sourceHash", "source-hash"),
+                Map.entry("chunkIndex", 0),
+                Map.entry("startOffset", 0),
+                Map.entry("endOffset", content.length()),
+                Map.entry("documentStatus", "READY"),
+                Map.entry("outboundApprovalStatus", "APPROVED"),
+                Map.entry("documentType", "SUPPLIER_CONTRACT"),
+                Map.entry("title", "SUP-001 供貨協議"),
+                Map.entry("documentKey", "DOC-TEST-041"),
+                Map.entry("supplierId", 501L),
+                Map.entry("supplierCode", "SUP-001"),
+                Map.entry("supplierName", "測試供應商"))).build();
     }
 }

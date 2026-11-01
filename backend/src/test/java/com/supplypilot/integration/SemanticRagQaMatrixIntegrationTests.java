@@ -28,7 +28,6 @@ import com.supplypilot.document.domain.DocumentMetadata;
 import com.supplypilot.document.domain.DocumentType;
 import com.supplypilot.document.repository.DocumentChunkRepository;
 import com.supplypilot.document.repository.DocumentMetadataRepository;
-import com.supplypilot.document.rag.RagEvidenceCollector;
 import com.supplypilot.document.semantic.SemanticBackfillService;
 import com.supplypilot.document.semantic.SemanticIndexJobRepository;
 import com.supplypilot.document.semantic.SemanticIndexJobStatus;
@@ -187,7 +186,13 @@ class SemanticRagQaMatrixIntegrationTests extends AbstractIntegrationTest {
         assertThat(source.path("excerpt").asText()).contains(qa.expectedAnswer());
         assertThat(source.path("relevanceScore").asDouble()).isGreaterThanOrEqualTo(0.45);
         assertThat(chat.calls.get()).isEqualTo(previousChatCalls + 1);
-        assertThat(chat.evidenceSizes.getLast()).isGreaterThan(0);
+        if (qa.key().equals("RAG-PG-PII-01")) {
+            assertThat(chat.promptContents.getLast())
+                    .contains("Forklift capacity is 500 kilograms. Contact [EMAIL]")
+                    .doesNotContain("alice@example.com");
+        } else {
+            assertThat(chat.promptContents.getLast()).contains(qa.content());
+        }
         assertThat(embeddings.tasks).contains(GoogleGenAiTextEmbeddingOptions.TaskType.RETRIEVAL_QUERY);
         if (qa.key().equals("RAG-PG-PII-01")) {
             assertThat(response.toString()).doesNotContain("alice@example.com");
@@ -204,16 +209,17 @@ class SemanticRagQaMatrixIntegrationTests extends AbstractIntegrationTest {
         processQueuedIndex(documentId);
 
         // The fake model deliberately gives the one indexed document the same vector as each query.
-        // This proves a real PgVectorStore candidate reaches the application query path; lexical and
-        // live-source verification must still reject it when its facts do not answer the question.
+        // The application passes this candidate to the model, which decides that it does not answer.
         assertRetrievedFromPgVector(qa.question(), qa.content());
+        chat.answerOverride.set("INSUFFICIENT_EVIDENCE");
         int previousChatCalls = chat.calls.get();
         JsonNode response = response(query(admin, qa.question()));
 
         assertThat(response.path("status").asText()).isEqualTo("INSUFFICIENT_EVIDENCE");
         assertThat(response.path("answer").isNull()).isTrue();
         assertThat(response.path("sources")).isEmpty();
-        assertThat(chat.calls.get()).isEqualTo(previousChatCalls);
+        assertThat(chat.calls.get()).isEqualTo(previousChatCalls + 1);
+        assertThat(chat.promptContents.getLast()).contains(qa.content());
         assertThat(embeddings.tasks).contains(GoogleGenAiTextEmbeddingOptions.TaskType.RETRIEVAL_QUERY);
     }
 
@@ -254,7 +260,6 @@ class SemanticRagQaMatrixIntegrationTests extends AbstractIntegrationTest {
             assertThat(source.path("excerpt").asText()).isNotBlank();
             assertThat(source.path("relevanceScore").asDouble()).isGreaterThanOrEqualTo(0.45);
         });
-        assertThat(chat.evidenceSizes.getLast()).isEqualTo(qa.expectedSourceKeys().size());
     }
 
     @Test
@@ -275,13 +280,15 @@ class SemanticRagQaMatrixIntegrationTests extends AbstractIntegrationTest {
         assertThat(retrieved).extracting(Document::getText)
                 .anySatisfy(text -> assertThat(text).contains("SUP-001"))
                 .anySatisfy(text -> assertThat(text).contains("SUP-002"));
+        chat.answerOverride.set("INSUFFICIENT_EVIDENCE");
         int previousChatCalls = chat.calls.get();
         JsonNode response = response(query(admin, question));
 
         assertThat(response.path("status").asText()).isEqualTo("INSUFFICIENT_EVIDENCE");
         assertThat(response.path("answer").isNull()).isTrue();
         assertThat(response.path("sources")).isEmpty();
-        assertThat(chat.calls.get()).isEqualTo(previousChatCalls);
+        assertThat(chat.calls.get()).isEqualTo(previousChatCalls + 1);
+        assertThat(chat.promptContents.getLast()).contains("SUP-001", "SUP-002");
     }
 
     @Test
@@ -297,13 +304,15 @@ class SemanticRagQaMatrixIntegrationTests extends AbstractIntegrationTest {
 
         String question = "SUP-001 的 MAT-002 標準交期為幾天？";
         assertRetrievedFromPgVector(question, source.searchText());
+        chat.answerOverride.set("INSUFFICIENT_EVIDENCE");
         int previousChatCalls = chat.calls.get();
         JsonNode response = response(query(admin, question));
 
         assertThat(response.path("status").asText()).isEqualTo("INSUFFICIENT_EVIDENCE");
         assertThat(response.path("answer").isNull()).isTrue();
         assertThat(response.path("sources")).isEmpty();
-        assertThat(chat.calls.get()).isEqualTo(previousChatCalls);
+        assertThat(chat.calls.get()).isEqualTo(previousChatCalls + 1);
+        assertThat(chat.promptContents.getLast()).contains(source.content());
     }
 
     @Test
@@ -318,13 +327,15 @@ class SemanticRagQaMatrixIntegrationTests extends AbstractIntegrationTest {
 
         String question = "SUP-001 的 MAT-002 標準交期為幾天？";
         assertRetrievedFromPgVector(question, source.searchText());
+        chat.answerOverride.set("INSUFFICIENT_EVIDENCE");
         int previousChatCalls = chat.calls.get();
         JsonNode response = response(query(admin, question));
 
         assertThat(response.path("status").asText()).isEqualTo("INSUFFICIENT_EVIDENCE");
         assertThat(response.path("answer").isNull()).isTrue();
         assertThat(response.path("sources")).isEmpty();
-        assertThat(chat.calls.get()).isEqualTo(previousChatCalls);
+        assertThat(chat.calls.get()).isEqualTo(previousChatCalls + 1);
+        assertThat(chat.promptContents.getLast()).contains(source.content());
     }
 
     @Test
@@ -351,7 +362,6 @@ class SemanticRagQaMatrixIntegrationTests extends AbstractIntegrationTest {
         chat.answerOverride.set(firstFact + "；" + conflictingFact);
         JsonNode response = response(query(admin, question));
 
-        assertThat(chat.evidenceSizes.getLast()).isEqualTo(2);
         assertThat(response.path("status").asText()).isEqualTo("ANSWERED");
         assertThat(response.path("answer").asText()).contains(firstFact, conflictingFact);
         assertThat(response.path("sources")).hasSize(2);
@@ -391,7 +401,6 @@ class SemanticRagQaMatrixIntegrationTests extends AbstractIntegrationTest {
                 .containsExactlyInAnyOrder("SUP-001", "SUP-002");
         assertThat(response.path("sources").findValuesAsText("title"))
                 .containsExactlyInAnyOrder("QA-SUP-001-MAT-001-QUOTE", "QA-SUP-002-MAT-001-QUOTE");
-        assertThat(chat.evidenceSizes.getLast()).isEqualTo(2);
     }
 
     @Test
@@ -406,16 +415,18 @@ class SemanticRagQaMatrixIntegrationTests extends AbstractIntegrationTest {
         DocumentMetadata document = documents.findById(documentId).orElseThrow();
         ReflectionTestUtils.setField(document, "version", "v2");
         documents.saveAndFlush(document);
+        chat.answerOverride.set("INSUFFICIENT_EVIDENCE");
         int previousChatCalls = chat.calls.get();
         JsonNode response = response(query(admin, "forklift capacity"));
 
         assertThat(response.path("status").asText()).isEqualTo("INSUFFICIENT_EVIDENCE");
         assertThat(response.path("sources")).isEmpty();
-        assertThat(chat.calls.get()).isEqualTo(previousChatCalls);
+        assertThat(chat.calls.get()).isEqualTo(previousChatCalls + 1);
+        assertThat(chat.promptContents.getLast()).contains(content);
     }
 
     @Test
-    void vectorMetadataCannotForgeLiveOutboundApproval() throws Exception {
+    void advisorPassesVectorCandidatesDirectlyToModelWithoutPostFiltering() throws Exception {
         User admin = user(UserRole.ADMIN);
         String content = "Forklift capacity is 500 kilograms.";
         long documentId = createReadyDocument(admin, "RAG-PG-UNAPPROVED", content);
@@ -439,12 +450,14 @@ class SemanticRagQaMatrixIntegrationTests extends AbstractIntegrationTest {
                 .text(content).metadata(metadata).build()));
         assertRetrievedFromPgVector("forklift capacity", content);
 
+        chat.answerOverride.set("INSUFFICIENT_EVIDENCE");
         int previousChatCalls = chat.calls.get();
         JsonNode response = response(query(admin, "forklift capacity"));
 
         assertThat(response.path("status").asText()).isEqualTo("INSUFFICIENT_EVIDENCE");
         assertThat(response.path("sources")).isEmpty();
-        assertThat(chat.calls.get()).isEqualTo(previousChatCalls);
+        assertThat(chat.calls.get()).isEqualTo(previousChatCalls + 1);
+        assertThat(chat.promptContents.getLast()).contains(content);
     }
 
     @Test
@@ -478,7 +491,7 @@ class SemanticRagQaMatrixIntegrationTests extends AbstractIntegrationTest {
 
         assertThat(response.path("code").asText()).isEqualTo("AI_PROVIDER_UNAVAILABLE");
         assertThat(chat.calls.get()).isEqualTo(previousChatCalls + 1);
-        assertThat(chat.evidenceSizes.getLast()).isGreaterThan(0);
+        assertThat(chat.promptContents.getLast()).contains(content);
         assertThat(mvc.perform(get("/api/v1/documents").header("Authorization", bearer(admin)))
                 .andReturn().getResponse().getStatus()).isEqualTo(200);
     }
@@ -732,8 +745,8 @@ class SemanticRagQaMatrixIntegrationTests extends AbstractIntegrationTest {
         @Bean(name = "ragQueryEmbeddingModel")
         EmbeddingModel ragQueryEmbeddingModel(FakeEmbeddingModel model) { return model.queryModel(); }
 
-        @Bean @Primary FakeChatModel ragQaFakeChatModel(RagEvidenceCollector collector) {
-            return new FakeChatModel(collector);
+        @Bean @Primary FakeChatModel ragQaFakeChatModel() {
+            return new FakeChatModel();
         }
     }
 
@@ -787,30 +800,27 @@ class SemanticRagQaMatrixIntegrationTests extends AbstractIntegrationTest {
     }
 
     static class FakeChatModel implements ChatModel {
-        private final RagEvidenceCollector collector;
         private final ChatOptions options = ChatOptions.builder().build();
         final AtomicInteger calls = new AtomicInteger();
         final AtomicBoolean fail = new AtomicBoolean();
         final AtomicReference<String> answerOverride = new AtomicReference<>();
-        final List<Integer> evidenceSizes = new CopyOnWriteArrayList<>();
-
-        FakeChatModel(RagEvidenceCollector collector) { this.collector = collector; }
+        final List<String> promptContents = new CopyOnWriteArrayList<>();
 
         void reset() {
             calls.set(0);
             fail.set(false);
             answerOverride.set(null);
-            evidenceSizes.clear();
+            promptContents.clear();
         }
 
         @Override
         public ChatResponse call(Prompt prompt) {
             calls.incrementAndGet();
-            List<com.supplypilot.document.rag.VerifiedRagEvidence> evidence = collector.get();
-            evidenceSizes.add(evidence.size());
+            String contents = prompt.getContents();
+            promptContents.add(contents);
             if (fail.get()) throw new IllegalStateException("deterministic chat provider failure");
             String answer = answerOverride.get();
-            if (answer == null) answer = evidence.stream().map(item -> item.excerpt()).findFirst().orElse("");
+            if (answer == null) answer = "INSUFFICIENT_EVIDENCE";
             return new ChatResponse(List.of(new Generation(new AssistantMessage(answer))));
         }
 

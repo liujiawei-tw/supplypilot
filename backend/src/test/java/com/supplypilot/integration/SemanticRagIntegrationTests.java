@@ -29,7 +29,6 @@ import com.supplypilot.document.domain.DocumentStatus;
 import com.supplypilot.document.domain.DocumentType;
 import com.supplypilot.document.repository.DocumentChunkRepository;
 import com.supplypilot.document.repository.DocumentMetadataRepository;
-import com.supplypilot.document.rag.RagEvidenceCollector;
 import com.supplypilot.document.semantic.SemanticProperties;
 import com.supplypilot.document.semantic.SemanticProviderException;
 import com.supplypilot.document.semantic.SemanticStore;
@@ -637,7 +636,7 @@ class SemanticRagIntegrationTests extends AbstractIntegrationTest {
     }
 
     @Test
-    void documentQueryReturnsPgvectorEvidenceWithLiveMysqlProvenance() throws Exception {
+    void documentQueryReturnsRetrievedPgvectorCandidatesAsSources() throws Exception {
         User admin = user(UserRole.ADMIN);
         String firstContent = "Forklift capacity is 500 kilograms.";
         String secondContent = "Forklift capacity is 600 kilograms. Operators should inspect the load before every shift.";
@@ -656,7 +655,7 @@ class SemanticRagIntegrationTests extends AbstractIntegrationTest {
         String response = query(admin, "forklift capacity")
                 .andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString();
-        assertThat(CHAT_EVIDENCE_SIZES).as("verified RAG evidence passed to ChatModel")
+        assertThat(CHAT_EVIDENCE_SIZES).as("retrieved document context passed to ChatModel")
                 .isNotEmpty().allMatch(size -> size > 0);
         assertThat(objectMapper.readTree(response).path("status").asText()).isEqualTo("ANSWERED");
         JsonNode sources = objectMapper.readTree(response).path("sources");
@@ -934,17 +933,15 @@ class SemanticRagIntegrationTests extends AbstractIntegrationTest {
         @Bean @Primary FakeModel fakeEmbeddingModel() { return new FakeModel(); }
 
         @Bean @Primary
-        ChatModel fakeRagChatModel(RagEvidenceCollector collector) {
+        ChatModel fakeRagChatModel() {
             return new ChatModel() {
                 private final ChatOptions options = ChatOptions.builder().build();
 
                 @Override
                 public ChatResponse call(Prompt prompt) {
-                    List<com.supplypilot.document.rag.VerifiedRagEvidence> evidence = collector.get();
-                    CHAT_EVIDENCE_SIZES.add(evidence.size());
-                    String answer = evidence.stream().map(item -> item.excerpt())
-                            .findFirst().orElse("");
-                    return new ChatResponse(List.of(new Generation(new AssistantMessage(answer))));
+                    String contents = prompt.getContents();
+                    CHAT_EVIDENCE_SIZES.add(contents.contains("Forklift capacity") ? 1 : 0);
+                    return new ChatResponse(List.of(new Generation(new AssistantMessage(contents))));
                 }
 
                 @Override public ChatOptions getDefaultOptions() { return options; }

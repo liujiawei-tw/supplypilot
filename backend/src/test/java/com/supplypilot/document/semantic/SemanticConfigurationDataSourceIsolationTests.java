@@ -12,7 +12,6 @@ import org.springframework.boot.jdbc.autoconfigure.DataSourceAutoConfiguration;
 import org.springframework.boot.jdbc.autoconfigure.JdbcTemplateAutoConfiguration;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.jdbc.core.JdbcTemplate;
-import com.supplypilot.document.rag.RagDocumentPostProcessor;
 import com.supplypilot.document.rag.SpringAiRagConfiguration;
 
 class SemanticConfigurationDataSourceIsolationTests {
@@ -76,7 +75,6 @@ class SemanticConfigurationDataSourceIsolationTests {
     void configuredGeminiAndUnavailablePostgresDoNotBlockApplicationContextStartup() {
         contextRunner
                 .withUserConfiguration(SpringAiRagConfiguration.class)
-                .withBean(RagDocumentPostProcessor.class, () -> mock(RagDocumentPostProcessor.class))
                 .withPropertyValues(
                         "supplypilot.semantic.jdbc-url=jdbc:postgresql://127.0.0.1:1/supplypilot_semantic",
                         "supplypilot.semantic.read-enabled=true",
