@@ -1,7 +1,9 @@
 package com.supplypilot.ai.service;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import com.supplypilot.ai.dto.AiQueryStatus;
 import com.supplypilot.ai.dto.AiSourceResponse;
@@ -178,11 +180,20 @@ public class AiAnswerEvidencePolicy {
     }
 
     private boolean supportedDocument(String question, AiToolResult result) {
-        return !result.sources().isEmpty() && result.sources().stream()
-                .allMatch(source -> validDocumentSource(question, source));
+        if (result.sources().isEmpty() || result.sources().stream().anyMatch(source -> !validDocumentSource(source))) {
+            return false;
+        }
+        Map<SourceDocumentIdentity, List<AiSourceResponse>> excerptsByDocument = result.sources().stream()
+                .collect(Collectors.groupingBy(source -> new SourceDocumentIdentity(source.resourceId(),
+                        source.documentKey(), source.version())));
+        return excerptsByDocument.values().stream().allMatch(sources -> {
+            String combinedExcerpt = sources.stream().map(AiSourceResponse::excerpt)
+                    .collect(Collectors.joining("\n"));
+            return !evidenceValidator.supportedExcerpt(question, combinedExcerpt).isBlank();
+        });
     }
 
-    private boolean validDocumentSource(String question, AiSourceResponse source) {
+    private boolean validDocumentSource(AiSourceResponse source) {
         return source != null && "DOCUMENT".equals(source.resourceType())
                 && source.resourceId() != null && !source.resourceId().isBlank()
                 && source.version() != null && !source.version().isBlank()
@@ -190,7 +201,9 @@ public class AiAnswerEvidencePolicy {
                 && source.startOffset() != null && source.startOffset() >= 0
                 && source.endOffset() != null && source.endOffset() > source.startOffset()
                 && source.excerpt() != null
-                && source.excerpt().length() == source.endOffset() - source.startOffset()
-                && !evidenceValidator.supportedExcerpt(question, source.excerpt()).isBlank();
+                && source.excerpt().length() == source.endOffset() - source.startOffset();
+    }
+
+    private record SourceDocumentIdentity(String resourceId, String documentKey, String version) {
     }
 }

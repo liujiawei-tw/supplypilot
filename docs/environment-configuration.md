@@ -71,6 +71,7 @@ Spring AI RAG 遷移分支另外讀取下列設定；`SEMANTIC_READ_ENABLED` 預
 | `GEMINI_EMBEDDING_MODEL` | `gemini-embedding-001` | Spring AI EmbeddingModel ID。 |
 | `SEMANTIC_DIMENSIONS` | `768` | PgVectorStore 向量維度。 |
 | `SEMANTIC_GENERATION_KEY` | `gemini-embedding-001-768-spring-ai-chunk500-overlap70-v2` | 隔離模型、維度及 chunking 世代。 |
+| `SEMANTIC_INDEX_WORKER_ENABLED` | `true` | 控制背景語意索引 worker；手動回填維護期間可暫設 `false`，Compose 會把設定傳給 Backend。 |
 | `SEMANTIC_TOP_K` | `8` | 最終核准來源數上限。 |
 | `SEMANTIC_SIMILARITY_THRESHOLD` | `0.4` | 向量檢索相似度下限。 |
 | `SEMANTIC_READ_ENABLED` | `false` | 文件 RAG 查詢啟用閘門。 |
