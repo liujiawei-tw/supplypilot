@@ -24,10 +24,11 @@ This directory preserves the V1 implementation baseline and current V2 implement
 
 ## Architecture and Contracts
 
+- [Current main architecture diagram (SVG + source)](architecture/README.md)
 - [Domain model](domain-model.md)
 - [ERD](erd/erd.md)
 - [API design](api.md)
-- [Package architecture](package-architecture.md)
+- [Package architecture (V1 baseline)](package-architecture.md)
 - [Transaction boundaries](transaction-boundary.md)
 - [Validation and exceptions](validation-exception.md)
 - [Security design](security-design.md)
@@ -40,6 +41,7 @@ This directory preserves the V1 implementation baseline and current V2 implement
 - [Frontend design](frontend-design.md)
 - [Impeccable 前端改善審查、UI-A/B/C/D 與 E9 依賴](impeccable-ui-review-plan.md)
 - [Semantic RAG runbook](semantic-rag-runbook.md)
+- [SupplyPilot project presentation (6 slides + cover)](presentations/supplypilot-project-overview.md)
 - [Spring AI RAG current migration/API status](api.md#post-apiv1document-queries)
 - [Environment configuration](environment-configuration.md)
 - [Cross-document consistency review](cross-document-consistency-review.md)

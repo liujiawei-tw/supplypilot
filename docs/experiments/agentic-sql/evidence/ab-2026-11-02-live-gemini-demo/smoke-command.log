@@ -1,0 +1,6 @@
+
+[BAS-04] SUP-001 ���� MAT-001 ���D�ɨ������󦳭��ǡH�ЦC�X���A�B����B���O�BMOQ�B�]�˭��ơB����P���C
+  baseline (ai_query): ���ĩi�����Ѩ����]MAT-001�^�� �ֺ����F��Ƥu�{�]SUP-001�^���Ѧ��ĳ��� 100.0000 TWD��KG�A��� 5 �ѡC ���ĩi�����Ѩ����]MAT-001�^�� �F��T�����]SUP-002�^���Ѧ��ĳ��� 104.0000 TWD��KG�A��� 3 �ѡC ���ĩi�����Ѩ����]MAT-001�^�� �C�����������]SUP-003�^���Ѧ��ĳ��� 97.0000 �K
+  agent:                  �d�ߵ��G�������i�ֹ諸���סA�]���S���ĥμҫ��ͦ����ƹꤺ�e�C �����ʥF SQL ���G��������פw�ٲ��C
+
+Wrote 1 comparisons to docs\experiments\agentic-sql\evidence\ab-2026-11-02-live-gemini-demo\smoke-result.jsonl

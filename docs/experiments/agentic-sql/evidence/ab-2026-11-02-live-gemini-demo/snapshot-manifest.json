@@ -1,0 +1,29 @@
+{
+  "capturedAtUtc": "2026-11-02T12:38:21.0288596Z",
+  "datasetKey": "SP-901",
+  "datasetVersion": "sp-907-zh-tw-v3",
+  "datasetStatus": "COMPLETE",
+  "mysqlVersion": "8.4.11",
+  "mysqlTables": [
+    "suppliers",
+    "materials",
+    "supplier_materials",
+    "purchase_orders",
+    "purchase_order_items",
+    "inventory"
+  ],
+  "mysqlRowCounts": "suppliers\t10\nmaterials\t12\nsupplier_materials\t45\npurchase_orders\t14\npurchase_order_items\t15\ninventory\t12",
+  "mysqlLogicalDumpSha256": "DAD246DDEE752BDCB243363D4774B505DBBCD96BDD10C5D36926FB054454C244",
+  "postgresVersion": "PostgreSQL 17.11 (Debian 17.11-1.pgdg12+2) on x86_64-pc-linux-gnu, compiled by gcc (Debian 12.2.0-14+deb12u1) 12.2.0, 64-bit",
+  "postgresTable": "public.semantic_chunks",
+  "postgresRows": 546,
+  "postgresLogicalRowsSha256": "27649F76AE3FCEA8E865E0C82DC599CC87128352CF684E10464E3A82E9A60E4B",
+  "snapshotFingerprintSha256": "A97501CEA5F2DCAA08E7D0C0B981FD5EA5DD4EFD9DF5C34CBB003DB07310E0EB",
+  "rawRowsRetained": false,
+  "note": "Fingerprint is SHA-256 over deterministic logical exports of the listed DEMO tables; raw exports were held in memory only.",
+  "mysqlLogicalDumpSha256AfterRun": "DAD246DDEE752BDCB243363D4774B505DBBCD96BDD10C5D36926FB054454C244",
+  "postgresLogicalRowsSha256AfterRun": "27649F76AE3FCEA8E865E0C82DC599CC87128352CF684E10464E3A82E9A60E4B",
+  "snapshotFingerprintAfterRunSha256": "A97501CEA5F2DCAA08E7D0C0B981FD5EA5DD4EFD9DF5C34CBB003DB07310E0EB",
+  "snapshotStableDuringRun": true,
+  "postRunCapturedAtUtc": "2026-11-02T12:58:03.7580781Z"
+}

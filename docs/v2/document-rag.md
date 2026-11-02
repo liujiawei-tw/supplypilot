@@ -2,6 +2,8 @@
 
 > 本文件保留 V2 文件管理、權限、Demo 語料與答案證據需求。Spring AI 2.0.1 查詢／索引與問題分類程式已在本機 main；最新 RAG PostProcessor 移除修改尚未部署。正式環境及隔離本機 Demo 的既有 migration、回填與 Gemini 問答證據，依文末連結分開記錄。Agentic SQL 不在遷移範圍。
 
+目前 main 的服務與資料連線請見[HTML 架構圖](../architecture/supplypilot-architecture-overview.html)、[SVG 架構圖](../architecture/supplypilot-architecture-overview.svg)及[架構說明](../architecture/README.md)。圖中 RAG 與 Gemini 標示為可設定路徑：`SEMANTIC_READ_ENABLED` 預設關閉，Compose 的 Chat／Embedding Provider 預設為 `none`；這是執行設定摘要，不代表已啟用正式服務。
+
 ## 1. 保留的三種使用情境
 
 1. 公司採購 SOP／採購權限或流程文件查詢。

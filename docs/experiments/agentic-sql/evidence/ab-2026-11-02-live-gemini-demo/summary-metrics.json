@@ -1,0 +1,83 @@
+{
+  "validPairedCases": 10,
+  "allAttemptsIncludingExcludedFixture": 11,
+  "excludedCase": "XTB-03 (DEMO-PO-001 absent from live snapshot)",
+  "snapshotFingerprintSha256": "A97501CEA5F2DCAA08E7D0C0B981FD5EA5DD4EFD9DF5C34CBB003DB07310E0EB",
+  "toolCalling": {
+    "http2xx": 7,
+    "httpFailures": 3,
+    "responseStatuses": {
+      "ANSWERED": 5,
+      "INSUFFICIENT_EVIDENCE": 1,
+      "HTTP_ERROR": 3,
+      "NOT_FOUND": 1
+    },
+    "httpFailureCodes": {
+      "AI_INVALID_RESPONSE": 1,
+      "AI_TIMEOUT": 2
+    },
+    "meanLatencyMs": 9505.82,
+    "medianLatencyMs": 9165.1,
+    "inputTokens": {
+      "sum": 0,
+      "responses": 0
+    },
+    "outputTokens": {
+      "sum": 0,
+      "responses": 0
+    },
+    "totalTokens": {
+      "sum": 0,
+      "responses": 0
+    },
+    "estimatedCost": "N/A",
+    "responsesWithToolTrace": 0,
+    "traceToolCallsReturned": 0,
+    "sqlToolCallsReturned": 0
+  },
+  "agenticSql": {
+    "http2xx": 6,
+    "httpFailures": 4,
+    "responseStatuses": {
+      "PARTIAL": 5,
+      "HTTP_ERROR": 4,
+      "NEEDS_CLARIFICATION": 1
+    },
+    "httpFailureCodes": {
+      "AI_PROVIDER_UNAVAILABLE": 4
+    },
+    "meanLatencyMs": 20039.62,
+    "medianLatencyMs": 19043.01,
+    "inputTokens": {
+      "sum": 134360,
+      "responses": 6
+    },
+    "outputTokens": {
+      "sum": 2236,
+      "responses": 6
+    },
+    "totalTokens": {
+      "sum": 148387,
+      "responses": 6
+    },
+    "estimatedCost": "N/A",
+    "responsesWithToolTrace": 6,
+    "traceToolCallsReturned": 35,
+    "sqlToolCallsReturned": 12
+  },
+  "manualReviewGrades": {
+    "toolCalling": {
+      "PARTIAL": 5,
+      "API_FAILURE": 2,
+      "INCORRECT": 1,
+      "CORRECT": 1,
+      "NOT_VERIFIED": 1
+    },
+    "agenticSql": {
+      "NO_USABLE_ANSWER": 5,
+      "API_FAILURE": 4,
+      "SAFE_NO_QUERY_TASK_INCOMPLETE": 1
+    }
+  },
+  "estimatedCost": "N/A for both; Tool Calling omits usage and Agentic SQL omits price."
+}

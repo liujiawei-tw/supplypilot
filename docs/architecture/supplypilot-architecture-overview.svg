@@ -1,0 +1,305 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg class="system-diagram" xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900" role="img" aria-labelledby="supplypilot-architecture-overview-title supplypilot-architecture-overview-desc" id="supplypilot-architecture-overview-root">
+  <title id="supplypilot-architecture-overview-title">SupplyPilot 系統架構總覽</title>
+  <desc id="supplypilot-architecture-overview-desc">採購人員經由 React 與 Nginx 使用 Spring Boot 採購服務，服務連接 MySQL、文件儲存及可設定的 Gemini 與 pgvector RAG 路徑，並以 Docker Compose 管理本機基礎設施。</desc>
+  <defs>
+      <style>#supplypilot-architecture-overview-root { color-scheme: light;
+      --paper:#f2f5f8; --surface:#fff; --surface-2:#f8fafc;
+      --ink:#16283b; --navy:#10243a; --muted:#53697e; --soft:#718397;
+      --rule:#dbe4ec; --accent:#0d6b67; --accent-tint:#eaf5f3;
+      --link:#245db3; --link-tint:#eef4fc;
+      --font-sans:Inter,"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif; }
+      #supplypilot-architecture-overview-root { color: var(--ink); font-family: var(--font-sans); }
+      #supplypilot-architecture-overview-root.system-diagram { display:block;width:100%;height:auto;min-width:0 }
+
+      #supplypilot-architecture-overview-root .system-diagram text { font-family:var(--font-sans);fill:var(--ink) }
+      #supplypilot-architecture-overview-root .headline { fill:var(--navy);font-size:38px;font-weight:750;letter-spacing:-.5px }
+      #supplypilot-architecture-overview-root .subtitle { fill:var(--muted);font-size:16px;font-weight:500 }
+      #supplypilot-architecture-overview-root .zone-label { fill:var(--muted);font-size:13px;font-weight:700;letter-spacing:1px }
+      #supplypilot-architecture-overview-root .journey-title { fill:var(--ink);font-size:15px;font-weight:700 }
+      #supplypilot-architecture-overview-root .journey-sub { fill:var(--muted);font-size:13px;font-weight:500 }
+      #supplypilot-architecture-overview-root .journey-step { fill:var(--surface);stroke:var(--rule);stroke-width:1.1 }
+      #supplypilot-architecture-overview-root .journey-step-focus { fill:var(--accent-tint);stroke:var(--accent);stroke-width:1.4 }
+      #supplypilot-architecture-overview-root .journey-number { stroke:none }
+      #supplypilot-architecture-overview-root .journey-neutral { fill:var(--muted) }
+      #supplypilot-architecture-overview-root .journey-link { fill:var(--link) }
+      #supplypilot-architecture-overview-root .journey-accent { fill:var(--accent) }
+      #supplypilot-architecture-overview-root .journey-number-text { fill:var(--surface);font-size:14px;font-weight:750 }
+      #supplypilot-architecture-overview-root .layer { fill:var(--surface-2);stroke:#c8d4df;stroke-width:1.1 }
+      #supplypilot-architecture-overview-root .layer-client { fill:#f7f9fb }
+      #supplypilot-architecture-overview-root .layer-head { stroke:none }
+      #supplypilot-architecture-overview-root .layer-head-client { fill:#edf1f5 }
+      #supplypilot-architecture-overview-root .layer-head-web { fill:#e7f2f0 }
+      #supplypilot-architecture-overview-root .layer-head-api { fill:#e2f0ee }
+      #supplypilot-architecture-overview-root .layer-head-data { fill:#edf1f5 }
+      #supplypilot-architecture-overview-root .layer-head-external { fill:#edf3fb }
+      #supplypilot-architecture-overview-root .layer-head-infra { fill:#edf1f5 }
+      #supplypilot-architecture-overview-root .layer-index { stroke:none }
+      #supplypilot-architecture-overview-root .layer-index-neutral { fill:var(--muted) }
+      #supplypilot-architecture-overview-root .layer-index-accent { fill:var(--accent) }
+      #supplypilot-architecture-overview-root .layer-index-link { fill:var(--link) }
+      #supplypilot-architecture-overview-root .layer-index-text { fill:var(--surface);font-size:13px;font-weight:750 }
+      #supplypilot-architecture-overview-root .layer-title { fill:var(--ink);font-size:14px;font-weight:750 }
+      #supplypilot-architecture-overview-root .component-card { fill:var(--surface);stroke:#ced9e2;stroke-width:1 }
+      #supplypilot-architecture-overview-root .component-card-focus { fill:var(--accent-tint);stroke:#8cbab5;stroke-width:1.2 }
+      #supplypilot-architecture-overview-root .component-card-external { fill:var(--link-tint);stroke:#b4c9e4;stroke-width:1.1 }
+      #supplypilot-architecture-overview-root .component-card-conditional { fill:#f2f7f6;stroke:#7eb3ad;stroke-width:1.1;stroke-dasharray:5 4 }
+      #supplypilot-architecture-overview-root .component-title { fill:var(--ink);font-size:15px;font-weight:750 }
+      #supplypilot-architecture-overview-root .component-title-small { fill:var(--ink);font-size:14px;font-weight:750 }
+      #supplypilot-architecture-overview-root .component-kicker { fill:var(--muted);font-size:13px;font-weight:700 }
+      #supplypilot-architecture-overview-root .component-copy { fill:var(--muted);font-size:13px;font-weight:500 }
+      #supplypilot-architecture-overview-root .component-tech { fill:var(--soft);font-size:11.5px;font-weight:600;letter-spacing:.2px }
+      #supplypilot-architecture-overview-root .component-rule { stroke:var(--rule);stroke-width:1 }
+      #supplypilot-architecture-overview-root .tag { fill:#edf1f5 }
+      #supplypilot-architecture-overview-root .tag-web { fill:#e7f2f0 }
+      #supplypilot-architecture-overview-root .tag-api { fill:var(--accent) }
+      #supplypilot-architecture-overview-root .tag-store { fill:#edf1f5 }
+      #supplypilot-architecture-overview-root .tag-link { fill:#e8f0fa }
+      #supplypilot-architecture-overview-root .tag-text { fill:var(--muted);font-size:11px;font-weight:750;letter-spacing:.45px }
+      #supplypilot-architecture-overview-root .tag-text-on-accent { fill:var(--surface);font-size:11px;font-weight:750;letter-spacing:.45px }
+      #supplypilot-architecture-overview-root .node-icon { fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round }
+      #supplypilot-architecture-overview-root .icon-accent { color:var(--accent) }
+      #supplypilot-architecture-overview-root .icon-link { color:var(--link) }
+      #supplypilot-architecture-overview-root .icon-fill { fill:currentColor;stroke:none }
+      #supplypilot-architecture-overview-root .arrow { fill:none;stroke:var(--muted);stroke-width:1.45;stroke-linecap:round;stroke-linejoin:round }
+      #supplypilot-architecture-overview-root .arrow-link { fill:none;stroke:var(--link);stroke-width:1.55;stroke-linecap:round;stroke-linejoin:round }
+      #supplypilot-architecture-overview-root .arrow-accent { fill:none;stroke:var(--accent);stroke-width:1.45;stroke-dasharray:5 4;stroke-linecap:round;stroke-linejoin:round }
+      #supplypilot-architecture-overview-root .arrow-offline { fill:none;stroke:var(--muted);stroke-width:1.2;stroke-dasharray:5 4;stroke-linecap:round;stroke-linejoin:round }
+      #supplypilot-architecture-overview-root .compose-zone { fill:none;stroke:#8ca0b2;stroke-width:1.3;stroke-dasharray:7 5 }
+      #supplypilot-architecture-overview-root .compose-label-mask { fill:var(--paper) }
+      #supplypilot-architecture-overview-root .pipeline-zone { fill:#f7f9fb;stroke:#96aaa8;stroke-width:1.2;stroke-dasharray:6 4 }
+      #supplypilot-architecture-overview-root .pipeline-label-mask { fill:var(--paper) }
+      #supplypilot-architecture-overview-root .pipeline-title { fill:var(--navy);font-size:16px;font-weight:750 }
+      #supplypilot-architecture-overview-root .pipeline-subtitle { fill:var(--muted);font-size:13px;font-weight:500 }
+      #supplypilot-architecture-overview-root .pipeline-card { fill:var(--surface);stroke:#c8d4df;stroke-width:1 }
+      #supplypilot-architecture-overview-root .pipeline-card-artifact { fill:var(--accent-tint);stroke:#83b5b0;stroke-width:1.1 }
+      #supplypilot-architecture-overview-root .pipeline-node-title { fill:var(--ink);font-size:14px;font-weight:750 }
+      #supplypilot-architecture-overview-root .pipeline-node-copy { fill:var(--muted);font-size:13px;font-weight:500 }
+      #supplypilot-architecture-overview-root .legend-rule { stroke:var(--rule);stroke-width:1 }
+      #supplypilot-architecture-overview-root .legend-label { fill:var(--muted);font-size:13px;font-weight:550 }
+      #supplypilot-architecture-overview-root .legend-title { fill:var(--navy);font-size:11px;font-weight:750;letter-spacing:1px }
+      </style>
+    <marker id="supplypilot-architecture-overview-arrow-main" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 10 5 0 10z" fill="#53697e"/></marker>
+    <marker id="supplypilot-architecture-overview-arrow-link" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 10 5 0 10z" fill="#245db3"/></marker>
+    <marker id="supplypilot-architecture-overview-arrow-accent" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 10 5 0 10z" fill="#0d6b67"/></marker>
+    <symbol id="supplypilot-architecture-overview-icon-browser" viewBox="0 0 40 40">
+  <rect x="4" y="5" width="32" height="25" rx="3" fill="#eef4fc" stroke="#245db3" stroke-width="2"/>
+  <path d="M4 12h32" stroke="#245db3" stroke-width="2"/>
+  <circle cx="9" cy="8.5" r="1.2" fill="#e56a62"/><circle cx="13" cy="8.5" r="1.2" fill="#f2b84b"/><circle cx="17" cy="8.5" r="1.2" fill="#3a9b70"/>
+  <circle cx="20" cy="21" r="5.3" fill="#d8efed" stroke="#0d6b67" stroke-width="1.5"/>
+  <path d="M14.7 21h10.6M20 15.7c-2.6 2.8-2.6 8.8 0 10.6m0-10.6c2.6 2.8 2.6 8.8 0 10.6M13 35h14m-7-5v5" fill="none" stroke="#245db3" stroke-width="1.6" stroke-linecap="round"/>
+</symbol>
+    <symbol id="supplypilot-architecture-overview-icon-person" viewBox="0 0 40 40">
+  <circle cx="20" cy="12" r="6" fill="#f2b84b" stroke="#d99723" stroke-width="1"/>
+  <path d="M8 35v-3a12 12 0 0 1 24 0v3z" fill="#245db3"/>
+  <path d="M13 28.5c1.8-1.8 4.2-2.8 7-2.8s5.2 1 7 2.8" fill="none" stroke="#62b7b0" stroke-width="1.7" stroke-linecap="round"/>
+</symbol>
+    <symbol id="supplypilot-architecture-overview-icon-react" viewBox="0 0 40 40"><circle cx="20" cy="20" r="2.4" fill="#61dafb"/><ellipse cx="20" cy="20" rx="16" ry="6" fill="none" stroke="#61dafb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><ellipse cx="20" cy="20" rx="16" ry="6" transform="rotate(60 20 20)" fill="none" stroke="#61dafb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><ellipse cx="20" cy="20" rx="16" ry="6" transform="rotate(120 20 20)" fill="none" stroke="#61dafb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="supplypilot-architecture-overview-icon-spring" viewBox="0 0 24 24"><path fill="#6db33f" d="m23.693 10.7058-4.73-8.1844c-.4094-.7106-1.4166-1.2942-2.2402-1.2942H7.2725c-.819 0-1.8308.5836-2.2402 1.2942L.307 10.7058c-.4095.7106-.4095 1.873 0 2.5837l4.7252 8.189c.4094.7107 1.4166 1.2943 2.2402 1.2943h9.455c.819 0 1.826-.5836 2.2402-1.2942l4.7252-8.189c.4095-.7107.4095-1.8732 0-2.5838zM10.9763 5.7547c0-.5365.4377-.9742.9742-.9742s.9742.4377.9742.9742v5.8217c0 .5366-.4377.9742-.9742.9742s-.9742-.4376-.9742-.9742zm.9742 12.4294c-3.6427 0-6.6077-2.965-6.6077-6.6077.0047-2.0896.993-4.0521 2.6685-5.304a.8657.8657 0 0 1 1.2142.1788.8657.8657 0 0 1-.1788 1.2143c-2.1602 1.6048-2.612 4.6592-1.0072 6.8194 1.6049 2.1603 4.6593 2.612 6.8195 1.0072 1.2378-.9177 1.9673-2.372 1.9673-3.9157a4.8972 4.8972 0 0 0-1.9861-3.925c-.386-.2824-.466-.8284-.1836-1.2143.2824-.386.8283-.466 1.2143-.1835 1.6895 1.2471 2.6826 3.2238 2.6873 5.3228 0 3.6474-2.965 6.6077-6.6077 6.6077z"/></symbol>
+    <symbol id="supplypilot-architecture-overview-icon-gemini" viewBox="64 64 896 896"><path d="M476.16 785.28Q512 867.04 512 960q0-92.96 34.72-174.72 35.84-81.76 96.32-142.24t142.24-95.2Q867.04 512 960 512q-92.96 0-174.72-34.72a459.2 459.2 0 01-142.24-96.32 459.2 459.2 0 01-96.32-142.24Q512 156.96 512 64q0 92.96-35.84 174.72-34.72 81.76-95.2 142.24a459.2 459.2 0 01-142.24 96.32Q156.96 512 64 512q92.96 0 174.72 35.84 81.76 34.72 142.24 95.2t95.2 142.24" fill="#5879da"/></symbol>
+    <symbol id="supplypilot-architecture-overview-icon-mysql" viewBox="0 0 100 100"><path fill="#00758f" d="M87.9,74.2c-4.9-0.1-8.7,0.4-11.9,1.7c-0.9,0.4-2.4,0.4-2.5,1.5c0.5,0.5,0.6,1.3,1,2c0.7,1.2,2,2.9,3.2,3.7   c1.3,1,2.6,2,3.9,2.8c2.4,1.5,5.1,2.3,7.4,3.8c1.4,0.9,2.7,2,4,2.9c0.7,0.5,1.1,1.3,2,1.6v-0.2c-0.4-0.6-0.6-1.3-1-2   c-0.6-0.6-1.2-1.2-1.8-1.8c-1.8-2.4-4-4.5-6.4-6.2c-2-1.4-6.2-3.2-7-5.5c0,0-0.1-0.1-0.1-0.1c1.3-0.1,2.9-0.6,4.2-1   c2.1-0.6,4-0.4,6.1-1c1-0.2,2-0.6,2.9-0.9v-0.6c-1.1-1.1-1.9-2.6-3.1-3.6c-3.1-2.7-6.6-5.3-10.1-7.5c-1.9-1.2-4.3-2-6.4-3.1   c-0.7-0.4-2-0.6-2.4-1.2c-1.1-1.3-1.7-3.1-2.5-4.7c-1.8-3.4-3.5-7.1-5-10.7c-1.1-2.4-1.8-4.8-3.1-7c-6.3-10.4-13.2-16.8-23.7-23   c-2.3-1.3-5-1.8-7.8-2.5c-1.5-0.1-3.1-0.2-4.6-0.2c-1-0.4-2-1.6-2.8-2.2C17,7.3,8,2.5,5.4,8.9c-1.7,4,2.4,7.9,3.9,9.9   c1,1.4,2.4,3,3.1,4.6c0.4,1,0.6,2.2,1,3.3c1,2.7,1.9,5.7,3.2,8.2c0.7,1.3,1.4,2.6,2.3,3.8c0.5,0.7,1.3,1,1.5,2.1   c-0.9,1.2-0.9,3.1-1.4,4.6c-2.2,6.9-1.3,15.5,1.8,20.6c1,1.5,3.3,4.9,6.4,3.6c2.8-1.1,2.1-4.6,2.9-7.7c0.2-0.7,0.1-1.2,0.4-1.7v0.1   c0.9,1.7,1.7,3.4,2.5,5.1c1.9,3,5.2,6.1,8,8.2c1.5,1.1,2.6,3,4.5,3.7v-0.2h-0.1c-0.4-0.6-0.9-0.8-1.4-1.2c-1.1-1.1-2.3-2.5-3.2-3.7   c-2.6-3.4-4.8-7.2-6.9-11.2c-1-1.9-1.8-4-2.6-5.9c-0.4-0.7-0.4-1.8-1-2.2c-0.9,1.3-2.3,2.5-2.9,4.2c-1.2,2.6-1.3,5.9-1.7,9.3   c-0.2,0.1-0.1,0-0.2,0.1c-2-0.5-2.6-2.5-3.4-4.2C20.1,58,19.8,51,21.4,45.9c0.4-1.3,2.3-5.3,1.5-6.6c-0.4-1.2-1.6-1.8-2.3-2.8   c-0.8-1.2-1.7-2.6-2.2-3.9c-1.5-3.4-2.2-7.2-3.8-10.7c-0.7-1.6-2-3.3-3.1-4.7c-1.2-1.7-2.4-2.8-3.4-4.8C8,11.8,7.5,10.7,8,10   c0.1-0.5,0.4-0.7,0.9-0.8c0.8-0.7,3.1,0.2,3.9,0.6c2.3,0.9,4.2,1.8,6.1,3.1c0.9,0.6,1.8,1.8,2.9,2.1H23c2,0.4,4.2,0.1,6,0.7   c3.2,1,6.2,2.6,8.8,4.2c8,5.1,14.6,12.3,19.1,21c0.7,1.4,1,2.7,1.7,4.2c1.3,3,2.9,6.1,4.2,9c1.3,2.9,2.5,5.8,4.3,8.2   c0.9,1.3,4.6,2,6.2,2.6c1.2,0.6,3.1,1,4.2,1.7c2.1,1.3,4.2,2.8,6.1,4.2C84.7,71.5,87.7,73,87.9,74.2"/><path fill="#00758f" d="M25.5,20.9c-1,0-1.8,0.1-2.5,0.3v0.1h0.1c0.5,1,1.4,1.7,2,2.5c0.5,1,0.9,2,1.4,2.9c0.1-0.1,0.1-0.1,0.1-0.1   c0.9-0.6,1.3-1.6,1.3-3.1c-0.4-0.4-0.4-0.9-0.7-1.3C26.7,21.7,26,21.4,25.5,20.9"/></symbol>
+    <symbol id="supplypilot-architecture-overview-icon-file" viewBox="0 0 40 40">
+  <path d="M8 4h16l9 9v23H8z" fill="#eaf2fc" stroke="#245db3" stroke-width="1.8" stroke-linejoin="round"/>
+  <path d="M24 4v10h9" fill="#d7e9f5" stroke="#245db3" stroke-width="1.6" stroke-linejoin="round"/>
+  <path d="M13 22h15M13 28h15M13 34h10" stroke="#0d6b67" stroke-width="1.8" stroke-linecap="round"/>
+</symbol>
+    <!--
+Official PostgreSQL Slonik logo, based on the PostgreSQL wiki logo asset:
+https://wiki.postgresql.org/wiki/Logo
+Copyright © PostgreSQL Global Development Group.
+Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
+1. Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
+2. Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.
+3. Neither the name of PostgreSQL Global Development Group nor the names of its contributors may be used to endorse or promote products derived from this software without specific prior written permission.
+THIS SOFTWARE IS PROVIDED BY POSTGRESQL GLOBAL DEVELOPMENT GROUP "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL POSTGRESQL GLOBAL DEVELOPMENT GROUP BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+-->
+
+<symbol id="supplypilot-architecture-overview-icon-postgres" viewBox="0 0 432.071 445.383">
+  <g style="fill-rule:nonzero;clip-rule:nonzero;fill:none;stroke:#FFFFFF;stroke-width:12.4651;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;">
+    <path style="fill:#000000;stroke:#000000;stroke-width:37.3953;stroke-linecap:butt;stroke-linejoin:miter;" d="M323.205,324.227c2.833-23.601,1.984-27.062,19.563-23.239l4.463,0.392c13.517,0.615,31.199-2.174,41.587-7c22.362-10.376,35.622-27.7,13.572-23.148c-50.297,10.376-53.755-6.655-53.755-6.655c53.111-78.803,75.313-178.836,56.149-203.322C352.514-5.534,262.036,26.049,260.522,26.869l-0.482,0.089c-9.938-2.062-21.06-3.294-33.554-3.496c-22.761-0.374-40.032,5.967-53.133,15.904c0,0-161.408-66.498-153.899,83.628c1.597,31.936,45.777,241.655,98.47,178.31c19.259-23.163,37.871-42.748,37.871-42.748c9.242,6.14,20.307,9.272,31.912,8.147l0.897-0.765c-0.281,2.876-0.157,5.689,0.359,9.019c-13.572,15.167-9.584,17.83-36.723,23.416c-27.457,5.659-11.326,15.734-0.797,18.367c12.768,3.193,42.305,7.716,62.268-20.224l-0.795,3.188c5.325,4.26,4.965,30.619,5.72,49.452c0.756,18.834,2.017,36.409,5.856,46.771c3.839,10.36,8.369,37.05,44.036,29.406c29.809-6.388,52.6-15.582,54.677-101.107"/>
+    <path style="fill:#336791;stroke:none;" d="M402.395,271.23c-50.302,10.376-53.76-6.655-53.76-6.655c53.111-78.808,75.313-178.843,56.153-203.326c-52.27-66.785-142.752-35.2-144.262-34.38l-0.486,0.087c-9.938-2.063-21.06-3.292-33.56-3.496c-22.761-0.373-40.026,5.967-53.127,15.902    c0,0-161.411-66.495-153.904,83.63c1.597,31.938,45.776,241.657,98.471,178.312c19.26-23.163,37.869-42.748,37.869-42.748c9.243,6.14,20.308,9.272,31.908,8.147l0.901-0.765c-0.28,2.876-0.152,5.689,0.361,9.019c-13.575,15.167-9.586,17.83-36.723,23.416    c-27.459,5.659-11.328,15.734-0.796,18.367c12.768,3.193,42.307,7.716,62.266-20.224l-0.796,3.188c5.319,4.26,9.054,27.711,8.428,48.969c-0.626,21.259-1.044,35.854,3.147,47.254c4.191,11.4,8.368,37.05,44.042,29.406c29.809-6.388,45.256-22.942,47.405-50.555    c1.525-19.631,4.976-16.729,5.194-34.28l2.768-8.309c3.192-26.611,0.507-35.196,18.872-31.203l4.463,0.392c13.517,0.615,31.208-2.174,41.591-7c22.358-10.376,35.618-27.7,13.573-23.148z"/>
+    <path d="M215.866,286.484c-1.385,49.516,0.348,99.377,5.193,111.495c4.848,12.118,15.223,35.688,50.9,28.045c29.806-6.39,40.651-18.756,45.357-46.051c3.466-20.082,10.148-75.854,11.005-87.281"/>
+    <path d="M173.104,38.256c0,0-161.521-66.016-154.012,84.109c1.597,31.938,45.779,241.664,98.473,178.316c19.256-23.166,36.671-41.335,36.671-41.335"/>
+    <path d="M260.349,26.207c-5.591,1.753,89.848-34.889,144.087,34.417c19.159,24.484-3.043,124.519-56.153,203.329"/>
+    <path style="stroke-linejoin:bevel;" d="M348.282,263.953c0,0,3.461,17.036,53.764,6.653c22.04-4.552,8.776,12.774-13.577,23.155c-18.345,8.514-59.474,10.696-60.146-1.069c-1.729-30.355,21.647-21.133,19.96-28.739c-1.525-6.85-11.979-13.573-18.894-30.338    c-6.037-14.633-82.796-126.849,21.287-110.183c3.813-.789-27.146-99.002-124.553-100.599c-97.385-1.597-94.19,119.762-94.19,119.762"/>
+    <path d="M188.604,274.334c-13.577,15.166-9.584,17.829-36.723,23.417c-27.459,5.66-11.326,15.733-.797,18.365c12.768,3.195,42.307,7.718,62.266-20.229c6.078-8.509-.036-22.086-8.385-25.547c-4.034-1.671-9.428-3.765-16.361,3.994z"/>
+    <path d="M187.715,274.069c-1.368-8.917,2.93-19.528,7.536-31.942c6.922-18.626,22.893-37.255,10.117-96.339-9.523-44.029-73.396-9.163-73.436-3.193c-.039,5.968,2.889,30.26-1.067,58.548-5.162,36.913,23.488,68.132,56.479,64.938"/>
+    <path style="fill:#FFFFFF;stroke-width:4.155;stroke-linecap:butt;stroke-linejoin:miter;" d="M172.517,141.7c-.288,2.039,3.733,7.48,8.976,8.207c5.234.73,9.714-3.522,9.998-5.559c.284-2.039-3.732-4.285-8.977-5.015c-5.237-.731-9.719.333-9.996,2.367z"/>
+    <path style="fill:#FFFFFF;stroke-width:2.0775;stroke-linecap:butt;stroke-linejoin:miter;" d="M331.941,137.543c.284,2.039-3.732,7.48-8.976,8.207c-5.238.73-9.718-3.522-10.005-5.559c-.277-2.039,3.74-4.285,8.979-5.015c5.239-.73,9.718.333,10.002,2.368z"/>
+    <path d="M350.676,123.432c.863,15.994-3.445,26.888-3.988,43.914-.804,24.748,11.799,53.074-7.191,81.435"/>
+    <path style="stroke-width:3;" d="M0,60.232"/>
+  </g>
+</symbol>
+    <symbol id="supplypilot-architecture-overview-icon-docker" viewBox="64 64 896 896"><path d="M555.88 488.24h-92.62v-82.79h92.62zm0-286.24h-92.62v85.59h92.62zm109.45 203.45H572.7v82.79h92.62zm-218.9-101.02h-92.61v84.18h92.6zm109.45 0h-92.61v84.18h92.6zm388.69 140.3c-19.65-14.02-67.36-18.23-102.44-11.22-4.2-33.67-23.85-63.14-57.53-89.8l-19.65-12.62-12.62 19.64c-25.26 39.29-32.28 103.83-5.62 145.92-12.63 7.02-36.48 15.44-67.35 15.44H67.56c-12.63 71.56 8.42 164.16 61.74 227.3C181.22 801.13 259.8 832 360.83 832c220.3 0 384.48-101.02 460.25-286.24 29.47 0 95.42 0 127.7-63.14 1.4-2.8 9.82-18.24 11.22-23.85zm-717.04-39.28h-92.61v82.79h92.6zm109.45 0h-92.61v82.79h92.6zm109.45 0h-92.61v82.79h92.6zM336.98 304.43h-92.61v84.19h92.6z" fill="#2496ed" fill-rule="evenodd"/></symbol>
+    <symbol id="supplypilot-architecture-overview-icon-github" viewBox="64 64 896 896"><path d="M511.6 76.3C264.3 76.2 64 276.4 64 523.5 64 718.9 189.3 885 363.8 946c23.5 5.9 19.9-10.8 19.9-22.2v-77.5c-135.7 15.9-141.2-73.9-150.3-88.9C215 726 171.5 718 184.5 703c30.9-15.9 62.4 4 98.9 57.9 26.4 39.1 77.9 32.5 104 26 5.7-23.5 17.9-44.5 34.7-60.8-140.6-25.2-199.2-111-199.2-213 0-49.5 16.3-95 48.3-131.7-20.4-60.5 1.9-112.3 4.9-120 58.1-5.2 118.5 41.6 123.2 45.3 33-8.9 70.7-13.6 112.9-13.6 42.4 0 80.2 4.9 113.5 13.9 11.3-8.6 67.3-48.8 121.3-43.9 2.9 7.7 24.7 58.3 5.5 118 32.4 36.8 48.9 82.7 48.9 132.3 0 102.2-59 188.1-200 212.9a127.5 127.5 0 0138.1 91v112.5c.8 9 0 17.9 15 17.9 177.1-59.7 304.6-227 304.6-424.1 0-247.2-200.4-447.3-447.5-447.3z" fill="#245db3"/></symbol>
+  </defs>
+
+  <rect width="1600" height="900" fill="#f2f5f8"/>
+  <text x="32" y="55" class="headline">SupplyPilot 系統架構總覽</text>
+  <text x="32" y="84" class="subtitle">從採購操作到資料保存，並呈現文件 RAG 的處理流程。</text>
+
+  <!-- Procurement request journey -->
+  <path d="M316 165H345" class="arrow-link" marker-end="url(#supplypilot-architecture-overview-arrow-link)"/>
+  <path d="M629 165H658" class="arrow-link" marker-end="url(#supplypilot-architecture-overview-arrow-link)"/>
+  <path d="M942 165H971" class="arrow-link" marker-end="url(#supplypilot-architecture-overview-arrow-link)"/>
+  <path d="M1255 165H1284" class="arrow-link" marker-end="url(#supplypilot-architecture-overview-arrow-link)"/>
+  <rect x="32" y="124" width="284" height="82" rx="6" class="journey-step"/>
+  <circle cx="60" cy="165" r="17" class="journey-number journey-neutral"/><text x="60" y="170" text-anchor="middle" class="journey-number-text">1</text>
+  <text x="86" y="157" class="journey-title">採購人員操作瀏覽器</text><text x="86" y="180" class="journey-sub">登入後選擇採購功能</text>
+  <rect x="345" y="124" width="284" height="82" rx="6" class="journey-step"/>
+  <circle cx="373" cy="165" r="17" class="journey-number journey-neutral"/><text x="373" y="170" text-anchor="middle" class="journey-number-text">2</text>
+  <text x="399" y="157" class="journey-title">React 網頁送出操作</text><text x="399" y="180" class="journey-sub">建立表單或查詢採購資料</text>
+  <rect x="658" y="124" width="284" height="82" rx="6" class="journey-step"/>
+  <circle cx="686" cy="165" r="17" class="journey-number journey-link"/><text x="686" y="170" text-anchor="middle" class="journey-number-text">3</text>
+  <text x="712" y="157" class="journey-title">Nginx 轉送 API</text><text x="712" y="180" class="journey-sub">同源 /api/v1 送往後端</text>
+  <rect x="971" y="124" width="284" height="82" rx="6" class="journey-step journey-step-focus"/>
+  <circle cx="999" cy="165" r="17" class="journey-number journey-accent"/><text x="999" y="170" text-anchor="middle" class="journey-number-text">4</text>
+  <text x="1025" y="157" class="journey-title">Spring Boot 執行規則</text><text x="1025" y="180" class="journey-sub">JWT、權限與採購交易檢查</text>
+  <rect x="1284" y="124" width="284" height="82" rx="6" class="journey-step"/>
+  <circle cx="1312" cy="165" r="17" class="journey-number journey-neutral"/><text x="1312" y="170" text-anchor="middle" class="journey-number-text">5</text>
+  <text x="1338" y="157" class="journey-title">MySQL 保存結果</text><text x="1338" y="180" class="journey-sub">API 回覆沿原路返回瀏覽器</text>
+
+  <!-- System layers and local Compose boundary -->
+  <rect x="204" y="254" width="834" height="356" rx="8" class="compose-zone"/>
+  <rect x="218" y="243" width="168" height="22" rx="2" class="compose-label-mask"/>
+  <text x="228" y="258" class="zone-label">DOCKER COMPOSE</text>
+
+  <rect x="32" y="266" width="165" height="338" rx="7" class="layer layer-client"/><rect x="32" y="266" width="165" height="40" rx="7" class="layer-head layer-head-client"/><path d="M32 299h165v7H32z" class="layer-head layer-head-client"/>
+  <rect x="213" y="266" width="230" height="338" rx="7" class="layer"/><rect x="213" y="266" width="230" height="40" rx="7" class="layer-head layer-head-web"/><path d="M213 299h230v7H213z" class="layer-head layer-head-web"/>
+  <rect x="459" y="266" width="292" height="338" rx="7" class="layer layer-focus"/><rect x="459" y="266" width="292" height="40" rx="7" class="layer-head layer-head-api"/><path d="M459 299h292v7H459z" class="layer-head layer-head-api"/>
+  <rect x="767" y="266" width="260" height="338" rx="7" class="layer"/><rect x="767" y="266" width="260" height="40" rx="7" class="layer-head layer-head-data"/><path d="M767 299h260v7H767z" class="layer-head layer-head-data"/>
+  <rect x="1043" y="266" width="238" height="338" rx="7" class="layer"/><rect x="1043" y="266" width="238" height="40" rx="7" class="layer-head layer-head-external"/><path d="M1043 299h238v7H1043z" class="layer-head layer-head-external"/>
+  <rect x="1297" y="266" width="271" height="338" rx="7" class="layer"/><rect x="1297" y="266" width="271" height="40" rx="7" class="layer-head layer-head-infra"/><path d="M1297 299h271v7H1297z" class="layer-head layer-head-infra"/>
+
+  <circle cx="52" cy="286" r="10" class="layer-index layer-index-neutral"/><text x="52" y="290" text-anchor="middle" class="layer-index-text">1</text><text x="70" y="291" class="layer-title">Client／使用者</text>
+  <circle cx="233" cy="286" r="10" class="layer-index layer-index-accent"/><text x="233" y="290" text-anchor="middle" class="layer-index-text">2</text><text x="251" y="291" class="layer-title">Frontend／前端</text>
+  <circle cx="479" cy="286" r="10" class="layer-index layer-index-accent"/><text x="479" y="290" text-anchor="middle" class="layer-index-text">3</text><text x="497" y="291" class="layer-title">Backend API／後端</text>
+  <circle cx="787" cy="286" r="10" class="layer-index layer-index-neutral"/><text x="787" y="290" text-anchor="middle" class="layer-index-text">4</text><text x="805" y="291" class="layer-title">Data／資料儲存</text>
+  <circle cx="1063" cy="286" r="10" class="layer-index layer-index-link"/><text x="1063" y="290" text-anchor="middle" class="layer-index-text">5</text><text x="1081" y="291" class="layer-title">External／外部服務</text>
+  <circle cx="1317" cy="286" r="10" class="layer-index layer-index-neutral"/><text x="1317" y="290" text-anchor="middle" class="layer-index-text">6</text><text x="1335" y="291" class="layer-title">Runtime／基礎設施</text>
+
+  <!-- Real request and data paths. Drawn before component cards. -->
+  <path d="M433 454H469" class="arrow-link" marker-end="url(#supplypilot-architecture-overview-arrow-link)"/>
+  <path d="M741 368H777" class="arrow" marker-start="url(#supplypilot-architecture-overview-arrow-main)" marker-end="url(#supplypilot-architecture-overview-arrow-main)"/>
+  <path d="M741 466H777" class="arrow" marker-start="url(#supplypilot-architecture-overview-arrow-main)" marker-end="url(#supplypilot-architecture-overview-arrow-main)"/>
+  <path d="M741 552H777" class="arrow-accent" marker-start="url(#supplypilot-architecture-overview-arrow-accent)" marker-end="url(#supplypilot-architecture-overview-arrow-accent)"/>
+  <path d="M700 318V240Q700 232 708 232H1154Q1162 232 1162 240V318" class="arrow-accent" marker-start="url(#supplypilot-architecture-overview-arrow-accent)" marker-end="url(#supplypilot-architecture-overview-arrow-accent)"/>
+
+  <!-- Procurement person / browser -->
+  <rect x="42" y="318" width="145" height="272" rx="5" class="component-card"/>
+  <use href="#supplypilot-architecture-overview-icon-person" x="94" y="337" width="40" height="40" class="icon-link"/>
+  <text x="114" y="402" text-anchor="middle" class="component-title">採購人員</text>
+  <text x="54" y="426" class="component-kicker">唯一人員使用者</text>
+  <line x1="54" y1="440" x2="175" y2="440" class="component-rule"/>
+  <use href="#supplypilot-architecture-overview-icon-browser" x="56" y="454" width="30" height="30" class="icon-link"/>
+  <text x="94" y="473" class="component-title-small">Web Browser</text>
+  <text x="54" y="510" class="component-copy">登入後使用採購功能</text>
+  <text x="54" y="532" class="component-copy">採購單 · 供應商 · 文件</text>
+  <text x="54" y="566" class="component-tech">HTTPS · 回應返回瀏覽器</text>
+
+  <!-- Frontend -->
+  <rect x="223" y="318" width="210" height="272" rx="5" class="component-card"/>
+  <use href="#supplypilot-architecture-overview-icon-react" x="239" y="335" width="34" height="34" class="icon-accent"/>
+  <text x="282" y="357" class="component-title">React 19</text>
+  <text x="239" y="385" class="component-tech">TypeScript · Vite</text>
+  <line x1="239" y1="399" x2="417" y2="399" class="component-rule"/>
+  <text x="239" y="425" class="component-copy">呈現採購、供應商與文件頁面。</text>
+  <text x="239" y="458" class="component-title-small">Nginx Web</text>
+  <text x="239" y="481" class="component-copy">提供前端靜態網頁。</text>
+  <rect x="239" y="501" width="178" height="34" rx="4" class="tag-web"/>
+  <text x="251" y="522" class="tag-text">/api/v1 → BACKEND</text>
+
+  <!-- Backend API -->
+  <rect x="469" y="318" width="272" height="272" rx="5" class="component-card component-card-focus"/>
+  <use href="#supplypilot-architecture-overview-icon-spring" x="486" y="334" width="34" height="34" class="icon-accent"/>
+  <text x="530" y="356" class="component-title">Spring Boot API</text>
+  <text x="486" y="384" class="component-tech">Java 21 · modular monolith</text>
+  <rect x="481" y="399" width="248" height="42" rx="4" class="component-card"/>
+  <text x="494" y="417" class="component-title-small">JWT 身分與權限檢查</text>
+  <text x="494" y="433" class="component-tech">Spring Security</text>
+  <rect x="481" y="449" width="248" height="42" rx="4" class="component-card"/>
+  <text x="494" y="467" class="component-title-small">採購服務與交易規則</text>
+  <text x="494" y="483" class="component-tech">MySQL 是採購資料權威來源</text>
+  <rect x="481" y="499" width="248" height="42" rx="4" class="component-card"/>
+  <text x="494" y="517" class="component-title-small">Spring AI Tool Calling + RAG</text>
+  <text x="494" y="533" class="component-tech">受控唯讀工具；文件走語意檢索</text>
+  <text x="486" y="570" class="component-tech">寫入交易仍由後端規則把關</text>
+
+  <!-- Data stores -->
+  <rect x="777" y="318" width="240" height="100" rx="5" class="component-card"/>
+  <use href="#supplypilot-architecture-overview-icon-mysql" x="794" y="331" width="34" height="34" class="icon-link"/>
+  <text x="838" y="352" class="component-title">MySQL 8.4</text>
+  <text x="794" y="381" class="component-copy">採購、供應商與文件權威資料</text>
+  <text x="794" y="401" class="component-tech">JPA · Flyway</text>
+  <rect x="777" y="434" width="240" height="68" rx="5" class="component-card"/>
+  <use href="#supplypilot-architecture-overview-icon-file" x="794" y="449" width="32" height="32" class="icon-accent"/>
+  <text x="836" y="460" class="component-title-small">文件 Volume</text>
+  <text x="836" y="481" class="component-tech">/app/data/documents</text>
+  <text x="794" y="495" class="component-tech">保存上傳的原始檔</text>
+  <rect x="777" y="518" width="240" height="72" rx="5" class="component-card-conditional"/>
+  <use href="#supplypilot-architecture-overview-icon-postgres" x="794" y="535" width="32" height="32" class="icon-link"/>
+  <text x="836" y="547" class="component-title-small">PostgreSQL 17</text>
+  <text x="794" y="574" class="component-copy">pgvector · semantic_rag_vectors</text>
+
+  <!-- Conditional external model provider -->
+  <rect x="1053" y="318" width="218" height="102" rx="5" class="component-card-external"/>
+  <use href="#supplypilot-architecture-overview-icon-gemini" x="1071" y="334" width="36" height="36" class="icon-link"/>
+  <text x="1116" y="357" class="component-title">Google Gemini</text>
+  <text x="1071" y="388" class="component-copy">Chat / Embedding</text>
+
+  <!-- Runtime and infrastructure -->
+  <rect x="1307" y="318" width="251" height="272" rx="5" class="component-card"/>
+  <use href="#supplypilot-architecture-overview-icon-docker" x="1323" y="331" width="36" height="36" class="icon-accent"/>
+  <text x="1367" y="354" class="component-title">Docker Compose</text>
+  <text x="1323" y="384" class="component-copy">4 個服務：Frontend、Backend、</text>
+  <text x="1323" y="402" class="component-copy">MySQL、PostgreSQL / pgvector</text>
+  <text x="1323" y="430" class="component-copy">網路：web、data（internal）、</text>
+  <text x="1323" y="448" class="component-copy">mysql-host</text>
+  <text x="1323" y="476" class="component-copy">Volumes：mysql-data、pgvector-data、</text>
+  <text x="1323" y="494" class="component-copy">document-storage</text>
+  <line x1="1323" y1="514" x2="1542" y2="514" class="component-rule"/>
+  <use href="#supplypilot-architecture-overview-icon-github" x="1323" y="523" width="24" height="24" class="icon-link"/>
+  <text x="1356" y="541" class="component-title-small">GitHub</text>
+  <text x="1323" y="565" class="component-copy">程式碼版本控管</text>
+
+  <!-- Document RAG pipeline, shown separately from procurement writes -->
+  <rect x="32" y="632" width="1536" height="190" rx="8" class="pipeline-zone"/>
+  <rect x="48" y="621" width="360" height="22" rx="2" class="pipeline-label-mask"/>
+  <circle cx="64" cy="632" r="10" class="layer-index layer-index-accent"/><text x="64" y="636" text-anchor="middle" class="layer-index-text">7</text>
+  <text x="84" y="638" class="pipeline-title">文件 RAG 流程</text>
+  <text x="896" y="638" class="pipeline-subtitle">先核准來源，再檢索；答案要能回查依據</text>
+  <path d="M410 733H430" class="arrow-offline" marker-end="url(#supplypilot-architecture-overview-arrow-main)"/>
+  <path d="M790 733H810" class="arrow-offline" marker-end="url(#supplypilot-architecture-overview-arrow-main)"/>
+  <path d="M1170 733H1190" class="arrow-offline" marker-end="url(#supplypilot-architecture-overview-arrow-main)"/>
+
+  <rect x="50" y="670" width="360" height="128" rx="5" class="pipeline-card"/>
+  <use href="#supplypilot-architecture-overview-icon-file" x="68" y="685" width="32" height="32" class="icon-accent"/>
+  <text x="110" y="707" class="pipeline-node-title">1 · 上傳與核准</text>
+  <text x="68" y="742" class="pipeline-node-copy">原始檔放在文件 Volume，MySQL 記錄文件資料。</text>
+  <text x="68" y="766" class="pipeline-node-copy">符合審核與外送政策後，才建立語意索引。</text>
+
+  <rect x="430" y="670" width="360" height="128" rx="5" class="pipeline-card"/>
+  <use href="#supplypilot-architecture-overview-icon-file" x="448" y="685" width="32" height="32" class="icon-accent"/>
+  <text x="490" y="707" class="pipeline-node-title">2 · 抽取、切段、向量化</text>
+  <text x="448" y="742" class="pipeline-node-copy">後端抽取文字；切成小段供語意搜尋。</text>
+  <text x="448" y="766" class="pipeline-node-copy">Embedding Provider 需設定才能產生向量。</text>
+
+  <rect x="810" y="670" width="360" height="128" rx="5" class="pipeline-card"/>
+  <use href="#supplypilot-architecture-overview-icon-postgres" x="828" y="685" width="32" height="32" class="icon-link"/>
+  <text x="870" y="707" class="pipeline-node-title">3 · PostgreSQL / pgvector</text>
+  <text x="828" y="742" class="pipeline-node-copy">Spring AI PgVectorStore 保存文件向量。</text>
+  <text x="828" y="766" class="pipeline-node-copy">索引與讀取依 Provider 和開關設定執行。</text>
+
+  <rect x="1190" y="670" width="360" height="128" rx="5" class="pipeline-card pipeline-card-artifact"/>
+  <use href="#supplypilot-architecture-overview-icon-gemini" x="1208" y="685" width="32" height="32" class="icon-accent"/>
+  <text x="1250" y="707" class="pipeline-node-title">4 · 檢索與回答</text>
+  <text x="1208" y="742" class="pipeline-node-copy">門檻 0.4（最低相似度）；最多 10 份候選。</text>
+  <text x="1208" y="766" class="pipeline-node-copy">Gemini 回答並附來源；證據不足就說明。</text>
+
+  <line x1="32" y1="846" x2="1568" y2="846" class="legend-rule"/>
+  <text x="32" y="879" class="legend-title">LEGEND</text>
+  <path d="M120 874H164" class="arrow-link" marker-end="url(#supplypilot-architecture-overview-arrow-link)"/><text x="176" y="879" class="legend-label">瀏覽器 / API 請求</text>
+  <path d="M390 874H434" class="arrow" marker-start="url(#supplypilot-architecture-overview-arrow-main)" marker-end="url(#supplypilot-architecture-overview-arrow-main)"/><text x="448" y="879" class="legend-label">服務讀寫資料</text>
+  <path d="M635 874H679" class="arrow-accent" marker-start="url(#supplypilot-architecture-overview-arrow-accent)" marker-end="url(#supplypilot-architecture-overview-arrow-accent)"/><text x="693" y="879" class="legend-label">條件式 AI / RAG</text>
+  <rect x="924" y="865" width="46" height="16" rx="3" class="compose-zone"/><text x="982" y="879" class="legend-label">Docker Compose 範圍</text>
+</svg>

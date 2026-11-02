@@ -1,0 +1,6 @@
+
+[XTB-03-LIVE] �Юֹ� PO-20261018-000011 �� MAT-001 �����ʳ����ַӻP SUP-002/MAT-001 �ثe�������Y����A�C�X PO ���A�B�ƶq�P�ⰼ���/���O�F�Y�ƭȤ@�P�A���T���X�ۦP�C
+  baseline (ai_query): PO-20261018-000011 ���A�� RECEIVED�AKanban ���q�� PAYMENT_RECONCILIATION�A�����Ӭ� �F��T�����]SUP-002�^�A�w�p��f�� 2026-11-01�A�q���`�B 78000.00000000 TWD�C�~���G���ĩi�����Ѩ��� MAT-001�G750.0000 KG �� 104.0000 TWD = 7800�K
+  agent:                  �d�ߵ��G�������i�ֹ諸���סA�]���S���ĥμҫ��ͦ����ƹꤺ�e�C �����ʥF SQL ���G��������פw�ٲ��C
+
+Wrote 1 comparisons to docs\experiments\agentic-sql\evidence\ab-2026-11-02-live-gemini-demo\replacement-live-po-result.jsonl
