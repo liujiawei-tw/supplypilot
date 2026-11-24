@@ -3,6 +3,7 @@ package com.supplypilot.integration;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 
+import java.math.BigDecimal;
 import java.util.Map;
 import java.util.UUID;
 import java.util.regex.Pattern;
@@ -23,6 +24,8 @@ import com.supplypilot.document.semantic.SemanticProperties;
 import com.supplypilot.document.semantic.SemanticStore;
 import com.supplypilot.security.AuthenticatedUser;
 import com.supplypilot.security.JwtTokenService;
+import com.supplypilot.supplier.domain.Supplier;
+import com.supplypilot.supplier.repository.SupplierRepository;
 import com.supplypilot.testsupport.FixedClockConfiguration;
 import com.supplypilot.user.domain.User;
 import com.supplypilot.user.domain.UserRole;
@@ -85,6 +88,7 @@ class SpringAiRealDocumentRagE2ETests {
     @Autowired MockMvc mvc;
     @Autowired ObjectMapper objectMapper;
     @Autowired UserRepository users;
+    @Autowired SupplierRepository suppliers;
     @Autowired DocumentMetadataRepository documents;
     @Autowired DocumentChunkRepository chunks;
     @Autowired JwtTokenService tokens;
@@ -101,8 +105,10 @@ class SpringAiRealDocumentRagE2ETests {
         User admin = users.saveAndFlush(User.create("rag-real-" + UUID.randomUUID(), "hash",
                 "RAG real provider test", UserRole.ADMIN, clock.instant()));
         String title = "RAG-REAL-" + UUID.randomUUID();
+        Supplier supplier = suppliers.saveAndFlush(Supplier.create("SUP-001", "Synthetic RAG Supplier",
+                "Taiwan", BigDecimal.valueOf(80), BigDecimal.valueOf(80), clock.instant()));
         String content = "SUP-001 MAT-001 標準交期為 7 個日曆日，自採購單進入 ORDERED 狀態後起算。";
-        DocumentMetadata document = DocumentMetadata.processing(DocumentType.PROCUREMENT_SOP, null,
+        DocumentMetadata document = DocumentMetadata.processing(DocumentType.PROCUREMENT_SOP, supplier,
                 title, "v1", "qa/" + title + ".txt", admin, clock.instant());
         document.markReady(clock.instant());
         document = documents.saveAndFlush(document);
@@ -125,14 +131,15 @@ class SpringAiRealDocumentRagE2ETests {
 
         String question = "SUP-001 的 MAT-001 標準交期為多久？";
         var filters = new FilterExpressionBuilder();
-        var approvedGeneration = filters.and(
+        var readyGeneration = filters.and(
                 filters.and(filters.eq("generationKey", semanticProperties.generationKey()),
                         filters.eq("documentStatus", "READY")),
-                filters.eq("outboundApprovalStatus", "APPROVED")).build();
+                filters.eq("outboundApprovalStatus", "APPROVED"));
+        var approvedSupplierGeneration = filters.and(readyGeneration, filters.eq("supplierCode", "SUP-001")).build();
         var retrieved = queryVectorStore.similaritySearch(SearchRequest.builder()
                 .query(question).topK(semanticProperties.topK())
                 .similarityThreshold(semanticProperties.similarityThreshold())
-                .filterExpression(approvedGeneration).build());
+                .filterExpression(approvedSupplierGeneration).build());
         assertThat(retrieved).extracting(Document::getText).contains(content);
 
         String paraphrasedQuestion = "採購單進入 ORDERED 後，SUP-001 的 MAT-001 要等多久交貨？";
