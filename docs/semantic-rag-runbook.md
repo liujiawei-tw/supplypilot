@@ -4,7 +4,7 @@
 
 - 基線為 Spring Boot 4.1.1、Java 21、Spring AI BOM 2.0.1，不升級 Boot／Spring AI。正式文件問答使用 `ChatClient`、`RetrievalAugmentationAdvisor`、`VectorStoreDocumentRetriever`、Spring AI `PgVectorStore`、`ContextualQueryAugmenter` 與既有 Gemini `ChatModel`／`EmbeddingModel`。
 - 依賴包含 `spring-ai-rag`、`spring-ai-pgvector-store` 與 `spring-ai-tika-document-reader`。目前使用 PgVectorStore 核心模組，不加入會自動綁定預設資料源的 starter；它由程式明確使用 `SEMANTIC_DB_URL` 專用 PostgreSQL `DataSource`／`JdbcTemplate` 建立，Boot 的 `spring.datasource` 仍指向 MySQL。
-- 預設模型為 `gemini-embedding-001`、768 維；目前 Demo 設定為 `SEMANTIC_SIMILARITY_THRESHOLD=0.4`、`DOCUMENT_RAG_CHUNK_SIZE=500`、`DOCUMENT_RAG_CHUNK_OVERLAP_CHARACTERS=70`。Spring AI `VectorStoreDocumentRetriever` 最多取 10 個候選，直接交給模型判斷相關性；沒有分數達 0.4 的候選時回 `INSUFFICIENT_EVIDENCE`。模型／維度/TokenTextSplitter 參數或 wrapper 版本改變時，使用新的 `SEMANTIC_GENERATION_KEY`，並重新切塊及索引，不得混用不同世代。Embedding 呼叫前重新檢查來源版本與出站核准，provider 自動截斷維持停用。
+- 預設模型為 `gemini-embedding-001`、768 維；門檻 0.4、切塊大小 500、重疊 70 字元。Spring AI `VectorStoreDocumentRetriever` 依 `supplypilot.semantic.top-k` 最多取 8 個候選片段，直接交給模型判斷相關性；沒有分數達 0.4 的候選時回 `INSUFFICIENT_EVIDENCE`。模型／維度/TokenTextSplitter 參數或 wrapper 版本改變時，使用新的 `supplypilot.semantic.generation-key`，並重新切塊及索引，不得混用不同世代。Embedding 呼叫前重新檢查來源版本與出站核准，provider 自動截斷維持停用。
 - PgVectorStore 使用 `semantic_rag_vectors`，距離度量為 cosine，索引類型明確設 `NONE`（exact similarity），不建 HNSW／IVFFlat。設定 `initializeSchema=false` 及 `remove-existing-vector-store-table=false`；由向前相容的 PostgreSQL Flyway migration 建表。應用程式啟動不得刪除或重建資料表。
 - Spring AI 2.0.1 `TokenTextSplitter` 以 CL100K_BASE 切分，並沒有 overlap 設定；本專案以保留來源字元位置的 wrapper 套用可設定 overlap，該 wrapper 必須有繁體中文、英文、表格文字、換行及 offset 精準性測試。Splitter 的 `maxNumChunks` 實作可能額外產生尾端 chunk，因此應用程式需在寫入前再做硬性數量檢查；超限時失敗，不得靜默截斷。
 - PDF／DOCX 使用 `TikaDocumentReader`、TXT 使用 `TextReader`。Reader 前仍套用 20 MiB、合法副檔名、DOCX ZIP entry／展開大小及異常文件檢查。`DocumentPreviewService` 保留完整 TXT／DOCX 使用者預覽契約，不能把 Tika ingestion 文字當成預覽輸出。
@@ -25,7 +25,7 @@
 2. **擴充 Schema。** 套用新的版本化 PostgreSQL migration 建立 `semantic_rag_vectors`；確認 extension、`id`、`content`、`metadata`、`embedding vector(<設定維度>)` 與索引型態相符。既有表和 volume 均保留。Migration 可重入／有版本追蹤，不以應用程式啟動時自動建表作為遷移工具。
 3. **重做向量。** 由 MySQL READY 文件清單以穩定 cursor 分頁執行持久化 Backfill。每份文件先重核目前 version、source hash、出站核准與 `OutboundDocumentPolicy`，再以當前 `TokenTextSplitter` 版本及 Gemini `EmbeddingModel` 產生新向量；不得複製 `semantic_chunks.embedding`。同一文件 job 重跑應 upsert 相同 ID，保留有限次 retry／失敗原因；來源或批准代次變動時隔離舊 job。
 4. **完整性核對。** 逐文件核對 MySQL 權威 chunk 與新向量表的 `documentId`、version、supplier、type、document key、chunk index、offset、來源 hash、generation、embedding dimensions、metadata 與 chunk count；完成全體文件 READY／排除／待審／失敗分類及總數對帳。執行不含敏感資料的可重現檢索案例，逐項核對 retrieval、答案事實、來源、版本、授權與拒答。任何缺少或多出的 chunk、維度錯誤、版本不一致或未授權結果都阻擋切換。
-5. **正式啟用 Gate。** `SEMANTIC_READ_ENABLED` 維持 `false`，直到備份可讀、migration、符合資格文件的 Backfill、完整性對帳、權限／撤銷／Demo 版本隔離測試、20 題固定案例與必要整合測試通過，並保存當次 SHA／指令／結果。通過後由授權維運人員明確設定 `SEMANTIC_READ_ENABLED=true`。啟用後 Query 必須走 Advisor → PgVectorStore；不得回退舊 Retrieval，也不得讓未核准文件進入 Gemini Context。
+5. **正式啟用 Gate。** 新環境先在 `application.yml` 明確設置 `supplypilot.semantic.read-enabled: false`，直到備份可讀、migration、符合資格文件的 Backfill、完整性對帳、權限／撤銷／Demo 版本隔離測試、20 題固定案例與必要整合測試通過，並保存當次 SHA／指令／結果。通過後由授權維運人員明確設定 `supplypilot.semantic.read-enabled: true`。啟用後 Query 必須走 Advisor → PgVectorStore；不得回退舊 Retrieval，也不得讓未核准文件進入 Gemini Context。
 6. **失敗回復。** Gate 未過時保持 read switch 關閉、修正並重跑失敗文件；停止使用新索引不需要刪除新表。若需回到上一版應用程式，只能在核實舊 schema／索引仍符合該版本契約及備份可還原後進行。舊表與新表都保留，勿以刪表、volume 清除或回寫猜測資料當 rollback。切回舊版後，新上傳／新版本可能需重做舊索引，須另行盤點；不得把這種條件宣稱為已驗證回復。
 
 ## 出站政策
@@ -39,11 +39,11 @@ MySQL V19 增加審核版本、狀態與原因。V18 時期只有來源雜湊的
 ## 本機與 Demo 設定
 
 1. 使用既有 MySQL 與 PostgreSQL 服務；設定 `.env` 的 MySQL、`SEMANTIC_DB_PASSWORD` 及 `SEMANTIC_DB_URL=jdbc:postgresql://localhost:5432/supplypilot_semantic`。可執行 `docker compose --profile semantic up -d` 啟動既有 semantic PostgreSQL profile。Demo PostgreSQL 使用原有服務與獨立持久化設定；不可建立第二台 PostgreSQL，也不可清除任何 volume。
-2. 設定 `GEMINI_API_KEY`、`GEMINI_EMBEDDING_MODEL=gemini-embedding-001`、`SEMANTIC_DIMENSIONS=768`、新的 `SEMANTIC_GENERATION_KEY`、相似度 threshold 及 Chunk Size／Overlap／最大數量。RAG Advisor 的 `topK` 固定為 10；`SEMANTIC_TOP_K` 不控制此 retriever。沒有合法 Gemini key 時應標記真實 Provider 測試 `NOT RUN`；不以 Fake Provider 冒稱 Gemini 驗收。`SEMANTIC_EMBEDDING_TIMEOUT` 預設 15 秒；超時按安全錯誤與工作 Retry 規則處理。
-3. 先建立／核對可還原備份，再按上方程序盤點舊表及資料量。使用版本化 migration 新增 `semantic_rag_vectors`，確認 migration 不會刪除舊表或初始化時清表。保持 `SEMANTIC_READ_ENABLED=false`。
+2. 在環境中提供 `GEMINI_API_KEY` 與資料庫連線設定。模型、檢索、切塊、索引及等待逾時集中於 [application.yml](../backend/src/main/resources/application.yml)。Chat／Embedding 預設使用 `google-genai`，讀取預設開啟。文件問答使用 `supplypilot.semantic.query-timeout`（25 秒），索引 Embedding 使用 `supplypilot.semantic.embedding-timeout`（15 秒）。更新既有部署前，核對資料庫目前發布的 generation、模型及維度與 YAML 一致。缺少 Gemini 金鑰時，真實 Provider 驗證標示 `NOT RUN`。
+3. 先建立／核對可還原備份，再按上方程序盤點舊表及資料量。使用版本化 migration 新增 `semantic_rag_vectors`，確認 migration 不會刪除舊表或初始化時清表。保持 `supplypilot.semantic.read-enabled: false`。
 4. 管理員先審查並對可出站文件核准來源雜湊，再用 `POST /api/v1/semantic-index/backfill?afterId=0&limit=25` 分頁處理；以回應 `lastId` 作下一頁 cursor，`morePossible=false` 後再由 0 執行，以重試符合條件的失敗文件。每次最多 100 份。回應有 READY/FAILED/SKIPPED/REQUIRES_REVIEW 計數。持久 Job worker 應使用新的 Spring AI PgVectorStore 寫入，而非舊 `semantic_chunks` 表。
-5. 管理員讀取 `GET /api/v1/semantic-index/readiness`，處理所有 pending/failed/review；報表列出排除清單、來源版本、model ID、dimension、generation。Gate 必須至少有 **1 份 READY** 語意文件，且 FAILED、REQUIRES_REVIEW、PENDING 均為零；零文件或全部 SKIPPED 不通過。執行固定 20 題案例、授權／版本／撤銷／Demo 隔離、真實 PgVectorStore PostgreSQL 整合測試並留存 SHA 綁定證據。用 `POST /api/v1/semantic-index/gate-audit` 記錄統計；最新一次失敗審核會撤銷先前 PASS。只有 Gate 完整通過後，授權維運人員才明確設定 `SEMANTIC_READ_ENABLED=true`。
-6. 啟用後正式查詢路徑為 `ChatClient → RetrievalAugmentationAdvisor → VectorStoreDocumentRetriever → PgVectorStore → ContextualQueryAugmenter → Gemini ChatModel`。metadata filter 限制已發布 generation、`READY` 與出站核准狀態；retriever 以相似度 0.4 取最多 10 個候選，不掛自製 `DocumentPostProcessor`，由模型直接判斷候選是否相關及足以回答。來源取自 Advisor 回傳的實際 Spring AI Document metadata。沒有達標候選時回 `INSUFFICIENT_EVIDENCE`；PostgreSQL/Gemini 故障按 API 契約回安全錯誤，不得 fallback 至舊 RAG。
+5. 管理員讀取 `GET /api/v1/semantic-index/readiness`，處理所有 pending/failed/review；報表列出排除清單、來源版本、model ID、dimension、generation。Gate 必須至少有 **1 份 READY** 語意文件，且 FAILED、REQUIRES_REVIEW、PENDING 均為零；零文件或全部 SKIPPED 不通過。執行固定 20 題案例、授權／版本／撤銷／Demo 隔離、真實 PgVectorStore PostgreSQL 整合測試並留存 SHA 綁定證據。用 `POST /api/v1/semantic-index/gate-audit` 記錄統計；最新一次失敗審核會撤銷先前 PASS。只有 Gate 完整通過後，授權維運人員才明確設定 `supplypilot.semantic.read-enabled: true`。
+6. 啟用後正式查詢路徑為 `ChatClient → RetrievalAugmentationAdvisor → VectorStoreDocumentRetriever → PgVectorStore → ContextualQueryAugmenter → Gemini ChatModel`。metadata filter 限制已發布 generation、`READY` 與出站核准狀態；retriever 以相似度 0.4 取最多 8 個候選片段，不掛自製 `DocumentPostProcessor`，由模型直接判斷候選是否相關及足以回答。來源取自 Advisor 回傳的實際 Spring AI Document metadata。沒有達標候選時回 `INSUFFICIENT_EVIDENCE`；PostgreSQL/Gemini 故障按 API 契約回安全錯誤，不得 fallback 至舊 RAG。
 
 切換前保留完整 Gate JSON、授權測試結果、部署 commit 與設定變更紀錄。真實 Gemini API smoke test 需使用獲准測試文字和部署金鑰另行執行；Fake EmbeddingModel 測試不能視為真實 API 已驗證。
 
@@ -61,7 +61,7 @@ MySQL V19 增加審核版本、狀態與原因。V18 時期只有來源雜湊的
 
 ## Semantic 管理員 UI 操作（SP-906／Issue #112）
 
-ADMIN 從 Documents 工作區進入 Semantic 索引管理；使用方式、各步驟 API、錯誤與 UNKNOWN 查核界線，以及第六份文件交接 #117 的 Browser 步驟，見 [`semantic-admin-ui.md`](semantic-admin-ui.md)。UI 僅提供既有 API 的明確操作入口，不新增審核狀態查詢 API，也不控制 `SEMANTIC_READ_ENABLED`。
+ADMIN 從 Documents 工作區進入 Semantic 索引管理；使用方式、各步驟 API、錯誤與 UNKNOWN 查核界線，以及第六份文件交接 #117 的 Browser 步驟，見 [`semantic-admin-ui.md`](semantic-admin-ui.md)。UI 僅提供既有 API 的明確操作入口，不新增審核狀態查詢 API，也不控制 `supplypilot.semantic.read-enabled`。
 
 ## SP-905 繁中 Demo 語料索引更新
 
@@ -84,7 +84,7 @@ Fake Provider 整合測試只驗證交易邊界、job 狀態、重試與資料�
 
 ## 本機 main 與環境現況（2026-11-01）
 
-本機 main 已接上 `DocumentQueryService → ChatClient → RetrievalAugmentationAdvisor → VectorStoreDocumentRetriever → PgVectorStore`，並使用 Spring AI 建立索引。Retriever 依向量 metadata 限制已發布 generation、READY、APPROVED，採相似度 0.4、最多 10 份候選；沒有自製 `RagDocumentPostProcessor`，候選由模型判斷。`AiQuestionIntent` 以 Spring AI `ChatModel` 分類問題。程式的 `SEMANTIC_READ_ENABLED` 預設為 `false`；正式環境已有獨立 migration、回填與啟用紀錄，但本機 main 最新程式尚未部署。
+本機 main 已接上 `DocumentQueryService → ChatClient → RetrievalAugmentationAdvisor → VectorStoreDocumentRetriever → PgVectorStore`，並使用 Spring AI 建立索引。Retriever 依向量 metadata 限制已發布 generation、READY、APPROVED，採相似度 0.4、最多 8 個候選片段；沒有自製 `RagDocumentPostProcessor`，候選由模型判斷。`AiQuestionIntent` 以 Spring AI `ChatModel` 分類問題。程式預設啟用讀取，個別部署的驗證以實際版本與紀錄為準。
 
 **歷史狀態快照（後續投影實作前）：** 遷移早期尚未證明會同步維護 `semantic_chunks` 相容投影。此狀態已被後續程式與測試取代：新索引會同步維護投影，PgVectorStore projection integration 與 Agentic SQL regression 類別已通過本機測試。以下保留當時測試記錄的狀態演進；目前原始驗證摘要見 [`Spring AI RAG 驗證記錄`](evidence/spring-ai-rag-validation-2026-11-01.md)。
 

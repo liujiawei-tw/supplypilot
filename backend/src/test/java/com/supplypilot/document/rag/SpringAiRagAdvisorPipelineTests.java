@@ -17,7 +17,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicReference;
 
-import com.supplypilot.ai.config.AiProperties;
 import com.supplypilot.ai.tool.AiQueryPlanner;
 import com.supplypilot.common.exception.BusinessException;
 import com.supplypilot.common.exception.ErrorCode;
@@ -77,7 +76,7 @@ class SpringAiRagAdvisorPipelineTests {
             org.mockito.ArgumentCaptor<SearchRequest> request = org.mockito.ArgumentCaptor.forClass(SearchRequest.class);
             verify(vectorStore).similaritySearch(request.capture());
             assertThat(request.getValue().getQuery()).isEqualTo(QUESTION);
-            assertThat(request.getValue().getTopK()).isEqualTo(10);
+            assertThat(request.getValue().getTopK()).isEqualTo(6);
             assertThat(request.getValue().getSimilarityThreshold()).isEqualTo(0.4);
         }
     }
@@ -144,11 +143,11 @@ class SpringAiRagAdvisorPipelineTests {
         ObjectProvider<RetrievalAugmentationAdvisor> advisors = beans.getBeanProvider(RetrievalAugmentationAdvisor.class);
         SemanticProperties properties = new SemanticProperties("jdbc:postgresql://localhost/test", "test",
                 "test", "test-embedding", 3, "test-generation", false, 8, 0.4, Duration.ofSeconds(2));
-        AiProperties aiProperties = new AiProperties(Duration.ofSeconds(3), 256, 3, 5, false, 1000);
+        Duration queryTimeout = Duration.ofSeconds(3);
 
         try (ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
             SpringAiRagAnswerPipeline pipeline = new SpringAiRagAnswerPipeline(models, advisors, properties,
-                    executor, aiProperties);
+                    executor, queryTimeout);
 
             assertThatThrownBy(() -> pipeline.answer(QUESTION))
                     .isInstanceOf(BusinessException.class)
@@ -167,10 +166,10 @@ class SpringAiRagAdvisorPipelineTests {
 
         SemanticProperties properties = new SemanticProperties("jdbc:postgresql://127.0.0.1:1/test", "test",
                 "test", "test-embedding", 3, "test-generation", true, 8, 0.4, Duration.ofSeconds(2));
-        AiProperties aiProperties = new AiProperties(Duration.ofSeconds(3), 256, 3, 5, false, 1000);
+        Duration queryTimeout = Duration.ofSeconds(3);
         try (ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
             SpringAiRagAnswerPipeline pipeline = new SpringAiRagAnswerPipeline(models, advisors, properties,
-                    executor, aiProperties);
+                    executor, queryTimeout);
 
             assertThatThrownBy(() -> pipeline.answer(QUESTION))
                     .isInstanceOf(BusinessException.class)
@@ -191,13 +190,13 @@ class SpringAiRagAdvisorPipelineTests {
         ObjectProvider<ChatModel> models = beans.getBeanProvider(ChatModel.class);
         ObjectProvider<RetrievalAugmentationAdvisor> advisors = beans.getBeanProvider(RetrievalAugmentationAdvisor.class);
         SemanticProperties semanticProperties = semanticProperties();
-        AiProperties aiProperties = new AiProperties(Duration.ofSeconds(3), 256, 3, 5, false, 1000);
-        return new SpringAiRagAnswerPipeline(models, advisors, semanticProperties, executor, aiProperties);
+        Duration queryTimeout = Duration.ofSeconds(3);
+        return new SpringAiRagAnswerPipeline(models, advisors, semanticProperties, executor, queryTimeout);
     }
 
     private SemanticProperties semanticProperties() {
         return new SemanticProperties("jdbc:postgresql://localhost/test", "test", "test",
-                "test-embedding", 3, "test-generation", true, 8, 0.4, Duration.ofSeconds(2));
+                "test-embedding", 3, "test-generation", true, 6, 0.4, Duration.ofSeconds(2));
     }
 
     private ChatModel fakeModel(String answer, AtomicReference<Prompt> prompt) {

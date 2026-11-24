@@ -29,7 +29,7 @@ public class SpringAiRagConfiguration {
 
         var retriever = VectorStoreDocumentRetriever.builder()
                 .vectorStore(vectorStore)
-                .topK(10)
+                .topK(properties.topK())
                 .similarityThreshold(properties.similarityThreshold())
                 .filterExpression(queryTransformer::publishedApprovedGenerationFilter)
                 .build();

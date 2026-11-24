@@ -56,7 +56,7 @@ import org.testcontainers.utility.DockerImageName;
         "supplypilot.semantic.read-enabled=true",
         "supplypilot.semantic.indexing.worker-enabled=false",
         "supplypilot.semantic.embedding-timeout=PT90S",
-        "supplypilot.ai.provider-timeout=PT120S"
+        "supplypilot.semantic.query-timeout=PT120S"
 })
 @ActiveProfiles("test")
 @Import({TestcontainersConfiguration.class, FixedClockConfiguration.class})
@@ -130,7 +130,8 @@ class SpringAiRealDocumentRagE2ETests {
                         filters.eq("documentStatus", "READY")),
                 filters.eq("outboundApprovalStatus", "APPROVED")).build();
         var retrieved = queryVectorStore.similaritySearch(SearchRequest.builder()
-                .query(question).topK(10).similarityThreshold(semanticProperties.similarityThreshold())
+                .query(question).topK(semanticProperties.topK())
+                .similarityThreshold(semanticProperties.similarityThreshold())
                 .filterExpression(approvedGeneration).build());
         assertThat(retrieved).extracting(Document::getText).contains(content);
 

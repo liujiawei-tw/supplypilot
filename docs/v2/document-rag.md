@@ -2,7 +2,7 @@
 
 > 本文件保留 V2 文件管理、權限、Demo 語料與答案證據需求。Spring AI 2.0.1 查詢／索引與問題分類程式已在本機 main；最新 RAG PostProcessor 移除修改尚未部署。正式環境及隔離本機 Demo 的既有 migration、回填與 Gemini 問答證據，依文末連結分開記錄。Agentic SQL 不在遷移範圍。
 
-目前 main 的服務與資料連線請見[HTML 架構圖](../architecture/supplypilot-architecture-overview.html)、[SVG 架構圖](../architecture/supplypilot-architecture-overview.svg)及[架構說明](../architecture/README.md)。圖中 RAG 與 Gemini 標示為可設定路徑：`SEMANTIC_READ_ENABLED` 預設關閉，Compose 的 Chat／Embedding Provider 預設為 `none`；這是執行設定摘要，不代表已啟用正式服務。
+文件問答的 [application.yml](../../backend/src/main/resources/application.yml) 預設啟用讀取，Chat 與 Embedding 使用 `google-genai`，文件問答等待逾時為 25 秒。部署需提供 Gemini 金鑰及 pgvector 連線資料。
 
 ## 1. 保留的三種使用情境
 
@@ -17,13 +17,13 @@
     使用者提問
       → DocumentQueryService / SEARCH_DOCUMENTS
       → Spring AI ChatClient + RetrievalAugmentationAdvisor
-      → VectorStoreDocumentRetriever + PgVectorStore（最多 10 份、相似度門檻 0.4）
+      → VectorStoreDocumentRetriever + PgVectorStore（最多 8 個片段、相似度門檻 0.4）
       → ContextualQueryAugmenter：將檢索候選直接放入 Gemini Context
       → Gemini ChatModel：自行判斷候選與問題是否相關、是否足以回答
       → DocumentQueryResponse：模型答案 + Advisor 回傳的檢索文件來源
 
 - 正式文件問答使用 Spring AI `RetrievalAugmentationAdvisor`、`VectorStoreDocumentRetriever`、`PgVectorStore`、`ChatClient`、`ContextualQueryAugmenter` 與 Gemini `EmbeddingModel`。不得保留自製 lexical/semantic 檢索或 RRF 作為正式查詢路徑。
-- Retriever 使用 Filter Expression 限制已發布 generation、`READY` 文件與 `APPROVED` 出站狀態；提問明確包含一個或多個供應商代碼時，另以 Spring AI `VectorStoreDocumentRetriever.FILTER_EXPRESSION` 將候選限制在這些供應商。多個代碼保留為同一查詢的供應商集合；未明確提供代碼時不加供應商條件。相似度門檻為 0.4，候選最多 10 份。相似度全低於門檻時，回傳 `INSUFFICIENT_EVIDENCE`。
+- Retriever 使用 Filter Expression 限制已發布 generation、`READY` 文件與 `APPROVED` 出站狀態；提問明確包含一個或多個供應商代碼時，另以 Spring AI `VectorStoreDocumentRetriever.FILTER_EXPRESSION` 將候選限制在這些供應商。多個代碼保留為同一查詢的供應商集合；未明確提供代碼時不加供應商條件。相似度門檻為 0.4，候選最多 8 個片段，由 `supplypilot.semantic.top-k` 控制。相似度全低於門檻時，回傳 `INSUFFICIENT_EVIDENCE`。
 - 不使用自製 `DocumentPostProcessor` 做候選文件來源、版本、事實適用性或語意支持篩選；Spring AI Advisor 把符合 Retriever 條件的候選直接交給模型判斷。來源由 Advisor 回傳的實際 `Document` metadata 建立。
 - 不宣稱「引用文字存在」代表「答案 100% 正確／完整」；來源欄位取自 Advisor 回傳的向量 Document metadata，不由 LLM 自造，但查詢時不再對 MySQL 權威資料做即時逐來源驗證。
 - `/api/v1/ai/query` 的工具結果政策只檢查工具結果狀態、複合問題完整度及明確物料／供應商代碼涵蓋；文件候選範圍由 Spring AI Retriever 的 metadata filter 收斂，文件相關性與答案支持度由同一 Advisor／模型流程判斷，與直連 `/api/v1/document-queries` 對齊。
@@ -105,7 +105,7 @@ Documents API 會分開回傳文件 ingestion `status`、持久化 `semanticRevi
 
 ## 9. 驗收
 
-- Spring AI Advisor 的向量檢索只回傳已發布 generation、`READY`、出站核准且相似度至少 0.4 的最多 10 份候選；問題明確指定供應商代碼時，候選另限定為所指定供應商。相關性與答案支持度由模型判斷。
+- Spring AI Advisor 的向量檢索只回傳已發布 generation、`READY`、出站核准且相似度至少 0.4 的最多 8 個候選；問題明確指定供應商代碼時，候選另限定為所指定供應商。相關性與答案支持度由模型判斷。
 - 回答來源取自 Advisor 實際回傳文件；沒有相似度達標候選時回 `INSUFFICIENT_EVIDENCE`。
 - 未核准/敏感文件不經任何路徑送入 Gemini；Provider 故障不阻斷核心採購 MySQL 業務。
 - 新文件排隊、失敗、重試、手動再索引不影響既有可查文件；管理員不需日常全域 Gate 操作。
